@@ -1,0 +1,1087 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FocusForge — Productivity Dashboard</title>
+  <meta name="description" content="A free, lightweight personal productivity & habit-tracking web application with bilingual support." />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="js/tailwind-config.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body class="min-h-screen text-slate-200 overflow-x-hidden">
+
+  <!-- Background Gradient Orbs -->
+  <div class="fixed inset-0 pointer-events-none overflow-hidden" aria-hidden="true">
+    <div class="absolute -top-40 -right-40 w-96 h-96 bg-purple-600/10 rounded-full blur-3xl"></div>
+    <div class="absolute top-1/2 -left-48 w-80 h-80 bg-violet-700/10 rounded-full blur-3xl"></div>
+    <div class="absolute bottom-0 right-1/3 w-72 h-72 bg-indigo-600/8 rounded-full blur-3xl"></div>
+  </div>
+
+  <!-- Mobile Menu Toggle -->
+  <button id="mobileMenuBtn" class="fixed top-4 left-4 z-50 md:hidden glass rounded-xl p-2.5 text-purple-400 hover:text-white transition-colors" aria-label="Toggle menu">
+    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+  </button>
+
+  <div class="flex min-h-screen relative">
+    <!-- Sidebar -->
+    <aside id="sidebar" class="sidebar w-64 min-h-screen glass-strong flex flex-col py-6 px-3 fixed left-0 top-0 bottom-0 transition-transform duration-300 z-40">
+      <!-- Logo -->
+      <div class="flex items-center gap-3 px-3 mb-8">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-violet-600 flex items-center justify-center shadow-lg shadow-purple-500/20">
+          <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+        </div>
+        <div>
+          <h1 class="text-lg font-bold bg-gradient-to-r from-purple-400 to-violet-300 bg-clip-text text-transparent">FocusForge</h1>
+          <p class="text-[10px] text-slate-500 tracking-wider uppercase" data-i18n="tagline">Productivity Hub</p>
+        </div>
+      </div>
+
+      <nav class="flex-1 flex flex-col gap-1 overflow-y-auto pr-1">
+        <button class="nav-item active flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium w-full text-left" data-page="dashboard" onclick="navigateTo('dashboard')">
+          <svg class="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1h-2z"/></svg>
+          <span data-i18n="nav_dashboard">Dashboard</span>
+        </button>
+        <button class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium w-full text-left" data-page="today" onclick="navigateTo('today')">
+          <svg class="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+          <span data-i18n="nav_today">Today</span>
+        </button>
+        <button class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium w-full text-left" data-page="tasks" onclick="navigateTo('tasks')">
+          <svg class="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+          <span data-i18n="nav_tasks">Tasks</span>
+        </button>
+        <button class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium w-full text-left" data-page="routine" onclick="navigateTo('routine')">
+          <svg class="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+          <span data-i18n="nav_routine">Routine Planner</span>
+        </button>
+        <button class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium w-full text-left" data-page="focus" onclick="navigateTo('focus')">
+          <svg class="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+          <span data-i18n="nav_focus">Focus Mode</span>
+        </button>
+        <button class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium w-full text-left" data-page="habits" onclick="navigateTo('habits')">
+          <svg class="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+          <span data-i18n="nav_habits">Habits</span>
+        </button>
+        <button class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium w-full text-left" data-page="braindump" onclick="navigateTo('braindump')">
+          <svg class="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
+          <span data-i18n="nav_braindump">Brain Dump</span>
+        </button>
+        <button class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium w-full text-left" data-page="learning" onclick="navigateTo('learning')">
+          <svg class="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+          <span data-i18n="nav_learning">Learning Hub</span>
+        </button>
+        <button class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium w-full text-left" data-page="analytics" onclick="navigateTo('analytics')">
+          <svg class="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z"/></svg>
+          <span data-i18n="nav_analytics">Analytics</span>
+        </button>
+        
+        <div class="h-px bg-purple-500/10 my-1 mx-2"></div>
+
+        <button class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium w-full text-left text-slate-500 hover:text-slate-300" data-page="logger" onclick="navigateTo('logger')">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          <span data-i18n="nav_logger">Legacy Logger</span>
+        </button>
+
+        <button class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium w-full text-left" data-page="settings" onclick="navigateTo('settings')">
+          <svg class="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+          <span data-i18n="nav_settings">Settings</span>
+        </button>
+      </nav>
+
+      <!-- Language Toggle in Sidebar -->
+      <div class="mt-auto pt-4 border-t border-purple-500/10 px-2">
+        <button id="langToggle" onclick="toggleLanguage()" class="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl glass hover:bg-purple-500/10 transition-all text-sm font-medium">
+          <span id="langFlag">🇬🇧</span>
+          <span id="langLabel">English</span>
+          <svg class="w-4 h-4 text-purple-400 ml-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 ml-0 md:ml-64 p-4 md:p-8 min-h-screen">
+
+      <!-- ==================== DASHBOARD PAGE ==================== -->
+      <section id="page-dashboard" class="page fade-in">
+        <!-- Header -->
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-8 gap-4">
+          <div class="ml-10 md:ml-0">
+            <h2 class="text-2xl md:text-3xl font-bold glow-text" data-i18n="dashboard_title">Dashboard Overview</h2>
+            <p class="text-slate-400 text-sm mt-1" data-i18n="dashboard_subtitle">Your productivity at a glance</p>
+          </div>
+          <div class="flex items-center gap-3">
+            <span class="text-xs text-slate-500" id="currentDate"></span>
+            <button onclick="requestNotificationPermission()" class="glass rounded-xl p-2.5 hover:bg-purple-500/10 transition-all group" title="Enable Notifications">
+              <svg class="w-5 h-5 text-purple-400 group-hover:text-purple-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Stats Cards -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          <div class="stat-card glass rounded-2xl p-5 slide-up" style="animation-delay:0.05s">
+            <div class="flex items-center justify-between mb-3">
+              <div class="w-10 h-10 rounded-xl bg-purple-500/20 flex items-center justify-center">
+                <svg class="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+              </div>
+              <span class="text-xs text-emerald-400 font-medium" data-i18n="today">Today</span>
+            </div>
+            <p class="text-3xl font-bold text-white" id="statToday">0h 0m</p>
+            <p class="text-xs text-slate-400 mt-1" data-i18n="hours_logged_today">Hours logged today</p>
+          </div>
+          <div class="stat-card glass rounded-2xl p-5 slide-up" style="animation-delay:0.1s">
+            <div class="flex items-center justify-between mb-3">
+              <div class="w-10 h-10 rounded-xl bg-violet-500/20 flex items-center justify-center">
+                <svg class="w-5 h-5 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+              </div>
+              <span class="text-xs text-blue-400 font-medium" data-i18n="this_week">This Week</span>
+            </div>
+            <p class="text-3xl font-bold text-white" id="statWeek">0h 0m</p>
+            <p class="text-xs text-slate-400 mt-1" data-i18n="hours_this_week">Hours this week</p>
+          </div>
+          <div class="stat-card glass rounded-2xl p-5 slide-up" style="animation-delay:0.15s">
+            <div class="flex items-center justify-between mb-3">
+              <div class="w-10 h-10 rounded-xl bg-indigo-500/20 flex items-center justify-center">
+                <svg class="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+              </div>
+              <span class="text-xs text-purple-400 font-medium" data-i18n="all_time">All Time</span>
+            </div>
+            <p class="text-3xl font-bold text-white" id="statTotal">0h 0m</p>
+            <p class="text-xs text-slate-400 mt-1" data-i18n="total_hours">Total hours logged</p>
+          </div>
+          <div class="stat-card glass rounded-2xl p-5 slide-up" style="animation-delay:0.2s">
+            <div class="flex items-center justify-between mb-3">
+              <div class="w-10 h-10 rounded-xl bg-rose-500/20 flex items-center justify-center">
+                <svg class="w-5 h-5 text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/></svg>
+              </div>
+              <span class="text-xs text-rose-400 font-medium" data-i18n="distractions">Distractions</span>
+            </div>
+            <p class="text-3xl font-bold text-white" id="statDistractions">0</p>
+            <p class="text-xs text-slate-400 mt-1" data-i18n="distractions_today">Distractions logged today</p>
+          </div>
+        </div>
+
+        <!-- Dashboard Bottom Row -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <!-- Recent Activity -->
+          <div class="glass rounded-2xl p-6 slide-up" style="animation-delay:0.25s">
+            <h3 class="text-lg font-semibold mb-4 flex items-center gap-2">
+              <svg class="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
+              <span data-i18n="recent_activity">Recent Activity</span>
+            </h3>
+            <div id="recentActivityList" class="space-y-3 max-h-72 overflow-y-auto pr-1">
+              <p class="text-slate-500 text-sm text-center py-8" data-i18n="no_activity_yet">No activity logged yet. Start tracking!</p>
+            </div>
+          </div>
+
+          <!-- Category Breakdown -->
+          <div class="glass rounded-2xl p-6 slide-up" style="animation-delay:0.3s">
+            <h3 class="text-lg font-semibold mb-4 flex items-center gap-2">
+              <svg class="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z"/></svg>
+              <span data-i18n="category_breakdown">Category Breakdown</span>
+            </h3>
+            <div id="categoryBreakdown" class="space-y-3">
+              <p class="text-slate-500 text-sm text-center py-8" data-i18n="no_categories_yet">No categories tracked yet.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================== ACTIVITY LOGGER PAGE ==================== -->
+      <section id="page-logger" class="page hidden fade-in">
+        <div class="ml-10 md:ml-0 mb-8">
+          <h2 class="text-2xl md:text-3xl font-bold glow-text" data-i18n="logger_title">Activity & Hour Logger</h2>
+          <p class="text-slate-400 text-sm mt-1" data-i18n="logger_subtitle">Track your daily study and coding hours</p>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <!-- Log Form -->
+          <div class="lg:col-span-1 glass rounded-2xl p-6">
+            <h3 class="text-lg font-semibold mb-5 flex items-center gap-2">
+              <svg class="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
+              <span data-i18n="log_activity">Log Activity</span>
+            </h3>
+
+            <!-- Category Select + Add -->
+            <div class="mb-4">
+              <label class="block text-xs text-slate-400 mb-1.5 font-medium" data-i18n="category">Category</label>
+              <div class="flex gap-2">
+                <select id="logCategory" class="flex-1 rounded-xl px-3 py-2.5 text-sm">
+                  <!-- Populated by JS -->
+                </select>
+                <button onclick="showAddCategoryModal()" class="glass rounded-xl px-3 py-2.5 hover:bg-purple-500/15 transition-all" title="Add category">
+                  <svg class="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                </button>
+              </div>
+            </div>
+
+            <!-- Time -->
+            <div class="grid grid-cols-2 gap-3 mb-4">
+              <div>
+                <label class="block text-xs text-slate-400 mb-1.5 font-medium" data-i18n="hours">Hours</label>
+                <input type="number" id="logHours" min="0" max="24" value="0" class="w-full rounded-xl px-3 py-2.5 text-sm" />
+              </div>
+              <div>
+                <label class="block text-xs text-slate-400 mb-1.5 font-medium" data-i18n="minutes">Minutes</label>
+                <input type="number" id="logMinutes" min="0" max="59" value="0" class="w-full rounded-xl px-3 py-2.5 text-sm" />
+              </div>
+            </div>
+
+            <!-- Date -->
+            <div class="mb-4">
+              <label class="block text-xs text-slate-400 mb-1.5 font-medium" data-i18n="date">Date</label>
+              <input type="date" id="logDate" class="w-full rounded-xl px-3 py-2.5 text-sm" />
+            </div>
+
+            <!-- Notes -->
+            <div class="mb-5">
+              <label class="block text-xs text-slate-400 mb-1.5 font-medium" data-i18n="notes">Notes</label>
+              <textarea id="logNotes" rows="3" class="w-full rounded-xl px-3 py-2.5 text-sm resize-none" data-i18n-placeholder="notes_placeholder" placeholder="What did you work on?"></textarea>
+            </div>
+
+            <button onclick="logActivity()" class="w-full bg-gradient-to-r from-purple-600 to-violet-600 hover:from-purple-500 hover:to-violet-500 text-white font-semibold py-3 rounded-xl transition-all btn-glow text-sm">
+              <span data-i18n="log_entry">Log Entry</span> ✨
+            </button>
+          </div>
+
+          <!-- Activity History -->
+          <div class="lg:col-span-2 glass rounded-2xl p-6">
+            <div class="flex items-center justify-between mb-5">
+              <h3 class="text-lg font-semibold flex items-center gap-2">
+                <svg class="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                <span data-i18n="activity_history">Activity History</span>
+              </h3>
+              <button onclick="clearAllActivities()" class="text-xs text-rose-400/70 hover:text-rose-400 transition-colors" data-i18n="clear_all">Clear All</button>
+            </div>
+            <div id="activityHistoryList" class="space-y-3 max-h-[500px] overflow-y-auto pr-1">
+              <p class="text-slate-500 text-sm text-center py-12" data-i18n="no_entries">No entries yet. Log your first activity!</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Manage Categories -->
+        <div class="glass rounded-2xl p-6 mt-6">
+          <h3 class="text-lg font-semibold mb-4 flex items-center gap-2">
+            <svg class="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A2 2 0 013 12V7a4 4 0 014-4z"/></svg>
+            <span data-i18n="manage_categories">Manage Categories</span>
+          </h3>
+          <div id="categoryChips" class="flex flex-wrap gap-2">
+            <!-- Chips rendered by JS -->
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================== TODAY PAGE ==================== -->
+      <section id="page-today" class="page hidden fade-in">
+        <div class="ml-10 md:ml-0 mb-8">
+          <h2 class="text-2xl md:text-3xl font-bold glow-text" id="todayGreeting">Good Morning, User 👋</h2>
+          <p class="text-slate-400 text-sm mt-1" id="todayDateDisplay">Today is Monday, October 15</p>
+        </div>
+        
+        <!-- Summary Cards -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+          <div class="stat-card glass rounded-2xl p-4">
+            <p class="text-xs text-slate-400 uppercase tracking-wider mb-1">Remaining Tasks</p>
+            <p class="text-2xl font-bold text-white" id="todayRemainingTasks">0</p>
+          </div>
+          <div class="stat-card glass rounded-2xl p-4">
+            <p class="text-xs text-slate-400 uppercase tracking-wider mb-1">Focus Planned</p>
+            <p class="text-2xl font-bold text-purple-400" id="todayPlannedFocus">0h 0m</p>
+          </div>
+          <div class="stat-card glass rounded-2xl p-4">
+            <p class="text-xs text-slate-400 uppercase tracking-wider mb-1">Task Progress</p>
+            <p class="text-2xl font-bold text-emerald-400" id="todayTaskProgress">0 / 0</p>
+          </div>
+          <div class="stat-card glass rounded-2xl p-4">
+            <p class="text-xs text-slate-400 uppercase tracking-wider mb-1">Daily Score</p>
+            <p class="text-2xl font-bold text-amber-400" id="todayScore">0 / 100</p>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div class="lg:col-span-2 space-y-6">
+            <!-- Next Task -->
+            <div class="glass-strong rounded-2xl p-6 border border-purple-500/30 glow relative overflow-hidden">
+              <div class="absolute -right-10 -top-10 w-40 h-40 bg-purple-600/20 rounded-full blur-2xl"></div>
+              <p class="text-xs text-purple-400 uppercase tracking-widest font-semibold mb-2">Next Up</p>
+              <h3 class="text-2xl font-bold text-white mb-2" id="todayNextTaskName">No scheduled tasks</h3>
+              <div class="flex items-center gap-4 text-sm text-slate-400 mb-6">
+                <span class="flex items-center gap-1"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg> <span id="todayNextTaskTime">--:--</span></span>
+                <span class="flex items-center gap-1"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A2 2 0 013 12V7a4 4 0 014-4z"/></svg> <span id="todayNextTaskCat">--</span></span>
+              </div>
+              <button onclick="startNextTaskFocus()" class="bg-gradient-to-r from-purple-600 to-violet-600 hover:from-purple-500 hover:to-violet-500 text-white font-bold py-3 px-8 rounded-xl transition-all btn-glow text-sm z-10 relative">
+                START FOCUS ▶
+              </button>
+            </div>
+
+            <!-- Today's Priorities -->
+            <div class="glass rounded-2xl p-6">
+              <h3 class="text-lg font-semibold mb-4 text-white">Today's Priorities</h3>
+              <div id="todayPrioritiesList" class="space-y-3">
+                <!-- Rendered by JS -->
+                <p class="text-slate-500 text-sm">No priorities set for today.</p>
+              </div>
+            </div>
+          </div>
+          
+          <div class="lg:col-span-1">
+            <!-- Timeline -->
+            <div class="glass rounded-2xl p-6 h-full">
+              <h3 class="text-lg font-semibold mb-4 text-white">Today's Timeline</h3>
+              <div class="relative border-l-2 border-purple-500/20 ml-2 pl-4 space-y-6 mt-4" id="todayTimelineList">
+                <!-- Rendered by JS -->
+                <p class="text-slate-500 text-sm">Timeline is empty.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================== TASKS PAGE ==================== -->
+      <section id="page-tasks" class="page hidden fade-in">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-8 gap-4">
+          <div class="ml-10 md:ml-0">
+            <h2 class="text-2xl md:text-3xl font-bold glow-text">Task Management</h2>
+            <p class="text-slate-400 text-sm mt-1">Organize and track your tasks</p>
+          </div>
+          <button onclick="showAddTaskModal()" class="bg-gradient-to-r from-purple-600 to-violet-600 hover:from-purple-500 hover:to-violet-500 text-white font-bold py-2.5 px-6 rounded-xl transition-all btn-glow text-sm flex items-center gap-2">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+            Add New Task
+          </button>
+        </div>
+
+        <!-- Task Tabs -->
+        <div class="flex items-center gap-2 mb-6 border-b border-purple-500/20 pb-2 overflow-x-auto custom-scrollbar">
+          <button onclick="switchTaskTab('all')" id="tab-tasks-all" class="task-tab active px-4 py-2 rounded-lg text-sm font-medium bg-purple-500/20 text-purple-300">All Tasks</button>
+          <button onclick="switchTaskTab('today')" id="tab-tasks-today" class="task-tab px-4 py-2 rounded-lg text-sm font-medium text-slate-400 hover:text-slate-200 transition-colors">Today</button>
+          <button onclick="switchTaskTab('upcoming')" id="tab-tasks-upcoming" class="task-tab px-4 py-2 rounded-lg text-sm font-medium text-slate-400 hover:text-slate-200 transition-colors">Upcoming</button>
+          <button onclick="switchTaskTab('completed')" id="tab-tasks-completed" class="task-tab px-4 py-2 rounded-lg text-sm font-medium text-slate-400 hover:text-slate-200 transition-colors">Completed</button>
+        </div>
+
+        <div class="glass rounded-2xl p-2 md:p-6">
+          <div id="taskManagerList" class="space-y-3 max-h-[600px] overflow-y-auto pr-2">
+            <!-- Rendered by JS -->
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================== HABITS PAGE ==================== -->
+      <section id="page-habits" class="page hidden fade-in">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-8 gap-4">
+          <div class="ml-10 md:ml-0">
+            <h2 class="text-2xl md:text-3xl font-bold glow-text">Habit Tracker</h2>
+            <p class="text-slate-400 text-sm mt-1">Build consistency through daily habits</p>
+          </div>
+          <button onclick="showAddHabitModal()" class="glass rounded-xl px-4 py-2.5 text-sm font-medium hover:bg-purple-500/10 transition-all flex items-center gap-2">
+            <svg class="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+            Create Habit
+          </button>
+        </div>
+
+        <div class="glass rounded-2xl overflow-x-auto">
+          <div class="min-w-[700px] p-6">
+            <!-- Weekly Habit Matrix Header -->
+            <div class="grid grid-cols-12 gap-2 mb-4 text-xs font-semibold text-slate-400 uppercase tracking-wider text-center">
+              <div class="col-span-3 text-left">Habit</div>
+              <div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div><div>Sun</div>
+              <div class="col-span-2 text-right">Streak</div>
+            </div>
+            
+            <div id="habitMatrixList" class="space-y-4">
+              <!-- Rendered by JS -->
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================== BRAIN DUMP PAGE ==================== -->
+      <section id="page-braindump" class="page hidden fade-in">
+        <div class="max-w-3xl mx-auto">
+          <div class="text-center mb-10">
+            <h2 class="text-3xl md:text-4xl font-bold glow-text mb-3">Brain Dump</h2>
+            <p class="text-slate-400 text-sm">Quickly capture anything on your mind. Organize it later.</p>
+          </div>
+
+          <div class="glass-strong rounded-3xl p-4 md:p-6 mb-8 relative">
+            <textarea id="brainDumpInput" rows="3" class="w-full bg-transparent border-none text-xl md:text-2xl text-white placeholder-slate-500 resize-none focus:ring-0 focus:outline-none" placeholder="What's on your mind?" onkeydown="if(event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); addBrainDumpItem(); }"></textarea>
+            
+            <div class="flex justify-between items-center mt-4 pt-4 border-t border-purple-500/20">
+              <div class="flex gap-2">
+                <select id="brainDumpType" class="bg-purple-500/10 border-none rounded-lg px-3 py-1.5 text-xs text-purple-300 font-medium cursor-pointer">
+                  <option value="task">💻 Task</option>
+                  <option value="idea">💡 Idea</option>
+                  <option value="note">📝 Note</option>
+                  <option value="schedule">📅 Schedule</option>
+                </select>
+              </div>
+              <button onclick="addBrainDumpItem()" class="bg-purple-600 hover:bg-purple-500 text-white font-bold py-2 px-6 rounded-xl transition-all btn-glow text-sm">
+                Capture (Enter)
+              </button>
+            </div>
+          </div>
+
+          <div id="brainDumpList" class="space-y-4">
+            <!-- Rendered by JS -->
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================== ANALYTICS PAGE ==================== -->
+      <section id="page-analytics" class="page hidden fade-in">
+        <div class="ml-10 md:ml-0 mb-8">
+          <h2 class="text-2xl md:text-3xl font-bold glow-text">Productivity Analytics</h2>
+          <p class="text-slate-400 text-sm mt-1">Insights into your work patterns</p>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+          <div class="glass rounded-2xl p-6 flex flex-col justify-center items-center text-center">
+            <h3 class="text-lg font-semibold text-slate-300 mb-2">Productivity Score</h3>
+            <div class="relative w-40 h-40 mt-4 flex items-center justify-center">
+              <svg class="w-full h-full transform -rotate-90 absolute inset-0" viewBox="0 0 100 100">
+                <circle cx="50" cy="50" r="45" fill="none" stroke="rgba(139,92,246,0.1)" stroke-width="8" />
+                <circle id="analyticsScoreCircle" cx="50" cy="50" r="45" fill="none" stroke="#a855f7" stroke-width="8" stroke-linecap="round" stroke-dasharray="282.74" stroke-dashoffset="282.74" class="transition-all duration-1000" />
+              </svg>
+              <div class="flex flex-col">
+                <span class="text-4xl font-bold text-white" id="analyticsScoreValue">0</span>
+                <span class="text-xs text-purple-400 uppercase mt-1">Out of 100</span>
+              </div>
+            </div>
+            <p class="text-sm text-slate-400 mt-6" id="analyticsScoreLabel">Let's Improve 💪</p>
+          </div>
+          
+          <div class="glass rounded-2xl p-6">
+            <h3 class="text-lg font-semibold text-slate-300 mb-6">Time by Category</h3>
+            <div id="analyticsCategoryBars" class="space-y-4">
+              <!-- Rendered by JS -->
+            </div>
+          </div>
+        </div>
+        
+        <div class="glass rounded-2xl p-6">
+          <h3 class="text-lg font-semibold text-slate-300 mb-6">Weekly Focus Trend</h3>
+          <div class="h-48 flex items-end justify-between gap-2 border-b border-l border-slate-700/50 p-2 pb-0 pl-0" id="analyticsTrendChart">
+            <!-- Rendered by JS -->
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================== LEARNING HUB PAGE ==================== -->
+      <section id="page-learning" class="page hidden fade-in">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-8 gap-4">
+          <div class="ml-10 md:ml-0">
+            <h2 class="text-2xl md:text-3xl font-bold glow-text" data-i18n="learning_hub_title">Learning Hub</h2>
+            <p class="text-slate-400 text-sm mt-1" data-i18n="learning_hub_subtitle">Organize your subjects and track your progress</p>
+          </div>
+          <button onclick="showCreateFolderModal()" class="glass rounded-xl px-4 py-2.5 text-sm font-medium hover:bg-purple-500/10 transition-all flex items-center gap-2">
+            <svg class="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+            <span data-i18n="create_folder">Create Folder</span>
+          </button>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <!-- Folders List -->
+          <div class="lg:col-span-1 space-y-4">
+            <h3 class="text-lg font-semibold flex items-center gap-2 mb-2">
+              <svg class="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
+              <span data-i18n="projects">Learning Folders</span>
+            </h3>
+            <div id="foldersList" class="space-y-2">
+              <!-- Rendered by JS -->
+            </div>
+          </div>
+
+          <!-- Active Folder View -->
+          <div class="lg:col-span-2 hidden" id="activeFolderView">
+            <!-- Header Stats -->
+            <div class="glass rounded-2xl p-5 mb-6 flex flex-wrap gap-4 items-center justify-between border-l-4 border-l-purple-500">
+              <h3 class="text-xl font-bold text-white" id="activeFolderName">Folder Name</h3>
+              <div class="flex gap-4">
+                <div class="text-center">
+                  <p class="text-2xl font-bold text-purple-400" id="folderStatHours">0</p>
+                  <p class="text-[10px] text-slate-400 uppercase tracking-wide" data-i18n="total_video_hours">Video Hours</p>
+                </div>
+                <div class="text-center">
+                  <p class="text-2xl font-bold text-violet-400" id="folderStatProblems">0</p>
+                  <p class="text-[10px] text-slate-400 uppercase tracking-wide" data-i18n="total_problems">Problems</p>
+                </div>
+                <div class="text-center">
+                  <p class="text-2xl font-bold text-indigo-400" id="folderStatDays">0</p>
+                  <p class="text-[10px] text-slate-400 uppercase tracking-wide" data-i18n="active_days">Active Days</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Log Progress Form -->
+            <div class="glass rounded-2xl p-6 mb-6">
+              <h4 class="font-semibold mb-4 text-purple-300" data-i18n="log_progress">Log Progress</h4>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                  <label class="block text-xs text-slate-400 mb-1.5 font-medium" data-i18n="date">Date</label>
+                  <input type="date" id="folderLogDate" class="w-full rounded-xl px-3 py-2 text-sm" />
+                </div>
+                <div>
+                  <label class="block text-xs text-slate-400 mb-1.5 font-medium" data-i18n="topics_learned">Topics Learned</label>
+                  <input type="text" id="folderLogTopics" class="w-full rounded-xl px-3 py-2 text-sm" data-i18n-placeholder="topics_placeholder" placeholder="e.g., OOP, Inheritance" />
+                </div>
+                <div>
+                  <label class="block text-xs text-slate-400 mb-1.5 font-medium" data-i18n="video_hours">Video Hours</label>
+                  <input type="number" id="folderLogVideoHours" min="0" step="0.5" value="0" class="w-full rounded-xl px-3 py-2 text-sm" />
+                </div>
+                <div>
+                  <label class="block text-xs text-slate-400 mb-1.5 font-medium" data-i18n="problems_solved">Problems Solved</label>
+                  <input type="number" id="folderLogProblems" min="0" value="0" class="w-full rounded-xl px-3 py-2 text-sm" />
+                </div>
+              </div>
+              <div class="mb-4">
+                <label class="block text-xs text-slate-400 mb-1.5 font-medium" data-i18n="notes">Notes</label>
+                <textarea id="folderLogNotes" rows="2" class="w-full rounded-xl px-3 py-2 text-sm resize-none" data-i18n-placeholder="notes_placeholder" placeholder="What did you work on?"></textarea>
+              </div>
+              <button onclick="logFolderProgress()" class="w-full bg-purple-600 hover:bg-purple-500 text-white font-medium py-2 rounded-xl transition-all text-sm">
+                <span data-i18n="log_entry">Log Entry</span>
+              </button>
+            </div>
+
+            <!-- History -->
+            <div class="glass rounded-2xl p-6">
+              <h4 class="font-semibold mb-4 text-purple-300" data-i18n="log_history">Log History</h4>
+              <div id="folderHistoryList" class="space-y-3 max-h-64 overflow-y-auto pr-1">
+                <p class="text-slate-500 text-sm text-center py-6" data-i18n="no_logs">No progress logged yet.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================== ROUTINE PLANNER PAGE ==================== -->
+      <section id="page-routine" class="page hidden fade-in">
+        <div class="ml-10 md:ml-0 mb-8">
+          <h2 class="text-2xl md:text-3xl font-bold glow-text" data-i18n="routine_title">Smart Routine Planner</h2>
+          <p class="text-slate-400 text-sm mt-1" data-i18n="routine_subtitle">Schedule tasks and auto-generate balanced routines</p>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <!-- Add Task Form -->
+          <div class="lg:col-span-1 space-y-6">
+            <div class="glass rounded-2xl p-6">
+              <h3 class="text-lg font-semibold mb-5 flex items-center gap-2">
+                <svg class="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
+                <span data-i18n="add_task">Add Task</span>
+              </h3>
+              <div class="space-y-4">
+                <div>
+                  <label class="block text-xs text-slate-400 mb-1.5 font-medium" data-i18n="task_name">Task Name</label>
+                  <input type="text" id="taskName" class="w-full rounded-xl px-3 py-2.5 text-sm" data-i18n-placeholder="task_name_placeholder" placeholder="e.g., Complete React module" />
+                </div>
+                <div>
+                  <label class="block text-xs text-slate-400 mb-1.5 font-medium" data-i18n="target_date">Target Date</label>
+                  <input type="date" id="taskDate" class="w-full rounded-xl px-3 py-2.5 text-sm" />
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                  <div>
+                    <label class="block text-xs text-slate-400 mb-1.5 font-medium" data-i18n="priority">Priority</label>
+                    <select id="taskPriority" class="w-full rounded-xl px-3 py-2.5 text-sm">
+                      <option value="high" data-i18n-opt="high">High</option>
+                      <option value="medium" selected data-i18n-opt="medium">Medium</option>
+                      <option value="low" data-i18n-opt="low">Low</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="block text-xs text-slate-400 mb-1.5 font-medium" data-i18n="est_hours">Est. Hours</label>
+                    <input type="number" id="taskEstHours" min="0.5" step="0.5" value="1" class="w-full rounded-xl px-3 py-2.5 text-sm" />
+                  </div>
+                </div>
+                <button onclick="addTask()" class="w-full bg-gradient-to-r from-purple-600 to-violet-600 hover:from-purple-500 hover:to-violet-500 text-white font-semibold py-3 rounded-xl transition-all btn-glow text-sm">
+                  <span data-i18n="add_task_btn">Add Task</span> 📋
+                </button>
+              </div>
+            </div>
+
+            <!-- Auto-Generate Routine -->
+            <div class="glass rounded-2xl p-6">
+              <h3 class="text-lg font-semibold mb-4 flex items-center gap-2">
+                <svg class="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
+                <span data-i18n="generate_routine">Generate Routine</span>
+              </h3>
+              <div class="space-y-4">
+                <div>
+                  <label class="block text-xs text-slate-400 mb-1.5 font-medium" data-i18n="daily_available_hours">Daily Available Hours</label>
+                  <input type="number" id="dailyHours" min="1" max="16" value="6" class="w-full rounded-xl px-3 py-2.5 text-sm" />
+                </div>
+                <div>
+                  <label class="block text-xs text-slate-400 mb-1.5 font-medium" data-i18n="start_date">Start Date</label>
+                  <input type="date" id="routineStartDate" class="w-full rounded-xl px-3 py-2.5 text-sm" />
+                </div>
+                <button onclick="generateRoutine()" class="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-semibold py-3 rounded-xl transition-all btn-glow text-sm">
+                  <span data-i18n="auto_generate">Auto-Generate</span> ⚡
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Task List & Generated Routine -->
+          <div class="lg:col-span-2 space-y-6">
+            <!-- Task List -->
+            <div class="glass rounded-2xl p-6">
+              <div class="flex items-center justify-between mb-5">
+                <h3 class="text-lg font-semibold flex items-center gap-2">
+                  <svg class="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01m-.01 4h.01"/></svg>
+                  <span data-i18n="task_list">Task List</span>
+                </h3>
+                <button onclick="clearAllTasks()" class="text-xs text-rose-400/70 hover:text-rose-400 transition-colors" data-i18n="clear_all">Clear All</button>
+              </div>
+              <div id="taskList" class="space-y-3 max-h-[400px] overflow-y-auto pr-1">
+                <p class="text-slate-500 text-sm text-center py-8" data-i18n="no_tasks">No tasks yet. Add your first task!</p>
+              </div>
+            </div>
+
+            <!-- Generated Schedule -->
+            <div class="glass rounded-2xl p-6">
+              <h3 class="text-lg font-semibold mb-5 flex items-center gap-2">
+                <svg class="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                <span data-i18n="generated_schedule">Generated Schedule</span>
+              </h3>
+              <div id="generatedSchedule" class="space-y-3 max-h-[400px] overflow-y-auto pr-1">
+                <p class="text-slate-500 text-sm text-center py-8" data-i18n="no_schedule">Click "Auto-Generate" to create a balanced routine from your tasks.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================== FOCUS MODE PAGE ==================== -->
+      <section id="page-focus" class="page hidden fade-in">
+        <div class="ml-10 md:ml-0 mb-8">
+          <h2 class="text-2xl md:text-3xl font-bold glow-text" data-i18n="focus_title">Distraction Shield & Focus</h2>
+          <p class="text-slate-400 text-sm mt-1" data-i18n="focus_subtitle">Stay locked in with the Pomodoro timer</p>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <!-- Pomodoro Timer -->
+          <div class="lg:col-span-2 glass rounded-2xl p-8 flex flex-col items-center">
+            <h3 class="text-lg font-semibold mb-6 flex items-center gap-2">
+              <svg class="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+              <span data-i18n="pomodoro_timer">Pomodoro Timer</span>
+            </h3>
+
+            <!-- Timer Display -->
+            <div class="relative w-64 h-64 mb-8">
+              <svg class="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+                <circle cx="50" cy="50" r="45" fill="none" stroke="rgba(139,92,246,0.1)" stroke-width="4" />
+                <circle id="timerProgress" class="timer-circle" cx="50" cy="50" r="45" fill="none" stroke="url(#timerGrad)" stroke-width="4" stroke-linecap="round" stroke-dasharray="282.74" stroke-dashoffset="0" />
+                <defs>
+                  <linearGradient id="timerGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" style="stop-color:#7c3aed" />
+                    <stop offset="100%" style="stop-color:#a855f7" />
+                  </linearGradient>
+                </defs>
+              </svg>
+              <div class="absolute inset-0 flex flex-col items-center justify-center">
+                <span id="timerDisplay" class="text-5xl font-bold text-white tabular-nums tracking-tight">25:00</span>
+                <span id="timerLabel" class="text-xs text-purple-400 mt-2 uppercase tracking-wider" data-i18n="work_session">Work Session</span>
+              </div>
+            </div>
+
+            <!-- Timer Controls -->
+            <div class="flex items-center gap-4 mb-6">
+              <button onclick="startTimer()" id="timerStartBtn" class="bg-gradient-to-r from-purple-600 to-violet-600 hover:from-purple-500 hover:to-violet-500 text-white font-semibold py-3 px-8 rounded-xl transition-all btn-glow text-sm">
+                <span data-i18n="start">Start</span> ▶
+              </button>
+              <button onclick="pauseTimer()" id="timerPauseBtn" class="glass hover:bg-purple-500/15 text-white font-semibold py-3 px-6 rounded-xl transition-all text-sm hidden">
+                <span data-i18n="pause">Pause</span> ⏸
+              </button>
+              <button onclick="resetTimer()" class="glass hover:bg-purple-500/15 text-slate-300 font-semibold py-3 px-6 rounded-xl transition-all text-sm">
+                <span data-i18n="reset">Reset</span> ↻
+              </button>
+            </div>
+
+            <!-- Timer Settings -->
+            <div class="flex items-center gap-6 glass rounded-xl px-6 py-3">
+              <div class="text-center">
+                <label class="block text-[10px] text-slate-500 mb-1 uppercase tracking-wider" data-i18n="work_min">Work (min)</label>
+                <input type="number" id="pomodoroWork" min="1" max="90" value="25" onchange="updateTimerSettings()" class="w-16 text-center rounded-lg px-2 py-1.5 text-sm" />
+              </div>
+              <div class="text-center">
+                <label class="block text-[10px] text-slate-500 mb-1 uppercase tracking-wider" data-i18n="break_min">Break (min)</label>
+                <input type="number" id="pomodoroBreak" min="1" max="30" value="5" onchange="updateTimerSettings()" class="w-16 text-center rounded-lg px-2 py-1.5 text-sm" />
+              </div>
+              <div class="text-center">
+                <label class="block text-[10px] text-slate-500 mb-1 uppercase tracking-wider" data-i18n="sessions">Sessions</label>
+                <span id="pomodoroSessions" class="text-lg font-bold text-purple-400">0</span>
+              </div>
+            </div>
+
+            <!-- Deep Focus Button -->
+            <button onclick="toggleDeepFocus()" class="mt-6 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-semibold py-3 px-8 rounded-xl transition-all btn-glow text-sm flex items-center gap-2">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+              <span data-i18n="enter_deep_focus">Enter Deep Focus Mode</span>
+            </button>
+          </div>
+
+          <!-- Distraction Counter -->
+          <div class="space-y-6">
+            <div class="glass rounded-2xl p-6">
+              <h3 class="text-lg font-semibold mb-5 flex items-center gap-2">
+                <svg class="w-5 h-5 text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/></svg>
+                <span data-i18n="distraction_counter">Distraction Counter</span>
+              </h3>
+
+              <div class="text-center mb-6">
+                <p class="text-6xl font-bold text-white mb-2" id="distractionCount">0</p>
+                <p class="text-xs text-slate-400" data-i18n="times_distracted_today">times distracted today</p>
+              </div>
+
+              <button onclick="logDistraction()" class="w-full bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-500 hover:to-pink-500 text-white font-semibold py-3 rounded-xl transition-all btn-glow text-sm mb-3">
+                <span data-i18n="log_distraction">I Got Distracted</span> 😔
+              </button>
+              <button onclick="undoDistraction()" class="w-full glass hover:bg-rose-500/10 text-rose-300 font-medium py-2.5 rounded-xl transition-all text-sm">
+                <span data-i18n="undo_last">Undo Last</span> ↩
+              </button>
+
+              <!-- Distraction Log -->
+              <div class="mt-5 pt-4 border-t border-purple-500/10">
+                <h4 class="text-xs text-slate-400 mb-3 uppercase tracking-wider font-medium" data-i18n="distraction_log">Distraction Log</h4>
+                <div id="distractionLog" class="space-y-2 max-h-48 overflow-y-auto pr-1">
+                  <p class="text-slate-500 text-xs text-center py-4" data-i18n="no_distractions">Clean slate! Stay focused 💪</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Quick Task List for Focus -->
+            <div class="glass rounded-2xl p-6">
+              <h3 class="text-sm font-semibold mb-3 flex items-center gap-2 text-slate-300">
+                <svg class="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                <span data-i18n="focus_tasks">Focus Tasks</span>
+              </h3>
+              <div id="focusTaskList" class="space-y-2 max-h-48 overflow-y-auto">
+                <p class="text-slate-500 text-xs text-center py-4" data-i18n="no_focus_tasks">Add tasks in Routine Planner</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================== SETTINGS PAGE ==================== -->
+      <section id="page-settings" class="page hidden fade-in">
+        <div class="ml-10 md:ml-0 mb-8">
+          <h2 class="text-2xl md:text-3xl font-bold glow-text" data-i18n="settings_title">Settings</h2>
+          <p class="text-slate-400 text-sm mt-1" data-i18n="settings_subtitle">Manage your preferences and data</p>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <!-- Notifications -->
+          <div class="glass rounded-2xl p-6">
+            <h3 class="text-lg font-semibold mb-5 flex items-center gap-2">
+              <svg class="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+              <span data-i18n="notifications">Notifications</span>
+            </h3>
+            <div class="space-y-4">
+              <div class="flex items-center justify-between">
+                <div>
+                  <p class="text-sm font-medium" data-i18n="break_reminders">Break Reminders</p>
+                  <p class="text-xs text-slate-500" data-i18n="break_reminders_desc">Get notified when Pomodoro sessions end</p>
+                </div>
+                <button onclick="toggleNotifSetting('breakReminders')" id="toggle-breakReminders" class="w-12 h-6 rounded-full toggle-switch bg-slate-700 relative cursor-pointer">
+                  <div class="w-5 h-5 rounded-full bg-white absolute top-0.5 left-0.5 toggle-knob shadow-sm"></div>
+                </button>
+              </div>
+              <div class="flex items-center justify-between">
+                <div>
+                  <p class="text-sm font-medium" data-i18n="daily_reminders">Daily Study Reminders</p>
+                  <p class="text-xs text-slate-500" data-i18n="daily_reminders_desc">Remind to log activity each day</p>
+                </div>
+                <button onclick="toggleNotifSetting('dailyReminders')" id="toggle-dailyReminders" class="w-12 h-6 rounded-full toggle-switch bg-slate-700 relative cursor-pointer">
+                  <div class="w-5 h-5 rounded-full bg-white absolute top-0.5 left-0.5 toggle-knob shadow-sm"></div>
+                </button>
+              </div>
+              <button onclick="requestNotificationPermission()" class="w-full glass hover:bg-purple-500/10 text-purple-300 font-medium py-2.5 rounded-xl transition-all text-sm mt-2">
+                <span data-i18n="enable_notifications">Enable Browser Notifications</span> 🔔
+              </button>
+              <p class="text-xs text-slate-500" id="notifStatus" data-i18n="notif_status_default">Notification permission: not requested</p>
+            </div>
+          </div>
+
+          <!-- Data Management -->
+          <div class="glass rounded-2xl p-6">
+            <h3 class="text-lg font-semibold mb-5 flex items-center gap-2">
+              <svg class="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"/></svg>
+              <span data-i18n="data_management">Data Management</span>
+            </h3>
+            <div class="space-y-3">
+              <button onclick="exportData()" class="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-semibold py-3 rounded-xl transition-all btn-glow text-sm flex items-center justify-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                <span data-i18n="export_json">Export Data (JSON)</span>
+              </button>
+              <label class="w-full glass hover:bg-purple-500/10 text-purple-300 font-semibold py-3 rounded-xl transition-all text-sm flex items-center justify-center gap-2 cursor-pointer">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                <span data-i18n="import_json">Import Data (JSON)</span>
+                <input type="file" id="importFile" accept=".json" onchange="importData(event)" class="hidden" />
+              </label>
+              <div class="h-px bg-purple-500/10 my-2"></div>
+              <button onclick="resetAllData()" class="w-full glass hover:bg-rose-500/10 text-rose-400 font-medium py-2.5 rounded-xl transition-all text-sm">
+                <span data-i18n="reset_all_data">⚠️ Reset All Data</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Language Settings Card -->
+          <div class="glass rounded-2xl p-6">
+            <h3 class="text-lg font-semibold mb-5 flex items-center gap-2">
+              <svg class="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129"/></svg>
+              <span data-i18n="language_settings">Language Settings</span>
+            </h3>
+            <div class="space-y-4">
+              <div class="flex items-center gap-4">
+                <button onclick="setLanguage('en')" id="langBtnEn" class="flex-1 glass py-3 rounded-xl text-sm font-medium hover:bg-purple-500/10 transition-all border-2 border-transparent">
+                  🇬🇧 English
+                </button>
+                <button onclick="setLanguage('bn')" id="langBtnBn" class="flex-1 glass py-3 rounded-xl text-sm font-medium hover:bg-purple-500/10 transition-all border-2 border-transparent">
+                  🇧🇩 বাংলা
+                </button>
+              </div>
+              <p class="text-xs text-slate-500" data-i18n="lang_saved_note">Language preference is saved automatically.</p>
+            </div>
+          </div>
+
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Deep Focus Overlay -->
+  <div id="deepFocusOverlay" class="deep-focus-overlay">
+    <button onclick="if(timerRunning || timerRemaining < timerTotal) endSessionEarly(); else toggleDeepFocus();" class="absolute top-6 right-6 glass rounded-xl p-3 hover:bg-purple-500/15 transition-all group z-10">
+      <svg class="w-6 h-6 text-purple-400 group-hover:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+    </button>
+
+    <div class="text-center mb-8">
+      <p class="text-xs text-purple-400 uppercase tracking-[0.3em] mb-2" data-i18n="deep_focus_active">🔒 Deep Focus Active</p>
+      <h2 class="text-xl font-light text-slate-300" data-i18n="stay_focused_msg">Eliminate distractions. Stay in the zone.</h2>
+    </div>
+
+    <!-- Deep Focus Timer -->
+    <div class="relative w-72 h-72 mb-10">
+      <svg class="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+        <circle cx="50" cy="50" r="45" fill="none" stroke="rgba(139,92,246,0.08)" stroke-width="3" />
+        <circle id="dfTimerProgress" class="timer-circle" cx="50" cy="50" r="45" fill="none" stroke="url(#dfTimerGrad)" stroke-width="3" stroke-linecap="round" stroke-dasharray="282.74" stroke-dashoffset="0" />
+        <defs>
+          <linearGradient id="dfTimerGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" style="stop-color:#7c3aed" />
+            <stop offset="100%" style="stop-color:#a855f7" />
+          </linearGradient>
+        </defs>
+      </svg>
+      <div class="absolute inset-0 flex flex-col items-center justify-center">
+        <span id="dfTimerDisplay" class="text-6xl font-bold text-white tabular-nums tracking-tight">25:00</span>
+        <span id="dfTimerLabel" class="text-sm text-purple-400 mt-3 uppercase tracking-widest" data-i18n="work_session">Work Session</span>
+      </div>
+    </div>
+
+    <div class="flex items-center gap-4 mb-10">
+      <button onclick="startTimer()" id="dfTimerStartBtn" class="bg-gradient-to-r from-purple-600 to-violet-600 hover:from-purple-500 hover:to-violet-500 text-white font-semibold py-3 px-10 rounded-xl transition-all btn-glow"><span data-i18n="start">Start</span></button>
+      <button onclick="pauseTimer()" id="dfTimerPauseBtn" class="glass hover:bg-purple-500/15 text-white font-semibold py-3 px-8 rounded-xl transition-all hidden"><span data-i18n="pause">Pause</span></button>
+      <button onclick="endSessionEarly()" class="glass hover:bg-purple-500/15 text-slate-300 font-semibold py-3 px-8 rounded-xl transition-all"><span data-i18n="reset">End Session</span></button>
+    </div>
+
+    <!-- Mini task list in deep focus -->
+    <div class="glass-strong rounded-2xl p-6 w-full max-w-md">
+      <h4 class="text-sm font-semibold text-slate-300 mb-3" data-i18n="current_tasks">Current Tasks</h4>
+      <div id="dfTaskList" class="space-y-2 max-h-40 overflow-y-auto">
+        <p class="text-slate-500 text-xs text-center" data-i18n="no_tasks">No tasks yet.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Category Modal -->
+  <div id="addCategoryModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/60 backdrop-blur-sm">
+    <div class="glass-strong rounded-2xl p-6 w-full max-w-sm mx-4 scale-in">
+      <h3 class="text-lg font-semibold mb-4" data-i18n="add_category">Add Category</h3>
+      <input type="text" id="newCategoryInput" class="w-full rounded-xl px-3 py-2.5 text-sm mb-4" data-i18n-placeholder="category_name_placeholder" placeholder="e.g., Algorithm Practice" />
+      <div class="flex gap-3">
+        <button onclick="addCategory()" class="flex-1 bg-gradient-to-r from-purple-600 to-violet-600 text-white font-semibold py-2.5 rounded-xl text-sm" data-i18n="add">Add</button>
+        <button onclick="hideAddCategoryModal()" class="flex-1 glass text-slate-300 font-medium py-2.5 rounded-xl text-sm" data-i18n="cancel">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div id="toastContainer" class="fixed bottom-6 right-6 z-50 flex flex-col gap-2"></div>
+
+
+  <!-- Create Folder Modal -->
+  <div id="createFolderModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/60 backdrop-blur-sm">
+    <div class="glass-strong rounded-2xl p-6 w-full max-w-sm mx-4 scale-in">
+      <h3 class="text-lg font-semibold mb-4" data-i18n="create_folder">Create Folder</h3>
+      <input type="text" id="newFolderInput" class="w-full rounded-xl px-3 py-2.5 text-sm mb-4" data-i18n-placeholder="folder_name_placeholder" placeholder="e.g., Java Programming" />
+      <div class="flex gap-3">
+        <button onclick="createFolder()" class="flex-1 bg-gradient-to-r from-purple-600 to-violet-600 text-white font-semibold py-2.5 rounded-xl text-sm" data-i18n="create_folder">Create Folder</button>
+        <button onclick="hideCreateFolderModal()" class="flex-1 glass text-slate-300 font-medium py-2.5 rounded-xl text-sm" data-i18n="cancel">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Session Report Modal -->
+  <div id="sessionReportModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/80 backdrop-blur-md">
+    <div class="glass-strong rounded-2xl p-6 w-full max-w-md mx-4 scale-in border border-purple-500/30 shadow-2xl shadow-purple-500/20">
+      <div class="text-center mb-6">
+        <h3 class="text-2xl font-bold glow-text mb-2" data-i18n="session_report_title">Session Report</h3>
+        <p class="text-sm text-purple-300" data-i18n="session_report_subtitle">Log your work to unlock Focus Mode</p>
+      </div>
+      
+      <div class="space-y-4 mb-6">
+        <div>
+          <label class="block text-xs text-slate-400 mb-1.5 font-medium" data-i18n="select_folder">Select Folder (Optional)</label>
+          <select id="sessionFolderSelect" class="w-full rounded-xl px-3 py-2.5 text-sm">
+            <option value="" data-i18n-opt="general_study">General Study</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs text-slate-400 mb-1.5 font-medium" data-i18n="topics_learned">Topics Learned</label>
+          <input type="text" id="sessionTopics" class="w-full rounded-xl px-3 py-2.5 text-sm" data-i18n-placeholder="topics_placeholder" placeholder="e.g., OOP, Inheritance" />
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs text-slate-400 mb-1.5 font-medium" data-i18n="video_hours">Video Hours</label>
+            <input type="number" id="sessionVideoHours" min="0" step="0.5" value="0" class="w-full rounded-xl px-3 py-2.5 text-sm" />
+          </div>
+          <div>
+            <label class="block text-xs text-slate-400 mb-1.5 font-medium" data-i18n="problems_solved">Problems Solved</label>
+            <input type="number" id="sessionProblems" min="0" value="0" class="w-full rounded-xl px-3 py-2.5 text-sm" />
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs text-slate-400 mb-1.5 font-medium" data-i18n="notes">Notes</label>
+          <textarea id="sessionNotes" rows="2" class="w-full rounded-xl px-3 py-2.5 text-sm resize-none" data-i18n-placeholder="notes_placeholder" placeholder="What did you work on?"></textarea>
+        </div>
+      </div>
+      
+      <button onclick="submitSessionReport()" class="w-full bg-gradient-to-r from-purple-600 to-violet-600 hover:from-purple-500 hover:to-violet-500 text-white font-bold py-3.5 rounded-xl transition-all btn-glow shadow-lg shadow-purple-500/30">
+        <span data-i18n="unlock">Submit & Unlock</span> 🔓
+      </button>
+    </div>
+  </div>
+
+  <!-- Add Task Modal -->
+  <div id="addTaskModal" class="fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-sm hidden items-center justify-center fade-in">
+    <div class="glass-strong rounded-2xl p-6 w-full max-w-md mx-4 shadow-2xl shadow-purple-500/20 border border-purple-500/30 scale-in relative">
+      <button onclick="closeAddTaskModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white transition-colors">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+      
+      <h3 class="text-xl font-bold mb-6 text-white flex items-center gap-2">
+        <svg class="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+        Create New Task
+      </h3>
+      
+      <div class="space-y-4 max-h-[70vh] overflow-y-auto pr-2 custom-scrollbar">
+        <div>
+          <label class="block text-xs text-slate-400 mb-1.5 font-medium">Task Name</label>
+          <input type="text" id="newTaskName" class="w-full rounded-xl px-3 py-2.5 text-sm" placeholder="What needs to be done?" />
+        </div>
+        
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs text-slate-400 mb-1.5 font-medium">Category</label>
+            <select id="newTaskCategory" class="w-full rounded-xl px-3 py-2.5 text-sm">
+              <!-- Populated by JS -->
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs text-slate-400 mb-1.5 font-medium">Priority</label>
+            <select id="newTaskPriority" class="w-full rounded-xl px-3 py-2.5 text-sm">
+              <option value="low">Low (🟢)</option>
+              <option value="medium" selected>Medium (🟡)</option>
+              <option value="high">High (🟠)</option>
+              <option value="urgent">Urgent (🔴)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs text-slate-400 mb-1.5 font-medium">Date (Optional)</label>
+            <input type="date" id="newTaskDate" class="w-full rounded-xl px-3 py-2.5 text-sm" />
+          </div>
+          <div>
+            <label class="block text-xs text-slate-400 mb-1.5 font-medium">Start Time (Optional)</label>
+            <input type="time" id="newTaskTime" class="w-full rounded-xl px-3 py-2.5 text-sm" />
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs text-slate-400 mb-1.5 font-medium">Deadline (Optional)</label>
+            <input type="date" id="newTaskDeadline" class="w-full rounded-xl px-3 py-2.5 text-sm" />
+          </div>
+          <div>
+            <label class="block text-xs text-slate-400 mb-1.5 font-medium">Est. Duration (hrs)</label>
+            <input type="number" id="newTaskDuration" min="0.5" step="0.5" value="1" class="w-full rounded-xl px-3 py-2.5 text-sm" />
+          </div>
+        </div>
+        
+        <div>
+          <label class="block text-xs text-slate-400 mb-1.5 font-medium">Energy Requirement</label>
+          <div class="flex gap-2">
+            <button onclick="setTaskEnergy('low')" id="energy-btn-low" class="flex-1 py-2 rounded-lg bg-slate-800 border border-slate-700 text-xs font-medium text-emerald-400 hover:bg-slate-700 transition-colors">Low 🔋</button>
+            <button onclick="setTaskEnergy('medium')" id="energy-btn-medium" class="flex-1 py-2 rounded-lg bg-purple-900 border border-purple-500 text-xs font-medium text-amber-400 hover:bg-slate-700 transition-colors">Medium ⚡</button>
+            <button onclick="setTaskEnergy('high')" id="energy-btn-high" class="flex-1 py-2 rounded-lg bg-slate-800 border border-slate-700 text-xs font-medium text-rose-400 hover:bg-slate-700 transition-colors">High 🔥</button>
+          </div>
+          <input type="hidden" id="newTaskEnergy" value="medium" />
+        </div>
+
+        <div>
+          <label class="block text-xs text-slate-400 mb-1.5 font-medium">Notes (Optional)</label>
+          <textarea id="newTaskNotes" rows="2" class="w-full rounded-xl px-3 py-2.5 text-sm resize-none" placeholder="Any details?"></textarea>
+        </div>
+      </div>
+      
+      <div class="mt-6 flex justify-end gap-3">
+        <button onclick="closeAddTaskModal()" class="px-4 py-2 text-sm text-slate-300 hover:text-white transition-colors">Cancel</button>
+        <button onclick="saveNewTask()" class="bg-gradient-to-r from-purple-600 to-violet-600 hover:from-purple-500 hover:to-violet-500 text-white font-semibold py-2 px-6 rounded-xl transition-all btn-glow shadow-lg shadow-purple-500/30">
+          Save Task
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Habit Modal -->
+  <div id="addHabitModal" class="fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-sm hidden items-center justify-center fade-in">
+    <div class="glass-strong rounded-2xl p-6 w-full max-w-sm mx-4 shadow-2xl shadow-purple-500/20 border border-purple-500/30 scale-in relative">
+      <button onclick="closeAddHabitModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white transition-colors">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+      
+      <h3 class="text-xl font-bold mb-6 text-white flex items-center gap-2">
+        <svg class="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+        Create New Habit
+      </h3>
+      
+      <div class="space-y-4">
+        <div>
+          <label class="block text-xs text-slate-400 mb-1.5 font-medium">Habit Name</label>
+          <input type="text" id="newHabitName" class="w-full rounded-xl px-3 py-2.5 text-sm" placeholder="e.g., Drink 2L Water" />
+        </div>
+        <div>
+          <label class="block text-xs text-slate-400 mb-1.5 font-medium">Frequency</label>
+          <select id="newHabitFrequency" class="w-full rounded-xl px-3 py-2.5 text-sm">
+            <option value="daily">Daily</option>
+            <option value="weekdays">Weekdays Only</option>
+            <option value="weekends">Weekends Only</option>
+          </select>
+        </div>
+      </div>
+      
+      <div class="mt-6 flex justify-end gap-3">
+        <button onclick="closeAddHabitModal()" class="px-4 py-2 text-sm text-slate-300 hover:text-white transition-colors">Cancel</button>
+        <button onclick="saveNewHabit()" class="bg-gradient-to-r from-purple-600 to-violet-600 hover:from-purple-500 hover:to-violet-500 text-white font-semibold py-2 px-6 rounded-xl transition-all btn-glow shadow-lg shadow-purple-500/30">
+          Save Habit
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====================== JAVASCRIPT ====================== -->
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
