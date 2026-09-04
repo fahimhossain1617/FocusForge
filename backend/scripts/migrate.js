@@ -1,7 +1,10 @@
-require('dotenv').config();
+const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '../.env') });
+if (!process.env.DATABASE_URL) {
+  require('dotenv').config({ path: path.join(__dirname, '../../frontend/.env.local') });
+}
 const { Client } = require('pg');
 const fs = require('fs');
-const path = require('path');
 
 const connectionString = process.env.DATABASE_URL;
 
@@ -10,6 +13,7 @@ if (!connectionString) {
   console.error('Please configure DATABASE_URL in your .env file or environment.');
   process.exit(1);
 }
+
 
 async function runMigrations() {
   console.log('Connecting to Supabase PostgreSQL at:', connectionString.replace(/:[^:]*@/, ':****@'));
