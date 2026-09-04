@@ -7,15 +7,16 @@ const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
  * the Authorization token for Supabase Auth.
  */
 export async function fetchBackend<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
-  const headers: HeadersInit = {
+  const headers: Record<string, string> = {
     'Content-Type': 'application/json',
-    ...options.headers,
+    ...(options.headers as Record<string, string> || {}),
   };
 
   const { data: { session } } = await supabase.auth.getSession();
   if (session?.access_token) {
     headers['Authorization'] = `Bearer ${session.access_token}`;
   }
+
 
   // Rewrite `/api/ai/what-should-i-do` -> `SUPABASE_URL/functions/v1/ai-agent/what-should-i-do`
   let url = endpoint;

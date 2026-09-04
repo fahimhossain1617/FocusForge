@@ -3,6 +3,8 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { User, AuthModalView } from "../types";
 import { authService } from "../services/authService";
+import { userService } from "../services/userService";
+import { supabase } from "../lib/supabaseClient";
 import { useAppContext } from "./AppContext";
 import { useTranslation } from "../hooks/useTranslation";
 
@@ -70,14 +72,55 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
 
-  // Restore session on mount
+  // Restore session & fetch user data from Supabase PostgreSQL on mount
   useEffect(() => {
-    const session = authService.getSession();
-    if (session && session.user) {
-      setUser(session.user);
+    let unsubscribeProfile: (() => void) | null = null;
+
+    async function initAuth() {
+      try {
+        const session = await authService.getSession();
+        if (session && session.user) {
+          // Fetch complete profile from Supabase PostgreSQL profiles table
+          const profile = await userService.fetchUserProfile(session.user.id);
+          const activeUser = profile || session.user;
+          setUser(activeUser);
+
+          // Realtime subscription to profiles table
+          unsubscribeProfile = userService.subscribeToProfile(activeUser.id, (updatedProfile) => {
+            setUser(updatedProfile);
+          });
+        }
+      } catch (err) {
+        console.warn("[AuthContext] Session init error:", err);
+      } finally {
+        setIsLoading(false);
+      }
     }
-    setIsLoading(false);
+
+    initAuth();
+
+    // Listen to Supabase Auth changes (sign in, sign out, token refresh)
+    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (session?.user) {
+        const profile = await userService.fetchUserProfile(session.user.id);
+        setUser(profile || {
+          id: session.user.id,
+          identifier: session.user.email || session.user.phone || "",
+          authMethod: session.user.app_metadata?.provider === "google" ? "google" : "email",
+          displayName: session.user.user_metadata?.display_name || "User",
+          createdAt: session.user.created_at,
+        });
+      } else if (event === "SIGNED_OUT") {
+        setUser(null);
+      }
+    });
+
+    return () => {
+      authListener?.subscription.unsubscribe();
+      if (unsubscribeProfile) unsubscribeProfile();
+    };
   }, []);
+
 
   const openAuth = useCallback((
     view: AuthModalView = 'initial',

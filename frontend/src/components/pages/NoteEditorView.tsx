@@ -11,6 +11,8 @@ import LinkInsertModal from "../workspace/LinkInsertModal";
 import NoteAttachmentsSection from "../workspace/NoteAttachmentsSection";
 import type { NoteBlock, Note } from "../../types";
 import { useAppContext } from "../../context/AppContext";
+import { useAuth } from "../../context/AuthContext";
+import { storageService } from "../../services/storageService";
 import { compressImageFile } from "../../services/indexedDBStorage";
 
 interface NoteEditorViewProps { 
@@ -37,6 +39,7 @@ export default function NoteEditorView({
   onBack 
 }: NoteEditorViewProps) {
   const { showToast } = useAppContext();
+  const { user } = useAuth();
   const [title, setTitle] = useState(initialTitle); 
   const [blocks, setBlocks] = useState<NoteBlock[]>(() => {
     if (!initialBlocks || initialBlocks.length <= 1) return initialBlocks || [];
@@ -175,13 +178,13 @@ export default function NoteEditorView({
     if (!files || files.length === 0) return;
 
     for (const file of Array.from(files)) {
-      const dataUrl = await compressImageFile(file);
-      if (!dataUrl) continue;
+      const uploaded = await storageService.uploadAttachment(file, user?.id);
+      if (!uploaded.url) continue;
 
       if (replacingBlockId) {
         setBlocks((prev) => {
           const next = prev.map((b) => 
-            b.id === replacingBlockId ? { ...b, url: dataUrl, fileName: file.name, fileSize: file.size } : b
+            b.id === replacingBlockId ? { ...b, url: uploaded.url, fileName: uploaded.fileName, fileSize: uploaded.fileSize } : b
           );
           queueSave(title, next);
           return next;
@@ -192,10 +195,10 @@ export default function NoteEditorView({
           id: newId(),
           type: "image",
           content: "",
-          url: dataUrl,
-          fileName: file.name,
-          fileSize: file.size,
-          fileType: file.type,
+          url: uploaded.url,
+          fileName: uploaded.fileName,
+          fileSize: uploaded.fileSize,
+          fileType: uploaded.fileType,
           caption: "",
           imageSize: "medium",
         };
@@ -217,35 +220,32 @@ export default function NoteEditorView({
     fileInputRef.current?.click();
   };
 
-  const handleDocFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleDocFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
-    Array.from(files).forEach((file) => {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const dataUrl = event.target?.result as string;
-        const fileBlock: NoteBlock = {
-          id: newId(),
-          type: "file",
-          content: "",
-          url: dataUrl || "",
-          fileName: file.name,
-          fileSize: file.size,
-          fileType: file.type || "application/pdf",
-        };
-        setBlocks((prev) => {
-          const next = insertMediaBlock(prev, fileBlock, targetBlockIdRef.current);
-          queueSave(title, next);
-          return next;
-        });
-        targetBlockIdRef.current = null;
+    for (const file of Array.from(files)) {
+      const uploaded = await storageService.uploadAttachment(file, user?.id);
+      const fileBlock: NoteBlock = {
+        id: newId(),
+        type: "file",
+        content: "",
+        url: uploaded.url || "",
+        fileName: uploaded.fileName,
+        fileSize: uploaded.fileSize,
+        fileType: uploaded.fileType || "application/pdf",
       };
-      reader.readAsDataURL(file);
-    });
+      setBlocks((prev) => {
+        const next = insertMediaBlock(prev, fileBlock, targetBlockIdRef.current);
+        queueSave(title, next);
+        return next;
+      });
+      targetBlockIdRef.current = null;
+    }
 
     if (e.target) e.target.value = "";
   };
+
 
   // ── External Link Handling ──
   const handleAddLink = (url: string, linkTitle?: string, linkDomain?: string) => {

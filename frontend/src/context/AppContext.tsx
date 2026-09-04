@@ -16,6 +16,8 @@ import {
   safeSaveToLocalStorage 
 } from '../services/indexedDBStorage';
 import { supabase } from '../lib/supabaseClient';
+import { noteService } from '../services/noteService';
+
 
 const defaultCategories = ['Programming', 'Study', 'University', 'Exam', 'Personal', 'Health', 'Project', 'Business'];
 
@@ -191,6 +193,22 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
               updated_at: new Date().toISOString()
             });
           }
+
+          // Fetch structured notes from Supabase PostgreSQL notes table
+          try {
+            const dbNotes = await noteService.fetchNotes(session.user.id);
+            if (dbNotes && dbNotes.length > 0) {
+              if (!loadedData) loadedData = { ...defaultState };
+              loadedData.notes = dbNotes;
+            } else if (loadedData?.notes && loadedData.notes.length > 0) {
+              // Initial sync: push existing local notes to Supabase PostgreSQL
+              for (const localNote of loadedData.notes) {
+                await noteService.saveNote(localNote, session.user.id).catch(() => {});
+              }
+            }
+          } catch (notesErr) {
+            console.warn("[AppContext] Error syncing PostgreSQL notes on load:", notesErr);
+          }
         }
 
         if (loadedData && isMounted) {
@@ -255,6 +273,30 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       return () => clearTimeout(timer);
     }
   }, [state, isLoaded]);
+
+  // Realtime subscription for Notes: keeps tabs & devices in sync
+  useEffect(() => {
+    let unsubscribe: (() => void) | null = null;
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        unsubscribe = noteService.subscribeToNotes(session.user.id, async () => {
+          try {
+            const freshNotes = await noteService.fetchNotes(session.user.id);
+            if (freshNotes && freshNotes.length > 0) {
+              setState((prev) => ({ ...prev, notes: freshNotes }));
+            }
+          } catch (err) {
+            console.warn("[AppContext] Realtime notes refresh error:", err);
+          }
+        });
+      }
+    });
+
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
+  }, []);
 
   const updateState = useCallback((updates: Partial<AppState>) => {
     setState((prev) => ({ ...prev, ...updates }));
@@ -421,6 +463,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       updatedAt: new Date().toISOString(),
     };
     setState((prev) => ({ ...prev, notes: [newNote, ...prev.notes] }));
+
+    // Persist to Supabase PostgreSQL
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        noteService.saveNote(newNote, session.user.id).catch((err) => {
+          console.warn("[AppContext] Failed to save note to Supabase:", err);
+        });
+      }
+    });
+
     return newNote;
   }, []);
 
@@ -429,6 +481,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       ...prev,
       notes: prev.notes.map((n) => (n.id === id ? { ...n, ...updates, updatedAt: new Date().toISOString() } : n)),
     }));
+
+    // Update in Supabase PostgreSQL
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        noteService.updateNote(id, updates, session.user.id).catch((err) => {
+          console.warn("[AppContext] Failed to update note in Supabase:", err);
+        });
+      }
+    });
   }, []);
 
   const deleteNote = useCallback((id: number) => {
@@ -436,7 +497,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       ...prev,
       notes: prev.notes.filter((n) => n.id !== id),
     }));
+
+    // Delete from Supabase PostgreSQL
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        noteService.deleteNote(id, session.user.id).catch((err) => {
+          console.warn("[AppContext] Failed to delete note from Supabase:", err);
+        });
+      }
+    });
   }, []);
+
 
   // ==================== Time Blocks ====================
 

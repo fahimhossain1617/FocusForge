@@ -75,12 +75,18 @@ export const authService = {
 
   async verifyOtp(identifier: string, code: string): Promise<{ success: boolean; error?: string; isExpired?: boolean; user?: User }> {
     const isEmail = identifier.includes('@');
-    const { data, error } = await supabase.auth.verifyOtp({
-      email: isEmail ? identifier : undefined,
-      phone: !isEmail ? identifier : undefined,
-      token: code,
-      type: isEmail ? 'email' : 'sms'
-    });
+    const { data, error } = isEmail
+      ? await supabase.auth.verifyOtp({
+          email: identifier,
+          token: code,
+          type: 'email',
+        })
+      : await supabase.auth.verifyOtp({
+          phone: identifier,
+          token: code,
+          type: 'sms',
+        });
+
 
     if (error) {
       return { success: false, error: error.message, isExpired: error.message.includes('expired') };
@@ -136,10 +142,13 @@ export const authService = {
   },
 
   async getUserProfile(userId: string): Promise<User | null> {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user && user.id === userId) {
-      return mapSupabaseUserToUser(user);
-    }
-    return null;
+    const { userService } = await import("./userService");
+    return await userService.fetchUserProfile(userId);
+  },
+
+  async updateUserProfile(userId: string, data: Partial<User>): Promise<{ success: boolean; user?: User; error?: string }> {
+    const { userService } = await import("./userService");
+    return await userService.updateUserProfile(userId, data);
   }
 };
+
