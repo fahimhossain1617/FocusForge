@@ -1,11 +1,11 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
-// import { requireAuth } from '../middleware/auth';
+const auth_1 = require("../middleware/auth");
 const aiService_1 = require("../services/aiService");
 const router = (0, express_1.Router)();
-// Apply auth middleware to all AI routes
-// router.use(requireAuth);
+// AI endpoints can incur paid provider usage and must never be public.
+router.use(auth_1.requireAuth);
 router.post('/what-should-i-do', async (req, res) => {
     try {
         const { tasks, context, options } = req.body;

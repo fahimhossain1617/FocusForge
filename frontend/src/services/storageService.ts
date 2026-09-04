@@ -9,7 +9,7 @@ export const storageService = {
   async uploadAttachment(
     file: File,
     userId?: string
-  ): Promise<{ url: string; fileName: string; fileSize: number; fileType: string }> {
+  ): Promise<{ url: string; fileName: string; fileSize: number; fileType: string; storagePath?: string }> {
     const isImage = file.type.startsWith("image/");
     const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
 
@@ -24,16 +24,17 @@ export const storageService = {
           });
 
         if (!error && data) {
-          const { data: publicUrlData } = supabase.storage
+          const { data: signedUrlData, error: signedUrlError } = await supabase.storage
             .from("note-attachments")
-            .getPublicUrl(filePath);
+            .createSignedUrl(filePath, 60 * 60);
 
-          if (publicUrlData?.publicUrl) {
+          if (!signedUrlError && signedUrlData?.signedUrl) {
             return {
-              url: publicUrlData.publicUrl,
+              url: signedUrlData.signedUrl,
               fileName: file.name,
               fileSize: file.size,
               fileType: file.type,
+              storagePath: filePath,
             };
           }
         } else {
@@ -73,6 +74,13 @@ export const storageService = {
     };
   },
 
+  async getSignedUrl(filePath: string): Promise<string | null> {
+    const { data, error } = await supabase.storage
+      .from("note-attachments")
+      .createSignedUrl(filePath, 60 * 60);
+    return error || !data?.signedUrl ? null : data.signedUrl;
+  },
+
   /**
    * Uploads a profile avatar to Supabase Storage.
    */
@@ -89,11 +97,11 @@ export const storageService = {
         });
 
       if (!error && data) {
-        const { data: publicUrlData } = supabase.storage
+        const { data: signedUrlData } = await supabase.storage
           .from("note-attachments")
-          .getPublicUrl(filePath);
+          .createSignedUrl(filePath, 60 * 60);
 
-        return publicUrlData?.publicUrl || null;
+        return signedUrlData?.signedUrl || null;
       }
     } catch (err) {
       console.warn("[storageService] Failed to upload avatar:", err);

@@ -1,11 +1,11 @@
 import { Router } from 'express';
-// import { requireAuth } from '../middleware/auth';
+import { requireAuth } from '../middleware/auth';
 import { executeAIAction } from '../services/aiService';
 
 const router = Router();
 
-// Apply auth middleware to all AI routes
-// router.use(requireAuth);
+// AI endpoints can incur paid provider usage and must never be public.
+router.use(requireAuth);
 
 router.post('/what-should-i-do', async (req, res) => {
   try {

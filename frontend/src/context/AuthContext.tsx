@@ -7,6 +7,7 @@ import { userService } from "../services/userService";
 import { supabase } from "../lib/supabaseClient";
 import { useAppContext } from "./AppContext";
 import { useTranslation } from "../hooks/useTranslation";
+import { clearPersistedAppState } from "../services/indexedDBStorage";
 
 interface AuthModalState {
   isOpen: boolean;
@@ -46,7 +47,7 @@ interface AuthContextType {
   loginWithGoogle: () => Promise<boolean>;
   logout: () => void;
   promptLogout: () => void;
-  confirmLogout: () => void;
+  confirmLogout: () => Promise<void>;
   cancelLogout: () => void;
   updateUserProfile: (data: Partial<User>) => Promise<boolean>;
   onAuthSuccess: (user: User, isNewUser?: boolean) => void;
@@ -214,15 +215,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setLogoutConfirmOpen(false);
   }, []);
 
-  const confirmLogout = useCallback(() => {
-    authService.clearSession();
+  const confirmLogout = useCallback(async () => {
+    await authService.clearSession();
     setUser(null);
     setLogoutConfirmOpen(false);
     
     // Clear local app state to prevent cross-account data leaking
     if (typeof window !== 'undefined') {
-        const indexedDBRequest = indexedDB.deleteDatabase("FocusForgeDB");
-        localStorage.removeItem("focusforge_state");
+        localStorage.removeItem("focusforge_data");
+        await clearPersistedAppState();
         window.location.reload(); // Quickest way to clear AppContext cleanly
     } else {
         showToast(t.auth.loggedOutToast, "info");

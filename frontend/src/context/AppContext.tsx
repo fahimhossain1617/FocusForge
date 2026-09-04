@@ -431,7 +431,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       tasks: prev.tasks.map((t) => {
         if (t.id !== id) return t;
         const idx = statusCycle.indexOf(t.status);
-        return { ...t, status: statusCycle[(idx + 1) % statusCycle.length] };
+        const status = statusCycle[(idx + 1) % statusCycle.length];
+        return { ...t, status, completed: status === 'completed', updatedAt: new Date().toISOString() };
       }),
     }));
   }, []);

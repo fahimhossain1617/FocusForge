@@ -16,7 +16,10 @@ export function useFocusTimer(options?: UseFocusTimerOptions) {
   const [breakMinutes, setBreakMinutes] = useState(5);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const optionsRef = useRef(options);
-  optionsRef.current = options;
+
+  useEffect(() => {
+    optionsRef.current = options;
+  }, [options]);
 
   // Clean up on unmount
   useEffect(() => {

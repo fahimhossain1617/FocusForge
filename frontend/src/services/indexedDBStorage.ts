@@ -9,6 +9,23 @@ const DB_VERSION = 1;
 const STORE_NAME = "app_state";
 const KEY = "state";
 
+/** Remove the local state database when the active account signs out. */
+export function clearPersistedAppState(): Promise<void> {
+  if (typeof window === "undefined" || !window.indexedDB) {
+    return Promise.resolve();
+  }
+
+  return new Promise((resolve) => {
+    const request = indexedDB.deleteDatabase(DB_NAME);
+    request.onsuccess = () => resolve();
+    request.onerror = () => {
+      console.warn("IndexedDB clear warning:", request.error);
+      resolve();
+    };
+    request.onblocked = () => resolve();
+  });
+}
+
 function openDB(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
     if (typeof window === "undefined" || !window.indexedDB) {

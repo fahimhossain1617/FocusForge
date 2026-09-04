@@ -34,6 +34,8 @@ export interface NoteBlock {
   drawingData?: string;
   // Rich media & attachment block fields
   url?: string;
+  /** Private Supabase object path; URLs are short-lived signed URLs. */
+  storagePath?: string;
   fileName?: string;
   fileSize?: number;
   fileType?: string;

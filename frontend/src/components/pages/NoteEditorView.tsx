@@ -63,6 +63,21 @@ export default function NoteEditorView({
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => () => { if (saveTimer.current) clearTimeout(saveTimer.current); }, []);
 
+  // Private storage URLs expire; refresh them from their persisted object paths
+  // while the authenticated owner is viewing the note.
+  useEffect(() => {
+    if (!user) return;
+    const privateBlocks = initialBlocks.filter((block) => block.storagePath);
+    if (privateBlocks.length === 0) return;
+    Promise.all(privateBlocks.map(async (block) => ({
+      id: block.id,
+      url: await storageService.getSignedUrl(block.storagePath!),
+    }))).then((urls) => {
+      const byId = new Map(urls.filter((entry) => entry.url).map((entry) => [entry.id, entry.url!]));
+      if (byId.size) setBlocks((current) => current.map((block) => byId.has(block.id) ? { ...block, url: byId.get(block.id) } : block));
+    });
+  }, [initialBlocks, user]);
+
   const queueSave = (nextTitle: string, nextBlocks: NoteBlock[]) => { 
     setSaveState("saving"); 
     if (saveTimer.current) clearTimeout(saveTimer.current); 
@@ -184,7 +199,7 @@ export default function NoteEditorView({
       if (replacingBlockId) {
         setBlocks((prev) => {
           const next = prev.map((b) => 
-            b.id === replacingBlockId ? { ...b, url: uploaded.url, fileName: uploaded.fileName, fileSize: uploaded.fileSize } : b
+            b.id === replacingBlockId ? { ...b, url: uploaded.url, storagePath: uploaded.storagePath, fileName: uploaded.fileName, fileSize: uploaded.fileSize } : b
           );
           queueSave(title, next);
           return next;
@@ -196,6 +211,7 @@ export default function NoteEditorView({
           type: "image",
           content: "",
           url: uploaded.url,
+          storagePath: uploaded.storagePath,
           fileName: uploaded.fileName,
           fileSize: uploaded.fileSize,
           fileType: uploaded.fileType,
@@ -231,6 +247,7 @@ export default function NoteEditorView({
         type: "file",
         content: "",
         url: uploaded.url || "",
+        storagePath: uploaded.storagePath,
         fileName: uploaded.fileName,
         fileSize: uploaded.fileSize,
         fileType: uploaded.fileType || "application/pdf",
