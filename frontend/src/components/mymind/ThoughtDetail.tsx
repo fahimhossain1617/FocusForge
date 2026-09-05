@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
+import { ArrowLeft } from "lucide-react";
 import { useAppContext } from "../../context/AppContext";
 import { useTranslation } from "../../hooks/useTranslation";
 import VoiceInput from "./VoiceInput";
@@ -97,11 +98,17 @@ export default function ThoughtDetail({ thoughtId, navigate }: ThoughtDetailProp
     <div className="fade-in max-w-3xl mx-auto py-8">
       <div className="flex items-center justify-between mb-8">
         <button 
+          type="button"
           onClick={() => navigate('review_all')}
-          className="text-sm font-medium transition-colors hover:opacity-80"
-          style={{ color: "var(--color-text-muted)" }}
+          className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-semibold border transition-all hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer shadow-xs"
+          style={{
+            borderColor: "var(--color-border-subtle)",
+            color: "var(--color-text-primary)",
+          }}
+          aria-label="Back to all thoughts"
         >
-          {t.myMind.backLeft}
+          <ArrowLeft size={16} />
+          <span>{t.myMind.backLeft || "Back"}</span>
         </button>
         <div className="flex items-center gap-4">
           <button 

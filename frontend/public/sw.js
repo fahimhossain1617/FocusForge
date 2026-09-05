@@ -1,5 +1,5 @@
 // FocusForge Progressive Web App Service Worker
-const CACHE_NAME = 'focusforge-v1';
+const CACHE_NAME = 'focusforge-v3';
 
 const STATIC_ASSETS = [
   '/',
@@ -14,6 +14,13 @@ const STATIC_ASSETS = [
   '/icons/icon-maskable-512x512.png',
   '/logo.png'
 ];
+
+// Message listener to trigger immediate skip waiting from client
+self.addEventListener('message', (event) => {
+  if (event.data && (event.data.type === 'SKIP_WAITING' || event.data === 'skipWaiting')) {
+    self.skipWaiting();
+  }
+});
 
 // Install: Pre-cache app shell assets
 self.addEventListener('install', (event) => {

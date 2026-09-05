@@ -6,12 +6,12 @@ import { useAppContext } from "../../context/AppContext";
 import { useTranslation } from "../../hooks/useTranslation";
 import { 
   User as UserIcon, Mail, Phone, MapPin, Calendar, Camera, Trash2, 
-  CheckCircle2, ShieldCheck, Edit3, Save, X, Globe, UserCheck
+  CheckCircle2, ShieldCheck, Edit3, Save, X, Globe, UserCheck, ArrowLeft
 } from "lucide-react";
 
 export default function ProfilePage() {
   const { user, isGuest, updateUserProfile, openAuth } = useAuth();
-  const { showToast } = useAppContext();
+  const { showToast, navigateTo, state } = useAppContext();
   const { t } = useTranslation();
 
   const [isEditing, setIsEditing] = useState(false);
@@ -38,7 +38,7 @@ export default function ProfilePage() {
     return val.replace(/^\+8800/, "+880").replace(/^8800/, "+880").replace(/^00/, "0");
   };
 
-  // Sync state when user changes
+  // Sync state when user changes or guest mode
   useEffect(() => {
     if (user) {
       const cleanPhone = sanitizePhone(user.phone || (user.authMethod === 'phone' ? user.identifier : ""));
@@ -55,40 +55,21 @@ export default function ProfilePage() {
         bio: user.bio || "",
         avatarUrl: user.avatarUrl || "",
       });
+    } else {
+      setFormData({
+        fullName: "Guest Explorer",
+        displayName: "Guest",
+        email: "guest@focusforge.app",
+        phone: "",
+        dob: "",
+        gender: "",
+        country: "",
+        city: "",
+        bio: "Exploring FocusForge in guest mode.",
+        avatarUrl: "",
+      });
     }
   }, [user]);
-
-  // If Guest, display a prompt to sign in
-  if (isGuest || !user) {
-    return (
-      <div className="fade-in max-w-4xl mx-auto py-12 text-center">
-        <div 
-          className="p-8 sm:p-12 rounded-3xl border shadow-2xl max-w-lg mx-auto"
-          style={{
-            background: "rgba(13, 20, 38, 0.85)",
-            borderColor: "rgba(59, 130, 246, 0.25)",
-            backdropFilter: "blur(20px)"
-          }}
-        >
-          <div className="w-16 h-16 rounded-2xl bg-blue-500/15 border border-blue-500/30 flex items-center justify-center mx-auto mb-5 text-blue-400">
-            <UserIcon size={32} />
-          </div>
-          <h2 className="text-2xl font-bold text-white mb-2">My Profile</h2>
-          <p className="text-xs text-zinc-400 leading-relaxed mb-6">
-            Please log in or create an account to view and customize your personal FocusForge profile.
-          </p>
-          <button
-            type="button"
-            onClick={() => openAuth('initial')}
-            className="w-full py-3 px-6 rounded-xl font-semibold text-sm text-white shadow-lg shadow-blue-500/25 transition-all hover:opacity-95 cursor-pointer"
-            style={{ background: "linear-gradient(135deg, #2563EB, #3B82F6)" }}
-          >
-            {t.auth.logIn} / {t.auth.signUp}
-          </button>
-        </div>
-      </div>
-    );
-  }
 
   // Handle Photo Upload via FileReader
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -110,10 +91,13 @@ export default function ProfilePage() {
     reader.onload = async (event) => {
       const base64 = event.target?.result as string;
       setFormData(prev => ({ ...prev, avatarUrl: base64 }));
-      // Save directly to profile
-      const success = await updateUserProfile({ avatarUrl: base64 });
-      if (success) {
-        showToast("Profile photo updated successfully.", "success");
+      if (user) {
+        const success = await updateUserProfile({ avatarUrl: base64 });
+        if (success) {
+          showToast("Profile photo updated successfully.", "success");
+        }
+      } else {
+        showToast("Profile photo preview updated (guest mode).", "info");
       }
     };
     reader.readAsDataURL(file);
@@ -122,8 +106,12 @@ export default function ProfilePage() {
   // Remove Photo
   const handleRemovePhoto = async () => {
     setFormData(prev => ({ ...prev, avatarUrl: "" }));
-    const success = await updateUserProfile({ avatarUrl: "" });
-    if (success) {
+    if (user) {
+      const success = await updateUserProfile({ avatarUrl: "" });
+      if (success) {
+        showToast("Profile photo removed.", "info");
+      }
+    } else {
       showToast("Profile photo removed.", "info");
     }
   };
@@ -133,9 +121,18 @@ export default function ProfilePage() {
     e.preventDefault();
     setIsSaving(true);
 
+    if (isGuest || !user) {
+      setTimeout(() => {
+        setIsSaving(false);
+        setIsEditing(false);
+        showToast("Profile preview updated (temporary). Sign in to save permanently!", "info");
+      }, 300);
+      return;
+    }
+
     const success = await updateUserProfile({
       fullName: formData.fullName.trim(),
-      displayName: formData.displayName.trim() || formData.fullName.trim() || user.displayName,
+      displayName: formData.displayName.trim() || formData.fullName.trim() || user?.displayName || "User",
       email: formData.email.trim(),
       phone: formData.phone.trim(),
       dob: formData.dob,
@@ -198,6 +195,23 @@ export default function ProfilePage() {
         className="hidden"
       />
 
+      {/* Top Back Navigation Bar */}
+      <div className="flex items-center justify-between pt-1">
+        <button
+          type="button"
+          onClick={() => navigateTo("today")}
+          className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-semibold border transition-all hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer shadow-xs"
+          style={{
+            borderColor: "var(--color-border-subtle)",
+            color: "var(--color-text-primary)",
+          }}
+          aria-label="Back to Dashboard"
+        >
+          <ArrowLeft size={16} />
+          <span>{state.lang === 'bn' ? "ড্যাশবোর্ডে ফিরে যান" : "Back to Dashboard"}</span>
+        </button>
+      </div>
+
       {/* ======================================================== */}
       {/* 1. PROFILE HEADER SECTION                                 */}
       {/* ======================================================== */}
@@ -225,7 +239,7 @@ export default function ProfilePage() {
               {formData.avatarUrl ? (
                 <img 
                   src={formData.avatarUrl} 
-                  alt={user.displayName} 
+                  alt={formData.displayName || user?.displayName || "User"} 
                   className="w-full h-full object-cover" 
                 />
               ) : (
@@ -265,12 +279,12 @@ export default function ProfilePage() {
               <div>
                 <div className="flex items-center justify-center sm:justify-start gap-2.5 mb-1">
                   <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">
-                    {formData.fullName || sanitizePhone(user.displayName) || "FocusForge User"}
+                    {formData.fullName || sanitizePhone(user?.displayName) || "Guest User"}
                   </h1>
                 </div>
 
                 <p className="text-xs sm:text-sm text-zinc-400">
-                  {sanitizePhone(user.identifier)}
+                  {sanitizePhone(user?.identifier || formData.email || "Guest Mode")}
                 </p>
 
                 {(formData.city || formData.country) && (
@@ -391,7 +405,7 @@ export default function ProfilePage() {
                     <label className="text-xs font-semibold text-zinc-300">
                       Email Address
                     </label>
-                    {user.authMethod === 'email' && (
+                    {user?.authMethod === 'email' && (
                       <span className="text-[10px] text-emerald-400 font-medium flex items-center gap-1">
                         <CheckCircle2 size={11} /> Verified
                       </span>
@@ -408,7 +422,7 @@ export default function ProfilePage() {
                   ) : (
                     <p className="text-sm font-medium text-white px-3.5 py-2.5 rounded-xl bg-white/[0.02] border border-white/5 flex items-center gap-2">
                       <Mail size={14} className="text-zinc-400" />
-                      <span>{formData.email || user.identifier || "Not provided"}</span>
+                      <span>{formData.email || user?.identifier || "Not provided"}</span>
                     </p>
                   )}
                 </div>
@@ -419,7 +433,7 @@ export default function ProfilePage() {
                     <label className="text-xs font-semibold text-zinc-300">
                       Phone Number
                     </label>
-                    {user.authMethod === 'phone' && (
+                    {user?.authMethod === 'phone' && (
                       <span className="text-[10px] text-emerald-400 font-medium flex items-center gap-1">
                         <CheckCircle2 size={11} /> Verified
                       </span>
@@ -436,7 +450,7 @@ export default function ProfilePage() {
                   ) : (
                     <p className="text-sm font-medium text-white px-3.5 py-2.5 rounded-xl bg-white/[0.02] border border-white/5 flex items-center gap-2">
                       <Phone size={14} className="text-zinc-400" />
-                      <span>{sanitizePhone(formData.phone) || sanitizePhone(user.phone) || sanitizePhone(user.identifier) || "Not provided"}</span>
+                      <span>{sanitizePhone(formData.phone) || sanitizePhone(user?.phone) || sanitizePhone(user?.identifier) || "Not provided"}</span>
                     </p>
                   )}
                 </div>
@@ -653,14 +667,14 @@ export default function ProfilePage() {
               <div>
                 <span className="block text-zinc-500 text-[11px] mb-0.5">Authentication Method</span>
                 <span className="font-semibold text-zinc-200 capitalize">
-                  {user.authMethod === 'google' ? "Google Account" : `${user.authMethod} Authentication`}
+                  {user?.authMethod === 'google' ? "Google Account" : user?.authMethod ? `${user.authMethod} Authentication` : "Guest Session (Preview)"}
                 </span>
               </div>
 
               <div>
                 <span className="block text-zinc-500 text-[11px] mb-0.5">Member Since</span>
                 <span className="font-semibold text-zinc-200">
-                  {formatDate(user.createdAt)}
+                  {user?.createdAt ? formatDate(user.createdAt) : "Today (Guest Mode)"}
                 </span>
               </div>
 
@@ -668,7 +682,7 @@ export default function ProfilePage() {
                 <span className="block text-zinc-500 text-[11px] mb-0.5">Verification Status</span>
                 <div className="flex items-center gap-1.5 text-emerald-400 font-semibold">
                   <UserCheck size={14} />
-                  <span>Verified Ownership</span>
+                  <span>{user ? "Verified Account" : "Guest Mode (Unregistered)"}</span>
                 </div>
               </div>
             </div>

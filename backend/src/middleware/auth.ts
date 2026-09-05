@@ -17,17 +17,27 @@ export interface AuthenticatedRequest extends Request {
 export const requireAuth = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
     const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return res.status(401).json({ error: 'Missing or invalid authorization header' });
+    const apikey = req.headers['apikey'] as string | undefined;
+
+    if (!authHeader && !apikey) {
+      req.user = { id: 'guest', isGuest: true };
+      return next();
     }
 
-    const token = authHeader.split(' ')[1];
+    const token = authHeader ? authHeader.replace(/^Bearer\s+/i, '').trim() : '';
 
-    // Verify the JWT token using Supabase
+    if (token === 'guest' || token === supabaseAnonKey || apikey === supabaseAnonKey) {
+      req.user = { id: 'guest', isGuest: true };
+      return next();
+    }
+
+    // Verify the JWT token using Supabase for logged-in users
     const { data: { user }, error } = await supabase.auth.getUser(token);
 
     if (error || !user) {
-      return res.status(401).json({ error: 'Unauthorized: Invalid token' });
+      // Gracefully fall back to guest mode
+      req.user = { id: 'guest', isGuest: true };
+      return next();
     }
 
     // Attach user to request for downstream handlers

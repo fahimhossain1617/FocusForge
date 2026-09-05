@@ -106,9 +106,17 @@ export default function AIAgentPage() {
   const [model, setModel] = useState<AIAgentModel>("smart");
   const [voiceOpen, setVoiceOpen] = useState(false);
   const baseInputRef = useRef("");
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const chatAreaRef = useRef<HTMLDivElement>(null);
+
   const context = useMemo(() => ({ tasks: state.tasks, notesCount: state.notes.length, timeBlocksCount: state.timeBlocks.length, productivityScore: state.productivityScore }), [state.tasks, state.notes.length, state.timeBlocks.length, state.productivityScore]);
   const { messages, isThinking, error, send, setMessages } = useAIAgent(context);
   const name = user?.fullName || user?.displayName || "there";
+
+  // Auto-scroll down smoothly when messages update
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, isThinking]);
 
   const submit = async (value = input) => { if (!value.trim()) return; setInput(""); await send(value, language); };
   const startVoice = () => {
@@ -129,28 +137,142 @@ export default function AIAgentPage() {
     showToast(proposal.type === "create_task" ? "Task created." : "Task completed.", "success");
   };
 
-  return <section className={styles.page} data-theme={isLight ? "light" : "dark"} aria-label="FocusForge AI Agent">
-    <header className={styles.header}>
-      <div className={styles.title}><span className={styles.logo}><BrainCircuit size={19} /></span><div><p>FocusForge AI Agent</p><span>Your personal productivity intelligence</span></div></div>
-    </header>
-    <div className={styles.hero}>
-      <div className={styles.heroContent}><h1>Welcome back, {name}</h1><p>Let’s turn your plans into progress.</p></div>
-    </div>
-    <div className={styles.workspace}>
-      {messages.length > 0 && <div className={styles.conversation} aria-live="polite">{messages.map((message) => <div key={message.id} className={`${styles.message} ${message.role === "user" ? styles.user : styles.assistant}`}><div className={styles.messageLabel}>{message.role === "user" ? "You" : "FocusForge AI"}</div><p>{message.content}</p>{message.proposal?.map((proposal) => <div className={styles.proposal} key={proposal.id}><WandSparkles size={17} /><div><strong>{proposal.title}</strong><span>{proposal.detail}</span></div><div className={styles.proposalActions}><button onClick={() => setMessages((items) => items.map((item) => item.proposal?.some((a) => a.id === proposal.id) ? { ...item, proposal: undefined } : item))}>Cancel</button><button className={styles.confirm} onClick={() => applyProposal(proposal)}><Check size={14} /> Confirm</button></div></div>)}</div>)}{isThinking && <div className={`${styles.message} ${styles.assistant}`}><div className={styles.messageLabel}>FocusForge AI</div><div className={styles.thinking}><i /><i /><i /> Thinking with your workspace context</div></div>}</div>}
-      <div className={styles.quickActions}>{quickActions.map((action) => <button key={action} onClick={() => submit(action)} disabled={isThinking}>{action}</button>)}</div>
-      <div className={styles.composer}>
-        <textarea value={input} onChange={(event) => setInput(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); submit(); } }} placeholder="Ask me anything about your tasks, routine, goals, or productivity..." aria-label="Message FocusForge AI" rows={3} />
-        <div className={styles.controls}><div className={styles.selectGroup}><CustomSelect label="AI model" value={model} options={modelOptions} onChange={setModel} /><CustomSelect label="Language" value={language} options={languageOptions} onChange={setLanguage} /></div><div className={styles.composeActions}><button className={`${styles.voiceButton} ${voiceOpen ? styles.listening : ""}`} onClick={voiceOpen ? stopVoice : startVoice} aria-label={voiceOpen ? "Stop voice input" : "Start voice input"} aria-pressed={voiceOpen}><Mic size={18} /></button><button className={styles.sendButton} onClick={() => submit()} disabled={!input.trim() || isThinking} aria-label="Send message"><Send size={17} /></button></div></div>
-        {error && <p className={styles.error}>{error}</p>}
+  return (
+    <section className={styles.page} data-theme={isLight ? "light" : "dark"} aria-label="FocusForge AI Agent">
+      {/* 1. FIXED CELESTIAL HORIZON ARCS (Never shifts with text or scroll) */}
+      <div className={styles.fixedArcContainer} aria-hidden="true">
+        <div className={styles.topHorizonArc} />
+        <div className={styles.bottomHorizonArc} />
       </div>
-    </div>
-    <VoiceAssistantModal
-      isOpen={voiceOpen}
-      onClose={stopVoice}
-      language={language}
-      onSpeechResult={handleSpeechResult}
-      themeMode={isLight ? "light" : "dark"}
-    />
-  </section>;
+
+      {/* 2. Top Header */}
+      <header className={styles.header}>
+        <div className={styles.title}>
+          <span className={styles.logo}><BrainCircuit size={19} /></span>
+          <div>
+            <p>FocusForge AI Agent</p>
+            <span>Your personal productivity intelligence</span>
+          </div>
+        </div>
+      </header>
+
+      {/* 3. Main Scrollable Chat Area */}
+      <div className={styles.chatArea} ref={chatAreaRef}>
+        {messages.length === 0 ? (
+          <div className={styles.heroWrapper}>
+            <div className={styles.hero}>
+              <div className={styles.heroContent}>
+                <h1>Welcome back, {name}</h1>
+                <p>Let’s turn your plans into progress.</p>
+              </div>
+            </div>
+            <div className={styles.quickActionsHero}>
+              {quickActions.map((action) => (
+                <button key={action} onClick={() => submit(action)} disabled={isThinking}>
+                  {action}
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div className={styles.conversation} aria-live="polite">
+            {messages.map((message) => (
+              <div key={message.id} className={`${styles.message} ${message.role === "user" ? styles.user : styles.assistant}`}>
+                <div className={styles.messageLabel}>{message.role === "user" ? "You" : "FocusForge AI"}</div>
+                <p>{message.content}</p>
+                {message.proposal?.map((proposal) => (
+                  <div className={styles.proposal} key={proposal.id}>
+                    <WandSparkles size={17} />
+                    <div>
+                      <strong>{proposal.title}</strong>
+                      <span>{proposal.detail}</span>
+                    </div>
+                    <div className={styles.proposalActions}>
+                      <button onClick={() => setMessages((items) => items.map((item) => item.proposal?.some((a) => a.id === proposal.id) ? { ...item, proposal: undefined } : item))}>
+                        Cancel
+                      </button>
+                      <button className={styles.confirm} onClick={() => applyProposal(proposal)}>
+                        <Check size={14} /> Confirm
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ))}
+            {isThinking && (
+              <div className={`${styles.message} ${styles.assistant}`}>
+                <div className={styles.messageLabel}>FocusForge AI</div>
+                <div className={styles.thinking}>
+                  <i /><i /><i /> Thinking with your workspace context
+                </div>
+              </div>
+            )}
+            <div ref={messagesEndRef} />
+          </div>
+        )}
+      </div>
+
+      {/* 4. Pinned Bottom Composer Section */}
+      <div className={styles.composerWrapper}>
+        {messages.length > 0 && (
+          <div className={styles.quickActionsInline}>
+            {quickActions.slice(0, 4).map((action) => (
+              <button key={action} onClick={() => submit(action)} disabled={isThinking}>
+                {action}
+              </button>
+            ))}
+          </div>
+        )}
+
+        <div className={styles.composer}>
+          <textarea
+            value={input}
+            onChange={(event) => setInput(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" && !event.shiftKey) {
+                event.preventDefault();
+                submit();
+              }
+            }}
+            placeholder="Ask me anything about your tasks, routine, goals, or productivity..."
+            aria-label="Message FocusForge AI"
+            rows={2}
+          />
+          <div className={styles.controls}>
+            <div className={styles.selectGroup}>
+              <CustomSelect label="AI model" value={model} options={modelOptions} onChange={setModel} />
+              <CustomSelect label="Language" value={language} options={languageOptions} onChange={setLanguage} />
+            </div>
+            <div className={styles.composeActions}>
+              <button
+                className={`${styles.voiceButton} ${voiceOpen ? styles.listening : ""}`}
+                onClick={voiceOpen ? stopVoice : startVoice}
+                aria-label={voiceOpen ? "Stop voice input" : "Start voice input"}
+                aria-pressed={voiceOpen}
+              >
+                <Mic size={18} />
+              </button>
+              <button
+                className={styles.sendButton}
+                onClick={() => submit()}
+                disabled={!input.trim() || isThinking}
+                aria-label="Send message"
+              >
+                <Send size={17} />
+              </button>
+            </div>
+          </div>
+          {error && <p className={styles.error}>{error}</p>}
+        </div>
+      </div>
+
+      <VoiceAssistantModal
+        isOpen={voiceOpen}
+        onClose={stopVoice}
+        language={language}
+        onSpeechResult={handleSpeechResult}
+        themeMode={isLight ? "light" : "dark"}
+      />
+    </section>
+  );
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
+import { ArrowLeft } from "lucide-react";
 import { useAppContext } from "../../context/AppContext";
 import { useTranslation } from "../../hooks/useTranslation";
 import VoiceInput from "./VoiceInput";
@@ -62,11 +63,17 @@ export default function ProblemSolver({ navigate }: ProblemSolverProps) {
     <div className="fade-in max-w-2xl mx-auto py-10 min-h-[70vh] flex flex-col">
       <div className="flex items-center justify-between mb-8">
         <button 
+          type="button"
           onClick={() => navigate('home')}
-          className="text-sm font-medium transition-colors hover:opacity-80"
-          style={{ color: "var(--color-text-muted)" }}
+          className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-semibold border transition-all hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer shadow-xs"
+          style={{
+            borderColor: "var(--color-border-subtle)",
+            color: "var(--color-text-primary)",
+          }}
+          aria-label="Back to Capture"
         >
-          {t.myMind.cancelLeft}
+          <ArrowLeft size={16} />
+          <span>{t.myMind.backToMyMind || "Back to Capture"}</span>
         </button>
         <span className="text-xs font-bold uppercase tracking-wider" style={{ color: "var(--color-text-muted)" }}>
           {t.myMind.stepStr} {step} {t.myMind.of4}

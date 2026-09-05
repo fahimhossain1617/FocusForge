@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useAppContext } from "../context/AppContext";
 import { useTranslation } from "../hooks/useTranslation";
-import { LayoutDashboard, Brain, CalendarDays, Target, BookOpen, Settings as SettingsIcon, LayoutTemplate, Sun, Moon, User as ProfileIcon, Sparkles } from "lucide-react";
+import { LayoutDashboard, PencilLine, CalendarDays, Target, GraduationCap, Settings as SettingsIcon, Files, Sun, Moon, User as ProfileIcon, Sparkles } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import UserMenu from "./auth/UserMenu";
 import InstallPrompt from "./pwa/InstallPrompt";
@@ -11,21 +11,21 @@ import InstallPrompt from "./pwa/InstallPrompt";
 const navGroups = [
   {
     items: [
-      { id: "today", label: "Dashboard", icon: LayoutDashboard },
-      { id: "mind", label: "My Mind", icon: Brain },
+      { id: "today", label: "Dashboard", tagline: "Your day at a glance", icon: LayoutDashboard },
+      { id: "mind", label: "Capture", tagline: "Write it down before you forget", icon: PencilLine },
     ],
   },
   {
     items: [
-      { id: "tasks", label: "Workspace", icon: LayoutTemplate },
-      { id: "planner", label: "Planner", icon: CalendarDays },
-      { id: "focus", label: "Focus", icon: Target },
+      { id: "tasks", label: "Notes & files", tagline: "Your notes, docs, and attachments", icon: Files },
+      { id: "planner", label: "Planner", tagline: "Plan your day and week", icon: CalendarDays },
+      { id: "focus", label: "Focus", tagline: "Start a focus session", icon: Target },
     ],
   },
   {
     items: [
-      { id: "learning", label: "Learning Hub", icon: BookOpen },
-      { id: "ai-agent", label: "AI Agent", icon: Sparkles },
+      { id: "learning", label: "Skill builder", tagline: "Track what you're learning", icon: GraduationCap },
+      { id: "ai-agent", label: "AI Agent", tagline: "Productivity AI copilot", icon: Sparkles },
     ],
   },
   {
@@ -71,16 +71,17 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   };
 
   // User name display & dynamic responsive font sizing
-  const rawUserName = user?.fullName || user?.displayName?.replace(/^\+8800/, "+880").replace(/^8800/, "+880") || (user?.identifier ? user.identifier.replace(/^\+8800/, "+880").replace(/^8800/, "+880") : "Guest");
-  const userName = rawUserName.trim();
+  const isGuestMode = !user;
+  const rawUserName = user?.fullName || user?.displayName?.replace(/^\+8800/, "+880").replace(/^8800/, "+880") || (user?.identifier ? user.identifier.replace(/^\+8800/, "+880").replace(/^8800/, "+880") : (state.lang === 'bn' ? "গেস্ট মোড" : "Guest Mode"));
+  const userName = isGuestMode ? (state.lang === 'bn' ? "গেস্ট মোড" : "Guest Mode") : rawUserName.trim();
 
   // Dynamic pixel font size: adjusts based on name length to ensure single-line display beside avatar
   const getFontSizePx = (len: number): number => {
-    if (len <= 5) return 26; // e.g. "fahim"
-    if (len <= 8) return 22;
-    if (len <= 11) return 19;
-    if (len <= 15) return 17; // e.g. "Fahim Hossain"
-    if (len <= 19) return 15;
+    if (len <= 5) return 24;
+    if (len <= 8) return 20;
+    if (len <= 11) return 18;
+    if (len <= 15) return 16;
+    if (len <= 19) return 14;
     return 13;
   };
 
@@ -105,8 +106,12 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
           borderRight: "1px solid var(--color-border-subtle)",
         }}
       >
-        {/* User Profile Header (Photo + Name) */}
-        <div className="px-3 mb-6 min-h-[40px] flex items-center gap-2.5">
+        {/* User Profile Header (Photo + Name / Guest Mode) */}
+        <div 
+          className="px-3 mb-6 min-h-[40px] flex items-center gap-2.5 cursor-pointer group select-none"
+          onClick={() => handleNav("profile")}
+          title={isGuestMode ? (state.lang === 'bn' ? "গেস্ট মোড (প্রোফাইল প্রিভিউ দেখতে ক্লিক করুন)" : "Guest Mode (Click to preview profile)") : userName}
+        >
           {/* User Photo / Avatar on the left */}
           {user?.avatarUrl ? (
             <img 
@@ -114,6 +119,15 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
               alt={userName} 
               className="w-8 h-8 rounded-full object-cover border border-blue-500/30 shrink-0 shadow-sm" 
             />
+          ) : isGuestMode ? (
+            <div 
+              className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-blue-400 shrink-0 shadow-sm border border-blue-500/30 group-hover:border-blue-400/60 transition-colors"
+              style={{
+                background: "linear-gradient(135deg, rgba(30, 58, 138, 0.4), rgba(37, 99, 235, 0.3))"
+              }}
+            >
+              <ProfileIcon size={14} className="text-blue-400" />
+            </div>
           ) : (
             <div 
               className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white uppercase shrink-0 shadow-sm border border-blue-500/30"
@@ -121,23 +135,29 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                 background: "linear-gradient(135deg, #1E3A8A, #2563EB)"
               }}
             >
-              {userName && userName !== "Guest" ? userName[0].toUpperCase() : <ProfileIcon size={14} className="text-blue-300" />}
+              {userName ? userName[0].toUpperCase() : <ProfileIcon size={14} className="text-blue-300" />}
             </div>
           )}
 
-          <h1 
-            className="tracking-tight truncate whitespace-nowrap transition-all duration-200 select-none flex-1 min-w-0" 
-            style={{ 
-              fontSize: `${fontSizePx}px`,
-              fontWeight: 800,
-              lineHeight: 1.15,
-              color: "var(--color-text-primary)",
-              letterSpacing: "-0.025em"
-            }}
-            title={userName}
-          >
-            {userName}
-          </h1>
+          <div className="flex-1 min-w-0">
+            <h1 
+              className="tracking-tight truncate whitespace-nowrap transition-all duration-200" 
+              style={{ 
+                fontSize: `${fontSizePx}px`,
+                fontWeight: 800,
+                lineHeight: 1.15,
+                color: "var(--color-text-primary)",
+                letterSpacing: "-0.025em"
+              }}
+            >
+              {userName}
+            </h1>
+            {isGuestMode && (
+              <span className="text-[10px] font-medium text-blue-400/80 block leading-tight mt-0.5">
+                {state.lang === 'bn' ? "টেম্পোরারি সেশন" : "Temporary Session"}
+              </span>
+            )}
+          </div>
         </div>
 
         {/* Navigation */}
@@ -193,44 +213,63 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                 }
 
                 const Icon = item.icon as React.ElementType;
-                // Map item.id to the correct translation key
-                const translationKeyMap: Record<string, keyof typeof t.sidebar> = {
-                  today: 'dashboard',
-                  mind: 'myMind',
-                  tasks: 'workspace',
-                  planner: 'planner',
-                  focus: 'focus',
-                  learning: 'learningHub',
-                  profile: 'myProfile',
-                  settings: 'settings'
+                // Map item.id to the correct translation keys for label and tagline
+                const translationKeyMap: Record<string, { label: keyof typeof t.sidebar; tagline?: keyof typeof t.sidebar }> = {
+                  today: { label: 'dashboard', tagline: 'dashboardTagline' },
+                  mind: { label: 'myMind', tagline: 'myMindTagline' },
+                  tasks: { label: 'workspace', tagline: 'workspaceTagline' },
+                  planner: { label: 'planner', tagline: 'plannerTagline' },
+                  focus: { label: 'focus', tagline: 'focusTagline' },
+                  learning: { label: 'learningHub', tagline: 'learningHubTagline' },
+                  'ai-agent': { label: 'aiAgent', tagline: 'aiAgentTagline' },
+                  profile: { label: 'myProfile' },
+                  settings: { label: 'settings' }
                 };
-                const translationKey = translationKeyMap[item.id];
-                const displayLabel = translationKey ? t.sidebar[translationKey] : item.label;
+                const keys = translationKeyMap[item.id];
+                const displayLabel = (keys?.label && t.sidebar[keys.label]) ? t.sidebar[keys.label] : item.label;
+                const displayTagline = (keys?.tagline && t.sidebar[keys.tagline]) ? t.sidebar[keys.tagline] : (item as { tagline?: string }).tagline;
 
                 return (
                   <button
                     key={item.id}
-                    className={`nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm w-full text-left ${
+                    className={`nav-item flex items-center gap-3 px-3 py-2 rounded-xl text-left w-full transition-all group ${
                       state.activePage === item.id ? "active" : ""
                     }`}
                     onClick={() => handleNav(item.id)}
+                    title={displayTagline ? `${displayLabel} — ${displayTagline}` : displayLabel}
                   >
-                    <span className="nav-icon flex items-center justify-center w-5 text-center" style={{ color: state.activePage === item.id ? "var(--color-purple-bright)" : "var(--color-text-secondary)" }}>
+                    <span 
+                      className="nav-icon flex items-center justify-center w-5 shrink-0 text-center transition-colors" 
+                      style={{ color: state.activePage === item.id ? "var(--color-purple-bright)" : "var(--color-text-secondary)" }}
+                    >
                       <Icon className="w-5 h-5" strokeWidth={2} />
                     </span>
-                    <span
-                      className={`nav-label font-medium ${
-                        state.activePage === item.id ? "" : ""
-                      }`}
-                      style={{
-                        color:
-                          state.activePage === item.id
-                            ? "var(--color-text-primary)"
-                            : "var(--color-text-secondary)",
-                      }}
-                    >
-                      {displayLabel}
-                    </span>
+                    <div className="flex flex-col min-w-0 flex-1">
+                      <span
+                        className="nav-label font-medium leading-tight truncate text-[13px]"
+                        style={{
+                          color:
+                            state.activePage === item.id
+                              ? "var(--color-text-primary)"
+                              : "var(--color-text-secondary)",
+                        }}
+                      >
+                        {displayLabel}
+                      </span>
+                      {displayTagline && (
+                        <span 
+                          className="nav-tagline text-[10px] leading-tight truncate transition-colors mt-0.5"
+                          style={{
+                            color: state.activePage === item.id 
+                              ? "var(--color-purple-soft, #a78bfa)" 
+                              : "var(--color-text-muted)",
+                            opacity: state.activePage === item.id ? 0.95 : 0.75
+                          }}
+                        >
+                          {displayTagline}
+                        </span>
+                      )}
+                    </div>
                   </button>
                 );
               })}

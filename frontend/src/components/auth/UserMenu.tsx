@@ -5,7 +5,7 @@ import { useAuth } from "../../context/AuthContext";
 import { useAppContext } from "../../context/AppContext";
 import { useTranslation } from "../../hooks/useTranslation";
 import { 
-  User as UserIcon, ChevronDown, LogOut, ShieldAlert
+  User as UserIcon, ChevronDown, LogOut, ShieldAlert, LogIn
 } from "lucide-react";
 
 interface UserMenuProps {
@@ -22,7 +22,7 @@ export default function UserMenu({ variant = "sidebar" }: UserMenuProps) {
     confirmLogout, 
     cancelLogout 
   } = useAuth();
-  const { navigateTo } = useAppContext();
+  const { state, navigateTo } = useAppContext();
   const { t } = useTranslation();
 
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -45,28 +45,50 @@ export default function UserMenu({ variant = "sidebar" }: UserMenuProps) {
         {isGuest ? (
           /* GUEST STATE */
           variant === "sidebar" ? (
-            /* Sidebar Full-Width Button */
+            /* Sidebar Guest Profile Card */
             <button
               type="button"
-              onClick={() => openAuth('initial')}
-              className="user-menu-guest-btn w-full flex items-center justify-center gap-2.5 py-2.5 px-4 rounded-xl text-xs font-semibold border transition-all duration-200 cursor-pointer shadow-sm hover:shadow-[0_0_20px_rgba(59,130,246,0.3)] hover:border-blue-500/50 group"
+              onClick={() => openAuth('login')}
+              className="user-menu-sidebar-btn w-full flex items-center gap-2.5 p-2 rounded-xl text-left border transition-all duration-200 cursor-pointer shadow-sm hover:border-blue-500/50 hover:shadow-[0_0_20px_rgba(59,130,246,0.18)] group"
+              title={state.lang === 'bn' ? "গেস্ট মোড - লগইন করতে ক্লিক করুন" : "Guest Mode - Click to Sign In"}
             >
-              <div className="w-5 h-5 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-500 group-hover:bg-blue-500/30 transition-colors">
-                <UserIcon size={12} />
+              <div className="w-8 h-8 rounded-full bg-blue-500/20 border border-blue-500/30 flex items-center justify-center text-xs font-bold text-blue-400 uppercase shadow-sm shrink-0 group-hover:bg-blue-500/30 transition-colors">
+                <UserIcon size={14} />
               </div>
-              <span className="tracking-wide" style={{ color: "var(--color-text-primary)" }}>{t.auth.logIn}</span>
+              <div className="flex-1 min-w-0">
+                <p 
+                  className="text-xs font-bold truncate leading-tight transition-colors"
+                  style={{ color: "var(--color-text-primary)" }}
+                >
+                  {state.lang === 'bn' ? "গেস্ট মোড" : "Guest Mode"}
+                </p>
+                <p 
+                  className="text-[10px] truncate mt-0.5 transition-colors flex items-center gap-1 text-blue-400 font-medium"
+                >
+                  <span>{t.auth.logIn}</span>
+                  <span className="text-[9px] opacity-70">→</span>
+                </p>
+              </div>
+              <div className="p-1.5 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-400 group-hover:bg-blue-500/20 transition-colors shrink-0">
+                <LogIn size={13} />
+              </div>
             </button>
           ) : (
             /* Header Pill */
             <button
               type="button"
-              onClick={() => openAuth('initial')}
+              onClick={() => openAuth('login')}
               className="user-menu-guest-btn flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-semibold border transition-all duration-200 cursor-pointer shadow-sm hover:shadow-[0_0_15px_rgba(59,130,246,0.22)] hover:border-blue-500/50"
             >
               <div className="w-5 h-5 rounded-full bg-blue-500/15 flex items-center justify-center text-blue-500">
                 <UserIcon size={12} />
               </div>
-              <span style={{ color: "var(--color-text-primary)" }}>{t.auth.logIn}</span>
+              <span style={{ color: "var(--color-text-primary)" }}>
+                {state.lang === 'bn' ? "গেস্ট মোড" : "Guest Mode"}
+              </span>
+              <span className="text-[10px] text-blue-400 bg-blue-500/10 px-1.5 py-0.5 rounded-md border border-blue-500/20">
+                {t.auth.logIn}
+              </span>
             </button>
           )
         ) : (

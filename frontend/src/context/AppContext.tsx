@@ -159,23 +159,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [isPageLoading, setIsPageLoading] = useState(false);
   const [toasts, setToasts] = useState<{ id: string; message: string; type: string }[]>([]);
 
-  // Load state from IndexedDB or Cloud
+  // Load state: Cloud for logged-in users; fresh clean state (or tab temporary state) for guests
   useEffect(() => {
     let isMounted = true;
 
     async function initStorage() {
       try {
-        let loadedData = await loadStateFromIndexedDB();
-        if (!loadedData && typeof window !== 'undefined') {
-          const raw = localStorage.getItem(STORAGE_KEY);
-          if (raw) {
-            loadedData = JSON.parse(raw);
-          }
-        }
-
+        let loadedData: AppState | null = null;
         const { data: { session } } = await supabase.auth.getSession();
         
-        // If logged in, prefer cloud state
+        // If logged in, prefer cloud state from Supabase
         if (session?.user) {
           const { data: cloudData, error } = await supabase
             .from('user_cloud_state')
@@ -185,13 +178,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
           if (!error && cloudData && cloudData.state) {
             loadedData = cloudData.state as AppState;
-          } else if (loadedData) {
-            // First time cloud sync: push local data up
-            await supabase.from('user_cloud_state').upsert({
-              id: session.user.id,
-              state: loadedData,
-              updated_at: new Date().toISOString()
-            });
+          } else {
+            // First time login for new user: clean fresh state
+            loadedData = { ...defaultState };
+            try {
+              await supabase.from('user_cloud_state').upsert({
+                id: session.user.id,
+                state: defaultState,
+                updated_at: new Date().toISOString()
+              });
+            } catch {}
           }
 
           // Fetch structured notes from Supabase PostgreSQL notes table
@@ -200,14 +196,24 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             if (dbNotes && dbNotes.length > 0) {
               if (!loadedData) loadedData = { ...defaultState };
               loadedData.notes = dbNotes;
-            } else if (loadedData?.notes && loadedData.notes.length > 0) {
-              // Initial sync: push existing local notes to Supabase PostgreSQL
-              for (const localNote of loadedData.notes) {
-                await noteService.saveNote(localNote, session.user.id).catch(() => {});
-              }
             }
           } catch (notesErr) {
             console.warn("[AppContext] Error syncing PostgreSQL notes on load:", notesErr);
+          }
+        } else {
+          // Guest Mode:
+          // Temporary session data during current browser tab session only.
+          // Fresh clean zero state on initial visit.
+          if (typeof window !== 'undefined') {
+            const sessionRaw = sessionStorage.getItem('focusforge_guest_temp_data');
+            if (sessionRaw) {
+              try {
+                loadedData = JSON.parse(sessionRaw);
+              } catch {}
+            }
+          }
+          if (!loadedData) {
+            loadedData = { ...defaultState };
           }
         }
 
@@ -252,27 +258,91 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return () => { isMounted = false; };
   }, []);
 
-  // Save state to IndexedDB (unlimited quota), safely to localStorage, and push to Cloud
+  // Save state: Cloud + local persistence for logged-in users; temporary sessionStorage ONLY for guests
   useEffect(() => {
-    if (isLoaded) {
-      saveStateToIndexedDB(state);
-      safeSaveToLocalStorage(STORAGE_KEY, state);
+    if (!isLoaded) return;
 
-      // Debounce the cloud sync
-      const timer = setTimeout(async () => {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.user) {
-          await supabase.from('user_cloud_state').upsert({
-            id: session.user.id,
-            state: state,
-            updated_at: new Date().toISOString()
-          });
+    let cloudTimer: ReturnType<typeof setTimeout> | null = null;
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        // Authenticated: save to IndexedDB & localStorage cache
+        saveStateToIndexedDB(state);
+        safeSaveToLocalStorage(STORAGE_KEY, state);
+
+        // Debounced cloud sync to Supabase
+        cloudTimer = setTimeout(async () => {
+          try {
+            await supabase.from('user_cloud_state').upsert({
+              id: session.user.id,
+              state: state,
+              updated_at: new Date().toISOString()
+            });
+          } catch (cloudErr) {
+            console.warn("[AppContext] Cloud sync error:", cloudErr);
+          }
+        }, 2500);
+      } else {
+        // Guest mode: ONLY keep in sessionStorage as temporary in-memory data
+        // ZERO data is sent to Supabase or permanent disk storage!
+        if (typeof window !== 'undefined') {
+          try {
+            sessionStorage.setItem('focusforge_guest_temp_data', JSON.stringify(state));
+          } catch (err) {
+            console.warn("Guest sessionStorage warning:", err);
+          }
         }
-      }, 3000);
+      }
+    });
 
-      return () => clearTimeout(timer);
-    }
+    return () => {
+      if (cloudTimer) clearTimeout(cloudTimer);
+    };
   }, [state, isLoaded]);
+
+  // Synchronize state when user signs in or out
+  useEffect(() => {
+    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === "SIGNED_IN" && session?.user) {
+        try {
+          if (typeof window !== "undefined") {
+            sessionStorage.removeItem('focusforge_guest_temp_data');
+          }
+          const { data: cloudData } = await supabase
+            .from('user_cloud_state')
+            .select('state')
+            .eq('id', session.user.id)
+            .maybeSingle();
+
+          if (cloudData?.state) {
+            setState(prev => ({
+              ...defaultState,
+              ...(cloudData.state as AppState),
+              theme: { ...defaultState.theme, ...((cloudData.state as AppState).theme || {}) }
+            }));
+          } else {
+            setState({ ...defaultState });
+          }
+
+          const dbNotes = await noteService.fetchNotes(session.user.id);
+          if (dbNotes && dbNotes.length > 0) {
+            setState(prev => ({ ...prev, notes: dbNotes }));
+          }
+        } catch (err) {
+          console.warn("[AppContext] Error on SIGNED_IN load:", err);
+        }
+      } else if (event === "SIGNED_OUT") {
+        if (typeof window !== "undefined") {
+          sessionStorage.removeItem('focusforge_guest_temp_data');
+        }
+        setState({ ...defaultState });
+      }
+    });
+
+    return () => {
+      authListener?.subscription.unsubscribe();
+    };
+  }, []);
 
   // Realtime subscription for Notes: keeps tabs & devices in sync
   useEffect(() => {

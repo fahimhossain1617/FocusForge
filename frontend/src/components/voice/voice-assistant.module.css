@@ -135,8 +135,8 @@
   width: 80%;
   height: 240px;
   border-radius: 50%;
-  background: radial-gradient(ellipse at 50% 100%, rgba(37, 99, 235, 0.35) 0%, rgba(14, 165, 233, 0.15) 45%, transparent 75%);
-  filter: blur(55px);
+  background: radial-gradient(ellipse at 50% 100%, rgba(37, 99, 235, 0.25) 0%, rgba(14, 165, 233, 0.10) 45%, transparent 75%);
+  filter: blur(65px);
   transform-origin: bottom center;
   transition: opacity 0.2s ease, transform 0.2s ease;
   pointer-events: none;
@@ -146,7 +146,9 @@
   position: relative;
   width: 100%;
   height: 100%;
-  filter: drop-shadow(0 -10px 30px rgba(37, 99, 235, 0.35));
+  filter: drop-shadow(0 -6px 22px rgba(37, 99, 235, 0.25));
+  -webkit-mask-image: radial-gradient(ellipse 85% 100% at 50% 100%, black 60%, transparent 100%);
+  mask-image: radial-gradient(ellipse 85% 100% at 50% 100%, black 60%, transparent 100%);
 }
 
 /* Minimalist bottom action pill */
@@ -465,5 +467,5 @@
 
 :global([data-theme="light"]) .bottomUpwardGlow,
 .voiceOverlay[data-theme="light"] .bottomUpwardGlow {
-  background: radial-gradient(ellipse at 50% 100%, rgba(37, 99, 235, 0.22) 0%, rgba(14, 165, 233, 0.1) 45%, transparent 75%) !important;
+  background: radial-gradient(ellipse at 50% 100%, rgba(37, 99, 235, 0.16) 0%, rgba(14, 165, 233, 0.06) 45%, transparent 75%) !important;
 }

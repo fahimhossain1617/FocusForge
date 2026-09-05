@@ -33,32 +33,44 @@ serve(async (req) => {
   }
 
   try {
-    // 1. Verify User (Supabase Auth)
+    // 1. Verify User (Supabase Auth with Guest Fallback)
     const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      throw new Error("Missing Authorization header");
-    }
+    const apikey = req.headers.get('apikey');
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
     const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
     const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-    
-    if (authError || !user) {
-      throw new Error("Unauthorized");
+    let isGuest = false;
+    let userId: string | null = null;
+
+    if (authHeader) {
+      const token = authHeader.replace(/^Bearer\s+/i, '').trim();
+      if (token === 'guest' || token === supabaseAnonKey || apikey === supabaseAnonKey) {
+        isGuest = true;
+      } else {
+        const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+        if (!authError && user) {
+          userId = user.id;
+        } else {
+          isGuest = true;
+        }
+      }
+    } else if (apikey === supabaseAnonKey) {
+      isGuest = true;
+    } else {
+      isGuest = true; // Graceful guest fallback
     }
 
     // 2. Route AI Request
     const url = new URL(req.url);
-    const path = url.pathname.split('/').pop(); // Gets 'what-should-i-do', 'breakdown', etc.
+    const path = url.pathname.split('/').pop() || '';
     const body = await req.json();
 
     // 3. Initialize Gemini
     const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
     if (!geminiApiKey) {
-        throw new Error("GEMINI_API_KEY is missing in Edge Function secrets.");
+      throw new Error("GEMINI_API_KEY is missing in Edge Function secrets.");
     }
     const ai = new GoogleGenAI({ apiKey: geminiApiKey });
 
@@ -86,7 +98,7 @@ serve(async (req) => {
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
 
-  } catch (error) {
+  } catch (error: any) {
     return new Response(
       JSON.stringify({ error: error.message }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 },

@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type ChangeEvent, type ComponentType, type KeyboardEvent } from "react";
+import { useEffect, useMemo, useRef, useState, useCallback, type ChangeEvent, type ComponentType, type KeyboardEvent } from "react";
 import type { BlockType, NoteBlock } from "../../types";
 import { 
   Braces, CheckSquare2, Copy, Heading1, Heading2, Heading3, StickyNote, Sigma, Text, 
   Trash2, Palette, Highlighter, Square, RotateCcw, X, PenTool, MousePointer2, Eraser,
-  List, ListOrdered, Quote, Image as ImageIcon, FileText, Link2, ExternalLink, Download, Eye, Paperclip
+  List, ListOrdered, Quote, Image as ImageIcon, FileText, Link2, ExternalLink, Download, Eye, Paperclip,
+  Undo2, Redo2
 } from "lucide-react";
 import * as fabric from "fabric";
 import { HexColorPicker } from "react-colorful";
@@ -94,7 +95,28 @@ export default function BlockEditor({
   const [colorToolbar, setColorToolbar] = useState<{ visible: boolean; index: number }>({ visible: false, index: -1 });
 
   useEffect(() => { if (!blocks.length) onChange([newBlock()]); }, [blocks.length, onChange]);
-  const visibleOptions = useMemo(() => options.filter((o) => `${o.command} ${o.label}`.toLowerCase().includes(menu.query.toLowerCase())), [menu.query]);
+  
+  // Compute consecutive numbered list indices (resets to 1 whenever interrupted by another block type)
+  const listNumbers = useMemo(() => {
+    const nums: number[] = [];
+    let currentNum = 0;
+    for (let i = 0; i < blocks.length; i++) {
+      if (blocks[i].type === "numbered") {
+        currentNum++;
+        nums.push(currentNum);
+      } else {
+        currentNum = 0;
+        nums.push(0);
+      }
+    }
+    return nums;
+  }, [blocks]);
+
+  const visibleOptions = useMemo(() => options.filter((o) => {
+    const q = menu.query.toLowerCase().trim();
+    if (o.type === "numbered" && (q === "1" || q === "num" || q === "number" || q === "ordered")) return true;
+    return `${o.command} ${o.label}`.toLowerCase().includes(q);
+  }), [menu.query]);
 
   const update = (index: number, patch: Partial<NoteBlock>) => { onDirty(); onChange(blocks.map((b, i) => i === index ? { ...b, ...patch } : b)); };
   const focus = (id: string) => window.setTimeout(() => document.getElementById(`block-${id}`)?.focus(), 0);
@@ -134,6 +156,26 @@ export default function BlockEditor({
 
   const handleInput = (event: ChangeEvent<HTMLTextAreaElement | HTMLInputElement>, index: number) => {
     const value = event.target.value;
+
+    // Quick markdown shortcuts for numbered list and other list types
+    if (blocks[index].type === "paragraph") {
+      if (value === "1. " || value.startsWith("1. ")) {
+        update(index, { type: "numbered", content: value.slice(3) });
+        setMenu((c) => ({ ...c, visible: false }));
+        return;
+      }
+      if (value === "- " || value === "* ") {
+        update(index, { type: "bullet", content: "" });
+        setMenu((c) => ({ ...c, visible: false }));
+        return;
+      }
+      if (value === "[] ") {
+        update(index, { type: "todo", content: "", isCompleted: false });
+        setMenu((c) => ({ ...c, visible: false }));
+        return;
+      }
+    }
+
     update(index, { content: value });
     const isCommand = blocks[index].type === "paragraph" && /^#[\w\s-]*$/.test(value);
     if (!isCommand) { setMenu((c) => ({ ...c, visible: false })); return; }
@@ -179,6 +221,7 @@ export default function BlockEditor({
       <EditorBlock
         key={block.id}
         index={index}
+        listNumber={listNumbers[index]}
         block={block}
         onInput={(e) => handleInput(e, index)}
         onKeyDown={(e) => handleKeyDown(e, index)}
@@ -357,8 +400,77 @@ type Stroke = Point[];
 function StickyBlock({ block, control, input, textareaRef, onDelete, onUpdate }: any) {
   const [mode, setMode] = useState<"text" | "draw" | "select">("text");
   const [hasSelection, setHasSelection] = useState(false);
+  const [hasCanvasObjects, setHasCanvasObjects] = useState(false);
+  const [canUndo, setCanUndo] = useState(false);
+  const [canRedo, setCanRedo] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fabricRef = useRef<fabric.Canvas | null>(null);
+  const redoStackRef = useRef<fabric.Object[]>([]);
+
+  const hasDrawing = useMemo(() => {
+    if (!block.drawingData || block.drawingData === "" || block.drawingData === "[]" || block.drawingData === "{}") {
+      return false;
+    }
+    try {
+      const parsed = JSON.parse(block.drawingData);
+      return Array.isArray(parsed?.objects) ? parsed.objects.length > 0 : false;
+    } catch {
+      return false;
+    }
+  }, [block.drawingData]);
+
+  const hidePlaceholder = mode === "draw" || hasDrawing || hasCanvasObjects;
+
+  // Save on drawing end or object modified
+  const saveState = useCallback(() => {
+    if (!fabricRef.current) return;
+    const json = fabricRef.current.toJSON();
+    const count = json.objects ? json.objects.length : 0;
+    setHasCanvasObjects(count > 0);
+    setCanUndo(count > 0);
+    if (count === 0) {
+      onUpdate({ drawingData: "" });
+    } else {
+      onUpdate({ drawingData: JSON.stringify(json) });
+    }
+  }, [onUpdate]);
+
+  const undoDrawing = useCallback(() => {
+    if (!fabricRef.current) return;
+    const objects = fabricRef.current.getObjects();
+    if (objects.length > 0) {
+      const last = objects[objects.length - 1];
+      redoStackRef.current.push(last);
+      fabricRef.current.remove(last);
+      fabricRef.current.discardActiveObject();
+      fabricRef.current.requestRenderAll();
+      saveState();
+      setCanUndo(fabricRef.current.getObjects().length > 0);
+      setCanRedo(true);
+    } else if (redoStackRef.current.length > 0) {
+      while (redoStackRef.current.length > 0) {
+        const item = redoStackRef.current.pop();
+        if (item) fabricRef.current.add(item);
+      }
+      fabricRef.current.requestRenderAll();
+      saveState();
+      setCanUndo(true);
+      setCanRedo(false);
+    }
+  }, [saveState]);
+
+  const redoDrawing = useCallback(() => {
+    if (!fabricRef.current || redoStackRef.current.length === 0) return;
+    const item = redoStackRef.current.pop();
+    if (item) {
+      fabricRef.current.add(item);
+      fabricRef.current.discardActiveObject();
+      fabricRef.current.requestRenderAll();
+      saveState();
+      setCanUndo(true);
+      setCanRedo(redoStackRef.current.length > 0);
+    }
+  }, [saveState]);
 
   // Initialize Fabric canvas
   useEffect(() => {
@@ -384,6 +496,10 @@ function StickyBlock({ block, control, input, textareaRef, onDelete, onUpdate }:
         try {
           const parsed = JSON.parse(block.drawingData);
           if (parsed && typeof parsed === "object" && !Array.isArray(parsed) && parsed.objects) {
+            if (parsed.objects.length > 0) {
+              setHasCanvasObjects(true);
+              setCanUndo(true);
+            }
             fabricRef.current.loadFromJSON(parsed, () => {
               fabricRef.current?.renderAll();
             });
@@ -398,28 +514,20 @@ function StickyBlock({ block, control, input, textareaRef, onDelete, onUpdate }:
         if (!fabricRef.current || !canvasRef.current?.parentElement) return;
         const parent = canvasRef.current.parentElement;
         const width = parent.clientWidth;
-        // Don't shrink height, keep it max
         (fabricRef.current as any).setWidth(width);
         fabricRef.current.renderAll();
       };
       window.addEventListener("resize", handleResize as any);
 
-      // Save on drawing end or object modified
-      const saveState = () => {
-        if (!fabricRef.current) return;
-        const json = fabricRef.current.toJSON();
-        // Only update if there are actual objects, else empty
-        if (json.objects.length === 0) {
-          onUpdate({ drawingData: "" });
-        } else {
-          onUpdate({ drawingData: JSON.stringify(json) });
-        }
-      };
-
-      fabricRef.current.on("path:created", saveState);
+      fabricRef.current.on("path:created", () => {
+        redoStackRef.current = [];
+        setCanRedo(false);
+        setCanUndo(true);
+        saveState();
+      });
       fabricRef.current.on("object:modified", saveState);
       fabricRef.current.on("object:removed", saveState);
-      fabricRef.current.on("object:added", saveState); // Important for paste
+      fabricRef.current.on("object:added", saveState);
       
       fabricRef.current.on("selection:created", () => setHasSelection(true));
       fabricRef.current.on("selection:updated", () => setHasSelection(true));
@@ -431,7 +539,7 @@ function StickyBlock({ block, control, input, textareaRef, onDelete, onUpdate }:
         fabricRef.current = null;
       };
     }
-  }, []);
+  }, [block.drawingData, saveState]);
 
   // Update mode
   useEffect(() => {
@@ -454,34 +562,63 @@ function StickyBlock({ block, control, input, textareaRef, onDelete, onUpdate }:
     }
   }, [mode]);
 
-  // Handle keyboard shortcuts (Delete, Copy, Paste) for selected fabric objects
+  // Handle keyboard shortcuts (Ctrl+Z Undo, Ctrl+Y Redo, Delete, Copy) for drawing & fabric objects
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (mode !== "select" || !fabricRef.current) return;
-      
-      const activeObject = fabricRef.current.getActiveObject();
-      if (!activeObject) return;
+    const handleKeyDown = (e: globalThis.KeyboardEvent) => {
+      if ((mode !== "draw" && mode !== "select") || !fabricRef.current) return;
 
-      // Delete
-      if (e.key === "Backspace" || e.key === "Delete") {
+      // Undo: Ctrl+Z or Cmd+Z
+      if ((e.ctrlKey || e.metaKey) && (e.key === "z" || e.key === "Z") && !e.shiftKey) {
         e.preventDefault();
-        const activeObjects = fabricRef.current.getActiveObjects();
-        if (activeObjects.length) {
-          activeObjects.forEach(obj => fabricRef.current?.remove(obj));
-          fabricRef.current.discardActiveObject();
+        e.stopPropagation();
+        undoDrawing();
+        return;
+      }
+
+      // Redo: Ctrl+Y or Ctrl+Shift+Z or Cmd+Shift+Z
+      if ((e.ctrlKey || e.metaKey) && (((e.key === "z" || e.key === "Z") && e.shiftKey) || e.key === "y" || e.key === "Y")) {
+        e.preventDefault();
+        e.stopPropagation();
+        redoDrawing();
+        return;
+      }
+
+      if (mode === "select") {
+        const activeObject = fabricRef.current.getActiveObject();
+        if (!activeObject) return;
+
+        // Delete
+        if (e.key === "Backspace" || e.key === "Delete") {
+          e.preventDefault();
+          const activeObjects = fabricRef.current.getActiveObjects();
+          if (activeObjects.length) {
+            activeObjects.forEach(obj => {
+              redoStackRef.current.push(obj);
+              fabricRef.current?.remove(obj);
+            });
+            fabricRef.current.discardActiveObject();
+            saveState();
+            setCanRedo(true);
+          }
         }
       }
-      // Need a simple copy-paste state
     };
     
-    window.addEventListener("keydown", handleKeyDown as any);
-    return () => window.removeEventListener("keydown", handleKeyDown as any);
-  }, [mode]);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [mode, undoDrawing, redoDrawing, saveState]);
 
   const clearDrawing = () => {
     if (fabricRef.current) {
+      const currentObjects = fabricRef.current.getObjects();
+      if (currentObjects.length > 0) {
+        redoStackRef.current = [...currentObjects];
+        setCanRedo(true);
+      }
       fabricRef.current.clear();
       (fabricRef.current as any).backgroundColor = "transparent";
+      setHasCanvasObjects(false);
+      setCanUndo(false);
       onUpdate({ drawingData: "" });
     }
   };
@@ -490,9 +627,14 @@ function StickyBlock({ block, control, input, textareaRef, onDelete, onUpdate }:
     if (!fabricRef.current) return;
     const activeObjects = fabricRef.current.getActiveObjects();
     if (activeObjects.length) {
-      activeObjects.forEach(obj => fabricRef.current?.remove(obj));
+      activeObjects.forEach(obj => {
+        redoStackRef.current.push(obj);
+        fabricRef.current?.remove(obj);
+      });
       fabricRef.current.discardActiveObject();
       setHasSelection(false);
+      saveState();
+      setCanRedo(true);
     }
   };
 
@@ -526,6 +668,29 @@ function StickyBlock({ block, control, input, textareaRef, onDelete, onUpdate }:
             <MousePointer2 size={14} />
           </button>
         </div>
+
+        {(mode === "draw" || mode === "select") && (
+          <div className="flex bg-black/20 p-1 rounded-md border border-white/5 items-center gap-0.5">
+            <button 
+              type="button" 
+              onClick={undoDrawing} 
+              disabled={!canUndo}
+              className={`p-1 rounded transition-colors ${canUndo ? 'text-zinc-300 hover:text-white hover:bg-white/10' : 'text-zinc-600 cursor-not-allowed opacity-40'}`}
+              title="Undo (Ctrl+Z)"
+            >
+              <Undo2 size={14} />
+            </button>
+            <button 
+              type="button" 
+              onClick={redoDrawing} 
+              disabled={!canRedo}
+              className={`p-1 rounded transition-colors ${canRedo ? 'text-zinc-300 hover:text-white hover:bg-white/10' : 'text-zinc-600 cursor-not-allowed opacity-40'}`}
+              title="Redo (Ctrl+Y)"
+            >
+              <Redo2 size={14} />
+            </button>
+          </div>
+        )}
         
         {mode === "select" && hasSelection && (
           <button 
@@ -558,7 +723,7 @@ function StickyBlock({ block, control, input, textareaRef, onDelete, onUpdate }:
           ref={textareaRef} 
           {...input} 
           rows={1} 
-          placeholder="Write a sticky note... (Shift+Enter for newline)" 
+          placeholder={hidePlaceholder ? "" : "Write a sticky note... (Shift+Enter for newline)"} 
           className={mode !== "text" ? "opacity-30" : ""}
           style={{ position: "relative", zIndex: 10, minHeight: "150px", width: "100%", background: "transparent" }}
           disabled={mode !== "text"}
@@ -583,6 +748,7 @@ function StickyBlock({ block, control, input, textareaRef, onDelete, onUpdate }:
 function EditorBlock({ 
   block, 
   index,
+  listNumber = 1,
   onInput, 
   onKeyDown, 
   onToggle, 
@@ -598,6 +764,7 @@ function EditorBlock({
 }: {
   block: NoteBlock;
   index: number;
+  listNumber?: number;
   onInput: (event: ChangeEvent<HTMLTextAreaElement | HTMLInputElement>) => void;
   onKeyDown: (event: KeyboardEvent<HTMLTextAreaElement | HTMLInputElement | HTMLDivElement>) => void;
   onToggle: () => void;
@@ -697,7 +864,7 @@ function EditorBlock({
         {wrapWithBox(
           <div className="flex items-start gap-2.5 w-full" style={highlightStyle}>
             <span className="text-zinc-500 font-semibold font-mono text-xs select-none min-w-[20px] pt-1.5">
-              {index + 1}.
+              {listNumber || 1}.
             </span>
             <textarea ref={textarea} {...input} rows={1} placeholder="List item" style={textStyle} />
           </div>

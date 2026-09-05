@@ -12,9 +12,14 @@ export async function fetchBackend<T>(endpoint: string, options: RequestInit = {
     ...(options.headers as Record<string, string> || {}),
   };
 
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
   const { data: { session } } = await supabase.auth.getSession();
   if (session?.access_token) {
     headers['Authorization'] = `Bearer ${session.access_token}`;
+    if (anonKey) headers['apikey'] = anonKey;
+  } else if (anonKey) {
+    headers['Authorization'] = `Bearer ${anonKey}`;
+    headers['apikey'] = anonKey;
   }
 
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { Trash2 } from "lucide-react";
+import { Trash2, ArrowLeft } from "lucide-react";
 import { useAppContext } from "../../context/AppContext";
 import { useTranslation } from "../../hooks/useTranslation";
 
@@ -47,11 +47,17 @@ export default function ReviewAll({ navigate, setActiveThoughtId }: ReviewAllPro
     <div className="fade-in max-w-3xl mx-auto py-8">
       <div className="flex items-center justify-between mb-8">
         <button 
+          type="button"
           onClick={() => navigate('home')}
-          className="text-sm font-medium transition-colors hover:opacity-80"
-          style={{ color: "var(--color-text-muted)" }}
+          className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-semibold border transition-all hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer shadow-xs"
+          style={{
+            borderColor: "var(--color-border-subtle)",
+            color: "var(--color-text-primary)",
+          }}
+          aria-label="Back to Capture"
         >
-          {t.myMind.backToMyMind}
+          <ArrowLeft size={16} />
+          <span>{t.myMind.backToMyMind || "Back to Capture"}</span>
         </button>
         <h1 className="text-xl font-bold" style={{ color: "var(--color-text-primary)" }}>
           {t.myMind.reviewAllTitle}

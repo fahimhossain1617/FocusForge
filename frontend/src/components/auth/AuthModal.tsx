@@ -6,7 +6,7 @@ import { useTranslation } from "../../hooks/useTranslation";
 import { authService } from "../../services/authService";
 import { User } from "../../types";
 import { 
-  X, Mail, Phone, Lock, Eye, EyeOff, Check, AlertCircle, ArrowLeft, Loader2, ChevronDown
+  X, Mail, Lock, Eye, EyeOff, Check, AlertCircle, ArrowLeft, Loader2 
 } from "lucide-react";
 
 // Official Google SVG Icon
@@ -21,19 +21,9 @@ function GoogleIcon({ className = "w-5 h-5" }: { className?: string }) {
   );
 }
 
-const COUNTRY_CODES = [
-  { code: "+880", flag: "🇧🇩", name: "Bangladesh" },
-  { code: "+1", flag: "🇺🇸", name: "USA/Canada" },
-  { code: "+44", flag: "🇬🇧", name: "UK" },
-  { code: "+91", flag: "🇮🇳", name: "India" },
-  { code: "+61", flag: "🇦🇺", name: "Australia" },
-  { code: "+49", flag: "🇩🇪", name: "Germany" },
-  { code: "+971", flag: "🇦🇪", name: "UAE" },
-  { code: "+966", flag: "🇸🇦", name: "Saudi Arabia" },
-];
-
 export default function AuthModal() {
   const { 
+    user,
     authModal, 
     closeAuth, 
     setAuthView, 
@@ -42,10 +32,15 @@ export default function AuthModal() {
   } = useAuth();
   const { t } = useTranslation();
 
-  // Registration & Form State
-  const [authMethodTab, setAuthMethodTab] = useState<'email' | 'phone'>('email');
-  const [countryCode, setCountryCode] = useState("+880");
-  const [identifier, setIdentifier] = useState("");
+  // Auto-close modal when user becomes authenticated (e.g. from OAuth redirect or email confirmation)
+  useEffect(() => {
+    if (user && authModal.isOpen) {
+      closeAuth();
+    }
+  }, [user, authModal.isOpen, closeAuth]);
+
+  // Form State (Email only)
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -57,18 +52,16 @@ export default function AuthModal() {
   const [resendTimer, setResendTimer] = useState(30);
   const [canResend, setCanResend] = useState(false);
   const [otpPurpose, setOtpPurpose] = useState<'login' | 'signup' | 'forgot'>('login');
-  const [pendingUser, setPendingUser] = useState<User | null>(null);
   const [isOtpExpired, setIsOtpExpired] = useState(false);
 
   // Loading & Error states
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [demoCodeHint, setDemoCodeHint] = useState<string | null>(null);
 
   // Sync initial identifier if provided
   useEffect(() => {
     if (authModal.initialIdentifier) {
-      setIdentifier(authModal.initialIdentifier);
+      setEmail(authModal.initialIdentifier);
     }
   }, [authModal.initialIdentifier]);
 
@@ -105,51 +98,18 @@ export default function AuthModal() {
     return { score: 3, label: t.auth.strong, color: "bg-emerald-500", text: "text-emerald-400" };
   };
 
-  // Helper to mask identifier
-  const getMaskedIdentifier = () => {
-    if (authMethodTab === 'email') {
-      const parts = identifier.split("@");
-      if (parts.length === 2 && parts[0].length > 2) {
-        return `${parts[0].substring(0, 3)}***@${parts[1]}`;
-      }
-      return identifier;
-    } else {
-      let digits = identifier.replace(/\D/g, '');
-      // If country code ends in '0' and digits start with '0', strip the extra '0'
-      if (countryCode.endsWith("0") && digits.startsWith("0")) {
-        digits = digits.replace(/^0+/, '');
-      }
-      if (digits.length >= 4) {
-        return `${countryCode} *** *** ${digits.slice(-4)}`;
-      }
-      return `${countryCode} ${digits}`;
+  // Helper to mask email
+  const getMaskedEmail = () => {
+    const clean = email.trim();
+    const parts = clean.split("@");
+    if (parts.length === 2 && parts[0].length > 2) {
+      return `${parts[0].substring(0, 3)}***@${parts[1]}`;
     }
-  };
-
-  // Helper to sanitize phone input as user types
-  const handlePhoneInput = (val: string) => {
-    let clean = val.replace(/\D/g, '');
-    if (countryCode.endsWith("0") && clean.startsWith("0")) {
-      clean = clean.replace(/^0+/, '');
-    }
-    setIdentifier(clean);
-  };
-
-  // Full clean identifier for service
-  const getFullIdentifier = () => {
-    if (authMethodTab === 'phone') {
-      let digits = identifier.replace(/\D/g, '');
-      if (countryCode.endsWith("0") && digits.startsWith("0")) {
-        digits = digits.replace(/^0+/, '');
-      }
-      return `${countryCode}${digits}`;
-    }
-    return identifier.trim();
+    return clean;
   };
 
   // OTP input handlers
   const handleOtpChange = (index: number, val: string) => {
-    // Check if user pasted full OTP
     if (val.length > 1) {
       const cleaned = val.replace(/\D/g, '').slice(0, 6);
       if (cleaned.length > 0) {
@@ -180,31 +140,37 @@ export default function AuthModal() {
     }
   };
 
-  // Action: Request OTP for Signup
+  // Action: Proceed from Signup Step 1 to Step 2
   const handleProceedToPassword = (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
 
-    const clean = identifier.trim();
+    const clean = email.trim().toLowerCase();
     if (!clean) {
-      setErrorMessage("Please enter an email or phone number.");
+      setErrorMessage("Please enter an email address.");
       return;
     }
 
-    if (authMethodTab === 'email' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clean)) {
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clean)) {
       setErrorMessage("Please enter a valid email address.");
-      return;
-    }
-
-    if (authMethodTab === 'phone' && clean.replace(/\D/g, '').length < 6) {
-      setErrorMessage("Please enter a valid phone number.");
       return;
     }
 
     setAuthView('password_create');
   };
 
-  // Action: Submit Password and Send OTP
+  // Action: Handle Google Sign-in with local error state
+  const handleGoogleLogin = async () => {
+    setErrorMessage(null);
+    setIsLoading(true);
+    const success = await loginWithGoogle();
+    setIsLoading(false);
+    if (!success) {
+      setErrorMessage("Google login is currently unavailable. Please log in directly with your email and password.");
+    }
+  };
+
+  // Action: Submit Password and Register / Direct Login
   const handleSubmitPasswordAndSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
@@ -215,20 +181,52 @@ export default function AuthModal() {
     }
 
     setIsLoading(true);
-    const fullId = getFullIdentifier();
+    const cleanEmail = email.trim().toLowerCase();
     setOtpPurpose('signup');
     setIsOtpExpired(false);
 
-    const res = await authService.createAccount(fullId, password, rememberMe);
-    setIsLoading(false);
+    const res = await authService.createAccount(cleanEmail, password, rememberMe);
 
-    if (res.success) {
-      setResendTimer(30);
-      setCanResend(false);
-      setOtpDigits(["", "", "", "", "", ""]);
-      setAuthView('otp');
+    if (!res.success) {
+      setIsLoading(false);
+      setErrorMessage(res.error || "Failed to create account. Please try again.");
+      return;
+    }
+
+    // 1. If Supabase already returned an active session, log in directly!
+    if (res.session && res.user) {
+      setIsLoading(false);
+      onAuthSuccess(res.user, true);
+      return;
+    }
+
+    // 2. Direct sign-in attempt (auto-confirm trigger allows immediate login)
+    const directLogin = await authService.validateCredentials(cleanEmail, password, rememberMe);
+    if (directLogin.success && directLogin.user) {
+      setIsLoading(false);
+      onAuthSuccess(directLogin.user, true);
+      return;
+    }
+
+    // 3. Fallback to verification view if email confirmation is strictly pending
+    setIsLoading(false);
+    setResendTimer(30);
+    setCanResend(false);
+    setOtpDigits(["", "", "", "", "", ""]);
+    setAuthView('otp');
+  };
+
+  // Action: Check if user confirmed via email link and log them in directly
+  const handleCheckConfirmedAndLogin = async () => {
+    setIsLoading(true);
+    setErrorMessage(null);
+    const cleanEmail = email.trim().toLowerCase();
+    const loginRes = await authService.validateCredentials(cleanEmail, password, rememberMe);
+    setIsLoading(false);
+    if (loginRes.success && loginRes.user) {
+      onAuthSuccess(loginRes.user, otpPurpose === 'signup');
     } else {
-      setErrorMessage(res.error || "Failed to create account or send verification code. Please try again.");
+      setErrorMessage(loginRes.error || "Email not confirmed yet. Please click the confirmation link in the email from Supabase, or enter the 6-digit code.");
     }
   };
 
@@ -244,11 +242,11 @@ export default function AuthModal() {
     }
 
     setIsLoading(true);
-    const fullId = getFullIdentifier();
+    const cleanEmail = email.trim().toLowerCase();
 
     // FORGOT PASSWORD FLOW
     if (authModal.view === 'forgot_otp' || otpPurpose === 'forgot') {
-      const verifyRes = await authService.verifyOtp(fullId, code);
+      const verifyRes = await authService.verifyOtp(cleanEmail, code, 'recovery');
       setIsLoading(false);
       if (verifyRes.success) {
         setAuthView('forgot_new_password');
@@ -264,7 +262,7 @@ export default function AuthModal() {
     }
 
     // SIGNUP FLOW VERIFICATION
-    const verifyRes = await authService.verifyOtp(fullId, code);
+    const verifyRes = await authService.verifyOtp(cleanEmail, code, 'signup');
     setIsLoading(false);
     
     if (!verifyRes.success) {
@@ -284,20 +282,15 @@ export default function AuthModal() {
     }
   };
 
-  // Action: Resend OTP
+  // Action: Resend OTP / Confirmation
   const handleResendOtp = async () => {
     if (!canResend) return;
     setErrorMessage(null);
     setIsOtpExpired(false);
     setIsLoading(true);
-    const fullId = getFullIdentifier();
+    const cleanEmail = email.trim().toLowerCase();
     
-    let res;
-    if (otpPurpose === 'signup') {
-      res = await authService.createAccount(fullId, password, rememberMe);
-    } else {
-      res = await authService.sendOtp(fullId);
-    }
+    const res = await authService.sendOtp(cleanEmail, otpPurpose);
     
     setIsLoading(false);
     if (res.success) {
@@ -308,14 +301,14 @@ export default function AuthModal() {
     }
   };
 
-  // Action: Log In Existing User - MANDATORY OTP STEP
+  // Action: Log In Existing User with Email + Password
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
 
-    const fullId = getFullIdentifier();
-    if (!fullId) {
-      setErrorMessage("Please enter your email or phone number.");
+    const cleanEmail = email.trim().toLowerCase();
+    if (!cleanEmail) {
+      setErrorMessage("Please enter your email address.");
       return;
     }
     if (!password) {
@@ -325,29 +318,29 @@ export default function AuthModal() {
 
     setIsLoading(true);
 
-    const valRes = await authService.validateCredentials(fullId, password, rememberMe);
+    const valRes = await authService.validateCredentials(cleanEmail, password, rememberMe);
     setIsLoading(false);
     
     if (!valRes.success || !valRes.user) {
-      setErrorMessage(valRes.error || "Incorrect email/phone or password.");
+      setErrorMessage(valRes.error || "Incorrect email or password.");
       return;
     }
 
     onAuthSuccess(valRes.user, false);
   };
 
-  // Action: Forgot Password Request Code
+  // Action: Forgot Password Request
   const handleForgotRequest = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
-    const fullId = getFullIdentifier();
-    if (!fullId) {
-      setErrorMessage("Please enter your email or phone number.");
+    const cleanEmail = email.trim().toLowerCase();
+    if (!cleanEmail) {
+      setErrorMessage("Please enter your email address.");
       return;
     }
 
     setIsLoading(true);
-    const res = await authService.sendOtp(fullId);
+    const res = await authService.sendOtp(cleanEmail, 'forgot');
     setIsLoading(false);
 
     if (res.success) {
@@ -356,7 +349,7 @@ export default function AuthModal() {
       setOtpDigits(["", "", "", "", "", ""]);
       setAuthView('forgot_otp');
     } else {
-      setErrorMessage(res.error || "Could not send recovery code. Please try again.");
+      setErrorMessage(res.error || "Could not send recovery instructions. Please try again.");
     }
   };
 
@@ -375,8 +368,7 @@ export default function AuthModal() {
     }
 
     setIsLoading(true);
-    const fullId = getFullIdentifier();
-    const res = await authService.resetPassword(fullId, password);
+    const res = await authService.resetPassword(password);
     setIsLoading(false);
 
     if (res.success) {
@@ -399,9 +391,9 @@ export default function AuthModal() {
 
       {/* Main Glass Card */}
       <div 
-        className="relative w-full max-w-[440px] my-auto rounded-3xl border shadow-2xl p-6 sm:p-8 transition-all scale-in overflow-hidden"
+        className="relative w-full max-w-[420px] my-auto rounded-3xl border shadow-2xl p-6 sm:p-8 transition-all scale-in overflow-hidden"
         style={{
-          background: "rgba(13, 20, 38, 0.82)",
+          background: "rgba(13, 20, 38, 0.84)",
           borderColor: "rgba(59, 130, 246, 0.22)",
           boxShadow: "0 24px 60px rgba(0, 0, 0, 0.7), 0 0 35px rgba(59, 130, 246, 0.08)",
           backdropFilter: "blur(24px)",
@@ -420,14 +412,11 @@ export default function AuthModal() {
 
         {/* Brand Logo Header */}
         <div className="flex items-center gap-2.5 mb-6">
-          <div 
-            className="w-8 h-8 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/20"
-            style={{ background: "linear-gradient(135deg, #2563EB, #3B82F6)" }}
-          >
-            <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
-            </svg>
-          </div>
+          <img 
+            src="/logo.png" 
+            alt="FocusForge" 
+            className="w-8 h-8 rounded-xl object-cover shadow-lg shadow-blue-500/20 border border-blue-500/30"
+          />
           <span className="font-bold tracking-tight text-white text-base">FocusForge</span>
         </div>
 
@@ -436,22 +425,6 @@ export default function AuthModal() {
           <div className="mb-5 p-3 rounded-xl bg-red-500/10 border border-red-500/20 flex items-start gap-2.5 text-xs text-red-400 animate-fade-in">
             <AlertCircle size={15} className="shrink-0 mt-0.5 text-red-400" />
             <span>{errorMessage}</span>
-          </div>
-        )}
-
-        {/* Demo OTP Helper (Notice for developer/reviewer ease) */}
-        {demoCodeHint && (authModal.view === 'otp' || authModal.view === 'forgot_otp') && (
-          <div className="mb-5 p-3 rounded-xl bg-blue-500/10 border border-blue-500/25 text-xs text-blue-300 flex items-center justify-between">
-            <span>Demo Verification Code: <strong className="font-mono text-white tracking-widest">{demoCodeHint}</strong></span>
-            <button 
-              type="button" 
-              onClick={() => {
-                setOtpDigits(demoCodeHint.split(""));
-              }}
-              className="text-[11px] underline font-semibold hover:text-white"
-            >
-              Fill Code
-            </button>
           </div>
         )}
 
@@ -465,18 +438,18 @@ export default function AuthModal() {
                 {t.auth.welcomeTitle}
               </h2>
               <p className="text-xs text-zinc-400 leading-relaxed">
-                {t.auth.welcomeSubtitle}
+                Log in or create an account with Google or your Email.
               </p>
             </div>
 
             {/* Google Primary Button */}
             <button
               type="button"
-              onClick={loginWithGoogle}
+              onClick={handleGoogleLogin}
               className="w-full flex items-center justify-center gap-3 py-3 px-4 rounded-xl font-semibold text-sm text-white border transition-all cursor-pointer shadow-sm hover:scale-[1.01] active:scale-[0.99]"
               style={{
                 background: "rgba(255, 255, 255, 0.04)",
-                borderColor: "rgba(255, 255, 255, 0.12)",
+                borderColor: "rgba(255, 255, 255, 0.14)",
               }}
             >
               <GoogleIcon />
@@ -492,7 +465,7 @@ export default function AuthModal() {
               <div className="flex-1 h-px bg-white/10" />
             </div>
 
-            {/* Secondary Log In / Sign Up */}
+            {/* Log In / Sign Up with Email */}
             <div className="space-y-3">
               <button
                 type="button"
@@ -500,10 +473,11 @@ export default function AuthModal() {
                   setErrorMessage(null);
                   setAuthView('login');
                 }}
-                className="w-full py-3 px-4 rounded-xl font-semibold text-sm text-white shadow-lg shadow-blue-500/25 transition-all hover:opacity-95"
+                className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-semibold text-sm text-white shadow-lg shadow-blue-500/25 transition-all hover:opacity-95"
                 style={{ background: "linear-gradient(135deg, #2563EB, #3B82F6)" }}
               >
-                {t.auth.logIn}
+                <Mail size={16} />
+                <span>{t.auth.logIn} with Email</span>
               </button>
 
               <button
@@ -521,7 +495,7 @@ export default function AuthModal() {
         )}
 
         {/* ========================================================= */}
-        {/* VIEW 2: LOGIN FLOW                                        */}
+        {/* VIEW 2: LOGIN FLOW (Email + Password)                     */}
         {/* ========================================================= */}
         {authModal.view === 'login' && (
           <form onSubmit={handleLoginSubmit} className="space-y-5 animate-fade-in">
@@ -544,90 +518,41 @@ export default function AuthModal() {
               </div>
             </div>
 
-            {/* Email / Phone Segmented Switcher */}
-            <div className="p-1 rounded-xl bg-white/[0.04] border border-white/5 flex gap-1">
-              <button
-                type="button"
-                onClick={() => { setAuthMethodTab('email'); setErrorMessage(null); }}
-                className={`flex-1 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                  authMethodTab === 'email' ? "bg-blue-600 text-white shadow-md shadow-blue-500/20" : "text-zinc-400 hover:text-white"
-                }`}
-              >
-                {t.auth.emailTab}
-              </button>
-              <button
-                type="button"
-                onClick={() => { setAuthMethodTab('phone'); setErrorMessage(null); }}
-                className={`flex-1 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                  authMethodTab === 'phone' ? "bg-blue-600 text-white shadow-md shadow-blue-500/20" : "text-zinc-400 hover:text-white"
-                }`}
-              >
-                {t.auth.phoneTab}
-              </button>
+            {/* Continue with Google Quick Button */}
+            <button
+              type="button"
+              onClick={handleGoogleLogin}
+              className="w-full flex items-center justify-center gap-3 py-2.5 px-4 rounded-xl font-medium text-xs text-zinc-300 hover:text-white border border-white/10 bg-white/[0.03] hover:bg-white/[0.07] transition-all cursor-pointer"
+            >
+              <GoogleIcon className="w-4 h-4" />
+              <span>{t.auth.continueWithGoogle}</span>
+            </button>
+
+            {/* OR Divider */}
+            <div className="flex items-center gap-3 my-1">
+              <div className="flex-1 h-px bg-white/10" />
+              <span className="text-[10px] font-semibold tracking-wider text-zinc-500 uppercase">or log in with email</span>
+              <div className="flex-1 h-px bg-white/10" />
             </div>
 
-            {/* Identifier Input */}
-            {authMethodTab === 'email' ? (
-              <div>
-                <label className="block text-xs font-semibold text-zinc-300 mb-1.5">
-                  {t.auth.emailAddress}
-                </label>
-                <div className="relative">
-                  <Mail size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none z-10" />
-                  <input
-                    type="email"
-                    required
-                    value={identifier}
-                    onChange={(e) => setIdentifier(e.target.value)}
-                    placeholder={t.auth.emailPlaceholder}
-                    className="w-full input-with-icon py-2.5 rounded-xl text-sm bg-white/[0.04] border border-white/10 text-white placeholder:text-zinc-500 focus:border-blue-500 focus:outline-none transition-colors"
-                    style={{ paddingLeft: "42px", paddingRight: "14px" }}
-                  />
-                </div>
+            {/* Email Address Input */}
+            <div>
+              <label className="block text-xs font-semibold text-zinc-300 mb-1.5">
+                {t.auth.emailAddress}
+              </label>
+              <div className="relative">
+                <Mail size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none z-10" />
+                <input
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="name@example.com"
+                  className="w-full input-with-icon py-2.5 rounded-xl text-sm bg-white/[0.04] border border-white/10 text-white placeholder:text-zinc-500 focus:border-blue-500 focus:outline-none transition-colors"
+                  style={{ paddingLeft: "42px", paddingRight: "14px" }}
+                />
               </div>
-            ) : (
-              <div>
-                <label className="block text-xs font-semibold text-zinc-300 mb-1.5">
-                  {t.auth.phoneNumber}
-                </label>
-                <div className="flex gap-2 items-center">
-                  <div className="relative" style={{ width: "105px", minWidth: "105px", flexShrink: 0 }}>
-                    <select
-                      value={countryCode}
-                      onChange={(e) => setCountryCode(e.target.value)}
-                      className="auth-country-select w-full rounded-xl text-xs text-white outline-none focus:border-blue-500 cursor-pointer appearance-none"
-                      style={{
-                        width: "105px",
-                        minWidth: "105px",
-                        height: "42px",
-                        background: "rgba(15, 23, 42, 0.95)",
-                        borderColor: "rgba(255, 255, 255, 0.12)",
-                      }}
-                    >
-                      {COUNTRY_CODES.map(c => (
-                        <option key={c.code} value={c.code} className="bg-[#0D1426] text-white">
-                          {c.flag} {c.code}
-                        </option>
-                      ))}
-                    </select>
-                    <ChevronDown size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
-                  </div>
-
-                  <div className="relative flex-1" style={{ minWidth: 0 }}>
-                    <Phone size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none z-10" />
-                    <input
-                      type="tel"
-                      required
-                      value={identifier}
-                      onChange={(e) => handlePhoneInput(e.target.value)}
-                      placeholder={t.auth.phonePlaceholder}
-                      className="w-full input-with-icon py-2.5 rounded-xl text-sm bg-white/[0.04] border border-white/10 text-white placeholder:text-zinc-500 focus:border-blue-500 focus:outline-none transition-colors"
-                      style={{ height: "42px", paddingLeft: "42px", paddingRight: "14px" }}
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
+            </div>
 
             {/* Password Input */}
             <div>
@@ -691,23 +616,6 @@ export default function AuthModal() {
               <span>{t.auth.logIn}</span>
             </button>
 
-            {/* OR Divider */}
-            <div className="flex items-center gap-3 my-1">
-              <div className="flex-1 h-px bg-white/10" />
-              <span className="text-[10px] font-semibold tracking-wider text-zinc-500 uppercase">{t.auth.orDivider}</span>
-              <div className="flex-1 h-px bg-white/10" />
-            </div>
-
-            {/* Google Sign-in Alternative */}
-            <button
-              type="button"
-              onClick={loginWithGoogle}
-              className="w-full flex items-center justify-center gap-3 py-2.5 px-4 rounded-xl font-medium text-xs text-zinc-300 hover:text-white border border-white/10 bg-white/[0.02] hover:bg-white/[0.05] transition-all"
-            >
-              <GoogleIcon className="w-4 h-4" />
-              <span>{t.auth.continueWithGoogle}</span>
-            </button>
-
             {/* Footer */}
             <div className="text-center pt-2">
               <button
@@ -722,14 +630,14 @@ export default function AuthModal() {
         )}
 
         {/* ========================================================= */}
-        {/* VIEW 3: SIGNUP STEP 1 (Identifier Entry)                  */}
+        {/* VIEW 3: SIGNUP STEP 1 (Email Entry)                       */}
         {/* ========================================================= */}
         {authModal.view === 'signup' && (
           <form onSubmit={handleProceedToPassword} className="space-y-5 animate-fade-in">
             <div className="flex items-center gap-2">
               <button
                 type="button"
-                onClick={() => setAuthView('initial')}
+                onClick={() => setAuthView('login')}
                 className="p-1 rounded-lg text-zinc-400 hover:text-white transition-colors"
                 aria-label="Back"
               >
@@ -740,95 +648,46 @@ export default function AuthModal() {
                   {t.auth.createAccountTitle}
                 </h2>
                 <p className="text-xs text-zinc-400">
-                  {t.auth.createAccountSubtitle}
+                  Enter your email address to get started.
                 </p>
               </div>
             </div>
 
-            {/* Email / Phone Segmented Switcher */}
-            <div className="p-1 rounded-xl bg-white/[0.04] border border-white/5 flex gap-1">
-              <button
-                type="button"
-                onClick={() => { setAuthMethodTab('email'); setErrorMessage(null); }}
-                className={`flex-1 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                  authMethodTab === 'email' ? "bg-blue-600 text-white shadow-md shadow-blue-500/20" : "text-zinc-400 hover:text-white"
-                }`}
-              >
-                {t.auth.emailTab}
-              </button>
-              <button
-                type="button"
-                onClick={() => { setAuthMethodTab('phone'); setErrorMessage(null); }}
-                className={`flex-1 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                  authMethodTab === 'phone' ? "bg-blue-600 text-white shadow-md shadow-blue-500/20" : "text-zinc-400 hover:text-white"
-                }`}
-              >
-                {t.auth.phoneTab}
-              </button>
+            {/* Google Quick Button in Signup */}
+            <button
+              type="button"
+              onClick={handleGoogleLogin}
+              className="w-full flex items-center justify-center gap-3 py-2.5 px-4 rounded-xl font-medium text-xs text-zinc-300 hover:text-white border border-white/10 bg-white/[0.03] hover:bg-white/[0.07] transition-all cursor-pointer"
+            >
+              <GoogleIcon className="w-4 h-4" />
+              <span>Sign up with Google</span>
+            </button>
+
+            {/* OR Divider */}
+            <div className="flex items-center gap-3 my-1">
+              <div className="flex-1 h-px bg-white/10" />
+              <span className="text-[10px] font-semibold tracking-wider text-zinc-500 uppercase">or use email</span>
+              <div className="flex-1 h-px bg-white/10" />
             </div>
 
-            {/* Identifier Input */}
-            {authMethodTab === 'email' ? (
-              <div>
-                <label className="block text-xs font-semibold text-zinc-300 mb-1.5">
-                  {t.auth.emailAddress}
-                </label>
-                <div className="relative">
-                  <Mail size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none z-10" />
-                  <input
-                    type="email"
-                    required
-                    value={identifier}
-                    onChange={(e) => setIdentifier(e.target.value)}
-                    placeholder={t.auth.emailPlaceholder}
-                    className="w-full input-with-icon py-2.5 rounded-xl text-sm bg-white/[0.04] border border-white/10 text-white placeholder:text-zinc-500 focus:border-blue-500 focus:outline-none transition-colors"
-                    style={{ paddingLeft: "42px", paddingRight: "14px" }}
-                  />
-                </div>
+            {/* Email Address Input */}
+            <div>
+              <label className="block text-xs font-semibold text-zinc-300 mb-1.5">
+                {t.auth.emailAddress}
+              </label>
+              <div className="relative">
+                <Mail size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none z-10" />
+                <input
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="name@example.com"
+                  className="w-full input-with-icon py-2.5 rounded-xl text-sm bg-white/[0.04] border border-white/10 text-white placeholder:text-zinc-500 focus:border-blue-500 focus:outline-none transition-colors"
+                  style={{ paddingLeft: "42px", paddingRight: "14px" }}
+                />
               </div>
-            ) : (
-              <div>
-                <label className="block text-xs font-semibold text-zinc-300 mb-1.5">
-                  {t.auth.phoneNumber}
-                </label>
-                <div className="flex gap-2 items-center">
-                  <div className="relative" style={{ width: "105px", minWidth: "105px", flexShrink: 0 }}>
-                    <select
-                      value={countryCode}
-                      onChange={(e) => setCountryCode(e.target.value)}
-                      className="auth-country-select w-full rounded-xl text-xs text-white outline-none focus:border-blue-500 cursor-pointer appearance-none"
-                      style={{
-                        width: "105px",
-                        minWidth: "105px",
-                        height: "42px",
-                        background: "rgba(15, 23, 42, 0.95)",
-                        borderColor: "rgba(255, 255, 255, 0.12)",
-                      }}
-                    >
-                      {COUNTRY_CODES.map(c => (
-                        <option key={c.code} value={c.code} className="bg-[#0D1426] text-white">
-                          {c.flag} {c.code}
-                        </option>
-                      ))}
-                    </select>
-                    <ChevronDown size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
-                  </div>
-
-                  <div className="relative flex-1" style={{ minWidth: 0 }}>
-                    <Phone size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none z-10" />
-                    <input
-                      type="tel"
-                      required
-                      value={identifier}
-                      onChange={(e) => handlePhoneInput(e.target.value)}
-                      placeholder={t.auth.phonePlaceholder}
-                      className="w-full input-with-icon py-2.5 rounded-xl text-sm bg-white/[0.04] border border-white/10 text-white placeholder:text-zinc-500 focus:border-blue-500 focus:outline-none transition-colors"
-                      style={{ height: "42px", paddingLeft: "42px", paddingRight: "14px" }}
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
+            </div>
 
             {/* Continue Button */}
             <button
@@ -853,7 +712,7 @@ export default function AuthModal() {
         )}
 
         {/* ========================================================= */}
-        {/* VIEW 4: PASSWORD CREATION (Step 2)                        */}
+        {/* VIEW 4: PASSWORD CREATION (Signup Step 2)                 */}
         {/* ========================================================= */}
         {authModal.view === 'password_create' && (
           <form onSubmit={handleSubmitPasswordAndSendOtp} className="space-y-5 animate-fade-in">
@@ -876,9 +735,9 @@ export default function AuthModal() {
               </div>
             </div>
 
-            {/* Important Clarification Notice */}
+            {/* Important Notice */}
             <div className="p-3 rounded-xl bg-blue-500/10 border border-blue-500/20 text-xs text-blue-300/90 leading-relaxed">
-              {t.auth.passwordNotice}
+              Your account for <strong className="text-white">{email}</strong> will be registered securely.
             </div>
 
             {/* Password Input */}
@@ -949,13 +808,12 @@ export default function AuthModal() {
                 className="auth-checkbox mt-0.5 rounded text-blue-600 bg-white/5 border-white/10 focus:ring-blue-500"
                 style={{ width: "16px", height: "16px", minWidth: "16px", flexShrink: 0, margin: 0 }}
               />
-              <label htmlFor="signupRememberMe" className="cursor-pointer select-none">
-                <span className="block text-xs text-zinc-300 font-medium">{t.auth.rememberMe}</span>
-                <span className="block text-[11px] text-zinc-500">{t.auth.rememberMeDesc}</span>
+              <label htmlFor="signupRememberMe" className="text-xs text-zinc-300 font-medium cursor-pointer select-none">
+                {t.auth.rememberMe}
               </label>
             </div>
 
-            {/* Continue Button */}
+            {/* Submit Button */}
             <button
               type="submit"
               disabled={isLoading || password.length < 8}
@@ -969,7 +827,7 @@ export default function AuthModal() {
         )}
 
         {/* ========================================================= */}
-        {/* VIEW 5: OTP VERIFICATION (6-digit boxes)                   */}
+        {/* VIEW 5: OTP / EMAIL CONFIRMATION                          */}
         {/* ========================================================= */}
         {(authModal.view === 'otp' || authModal.view === 'forgot_otp') && (
           <form onSubmit={handleVerifyOtp} className="space-y-6 animate-fade-in text-center">
@@ -978,16 +836,14 @@ export default function AuthModal() {
                 {otpPurpose === 'login' ? t.auth.verifyItsYou : t.auth.verifyAccountTitle}
               </h2>
               <p className="text-xs text-zinc-400">
-                {otpPurpose === 'login'
-                  ? (authMethodTab === 'email' ? t.auth.verifySubtitleEmail : t.auth.verifySubtitlePhone)
-                  : (authMethodTab === 'email' ? t.auth.verifyAccountSubtitleEmail : t.auth.verifyAccountSubtitlePhone)}
+                {t.auth.verifyAccountSubtitleEmail}
               </p>
               <p className="text-xs font-semibold text-blue-400 mt-1">
-                {getMaskedIdentifier()}
+                {getMaskedEmail()}
               </p>
             </div>
 
-            {/* Expired OTP Alert Box */}
+            {/* Expired Alert Box */}
             {isOtpExpired && (
               <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-300 flex items-center justify-between text-left">
                 <span>{t.auth.otpExpired}</span>
@@ -1018,7 +874,7 @@ export default function AuthModal() {
               ))}
             </div>
 
-            {/* Resend Code & Change Identifier */}
+            {/* Resend Code & Change Email */}
             <div className="space-y-2 text-xs">
               <div className="text-zinc-400">
                 <span className="mr-1.5">{t.auth.didntReceiveCode}</span>
@@ -1049,7 +905,7 @@ export default function AuthModal() {
                   }}
                   className="text-zinc-400 hover:text-white underline text-[11px] cursor-pointer"
                 >
-                  {t.auth.changeIdentifier}
+                  Change Email
                 </button>
               </div>
             </div>
@@ -1064,6 +920,18 @@ export default function AuthModal() {
               {isLoading && <Loader2 size={16} className="animate-spin" />}
               <span>{t.auth.verifyBtn}</span>
             </button>
+
+            {/* Email confirmation link fallback button */}
+            <div className="pt-1">
+              <button
+                type="button"
+                disabled={isLoading}
+                onClick={handleCheckConfirmedAndLogin}
+                className="w-full py-2.5 px-4 rounded-xl font-medium text-xs text-blue-300 hover:text-white border border-blue-500/30 bg-blue-500/10 hover:bg-blue-500/20 transition-all cursor-pointer flex items-center justify-center gap-2"
+              >
+                <span>I clicked the link in my email — Log In</span>
+              </button>
+            </div>
           </form>
         )}
 
@@ -1086,24 +954,28 @@ export default function AuthModal() {
                   {t.auth.forgotPasswordTitle}
                 </h2>
                 <p className="text-xs text-zinc-400">
-                  {t.auth.forgotPasswordSubtitle}
+                  Enter your email address to receive password recovery instructions.
                 </p>
               </div>
             </div>
 
-            {/* Identifier input */}
+            {/* Email input */}
             <div>
               <label className="block text-xs font-semibold text-zinc-300 mb-1.5">
-                {t.auth.emailAddress} / {t.auth.phoneNumber}
+                {t.auth.emailAddress}
               </label>
-              <input
-                type="text"
-                required
-                value={identifier}
-                onChange={(e) => setIdentifier(e.target.value)}
-                placeholder="you@example.com or phone"
-                className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-white/[0.04] border border-white/10 text-white placeholder:text-zinc-500 focus:border-blue-500 focus:outline-none transition-colors"
-              />
+              <div className="relative">
+                <Mail size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none z-10" />
+                <input
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="name@example.com"
+                  className="w-full input-with-icon py-2.5 rounded-xl text-sm bg-white/[0.04] border border-white/10 text-white placeholder:text-zinc-500 focus:border-blue-500 focus:outline-none transition-colors"
+                  style={{ paddingLeft: "42px", paddingRight: "14px" }}
+                />
+              </div>
             </div>
 
             <button

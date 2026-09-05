@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, KeyboardEvent, useCallback } from "react";
+import { ArrowLeft } from "lucide-react";
 import { useAppContext } from "../../context/AppContext";
 import { useTranslation } from "../../hooks/useTranslation";
 import VoiceInput from "./VoiceInput";
@@ -58,10 +59,8 @@ export default function EmptySession({ navigate }: EmptySessionProps) {
 
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setInput(e.target.value);
-    if (textareaRef.current) {
-      textareaRef.current.style.height = "auto";
-      textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
-    }
+    e.target.style.height = "auto";
+    e.target.style.height = `${e.target.scrollHeight}px`;
   };
 
   if (isFinished) {
@@ -97,7 +96,24 @@ export default function EmptySession({ navigate }: EmptySessionProps) {
   const displayValue = input + (interim ? ((input && !input.endsWith(" ") && !input.endsWith("\n")) ? " " : "") + interim : "");
 
   return (
-    <div className="fade-in max-w-3xl mx-auto py-10 min-h-[70vh] flex flex-col relative">
+    <div className="fade-in max-w-3xl mx-auto py-6 min-h-[75vh] flex flex-col relative">
+      {/* Top Back Navigation Bar */}
+      <div className="flex items-center justify-between mb-4">
+        <button
+          type="button"
+          onClick={() => navigate('home')}
+          className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-semibold border transition-all hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer shadow-xs"
+          style={{
+            borderColor: "var(--color-border-subtle)",
+            color: "var(--color-text-primary)",
+          }}
+          aria-label="Back to Capture"
+        >
+          <ArrowLeft size={16} />
+          <span>{t.myMind.backToMyMind || "Back to Capture"}</span>
+        </button>
+      </div>
+
       <div className="text-center mb-10 opacity-70">
         <h2 className="text-xl font-bold mb-2" style={{ color: "var(--color-text-primary)" }}>
           {t.myMind.emptyMyMind}

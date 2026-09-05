@@ -5,7 +5,7 @@ import { useAppContext } from "../../context/AppContext";
 import { useAuth } from "../../context/AuthContext";
 import { useTranslation } from "../../hooks/useTranslation";
 import EmptyState from "../ui/EmptyState";
-import { Folder, Plus, Trash2, CheckCircle, Clock, CalendarDays, AlertTriangle, Trophy, Sparkles, Star } from "lucide-react";
+import { Folder, Plus, Trash2, CheckCircle, Clock, CalendarDays, AlertTriangle, Trophy, Sparkles, Star, ArrowLeft } from "lucide-react";
 
 function formatHoursMins(totalMins: number): string {
   const h = Math.floor(totalMins / 60);
@@ -194,7 +194,22 @@ export default function LearningHubPage() {
             />
           </div>
         ) : (
-          <div className="flex flex-col gap-6">
+          <div className="flex flex-col gap-4">
+            {/* Back to all folders button (mobile & small screens) */}
+            <div className="md:hidden">
+              <button
+                type="button"
+                onClick={() => setSelectedFolderId(null)}
+                className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-semibold border transition-all hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer shadow-xs"
+                style={{
+                  borderColor: "var(--color-border-subtle)",
+                  color: "var(--color-text-primary)",
+                }}
+              >
+                <ArrowLeft size={16} />
+                <span>{state.lang === 'bn' ? "সব ফোল্ডারে ফিরে যান" : "Back to all folders"}</span>
+              </button>
+            </div>
 
             {/* Workspace Header */}
             <div className="card p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">

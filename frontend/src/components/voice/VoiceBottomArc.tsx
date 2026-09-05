@@ -67,36 +67,42 @@ export const VoiceBottomArc: React.FC<VoiceBottomArcProps> = ({
         xmlns="http://www.w3.org/2000/svg"
       >
         <defs>
-          {/* Main radiant linear/radial gradients matching FocusForge's palette */}
+          {/* Radiant linear/radial gradients for soft atmospheric blending */}
           <linearGradient id="arcStrokeGrad" x1="0%" y1="100%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor={isLight ? "rgba(37, 99, 235, 0.06)" : "rgba(30, 64, 175, 0.08)"} />
-            <stop offset="25%" stopColor={isLight ? "rgba(37, 99, 235, 0.65)" : "rgba(37, 99, 235, 0.5)"} />
-            <stop offset="50%" stopColor={isLight ? "rgba(29, 78, 216, 0.95)" : "rgba(147, 197, 253, 0.95)"} />
-            <stop offset="75%" stopColor={isLight ? "rgba(37, 99, 235, 0.65)" : "rgba(37, 99, 235, 0.5)"} />
-            <stop offset="100%" stopColor={isLight ? "rgba(37, 99, 235, 0.06)" : "rgba(30, 64, 175, 0.08)"} />
+            <stop offset="0%" stopColor={isLight ? "rgba(37, 99, 235, 0)" : "rgba(30, 64, 175, 0)"} />
+            <stop offset="18%" stopColor={isLight ? "rgba(37, 99, 235, 0.3)" : "rgba(37, 99, 235, 0.28)"} />
+            <stop offset="50%" stopColor={isLight ? "rgba(29, 78, 216, 0.85)" : "rgba(147, 197, 253, 0.82)"} />
+            <stop offset="82%" stopColor={isLight ? "rgba(37, 99, 235, 0.3)" : "rgba(37, 99, 235, 0.28)"} />
+            <stop offset="100%" stopColor={isLight ? "rgba(37, 99, 235, 0)" : "rgba(30, 64, 175, 0)"} />
           </linearGradient>
 
           <radialGradient id="arcFillGrad" cx="50%" cy="100%" r="85%">
-            <stop offset="0%" stopColor={isLight ? "rgba(59, 130, 246, 0.26)" : "rgba(37, 99, 235, 0.42)"} />
-            <stop offset="45%" stopColor={isLight ? "rgba(37, 99, 235, 0.12)" : "rgba(30, 64, 175, 0.22)"} />
-            <stop offset="75%" stopColor={isLight ? "rgba(241, 245, 249, 0.04)" : "rgba(15, 23, 42, 0.08)"} />
+            <stop offset="0%" stopColor={isLight ? "rgba(59, 130, 246, 0.18)" : "rgba(37, 99, 235, 0.25)"} />
+            <stop offset="45%" stopColor={isLight ? "rgba(37, 99, 235, 0.08)" : "rgba(30, 64, 175, 0.14)"} />
+            <stop offset="75%" stopColor={isLight ? "rgba(241, 245, 249, 0.02)" : "rgba(15, 23, 42, 0.04)"} />
             <stop offset="100%" stopColor="transparent" />
           </radialGradient>
 
           <radialGradient id="centerBurstGrad" cx="50%" cy="95%" r="45%">
-            <stop offset="0%" stopColor={isLight ? "rgba(37, 99, 235, 0.42)" : "rgba(96, 165, 250, 0.65)"} />
-            <stop offset="40%" stopColor={isLight ? "rgba(59, 130, 246, 0.16)" : "rgba(37, 99, 235, 0.3)"} />
+            <stop offset="0%" stopColor={isLight ? "rgba(37, 99, 235, 0.28)" : "rgba(96, 165, 250, 0.42)"} />
+            <stop offset="45%" stopColor={isLight ? "rgba(59, 130, 246, 0.10)" : "rgba(37, 99, 235, 0.18)"} />
             <stop offset="100%" stopColor="transparent" />
           </radialGradient>
 
+          {/* Deep ambient glow filter */}
           <filter id="arcGlowFilter" x="-20%" y="-40%" width="140%" height="180%">
-            <feGaussianBlur in="SourceGraphic" stdDeviation="16" result="blur1" />
-            <feGaussianBlur in="SourceGraphic" stdDeviation="6" result="blur2" />
+            <feGaussianBlur in="SourceGraphic" stdDeviation="18" result="blur1" />
+            <feGaussianBlur in="SourceGraphic" stdDeviation="8" result="blur2" />
             <feMerge>
               <feMergeNode in="blur1" />
               <feMergeNode in="blur2" />
               <feMergeNode in="SourceGraphic" />
             </feMerge>
+          </filter>
+
+          {/* Subtle soft-focus crest filter for smooth atmospheric blending */}
+          <filter id="crestSoftFilter" x="-20%" y="-40%" width="140%" height="180%">
+            <feGaussianBlur in="SourceGraphic" stdDeviation="1.6" />
           </filter>
         </defs>
 
@@ -106,27 +112,28 @@ export const VoiceBottomArc: React.FC<VoiceBottomArcProps> = ({
           fill="url(#arcFillGrad)"
         />
 
-        {/* Center intense energy burst */}
+        {/* Center gentle energy burst */}
         <path
           d="M 200 380 Q 720 160 1240 380 L 1240 400 L 200 400 Z"
           fill="url(#centerBurstGrad)"
         />
 
-        {/* Soft glowing base curve */}
+        {/* Soft diffused base glow curve */}
         <path
           d="M -60 380 Q 720 125 1500 380"
           stroke="url(#arcStrokeGrad)"
-          strokeWidth="10"
+          strokeWidth="8"
           filter="url(#arcGlowFilter)"
-          opacity="0.8"
+          opacity="0.65"
         />
 
-        {/* Sharp, luminous crest horizon line */}
+        {/* Subtle, softly blurred crest horizon line */}
         <path
           ref={crestLayerRef}
           d="M -40 380 Q 720 126 1480 380"
           stroke="url(#arcStrokeGrad)"
-          strokeWidth="2.5"
+          strokeWidth="1.8"
+          filter="url(#crestSoftFilter)"
           strokeLinecap="round"
         />
       </svg>

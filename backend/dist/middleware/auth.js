@@ -14,14 +14,22 @@ const supabase = (0, supabase_js_1.createClient)(supabaseUrl, supabaseAnonKey);
 const requireAuth = async (req, res, next) => {
     try {
         const authHeader = req.headers.authorization;
-        if (!authHeader || !authHeader.startsWith('Bearer ')) {
-            return res.status(401).json({ error: 'Missing or invalid authorization header' });
+        const apikey = req.headers['apikey'];
+        if (!authHeader && !apikey) {
+            req.user = { id: 'guest', isGuest: true };
+            return next();
         }
-        const token = authHeader.split(' ')[1];
-        // Verify the JWT token using Supabase
+        const token = authHeader ? authHeader.replace(/^Bearer\s+/i, '').trim() : '';
+        if (token === 'guest' || token === supabaseAnonKey || apikey === supabaseAnonKey) {
+            req.user = { id: 'guest', isGuest: true };
+            return next();
+        }
+        // Verify the JWT token using Supabase for logged-in users
         const { data: { user }, error } = await supabase.auth.getUser(token);
         if (error || !user) {
-            return res.status(401).json({ error: 'Unauthorized: Invalid token' });
+            // Gracefully fall back to guest mode
+            req.user = { id: 'guest', isGuest: true };
+            return next();
         }
         // Attach user to request for downstream handlers
         req.user = user;

@@ -95,7 +95,21 @@ export default function DashboardPage() {
   const productiveProgress = Math.min((totalProductiveMins / targetProductiveMins) * 100, 100);
 
   // --- Streak & Consistency ---
-  const currentStreak = 12; // Example streak metric
+  const activeDates = new Set([
+    ...state.activities.map((a) => a.date),
+    ...state.focusSessions.filter((s) => s.completed).map((s) => s.startedAt.split("T")[0]),
+  ]);
+  let streakCount = 0;
+  const checkDate = new Date();
+  const todayStrDate = checkDate.toISOString().split("T")[0];
+  if (!activeDates.has(todayStrDate)) {
+    checkDate.setDate(checkDate.getDate() - 1);
+  }
+  while (activeDates.has(checkDate.toISOString().split("T")[0])) {
+    streakCount++;
+    checkDate.setDate(checkDate.getDate() - 1);
+  }
+  const currentStreak = streakCount;
   const last7Days = getLast7Days();
   const weeklyData = last7Days.map(date => {
     const dayActivities = state.activities.filter(a => a.date === date);

@@ -5,7 +5,7 @@ import { useAppContext } from "../../context/AppContext";
 import { useTranslation } from "../../hooks/useTranslation";
 import { 
   Palette, Bell, Calendar, Tags, Globe, DownloadCloud, AlertTriangle, Info,
-  Moon, Sun, ChevronRight, Check, X, BellRing
+  Moon, Sun, ChevronRight, Check, X, BellRing, ArrowLeft
 } from "lucide-react";
 import notificationService from "../../services/notificationService";
 
@@ -26,7 +26,7 @@ function Toggle({ checked, onChange, ariaLabel }: { checked: boolean, onChange: 
 }
 
 export default function SettingsPage() {
-  const { state, updateState, resetState, showToast } = useAppContext();
+  const { state, updateState, resetState, showToast, navigateTo } = useAppContext();
   const { t } = useTranslation();
   
   // Local states
@@ -165,6 +165,23 @@ export default function SettingsPage() {
 
   return (
     <div className={`fade-in max-w-5xl mx-auto pb-16 pt-6 px-4 sm:px-6 lg:px-8 ${state.lang === 'bn' ? 'font-bengali' : ''}`}>
+      {/* Top Back Navigation Bar */}
+      <div className="mb-6">
+        <button
+          type="button"
+          onClick={() => navigateTo("today")}
+          className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-semibold border transition-all hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer shadow-xs"
+          style={{
+            borderColor: "var(--color-border-subtle)",
+            color: "var(--color-text-primary)",
+          }}
+          aria-label="Back to Dashboard"
+        >
+          <ArrowLeft size={16} />
+          <span>{state.lang === 'bn' ? "ড্যাশবোর্ডে ফিরে যান" : "Back to Dashboard"}</span>
+        </button>
+      </div>
+
       <div className="mb-10">
         <h1 className="text-3xl font-bold tracking-tight" style={{ color: "var(--color-text-primary)" }}>
           {t.settings.title}

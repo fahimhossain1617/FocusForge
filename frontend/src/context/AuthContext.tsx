@@ -111,7 +111,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           displayName: session.user.user_metadata?.display_name || "User",
           createdAt: session.user.created_at,
         });
+        if (typeof window !== "undefined") {
+          sessionStorage.removeItem("focusforge_guest_temp_data");
+        }
+        setAuthModal(prev => ({ ...prev, isOpen: false }));
+        setAuthGuardModal({ isOpen: false });
       } else if (event === "SIGNED_OUT") {
+        if (typeof window !== "undefined") {
+          sessionStorage.removeItem("focusforge_guest_temp_data");
+        }
         setUser(null);
       }
     });
@@ -124,7 +132,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
 
   const openAuth = useCallback((
-    view: AuthModalView = 'initial',
+    view: AuthModalView = 'login',
     options?: { targetPage?: string; onAuthenticated?: () => void; initialIdentifier?: string }
   ) => {
     setAuthGuardModal({ isOpen: false });
@@ -158,14 +166,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setAuthGuardModal({ isOpen: false });
   }, []);
 
-  // Require Auth guard: if guest, opens guard modal; if logged in, executes action
-  const requireAuth = useCallback((action: () => void, targetPage?: string) => {
-    if (user) {
-      action();
-    } else {
-      openAuthGuard({ targetPage, onAuthenticated: action });
-    }
-  }, [user, openAuthGuard]);
+  // Guest mode & full feature access: allow all actions directly without blocking
+  const requireAuth = useCallback((action: () => void, _targetPage?: string) => {
+    action();
+  }, []);
 
   // Unified post-auth completion handler
   const onAuthSuccess = useCallback((authedUser: User, isNewUser: boolean = false) => {
@@ -196,16 +200,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const loginWithGoogle = useCallback(async (): Promise<boolean> => {
     try {
       const res = await authService.loginWithGoogle(true);
-      if (res.success && res.user) {
-        onAuthSuccess(res.user, false);
-        return true;
+      if (!res.success) {
+        showToast(
+          res.error || "Google login is not configured in Supabase. Please log in directly with Email and Password.",
+          "error"
+        );
+        return false;
       }
-      return false;
-    } catch (err) {
+      if (res.user) {
+        onAuthSuccess(res.user, false);
+      }
+      return true;
+    } catch (err: any) {
       console.error(err);
+      showToast(err?.message || "Google sign-in encountered an error.", "error");
       return false;
     }
-  }, [onAuthSuccess]);
+  }, [onAuthSuccess, showToast]);
 
   const promptLogout = useCallback(() => {
     setLogoutConfirmOpen(true);
@@ -223,6 +234,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Clear local app state to prevent cross-account data leaking
     if (typeof window !== 'undefined') {
         localStorage.removeItem("focusforge_data");
+        sessionStorage.removeItem("focusforge_guest_temp_data");
         await clearPersistedAppState();
         window.location.reload(); // Quickest way to clear AppContext cleanly
     } else {
