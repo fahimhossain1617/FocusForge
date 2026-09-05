@@ -75,3 +75,44 @@ export async function sendAgentMessage(
   
   return res.json();
 }
+
+export async function transcribeAudioBlob(blob: Blob, language?: string): Promise<string> {
+  const token = await getToken();
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = async () => {
+      try {
+        const base64Data = ((reader.result as string) || '').split(',')[1] || '';
+        if (!base64Data) {
+          resolve('');
+          return;
+        }
+        const res = await fetch(`${API_URL}/ai/transcribe`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {})
+          },
+          body: JSON.stringify({
+            audio: base64Data,
+            mimeType: blob.type || 'audio/webm',
+            language: language || 'bn'
+          })
+        });
+
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.error || 'Failed to transcribe audio');
+        }
+
+        const data = await res.json();
+        resolve(data.text || '');
+      } catch (err) {
+        reject(err);
+      }
+    };
+    reader.onerror = (e) => reject(e);
+    reader.readAsDataURL(blob);
+  });
+}
+

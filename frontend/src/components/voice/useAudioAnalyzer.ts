@@ -164,5 +164,6 @@ export function useAudioAnalyzer(isActive: boolean = false) {
     smoothedAmplitudeRef,
     rawAmplitudeRef,
     retry: startAnalyzer,
+    getMediaStream: () => mediaStreamRef.current,
   };
 }

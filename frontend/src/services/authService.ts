@@ -157,10 +157,18 @@ export const authService = {
 
   async loginWithGoogle(rememberMe: boolean = true): Promise<{ success: boolean; user?: User; error?: string }> {
     try {
+      const origin = typeof window !== 'undefined' && window.location?.origin 
+        ? window.location.origin 
+        : (process.env.NEXT_PUBLIC_SITE_URL || 'https://frontend-pi-three-13.vercel.app');
+
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: typeof window !== 'undefined' ? window.location.origin : undefined,
+          redirectTo: origin,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          },
         }
       });
       if (error) return { success: false, error: error.message };

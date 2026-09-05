@@ -7,6 +7,7 @@ import { VoiceOrbCanvas } from "./VoiceOrbCanvas";
 import { VoiceBottomArc } from "./VoiceBottomArc";
 import { useAudioAnalyzer } from "./useAudioAnalyzer";
 import { useSpeechRecognition, SpeechLanguage } from "@/hooks/useSpeechRecognition";
+import { transcribeAudioBlob } from "@/services/aiAgentService";
 import { useAppContext } from "@/context/AppContext";
 import styles from "./voice-assistant.module.css";
 
@@ -26,9 +27,14 @@ export const VoiceAssistantModal: React.FC<VoiceAssistantModalProps> = ({
   themeMode,
 }) => {
   const [mounted, setMounted] = useState(false);
+  const [isTranscribing, setIsTranscribing] = useState(false);
   const { state } = useAppContext();
   const activeTheme = themeMode || (state?.theme?.mode === "light" ? "light" : "dark");
   const isLight = activeTheme === "light";
+
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const latestSpeechTextRef = useRef("");
 
   useEffect(() => {
     setMounted(true);
@@ -39,6 +45,7 @@ export const VoiceAssistantModal: React.FC<VoiceAssistantModalProps> = ({
     smoothedAmplitudeRef,
     error: audioError,
     retry: retryAudio,
+    getMediaStream,
   } = useAudioAnalyzer(isOpen);
 
   // Speech recognition for converting speech to text
@@ -53,6 +60,7 @@ export const VoiceAssistantModal: React.FC<VoiceAssistantModalProps> = ({
     stopListening,
   } = useSpeechRecognition({
     onResult: (text, isFinal) => {
+      latestSpeechTextRef.current = text;
       if (text && onSpeechResult) {
         onSpeechResult(text);
       }
@@ -79,6 +87,7 @@ export const VoiceAssistantModal: React.FC<VoiceAssistantModalProps> = ({
   // Manage start/stop lifecycle with modal visibility
   useEffect(() => {
     if (isOpen) {
+      latestSpeechTextRef.current = "";
       startListeningRef.current(speechLang, { reset: true });
     } else {
       stopListeningRef.current();
@@ -88,6 +97,104 @@ export const VoiceAssistantModal: React.FC<VoiceAssistantModalProps> = ({
       stopListeningRef.current();
     };
   }, [isOpen, speechLang]);
+
+  // Secondary audio recorder on the MediaStream for fallback Gemini transcription
+  useEffect(() => {
+    if (!isOpen) {
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+        try {
+          mediaRecorderRef.current.stop();
+        } catch (e) {}
+      }
+      mediaRecorderRef.current = null;
+      audioChunksRef.current = [];
+      setIsTranscribing(false);
+      return;
+    }
+
+    let intervalId: any;
+    const initRecorder = () => {
+      const stream = getMediaStream();
+      if (stream && typeof MediaRecorder !== "undefined" && !mediaRecorderRef.current) {
+        try {
+          audioChunksRef.current = [];
+          const recorder = new MediaRecorder(stream);
+          recorder.ondataavailable = (e) => {
+            if (e.data && e.data.size > 0) {
+              audioChunksRef.current.push(e.data);
+            }
+          };
+          recorder.start(250);
+          mediaRecorderRef.current = recorder;
+          if (intervalId) clearInterval(intervalId);
+        } catch (e) {
+          console.warn("[VoiceModal] MediaRecorder start warning:", e);
+        }
+      }
+    };
+
+    initRecorder();
+    intervalId = setInterval(initRecorder, 300);
+
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [isOpen, getMediaStream]);
+
+  // Gracefully finalize speech on close or stop button
+  const handleFinishVoice = async () => {
+    stopListening();
+
+    const clientRecognized = (
+      latestSpeechTextRef.current ||
+      transcript ||
+      interimText
+    ).trim();
+
+    if (clientRecognized) {
+      if (onSpeechResult) onSpeechResult(clientRecognized);
+      onClose();
+      return;
+    }
+
+    // If Web Speech yielded no text (common on Android mic locks or offline devices):
+    const recorder = mediaRecorderRef.current;
+    if (recorder && recorder.state !== "inactive") {
+      setIsTranscribing(true);
+      const audioPromise = new Promise<Blob>((resolve) => {
+        recorder.onstop = () => {
+          const mime = recorder.mimeType || "audio/webm";
+          const blob = new Blob(audioChunksRef.current, { type: mime });
+          resolve(blob);
+        };
+        try {
+          recorder.stop();
+        } catch (e) {
+          resolve(new Blob([]));
+        }
+      });
+
+      try {
+        const audioBlob = await audioPromise;
+        if (audioBlob.size > 1500) {
+          const transcribed = await transcribeAudioBlob(
+            audioBlob,
+            language === "en" ? "en" : "bn"
+          );
+          if (transcribed && onSpeechResult) {
+            onSpeechResult(transcribed);
+          }
+        }
+      } catch (err) {
+        console.warn("[VoiceModal] Gemini Audio Fallback error:", err);
+      } finally {
+        setIsTranscribing(false);
+        onClose();
+      }
+    } else {
+      onClose();
+    }
+  };
 
   // Auto-scroll transcript smoothly as text builds up without showing ugly scrollbars
   const transcriptScrollRef = useRef<HTMLDivElement>(null);
@@ -103,7 +210,7 @@ export const VoiceAssistantModal: React.FC<VoiceAssistantModalProps> = ({
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
-        onClose();
+        handleFinishVoice();
       }
     };
 
@@ -134,7 +241,8 @@ export const VoiceAssistantModal: React.FC<VoiceAssistantModalProps> = ({
       <button
         type="button"
         className={styles.closeButton}
-        onClick={onClose}
+        onClick={handleFinishVoice}
+        disabled={isTranscribing}
         aria-label="Close voice interaction"
       >
         <X size={20} />
@@ -147,7 +255,7 @@ export const VoiceAssistantModal: React.FC<VoiceAssistantModalProps> = ({
             amplitudeRef={smoothedAmplitudeRef}
             isListening={isListening}
             isSpeaking={false}
-            isThinking={false}
+            isThinking={isTranscribing}
             isLight={isLight}
           />
         </div>
@@ -158,11 +266,17 @@ export const VoiceAssistantModal: React.FC<VoiceAssistantModalProps> = ({
 
       {/* Minimalist, uncluttered interaction controls */}
       <footer className={styles.bottomControls}>
-        {/* Continuous real-time transcript displaying all accumulated and interim speech */}
-        {(transcript || interimText) && (
-          <div className={styles.liveTranscript} ref={transcriptScrollRef} aria-live="polite">
-            {transcript ? (interimText ? `${transcript} ${interimText}` : transcript) : interimText}
+        {/* Real-time speech display or transcription indicator */}
+        {isTranscribing ? (
+          <div className={styles.liveTranscript} style={{ opacity: 0.9, letterSpacing: '0.02em' }}>
+            {language === "bn" ? "ভয়েস প্রসেস হচ্ছে (AI Transcribing)..." : "Transcribing speech with AI..."}
           </div>
+        ) : (
+          (transcript || interimText) && (
+            <div className={styles.liveTranscript} ref={transcriptScrollRef} aria-live="polite">
+              {transcript ? (interimText ? `${transcript} ${interimText}` : transcript) : interimText}
+            </div>
+          )
         )}
 
         {/* Compact glassmorphic box hosting the listening status and stop voice action */}
@@ -172,6 +286,7 @@ export const VoiceAssistantModal: React.FC<VoiceAssistantModalProps> = ({
             type="button"
             className={`${styles.voiceActionButton} ${!isListening ? styles.pausedButton : ""}`}
             onClick={isListening ? stopListening : () => startListening(speechLang, { reset: false })}
+            disabled={isTranscribing}
             aria-label={isListening ? "Pause microphone" : "Resume microphone"}
             title={isListening ? (language === "bn" ? "পজ করুন" : "Pause") : (language === "bn" ? "শুরু করুন" : "Resume")}
           >
@@ -186,12 +301,13 @@ export const VoiceAssistantModal: React.FC<VoiceAssistantModalProps> = ({
           <button
             type="button"
             className={styles.stopVoiceButton}
-            onClick={onClose}
+            onClick={handleFinishVoice}
+            disabled={isTranscribing}
             aria-label="Stop and turn off voice"
             title={language === "bn" ? "ভয়েস বন্ধ করুন" : "Stop voice"}
           >
             <Square size={11} className={styles.stopIcon} />
-            <span>{language === "bn" ? "ভয়েস বন্ধ" : "Stop"}</span>
+            <span>{language === "bn" ? (isTranscribing ? "প্রসেসিং..." : "ভয়েস বন্ধ") : (isTranscribing ? "Processing..." : "Stop")}</span>
           </button>
         </div>
       </footer>

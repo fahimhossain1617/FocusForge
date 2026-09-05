@@ -207,4 +207,18 @@ router.post('/agent/chat', async (req, res) => {
         res.status(500).json({ error: error.message || 'Agent chat failed' });
     }
 });
+router.post('/transcribe', async (req, res) => {
+    try {
+        const { audio, mimeType, language } = req.body;
+        if (!audio) {
+            return res.status(400).json({ error: 'Audio data is required' });
+        }
+        const text = await (0, aiService_1.transcribeAudio)(audio, mimeType || 'audio/webm', language);
+        res.json({ text });
+    }
+    catch (error) {
+        console.error('Audio transcribe error:', error);
+        res.status(500).json({ error: error.message || 'Audio transcription failed' });
+    }
+});
 exports.default = router;

@@ -175,3 +175,69 @@ export async function executeAIAction(action: string, payload: unknown): Promise
 
   throw lastError || new Error('AI returned an empty response.');
 }
+
+export async function transcribeAudio(
+  audioBase64: string,
+  mimeType: string = 'audio/webm',
+  languageHint?: string
+): Promise<string> {
+  if (!audioBase64 || audioBase64.trim().length === 0) {
+    return '';
+  }
+
+  // Strip any data URL prefix if present (e.g. data:audio/webm;base64,...)
+  const cleanBase64 = audioBase64.replace(/^data:[^;]+;base64,/, '').trim();
+  const client = getGeminiClient();
+
+  const prompt = [
+    'You are a high-accuracy voice transcriber for the FocusForge productivity app.',
+    'Transcribe the user\'s spoken audio accurately into text.',
+    languageHint === 'bn' 
+      ? 'The speaker is speaking in Bengali (or Bengali mixed with English). Output in natural Bengali script.' 
+      : 'If spoken in Bengali, output in Bengali script. If spoken in English, output in English.',
+    'If the audio is silent or only has noise/humming, return empty text: {"text": ""}.',
+    'Return ONLY valid JSON: {"text": "the transcribed words"}'
+  ].join('\n');
+
+  let lastError: any = null;
+
+  for (const model of CANDIDATE_MODELS) {
+    try {
+      const response = await client.models.generateContent({
+        model,
+        contents: [
+          {
+            role: 'user',
+            parts: [
+              {
+                inlineData: {
+                  mimeType,
+                  data: cleanBase64
+                }
+              },
+              {
+                text: prompt
+              }
+            ]
+          }
+        ],
+        config: {
+          responseMimeType: 'application/json',
+          temperature: 0.1
+        }
+      });
+
+      if (response.text) {
+        const parsed = parseJson(response.text) as any;
+        return (parsed?.text || '').trim();
+      }
+    } catch (err: any) {
+      console.warn(`[AI Service Audio] Model ${model} failed, trying next candidate:`, err?.message || err);
+      lastError = err;
+      await new Promise((resolve) => setTimeout(resolve, 300));
+    }
+  }
+
+  throw lastError || new Error('Voice transcription failed.');
+}
+

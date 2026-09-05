@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { requireAuth } from '../middleware/auth';
-import { executeAIAction } from '../services/aiService';
+import { executeAIAction, transcribeAudio } from '../services/aiService';
 import { getChatSessions, getChatMessages, createChatSession, addChatMessage, deleteChatSession } from '../services/aiChatService';
 
 const router = Router();
@@ -214,4 +214,19 @@ router.post('/agent/chat', async (req, res) => {
   }
 });
 
+router.post('/transcribe', async (req, res) => {
+  try {
+    const { audio, mimeType, language } = req.body;
+    if (!audio) {
+      return res.status(400).json({ error: 'Audio data is required' });
+    }
+    const text = await transcribeAudio(audio, mimeType || 'audio/webm', language);
+    res.json({ text });
+  } catch (error: any) {
+    console.error('Audio transcribe error:', error);
+    res.status(500).json({ error: error.message || 'Audio transcription failed' });
+  }
+});
+
 export default router;
+

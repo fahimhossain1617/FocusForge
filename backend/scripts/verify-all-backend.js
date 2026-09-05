@@ -172,6 +172,18 @@ async function runVerification() {
     });
     assert('POST /api/ai/agent/chat responds with intent and message', chatRes.ok && chatRes.data.aiMessage && chatRes.data.aiMessage.intent);
 
+    const dummyWavBase64 = 'UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';
+    const transcribeRes = await req('/api/ai/transcribe', {
+      method: 'POST',
+      body: JSON.stringify({
+        audio: dummyWavBase64,
+        mimeType: 'audio/wav',
+        language: 'bn'
+      })
+    });
+    assert('POST /api/ai/transcribe handles audio input successfully', transcribeRes.ok && typeof transcribeRes.data.text === 'string');
+
+
     console.log(`\n====================================================`);
     console.log(`🏁 API ENDPOINT VERIFICATION SUMMARY: ${passedTests}/${totalTests} TESTS PASSED`);
     console.log(`====================================================\n`);

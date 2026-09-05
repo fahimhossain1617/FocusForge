@@ -30,6 +30,8 @@ export function useSpeechRecognition({ onResult, onError }: UseSpeechRecognition
   const onErrorRef = useRef(onError);
   const currentLangRef = useRef<SpeechLanguage>("bn-BD");
 
+  const interimTextRef = useRef("");
+
   useEffect(() => {
     onResultRef.current = onResult;
   }, [onResult]);
@@ -101,17 +103,24 @@ export function useSpeechRecognition({ onResult, onError }: UseSpeechRecognition
             ? `${accumulatedTranscriptRef.current} ${cleaned}`
             : cleaned;
           setTranscript(accumulatedTranscriptRef.current);
-          if (onResultRef.current) {
-            onResultRef.current(accumulatedTranscriptRef.current, true);
-          }
         }
 
+        interimTextRef.current = currentInterim;
         setInterimText(currentInterim);
+
+        // Notify caller with current live text
+        const liveText = accumulatedTranscriptRef.current
+          ? (currentInterim ? `${accumulatedTranscriptRef.current} ${currentInterim}` : accumulatedTranscriptRef.current)
+          : currentInterim;
+
+        if (liveText.trim() && onResultRef.current) {
+          onResultRef.current(liveText.trim(), Boolean(finalChunk.trim()));
+        }
       };
 
       recognition.onerror = (event: any) => {
         const err = event.error;
-        // Non-fatal errors that occur routinely during long continuous sessions or pauses:
+        // Non-fatal errors that occur routinely during pauses:
         if (err === "no-speech" || err === "aborted") {
           return;
         }
@@ -124,30 +133,38 @@ export function useSpeechRecognition({ onResult, onError }: UseSpeechRecognition
           return;
         }
 
-        // Transient speech server network glitch or notice: re-establish fresh instance
+        if (err === "audio-capture") {
+          handleError("Microphone audio capture failed or conflict detected. Audio recording fallback active.");
+          shouldListenRef.current = false;
+          setIsListening(false);
+          cleanupRecognition();
+          return;
+        }
+
+        // Transient speech server network glitch: re-establish instance
         if (shouldListenRef.current) {
           if (restartTimerRef.current) clearTimeout(restartTimerRef.current);
           restartTimerRef.current = setTimeout(() => {
             if (shouldListenRef.current) {
               spawnAndStartRecognition();
             }
-          }, 350);
+          }, 450);
         }
       };
 
       recognition.onend = () => {
-        // If user hasn't explicitly stopped listening, immediately spawn a fresh instance for unlimited speech
         if (shouldListenRef.current) {
           if (restartTimerRef.current) clearTimeout(restartTimerRef.current);
           restartTimerRef.current = setTimeout(() => {
             if (shouldListenRef.current) {
               spawnAndStartRecognition();
             }
-          }, 40);
+          }, 50);
           return;
         }
         setIsListening(false);
         setInterimText("");
+        interimTextRef.current = "";
       };
 
       recognitionRef.current = recognition;
@@ -197,9 +214,22 @@ export function useSpeechRecognition({ onResult, onError }: UseSpeechRecognition
   const stopListening = useCallback(() => {
     shouldListenRef.current = false;
     if (restartTimerRef.current) clearTimeout(restartTimerRef.current);
+
+    const pendingInterim = interimTextRef.current.trim();
+    if (pendingInterim) {
+      accumulatedTranscriptRef.current = accumulatedTranscriptRef.current
+        ? `${accumulatedTranscriptRef.current} ${pendingInterim}`
+        : pendingInterim;
+      setTranscript(accumulatedTranscriptRef.current);
+      if (onResultRef.current) {
+        onResultRef.current(accumulatedTranscriptRef.current, true);
+      }
+    }
+
     cleanupRecognition();
     setIsListening(false);
     setInterimText("");
+    interimTextRef.current = "";
   }, [cleanupRecognition]);
 
   const abortListening = useCallback(() => {
@@ -208,6 +238,7 @@ export function useSpeechRecognition({ onResult, onError }: UseSpeechRecognition
     cleanupRecognition();
     setIsListening(false);
     setInterimText("");
+    interimTextRef.current = "";
   }, [cleanupRecognition]);
 
   const resetTranscript = useCallback(() => {
