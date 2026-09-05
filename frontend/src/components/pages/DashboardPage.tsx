@@ -42,13 +42,13 @@ function getLast7Days() {
   return dates;
 }
 
-// Generate mock data for the monthly view to ensure the chart looks robust
-function getMonthlyData() {
+// Real dynamic monthly data starting from day one
+function getMonthlyData(actualWeeklyHours: number, completedTasksCount: number) {
   return [
-    { name: "Week 1", hours: 14.5, tasks: 22 },
-    { name: "Week 2", hours: 18.2, tasks: 28 },
-    { name: "Week 3", hours: 12.0, tasks: 19 },
-    { name: "This Week", hours: 9.5, tasks: 15, isCurrent: true },
+    { name: "Week 1", hours: 0, tasks: 0 },
+    { name: "Week 2", hours: 0, tasks: 0 },
+    { name: "Week 3", hours: 0, tasks: 0 },
+    { name: "This Week", hours: actualWeeklyHours, tasks: completedTasksCount, isCurrent: true },
   ];
 }
 
@@ -131,28 +131,21 @@ export default function DashboardPage() {
     };
   });
 
-  const actualWeeklyHours = weeklyData.reduce((acc, curr) => acc + curr.hours, 0);
-  
-  // Fallback to Demo Data if user has very little data (to show off the UI)
-  const isDemoMode = actualWeeklyHours < 5;
-  
-  const displayWeeklyData = isDemoMode ? [
-    { name: "Mon", hours: 2.5, isToday: false, isFuture: false, hasActivity: true },
-    { name: "Tue", hours: 3.8, isToday: false, isFuture: false, hasActivity: true },
-    { name: "Wed", hours: 1.2, isToday: false, isFuture: false, hasActivity: true },
-    { name: "Thu", hours: 4.5, isToday: false, isFuture: false, hasActivity: true },
-    { name: "Fri", hours: 5.2, isToday: false, isFuture: false, hasActivity: true },
-    { name: "Sat", hours: 3.1, isToday: true, isFuture: false, hasActivity: true },
-    { name: "Sun", hours: 0, isToday: false, isFuture: true, hasActivity: false },
-  ] : weeklyData;
+  const actualWeeklyHours = Number(weeklyData.reduce((acc, curr) => acc + curr.hours, 0).toFixed(1));
+  const weeklyHours = actualWeeklyHours;
+  const displayWeeklyData = weeklyData;
 
-  const weeklyHours = isDemoMode ? 20.3 : actualWeeklyHours;
-  const bestDay = isDemoMode 
-    ? { name: "Fri", hours: 5.2 } 
-    : (weeklyData.length > 0 ? weeklyData.reduce((prev, current) => (prev.hours > current.hours) ? prev : current) : { name: "-", hours: 0 });
+  const activeDaysThisWeek = weeklyData.filter((d) => d.hasActivity && !d.isFuture);
+  const bestDay = activeDaysThisWeek.length > 0 
+    ? activeDaysThisWeek.reduce((prev, current) => (prev.hours > current.hours) ? prev : current)
+    : { name: "-", hours: 0 };
 
-  const monthlyData = getMonthlyData();
-  const monthlyHours = monthlyData.reduce((acc, curr) => acc + curr.hours, 0);
+  const completedTasksThisWeek = state.tasks.filter((t) => t.status === "completed" && last7Days.includes(t.targetDate || "")).length;
+  const thisMonthPrefix = today.substring(0, 7);
+  const completedTasksThisMonth = state.tasks.filter((t) => t.status === "completed" && (t.targetDate || "").startsWith(thisMonthPrefix)).length;
+
+  const monthlyData = getMonthlyData(actualWeeklyHours, completedTasksThisWeek);
+  const monthlyHours = Number(monthlyData.reduce((acc, curr) => acc + curr.hours, 0).toFixed(1));
 
   // --- Distractions ---
   const todayDistractions: { id: string; content: string; time: string; category?: string }[] = [];
@@ -354,7 +347,11 @@ export default function DashboardPage() {
               <div className="w-1/2 flex-shrink-0 flex flex-col p-6">
               <div className="flex items-baseline gap-2 mb-8">
                 <span className="text-3xl font-bold tabular-nums" style={{ color: "var(--color-text-primary)" }}>{weeklyHours}h</span>
-                <span className="text-xs font-medium px-2 py-1 rounded-md" style={{ background: "rgba(34, 197, 94, 0.1)", color: "var(--color-success)" }}>↑ 12% {t.dashboard.vsLastWeek}</span>
+                {weeklyHours > 0 ? (
+                  <span className="text-xs font-medium px-2 py-1 rounded-md" style={{ background: "rgba(34, 197, 94, 0.1)", color: "var(--color-success)" }}>↑ {weeklyHours}h {t.dashboard.vsLastWeek}</span>
+                ) : (
+                  <span className="text-xs font-medium px-2 py-1 rounded-md" style={{ background: "rgba(255, 255, 255, 0.05)", color: "var(--color-text-muted)" }}>0% {t.dashboard.vsLastWeek}</span>
+                )}
               </div>
               <div className="flex-1 w-full h-[220px] mb-8">
                 <ResponsiveContainer width="100%" height="100%">
@@ -392,7 +389,7 @@ export default function DashboardPage() {
                 </div>
                 <div>
                   <p className="text-[10px] font-bold uppercase tracking-wider mb-1" style={{ color: "var(--color-text-muted)" }}>{t.dashboard.tasksDone}</p>
-                  <p className="text-sm font-semibold" style={{ color: "var(--color-text-primary)" }}>24</p>
+                  <p className="text-sm font-semibold" style={{ color: "var(--color-text-primary)" }}>{completedTasksThisWeek}</p>
                 </div>
                 <div>
                   <p className="text-[10px] font-bold uppercase tracking-wider mb-1" style={{ color: "var(--color-text-muted)" }}>{t.dashboard.bestDay}</p>
@@ -409,7 +406,11 @@ export default function DashboardPage() {
             <div className="w-1/2 flex-shrink-0 flex flex-col p-6">
               <div className="flex items-baseline gap-2 mb-8">
                 <span className="text-3xl font-bold tabular-nums" style={{ color: "var(--color-text-primary)" }}>{monthlyHours}h</span>
-                <span className="text-xs font-medium px-2 py-1 rounded-md" style={{ background: "rgba(34, 197, 94, 0.1)", color: "var(--color-success)" }}>↑ 5% {t.dashboard.vsLastMonth}</span>
+                {monthlyHours > 0 ? (
+                  <span className="text-xs font-medium px-2 py-1 rounded-md" style={{ background: "rgba(34, 197, 94, 0.1)", color: "var(--color-success)" }}>↑ {monthlyHours}h {t.dashboard.vsLastMonth}</span>
+                ) : (
+                  <span className="text-xs font-medium px-2 py-1 rounded-md" style={{ background: "rgba(255, 255, 255, 0.05)", color: "var(--color-text-muted)" }}>0% {t.dashboard.vsLastMonth}</span>
+                )}
               </div>
               <div className="flex-1 w-full h-[220px] mb-8">
                 <ResponsiveContainer width="100%" height="100%">
@@ -442,15 +443,15 @@ export default function DashboardPage() {
                 </div>
                 <div>
                   <p className="text-[10px] font-bold uppercase tracking-wider mb-1" style={{ color: "var(--color-text-muted)" }}>{t.dashboard.tasksDone}</p>
-                  <p className="text-sm font-semibold" style={{ color: "var(--color-text-primary)" }}>84</p>
+                  <p className="text-sm font-semibold" style={{ color: "var(--color-text-primary)" }}>{completedTasksThisMonth}</p>
                 </div>
                 <div>
                   <p className="text-[10px] font-bold uppercase tracking-wider mb-1" style={{ color: "var(--color-text-muted)" }}>{t.dashboard.bestWeek}</p>
-                  <p className="text-sm font-semibold" style={{ color: "var(--color-text-primary)" }}>Week 2</p>
+                  <p className="text-sm font-semibold" style={{ color: "var(--color-text-primary)" }}>{monthlyHours > 0 ? "This Week" : "-"}</p>
                 </div>
                 <div>
                   <p className="text-[10px] font-bold uppercase tracking-wider mb-1" style={{ color: "var(--color-text-muted)" }}>{t.dashboard.consistency}</p>
-                  <p className="text-sm font-semibold" style={{ color: "var(--color-text-primary)" }}>82%</p>
+                  <p className="text-sm font-semibold" style={{ color: "var(--color-text-primary)" }}>{currentStreak > 0 ? `${Math.min(Math.round((currentStreak / 7) * 100), 100)}%` : "0%"}</p>
                 </div>
               </div>
               </div>

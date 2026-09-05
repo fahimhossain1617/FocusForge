@@ -107,6 +107,7 @@ export default function AIAgentPage() {
   const [voiceOpen, setVoiceOpen] = useState(false);
   const baseInputRef = useRef("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const composerRef = useRef<HTMLDivElement>(null);
   const chatAreaRef = useRef<HTMLDivElement>(null);
 
   const context = useMemo(() => ({ tasks: state.tasks, notesCount: state.notes.length, timeBlocksCount: state.timeBlocks.length, productivityScore: state.productivityScore }), [state.tasks, state.notes.length, state.timeBlocks.length, state.productivityScore]);
@@ -117,6 +118,22 @@ export default function AIAgentPage() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isThinking]);
+
+  // Keep composer and controls in view when mobile virtual keyboard opens/resizes
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.visualViewport) return;
+    const handleViewportChange = () => {
+      if (document.activeElement?.tagName === "TEXTAREA" && composerRef.current) {
+        composerRef.current.scrollIntoView({ behavior: "smooth", block: "end" });
+      }
+    };
+    window.visualViewport.addEventListener("resize", handleViewportChange);
+    window.visualViewport.addEventListener("scroll", handleViewportChange);
+    return () => {
+      window.visualViewport?.removeEventListener("resize", handleViewportChange);
+      window.visualViewport?.removeEventListener("scroll", handleViewportChange);
+    };
+  }, []);
 
   const submit = async (value = input) => { if (!value.trim()) return; setInput(""); await send(value, language); };
   const startVoice = () => {
@@ -213,7 +230,7 @@ export default function AIAgentPage() {
       </div>
 
       {/* 4. Pinned Bottom Composer Section */}
-      <div className={styles.composerWrapper}>
+      <div className={styles.composerWrapper} ref={composerRef}>
         {messages.length > 0 && (
           <div className={styles.quickActionsInline}>
             {quickActions.slice(0, 4).map((action) => (
@@ -228,6 +245,11 @@ export default function AIAgentPage() {
           <textarea
             value={input}
             onChange={(event) => setInput(event.target.value)}
+            onFocus={() => {
+              setTimeout(() => {
+                composerRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+              }, 120);
+            }}
             onKeyDown={(event) => {
               if (event.key === "Enter" && !event.shiftKey) {
                 event.preventDefault();
@@ -236,7 +258,7 @@ export default function AIAgentPage() {
             }}
             placeholder="Ask me anything about your tasks, routine, goals, or productivity..."
             aria-label="Message FocusForge AI"
-            rows={2}
+            rows={1}
           />
           <div className={styles.controls}>
             <div className={styles.selectGroup}>

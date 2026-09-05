@@ -3,10 +3,10 @@
   isolation: isolate;
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 40px);
-  max-height: calc(100vh - 40px);
-  margin: -14px -18px -24px;
-  padding: 12px 20px 14px;
+  height: calc(100dvh - 110px);
+  max-height: calc(100dvh - 110px);
+  margin: -10px -14px 0;
+  padding: 10px 18px 12px;
   color: var(--color-text-primary);
   background: 
     radial-gradient(ellipse 95% 55% at 50% 25%, rgba(30, 64, 175, 0.16), transparent 68%),
@@ -322,17 +322,19 @@
   max-width: 820px;
   margin: 0 auto;
   padding-top: 4px;
+  padding-bottom: 22px; /* Lifted up slightly from bottom edge */
 }
 
 .composer {
-  padding: 12px 14px;
+  padding: 10px 14px;
   border: 1px solid rgba(148, 163, 184, 0.22);
-  border-radius: 20px;
+  border-radius: 18px;
   background: linear-gradient(145deg, rgba(14, 28, 54, 0.88), rgba(4, 8, 18, 0.94));
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.08);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  overflow: visible;
 }
 
 .composer:focus-within {
@@ -348,8 +350,9 @@
   box-shadow: none !important;
   color: var(--color-text-primary);
   font-size: 14px;
-  line-height: 1.5;
-  padding: 3px 5px;
+  line-height: 1.45;
+  padding: 2px 4px;
+  min-height: 38px;
 }
 
 .composer textarea:focus {
@@ -360,8 +363,11 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding-top: 10px;
+  padding-top: 8px;
+  margin-top: 2px;
   border-top: 1px solid rgba(148, 163, 184, 0.14);
+  gap: 8px;
+  flex-shrink: 0;
 }
 
 .selectGroup, .composeActions {
@@ -754,4 +760,54 @@
 :global([data-theme="light"]) .thinking,
 .page[data-theme="light"] .thinking {
   color: #64748b !important;
+}
+
+/* Mobile Responsiveness for Composer & Controls */
+@media (max-width: 768px) {
+  .page {
+    height: calc(100dvh - 76px);
+    max-height: calc(100dvh - 76px);
+    margin: -10px -12px 0;
+    padding: 8px 10px 10px;
+  }
+
+  .composerWrapper {
+    padding-bottom: 24px; /* Lifted up slightly for mobile keyboards and bottom home bar */
+  }
+
+  .composer {
+    padding: 8px 10px;
+    border-radius: 16px;
+  }
+
+  .composer textarea {
+    font-size: 13.5px;
+    min-height: 32px;
+  }
+
+  .customSelectLabel {
+    display: none; /* Hide label on mobile to save vertical space and keep controls fully visible */
+  }
+
+  .customSelectButton {
+    min-width: 0;
+    padding: 4px 7px;
+    font-size: 11px;
+    gap: 4px;
+    border-radius: 7px;
+  }
+
+  .voiceButton, .sendButton {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+  }
+
+  .selectGroup {
+    gap: 5px;
+  }
+
+  .composeActions {
+    gap: 6px;
+  }
 }
