@@ -1,9 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { useAppContext } from "../context/AppContext";
 import { useTranslation } from "../hooks/useTranslation";
-import { LayoutDashboard, PencilLine, CalendarDays, Target, GraduationCap, Settings as SettingsIcon, Files, Sun, Moon, User as ProfileIcon, Sparkles } from "lucide-react";
+import { LayoutDashboard, PencilLine, CalendarDays, Target, GraduationCap, Settings as SettingsIcon, Files, User as ProfileIcon, Sparkles } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import UserMenu from "./auth/UserMenu";
 import InstallPrompt from "./pwa/InstallPrompt";
@@ -12,25 +11,24 @@ const navGroups = [
   {
     items: [
       { id: "today", label: "Dashboard", tagline: "Your day at a glance", icon: LayoutDashboard },
-      { id: "mind", label: "Capture", tagline: "Write it down before you forget", icon: PencilLine },
+      { id: "ai-agent", label: "AI Agent", tagline: "Productivity AI copilot", icon: Sparkles },
     ],
   },
   {
     items: [
       { id: "tasks", label: "Notes & files", tagline: "Your notes, docs, and attachments", icon: Files },
       { id: "planner", label: "Planner", tagline: "Plan your day and week", icon: CalendarDays },
-      { id: "focus", label: "Focus", tagline: "Start a focus session", icon: Target },
+      { id: "mind", label: "Capture", tagline: "Write it down before you forget", icon: PencilLine },
     ],
   },
   {
     items: [
       { id: "learning", label: "Skill builder", tagline: "Track what you're learning", icon: GraduationCap },
-      { id: "ai-agent", label: "AI Agent", tagline: "Productivity AI copilot", icon: Sparkles },
+      { id: "focus", label: "Focus", tagline: "Start a focus session", icon: Target },
     ],
   },
   {
     items: [
-      { id: "theme", label: "Theme", icon: "toggle" },
       { id: "settings", label: "Settings", icon: SettingsIcon },
     ],
   },
@@ -42,28 +40,9 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ isOpen, onClose }: SidebarProps) {
-  const { state, updateState, navigateTo } = useAppContext();
+  const { state, navigateTo } = useAppContext();
   const { user } = useAuth();
   const { t } = useTranslation();
-  const [theme, setTheme] = useState("dark");
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-    const savedTheme = (localStorage.getItem("theme") as "light" | "dark") || state.theme?.mode || "dark";
-    setTheme(savedTheme);
-    document.documentElement.setAttribute("data-theme", savedTheme);
-    document.documentElement.classList.toggle("dark", savedTheme === "dark");
-  }, []);
-
-  const toggleTheme = () => {
-    const newTheme: "light" | "dark" = theme === "dark" ? "light" : "dark";
-    setTheme(newTheme);
-    localStorage.setItem("theme", newTheme);
-    document.documentElement.setAttribute("data-theme", newTheme);
-    document.documentElement.classList.toggle("dark", newTheme === "dark");
-    updateState({ theme: { ...state.theme, mode: newTheme } });
-  };
 
   const handleNav = (pageId: string) => {
     navigateTo(pageId);
@@ -152,11 +131,6 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
             >
               {userName}
             </h1>
-            {isGuestMode && (
-              <span className="text-[10px] font-medium text-blue-400/80 block leading-tight mt-0.5">
-                {state.lang === 'bn' ? "টেম্পোরারি সেশন" : "Temporary Session"}
-              </span>
-            )}
           </div>
         </div>
 
@@ -171,47 +145,6 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                 />
               )}
               {group.items.map((item) => {
-                if (item.id === "theme") {
-                  return (
-                    <button
-                      key={item.id}
-                      className="nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm w-full text-left"
-                      onClick={toggleTheme}
-                    >
-                      <span className="nav-icon flex items-center justify-center w-5 text-center">
-                        <div 
-                          className="relative flex items-center rounded-full flex-shrink-0"
-                          style={{
-                            width: "40px",
-                            height: "22px",
-                            background: "rgba(255,255,255,0.08)",
-                            border: "1px solid rgba(255,255,255,0.12)",
-                            padding: "1px",
-                            boxSizing: "border-box",
-                            marginLeft: "-10px"
-                          }}
-                        >
-                          <div 
-                            className="absolute rounded-full flex items-center justify-center"
-                            style={{
-                              width: "18px",
-                              height: "18px",
-                              background: mounted && theme === "light" ? "var(--accent-500)" : "var(--color-text-muted)",
-                              transform: mounted && theme === "light" ? "translateX(18px)" : "translateX(0)",
-                              transition: "transform 200ms ease, background 200ms ease"
-                            }}
-                          >
-                            {mounted && theme === "light" ? <Sun size={10} color="white" /> : <Moon size={10} color="white" />}
-                          </div>
-                        </div>
-                      </span>
-                      <span className="nav-label font-medium" style={{ color: "var(--color-text-secondary)" }}>
-                        {t.sidebar.theme}
-                      </span>
-                    </button>
-                  );
-                }
-
                 const Icon = item.icon as React.ElementType;
                 // Map item.id to the correct translation keys for label and tagline
                 const translationKeyMap: Record<string, { label: keyof typeof t.sidebar; tagline?: keyof typeof t.sidebar }> = {
@@ -256,19 +189,6 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                       >
                         {displayLabel}
                       </span>
-                      {displayTagline && (
-                        <span 
-                          className="nav-tagline text-[10px] leading-tight truncate transition-colors mt-0.5"
-                          style={{
-                            color: state.activePage === item.id 
-                              ? "var(--color-purple-soft, #a78bfa)" 
-                              : "var(--color-text-muted)",
-                            opacity: state.activePage === item.id ? 0.95 : 0.75
-                          }}
-                        >
-                          {displayTagline}
-                        </span>
-                      )}
                     </div>
                   </button>
                 );

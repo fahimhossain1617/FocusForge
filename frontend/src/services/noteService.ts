@@ -1,6 +1,8 @@
 import { supabase } from "../lib/supabaseClient";
 import { Note } from "../types";
 
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000";
+
 export interface DbNoteRow {
   id: number | string;
   user_id: string;
@@ -52,8 +54,7 @@ export const noteService = {
   },
 
   /**
-   * Saves or creates a note in Supabase PostgreSQL.
-   * Handles upsert to ensure atomic synchronization.
+   * Saves or creates a note in Supabase PostgreSQL & syncs with Express backend.
    */
   async saveNote(note: Note, userId: string): Promise<{ success: boolean; note?: Note; error?: string }> {
     try {
@@ -68,6 +69,7 @@ export const noteService = {
         updated_at: new Date().toISOString(),
       };
 
+      // 1. Supabase PostgreSQL
       const { data, error } = await supabase
         .from("notes")
         .upsert(payload, { onConflict: "id" })
@@ -78,6 +80,21 @@ export const noteService = {
         console.error("[noteService] Error saving note to Supabase:", error.message);
         return { success: false, error: error.message };
       }
+
+      // 2. Express Backend Sync
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.access_token) {
+          await fetch(`${BACKEND_URL}/api/notes`, {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${session.access_token}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(note),
+          }).catch(() => {});
+        }
+      } catch {}
 
       return {
         success: true,
@@ -90,7 +107,7 @@ export const noteService = {
   },
 
   /**
-   * Partially updates a note in Supabase PostgreSQL.
+   * Partially updates a note in Supabase PostgreSQL & syncs with Express backend.
    */
   async updateNote(
     noteId: number,
@@ -108,6 +125,7 @@ export const noteService = {
       if (updates.attachments !== undefined) payload.attachments = updates.attachments;
       if (updates.links !== undefined) payload.links = updates.links;
 
+      // 1. Supabase PostgreSQL
       const { error } = await supabase
         .from("notes")
         .update(payload)
@@ -119,6 +137,21 @@ export const noteService = {
         return { success: false, error: error.message };
       }
 
+      // 2. Express Backend Sync
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.access_token) {
+          await fetch(`${BACKEND_URL}/api/notes/${noteId}`, {
+            method: "PATCH",
+            headers: {
+              Authorization: `Bearer ${session.access_token}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(updates),
+          }).catch(() => {});
+        }
+      } catch {}
+
       return { success: true };
     } catch (err: any) {
       console.error("[noteService] Unexpected error updating note:", err);
@@ -127,10 +160,11 @@ export const noteService = {
   },
 
   /**
-   * Deletes a note permanently from Supabase PostgreSQL.
+   * Deletes a note permanently from Supabase PostgreSQL & syncs with Express backend.
    */
   async deleteNote(noteId: number, userId: string): Promise<{ success: boolean; error?: string }> {
     try {
+      // 1. Supabase PostgreSQL
       const { error } = await supabase
         .from("notes")
         .delete()
@@ -141,6 +175,19 @@ export const noteService = {
         console.error("[noteService] Error deleting note:", error.message);
         return { success: false, error: error.message };
       }
+
+      // 2. Express Backend Sync
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.access_token) {
+          await fetch(`${BACKEND_URL}/api/notes/${noteId}`, {
+            method: "DELETE",
+            headers: {
+              Authorization: `Bearer ${session.access_token}`,
+            },
+          }).catch(() => {});
+        }
+      } catch {}
 
       return { success: true };
     } catch (err: any) {

@@ -5,10 +5,10 @@ import { useAppContext } from "../../context/AppContext";
 import { useFocusTimer } from "../../hooks/useFocusTimer";
 import { useTranslation } from "../../hooks/useTranslation";
 import confetti from "canvas-confetti";
-import { Smartphone, Globe, PartyPopper, MessageCircle, Video, MessageSquare, History, Trash2, X } from "lucide-react";
+import { Smartphone, Globe, PartyPopper, MessageCircle, Video, MessageSquare, History, Trash2, X, ArrowLeft, Flame, Sparkles, ShieldAlert, Target } from "lucide-react";
 
 export default function FocusPage() {
-  const { state, startFocusSession, endFocusSession, addDistraction, showToast, navigateTo } = useAppContext();
+  const { state, startFocusSession, endFocusSession, addDistraction, showToast, navigateTo, registerFocusLock, unregisterFocusLock } = useAppContext();
   const { t } = useTranslation();
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [selectedTask, setSelectedTask] = useState<{ id?: number; name: string; category: string }>({
@@ -69,11 +69,15 @@ export default function FocusPage() {
     });
   };
   
-  // New Modals & Friction State
+  // Modals & Friction State
   const [pauseAttemptCount, setPauseAttemptCount] = useState(0);
   const [showPauseModal, setShowPauseModal] = useState(false);
   const [showResetModal, setShowResetModal] = useState(false);
   const [showFinishModal, setShowFinishModal] = useState(false);
+  const [showEarlyExitModal, setShowEarlyExitModal] = useState(false);
+  const [pendingExitAction, setPendingExitAction] = useState<"finish" | "back" | "sidebar" | "switch">("finish");
+  const [exitAttempts, setExitAttempts] = useState(0);
+  const [targetExitPage, setTargetExitPage] = useState<string>("dashboard");
 
   const handleWorkComplete = useCallback(() => {
     if (activeSessionId) {
@@ -82,6 +86,58 @@ export default function FocusPage() {
   }, [activeSessionId, showToast]);
 
   const timer = useFocusTimer({ onWorkComplete: handleWorkComplete });
+
+  // Register focus lock with AppContext to intercept sidebar/global navigation while focus is active
+  useEffect(() => {
+    if (activeSessionId && timer.remaining > 0) {
+      registerFocusLock((targetPage: string) => {
+        timer.pause();
+        setTargetExitPage(targetPage);
+        setPendingExitAction("sidebar");
+        setShowEarlyExitModal(true);
+        setExitAttempts((prev) => Math.min(prev + 1, 3));
+        return false; // blocks immediate navigation
+      });
+    } else {
+      unregisterFocusLock();
+    }
+
+    return () => {
+      unregisterFocusLock();
+    };
+  }, [activeSessionId, timer.remaining, registerFocusLock, unregisterFocusLock]);
+
+  // App Switch / Tab Switch Detection: If user leaves app and comes back, trigger motivation modal
+  useEffect(() => {
+    if (!activeSessionId) return;
+
+    const handleVisibilityChange = () => {
+      if (!document.hidden && timer.remaining > 0) {
+        // User returned to the app from another tab/window
+        timer.pause();
+        setPendingExitAction("switch");
+        setShowEarlyExitModal(true);
+        setExitAttempts((prev) => Math.min(prev + 1, 3));
+        showToast(t.focus.appSwitchNotice, "info");
+      }
+    };
+
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (activeSessionId && timer.remaining > 0) {
+        e.preventDefault();
+        e.returnValue = "";
+        return "";
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, [activeSessionId, timer.remaining, t.focus.appSwitchNotice, showToast]);
 
   const handleSelectTask = (task: { id: number; name: string; category: string }) => {
     setSelectedTask(task);
@@ -100,13 +156,14 @@ export default function FocusPage() {
 
     setShowTaskError(false);
     setShowDurationError(false);
+    setExitAttempts(0);
     
     // If it's a custom task (no id), save it to history
     if (!selectedTask.id) {
       saveToHistory(selectedTask.name);
     }
     
-    const sessionId = startFocusSession(selectedTask.name, selectedTask.category, selectedTask.id);
+    const sessionId = startFocusSession(selectedTask.name, selectedTask.category, selectedTask.id, timer.workMinutes);
     setActiveSessionId(sessionId);
     timer.start();
   };
@@ -121,7 +178,16 @@ export default function FocusPage() {
     setShowPauseModal(false);
   };
 
-  const handleFinishSession = () => {
+  // Finish Guard: Only allow natural finish if timer has finished (remaining <= 0)
+  const handleFinishAttempt = () => {
+    if (timer.remaining > 0) {
+      timer.pause();
+      setPendingExitAction("finish");
+      setShowEarlyExitModal(true);
+      setExitAttempts((prev) => Math.min(prev + 1, 3));
+      return;
+    }
+
     timer.pause();
     setShowFinishModal(true);
     confetti({
@@ -132,18 +198,86 @@ export default function FocusPage() {
     });
   };
 
+  // Back Button Guard: Prompt with 3-attempt friction system
+  const handleBackAttempt = () => {
+    if (activeSessionId && timer.remaining > 0) {
+      timer.pause();
+      setTargetExitPage("dashboard");
+      setPendingExitAction("back");
+      setShowEarlyExitModal(true);
+      setExitAttempts((prev) => Math.min(prev + 1, 3));
+      return;
+    }
+
+    if (activeSessionId) {
+      confirmFinishSession();
+    }
+    navigateTo('dashboard');
+  };
+
+  const handleKeepFocusing = () => {
+    setShowEarlyExitModal(false);
+    timer.start();
+  };
+
+  // 3-Attempt Exit Friction Handler:
+  // 1st and 2nd attempt: Exit is strictly BLOCKED.
+  // 3rd attempt: Exit is unlocked and user is permitted to quit early.
+  const handleSecondaryModalAction = () => {
+    if (exitAttempts < 3) {
+      // Advance attempt count and keep user in the zone
+      const nextAttempt = Math.min(exitAttempts + 1, 3);
+      setExitAttempts(nextAttempt);
+      showToast(
+        state.lang === 'bn'
+          ? `সতর্কবার্তা: অন্তত ৩ বার চেষ্টার পরই সেশন ছাড়া সম্ভব (${nextAttempt}/৩)!`
+          : `Notice: Early exit requires 3 attempts (${nextAttempt}/3)!`,
+        'info'
+      );
+      return;
+    }
+
+    // 3rd Attempt reached: Permit Early Exit
+    if (activeSessionId) {
+      endFocusSession(activeSessionId, timer.elapsedMinutes, false);
+      showToast(
+        state.lang === 'bn'
+          ? `ফোকাস সমাপ্ত হয়েছে (${timer.elapsedMinutes} মিনিট সেভ হয়েছে)`
+          : `Focus ended early (${timer.elapsedMinutes}m recorded)`,
+        'info'
+      );
+      if (!selectedTask.id && timer.elapsedMinutes > 0) {
+        updateHistoryMinutes(selectedTask.name, timer.elapsedMinutes);
+      }
+    }
+    unregisterFocusLock();
+    setActiveSessionId(null);
+    timer.reset();
+    setIsDeepFocus(false);
+    setShowEarlyExitModal(false);
+    setExitAttempts(0);
+    setPauseAttemptCount(0);
+    setSelectedTask({ name: "", category: "" });
+
+    if (pendingExitAction === "back" || pendingExitAction === "sidebar") {
+      navigateTo(targetExitPage || 'dashboard');
+    }
+  };
+
   const confirmFinishSession = () => {
     if (activeSessionId) {
-      endFocusSession(activeSessionId, timer.elapsedMinutes);
-      showToast(`Session saved: ${timer.elapsedMinutes}m of ${selectedTask.name}`);
+      endFocusSession(activeSessionId, timer.elapsedMinutes, true);
+      showToast(`Session completed: ${timer.elapsedMinutes}m of ${selectedTask.name}`);
       if (!selectedTask.id) {
         updateHistoryMinutes(selectedTask.name, timer.elapsedMinutes);
       }
     }
+    unregisterFocusLock();
     setActiveSessionId(null);
     timer.reset();
     setIsDeepFocus(false);
     setShowFinishModal(false);
+    setExitAttempts(0);
     setPauseAttemptCount(0);
     setSelectedTask({ name: "", category: "" });
   };
@@ -247,7 +381,7 @@ export default function FocusPage() {
               {timer.remaining < timer.total ? t.focus.resume : t.focus.start}
             </button>
           )}
-          <button onClick={handleFinishSession} className="btn-ghost">{t.focus.finish}</button>
+          <button onClick={handleFinishAttempt} className="btn-ghost">{t.focus.finish}</button>
         </div>
 
         {/* Distraction capture */}
@@ -293,13 +427,25 @@ export default function FocusPage() {
       {renderDeepFocus()}
       
       {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold" style={{ color: "var(--color-text-primary)" }}>
-          🎯 {t.focus.title}
-        </h1>
-        <p className="text-sm mt-1" style={{ color: "var(--color-text-secondary)" }}>
-          {activeSessionId ? t.focus.subtitleActive : t.focus.subtitleInactive}
-        </p>
+      <div className="mb-6 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={handleBackAttempt}
+            className="p-2 -ml-2 rounded-xl text-zinc-400 hover:text-white hover:bg-white/10 transition-colors flex items-center gap-1.5 group"
+            title={t.focus.backToDashboard}
+            aria-label={t.focus.backToDashboard}
+          >
+            <ArrowLeft className="w-5 h-5 group-hover:-translate-x-0.5 transition-transform" />
+          </button>
+          <div>
+            <h1 className="text-2xl font-bold" style={{ color: "var(--color-text-primary)" }}>
+              {t.focus.title}
+            </h1>
+            <p className="text-sm mt-1" style={{ color: "var(--color-text-secondary)" }}>
+              {activeSessionId ? t.focus.subtitleActive : t.focus.subtitleInactive}
+            </p>
+          </div>
+        </div>
       </div>
 
       {!activeSessionId ? (
@@ -466,7 +612,7 @@ export default function FocusPage() {
                 </button>
               )}
               <button onClick={handleResetAttempt} className="btn-ghost">{t.focus.reset}</button>
-              <button onClick={handleFinishSession} className="btn-ghost" style={{ color: "var(--color-success)" }}>
+              <button onClick={handleFinishAttempt} className="btn-ghost" style={{ color: "var(--color-success)" }}>
                 {t.focus.finish}
               </button>
             </div>
@@ -574,6 +720,102 @@ export default function FocusPage() {
           </div>
         </div>
       )}
+
+      {/* Early Exit Motivational Guard Modal (3-Attempt Friction System) */}
+      {showEarlyExitModal && (() => {
+        const currentAttempt = Math.max(1, Math.min(exitAttempts, 3));
+        const isExitUnlocked = currentAttempt >= 3;
+
+        const modalTitle = currentAttempt === 1 
+          ? t.focus.attempt1Title 
+          : currentAttempt === 2 
+          ? t.focus.attempt2Title 
+          : t.focus.attempt3Title;
+
+        const modalMessage = currentAttempt === 1 
+          ? t.focus.attempt1Message 
+          : currentAttempt === 2 
+          ? t.focus.attempt2Message 
+          : t.focus.attempt3Message;
+
+        const modalSecondaryText = currentAttempt === 1 
+          ? t.focus.attempt1BtnTry 
+          : currentAttempt === 2 
+          ? t.focus.attempt2BtnTry 
+          : t.focus.attempt3BtnQuit;
+
+        const modalPrimaryText = currentAttempt === 1 
+          ? t.focus.attempt1BtnKeep 
+          : currentAttempt === 2 
+          ? t.focus.attempt2BtnKeep 
+          : t.focus.attempt3BtnKeep;
+
+        return (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 fade-in">
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-md" onClick={handleKeepFocusing}></div>
+            <div 
+              className="focus-dialog relative w-full max-w-sm border border-amber-500/20 rounded-2xl p-6 shadow-2xl text-center"
+              style={{ 
+                background: "rgba(18, 17, 28, 0.96)",
+                backdropFilter: "blur(24px)",
+                boxShadow: "0 20px 50px rgba(0, 0, 0, 0.7), 0 0 25px rgba(245, 158, 11, 0.12)"
+              }}
+            >
+              {/* Attempt Progress Indicator: 3 steps */}
+              <div className="flex items-center justify-center gap-2 mb-3.5">
+                <div className={`h-1.5 rounded-full transition-all duration-300 ${currentAttempt >= 1 ? 'w-8 bg-amber-400' : 'w-3 bg-white/10'}`} />
+                <div className={`h-1.5 rounded-full transition-all duration-300 ${currentAttempt >= 2 ? 'w-8 bg-orange-400' : 'w-3 bg-white/10'}`} />
+                <div className={`h-1.5 rounded-full transition-all duration-300 ${currentAttempt >= 3 ? 'w-8 bg-red-400' : 'w-3 bg-white/10'}`} />
+              </div>
+
+              {/* Motivational Glowing Icon */}
+              <div className={`w-12 h-12 mx-auto rounded-xl flex items-center justify-center mb-3 transition-all duration-300 ${
+                currentAttempt === 1 
+                  ? 'bg-amber-500/10 border border-amber-500/25 shadow-[0_0_15px_rgba(245,158,11,0.2)]'
+                  : currentAttempt === 2
+                  ? 'bg-orange-500/10 border border-orange-500/25 shadow-[0_0_15px_rgba(249,115,22,0.2)]'
+                  : 'bg-red-500/10 border border-red-500/25 shadow-[0_0_15px_rgba(239,68,68,0.2)]'
+              }`}>
+                {currentAttempt === 1 && <ShieldAlert className="w-6 h-6 text-amber-400 drop-shadow-[0_0_8px_rgba(245,158,11,0.6)]" />}
+                {currentAttempt === 2 && <Target className="w-6 h-6 text-orange-400 drop-shadow-[0_0_8px_rgba(249,115,22,0.6)]" />}
+                {currentAttempt >= 3 && <Flame className="w-6 h-6 text-red-400 drop-shadow-[0_0_8px_rgba(239,68,68,0.6)] animate-pulse" />}
+              </div>
+
+              {/* Title */}
+              <h2 className="text-base sm:text-lg font-bold text-white mb-2 leading-tight">
+                {modalTitle}
+              </h2>
+
+              {/* Message */}
+              <p className="text-xs sm:text-sm text-zinc-300 mb-6 leading-relaxed px-1">
+                {modalMessage}
+              </p>
+
+              {/* Action Buttons: Clean, Balanced Side-by-Side */}
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={handleSecondaryModalAction}
+                  className={`flex-1 py-2.5 px-3 rounded-xl text-xs sm:text-sm font-medium transition-all text-center border ${
+                    isExitUnlocked 
+                      ? 'text-red-400 hover:text-white bg-red-500/10 hover:bg-red-500/20 border-red-500/30 shadow-[0_0_10px_rgba(239,68,68,0.2)]'
+                      : 'text-zinc-400 hover:text-zinc-200 bg-white/5 hover:bg-white/10 border-white/10'
+                  }`}
+                >
+                  {modalSecondaryText}
+                </button>
+
+                <button
+                  onClick={handleKeepFocusing}
+                  className="flex-1 py-2.5 px-3 rounded-xl text-xs sm:text-sm font-semibold text-white transition-all shadow-[0_0_15px_rgba(124,58,237,0.35)] hover:shadow-[0_0_22px_rgba(124,58,237,0.5)] hover:-translate-y-0.5 text-center flex items-center justify-center gap-1.5"
+                  style={{ background: "linear-gradient(135deg, var(--color-purple-primary) 0%, #9333ea 100%)" }}
+                >
+                  {modalPrimaryText}
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Finish Session Celebration Modal */}
       {showFinishModal && (

@@ -1,14 +1,16 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { DiaryEntry } from "../../types";
+import { DiaryEntry, DiaryImage } from "../../types";
 import { useTranslation } from "../../hooks/useTranslation";
 import DiaryVoiceInput from "./DiaryVoiceInput";
-import { Check, Loader2, Sparkles, Eraser } from "lucide-react";
+import { Check, Loader2, Sparkles, Eraser, ImagePlus, Trash2 } from "lucide-react";
+import { storageService } from "../../services/storageService";
+import { supabase } from "../../lib/supabaseClient";
 
 interface DiaryEditorProps {
   entry: DiaryEntry;
-  onSave: (title: string, content: string) => void;
+  onSave: (title: string, content: string, images?: DiaryImage[]) => void;
   lang: "en" | "bn";
 }
 
@@ -18,9 +20,12 @@ export default function DiaryEditor({ entry, onSave, lang }: DiaryEditorProps) {
   const { t } = useTranslation();
   const [title, setTitle] = useState(entry.title || "");
   const [content, setContent] = useState(entry.content || "");
+  const [images, setImages] = useState<DiaryImage[]>(entry.images || []);
   const [saveStatus, setSaveStatus] = useState<"saved" | "saving">("saved");
   const [writingStyle, setWritingStyle] = useState<WritingStyle>("clean");
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
 
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -28,6 +33,7 @@ export default function DiaryEditor({ entry, onSave, lang }: DiaryEditorProps) {
   useEffect(() => {
     setTitle(entry.title || "");
     setContent(entry.content || "");
+    setImages(entry.images || []);
     setSaveStatus("saved");
   }, [entry.id]);
 
@@ -36,18 +42,18 @@ export default function DiaryEditor({ entry, onSave, lang }: DiaryEditorProps) {
 
   // Debounced Autosave Trigger
   const triggerAutoSave = useCallback(
-    (newTitle: string, newContent: string) => {
+    (newTitle: string, newContent: string, newImages?: DiaryImage[]) => {
       setSaveStatus("saving");
       if (debounceTimerRef.current) {
         clearTimeout(debounceTimerRef.current);
       }
 
       debounceTimerRef.current = setTimeout(() => {
-        onSave(newTitle, newContent);
+        onSave(newTitle, newContent, newImages !== undefined ? newImages : images);
         setSaveStatus("saved");
       }, 500);
     },
-    [onSave]
+    [onSave, images]
   );
 
   // Instant trim helper to remove accidental trailing Enters
@@ -67,7 +73,7 @@ export default function DiaryEditor({ entry, onSave, lang }: DiaryEditorProps) {
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
     setTitle(val);
-    triggerAutoSave(val, content);
+    triggerAutoSave(val, content, images);
   };
 
   // Track cursor position reliably across renders
@@ -83,7 +89,7 @@ export default function DiaryEditor({ entry, onSave, lang }: DiaryEditorProps) {
   const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const val = e.target.value;
     setContent(val);
-    triggerAutoSave(title, val);
+    triggerAutoSave(title, val, images);
     updateCursorPosition();
   };
 
@@ -113,7 +119,7 @@ export default function DiaryEditor({ entry, onSave, lang }: DiaryEditorProps) {
       lastCursorPosRef.current = newPos;
 
       // Trigger autosave
-      triggerAutoSave(title, updated);
+      triggerAutoSave(title, updated, images);
 
       // Reposition cursor in textarea
       setTimeout(() => {
@@ -126,7 +132,56 @@ export default function DiaryEditor({ entry, onSave, lang }: DiaryEditorProps) {
 
       return updated;
     });
-  }, [title, triggerAutoSave]);
+  }, [title, images, triggerAutoSave]);
+  // Image Upload Handler
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setIsUploadingImage(true);
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await storageService.uploadAttachment(file, session?.user?.id);
+
+      const newImage: DiaryImage = {
+        id: "img_" + Date.now() + "_" + Math.random().toString(36).substring(2, 7),
+        url: res.url,
+        size: "medium", // default size
+        fileName: res.fileName,
+        storagePath: res.storagePath,
+      };
+
+      const nextImages = [...images, newImage];
+      setImages(nextImages);
+      triggerAutoSave(title, content, nextImages);
+    } catch (err) {
+      console.error("[DiaryEditor] Image upload error:", err);
+    } finally {
+      setIsUploadingImage(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
+  const handleUpdateImageSize = (id: string, size: DiaryImage["size"]) => {
+    const nextImages = images.map((img) => (img.id === id ? { ...img, size } : img));
+    setImages(nextImages);
+    triggerAutoSave(title, content, nextImages);
+  };
+
+  const handleDeleteImage = async (id: string) => {
+    const imgToDelete = images.find((img) => img.id === id);
+    const nextImages = images.filter((img) => img.id !== id);
+    setImages(nextImages);
+    triggerAutoSave(title, content, nextImages);
+
+    if (imgToDelete?.storagePath) {
+      try {
+        await supabase.storage.from("note-attachments").remove([imgToDelete.storagePath]);
+      } catch (err) {
+        console.warn("[DiaryEditor] Error deleting image from storage:", err);
+      }
+    }
+  };
 
   // Word and character count calculation
   const wordCount = content.trim() ? content.trim().split(/\s+/).length : 0;
@@ -143,9 +198,36 @@ export default function DiaryEditor({ entry, onSave, lang }: DiaryEditorProps) {
     <div className="w-full flex flex-col">
       {/* Editor Toolbar */}
       <div className="flex flex-wrap items-center justify-between gap-3 px-4 sm:px-6 py-2.5 border-b border-black/5 dark:border-white/5 bg-black/[0.015] dark:bg-white/[0.015]">
-        {/* Left: Voice Input & Style Selector */}
-        <div className="flex items-center gap-3">
+        {/* Left: Voice Input, Image Upload & Style Selector */}
+        <div className="flex items-center gap-2 sm:gap-3">
           <DiaryVoiceInput onInsertText={handleSpeechInsert} />
+
+          {/* Add Image Button */}
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={isUploadingImage}
+            className="flex items-center justify-center w-8 h-8 rounded-xl border transition-all text-zinc-400 hover:text-blue-500 hover:border-blue-500/30 hover:bg-blue-500/5 cursor-pointer disabled:opacity-50 shadow-xs"
+            style={{
+              borderColor: "var(--color-border-subtle)",
+              background: "var(--color-bg-card)",
+            }}
+            title={t.diary?.addImage || "Add Image"}
+            aria-label="Add Image"
+          >
+            {isUploadingImage ? (
+              <Loader2 size={16} className="animate-spin text-blue-500" />
+            ) : (
+              <ImagePlus size={16} />
+            )}
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleImageUpload}
+            className="hidden"
+          />
 
           {/* Typography Style Pills */}
           <div className="hidden sm:flex items-center gap-1 p-0.5 rounded-xl bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5 text-xs">
@@ -251,6 +333,96 @@ export default function DiaryEditor({ entry, onSave, lang }: DiaryEditorProps) {
             }`}
           />
         </div>
+
+        {/* Attached Images with Size Controls */}
+        {images && images.length > 0 && (
+          <div className="diary-image-container">
+            {images.map((img) => {
+              const sizeClass =
+                img.size === "small"
+                  ? "diary-img-size-small"
+                  : img.size === "large"
+                  ? "diary-img-size-large"
+                  : img.size === "full"
+                  ? "diary-img-size-full"
+                  : "diary-img-size-medium";
+
+              return (
+                <div key={img.id} className={`group relative diary-image-wrapper ${sizeClass}`}>
+                  <img
+                    src={img.url}
+                    alt={img.fileName || "Diary image"}
+                    className="w-full h-auto block rounded-xl object-contain max-h-[500px]"
+                  />
+
+                  {/* Floating Size Selector & Remove Button Overlay */}
+                  <div className="absolute top-2 right-2 flex items-center gap-1 p-1 bg-black/80 backdrop-blur-md rounded-lg shadow-lg opacity-90 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity z-10 border border-white/10">
+                    <span className="text-[10px] text-zinc-400 font-mono px-1 select-none hidden xs:inline">
+                      {t.diary?.imageSize || "Size"}:
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => handleUpdateImageSize(img.id, "small")}
+                      className={`px-2 py-0.5 rounded text-[11px] font-semibold transition-all ${
+                        img.size === "small"
+                          ? "bg-blue-600 text-white shadow-xs"
+                          : "text-zinc-300 hover:text-white hover:bg-white/10"
+                      }`}
+                      title={t.diary?.small || "Small (25%)"}
+                    >
+                      25%
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleUpdateImageSize(img.id, "medium")}
+                      className={`px-2 py-0.5 rounded text-[11px] font-semibold transition-all ${
+                        img.size === "medium" || !img.size
+                          ? "bg-blue-600 text-white shadow-xs"
+                          : "text-zinc-300 hover:text-white hover:bg-white/10"
+                      }`}
+                      title={t.diary?.medium || "Medium (50%)"}
+                    >
+                      50%
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleUpdateImageSize(img.id, "large")}
+                      className={`px-2 py-0.5 rounded text-[11px] font-semibold transition-all ${
+                        img.size === "large"
+                          ? "bg-blue-600 text-white shadow-xs"
+                          : "text-zinc-300 hover:text-white hover:bg-white/10"
+                      }`}
+                      title={t.diary?.large || "Large (75%)"}
+                    >
+                      75%
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleUpdateImageSize(img.id, "full")}
+                      className={`px-2 py-0.5 rounded text-[11px] font-semibold transition-all cursor-pointer ${
+                        img.size === "full"
+                          ? "bg-blue-600 text-white shadow-xs"
+                          : "text-zinc-300 hover:text-white hover:bg-white/10"
+                      }`}
+                      title={t.diary?.full || "Full (100%)"}
+                    >
+                      100%
+                    </button>
+                    <div className="w-px h-3 bg-white/20 mx-0.5" />
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteImage(img.id)}
+                      className="p-1 rounded text-red-400 hover:text-red-300 hover:bg-red-500/20 transition-colors cursor-pointer"
+                      title={t.diary?.removeImage || "Delete image"}
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
 
         {/* CSS Grid Auto-Sizing Notebook Surface (Zero jumping, instantaneous smooth grow/shrink) */}
         <div className="grid w-full relative">

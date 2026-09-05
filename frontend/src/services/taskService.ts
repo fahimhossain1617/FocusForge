@@ -1,4 +1,63 @@
 import { Task } from "../types";
+import { fetchBackend } from "../lib/apiClient";
+
+/**
+ * Synchronize task creation or upsert to backend /api/tasks
+ */
+export async function syncTaskToBackend(task: Partial<Task>): Promise<Task | null> {
+  try {
+    return await fetchBackend<Task>('/api/tasks', {
+      method: 'POST',
+      body: JSON.stringify(task),
+    });
+  } catch (err) {
+    console.warn('[taskService] Failed to sync task to backend:', err);
+    return null;
+  }
+}
+
+/**
+ * Synchronize task updates (status, completed, title, etc.) to backend /api/tasks/:id
+ */
+export async function updateTaskInBackend(id: number, updates: Partial<Task>): Promise<Task | null> {
+  try {
+    return await fetchBackend<Task>(`/api/tasks/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(updates),
+    });
+  } catch (err) {
+    console.warn('[taskService] Failed to update task in backend:', err);
+    return null;
+  }
+}
+
+/**
+ * Synchronize task deletion to backend /api/tasks/:id
+ */
+export async function deleteTaskFromBackend(id: number): Promise<boolean> {
+  try {
+    await fetchBackend(`/api/tasks/${id}`, {
+      method: 'DELETE',
+    });
+    return true;
+  } catch (err) {
+    console.warn('[taskService] Failed to delete task in backend:', err);
+    return false;
+  }
+}
+
+/**
+ * Fetch tasks from backend /api/tasks with optional date filter
+ */
+export async function fetchTasksFromBackend(date?: string): Promise<Task[]> {
+  try {
+    const url = date ? `/api/tasks?date=${encodeURIComponent(date)}` : '/api/tasks';
+    return await fetchBackend<Task[]>(url);
+  } catch (err) {
+    console.warn('[taskService] Failed to fetch tasks from backend:', err);
+    return [];
+  }
+}
 
 /**
  * Returns a date string formatted as YYYY-MM-DD using the user's LOCAL timezone.

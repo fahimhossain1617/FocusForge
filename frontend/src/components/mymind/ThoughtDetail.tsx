@@ -5,6 +5,7 @@ import { ArrowLeft } from "lucide-react";
 import { useAppContext } from "../../context/AppContext";
 import { useTranslation } from "../../hooks/useTranslation";
 import VoiceInput from "./VoiceInput";
+import { getMindSourceInfo, formatMindDate } from "../../utils/mindUtils";
 
 interface ThoughtDetailProps {
   thoughtId: string;
@@ -13,7 +14,7 @@ interface ThoughtDetailProps {
 
 export default function ThoughtDetail({ thoughtId, navigate }: ThoughtDetailProps) {
   const { state, updateMindItem, deleteMindItem, addNote, showToast } = useAppContext();
-  const { t } = useTranslation();
+  const { t, lang } = useTranslation();
   
   const thought = state.mindItems.find(item => item.id === thoughtId);
   
@@ -83,15 +84,7 @@ export default function ThoughtDetail({ thoughtId, navigate }: ThoughtDetailProp
 
   if (!thought) return null;
 
-  const formatDate = (dateStr: string) => {
-    const d = new Date(dateStr);
-    return {
-      date: d.toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' }),
-      time: d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
-    };
-  };
-
-  const { date, time } = formatDate(thought.createdAt);
+  const sourceInfo = getMindSourceInfo(thought, t);
   const displayValue = content + (interim ? ((content && !content.endsWith(" ") && !content.endsWith("\n")) ? " " : "") + interim : "");
 
   return (
@@ -108,7 +101,7 @@ export default function ThoughtDetail({ thoughtId, navigate }: ThoughtDetailProp
           aria-label="Back to all thoughts"
         >
           <ArrowLeft size={16} />
-          <span>{t.myMind.backLeft || "Back"}</span>
+          <span>{(t.myMind.backText || t.myMind.backLeft || "Back").replace(/^[←\s]+/, "")}</span>
         </button>
         <div className="flex items-center gap-4">
           <button 
@@ -128,15 +121,21 @@ export default function ThoughtDetail({ thoughtId, navigate }: ThoughtDetailProp
         </div>
       </div>
 
-      <div className="mb-4 flex flex-col md:flex-row md:items-center justify-between opacity-60">
-        <span className="text-xs font-medium uppercase tracking-wider" style={{ color: "var(--color-text-muted)" }}>
-          {date} {t.myMind.atStr} {time}
-        </span>
-        {thought.source && thought.source !== 'home' && (
-          <span className="text-xs capitalize" style={{ color: "var(--color-text-muted)" }}>
-            {t.myMind.capturedVia} {thought.source.replace('_', ' ')}
+      <div className="mb-4 flex flex-wrap items-center gap-2">
+        {sourceInfo.label && (
+          <span 
+            className="px-2.5 py-0.5 text-xs font-semibold rounded-lg"
+            style={{ 
+              background: "rgba(99, 102, 241, 0.12)", 
+              color: "var(--color-purple-primary)" 
+            }}
+          >
+            {sourceInfo.label}
           </span>
         )}
+        <span className="text-xs font-medium" style={{ color: "var(--color-text-muted)" }}>
+          {formatMindDate(thought.createdAt, lang)}
+        </span>
       </div>
 
       <div

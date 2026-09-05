@@ -4,6 +4,13 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import dotenv from 'dotenv';
 import aiRoutes from './routes/aiRoutes';
+import mindRoutes from './routes/mindRoutes';
+import diaryRoutes from './routes/diaryRoutes';
+import focusRoutes from './routes/focusRoutes';
+import learningRoutes from './routes/learningRoutes';
+import taskRoutes from './routes/taskRoutes';
+import noteRoutes from './routes/noteRoutes';
+import userRoutes from './routes/userRoutes';
 
 // Load environment variables
 dotenv.config();
@@ -19,6 +26,13 @@ app.use(morgan('dev'));
 
 // Routes
 app.use('/api/ai', aiRoutes);
+app.use('/api/mind', mindRoutes);
+app.use('/api/diary', diaryRoutes);
+app.use('/api/focus', focusRoutes);
+app.use('/api/learning', learningRoutes);
+app.use('/api/tasks', taskRoutes);
+app.use('/api/notes', noteRoutes);
+app.use('/api/user', userRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {

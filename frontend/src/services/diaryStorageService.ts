@@ -146,14 +146,16 @@ export function createDiaryEntry(
 export function updateDiaryEntry(
   topicId: string,
   entryId: string,
-  updates: Partial<Pick<DiaryEntry, "title" | "content">>,
+  updates: Partial<Pick<DiaryEntry, "title" | "content" | "images">>,
   topics: DiaryTopic[] = []
 ): DiaryTopic[] {
   const now = new Date().toISOString();
   return topics.map((t) => {
     if (t.id === topicId) {
+      let found = false;
       const updatedEntries = t.entries.map((entry) => {
         if (entry.id === entryId) {
+          found = true;
           return {
             ...entry,
             ...updates,
@@ -162,6 +164,17 @@ export function updateDiaryEntry(
         }
         return entry;
       });
+
+      if (!found) {
+        updatedEntries.push({
+          id: entryId,
+          title: updates.title || "",
+          content: updates.content || "",
+          images: updates.images || [],
+          createdAt: now,
+          updatedAt: now,
+        });
+      }
 
       return {
         ...t,

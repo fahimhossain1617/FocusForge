@@ -12,6 +12,8 @@ export const ALLOWED_AI_ACTIONS = {
     DAILY_PLANNER: 'dailyPlanner',
     ASK_FOCUS_FORGE: 'askFocusForge',
     EXECUTE_AGENTIC_TASK: 'executeAgenticTask',
+    AGENT_CHAT: 'agentChat',
+    CUSTOM_AI: 'customAi',
   } as const;
   
   export type AllowedAIAction = typeof ALLOWED_AI_ACTIONS[keyof typeof ALLOWED_AI_ACTIONS];

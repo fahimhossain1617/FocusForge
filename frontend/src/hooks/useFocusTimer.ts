@@ -50,12 +50,14 @@ export function useFocusTimer(options?: UseFocusTimerOptions) {
         if (prev <= 1) {
           clearTimer();
           setIsRunning(false);
-          // Handle completion
-          if (isWork) {
-            optionsRef.current?.onWorkComplete?.();
-          } else {
-            optionsRef.current?.onBreakComplete?.();
-          }
+          // Handle completion asynchronously outside React state updater
+          setTimeout(() => {
+            if (isWork) {
+              optionsRef.current?.onWorkComplete?.();
+            } else {
+              optionsRef.current?.onBreakComplete?.();
+            }
+          }, 0);
           return 0;
         }
         return prev - 1;
@@ -110,27 +112,25 @@ export function useFocusTimer(options?: UseFocusTimerOptions) {
   const seconds = remaining % 60;
   const display = `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
   const progress = total > 0 ? 1 - remaining / total : 0;
-  const elapsedMinutes = total > 0 ? Math.round((total - remaining) / 60) : 0;
+  const elapsedMinutes = total > 0 ? Math.max(0, Math.floor((total - remaining) / 60)) : 0;
 
   return {
-    display,
-    minutes,
-    seconds,
     remaining,
     total,
-    progress,
-    elapsedMinutes,
     isRunning,
     isWork,
     workMinutes,
     breakMinutes,
+    minutes,
+    seconds,
+    display,
+    progress,
+    elapsedMinutes,
     start,
     pause,
     reset,
     switchToBreak,
     switchToWork,
     setPreset,
-    setWorkMinutes,
-    setBreakMinutes,
   };
 }

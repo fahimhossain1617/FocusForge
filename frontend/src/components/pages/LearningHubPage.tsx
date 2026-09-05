@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useAppContext } from "../../context/AppContext";
 import { useAuth } from "../../context/AuthContext";
 import { useTranslation } from "../../hooks/useTranslation";
 import EmptyState from "../ui/EmptyState";
-import { Folder, Plus, Trash2, CheckCircle, Clock, CalendarDays, AlertTriangle, Trophy, Sparkles, Star, ArrowLeft } from "lucide-react";
+import { Folder, Plus, Trash2, CheckCircle, Clock, CalendarDays, AlertTriangle, Trophy, Sparkles, Star, ArrowLeft, Check } from "lucide-react";
 
 function formatHoursMins(totalMins: number): string {
   const h = Math.floor(totalMins / 60);
@@ -69,6 +69,7 @@ export default function LearningHubPage() {
 
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
   const [newFolderName, setNewFolderName] = useState("");
+  const folderInputRef = useRef<HTMLInputElement>(null);
 
   // Form state
   const [watchHours, setWatchHours] = useState<number | "">("");
@@ -80,9 +81,12 @@ export default function LearningHubPage() {
   const [blockers, setBlockers] = useState("");
   const [completedModalData, setCompletedModalData] = useState<{ id: string, name: string, totalMins: number, streak: number } | null>(null);
 
-  const handleCreateFolder = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newFolderName.trim()) return;
+  const handleCreateFolder = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!newFolderName.trim()) {
+      folderInputRef.current?.focus();
+      return;
+    }
 
     requireAuth(() => {
       addLearningFolder(newFolderName.trim());
@@ -148,14 +152,32 @@ export default function LearningHubPage() {
 
         <form onSubmit={handleCreateFolder} className="flex gap-2">
           <input
+            ref={folderInputRef}
             type="text"
             value={newFolderName}
             onChange={(e) => setNewFolderName(e.target.value)}
             placeholder={t.learningHub.newFolderPlaceholder}
-            className="input-field flex-1 text-sm py-2 px-3"
+            className="input-field flex-1 text-sm py-2 px-3 transition-colors focus:border-purple-500"
           />
-          <button type="submit" className="btn-primary p-2 rounded-xl flex items-center justify-center">
-            <Plus className="w-5 h-5" />
+          <button
+            type={newFolderName.trim() ? "submit" : "button"}
+            onClick={() => {
+              if (!newFolderName.trim()) {
+                folderInputRef.current?.focus();
+              }
+            }}
+            title={newFolderName.trim() ? t.learningHub.saveFolder : t.learningHub.createFolder}
+            className={`p-2 rounded-xl flex items-center justify-center transition-all duration-200 cursor-pointer ${
+              newFolderName.trim()
+                ? "bg-emerald-600 hover:bg-emerald-500 text-white shadow-[0_0_12px_rgba(16,185,129,0.4)] scale-105"
+                : "btn-primary"
+            }`}
+          >
+            {newFolderName.trim() ? (
+              <Check className="w-5 h-5 animate-in zoom-in-50 duration-200 text-white" />
+            ) : (
+              <Plus className="w-5 h-5" />
+            )}
           </button>
         </form>
 
@@ -457,7 +479,7 @@ export default function LearningHubPage() {
                 onClick={() => {
                   setCompletedModalData(null);
                   setSelectedFolderId(null);
-                  document.querySelector<HTMLInputElement>('input[placeholder="New folder (e.g. Java)"]')?.focus();
+                  folderInputRef.current?.focus();
                 }}
                 className="w-full py-3 rounded-xl font-bold text-white transition-all shadow-[0_0_15px_rgba(124,58,237,0.4)] hover:shadow-[0_0_25px_rgba(124,58,237,0.6)] hover:-translate-y-0.5 relative overflow-hidden group"
                 style={{ background: "linear-gradient(135deg, var(--color-purple-primary) 0%, #9333ea 100%)" }}

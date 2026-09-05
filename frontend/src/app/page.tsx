@@ -17,11 +17,10 @@ import AIAgentPage from "../components/ai-agent/AIAgentPage";
 import AuthModal from "../components/auth/AuthModal";
 import AuthGuardModal from "../components/auth/AuthGuardModal";
 
-import InstallPrompt from "../components/pwa/InstallPrompt";
 import { AppShellSkeleton, PageSkeleton } from "../components/ui/skeleton";
 import { useDailyPlan } from "../hooks/useDailyPlan";
 
-const pageComponents: Record<string, React.ComponentType> = {
+const pageComponents: Record<string, React.ComponentType<{ onOpenSidebar?: () => void }>> = {
   today: DashboardPage,
   mind: MyMindPage,
   tasks: WorkspacePage,
@@ -60,34 +59,52 @@ export default function Home() {
 
       {/* Main Content */}
       <main className="flex-1 md:ml-60 w-full min-w-0 overflow-x-hidden">
-        {/* Mobile Header */}
-        <div 
-          className="md:hidden flex items-center justify-between px-3.5 py-3 sticky top-0 z-30 transition-colors" 
-          style={{ 
-            borderBottom: "1px solid var(--color-border-subtle)", 
-            background: "rgba(7, 10, 18, 0.90)", 
-            backdropFilter: "blur(20px)" 
+        {/* Universal Mobile Header with persistent 3-line Hamburger Menu */}
+        <header 
+          className="md:hidden sticky top-0 z-30 flex items-center justify-between px-4 py-3 border-b backdrop-blur-xl"
+          style={{
+            backgroundColor: "rgba(10, 14, 26, 0.85)",
+            borderColor: "var(--color-border-subtle)",
           }}
         >
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-3 min-w-0">
             <button
+              type="button"
               onClick={() => setSidebarOpen(true)}
-              className="p-1.5 rounded-xl hover:bg-white/10 text-zinc-400 hover:text-white transition-colors cursor-pointer"
+              className="p-2 rounded-xl border transition-all active:scale-95 cursor-pointer flex items-center justify-center shrink-0 shadow-sm"
+              style={{
+                backgroundColor: "var(--color-bg-card)",
+                borderColor: "var(--color-border-subtle)",
+                color: "var(--color-text-primary)",
+              }}
               aria-label="Open navigation menu"
+              title={state.lang === 'bn' ? "মেনু খুলুন" : "Open Menu"}
             >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M4 6h16M4 12h16M4 18h16" />
               </svg>
             </button>
-            <span className="text-sm font-semibold" style={{ color: "var(--color-text-primary)" }}>
-              FocusForge
+            <span className="text-base font-bold tracking-tight truncate text-white">
+              {state.activePage === 'ai-agent'
+                ? (state.lang === 'bn' ? 'ফোকাস ফোর্স AI এজেন্ট' : 'FocusForge AI Agent')
+                : state.activePage === 'tasks'
+                ? (state.lang === 'bn' ? 'নোটস ও ফাইলস' : 'Notes & Files')
+                : state.activePage === 'planner'
+                ? (state.lang === 'bn' ? 'প্ল্যানার' : 'Planner')
+                : state.activePage === 'mind'
+                ? (state.lang === 'bn' ? 'ক্যাপচার' : 'Capture')
+                : state.activePage === 'learning'
+                ? (state.lang === 'bn' ? 'স্কিল বিল্ডার' : 'Skill Builder')
+                : state.activePage === 'focus'
+                ? (state.lang === 'bn' ? 'ফোকাস' : 'Focus')
+                : state.activePage === 'settings'
+                ? (state.lang === 'bn' ? 'সেটিংস' : 'Settings')
+                : state.activePage === 'profile'
+                ? (state.lang === 'bn' ? 'আমার প্রোফাইল' : 'Profile')
+                : 'FocusForge'}
             </span>
           </div>
-
-          <div className="flex items-center gap-2">
-            <InstallPrompt variant="button" />
-          </div>
-        </div>
+        </header>
 
         {/* Page Content */}
         <div className="p-3.5 sm:p-5 md:p-8 lg:p-10 max-w-5xl mx-auto w-full min-w-0">
@@ -97,7 +114,7 @@ export default function Home() {
             </div>
           ) : (
             <div className="fade-in">
-              <ActivePage />
+              <ActivePage onOpenSidebar={() => setSidebarOpen(true)} />
             </div>
           )}
         </div>

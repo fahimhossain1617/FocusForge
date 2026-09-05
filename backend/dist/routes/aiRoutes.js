@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const auth_1 = require("../middleware/auth");
 const aiService_1 = require("../services/aiService");
+const aiChatService_1 = require("../services/aiChatService");
 const router = (0, express_1.Router)();
 // AI endpoints can incur paid provider usage and must never be public.
 router.use(auth_1.requireAuth);
@@ -68,12 +69,142 @@ router.post('/execute-agent', async (req, res) => {
 });
 router.post('/custom', async (req, res) => {
     try {
-        // Note: custom prompts might violate strict whitelisting, 
-        // handle with caution or map to a safe handler.
-        res.json({ response: "Custom AI execution not supported by strict whitelist yet." });
+        const { prompt } = req.body;
+        if (!prompt) {
+            return res.status(400).json({ error: 'Prompt is required' });
+        }
+        const result = await (0, aiService_1.executeAIAction)('customAi', { prompt });
+        res.json(result);
     }
     catch (error) {
         res.status(500).json({ error: error.message || 'Custom query failed' });
+    }
+});
+// --- FocusForge AI Agent - Chat & History Endpoints ---
+router.get('/agent/sessions', async (req, res) => {
+    try {
+        const user = req.user;
+        if (!user || user.isGuest)
+            return res.json([]);
+        const sessions = await (0, aiChatService_1.getChatSessions)(user.id);
+        res.json(sessions);
+    }
+    catch (error) {
+        console.error('Fetch sessions error:', error);
+        res.status(500).json({ error: error.message || 'Failed to fetch sessions' });
+    }
+});
+router.post('/agent/sessions', async (req, res) => {
+    try {
+        const user = req.user;
+        const { title } = req.body;
+        if (!user || user.isGuest) {
+            return res.json({ id: 'guest-session', title: title || 'New Conversation' });
+        }
+        const session = await (0, aiChatService_1.createChatSession)(user.id, title);
+        res.json(session);
+    }
+    catch (error) {
+        console.error('Create session error:', error);
+        res.status(500).json({ error: error.message || 'Failed to create session' });
+    }
+});
+router.delete('/agent/sessions/:id', async (req, res) => {
+    try {
+        const user = req.user;
+        if (!user || user.isGuest)
+            return res.json({ success: true });
+        await (0, aiChatService_1.deleteChatSession)(req.params.id, user.id);
+        res.json({ success: true });
+    }
+    catch (error) {
+        console.error('Delete session error:', error);
+        res.status(500).json({ error: error.message || 'Failed to delete session' });
+    }
+});
+router.get('/agent/sessions/:id/messages', async (req, res) => {
+    try {
+        const user = req.user;
+        if (!user || user.isGuest)
+            return res.json([]);
+        const messages = await (0, aiChatService_1.getChatMessages)(user.id, req.params.id);
+        res.json(messages);
+    }
+    catch (error) {
+        console.error('Fetch messages error:', error);
+        res.status(500).json({ error: error.message || 'Failed to fetch messages' });
+    }
+});
+router.post('/agent/chat', async (req, res) => {
+    try {
+        const user = req.user;
+        const isGuest = !user || user.isGuest;
+        const userId = user?.id;
+        let { sessionId, message, context, history } = req.body;
+        // Fetch previous messages for multi-turn conversational context if in an active session
+        let recentHistory = [];
+        if (Array.isArray(history) && history.length > 0) {
+            recentHistory = history.slice(-8);
+        }
+        else if (sessionId && sessionId !== 'guest-session' && userId) {
+            try {
+                const past = await (0, aiChatService_1.getChatMessages)(userId, sessionId);
+                if (Array.isArray(past)) {
+                    recentHistory = past.slice(-8).map((m) => ({
+                        role: m.role,
+                        content: m.content,
+                    }));
+                }
+            }
+            catch (err) {
+                console.warn('Could not fetch prior messages for context:', err);
+            }
+        }
+        // 1. Prepare payload for Gemini Intent Router
+        const lightweightContext = {
+            ...context,
+            tasks: context?.tasks?.filter((t) => t.status !== 'completed').slice(0, 50) || []
+        };
+        const payload = {
+            userQuery: message,
+            recentHistory,
+            currentDate: new Date().toISOString().split('T')[0],
+            context: lightweightContext
+        };
+        // 2. Call Gemini via Intent Router
+        const result = await (0, aiService_1.executeAIAction)('agentChat', payload);
+        // Fallback if AI fails to return proper intent
+        if (!result || !result.intent) {
+            result.intent = "GREETING_OR_GENERAL";
+            result.message = result.message || "I'm having trouble processing that right now.";
+        }
+        if (isGuest) {
+            return res.json({
+                sessionId: sessionId || 'guest-session',
+                aiMessage: {
+                    id: 'guest_msg_' + Date.now(),
+                    session_id: sessionId || 'guest-session',
+                    role: 'assistant',
+                    content: result.message,
+                    intent: result.intent,
+                    payload_json: result.payload || null,
+                    created_at: new Date().toISOString()
+                }
+            });
+        }
+        // 3. Authenticated: Create session in DB if none provided
+        if (!sessionId || sessionId === 'guest-session') {
+            const session = await (0, aiChatService_1.createChatSession)(userId, message.substring(0, 30) + '...');
+            sessionId = session.id;
+        }
+        // 4. Save User Message & AI Message in DB
+        await (0, aiChatService_1.addChatMessage)(sessionId, userId, 'user', message);
+        const aiMessage = await (0, aiChatService_1.addChatMessage)(sessionId, userId, 'assistant', result.message, result.intent, result.payload);
+        res.json({ sessionId, aiMessage });
+    }
+    catch (error) {
+        console.error('Agent chat error:', error);
+        res.status(500).json({ error: error.message || 'Agent chat failed' });
     }
 });
 exports.default = router;

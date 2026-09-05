@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { X, BookOpen, Sparkles } from "lucide-react";
+import { X, BookOpen, Sparkles, Trash2 } from "lucide-react";
 import { useTranslation } from "../../hooks/useTranslation";
 import { DiaryTopic } from "../../types";
 
@@ -9,6 +9,7 @@ interface DiaryTopicModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (title: string, description: string) => void;
+  onDelete?: (topicId: string) => void;
   initialTopic?: DiaryTopic | null;
 }
 
@@ -16,6 +17,7 @@ export default function DiaryTopicModal({
   isOpen,
   onClose,
   onSubmit,
+  onDelete,
   initialTopic,
 }: DiaryTopicModalProps) {
   const { t } = useTranslation();
@@ -121,26 +123,51 @@ export default function DiaryTopicModal({
             />
           </div>
 
-          <div className="flex items-center justify-end gap-2.5 pt-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 rounded-xl text-xs font-semibold border hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer"
-              style={{
-                borderColor: "var(--color-border-subtle)",
-                color: "var(--color-text-secondary)",
-              }}
-            >
-              {t.diary?.cancel || "Cancel"}
-            </button>
-            <button
-              type="submit"
-              disabled={!title.trim()}
-              className="btn-accent-solid px-5 py-2 rounded-xl text-xs font-semibold text-white bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm shadow-blue-600/30 transition-all cursor-pointer"
-              style={{ color: "#FFFFFF" }}
-            >
-              {isEditing ? t.diary?.save || "Save" : t.diary?.createTopic || "Create Topic"}
-            </button>
+          <div className="flex items-center justify-between gap-2.5 pt-2">
+            <div>
+              {isEditing && initialTopic && onDelete && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (
+                      window.confirm(
+                        t.diary?.deleteTopicConfirm ||
+                          "Are you sure you want to delete this topic and all its pages? This action cannot be undone."
+                      )
+                    ) {
+                      onDelete(initialTopic.id);
+                      onClose();
+                    }
+                  }}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-red-500 hover:text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer"
+                >
+                  <Trash2 size={14} />
+                  <span>{t.diary?.delete || "Delete"}</span>
+                </button>
+              )}
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-4 py-2 rounded-xl text-xs font-semibold border hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer"
+                style={{
+                  borderColor: "var(--color-border-subtle)",
+                  color: "var(--color-text-secondary)",
+                }}
+              >
+                {t.diary?.cancel || "Cancel"}
+              </button>
+              <button
+                type="submit"
+                disabled={!title.trim()}
+                className="btn-accent-solid px-5 py-2 rounded-xl text-xs font-semibold text-white bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm shadow-blue-600/30 transition-all cursor-pointer"
+                style={{ color: "#FFFFFF" }}
+              >
+                {isEditing ? t.diary?.save || "Save" : t.diary?.createTopic || "Create Topic"}
+              </button>
+            </div>
           </div>
         </form>
       </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
 import type { AppState, Task, Note, MindItem, TimeBlock, FocusSession, DistractionEntry, DailyBig3, LearningFolder, LearningLog, DiaryTopic, DiaryEntry } from '../types';
 import { 
   createDiaryTopic, 
@@ -17,6 +17,11 @@ import {
 } from '../services/indexedDBStorage';
 import { supabase } from '../lib/supabaseClient';
 import { noteService } from '../services/noteService';
+import { mindService } from '../services/mindService';
+import { diaryDbService } from '../services/diaryDbService';
+import { focusDbService } from '../services/focusDbService';
+import { learningDbService } from '../services/learningDbService';
+import { syncTaskToBackend, updateTaskInBackend, deleteTaskFromBackend } from '../services/taskService';
 
 
 const defaultCategories = ['Programming', 'Study', 'University', 'Exam', 'Personal', 'Health', 'Project', 'Business'];
@@ -98,6 +103,8 @@ interface AppContextType {
 
   // Navigation
   navigateTo: (page: string) => void;
+  registerFocusLock: (onAttemptExit: (targetPage: string) => boolean) => void;
+  unregisterFocusLock: () => void;
 
   // Mind Items
   addMindItem: (content: string, source?: MindItem['source']) => void;
@@ -123,8 +130,8 @@ interface AppContextType {
   deleteTimeBlock: (id: string) => void;
 
   // Focus Sessions
-  startFocusSession: (taskName: string, category: string, taskId?: number) => string;
-  endFocusSession: (sessionId: string, durationMinutes: number) => void;
+  startFocusSession: (taskName: string, category: string, taskId?: number, targetMinutes?: number) => string;
+  endFocusSession: (sessionId: string, durationMinutes: number, completed?: boolean) => void;
   addDistraction: (sessionId: string, content: string) => void;
 
   // Activities
@@ -147,7 +154,7 @@ interface AppContextType {
   updateDiaryTopicItem: (topicId: string, updates: Partial<Pick<DiaryTopic, 'title' | 'description'>>) => void;
   deleteDiaryTopicItem: (topicId: string) => void;
   addDiaryEntryItem: (topicId: string, title?: string, content?: string) => DiaryEntry;
-  saveDiaryEntryItem: (topicId: string, entryId: string, updates: Partial<Pick<DiaryEntry, 'title' | 'content'>>) => void;
+  saveDiaryEntryItem: (topicId: string, entryId: string, updates: Partial<Pick<DiaryEntry, 'title' | 'content' | 'images'>>) => void;
   deleteDiaryEntryItem: (topicId: string, entryId: string) => void;
 }
 
@@ -200,6 +207,55 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           } catch (notesErr) {
             console.warn("[AppContext] Error syncing PostgreSQL notes on load:", notesErr);
           }
+
+          // Fetch structured mind items from Supabase PostgreSQL mind_items table
+          try {
+            const dbMindItems = await mindService.fetchMindItems(session.user.id);
+            if (dbMindItems && dbMindItems.length > 0) {
+              if (!loadedData) loadedData = { ...defaultState };
+              loadedData.mindItems = dbMindItems;
+            }
+          } catch (mindErr) {
+            console.warn("[AppContext] Error syncing PostgreSQL mind items on load:", mindErr);
+          }
+
+          // Fetch structured diary topics & entries from Supabase PostgreSQL
+          try {
+            const dbDiaryTopics = await diaryDbService.fetchDiaryTopics(session.user.id);
+            if (dbDiaryTopics && dbDiaryTopics.length > 0) {
+              if (!loadedData) loadedData = { ...defaultState };
+              loadedData.diaryTopics = dbDiaryTopics;
+            }
+          } catch (diaryErr) {
+            console.warn("[AppContext] Error syncing PostgreSQL diary on load:", diaryErr);
+          }
+
+          // Fetch focus sessions from Supabase PostgreSQL focus_sessions table
+          try {
+            const dbFocusSessions = await focusDbService.fetchFocusSessions(session.user.id);
+            if (dbFocusSessions && dbFocusSessions.length > 0) {
+              if (!loadedData) loadedData = { ...defaultState };
+              loadedData.focusSessions = dbFocusSessions;
+            }
+          } catch (focusErr) {
+            console.warn("[AppContext] Error syncing PostgreSQL focus sessions on load:", focusErr);
+          }
+
+          // Fetch learning folders and logs from Supabase PostgreSQL
+          try {
+            const dbLearning = await learningDbService.fetchLearningData(session.user.id);
+            if (dbLearning) {
+              if (!loadedData) loadedData = { ...defaultState };
+              if (dbLearning.folders && dbLearning.folders.length > 0) {
+                loadedData.learningFolders = dbLearning.folders;
+              }
+              if (dbLearning.logs && dbLearning.logs.length > 0) {
+                loadedData.learningLogs = dbLearning.logs;
+              }
+            }
+          } catch (learningErr) {
+            console.warn("[AppContext] Error syncing PostgreSQL learning data on load:", learningErr);
+          }
         } else {
           // Guest Mode:
           // Temporary session data during current browser tab session only.
@@ -220,14 +276,23 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         if (loadedData && isMounted) {
           const parsed = loadedData;
           if (parsed.tasks) {
-            parsed.tasks = parsed.tasks.map((t: any) => ({
-              ...t,
-              status: t.status === 'pending' ? 'not_started' : t.status,
-              category: t.category || '',
-              notes: t.notes || '',
-              tier: t.tier || (t.priority === 'high' || t.priority === 'urgent' ? 'now' : t.priority === 'medium' ? 'next' : 'later'),
-              estMinutes: t.estMinutes || (t.estHours ? t.estHours * 60 : 60),
-            }));
+            const seenIds = new Set<number>();
+            parsed.tasks = parsed.tasks.map((t: any, index: number) => {
+              let taskId = t.id ? Number(t.id) : (Date.now() + index);
+              while (seenIds.has(taskId)) {
+                taskId = taskId + 1 + Math.floor(Math.random() * 10000);
+              }
+              seenIds.add(taskId);
+              return {
+                ...t,
+                id: taskId,
+                status: t.status === 'pending' ? 'not_started' : t.status,
+                category: t.category || '',
+                notes: t.notes || '',
+                tier: t.tier || (t.priority === 'high' || t.priority === 'urgent' ? 'now' : t.priority === 'medium' ? 'next' : 'later'),
+                estMinutes: t.estMinutes || (t.estHours ? t.estHours * 60 : 60),
+              };
+            });
           }
           if (parsed.notes) {
             parsed.notes = parsed.notes.map((n: any) => {
@@ -328,6 +393,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           if (dbNotes && dbNotes.length > 0) {
             setState(prev => ({ ...prev, notes: dbNotes }));
           }
+
+          try {
+            const dbLearning = await learningDbService.fetchLearningData(session.user.id);
+            if (dbLearning) {
+              setState(prev => ({
+                ...prev,
+                learningFolders: dbLearning.folders || prev.learningFolders,
+                learningLogs: dbLearning.logs || prev.learningLogs
+              }));
+            }
+          } catch (e) {}
         } catch (err) {
           console.warn("[AppContext] Error on SIGNED_IN load:", err);
         }
@@ -377,9 +453,29 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setState(defaultState);
   }, []);
 
-  // ==================== Navigation ====================
+  // ==================== Navigation & Focus Lock ====================
+
+  const focusLockRef = useRef<{
+    isLocked: boolean;
+    onAttemptExit?: (targetPage: string) => boolean;
+  }>({ isLocked: false });
+
+  const registerFocusLock = useCallback((onAttemptExit: (targetPage: string) => boolean) => {
+    focusLockRef.current = { isLocked: true, onAttemptExit };
+  }, []);
+
+  const unregisterFocusLock = useCallback(() => {
+    focusLockRef.current = { isLocked: false };
+  }, []);
 
   const navigateTo = useCallback((page: string) => {
+    if (focusLockRef.current.isLocked && focusLockRef.current.onAttemptExit) {
+      const allowed = focusLockRef.current.onAttemptExit(page);
+      if (!allowed) {
+        return; // Intercepted and blocked by focus lock
+      }
+    }
+
     setState((prev) => {
       if (prev.activePage === page) return prev;
       setIsPageLoading(true);
@@ -394,7 +490,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const showToast = useCallback((message: string, type: string = 'success') => {
     const id = generateId();
-    setToasts((prev) => [...prev, { id, message, type }]);
+    setTimeout(() => {
+      setToasts((prev) => [...prev, { id, message, type }]);
+    }, 0);
     setTimeout(() => {
       setToasts((prev) => prev.filter((t) => t.id !== id));
     }, 3000);
@@ -404,19 +502,24 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const addMindItem = useCallback((content: string, source?: MindItem['source']) => {
     if (!content.trim()) return;
+    const newItem: MindItem = { 
+      id: generateId(), 
+      content: content.trim(), 
+      type: 'thought', 
+      createdAt: new Date().toISOString(),
+      source: source || 'home',
+    };
     setState((prev) => ({
       ...prev,
-      mindItems: [
-        { 
-          id: generateId(), 
-          content: content.trim(), 
-          type: 'thought', 
-          createdAt: new Date().toISOString(),
-          source 
-        },
-        ...prev.mindItems,
-      ],
+      mindItems: [newItem, ...prev.mindItems],
     }));
+
+    // Asynchronously persist to Supabase if logged in
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        mindService.saveMindItem(newItem, session.user.id);
+      }
+    });
   }, []);
 
   const updateMindItem = useCallback((id: string, content: string) => {
@@ -426,6 +529,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         item.id === id ? { ...item, content } : item
       ),
     }));
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        mindService.updateMindItem(id, content, session.user.id);
+      }
+    });
   }, []);
 
   const deleteMindItem = useCallback((id: string) => {
@@ -433,6 +542,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       ...prev,
       mindItems: prev.mindItems.filter((item) => item.id !== id),
     }));
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        mindService.deleteMindItem(id, session.user.id);
+      }
+    });
   }, []);
 
   // ==================== Tasks ====================
@@ -442,7 +557,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const taskDate = taskData.targetDate || taskData.date || '';
     const isComp = taskData.completed ?? (taskData.status === 'completed');
     const newTask: Task = {
-      id: Date.now(),
+      id: taskData.id && typeof taskData.id === 'number' ? taskData.id : (Date.now() + Math.floor(Math.random() * 100000)),
       name: taskName,
       title: taskName,
       description: taskData.description || taskData.notes || '',
@@ -463,6 +578,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       updatedAt: new Date().toISOString(),
     };
     setState((prev) => ({ ...prev, tasks: [...prev.tasks, newTask] }));
+    syncTaskToBackend(newTask).catch(() => {});
   }, []);
 
   const updateTask = useCallback((id: number, updates: Partial<Task>) => {
@@ -485,6 +601,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         return updated;
       }),
     }));
+    updateTaskInBackend(id, updates).catch(() => {});
   }, []);
 
   const deleteTask = useCallback((id: number) => {
@@ -492,19 +609,23 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       ...prev,
       tasks: prev.tasks.filter((t) => t.id !== id),
     }));
+    deleteTaskFromBackend(id).catch(() => {});
   }, []);
 
   const cycleTaskStatus = useCallback((id: number) => {
-    const statusCycle: Task['status'][] = ['not_started', 'in_progress', 'completed'];
+    const statusCycle: ('not_started' | 'in_progress' | 'completed')[] = ['not_started', 'in_progress', 'completed'];
+    let nextStatus: 'not_started' | 'in_progress' | 'completed' = 'not_started';
     setState((prev) => ({
       ...prev,
       tasks: prev.tasks.map((t) => {
         if (t.id !== id) return t;
         const idx = statusCycle.indexOf(t.status);
         const status = statusCycle[(idx + 1) % statusCycle.length];
+        nextStatus = status;
         return { ...t, status, completed: status === 'completed', updatedAt: new Date().toISOString() };
       }),
     }));
+    updateTaskInBackend(id, { status: nextStatus, completed: (nextStatus as string) === 'completed' }).catch(() => {});
   }, []);
 
   const setDailyBig3 = useCallback((taskIds: number[]) => {
@@ -605,7 +726,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   // ==================== Focus Sessions ====================
 
-  const startFocusSession = useCallback((taskName: string, category: string, taskId?: number): string => {
+  const startFocusSession = useCallback((taskName: string, category: string, taskId?: number, targetMinutes: number = 25): string => {
     const id = generateId();
     const session: FocusSession = {
       id,
@@ -613,43 +734,59 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       taskName,
       category,
       startedAt: new Date().toISOString(),
+      targetMinutes,
       durationMinutes: 0,
       distractions: [],
       completed: false,
     };
     setState((prev) => ({ ...prev, focusSessions: [...prev.focusSessions, session] }));
+
+    // Async persist to Supabase & Express backend
+    focusDbService.saveFocusSession(session).catch((err) => {
+      console.warn("[AppContext] Error persisting focus session:", err);
+    });
+
     return id;
   }, []);
 
-  const endFocusSession = useCallback((sessionId: string, durationMinutes: number) => {
+  const endFocusSession = useCallback((sessionId: string, durationMinutes: number, completed: boolean = true) => {
     setState((prev) => {
       const session = prev.focusSessions.find((s) => s.id === sessionId);
       if (!session) return prev;
 
+      const endedAt = new Date().toISOString();
       const updatedSessions = prev.focusSessions.map((s) =>
         s.id === sessionId
-          ? { ...s, endedAt: new Date().toISOString(), durationMinutes, completed: true }
+          ? { ...s, endedAt, durationMinutes, completed }
           : s
       );
 
-      // Auto-log as activity
-      const newActivity = {
-        id: Date.now(),
-        category: session.category || 'Focus Session',
-        hours: Math.floor(durationMinutes / 60),
-        minutes: durationMinutes % 60,
-        totalMinutes: durationMinutes,
-        date: todayStr(),
-        notes: session.taskName,
-        createdAt: new Date().toISOString(),
-      };
+      // Auto-log as activity if durationMinutes > 0
+      const newActivities = durationMinutes > 0 ? [
+        ...prev.activities,
+        {
+          id: Date.now(),
+          category: session.category || 'Focus Session',
+          hours: Math.floor(durationMinutes / 60),
+          minutes: durationMinutes % 60,
+          totalMinutes: durationMinutes,
+          date: todayStr(),
+          notes: session.taskName,
+          createdAt: new Date().toISOString(),
+        }
+      ] : prev.activities;
 
       return {
         ...prev,
         focusSessions: updatedSessions,
-        activities: [...prev.activities, newActivity],
-        pomodoroSessions: prev.pomodoroSessions + 1,
+        activities: newActivities,
+        pomodoroSessions: completed ? prev.pomodoroSessions + 1 : prev.pomodoroSessions,
       };
+    });
+
+    // Async update in Supabase & Express backend
+    focusDbService.endFocusSession(sessionId, durationMinutes, completed).catch((err) => {
+      console.warn("[AppContext] Error concluding focus session in DB:", err);
     });
   }, []);
 
@@ -674,6 +811,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         },
       ],
     }));
+
+    // Async sync distraction to Supabase & Express backend
+    focusDbService.addDistraction(sessionId, entry).catch((err) => {
+      console.warn("[AppContext] Error syncing distraction to DB:", err);
+    });
   }, []);
 
   // ==================== Activities ====================
@@ -708,10 +850,21 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   // ==================== Learning Hub ====================
   const addLearningFolder = useCallback((name: string) => {
+    const newFolder: LearningFolder = {
+      id: generateId(),
+      name,
+      createdAt: new Date().toISOString(),
+      completed: false,
+    };
     setState((prev) => ({
       ...prev,
-      learningFolders: [...prev.learningFolders, { id: generateId(), name, createdAt: new Date().toISOString(), completed: false }]
+      learningFolders: [...prev.learningFolders, newFolder]
     }));
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        learningDbService.saveFolder(newFolder, session.user.id);
+      }
+    });
   }, []);
 
   const deleteLearningFolder = useCallback((id: string) => {
@@ -720,20 +873,43 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       learningFolders: prev.learningFolders.filter((f) => f.id !== id),
       learningLogs: prev.learningLogs.filter((l) => l.folderId !== id),
     }));
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        learningDbService.deleteFolder(id, session.user.id);
+      }
+    });
   }, []);
 
   const toggleLearningFolderCompletion = useCallback((id: string) => {
-    setState((prev) => ({
-      ...prev,
-      learningFolders: prev.learningFolders.map((f) => f.id === id ? { ...f, completed: !f.completed } : f)
-    }));
+    let targetFolder: LearningFolder | undefined;
+    setState((prev) => {
+      const updatedFolders = prev.learningFolders.map((f) => {
+        if (f.id === id) {
+          targetFolder = { ...f, completed: !f.completed };
+          return targetFolder;
+        }
+        return f;
+      });
+      return { ...prev, learningFolders: updatedFolders };
+    });
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user && targetFolder) {
+        learningDbService.updateFolder(id, { completed: targetFolder.completed }, session.user.id);
+      }
+    });
   }, []);
 
   const addLearningLog = useCallback((log: Omit<LearningLog, 'id'>) => {
+    const newLog: LearningLog = { ...log, id: generateId() };
     setState((prev) => ({
       ...prev,
-      learningLogs: [...prev.learningLogs, { ...log, id: generateId() }]
+      learningLogs: [...prev.learningLogs, newLog]
     }));
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        learningDbService.saveLog(newLog, session.user.id);
+      }
+    });
   }, []);
 
   const deleteLearningLog = useCallback((id: string) => {
@@ -741,6 +917,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       ...prev,
       learningLogs: prev.learningLogs.filter((l) => l.id !== id)
     }));
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        learningDbService.deleteLog(id, session.user.id);
+      }
+    });
   }, []);
 
   // ==================== My Diary ====================
@@ -752,14 +933,32 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       createdTopic = topic;
       return { ...prev, diaryTopics: updatedTopics };
     });
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user && createdTopic) {
+        diaryDbService.saveDiaryTopic(createdTopic, session.user.id);
+        if (createdTopic.entries?.[0]) {
+          diaryDbService.saveDiaryEntry(createdTopic.id, createdTopic.entries[0], session.user.id);
+        }
+      }
+    });
+
     return createdTopic!;
   }, []);
 
   const updateDiaryTopicItem = useCallback((topicId: string, updates: Partial<Pick<DiaryTopic, 'title' | 'description'>>) => {
-    setState((prev) => ({
-      ...prev,
-      diaryTopics: updateDiaryTopic(topicId, updates, prev.diaryTopics || [])
-    }));
+    setState((prev) => {
+      const updatedTopics = updateDiaryTopic(topicId, updates, prev.diaryTopics || []);
+      const updatedTopic = updatedTopics.find(t => t.id === topicId);
+      if (updatedTopic) {
+        supabase.auth.getSession().then(({ data: { session } }) => {
+          if (session?.user) {
+            diaryDbService.saveDiaryTopic(updatedTopic, session.user.id);
+          }
+        });
+      }
+      return { ...prev, diaryTopics: updatedTopics };
+    });
   }, []);
 
   const deleteDiaryTopicItem = useCallback((topicId: string) => {
@@ -767,6 +966,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       ...prev,
       diaryTopics: deleteDiaryTopic(topicId, prev.diaryTopics || [])
     }));
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        diaryDbService.deleteDiaryTopic(topicId, session.user.id);
+      }
+    });
   }, []);
 
   const addDiaryEntryItem = useCallback((topicId: string, title: string = '', content: string = '') => {
@@ -776,20 +981,42 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       createdEntry = newEntry;
       return { ...prev, diaryTopics: updatedTopics };
     });
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user && createdEntry) {
+        diaryDbService.saveDiaryEntry(topicId, createdEntry, session.user.id);
+      }
+    });
+
     return createdEntry!;
   }, []);
 
-  const saveDiaryEntryItem = useCallback((topicId: string, entryId: string, updates: Partial<Pick<DiaryEntry, 'title' | 'content'>>) => {
-    setState((prev) => ({
-      ...prev,
-      diaryTopics: updateDiaryEntry(topicId, entryId, updates, prev.diaryTopics || [])
-    }));
+  const saveDiaryEntryItem = useCallback((topicId: string, entryId: string, updates: Partial<Pick<DiaryEntry, 'title' | 'content' | 'images'>>) => {
+    setState((prev) => {
+      const updatedTopics = updateDiaryEntry(topicId, entryId, updates, prev.diaryTopics || []);
+      const updatedTopic = updatedTopics.find(t => t.id === topicId);
+      const updatedEntry = updatedTopic?.entries.find(e => e.id === entryId);
+      if (updatedEntry) {
+        supabase.auth.getSession().then(({ data: { session } }) => {
+          if (session?.user) {
+            diaryDbService.saveDiaryEntry(topicId, updatedEntry, session.user.id);
+          }
+        });
+      }
+      return { ...prev, diaryTopics: updatedTopics };
+    });
   }, []);
 
   const deleteDiaryEntryItem = useCallback((topicId: string, entryId: string) => {
     setState((prev) => {
       const { updatedTopics } = deleteDiaryEntry(topicId, entryId, prev.diaryTopics || []);
       return { ...prev, diaryTopics: updatedTopics };
+    });
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        diaryDbService.deleteDiaryEntry(entryId, session.user.id);
+      }
     });
   }, []);
 
@@ -816,6 +1043,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         updateState,
         resetState,
         navigateTo,
+        registerFocusLock,
+        unregisterFocusLock,
         addMindItem,
         updateMindItem,
         deleteMindItem,

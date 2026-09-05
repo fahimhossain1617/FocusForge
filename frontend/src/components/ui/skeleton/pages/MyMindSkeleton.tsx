@@ -13,9 +13,8 @@ export default function MyMindSkeleton() {
         <Skeleton variant="rounded" className="h-4 w-72 max-w-full mx-auto" />
       </div>
 
-      {/* 4 Mode Option Buttons Row */}
+      {/* 3 Mode Option Buttons Row */}
       <div className="flex flex-wrap justify-center gap-2 mb-8">
-        <Skeleton variant="rounded" className="h-8 w-28 rounded-xl" />
         <Skeleton variant="rounded" className="h-8 w-32 rounded-xl" />
         <Skeleton variant="rounded" className="h-8 w-32 rounded-xl" />
         <Skeleton variant="rounded" className="h-8 w-24 rounded-xl" />

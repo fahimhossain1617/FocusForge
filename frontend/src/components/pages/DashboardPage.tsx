@@ -4,7 +4,8 @@ import { useState, useRef } from "react";
 import { useAppContext } from "../../context/AppContext";
 import { useTranslation } from "../../hooks/useTranslation";
 import { ResponsiveContainer, ComposedChart, Bar, Line, XAxis, YAxis, Tooltip, Cell } from "recharts";
-import { Shield, Play } from "lucide-react";
+import { Shield, Play, CalendarDays, Clock, ArrowRight, Check, Plus } from "lucide-react";
+import { getLocalDateString } from "../../services/taskService";
 
 // --- Helpers ---
 function getGreeting(t: any): string {
@@ -32,6 +33,17 @@ function formatHoursMins(totalMins: number): string {
   return `${h}h ${m}m`;
 }
 
+function formatTime12hr(time24: string): string {
+  if (!time24) return "";
+  const [hourStr, minStr] = time24.split(":");
+  let hour = parseInt(hourStr, 10);
+  if (isNaN(hour)) return time24;
+  const ampm = hour >= 12 ? "PM" : "AM";
+  hour = hour % 12;
+  if (hour === 0) hour = 12;
+  return `${hour}:${minStr || "00"} ${ampm}`;
+}
+
 function getLast7Days() {
   const dates = [];
   for (let i = 6; i >= 0; i--) {
@@ -52,22 +64,121 @@ function getMonthlyData(actualWeeklyHours: number, completedTasksCount: number) 
   ];
 }
 
-export default function DashboardPage() {
-  const { state, navigateTo, getDailyBig3, cycleTaskStatus } = useAppContext();
+interface DashboardPageProps {
+  onOpenSidebar?: () => void;
+}
+
+export default function DashboardPage({ onOpenSidebar }: DashboardPageProps) {
+  const { state, navigateTo, getDailyBig3, cycleTaskStatus, updateTask, updateTimeBlock } = useAppContext();
   const { t } = useTranslation();
-  const today = new Date().toISOString().split("T")[0];
+  // Timezone-safe local date
+  const today = getLocalDateString();
   
   const [activeTab, setActiveTab] = useState<"weekly" | "monthly">("weekly");
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
 
-  // --- Task Data ---
-  const todayTasks = state.tasks.filter(
-    (t) => t.targetDate === today || t.tier === "now" || (t.status === "completed" && t.targetDate === today)
+  // --- Unified Today's Tasks connected with Planner ---
+  interface TodayTaskItem {
+    key: string;
+    type: 'task' | 'block';
+    id: number | string;
+    taskId?: number;
+    blockId?: string;
+    name: string;
+    completed: boolean;
+    time?: string;
+    endTime?: string;
+    category?: string;
+    priority?: string;
+  }
+
+  const todayBlocks = (state.timeBlocks || []).filter((b) => b.date === today);
+  const scheduledTasks = (state.tasks || []).filter(
+    (t) => t.targetDate === today || t.date === today
   );
-  const completedToday = todayTasks.filter((t) => t.status === "completed").length;
-  const totalTasksToday = todayTasks.length;
+
+  const todayUnifiedTasks: TodayTaskItem[] = [];
+  const processedBlockIds = new Set<string>();
+
+  // 1. Every scheduled task for today gets its own single, distinct entry
+  scheduledTasks.forEach((task) => {
+    // Find linked timeBlock strictly by matching taskId
+    const linkedBlock = todayBlocks.find(
+      (b) => b.taskId != null && String(b.taskId) === String(task.id)
+    );
+
+    if (linkedBlock) {
+      processedBlockIds.add(String(linkedBlock.id));
+    }
+
+    const isCompleted = Boolean(task.status === "completed" || task.completed === true);
+
+    todayUnifiedTasks.push({
+      key: `task-${task.id}`,
+      type: 'task',
+      id: task.id,
+      taskId: task.id,
+      blockId: linkedBlock?.id,
+      name: task.name || task.title || "Untitled Task",
+      completed: isCompleted,
+      time: task.time || linkedBlock?.startTime,
+      endTime: linkedBlock?.endTime,
+      category: task.category || linkedBlock?.category,
+      priority: task.priority,
+    });
+  });
+
+  // 2. Only orphaned timeBlocks (if any) that have NO linked task
+  todayBlocks.forEach((block) => {
+    const blockIdStr = String(block.id);
+    if (processedBlockIds.has(blockIdStr)) return;
+    if (block.taskId != null && scheduledTasks.some((t) => String(t.id) === String(block.taskId))) return;
+
+    todayUnifiedTasks.push({
+      key: `block-${block.id}`,
+      type: 'block',
+      id: block.id,
+      blockId: block.id,
+      name: block.label || "Untitled Event",
+      completed: Boolean(block.completed),
+      time: block.startTime,
+      endTime: block.endTime,
+      category: block.category,
+    });
+  });
+
+  // STABLE SORT: Sort ONLY by scheduled start time
+  todayUnifiedTasks.sort((a, b) => {
+    if (a.time && b.time) return a.time.localeCompare(b.time);
+    if (a.time) return -1;
+    if (b.time) return 1;
+    return 0;
+  });
+
+  const completedToday = todayUnifiedTasks.filter((t) => t.completed).length;
+  const totalTasksToday = todayUnifiedTasks.length;
   const taskCompletionRate = totalTasksToday > 0 ? (completedToday / totalTasksToday) * 100 : 0;
+
+  const handleToggleTask = (item: TodayTaskItem) => {
+    const nextCompleted = !item.completed;
+
+    if (item.type === 'task' && item.taskId != null) {
+      updateTask(item.taskId, {
+        completed: nextCompleted,
+        status: nextCompleted ? "completed" : "not_started",
+      });
+      if (item.blockId) {
+        updateTimeBlock(item.blockId, {
+          completed: nextCompleted,
+        });
+      }
+    } else if (item.type === 'block' && item.blockId != null) {
+      updateTimeBlock(item.blockId, {
+        completed: nextCompleted,
+      });
+    }
+  };
 
   const big3 = getDailyBig3();
   const hasBig3 = big3.length > 0;
@@ -202,26 +313,29 @@ export default function DashboardPage() {
   return (
     <div className="fade-in max-w-6xl mx-auto space-y-8 pb-12">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight" style={{ color: "var(--color-text-primary)" }}>
-            {getGreeting(t)} 👋
-          </h1>
-          <p className="text-sm mt-1 font-medium" style={{ color: "var(--color-text-secondary)" }}>
-            {formatDate()} &nbsp;·&nbsp; {t.dashboard.readyText}
-          </p>
+      <div className="flex flex-row items-center justify-between gap-3">
+        <div className="flex items-center gap-3 min-w-0 flex-1">
+          <div className="min-w-0 flex-1">
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight truncate" style={{ color: "var(--color-text-primary)" }}>
+              {getGreeting(t)} 👋
+            </h1>
+            <p className="text-xs sm:text-sm mt-0.5 font-medium truncate" style={{ color: "var(--color-text-secondary)" }}>
+              {formatDate()} &nbsp;·&nbsp; {t.dashboard.readyText}
+            </p>
+          </div>
         </div>
-        <div className="flex items-center gap-3 px-4 py-2.5 rounded-full shadow-sm" style={{ background: "var(--color-bg-card)", border: "1px solid var(--color-border-active)" }}>
-          <span className="text-xl">🔥</span>
+
+        <div className="flex items-center gap-2 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-full shadow-sm shrink-0" style={{ background: "var(--color-bg-card)", border: "1px solid var(--color-border-active)" }}>
+          <span className="text-base sm:text-lg">🔥</span>
           <div className="flex flex-col">
-            <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: "var(--color-text-muted)" }}>{t.dashboard.currentStreak}</span>
-            <span className="text-sm font-semibold" style={{ color: "var(--color-text-primary)" }}>{currentStreak} {t.dashboard.days}</span>
+            <span className="text-[9px] font-bold uppercase tracking-wider" style={{ color: "var(--color-text-muted)" }}>{t.dashboard.currentStreak}</span>
+            <span className="text-xs sm:text-sm font-semibold" style={{ color: "var(--color-text-primary)" }}>{currentStreak} {t.dashboard.days}</span>
           </div>
         </div>
       </div>
 
-      {/* First Row - Key Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+      {/* First Row - Key Metrics (2 Equal Balanced Cards) */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         
         {/* Today's Focus */}
         <div className="card p-5 flex flex-col justify-between">
@@ -245,7 +359,7 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Today's Tasks */}
+        {/* Today's Tasks Overview */}
         <div className="card p-5 flex flex-col justify-between">
           <div className="flex justify-between items-start mb-6">
             <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: "var(--color-text-muted)" }}>{t.dashboard.todaysTasks}</span>
@@ -268,41 +382,138 @@ export default function DashboardPage() {
             </div>
           </div>
         </div>
-
-        {/* Current Focus */}
-        <div className="card p-5 flex flex-col justify-between" style={{ background: "linear-gradient(145deg, rgba(59, 130, 246, 0.08), rgba(10, 14, 26, 0.4))", borderColor: "var(--color-border-active)" }}>
-          <div className="flex justify-between items-start mb-3">
-            <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: "var(--color-purple-bright)" }}>{t.dashboard.currentFocus}</span>
-          </div>
-          {nextFocus ? (
-            <div className="flex flex-col flex-1 justify-between">
-              <p className="text-sm font-semibold line-clamp-2 leading-snug" style={{ color: "var(--color-text-primary)" }}>{nextFocus.name}</p>
-              <div className="flex items-center justify-between mt-4">
-                <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-md" style={{ background: "rgba(255,255,255,0.06)", color: "var(--color-text-secondary)" }}>
-                  {nextFocus.category || "General"}
-                </span>
-                <button onClick={() => navigateTo("focus")} className="flex items-center gap-1 text-xs font-bold px-4 py-2 rounded-full transition-colors hover:opacity-90" style={{ background: "var(--color-purple-primary)", color: "white" }}>
-                  <Play size={12} fill="white" /> {t.dashboard.start}
-                </button>
-              </div>
-            </div>
-          ) : (
-             <div className="flex flex-col flex-1 justify-center items-center">
-              <p className="text-sm font-medium text-center" style={{ color: "var(--color-text-secondary)" }}>{t.dashboard.noPendingTasks}</p>
-             </div>
-          )}
-        </div>
       </div>
 
-      {/* Main Grid: Progress & Planning */}
+      {/* Main Grid: Today's Tasks First, Then Your Progress */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
-        {/* Analytics Card */}
-        <div className="card lg:col-span-2 overflow-hidden flex flex-col">
+        {/* Planning Section - Single Today's Tasks connected with Planner */}
+        <div className="flex flex-col lg:order-1">
+          <div className="card p-6 flex flex-col h-full justify-between">
+            <div>
+              <div className="flex justify-between items-center mb-5 pb-3 border-b" style={{ borderColor: "var(--color-border-subtle)" }}>
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: "rgba(168, 85, 247, 0.12)", color: "var(--color-purple-bright)" }}>
+                    <CalendarDays className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold tracking-tight" style={{ color: "var(--color-text-primary)" }}>
+                      {t.dashboard.todaysTasks}
+                    </h3>
+                    <span className="text-[11px] font-medium" style={{ color: "var(--color-text-muted)" }}>
+                      {completedToday} / {totalTasksToday} {t.dashboard.tasksDone}
+                    </span>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => navigateTo("planner")} 
+                  className="flex items-center gap-1 text-[11px] font-bold px-3 py-1.5 rounded-full transition-all hover:opacity-90 cursor-pointer"
+                  style={{ background: "rgba(255,255,255,0.06)", color: "var(--color-purple-bright)", border: "1px solid var(--color-border-subtle)" }}
+                >
+                  <span>{t.dashboard.viewPlanner}</span>
+                  <ArrowRight className="w-3 h-3" />
+                </button>
+              </div>
+
+              {/* Task List */}
+              <div className="space-y-2.5 overflow-y-auto max-h-[380px] pr-1">
+                {todayUnifiedTasks.map((task) => (
+                  <div 
+                    key={task.key} 
+                    onClick={() => handleToggleTask(task)}
+                    className="p-3 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-3 group"
+                    style={{ 
+                      background: task.completed ? "rgba(255,255,255,0.01)" : "var(--color-bg-secondary)", 
+                      borderColor: task.completed ? "rgba(255,255,255,0.05)" : "var(--color-border-subtle)" 
+                    }}
+                  >
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      {/* Checkbox button */}
+                      <button 
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleToggleTask(task);
+                        }} 
+                        className="w-5 h-5 flex items-center justify-center rounded-md border transition-all flex-shrink-0 cursor-pointer"
+                        style={{ 
+                          borderColor: task.completed ? "var(--color-success)" : "var(--color-border-active)", 
+                          background: task.completed ? "var(--color-success)" : "rgba(255,255,255,0.03)" 
+                        }}
+                        aria-label="Toggle completed"
+                      >
+                        {task.completed && (
+                          <Check className="w-3.5 h-3.5 text-white stroke-[3]" />
+                        )}
+                      </button>
+
+                      <div className="min-w-0 flex-1">
+                        <p 
+                          className={`text-sm font-medium truncate transition-all ${
+                            task.completed ? "line-through opacity-40" : "group-hover:opacity-90"
+                          }`}
+                          style={{ color: "var(--color-text-primary)" }}
+                        >
+                          {task.name}
+                        </p>
+                        
+                        {/* Scheduled Time & Category Metadata */}
+                        <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                          {task.time && (
+                            <span 
+                              className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded"
+                              style={{ background: "rgba(168, 85, 247, 0.1)", color: "var(--color-purple-bright)" }}
+                            >
+                              <Clock className="w-2.5 h-2.5" />
+                              {formatTime12hr(task.time)}
+                              {task.endTime ? ` - ${formatTime12hr(task.endTime)}` : ""}
+                            </span>
+                          )}
+                          {task.category && (
+                            <span 
+                              className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded"
+                              style={{ background: "rgba(255,255,255,0.04)", color: "var(--color-text-muted)" }}
+                            >
+                              {task.category}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+
+                {todayUnifiedTasks.length === 0 && (
+                  <div className="h-full min-h-[220px] flex flex-col items-center justify-center text-center p-4 border border-dashed rounded-xl" style={{ borderColor: "var(--color-border-subtle)" }}>
+                    <div className="w-10 h-10 rounded-full flex items-center justify-center mb-3" style={{ background: "rgba(255,255,255,0.04)", color: "var(--color-text-muted)" }}>
+                      <CalendarDays className="w-5 h-5" />
+                    </div>
+                    <p className="text-xs font-semibold mb-1" style={{ color: "var(--color-text-primary)" }}>
+                      {t.dashboard.noPendingTasks}
+                    </p>
+                    <p className="text-[11px] mb-4 max-w-[220px]" style={{ color: "var(--color-text-muted)" }}>
+                      {t.dashboard.noScheduledBlocks}
+                    </p>
+                    <button 
+                      onClick={() => navigateTo("planner")} 
+                      className="flex items-center gap-1.5 text-xs font-bold px-4 py-2 rounded-full transition-all hover:opacity-90 cursor-pointer shadow-sm"
+                      style={{ background: "var(--color-purple-primary)", color: "white" }}
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>{t.planner.addNoteEvent}</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Analytics Card - Your Progress */}
+        <div className="card lg:col-span-2 overflow-hidden flex flex-col lg:order-2">
           {/* Card Header & Tabs */}
-          <div className="p-6 pb-0 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="p-6 pb-0 flex flex-row items-center justify-between gap-4">
             <h2 className="text-lg font-bold" style={{ color: "var(--color-text-primary)" }}>{t.dashboard.yourProgress}</h2>
-            <div className="relative flex items-center p-0.5 rounded-full" style={{ background: "rgba(255,255,255,0.04)" }}>
+            <div className="relative inline-flex items-center p-0.5 rounded-full w-fit shrink-0 self-start sm:self-auto" style={{ background: "rgba(255,255,255,0.04)" }}>
               {/* Sliding Active Background */}
               <div 
                 className="absolute top-0.5 bottom-0.5 rounded-full transition-transform duration-300 ease-out"
@@ -455,36 +666,6 @@ export default function DashboardPage() {
                 </div>
               </div>
               </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Planning Sidebar */}
-        <div className="flex flex-col gap-6">
-          {/* Today's Plan */}
-          <div className="card p-6 flex flex-col flex-1">
-            <div className="flex justify-between items-center mb-6">
-              <h3 className="text-sm font-bold" style={{ color: "var(--color-text-primary)" }}>{t.sidebar.dashboard}</h3>
-              <button onClick={() => navigateTo("tasks")} className="text-[10px] font-bold uppercase tracking-wider hover:underline" style={{ color: "var(--color-purple-bright)" }}>
-                View Full
-              </button>
-            </div>
-            <div className="space-y-4 flex-1">
-              {todayTasks.slice(0, 5).map((task) => (
-                <div key={task.id} className="flex items-center gap-3 group">
-                  <button onClick={() => cycleTaskStatus(task.id)} className="w-5 h-5 flex items-center justify-center rounded border transition-colors flex-shrink-0" style={{ borderColor: task.status === 'completed' ? "var(--color-success)" : "var(--color-border-active)", background: task.status === 'completed' ? "var(--color-success)" : "rgba(255,255,255,0.02)" }}>
-                    {task.status === 'completed' && <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" /></svg>}
-                  </button>
-                  <span className={`text-sm truncate font-medium transition-all ${task.status === 'completed' ? 'line-through opacity-40' : 'group-hover:opacity-80'}`} style={{ color: "var(--color-text-primary)" }}>
-                    {task.name}
-                  </span>
-                </div>
-              ))}
-              {todayTasks.length === 0 && (
-                <div className="h-full flex items-center justify-center">
-                  <p className="text-xs text-center" style={{ color: "var(--color-text-muted)" }}>{t.dashboard.noPendingTasks}</p>
-                </div>
-              )}
             </div>
           </div>
         </div>

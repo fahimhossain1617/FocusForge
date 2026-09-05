@@ -45,6 +45,7 @@ export default function DiaryTableOfContents({
   const [editingTopic, setEditingTopic] = useState<DiaryTopic | null>(null);
 
   const handleDelete = (e: React.MouseEvent, topic: DiaryTopic) => {
+    e.preventDefault();
     e.stopPropagation();
     if (
       window.confirm(
@@ -224,11 +225,11 @@ export default function DiaryTableOfContents({
                       {wordCount > 0 ? `${wordCount} ${t.diary?.words || "words"}` : "0 " + (t.diary?.words || "words")}
                     </span>
 
-                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="flex items-center gap-1 opacity-80 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                       <button
                         type="button"
                         onClick={(e) => handleEdit(e, topic)}
-                        className="p-1.5 rounded-lg text-zinc-400 hover:text-blue-500 hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
+                        className="p-1.5 rounded-lg text-zinc-400 hover:text-blue-500 hover:bg-black/5 dark:hover:bg-white/10 transition-colors cursor-pointer"
                         title={t.diary?.editTopic || "Edit Topic"}
                       >
                         <Edit3 size={14} />
@@ -237,7 +238,7 @@ export default function DiaryTableOfContents({
                       <button
                         type="button"
                         onClick={(e) => handleDelete(e, topic)}
-                        className="p-1.5 rounded-lg text-zinc-400 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                        className="p-1.5 rounded-lg text-zinc-400 hover:text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer"
                         title={t.diary?.delete || "Delete Topic"}
                       >
                         <Trash2 size={14} />
@@ -270,6 +271,7 @@ export default function DiaryTableOfContents({
             onCreateTopic(title, desc);
           }
         }}
+        onDelete={(topicId) => onDeleteTopic(topicId)}
         initialTopic={editingTopic}
       />
     </div>

@@ -5,6 +5,7 @@ import { useAppContext } from "../../context/AppContext";
 import { useAuth } from "../../context/AuthContext";
 import { useTranslation } from "../../hooks/useTranslation";
 import VoiceInput from "./VoiceInput";
+import { getMindSourceInfo, formatMindDate } from "../../utils/mindUtils";
 
 interface MindHomeProps {
   navigate: (view: string) => void;
@@ -14,7 +15,7 @@ interface MindHomeProps {
 export default function MindHome({ navigate, setActiveThoughtId }: MindHomeProps) {
   const { state, addMindItem, showToast } = useAppContext();
   const { requireAuth } = useAuth();
-  const { t } = useTranslation();
+  const { t, lang } = useTranslation();
   const [input, setInput] = useState("");
   const [interim, setInterim] = useState("");
   const [isFocused, setIsFocused] = useState(false);
@@ -67,16 +68,6 @@ export default function MindHome({ navigate, setActiveThoughtId }: MindHomeProps
     }, 'mind');
   };
 
-  const timeAgo = (dateStr: string): string => {
-    const diff = Date.now() - new Date(dateStr).getTime();
-    const mins = Math.floor(diff / 60000);
-    if (mins < 1) return t.myMind.justNow;
-    if (mins < 60) return `${mins}${t.myMind.mAgo}`;
-    const hrs = Math.floor(mins / 60);
-    if (hrs < 24) return `${hrs}${t.myMind.hAgo}`;
-    const days = Math.floor(hrs / 24);
-    return `${days}${t.myMind.dAgo}`;
-  };
 
   const openDetail = (id: string) => {
     setActiveThoughtId(id);
@@ -97,9 +88,6 @@ export default function MindHome({ navigate, setActiveThoughtId }: MindHomeProps
       </div>
 
       <div className="flex flex-wrap justify-center gap-2 mb-8">
-        <button onClick={() => navigate('empty_session')} className="px-4 py-2 text-xs font-medium rounded-xl border transition-colors hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer" style={{ borderColor: "var(--color-border-subtle)", color: "var(--color-text-primary)" }}>
-          {t.myMind.emptyMyMind}
-        </button>
         <button onClick={() => navigate('problem_solver')} className="px-4 py-2 text-xs font-medium rounded-xl border transition-colors hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer" style={{ borderColor: "var(--color-border-subtle)", color: "var(--color-text-primary)" }}>
           {t.myMind.problemSolver}
         </button>
@@ -179,23 +167,37 @@ export default function MindHome({ navigate, setActiveThoughtId }: MindHomeProps
 
       {state.mindItems.length > 0 ? (
         <div className="space-y-3">
-          {state.mindItems.slice(0, 5).map((item) => (
-            <div
-              key={item.id}
-              onClick={() => openDetail(item.id)}
-              className="rounded-2xl p-4 border transition-colors cursor-pointer group hover:bg-black/5 dark:hover:bg-white/5"
-              style={{ background: "var(--color-bg-card)", borderColor: "var(--color-border-subtle)" }}
-            >
-              <div className="flex justify-between items-start">
-                <p className="text-sm font-medium line-clamp-2 pr-4" style={{ color: "var(--color-text-primary)" }}>
+          {state.mindItems.slice(0, 5).map((item) => {
+            const sourceInfo = getMindSourceInfo(item, t);
+            return (
+              <div
+                key={item.id}
+                onClick={() => openDetail(item.id)}
+                className="rounded-2xl p-4 border transition-colors cursor-pointer group hover:bg-black/5 dark:hover:bg-white/5"
+                style={{ background: "var(--color-bg-card)", borderColor: "var(--color-border-subtle)" }}
+              >
+                <div className="flex flex-wrap items-center gap-2 mb-2">
+                  {sourceInfo.label && (
+                    <span 
+                      className="px-2.5 py-0.5 text-xs font-semibold rounded-lg"
+                      style={{ 
+                        background: "rgba(99, 102, 241, 0.12)", 
+                        color: "var(--color-purple-primary)" 
+                      }}
+                    >
+                      {sourceInfo.label}
+                    </span>
+                  )}
+                  <span className="text-xs font-medium" style={{ color: "var(--color-text-muted)" }}>
+                    {formatMindDate(item.createdAt, lang)}
+                  </span>
+                </div>
+                <p className="text-sm font-medium line-clamp-2" style={{ color: "var(--color-text-primary)" }}>
                   {item.content}
                 </p>
-                <span className="text-xs shrink-0 pt-0.5" style={{ color: "var(--color-text-muted)" }}>
-                  {timeAgo(item.createdAt)}
-                </span>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       ) : (
         <div className="text-center py-12 opacity-60">

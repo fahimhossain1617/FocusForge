@@ -17,7 +17,7 @@ export default function InstallPrompt({ variant = "sidebar" }: InstallPromptProp
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [isInstalled, setIsInstalled] = useState<boolean>(false);
   const [mounted, setMounted] = useState<boolean>(false);
-  const { showToast } = useAppContext();
+  const { showToast, state } = useAppContext();
 
   // Helper to detect if running as an installed PWA / standalone application
   const detectStandalone = useCallback((): boolean => {
@@ -153,7 +153,7 @@ export default function InstallPrompt({ variant = "sidebar" }: InstallPromptProp
               className="text-[9px] truncate leading-tight mt-0.5 transition-colors" 
               style={{ color: "var(--color-text-secondary)" }}
             >
-              Install App
+              {state?.lang === 'bn' ? "অ্যাপ ইনস্টল করুন" : "Install App"}
             </p>
           </div>
         </div>
@@ -165,7 +165,7 @@ export default function InstallPrompt({ variant = "sidebar" }: InstallPromptProp
           style={{ background: "linear-gradient(135deg, #2563EB, #3B82F6)", color: "#FFFFFF" }}
         >
           <Download size={11} style={{ color: "#FFFFFF" }} />
-          <span style={{ color: "#FFFFFF" }}>Install</span>
+          <span style={{ color: "#FFFFFF" }}>{state?.lang === 'bn' ? "ইনস্টল" : "Install"}</span>
         </button>
       </div>
     );
@@ -177,10 +177,10 @@ export default function InstallPrompt({ variant = "sidebar" }: InstallPromptProp
       type="button"
       onClick={handleInstallClick}
       className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold text-blue-300 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 transition-all cursor-pointer"
-      title="Install FocusForge App"
+      title={state?.lang === 'bn' ? "FocusForge অ্যাপ ইনস্টল করুন" : "Install FocusForge App"}
     >
       <Download size={13} className="text-blue-400" />
-      <span>Install App</span>
+      <span>{state?.lang === 'bn' ? "অ্যাপ ইনস্টল করুন" : "Install App"}</span>
     </button>
   );
 }

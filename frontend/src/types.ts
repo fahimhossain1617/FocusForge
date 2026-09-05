@@ -102,13 +102,22 @@ export interface MindItem {
   type: 'thought' | string; // legacy items may have 'unprocessed', 'task', etc.
   createdAt: string;
   processedAt?: string;
-  source?: 'quick_capture' | 'empty_session' | 'problem_solver' | 'idea_capture' | 'home';
+  source?: 'quick_capture' | 'problem_solver' | 'idea_capture' | 'home';
+}
+
+export interface DiaryImage {
+  id: string;
+  url: string;
+  size: 'small' | 'medium' | 'large' | 'full';
+  fileName?: string;
+  storagePath?: string;
 }
 
 export interface DiaryEntry {
   id: string;
   title?: string;
   content: string;
+  images?: DiaryImage[];
   createdAt: string; // ISO date string
   updatedAt: string; // ISO date string
 }
@@ -132,6 +141,7 @@ export interface TimeBlock {
   label: string;
   category: string;
   isBreak: boolean;
+  completed?: boolean;
 }
 
 export interface DistractionEntry {
@@ -147,6 +157,7 @@ export interface FocusSession {
   category: string;
   startedAt: string;
   endedAt?: string;
+  targetMinutes?: number;
   durationMinutes: number;
   distractions: DistractionEntry[];
   completed: boolean;

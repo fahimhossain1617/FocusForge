@@ -3,6 +3,7 @@
 import { Trash2, ArrowLeft } from "lucide-react";
 import { useAppContext } from "../../context/AppContext";
 import { useTranslation } from "../../hooks/useTranslation";
+import { getMindSourceInfo, formatMindDate } from "../../utils/mindUtils";
 
 interface ReviewAllProps {
   navigate: (view: string) => void;
@@ -10,16 +11,8 @@ interface ReviewAllProps {
 }
 
 export default function ReviewAll({ navigate, setActiveThoughtId }: ReviewAllProps) {
-  const { state, updateState } = useAppContext();
-  const { t } = useTranslation();
-  
-  const formatDate = (dateStr: string) => {
-    const d = new Date(dateStr);
-    return {
-      date: d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }),
-      time: d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
-    };
-  };
+  const { state, deleteMindItem, updateState } = useAppContext();
+  const { t, lang } = useTranslation();
 
   const openDetail = (id: string) => {
     setActiveThoughtId(id);
@@ -29,9 +22,7 @@ export default function ReviewAll({ navigate, setActiveThoughtId }: ReviewAllPro
   const handleDelete = (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
     if (confirm(t.myMind.confirmDeleteThought)) {
-      updateState({
-        mindItems: state.mindItems.filter(item => item.id !== id)
-      });
+      deleteMindItem(id);
     }
   };
 
@@ -39,6 +30,16 @@ export default function ReviewAll({ navigate, setActiveThoughtId }: ReviewAllPro
     if (confirm(t.myMind.confirmDeleteAll)) {
       updateState({
         mindItems: []
+      });
+      // Also delete from backend database
+      import("../../services/mindService").then(({ mindService }) => {
+        import("../../lib/supabaseClient").then(({ supabase }) => {
+          supabase.auth.getSession().then(({ data: { session } }) => {
+            if (session?.user) {
+              mindService.deleteAllMindItems(session.user.id);
+            }
+          });
+        });
       });
     }
   };
@@ -85,7 +86,7 @@ export default function ReviewAll({ navigate, setActiveThoughtId }: ReviewAllPro
           </div>
         ) : (
           state.mindItems.map((item) => {
-            const { date, time } = formatDate(item.createdAt);
+            const sourceInfo = getMindSourceInfo(item, t);
             return (
               <div
                 key={item.id}
@@ -97,24 +98,28 @@ export default function ReviewAll({ navigate, setActiveThoughtId }: ReviewAllPro
                 }}
               >
                 <div className="flex-1 pr-6 mb-2 md:mb-0">
+                  <div className="flex flex-wrap items-center gap-2 mb-1.5">
+                    {sourceInfo.label && (
+                      <span 
+                        className="px-2.5 py-0.5 text-xs font-semibold rounded-lg"
+                        style={{ 
+                          background: "rgba(99, 102, 241, 0.12)", 
+                          color: "var(--color-purple-primary)" 
+                        }}
+                      >
+                        {sourceInfo.label}
+                      </span>
+                    )}
+                    <span className="text-xs font-medium" style={{ color: "var(--color-text-muted)" }}>
+                      {formatMindDate(item.createdAt, lang)}
+                    </span>
+                  </div>
                   <p 
-                    className="text-sm font-medium line-clamp-1" 
+                    className="text-sm font-medium line-clamp-2" 
                     style={{ color: "var(--color-text-primary)" }}
                   >
                     {item.content}
                   </p>
-                </div>
-                
-                <div className="flex items-center gap-4 shrink-0 text-xs" style={{ color: "var(--color-text-muted)" }}>
-                  {item.source && item.source !== 'home' && (
-                    <span className="px-2 py-0.5 rounded-md bg-black/5 dark:bg-white/5 capitalize hidden sm:inline-block">
-                      {item.source.replace('_', ' ')}
-                    </span>
-                  )}
-                  <div className="flex flex-col md:items-end mr-8 md:mr-10">
-                    <span className="font-medium text-black/60 dark:text-white/60">{date}</span>
-                    <span className="opacity-70">{time}</span>
-                  </div>
                 </div>
                 
                 <button
