@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useEffect, useRef, useCallback } from "react";
-import { ArrowRight, CheckCircle2, Sparkles, X } from "lucide-react";
+import React, { useState, useEffect, useCallback } from "react";
+import { ArrowRight, CheckCircle2, Download, MoreVertical, Smartphone, Sparkles, X } from "lucide-react";
 import { useTranslation } from "@/hooks/useTranslation";
 import styles from "./onboarding.module.css";
 
@@ -18,12 +18,42 @@ interface ProductTourProps {
   onCompleteTour: () => void;
 }
 
+interface BeforeInstallPromptEvent extends Event {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: "accepted" | "dismissed"; platform: string }>;
+}
+
 export const ProductTour: React.FC<ProductTourProps> = ({
   isOpen,
   onCompleteTour,
 }) => {
   const { t } = useTranslation();
   const ob = t.onboarding.tour;
+
+  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+
+  useEffect(() => {
+    const handleBeforeInstall = (e: Event) => {
+      e.preventDefault();
+      setDeferredPrompt(e as BeforeInstallPromptEvent);
+    };
+    window.addEventListener("beforeinstallprompt", handleBeforeInstall);
+    return () => window.removeEventListener("beforeinstallprompt", handleBeforeInstall);
+  }, []);
+
+  const triggerNativeInstall = async () => {
+    if (deferredPrompt) {
+      try {
+        await deferredPrompt.prompt();
+        const choice = await deferredPrompt.userChoice;
+        if (choice.outcome === "accepted") {
+          setDeferredPrompt(null);
+        }
+      } catch (err) {
+        console.error("[PWA] Prompt error:", err);
+      }
+    }
+  };
 
   const steps: TourStep[] = [
     {
@@ -69,6 +99,12 @@ export const ProductTour: React.FC<ProductTourProps> = ({
       desc: ob.focus.desc,
     },
     {
+      id: "installGuide",
+      targetSelector: "",
+      title: ob.installGuide.title,
+      desc: ob.installGuide.desc,
+    },
+    {
       id: "ready",
       targetSelector: "",
       title: ob.ready.title,
@@ -82,16 +118,18 @@ export const ProductTour: React.FC<ProductTourProps> = ({
 
   const currentStep = steps[currentStepIndex];
   const isFinalStep = currentStepIndex === steps.length - 1;
+  const isInstallGuide = currentStep?.id === "installGuide";
 
   // Reposition highlight ring and tooltip to target element
   const updatePosition = useCallback(() => {
     if (!isOpen) return;
 
-    if (isFinalStep || !currentStep?.targetSelector) {
-      // Center on screen for final ready message
+    if (isFinalStep || isInstallGuide || !currentStep?.targetSelector) {
+      // Center on screen for install guide and final ready message
       setHighlightRect(null);
-      const top = Math.max(80, window.innerHeight / 2 - 120);
-      const left = Math.max(16, window.innerWidth / 2 - 160);
+      const cardWidth = isInstallGuide ? 390 : 320;
+      const top = Math.max(60, window.innerHeight / 2 - (isInstallGuide ? 180 : 120));
+      const left = Math.max(16, window.innerWidth / 2 - cardWidth / 2);
       setTooltipPos({ top, left });
       return;
     }
@@ -122,14 +160,14 @@ export const ProductTour: React.FC<ProductTourProps> = ({
 
       setTooltipPos({ top, left });
     } else {
-      // If target element is not in view (e.g. collapsed menu), fallback to safe center
+      // Fallback to safe center
       setHighlightRect(null);
       setTooltipPos({
         top: Math.max(60, window.innerHeight / 2 - 100),
         left: Math.max(16, window.innerWidth / 2 - 160),
       });
     }
-  }, [isOpen, isFinalStep, currentStep]);
+  }, [isOpen, isFinalStep, isInstallGuide, currentStep]);
 
   useEffect(() => {
     updatePosition();
@@ -151,7 +189,7 @@ export const ProductTour: React.FC<ProductTourProps> = ({
     }
   };
 
-  // Skip tour directly
+  // Skip tour entirely
   const handleSkip = () => {
     onCompleteTour();
   };
@@ -191,7 +229,7 @@ export const ProductTour: React.FC<ProductTourProps> = ({
 
       {/* Glassmorphism Tour Message Card */}
       <div
-        className={styles.tourCard}
+        className={`${styles.tourCard} ${isInstallGuide ? styles.tourCardWide : ""}`}
         style={{
           top: `${tooltipPos.top}px`,
           left: `${tooltipPos.left}px`,
@@ -199,42 +237,78 @@ export const ProductTour: React.FC<ProductTourProps> = ({
         role="dialog"
         aria-label="Product Tour Step"
       >
-        <div className="flex items-center justify-between mb-1.5">
-          <span className={styles.tourStepBadge}>
-            {isFinalStep ? (
-              <span className="inline-flex items-center gap-1 text-emerald-400">
-                <CheckCircle2 size={13} />
-                FocusForge
+        {/* Render Install Guide Step */}
+        {isInstallGuide ? (
+          <div>
+            <div className="flex items-center justify-between mb-1.5">
+              <span className={styles.tourStepBadge}>
+                <span className="inline-flex items-center gap-1.5 text-blue-400">
+                  <Download size={13} />
+                  {ob.installGuide.badge}
+                </span>
               </span>
-            ) : (
-              stepCountText
-            )}
-          </span>
 
-          {!isFinalStep && (
-            <button
-              type="button"
-              className={styles.tourSkipBtn}
-              onClick={handleSkip}
-              aria-label="Skip product tour"
-            >
-              <X size={14} />
-            </button>
-          )}
-        </div>
-
-        <h3 className={styles.tourTitle}>{currentStep.title}</h3>
-        <p className={styles.tourDesc}>{currentStep.desc}</p>
-
-        <div className={styles.tourActions}>
-          {!isFinalStep ? (
-            <>
               <button
                 type="button"
                 className={styles.tourSkipBtn}
-                onClick={handleSkip}
+                onClick={handleNext}
+                aria-label="Skip install step"
               >
-                {ob.skip}
+                <X size={14} />
+              </button>
+            </div>
+
+            <h3 className={styles.tourTitle}>{ob.installGuide.title}</h3>
+            <p className={styles.tourDesc}>{ob.installGuide.desc}</p>
+
+            <div className={styles.installGuideSteps}>
+              <div className={styles.installStepRow}>
+                <div className={styles.installStepIconBadge}>
+                  <MoreVertical size={18} />
+                </div>
+                <div className={styles.installStepContent}>
+                  <h4 className={styles.installStepHeading}>
+                    {ob.installGuide.step1Title}
+                  </h4>
+                  <p className={styles.installStepSub}>
+                    {ob.installGuide.step1Desc}
+                  </p>
+                </div>
+              </div>
+
+              <div className={styles.installStepRow}>
+                <div className={styles.installStepIconBadge}>
+                  <Smartphone size={18} />
+                </div>
+                <div className={styles.installStepContent}>
+                  <h4 className={styles.installStepHeading}>
+                    {ob.installGuide.step2Title}
+                  </h4>
+                  <p className={styles.installStepSub}>
+                    {ob.installGuide.step2Desc}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {deferredPrompt && (
+              <button
+                type="button"
+                className={styles.installPromptDirectBtn}
+                onClick={triggerNativeInstall}
+              >
+                <Download size={14} />
+                <span>{ob.installGuide.installNow}</span>
+              </button>
+            )}
+
+            <div className={styles.tourActions}>
+              <button
+                type="button"
+                className={styles.tourSecondaryBtn}
+                onClick={handleNext}
+              >
+                {ob.installGuide.skip}
               </button>
 
               <button
@@ -243,23 +317,77 @@ export const ProductTour: React.FC<ProductTourProps> = ({
                 onClick={handleNext}
                 autoFocus
               >
-                <span>{ob.next}</span>
+                <span>{ob.installGuide.continue}</span>
                 <ArrowRight size={14} />
               </button>
-            </>
-          ) : (
-            <button
-              type="button"
-              className={styles.primaryButton}
-              style={{ width: "100%", padding: "10px 18px", fontSize: "14px" }}
-              onClick={onCompleteTour}
-              autoFocus
-            >
-              <Sparkles size={16} />
-              <span>{ob.finish}</span>
-            </button>
-          )}
-        </div>
+            </div>
+          </div>
+        ) : (
+          /* Render Regular Feature & Final Ready Steps */
+          <div>
+            <div className="flex items-center justify-between mb-1.5">
+              <span className={styles.tourStepBadge}>
+                {isFinalStep ? (
+                  <span className="inline-flex items-center gap-1 text-emerald-400">
+                    <CheckCircle2 size={13} />
+                    FocusForge
+                  </span>
+                ) : (
+                  stepCountText
+                )}
+              </span>
+
+              {!isFinalStep && (
+                <button
+                  type="button"
+                  className={styles.tourSkipBtn}
+                  onClick={handleSkip}
+                  aria-label="Skip product tour"
+                >
+                  <X size={14} />
+                </button>
+              )}
+            </div>
+
+            <h3 className={styles.tourTitle}>{currentStep.title}</h3>
+            <p className={styles.tourDesc}>{currentStep.desc}</p>
+
+            <div className={styles.tourActions}>
+              {!isFinalStep ? (
+                <>
+                  <button
+                    type="button"
+                    className={styles.tourSkipBtn}
+                    onClick={handleSkip}
+                  >
+                    {ob.skip}
+                  </button>
+
+                  <button
+                    type="button"
+                    className={styles.tourNextBtn}
+                    onClick={handleNext}
+                    autoFocus
+                  >
+                    <span>{ob.next}</span>
+                    <ArrowRight size={14} />
+                  </button>
+                </>
+              ) : (
+                <button
+                  type="button"
+                  className={styles.primaryButton}
+                  style={{ width: "100%", padding: "10px 18px", fontSize: "14px" }}
+                  onClick={onCompleteTour}
+                  autoFocus
+                >
+                  <Sparkles size={16} />
+                  <span>{ob.finish}</span>
+                </button>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </>
   );
