@@ -167,10 +167,7 @@ export const ProductTour: React.FC<ProductTourProps> = ({
 
   // Automatically open mobile sidebar drawer for sidebar items, and close for install/ready
   useEffect(() => {
-    if (!isOpen) {
-      onSetSidebarOpen?.(false);
-      return;
-    }
+    if (!isOpen) return;
 
     const mobile = typeof window !== "undefined" && window.innerWidth < 768;
     setIsMobileView(mobile);
@@ -182,7 +179,14 @@ export const ProductTour: React.FC<ProductTourProps> = ({
         onSetSidebarOpen?.(false);
       }
     }
-  }, [isOpen, currentStepIndex, isSidebarStep, onSetSidebarOpen]);
+  }, [isOpen, currentStepIndex, isSidebarStep]);
+
+  // Clean up on tour unmount: ensure drawer is closed
+  useEffect(() => {
+    return () => {
+      onSetSidebarOpen?.(false);
+    };
+  }, []);
 
   // Reposition highlight ring and tooltip to target element
   const updatePosition = useCallback(() => {

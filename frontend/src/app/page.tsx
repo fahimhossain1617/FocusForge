@@ -111,6 +111,7 @@ export default function Home() {
   };
 
   const handleCompleteTour = async () => {
+    setSidebarOpen(false);
     setShowTour(false);
     const lang = state.lang === "bn" ? "bn" : "en";
     const themeMode = state.theme?.mode === "light" ? "light" : "dark";
@@ -219,12 +220,14 @@ export default function Home() {
         isOpen={showOnboarding}
         onEnterApp={handleEnterAppFromOnboarding}
       />
-      <ProductTour
-        isOpen={showTour}
-        onCompleteTour={handleCompleteTour}
-        isSidebarOpen={sidebarOpen}
-        onSetSidebarOpen={(open) => setSidebarOpen(open)}
-      />
+      {showTour && (
+        <ProductTour
+          isOpen={showTour}
+          onCompleteTour={handleCompleteTour}
+          isSidebarOpen={sidebarOpen}
+          onSetSidebarOpen={setSidebarOpen}
+        />
+      )}
     </div>
   );
 }
