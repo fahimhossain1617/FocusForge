@@ -6,6 +6,7 @@ import { useFocusTimer } from "../../hooks/useFocusTimer";
 import { useTranslation } from "../../hooks/useTranslation";
 import confetti from "canvas-confetti";
 import { Smartphone, Globe, PartyPopper, MessageCircle, Video, MessageSquare, History, Trash2, X, ArrowLeft, Flame, Sparkles, ShieldAlert, Target, Lock } from "lucide-react";
+import { useAnimateExit } from "../../hooks/useAnimateExit";
 
 export default function FocusPage() {
   const { state, startFocusSession, endFocusSession, addDistraction, showToast, navigateTo, registerFocusLock, unregisterFocusLock } = useAppContext();
@@ -78,6 +79,12 @@ export default function FocusPage() {
   const [pendingExitAction, setPendingExitAction] = useState<"finish" | "back" | "sidebar" | "switch">("finish");
   const [exitAttempts, setExitAttempts] = useState(0);
   const [targetExitPage, setTargetExitPage] = useState<string>("dashboard");
+
+  const pauseAnim = useAnimateExit({ isOpen: showPauseModal, durationMs: 200 });
+  const earlyExitAnim = useAnimateExit({ isOpen: showEarlyExitModal, durationMs: 200 });
+  const finishAnim = useAnimateExit({ isOpen: showFinishModal, durationMs: 200 });
+  const resetAnim = useAnimateExit({ isOpen: showResetModal, durationMs: 200 });
+  const historyModalAnim = useAnimateExit({ isOpen: showHistoryModal, durationMs: 200 });
 
   const handleWorkComplete = useCallback(() => {
     if (activeSessionId) {
@@ -423,7 +430,7 @@ export default function FocusPage() {
   };
 
   return (
-    <div className="fade-in max-w-2xl">
+    <div className="motion-page max-w-2xl">
       {renderDeepFocus()}
       
       {/* Header */}
@@ -680,10 +687,10 @@ export default function FocusPage() {
       {/* --- MODALS --- */}
       
       {/* Pause Friction Modal */}
-      {showPauseModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 fade-in">
+      {pauseAnim.shouldRender && (
+        <div className={`fixed inset-0 z-[100] flex items-center justify-center p-4 ${pauseAnim.isExiting ? "motion-exit-fade" : "motion-overlay"}`}>
           <div className="absolute inset-0 bg-black/60 backdrop-blur-md" onClick={() => setShowPauseModal(false)}></div>
-          <div className="focus-dialog relative w-full max-w-md border rounded-2xl p-8 shadow-2xl text-center" style={{ backdropFilter: "blur(20px)" }}>
+          <div className={`focus-dialog relative w-full max-w-md border rounded-2xl p-8 shadow-2xl text-center ${pauseAnim.isExiting ? "motion-exit-reveal" : "motion-reveal"}`} style={{ backdropFilter: "blur(20px)" }}>
             {pauseAttemptCount === 1 ? (
               <>
                 <h2 className="text-xl font-bold text-white mb-3">{t.focus.holdOn}</h2>
@@ -722,7 +729,7 @@ export default function FocusPage() {
       )}
 
       {/* Early Exit Motivational Guard Modal (3-Attempt Friction System) */}
-      {showEarlyExitModal && (() => {
+      {earlyExitAnim.shouldRender && (() => {
         const currentAttempt = Math.max(1, Math.min(exitAttempts, 3));
         const isExitUnlocked = currentAttempt >= 3;
 
@@ -751,10 +758,10 @@ export default function FocusPage() {
           : t.focus.attempt3BtnKeep;
 
         return (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 fade-in">
+          <div className={`fixed inset-0 z-[100] flex items-center justify-center p-4 ${earlyExitAnim.isExiting ? "motion-exit-fade" : "motion-overlay"}`}>
             <div className="absolute inset-0 bg-black/60 backdrop-blur-md" onClick={handleKeepFocusing}></div>
             <div 
-              className="focus-dialog relative w-full max-w-sm border border-amber-500/20 rounded-2xl p-6 shadow-2xl text-center"
+              className={`focus-dialog relative w-full max-w-sm border border-amber-500/20 rounded-2xl p-6 shadow-2xl text-center ${earlyExitAnim.isExiting ? "motion-exit-reveal" : "motion-reveal"}`}
               style={{ 
                 background: "rgba(18, 17, 28, 0.96)",
                 backdropFilter: "blur(24px)",
@@ -818,10 +825,10 @@ export default function FocusPage() {
       })()}
 
       {/* Finish Session Celebration Modal */}
-      {showFinishModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 fade-in">
+      {finishAnim.shouldRender && (
+        <div className={`fixed inset-0 z-[100] flex items-center justify-center p-4 ${finishAnim.isExiting ? "motion-exit-fade" : "motion-overlay"}`}>
           <div className="absolute inset-0 bg-black/60 backdrop-blur-md"></div>
-          <div className="focus-dialog focus-dialog--success relative w-full max-w-md border rounded-2xl p-8 shadow-2xl text-center" style={{ backdropFilter: "blur(20px)" }}>
+          <div className={`focus-dialog focus-dialog--success relative w-full max-w-md border rounded-2xl p-8 shadow-2xl text-center ${finishAnim.isExiting ? "motion-exit-reveal" : "motion-reveal"}`} style={{ backdropFilter: "blur(20px)" }}>
             <div className="w-16 h-16 mx-auto rounded-full bg-green-500/20 border border-green-500/30 flex items-center justify-center mb-4 shadow-[0_0_15px_rgba(34,197,94,0.3)]">
               <PartyPopper className="w-8 h-8 text-green-400 drop-shadow-[0_0_8px_rgba(34,197,94,0.8)]" />
             </div>
@@ -836,10 +843,10 @@ export default function FocusPage() {
       )}
 
       {/* Reset Confirmation Modal */}
-      {showResetModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 fade-in">
+      {resetAnim.shouldRender && (
+        <div className={`fixed inset-0 z-[100] flex items-center justify-center p-4 ${resetAnim.isExiting ? "motion-exit-fade" : "motion-overlay"}`}>
           <div className="absolute inset-0 bg-black/60 backdrop-blur-md" onClick={() => setShowResetModal(false)}></div>
-          <div className="focus-dialog relative w-full max-w-sm border rounded-2xl p-6 shadow-2xl text-center" style={{ backdropFilter: "blur(20px)" }}>
+          <div className={`focus-dialog relative w-full max-w-sm border rounded-2xl p-6 shadow-2xl text-center ${resetAnim.isExiting ? "motion-exit-reveal" : "motion-reveal"}`} style={{ backdropFilter: "blur(20px)" }}>
             <h2 className="text-lg font-bold text-white mb-2">{t.focus.resetSession}</h2>
             <p className="text-sm text-zinc-300 mb-6">{t.focus.resetWarning}</p>
             <div className="flex gap-3">
@@ -855,9 +862,9 @@ export default function FocusPage() {
       )}
 
       {/* History Modal */}
-      {showHistoryModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="card w-full max-w-md p-0 shadow-2xl overflow-hidden flex flex-col max-h-[80vh]">
+      {historyModalAnim.shouldRender && (
+        <div className={`fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm ${historyModalAnim.isExiting ? "motion-exit-fade" : "motion-overlay"}`}>
+          <div className={`card w-full max-w-md p-0 shadow-2xl overflow-hidden flex flex-col max-h-[80vh] ${historyModalAnim.isExiting ? "motion-exit-reveal" : "motion-reveal"}`}>
             <div className="p-4 border-b border-white/5 flex items-center justify-between">
               <h2 className="text-lg font-bold text-white flex items-center gap-2">
                 <History className="w-5 h-5 text-purple-400" /> {t.focus.taskHistory}

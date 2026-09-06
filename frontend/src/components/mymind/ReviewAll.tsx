@@ -45,7 +45,7 @@ export default function ReviewAll({ navigate, setActiveThoughtId }: ReviewAllPro
   };
 
   return (
-    <div className="fade-in max-w-3xl mx-auto py-8">
+    <div className="motion-page max-w-3xl mx-auto py-8">
       <div className="flex items-center justify-between mb-8">
         <button 
           type="button"
@@ -77,7 +77,7 @@ export default function ReviewAll({ navigate, setActiveThoughtId }: ReviewAllPro
         </div>
       </div>
 
-      <div className="space-y-2">
+      <div className="space-y-2 motion-stagger-fast">
         {state.mindItems.length === 0 ? (
           <div className="text-center py-20 opacity-60">
             <p className="text-sm" style={{ color: "var(--color-text-muted)" }}>
@@ -91,7 +91,7 @@ export default function ReviewAll({ navigate, setActiveThoughtId }: ReviewAllPro
               <div
                 key={item.id}
                 onClick={() => openDetail(item.id)}
-                className="group flex flex-col md:flex-row md:items-center justify-between p-4 rounded-xl border cursor-pointer transition-colors hover:bg-black/5 dark:hover:bg-white/5 relative"
+                className="motion-grid-item card-interactive group flex flex-col md:flex-row md:items-center justify-between p-4 rounded-xl border cursor-pointer transition-colors hover:bg-black/5 dark:hover:bg-white/5 relative"
                 style={{ 
                   background: "var(--color-bg-card)", 
                   borderColor: "var(--color-border-subtle)" 

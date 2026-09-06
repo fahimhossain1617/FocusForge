@@ -5,6 +5,7 @@ import { Search, X, BookOpen, FileText, ChevronRight } from "lucide-react";
 import { useTranslation } from "../../hooks/useTranslation";
 import { DiaryTopic } from "../../types";
 import { searchDiary, DiarySearchResult, formatTopicNumber } from "../../services/diaryStorageService";
+import { useAnimateExit } from "../../hooks/useAnimateExit";
 
 interface DiarySearchModalProps {
   isOpen: boolean;
@@ -19,6 +20,7 @@ export default function DiarySearchModal({
   topics,
   onSelectResult,
 }: DiarySearchModalProps) {
+  const { shouldRender, isExiting } = useAnimateExit(isOpen, 200);
   const { t } = useTranslation();
   const [query, setQuery] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
@@ -30,7 +32,7 @@ export default function DiarySearchModal({
     }
   }, [isOpen]);
 
-  if (!isOpen) return null;
+  if (!shouldRender) return null;
 
   const results = query.trim() ? searchDiary(query, topics) : [];
 
@@ -40,9 +42,17 @@ export default function DiarySearchModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center p-4 pt-16 sm:pt-24 bg-black/60 backdrop-blur-sm animate-fade-in">
+    <div 
+      className={`fixed inset-0 z-50 flex items-start justify-center p-4 pt-16 sm:pt-24 bg-black/60 backdrop-blur-sm ${
+        isExiting ? "motion-exit-fade" : "motion-overlay"
+      }`}
+      onClick={onClose}
+    >
       <div
-        className="w-full max-w-xl rounded-3xl border shadow-2xl overflow-hidden flex flex-col max-h-[80vh] scale-in"
+        className={`w-full max-w-xl rounded-3xl border shadow-2xl overflow-hidden flex flex-col max-h-[80vh] ${
+          isExiting ? "motion-exit-reveal" : "motion-dialog"
+        }`}
+        onClick={(e) => e.stopPropagation()}
         style={{
           background: "var(--color-bg-elevated)",
           borderColor: "var(--color-border-subtle)",
@@ -80,7 +90,7 @@ export default function DiarySearchModal({
         </div>
 
         {/* Results Body */}
-        <div className="flex-1 overflow-y-auto p-3 space-y-1.5">
+        <div className="flex-1 overflow-y-auto p-3 space-y-1.5 motion-stagger-fast">
           {query.trim() === "" ? (
             <div className="text-center py-10 text-xs text-zinc-400 dark:text-zinc-500">
               {t.diary?.searchPlaceholder || "Type a word or phrase to search across your diary..."}

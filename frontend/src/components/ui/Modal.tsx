@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { useAnimateExit } from "../../hooks/useAnimateExit";
 
 interface ModalProps {
   isOpen: boolean;
@@ -12,6 +13,7 @@ interface ModalProps {
 
 export default function Modal({ isOpen, onClose, children, title, maxWidth = "max-w-md" }: ModalProps) {
   const overlayRef = useRef<HTMLDivElement>(null);
+  const { shouldRender, isExiting } = useAnimateExit({ isOpen, durationMs: 200 });
 
   useEffect(() => {
     const handleEsc = (e: KeyboardEvent) => {
@@ -27,12 +29,12 @@ export default function Modal({ isOpen, onClose, children, title, maxWidth = "ma
     };
   }, [isOpen, onClose]);
 
-  if (!isOpen) return null;
+  if (!shouldRender) return null;
 
   return (
     <div
       ref={overlayRef}
-      className="fixed inset-0 z-[90] flex items-center justify-center fade-in"
+      className={`${isExiting ? "motion-exit-fade" : "motion-overlay"} fixed inset-0 z-[90] flex items-center justify-center`}
       onClick={(e) => {
         if (e.target === overlayRef.current) onClose();
       }}
@@ -41,7 +43,7 @@ export default function Modal({ isOpen, onClose, children, title, maxWidth = "ma
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
 
       {/* Content */}
-      <div className={`relative ${maxWidth} w-full mx-4 scale-in`}>
+      <div className={`${isExiting ? "motion-exit-reveal" : "motion-reveal"} relative ${maxWidth} w-full mx-4`}>
         <div
           className="app-modal-panel rounded-2xl p-6 border"
           style={{

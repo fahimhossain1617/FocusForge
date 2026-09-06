@@ -108,7 +108,7 @@ export default function DiaryHome({ onBackToMind }: DiaryHomeProps) {
   };
 
   return (
-    <div className="w-full min-h-[calc(100vh-80px)]">
+    <div className="w-full min-h-[calc(100vh-80px)] motion-page">
       {activeTopic ? (
         <DiaryTopicView
           key={activeTopic.id}

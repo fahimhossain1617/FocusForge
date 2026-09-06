@@ -8,6 +8,7 @@ import {
   Moon, Sun, ChevronRight, Check, X, BellRing, ArrowLeft
 } from "lucide-react";
 import notificationService from "../../services/notificationService";
+import { useAnimateExit } from "../../hooks/useAnimateExit";
 
 // Reusable Toggle component ensuring perfectly centered knob and no layout shift
 function Toggle({ checked, onChange, ariaLabel }: { checked: boolean, onChange: (c: boolean) => void, ariaLabel?: string }) {
@@ -36,6 +37,7 @@ export default function SettingsPage() {
   
   // Danger zone modal state
   const [showResetModal, setShowResetModal] = useState(false);
+  const resetAnim = useAnimateExit({ isOpen: showResetModal, durationMs: 200 });
   const [resetInput, setResetInput] = useState("");
 
   const [activeSection, setActiveSection] = useState("appearance");
@@ -164,7 +166,7 @@ export default function SettingsPage() {
   ];
 
   return (
-    <div className={`fade-in max-w-5xl mx-auto pb-16 pt-6 px-4 sm:px-6 lg:px-8 ${state.lang === 'bn' ? 'font-bengali' : ''}`}>
+    <div className={`motion-page max-w-5xl mx-auto pb-16 pt-6 px-4 sm:px-6 lg:px-8 ${state.lang === 'bn' ? 'font-bengali' : ''}`}>
       {/* Top Back Navigation Bar */}
       <div className="mb-6">
         <button
@@ -657,9 +659,9 @@ export default function SettingsPage() {
       </div>
 
       {/* Reset Confirmation Modal */}
-      {showResetModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-fade-in">
-          <div className="w-full max-w-md border rounded-3xl p-8 shadow-2xl scale-in" style={{ background: "var(--color-bg-card)", borderColor: "var(--color-border-subtle)" }}>
+      {resetAnim.shouldRender && (
+        <div className={`fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md ${resetAnim.isExiting ? "motion-exit-fade" : "motion-overlay"}`}>
+          <div className={`w-full max-w-md border rounded-3xl p-8 shadow-2xl ${resetAnim.isExiting ? "motion-exit-reveal" : "motion-scale-in"}`} style={{ background: "var(--color-bg-card)", borderColor: "var(--color-border-subtle)" }}>
             <div className="w-12 h-12 rounded-full bg-red-500/10 flex items-center justify-center mb-6">
               <AlertTriangle size={24} className="text-red-500" />
             </div>

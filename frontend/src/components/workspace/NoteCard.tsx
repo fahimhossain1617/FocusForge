@@ -16,7 +16,7 @@ export default function NoteCard({ note, onEdit, onDelete }: NoteCardProps) {
   const hasFiles = note.blocks.some((block) => block.type === "file");
   const hasLinks = note.blocks.some((block) => block.type === "link");
 
-  return <article className="note-card" onClick={() => onEdit(note)}>
+  return <article className="note-card motion-grid-item card-interactive" onClick={() => onEdit(note)}>
     <div className="note-card__orb" />
     <div className="note-card__top"><span className="note-card__badge">{note.category || "FEATURED"}</span><div className="note-card__actions" onClick={(event) => event.stopPropagation()}><MoreHorizontal size={18} /><button type="button" onClick={() => onEdit(note)} aria-label="Edit note"><Edit3 size={15} /></button><button type="button" onClick={() => onDelete(note.id)} aria-label="Delete note"><Trash2 size={15} /></button></div></div>
     <h3>{note.title || "Untitled note"}</h3>

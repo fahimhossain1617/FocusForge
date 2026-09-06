@@ -311,7 +311,7 @@ export default function DashboardPage({ onOpenSidebar }: DashboardPageProps) {
   };
 
   return (
-    <div className="fade-in max-w-6xl mx-auto space-y-8 pb-12">
+    <div className="motion-page max-w-6xl mx-auto space-y-8 pb-12">
       {/* Header */}
       <div className="flex flex-row items-center justify-between gap-3">
         <div className="flex items-center gap-3 min-w-0 flex-1">
@@ -335,7 +335,7 @@ export default function DashboardPage({ onOpenSidebar }: DashboardPageProps) {
       </div>
 
       {/* First Row - Key Metrics (2 Equal Balanced Cards) */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+      <div className="motion-stagger grid grid-cols-1 md:grid-cols-2 gap-5">
         
         {/* Today's Focus */}
         <div className="card p-5 flex flex-col justify-between">
@@ -385,7 +385,7 @@ export default function DashboardPage({ onOpenSidebar }: DashboardPageProps) {
       </div>
 
       {/* Main Grid: Today's Tasks First, Then Your Progress */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="motion-stagger grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Planning Section - Single Today's Tasks connected with Planner */}
         <div className="flex flex-col lg:order-1">
           <div className="card p-6 flex flex-col h-full justify-between">
@@ -415,7 +415,7 @@ export default function DashboardPage({ onOpenSidebar }: DashboardPageProps) {
               </div>
 
               {/* Task List */}
-              <div className="space-y-2.5 overflow-y-auto max-h-[380px] pr-1">
+              <div className="space-y-2.5 overflow-y-auto max-h-[380px] pr-1 motion-stagger-fast">
                 {todayUnifiedTasks.map((task) => (
                   <div 
                     key={task.key} 
@@ -442,7 +442,7 @@ export default function DashboardPage({ onOpenSidebar }: DashboardPageProps) {
                         aria-label="Toggle completed"
                       >
                         {task.completed && (
-                          <Check className="w-3.5 h-3.5 text-white stroke-[3]" />
+                          <Check className="w-3.5 h-3.5 text-white stroke-[3] motion-check" />
                         )}
                       </button>
 

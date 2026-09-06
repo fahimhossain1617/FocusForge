@@ -54,7 +54,7 @@ export default function WorkspacePage() {
   }
 
   return (
-    <div className="notes-workspace h-full flex flex-col p-8 animate-in fade-in duration-500 relative">
+    <div className="notes-workspace motion-page h-full flex flex-col p-8 relative">
       
       {/* Header section */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8">
@@ -93,7 +93,7 @@ export default function WorkspacePage() {
             action={{ label: "Create Note", onClick: openNewNote }}
           />
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 motion-stagger">
             {filteredNotes.map((note) => (
               <NoteCard
                 key={note.id}

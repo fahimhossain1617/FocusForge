@@ -7,6 +7,7 @@ import { useTranslation } from "../../hooks/useTranslation";
 import { 
   User as UserIcon, ChevronDown, LogOut, ShieldAlert, LogIn
 } from "lucide-react";
+import { useAnimateExit } from "../../hooks/useAnimateExit";
 
 interface UserMenuProps {
   variant?: "header" | "sidebar";
@@ -27,6 +28,8 @@ export default function UserMenu({ variant = "sidebar" }: UserMenuProps) {
 
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const dropdownAnim = useAnimateExit({ isOpen: dropdownOpen && !isGuest, durationMs: 140 });
+  const logoutAnim = useAnimateExit({ isOpen: logoutConfirmOpen, durationMs: 200 });
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -168,9 +171,11 @@ export default function UserMenu({ variant = "sidebar" }: UserMenuProps) {
         )}
 
         {/* Dropdown Menu */}
-        {dropdownOpen && !isGuest && (
+        {dropdownAnim.shouldRender && (
           <div
-            className={`user-menu-dropdown-box absolute rounded-2xl border p-1.5 z-50 animate-fade-in ${
+            className={`user-menu-dropdown-box absolute rounded-2xl border p-1.5 z-50 ${
+              dropdownAnim.isExiting ? "motion-dropdown-exit" : "motion-dropdown"
+            } ${
               variant === "sidebar" 
                 ? "bottom-full mb-2 left-0 right-0 w-full" 
                 : "right-0 mt-2 w-56"
@@ -221,10 +226,10 @@ export default function UserMenu({ variant = "sidebar" }: UserMenuProps) {
       </div>
 
       {/* LOGOUT CONFIRMATION MODAL */}
-      {logoutConfirmOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-fade-in">
+      {logoutAnim.shouldRender && (
+        <div className={`fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md ${logoutAnim.isExiting ? "motion-exit-fade" : "motion-overlay"}`}>
           <div 
-            className="user-menu-dropdown-box relative w-full max-w-sm rounded-3xl border p-6 scale-in text-center"
+            className={`user-menu-dropdown-box relative w-full max-w-sm rounded-3xl border p-6 text-center ${logoutAnim.isExiting ? "motion-exit-reveal" : "motion-scale-in"}`}
           >
             <div className="w-12 h-12 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center mx-auto mb-4 text-red-500">
               <ShieldAlert size={24} />

@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, KeyboardEvent } from "react";
 import { useAppContext } from "../context/AppContext";
 import { useAuth } from "../context/AuthContext";
 import { useKeyboardShortcut } from "../hooks/useKeyboardShortcut";
+import { useAnimateExit } from "../hooks/useAnimateExit";
 import { Brain } from "lucide-react";
 
 export default function QuickCapture() {
@@ -12,6 +13,7 @@ export default function QuickCapture() {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { addMindItem, showToast } = useAppContext();
   const { requireAuth } = useAuth();
+  const { shouldRender, isExiting } = useAnimateExit({ isOpen, durationMs: 200 });
 
   useKeyboardShortcut("Space", () => setIsOpen(true), { ctrl: true });
 
@@ -61,11 +63,11 @@ export default function QuickCapture() {
     }
   };
 
-  if (!isOpen) return null;
+  if (!shouldRender) return null;
 
   return (
     <div
-      className="fixed inset-0 z-[95] flex items-start justify-center pt-[20vh] fade-in"
+      className={`fixed inset-0 z-[95] flex items-start justify-center pt-[20vh] ${isExiting ? "motion-exit-fade" : "motion-overlay"}`}
       onClick={(e) => {
         if (e.target === e.currentTarget) {
           setIsOpen(false);
@@ -74,7 +76,7 @@ export default function QuickCapture() {
       }}
     >
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
-      <div className="relative w-full max-w-lg mx-4 scale-in">
+      <div className={`relative w-full max-w-lg mx-4 ${isExiting ? "motion-exit-reveal" : "motion-reveal"}`}>
         <div
           className="app-capture-modal rounded-2xl p-1 border shadow-2xl"
           style={{

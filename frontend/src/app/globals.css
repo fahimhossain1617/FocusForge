@@ -1697,6 +1697,161 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   *, *::before, *::after { scroll-behavior: auto !important; transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; }
 }
 
+/* ==================== Shared motion system ====================
+   Motion is intentionally transform/opacity-only where possible: quick enough
+   to communicate a state change, quiet enough to keep work in focus. */
+:root {
+  --motion-fast: 120ms;
+  --motion-micro: 140ms;
+  --motion-ui: 210ms;
+  --motion-page: 280ms;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --ease-spring: cubic-bezier(0.175, 0.885, 0.32, 1.15);
+}
+
+@keyframes app-page-enter {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes app-reveal {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes app-reveal-exit {
+  from { opacity: 1; transform: translateY(0) scale(1); }
+  to { opacity: 0; transform: translateY(6px) scale(0.97); }
+}
+@keyframes app-fade-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+@keyframes app-grid-enter {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes app-drawer-enter {
+  from { opacity: 0; transform: translateX(16px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+@keyframes app-drawer-exit {
+  from { opacity: 1; transform: translateX(0); }
+  to { opacity: 0; transform: translateX(16px); }
+}
+@keyframes app-overlay-enter { from { opacity: 0; } to { opacity: 1; } }
+@keyframes app-overlay-exit { from { opacity: 1; } to { opacity: 0; } }
+@keyframes app-toast-enter {
+  from { opacity: 0; transform: translateY(8px) scale(0.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes app-toast-exit {
+  from { opacity: 1; transform: translateY(0) scale(1); }
+  to { opacity: 0; transform: translateY(8px) scale(0.95); }
+}
+@keyframes app-scale-in {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+@keyframes app-scale-out {
+  from { opacity: 1; transform: scale(1); }
+  to { opacity: 0; transform: scale(0.95); }
+}
+@keyframes app-dropdown-enter {
+  from { opacity: 0; transform: translateY(-5px) scale(0.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes app-dropdown-exit {
+  from { opacity: 1; transform: translateY(0) scale(1); }
+  to { opacity: 0; transform: translateY(-4px) scale(0.97); }
+}
+@keyframes app-checkbox-check {
+  0% { transform: scale(0.85); }
+  50% { transform: scale(1.18); }
+  100% { transform: scale(1); }
+}
+@keyframes app-tab-slide {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes app-list-item-enter {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.app-page-transition, .motion-page { animation: app-page-enter var(--motion-page) var(--ease-out) both; }
+.motion-reveal { animation: app-reveal var(--motion-ui) var(--ease-out) both; }
+.motion-overlay { animation: app-overlay-enter var(--motion-ui) var(--ease-standard) both; }
+.motion-drawer { animation: app-drawer-enter var(--motion-page) var(--ease-out) both; }
+.motion-toast { animation: app-toast-enter var(--motion-ui) var(--ease-out) both; }
+.motion-scale-in { animation: app-scale-in var(--motion-ui) var(--ease-out) both; }
+.motion-dropdown { animation: app-dropdown-enter var(--motion-micro) var(--ease-out) both; transform-origin: top right; }
+.motion-check { animation: app-checkbox-check var(--motion-ui) var(--ease-spring); }
+.motion-tab-enter { animation: app-tab-slide var(--motion-ui) var(--ease-out) both; }
+.motion-item-enter { animation: app-list-item-enter var(--motion-ui) var(--ease-out) both; }
+
+/* Exit animations */
+.motion-exit-fade { animation: app-fade-out var(--motion-ui) var(--ease-in) forwards; }
+.motion-exit-reveal { animation: app-reveal-exit var(--motion-ui) var(--ease-in) forwards; }
+.motion-exit-overlay { animation: app-overlay-exit var(--motion-ui) var(--ease-in) forwards; }
+.motion-exit-drawer { animation: app-drawer-exit var(--motion-ui) var(--ease-in) forwards; }
+.motion-exit-toast { animation: app-toast-exit var(--motion-ui) var(--ease-in) forwards; }
+.motion-exit-scale { animation: app-scale-out var(--motion-ui) var(--ease-in) forwards; }
+.motion-dropdown-exit { animation: app-dropdown-exit var(--motion-fast) var(--ease-in) forwards; transform-origin: top right; }
+
+.motion-stagger > .card,
+.motion-stagger > [class*="card"],
+.motion-stagger > * {
+  animation: app-reveal var(--motion-page) var(--ease-out) both;
+}
+.motion-stagger > :nth-child(2) { animation-delay: 35ms; }
+.motion-stagger > :nth-child(3) { animation-delay: 70ms; }
+.motion-stagger > :nth-child(4) { animation-delay: 105ms; }
+.motion-stagger > :nth-child(5) { animation-delay: 140ms; }
+.motion-stagger > :nth-child(6) { animation-delay: 175ms; }
+.motion-stagger > :nth-child(7) { animation-delay: 210ms; }
+.motion-stagger > :nth-child(8) { animation-delay: 245ms; }
+
+.motion-stagger-fast > * {
+  animation: app-reveal var(--motion-ui) var(--ease-out) both;
+}
+.motion-stagger-fast > :nth-child(1) { animation-delay: 0ms; }
+.motion-stagger-fast > :nth-child(2) { animation-delay: 25ms; }
+.motion-stagger-fast > :nth-child(3) { animation-delay: 50ms; }
+.motion-stagger-fast > :nth-child(4) { animation-delay: 75ms; }
+.motion-stagger-fast > :nth-child(5) { animation-delay: 100ms; }
+.motion-stagger-fast > :nth-child(6) { animation-delay: 125ms; }
+.motion-stagger-fast > :nth-child(7) { animation-delay: 150ms; }
+.motion-stagger-fast > :nth-child(8) { animation-delay: 175ms; }
+
+.motion-grid-item { animation: app-grid-enter var(--motion-ui) var(--ease-out) both; }
+
+.nav-item { transition: background-color var(--motion-ui) var(--ease-standard), border-color var(--motion-ui) var(--ease-standard), color var(--motion-micro) var(--ease-standard), transform var(--motion-micro) var(--ease-standard) !important; }
+.nav-item:hover { transform: translateX(2px); }
+.nav-item:active { transform: translateX(1px) scale(0.99); }
+.nav-icon { transition: color var(--motion-micro) var(--ease-standard), transform var(--motion-micro) var(--ease-standard) !important; }
+.nav-item.active .nav-icon { transform: scale(1.06); }
+
+button:not(:disabled), [role="button"]:not([aria-disabled="true"]) { transition: transform var(--motion-micro) var(--ease-standard), box-shadow var(--motion-ui) var(--ease-standard), background-color var(--motion-ui) var(--ease-standard), border-color var(--motion-ui) var(--ease-standard), color var(--motion-micro) var(--ease-standard), opacity var(--motion-micro) var(--ease-standard); }
+button:not(:disabled):active, [role="button"]:not([aria-disabled="true"]):active { transform: scale(0.985); }
+.card, .planner-day-cell { transition: transform var(--motion-ui) var(--ease-standard), border-color var(--motion-ui) var(--ease-standard), box-shadow var(--motion-ui) var(--ease-standard), background-color var(--motion-ui) var(--ease-standard) !important; }
+.card-interactive { transition: transform var(--motion-ui) var(--ease-standard), box-shadow var(--motion-ui) var(--ease-standard), border-color var(--motion-ui) var(--ease-standard) !important; }
+.card-interactive:hover { transform: translateY(-2px); box-shadow: var(--shadow-float); }
+.card-interactive:active { transform: translateY(0) scale(0.99); }
+
+@media (prefers-reduced-motion: reduce) {
+  .app-page-transition, .motion-page, .motion-reveal, .motion-overlay, .motion-drawer, .motion-toast,
+  .motion-scale-in, .motion-dropdown, .motion-check, .motion-tab-enter, .motion-item-enter,
+  .motion-exit-fade, .motion-exit-reveal, .motion-exit-overlay, .motion-exit-drawer, .motion-exit-toast,
+  .motion-exit-scale, .motion-dropdown-exit, .motion-stagger > *, .motion-stagger-fast > *, .motion-grid-item {
+    animation: none !important;
+  }
+  .nav-item:hover, .nav-item:active, button:not(:disabled):active, [role="button"]:not([aria-disabled="true"]):active,
+  .card-interactive:hover, .card-interactive:active {
+    transform: none !important;
+  }
+}
+
 /* ========================================================= */
 /* PROGRESSIVE WEB APP (PWA) & RESPONSIVE ADAPTATIONS       */
 /* ========================================================= */

@@ -1,7 +1,7 @@
 "use client";
 
 import { useAppContext } from "../../context/AppContext";
-import { useEffect } from "react";
+import { useState, useEffect } from "react";
 
 export default function Toast() {
   const { toasts } = useAppContext();
@@ -16,6 +16,15 @@ export default function Toast() {
 }
 
 function ToastItem({ message, type }: { message: string; type: string }) {
+  const [isExiting, setIsExiting] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsExiting(true);
+    }, 2700);
+    return () => clearTimeout(timer);
+  }, []);
+
   const bgColor =
     type === "error"
       ? "bg-red-500/10 border-red-500/20 text-red-400"
@@ -25,7 +34,7 @@ function ToastItem({ message, type }: { message: string; type: string }) {
 
   return (
     <div
-      className={`app-toast app-toast--${type} ${bgColor} border rounded-xl px-4 py-3 text-sm font-medium scale-in pointer-events-auto max-w-sm`}
+      className={`${isExiting ? "motion-exit-toast" : "motion-toast"} app-toast app-toast--${type} ${bgColor} border rounded-xl px-4 py-3 text-sm font-medium pointer-events-auto max-w-sm`}
     >
       {message}
     </div>

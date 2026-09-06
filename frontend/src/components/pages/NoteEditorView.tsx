@@ -14,6 +14,7 @@ import { useAppContext } from "../../context/AppContext";
 import { useAuth } from "../../context/AuthContext";
 import { storageService } from "../../services/storageService";
 import { compressImageFile } from "../../services/indexedDBStorage";
+import { useAnimateExit } from "../../hooks/useAnimateExit";
 
 interface NoteEditorViewProps { 
   note?: Note | null;
@@ -55,6 +56,14 @@ export default function NoteEditorView({
   const [replacingBlockId, setReplacingBlockId] = useState<string | null>(null);
   const [isDraggingOver, setIsDraggingOver] = useState(false);
   const targetBlockIdRef = useRef<string | null>(null);
+
+  const { shouldRender: shouldRenderMore, isExiting: isExitingMore } = useAnimateExit(moreOpen, 150);
+  const { shouldRender: shouldRenderPreview, isExiting: isExitingPreview } = useAnimateExit(Boolean(previewImageUrl), 200);
+  const { shouldRender: shouldRenderDelete, isExiting: isExitingDelete } = useAnimateExit(confirmDelete, 200);
+  const lastPreviewImageUrlRef = useRef<string | null>(previewImageUrl);
+  if (previewImageUrl) {
+    lastPreviewImageUrlRef.current = previewImageUrl;
+  }
 
   // Hidden File Inputs
   const imageInputRef = useRef<HTMLInputElement>(null);
@@ -360,7 +369,7 @@ export default function NoteEditorView({
 
   return (
     <div 
-      className="note-editor-screen relative"
+      className="note-editor-screen motion-page relative"
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
@@ -414,8 +423,8 @@ export default function NoteEditorView({
             >
               <MoreHorizontal size={19} />
             </button>
-            {moreOpen && (
-              <div className="note-more-menu">
+            {shouldRenderMore && (
+              <div className={`note-more-menu ${isExitingMore ? "motion-dropdown-exit" : "motion-dropdown"}`}>
                 <button type="button" onClick={share}>
                   <Share2 size={15} /> Share Note
                 </button>
@@ -496,12 +505,16 @@ export default function NoteEditorView({
       />
 
       {/* Image Lightbox Modal */}
-      {previewImageUrl && (
+      {shouldRenderPreview && (
         <div 
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fade-in"
+          className={`fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md ${
+            isExitingPreview ? "motion-exit-fade" : "motion-overlay"
+          }`}
           onClick={() => setPreviewImageUrl(null)}
         >
-          <div className="relative max-w-4xl max-h-[90vh] flex items-center justify-center">
+          <div className={`relative max-w-4xl max-h-[90vh] flex items-center justify-center ${
+            isExitingPreview ? "motion-exit-reveal" : "motion-dialog"
+          }`}>
             <button
               type="button"
               onClick={() => setPreviewImageUrl(null)}
@@ -511,7 +524,7 @@ export default function NoteEditorView({
             </button>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img 
-              src={previewImageUrl} 
+              src={previewImageUrl || lastPreviewImageUrlRef.current || ""} 
               alt="Preview" 
               className="max-w-full max-h-[85vh] object-contain rounded-2xl border border-white/10 shadow-2xl" 
             />
@@ -520,9 +533,9 @@ export default function NoteEditorView({
       )}
 
       {/* Delete Confirmation Modal */}
-      {confirmDelete && (
-        <div className="note-delete-confirm">
-          <div>
+      {shouldRenderDelete && (
+        <div className={`note-delete-confirm ${isExitingDelete ? "motion-exit-fade" : "motion-overlay"}`}>
+          <div className={isExitingDelete ? "motion-exit-reveal" : "motion-dialog"}>
             <h2>Delete this note?</h2>
             <p>This action cannot be undone.</p>
             <section>

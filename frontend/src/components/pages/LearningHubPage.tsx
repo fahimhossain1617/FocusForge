@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useAppContext } from "../../context/AppContext";
 import { useAuth } from "../../context/AuthContext";
 import { useTranslation } from "../../hooks/useTranslation";
 import EmptyState from "../ui/EmptyState";
 import { Folder, Plus, Trash2, CheckCircle, Clock, CalendarDays, AlertTriangle, Trophy, Sparkles, Star, ArrowLeft, Check } from "lucide-react";
+import { useAnimateExit } from "../../hooks/useAnimateExit";
 
 function formatHoursMins(totalMins: number): string {
   const h = Math.floor(totalMins / 60);
@@ -80,6 +81,12 @@ export default function LearningHubPage() {
   const [topics, setTopics] = useState("");
   const [blockers, setBlockers] = useState("");
   const [completedModalData, setCompletedModalData] = useState<{ id: string, name: string, totalMins: number, streak: number } | null>(null);
+  const [lastCompletedModalData, setLastCompletedModalData] = useState<typeof completedModalData>(null);
+  useEffect(() => {
+    if (completedModalData) setLastCompletedModalData(completedModalData);
+  }, [completedModalData]);
+  const activeCompletedData = completedModalData || lastCompletedModalData;
+  const completionModalAnim = useAnimateExit({ isOpen: Boolean(completedModalData), durationMs: 200 });
 
   const handleCreateFolder = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -141,7 +148,7 @@ export default function LearningHubPage() {
   const gapDays = getGapDays(activeFolderLogs);
 
   return (
-    <div className="fade-in max-w-6xl flex flex-col md:flex-row gap-6">
+    <div className="motion-page max-w-6xl flex flex-col md:flex-row gap-6">
 
       {/* LEFT PANE: Folders List */}
       <div className="w-full md:w-1/3 flex flex-col gap-4">
@@ -181,7 +188,7 @@ export default function LearningHubPage() {
           </button>
         </form>
 
-        <div className="flex flex-col gap-2 mt-4">
+        <div className="motion-stagger-fast flex flex-col gap-2 mt-4">
           {state.learningFolders.length === 0 ? (
             <p className="text-sm text-center py-6" style={{ color: "var(--color-text-muted)" }}>{t.learningHub.noFolders}</p>
           ) : (
@@ -436,11 +443,11 @@ export default function LearningHubPage() {
       </div>
 
       {/* Completion Modal */}
-      {completedModalData && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 fade-in">
+      {completionModalAnim.shouldRender && activeCompletedData && (
+        <div className={`fixed inset-0 z-50 flex items-center justify-center p-4 ${completionModalAnim.isExiting ? "motion-exit-fade" : "motion-overlay"}`}>
           <div className="absolute inset-0 bg-black/40 backdrop-blur-md" onClick={() => setCompletedModalData(null)}></div>
 
-          <div className="completion-modal relative w-full max-w-md rounded-2xl border p-8 shadow-2xl overflow-hidden flex flex-col items-center text-center"
+          <div className={`completion-modal relative w-full max-w-md rounded-2xl border p-8 shadow-2xl overflow-hidden flex flex-col items-center text-center ${completionModalAnim.isExiting ? "motion-exit-reveal" : "motion-reveal"}`}
             style={{ background: "rgba(20, 20, 30, 0.75)", backdropFilter: "blur(20px)" }}>
 
             {/* Glowing orb background effect */}
@@ -458,19 +465,19 @@ export default function LearningHubPage() {
             <h3 className="text-lg font-semibold text-purple-300 mb-3">{t.learningHub.milestoneUnlocked}</h3>
 
             <p className="text-sm text-zinc-300 mb-6 leading-relaxed">
-              {t.learningHub.congratsOnCompleting} <strong className="text-white">{completedModalData.name}</strong>{t.learningHub.consistencyPayingOff}<br /><br />
+              {t.learningHub.congratsOnCompleting} <strong className="text-white">{activeCompletedData.name}</strong>{t.learningHub.consistencyPayingOff}<br /><br />
               <span className="text-xs opacity-80 text-zinc-400 font-medium font-bengali">{t.learningHub.bengaliCongrats}</span>
             </p>
 
             <div className="w-full bg-black/40 border border-white/5 rounded-xl p-4 flex justify-around mb-8 shadow-inner">
               <div className="flex flex-col items-center">
                 <span className="text-[10px] uppercase tracking-wider text-zinc-500 font-bold mb-1">{t.learningHub.timeInvested}</span>
-                <span className="text-lg font-bold text-white">{formatHoursMins(completedModalData.totalMins)}</span>
+                <span className="text-lg font-bold text-white">{formatHoursMins(activeCompletedData.totalMins)}</span>
               </div>
               <div className="w-px bg-white/10"></div>
               <div className="flex flex-col items-center">
                 <span className="text-[10px] uppercase tracking-wider text-zinc-500 font-bold mb-1">{t.learningHub.activeStreak}</span>
-                <span className="text-lg font-bold text-purple-400">{completedModalData.streak} {t.learningHub.days}</span>
+                <span className="text-lg font-bold text-purple-400">{activeCompletedData.streak} {t.learningHub.days}</span>
               </div>
             </div>
 
