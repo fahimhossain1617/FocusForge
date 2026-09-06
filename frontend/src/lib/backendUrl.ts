@@ -12,17 +12,6 @@ export function getBackendUrl(): string {
     return process.env.NEXT_PUBLIC_BACKEND_URL.replace(/\/$/, "");
   }
 
-  if (typeof window !== "undefined") {
-    const hostname = window.location.hostname;
-    if (hostname && hostname !== "localhost" && hostname !== "127.0.0.1") {
-      const isIp = /^(\d{1,3}\.){3}\d{1,3}$/.test(hostname);
-      if (isIp) {
-        return `http://${hostname}:5000`;
-      }
-      // On Vercel or production domain: return empty string for relative /api routes
-      return "";
-    }
-  }
-
-  return "http://localhost:5000";
+  // Always use relative /api paths for Next.js Serverless Routes
+  return "";
 }

@@ -421,7 +421,9 @@ export function AIAgentPage() {
                           showToast(isSystemBn ? 'টাস্ক ও রুটিন ব্লক সফলভাবে প্ল্যানারে যুক্ত হয়েছে!' : 'Task & time block added to your planner!', "success");
                         }
                         setMessages(items => items.map(i => i.id === message.id ? { ...i, payload: null } : i));
-                        navigateTo('planner');
+                        setTimeout(() => {
+                          navigateTo('planner');
+                        }, 1500);
                       }}>
                         <Check size={14} /> {isSystemBn ? 'অটোমেটিক যুক্ত করুন' : 'Auto Add'}
                       </button>
@@ -448,7 +450,9 @@ export function AIAgentPage() {
                         addMindItem(content, 'problem_solver');
                         showToast(isSystemBn ? 'সমস্যা মাইন্ডে সেভ করা হয়েছে' : 'Saved to Problem Solver!', 'success');
                         setMessages(items => items.map(i => i.id === message.id ? { ...i, payload: null } : i));
-                        navigateTo('mind');
+                        setTimeout(() => {
+                          navigateTo('mind');
+                        }, 1500);
                       }}>
                         <Check size={14} /> {isSystemBn ? 'সেভ করুন' : 'Save'}
                       </button>
@@ -469,7 +473,9 @@ export function AIAgentPage() {
                         addMindItem(content, 'idea_capture');
                         showToast(isSystemBn ? 'আইডিয়া সেভ করা হয়েছে' : 'Saved to Ideas!', 'success');
                         setMessages(items => items.map(i => i.id === message.id ? { ...i, payload: null } : i));
-                        navigateTo('mind');
+                        setTimeout(() => {
+                          navigateTo('mind');
+                        }, 1500);
                       }}>
                         <Check size={14} /> {isSystemBn ? 'সেভ করুন' : 'Save'}
                       </button>
@@ -497,7 +503,9 @@ export function AIAgentPage() {
                         });
                         showToast(isSystemBn ? 'নোট তৈরি হয়েছে!' : 'Note created successfully!', 'success');
                         setMessages(items => items.map(i => i.id === message.id ? { ...i, payload: null } : i));
-                        navigateTo('tasks');
+                        setTimeout(() => {
+                          navigateTo('tasks');
+                        }, 1500);
                       }}>
                         <Check size={14} /> {isSystemBn ? 'নোট সেভ ও খুলুন' : 'Save & Open Notes'}
                       </button>
@@ -522,7 +530,9 @@ export function AIAgentPage() {
                         );
                         showToast(isSystemBn ? 'ফোকাস সেশন শুরু হয়েছে!' : 'Focus session started!', 'success');
                         setMessages(items => items.map(i => i.id === message.id ? { ...i, payload: null } : i));
-                        navigateTo('focus');
+                        setTimeout(() => {
+                          navigateTo('focus');
+                        }, 1500);
                       }}>
                         <Check size={14} /> {isSystemBn ? 'টাইমার শুরু' : 'Start'}
                       </button>
