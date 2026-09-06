@@ -105,45 +105,49 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
   useEffect(() => {
     const fetchInitialData = async () => {
       try {
-        if (!isGuest && user) {
-          const [sessionsData, tokensData] = await Promise.all([
-            getChatSessions(),
-            getAITokenStatus(initialLang)
-          ]);
-          if (Array.isArray(sessionsData)) {
-            setSessions(sessionsData);
+        const [sessionsData, tokensData] = await Promise.all([
+          getChatSessions(),
+          getAITokenStatus(initialLang)
+        ]);
 
-            // Determine which session to open if activeSessionId is set or if we have past sessions
-            let targetSessionId = activeSessionId;
-            if (!targetSessionId && sessionsData.length > 0) {
-              targetSessionId = sessionsData[0].id;
-              setActiveSessionId(targetSessionId);
-            }
-
-            if (targetSessionId) {
-              const msgs = await getChatMessages(targetSessionId);
-              if (Array.isArray(msgs) && msgs.length > 0) {
-                setMessages(msgs.map((m: any) => ({
-                  ...m,
-                  createdAt: new Date(m.created_at || m.createdAt || Date.now()),
-                  payload: m.payload || m.payload_json,
-                })));
-              }
-            }
+        if (Array.isArray(sessionsData) && sessionsData.length > 0) {
+          setSessions(sessionsData);
+          if (typeof window !== "undefined") {
+            try {
+              localStorage.setItem("focusforge_guest_sessions_list", JSON.stringify(sessionsData));
+              localStorage.setItem("focusforge_active_sessions_cache", JSON.stringify(sessionsData));
+            } catch {}
           }
-          if (tokensData) {
-            setTokenStatus(tokensData);
+
+          // Determine which session to open if activeSessionId is set or if we have past sessions
+          let targetSessionId = activeSessionId;
+          if (!targetSessionId) {
+            targetSessionId = sessionsData[0].id;
+            setActiveSessionId(targetSessionId);
+          }
+
+          if (targetSessionId) {
+            const msgs = await getChatMessages(targetSessionId);
+            if (Array.isArray(msgs) && msgs.length > 0) {
+              setMessages(msgs.map((m: any) => ({
+                ...m,
+                createdAt: new Date(m.created_at || m.createdAt || Date.now()),
+                payload: m.payload || m.payload_json,
+              })));
+            }
           }
         } else if (typeof window !== "undefined") {
-          // Guest mode initial loading
+          // Local cache fallback
           try {
-            const guestSessionsRaw = localStorage.getItem("focusforge_guest_sessions_list");
+            const guestSessionsRaw = localStorage.getItem("focusforge_guest_sessions_list") || localStorage.getItem("focusforge_active_sessions_cache");
             if (guestSessionsRaw) {
               const parsedSessions = JSON.parse(guestSessionsRaw);
-              if (Array.isArray(parsedSessions)) {
+              if (Array.isArray(parsedSessions) && parsedSessions.length > 0) {
                 setSessions(parsedSessions);
-                if (activeSessionId) {
-                  const savedMsgs = localStorage.getItem(`focusforge_guest_msg_${activeSessionId}`);
+                let targetSessionId = activeSessionId || parsedSessions[0].id;
+                if (targetSessionId) {
+                  setActiveSessionId(targetSessionId);
+                  const savedMsgs = localStorage.getItem(`focusforge_guest_msg_${targetSessionId}`);
                   if (savedMsgs) {
                     const parsedMsgs = JSON.parse(savedMsgs);
                     if (Array.isArray(parsedMsgs)) {
@@ -158,6 +162,10 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
             }
           } catch {}
         }
+
+        if (tokensData) {
+          setTokenStatus(tokensData);
+        }
       } catch (err) {
         console.error("Failed to load initial AI agent data", err);
       }
@@ -168,32 +176,32 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
   const createNewSession = useCallback(() => {
     setActiveSessionId(null);
     setMessages([]);
+    setGuestCount(0);
     setError(null);
     if (typeof window !== "undefined") {
       sessionStorage.removeItem("focusforge_active_guest_messages");
       sessionStorage.removeItem("focusforge_auth_messages");
       sessionStorage.removeItem("focusforge_auth_session");
+      sessionStorage.removeItem("focusforge_guest_ai_count");
     }
   }, []);
 
   const selectSession = useCallback(async (sessionId: string) => {
     setActiveSessionId(sessionId);
     setError(null);
-    if (!sessionId || sessionId === 'guest-session') {
+    if (!sessionId) {
       return;
     }
     
     setIsThinking(true);
     try {
-      if (!isGuest && user) {
-        const data = await getChatMessages(sessionId);
-        if (Array.isArray(data)) {
-          setMessages(data.map((m: any) => ({
-            ...m,
-            createdAt: new Date(m.created_at || m.createdAt || Date.now()),
-            payload: m.payload || m.payload_json,
-          })));
-        }
+      const data = await getChatMessages(sessionId);
+      if (Array.isArray(data) && data.length > 0) {
+        setMessages(data.map((m: any) => ({
+          ...m,
+          createdAt: new Date(m.created_at || m.createdAt || Date.now()),
+          payload: m.payload || m.payload_json,
+        })));
       } else if (typeof window !== "undefined") {
         const savedMsgs = localStorage.getItem(`focusforge_guest_msg_${sessionId}`);
         if (savedMsgs) {
@@ -214,21 +222,21 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
     } finally {
       setIsThinking(false);
     }
-  }, [isGuest, user]);
+  }, []);
 
   const removeSession = useCallback(async (sessionId: string) => {
     try {
-      if (!isGuest && user) {
-        await deleteChatSession(sessionId);
-      } else if (typeof window !== "undefined") {
+      await deleteChatSession(sessionId);
+      if (typeof window !== "undefined") {
         localStorage.removeItem(`focusforge_guest_msg_${sessionId}`);
       }
       
       setSessions((prev) => {
         const updated = prev.filter((s) => s.id !== sessionId);
-        if (isGuest || !user) {
+        if (typeof window !== "undefined") {
           try {
             localStorage.setItem("focusforge_guest_sessions_list", JSON.stringify(updated));
+            localStorage.setItem("focusforge_active_sessions_cache", JSON.stringify(updated));
           } catch {}
         }
         return updated;
@@ -240,7 +248,7 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
     } catch (err) {
       console.error("Failed to delete session", err);
     }
-  }, [activeSessionId, createNewSession, isGuest, user]);
+  }, [activeSessionId, createNewSession]);
 
   const send = useCallback(async (content: string, language: AIAgentLanguage = "auto") => {
     if (!content.trim()) { 
@@ -249,11 +257,11 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
     }
     setError(null); 
 
-    // Guest Mode Limit: Allow maximum 5 messages for unauthenticated guest users
-    if ((isGuest || !user) && guestCount >= 5) {
+    // Guest Mode Limit: Allow up to 15 messages per guest session
+    if ((isGuest || !user) && guestCount >= 15) {
       const lockoutNotice = language === "bn"
-        ? "আপনি গেস্ট ফ্রি লিমিট (৫টি মেসেজ) সম্পূর্ণ করেছেন। আনলিমিটেড AI ও চ্যাট সেভ রাখতে অনুগ্রহ করে নিচে 'লগইন করুন' বাটনে চাপ দিয়ে লগইন করুন।"
-        : "You have reached the free 5-message limit for guest users. Please log in below to continue using FocusForge AI.";
+        ? "আপনি এই গেস্ট চ্যাটের ১৫টি ফ্রি মেসেজের সীমা সম্পন্ন করেছেন। আনলিমিটেড AI ও ক্লাউড সেভ রাখতে লগইন করুন অথবা উপরে '+ New Chat'-এ চাপ দিয়ে নতুন চ্যাট শুরু করুন।"
+        : "You have reached the free 15-message limit for this guest chat. Please log in to unlock unlimited access, or click '+ New Chat' to start a new chat.";
       setError(lockoutNotice);
       return;
     }
@@ -309,6 +317,7 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
           if (typeof window !== "undefined") {
             try {
               localStorage.setItem("focusforge_active_sessions_cache", JSON.stringify(updated));
+              localStorage.setItem("focusforge_guest_sessions_list", JSON.stringify(updated));
             } catch {}
           }
           return updated;
@@ -329,18 +338,18 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
 
       setMessages((items) => {
         const updated = [...items, normalizedAiMessage];
-        // If guest sent 5th message, append login requirement card
+        // If guest sent 10th message, append login requirement card
         if (isGuest || !user) {
           const nextGuestCount = guestCount + 1;
           setGuestCount(nextGuestCount);
-          if (nextGuestCount >= 5) {
+          if (nextGuestCount >= 10) {
             const loginRequirementMsg: AgentMessage = {
               id: 'guest_lockout_' + Date.now(),
               role: 'assistant',
               intent: 'REQUIRE_LOGIN',
               content: language === 'bn'
-                ? "আপনি গেস্ট হিসেবে AI এজেন্টের ৫টি ফ্রি মেসেজের সীমা সম্পূর্ণ করেছেন। সম্পূর্ণ ফিচার সুবিধা উপভোগ করতে এবং আপনার ফাইলস ও চ্যাট হিস্ট্রি সুরক্ষিত রাখতে অনুগ্রহ করে লগইন করুন।"
-                : "You have completed your 5 free guest messages. Please log in below to unlock unlimited access and save your workspace history.",
+                ? "আপনি এই গেস্ট চ্যাটের ১০টি ফ্রি মেসেজের সীমা সম্পূর্ণ করেছেন। সম্পূর্ণ ফিচার সুবিধা উপভোগ করতে এবং আপনার ফাইলস ও চ্যাট হিস্ট্রি সুরক্ষিত রাখতে লগইন করুন অথবা উপরে '+ New Chat'-এ চাপ দিন।"
+                : "You have completed your 10 free guest messages for this session. Please log in to unlock unlimited access and save your history, or start a new conversation via '+ New Chat'.",
               payload: { requireLogin: true },
               createdAt: new Date()
             };
@@ -379,7 +388,7 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
     }
   }, [context, activeSessionId, messages, tokenStatus, isGuest, user, guestCount]);
 
-  const guestLimitExceeded = (isGuest || !user) && guestCount >= 5;
+  const guestLimitExceeded = (isGuest || !user) && guestCount >= 15;
 
   return { 
     messages, 
