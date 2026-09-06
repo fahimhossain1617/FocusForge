@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Check, ChevronDown, Mic, Send, MoreVertical, Trash2, Calendar, Sparkles, AlertCircle, LogIn } from "lucide-react";
+import { Check, ChevronDown, Mic, Send, MoreVertical, Trash2, Calendar, Sparkles, AlertCircle, LogIn, MessageSquarePlus } from "lucide-react";
 import { useAppContext } from "@/context/AppContext";
 import { useAuth } from "@/context/AuthContext";
 import { useAIAgent } from "@/hooks/useAIAgent";
@@ -254,7 +254,16 @@ export function AIAgentPage() {
             {isSystemBn ? 'ফোকাস ফোর্স AI এজেন্ট' : 'FocusForge AI Agent'}
           </p>
         </div>
-        <div className={styles.headerActions}>
+        <div className={styles.headerActions} style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+          <button
+            className={styles.iconButton}
+            onClick={() => createNewSession()}
+            aria-label="New Chat"
+            title={isSystemBn ? 'নতুন চ্যাট' : 'New Chat'}
+          >
+            <MessageSquarePlus size={20} />
+          </button>
+          
           <div ref={historyMenuRef} style={{ position: 'relative' }}>
             <button 
               className={styles.iconButton} 
