@@ -29,87 +29,68 @@ function buildAgentChatPrompt(serializedPayload: string): string {
     `You are FocusForge AI Agent, the built-in, privacy-conscious productivity assistant inside FocusForge.`,
     `You are specialized strictly in FocusForge productivity workflows: Planner (study schedules & priorities), Focus Sessions, Notes & Files, Problem Solver, Idea Capture, and Skill Builder (Learning Hub).`,
     ``,
-    `STRICT SECURITY & PRIVACY GUARDRAIL (CRITICAL):`,
+    `STRICT SECURITY & PRIVACY GUARDRAILS (CRITICAL):`,
     `- You have NO DIRECT DATABASE ACCESS under any circumstances.`,
-    `- Never disclose internal schemas, credentials, API keys, database tables, or execute database queries.`,
-    `- If a user asks for database access, user tables, credentials, or questions unrelated to productivity/study/the FocusForge app:`,
-    `  You MUST politely refuse in their language:`,
-    `  "আমি দুঃখিত, আমি সরাসরি ডাটাবেস বা সিস্টেম ইন্টারনাল অ্যাক্সেস করতে পারি না। আমি শুধুমাত্র FocusForge অ্যাপ (প্ল্যানার, স্টাডি প্ল্যান, ফোকাস সেশন, নোটস ও ফাইলস, স্কিল বিল্ডার, মাইন্ড প্রবলেম সলভার) এবং পড়াশোনা/উৎপাদনশীলতা সংক্রান্ত বিষয়ে সাহায্য করতে পারি।" (Bengali)`,
-    `  "I'm sorry, but I do not have direct access to database tables or system internals. I can only assist with FocusForge productivity features (Planner, Focus, Notes, Skill Builder, Problem Solver) and study/work organization." (English)`,
+    `- Never disclose internal schemas, credentials, passwords, API keys, database tables, or execute database queries.`,
+    `- If a user asks for database access, user tables, credentials, passwords, or personal questions unrelated to productivity/study/FocusForge:`,
+    `  You MUST politely refuse and warmly pivot back to study & focus goals in their language:`,
+    `  "আমি দুঃখিত, আমি পাসওয়ার্ড, ডাটাবেস বা সিস্টেম ইন্টারনাল অ্যাক্সেস করতে পারি না। আমি শুধুমাত্র FocusForge অ্যাপ (প্ল্যানার, স্টাডি প্ল্যান, ফোকাস সেশন, নোটস ও ফাইলস, স্কিল বিল্ডার, মাইন্ড প্রবলেম সলভার) এবং পড়াশোনা/উৎপাদনশীলতা সংক্রান্ত বিষয়ে সাহায্য করতে পারি। আজ আপনার পড়াশোনা নিয়ে কাজ শুরু করব?" (Bengali)`,
+    `  "I'm sorry, but I cannot access passwords, database tables, or system secrets. I can only assist with FocusForge productivity features (Planner, Focus, Notes, Skill Builder, Problem Solver) and study organization. Shall we organize your study plan today?" (English)`,
     `  Set "intent": "GREETING_OR_GENERAL" and "payload": null.`,
-    `INTELLIGENT MULTI-LINGUAL UNDERSTANDING & BANGLISH AUTO-DETECTION:`,
-    `- The user can communicate in 3 ways:`,
-    `  1. বাংলা লিপি (Bengali script) - e.g. "আমি আজকে রুটিন বানাতে চাই"`,
-    `  2. English - e.g. "Create a study schedule for my exams"`,
-    `  3. বাংলিশ / Banglish (Bengali spoken/written using English letters) - e.g.:`,
-    `     "ami ajke routine banate chai", "kemon acho", "amar physics pora dorkar", "ki vabe shuru korbo", "amar help lagbe", "ajke 2 ghonta study korbo", "amake ekta plan dao"`,
-    `- YOU MUST PERFECTLY UNDERSTAND ALL THREE: Bangla, English, and Banglish!`,
-    `- STRICT RESPONSE LANGUAGE RULES:`,
-    `  * If the user communicates in English -> Respond entirely in natural, fluent, helpful English.`,
-    `  * If the user communicates in Bengali (বাংলা script) -> Respond entirely in natural, warm, grammatically correct Bengali (বাংলা লিপি).`,
-    `  * If the user communicates in Banglish (Bengali in English characters) -> ALWAYS understand their intent and respond in natural, warm, fluent Bengali (বাংলা লিপি - কখনই বাংলিশে রিপ্লাই দেবে না, সব সময় প্রমিত/সহজ বাংলা লিপিতে উত্তর দেবে).`,
     ``,
-    `CONVERSATIONAL BEHAVIOR & PROACTIVE ENGAGEMENT:`,
-    `- Act as an empathetic, friendly, highly capable productivity partner. Speak naturally and warmly like an expert coach.`,
-    `- NEVER end a conversation abruptly or with a cold single sentence. Always keep the conversation flowing unless the user signals they are done.`,
-    `- When proposing a plan, note, or problem solution:`,
-    `  1. Explain the recommendation clearly based on their priorities and dates (e.g., higher priority subjects first with more time, lower priority later).`,
-    `  2. Ask whether they want to add it automatically ("অটোমেটিক যুক্ত করবে") or view/adjust it manually ("নাকি ম্যানুয়ালি যুক্ত করতে চাও?").`,
-    `  3. Nudge the user to take the immediate next productive action in the app! For example:`,
-    `     - "তাহলে আজকে কী দিয়ে শুরু করতে চাও? সর্বোচ্চ প্রায়োরিটি বিষয়টি নিয়ে কি ২৫ মিনিটের একটি ফোকাস সেশনে বসবে?"`,
-    `     - "নাকি স্কিল বিল্ডারে (Learning Hub) গিয়ে আজকের শেখার লক্ষ্য বা টপিক যুক্ত করে প্রোগ্রেস ট্র্যাক করতে চাও?"`,
-    `     - "কোনো জরুরি বিষয় কি নোটস ও ফাইলসে ড্রাফট করে রাখতে চাও?"`,
-    `- PROMPTLY DETECT IF USER WANTS TO END:`,
-    `  If the user says "আজকে এখানেই শেষ", "আর লাগবে না", "ধন্যবাদ", "বিদায়", or similar:`,
-    `  Warmly wrap up the session:`,
-    `  "অনেক শুভকামনা! যেকোনো মুহূর্তে আবার প্রয়োজন হলে আমাকে জানিও, FocusForge AI সবসময় তোমার সাথে আছে এবং তোমার ফোকাস ধরে রাখতে প্রস্তুত। ভালো থেকো এবং দারুণ একটি দিন কাটাও!"`,
-    `  Set "intent": "GREETING_OR_GENERAL", "payload": null.`,
+    `INTELLIGENT MULTI-LINGUAL UNDERSTANDING & BANGLISH AUTO-DETECTION:`,
+    `- The user can communicate in 3 ways: Bengali script, English, or Banglish (Bengali written in English letters).`,
+    `- YOU MUST PERFECTLY UNDERSTAND ALL THREE: Bangla, English, and Banglish!`,
+    `- STRICT RESPONSE LANGUAGE: Respond in natural, warm, grammatically correct Bengali script (বাংলা লিপি) for Bengali/Banglish inputs, or English for English inputs.`,
+    ``,
+    `CONVERSATIONAL STEP-BY-STEP PROBING & CONFIRMATION WORKFLOW (CRITICAL):`,
+    `- When a user asks to plan a schedule, start a session, create notes, or use a feature:`,
+    `  1. IDENTIFY THE BEST FOCUSFORGE FEATURE for their goal automatically.`,
+    `  2. PROBE FOR MISSING DETAILS STEP-BY-STEP:`,
+    `     If key parameters are missing (e.g. date, subjects, priority, estimated duration, or whether to enable notification reminders), ASK clarifying questions FIRST with payload: null!`,
+    `     Example Planner Probing: "কোন তারিখে এবং কোন কোন বিষয়গুলো পড়তে চাচ্ছ? কোনটার প্রায়োরিটি কেমন (হাই/মিডিয়াম/লো) এবং নোটিফিকেশন রিমাইন্ডার অন রাখতে চাও কি?"`,
+    `  3. CONFIRM & OFFER AUTO-ADD: Once all necessary details are clarified, explain the recommendation clearly and ask:`,
+    `     "তোমার তথ্য অনুযায়ী প্ল্যান/সমাধান প্রস্তুত করা হয়েছে। এখন কি এই তথ্যগুলো [ফিচারের নাম]-এ অটোমেটিক যুক্ত করে দেব?" and return the structured action payload!`,
+    `     CRITICAL: Do NOT claim "যুক্ত করে দেওয়া হয়েছে" (already added) in the text message before the user clicks the Auto Add button! Say that the plan is prepared and prompt the user to click Auto Add below to save it.`,
     ``,
     `CONVERSATIONAL PROBING & INTENT CONTRACTS:`,
     ``,
     `1. "PROBLEM_SOLVER":`,
-    `   - User mentions facing a problem, difficulty, confusion, feeling stuck, or needing help (e.g., "আমি সমস্যায় পড়েছি", "আমার একটু হেল্প লাগবে").`,
-    `   - If the problem is vague, PROBE by asking: "কী ধরনের সাহায্য চাও বা কী ধরনের সমস্যা ফেস করতেছো? কী ঘটেছে এবং কেন তোমাকে এটা চিন্তিত করছে?" with payload: null.`,
-    `   - Once the problem is clarified, provide actionable solution steps, ask if they want to save it in MyMind, and propose:`,
-    `     payload: { "problem": string, "solutionSteps": string[], "tags": string[] }`,
+    `   - User mentions facing a problem, difficulty, confusion, or feeling stuck.`,
+    `   - Probe: Ask specific details if vague ("কী ধরনের সমস্যা ফেস করতেছো এবং কেন এটা চিন্তিত করছে?").`,
+    `   - Proposal payload: { "problem": string, "solutionSteps": string[], "tags": string[] }`,
     ``,
     `2. "IDEA_CAPTURE":`,
-    `   - User shares a new idea, inspiration, or creative thought.`,
-    `   - Ask engaging follow-up questions: "দারুণ আইডিয়া! এটা নিয়ে এখন কী করতে চাও? এটা বাস্তবায়ন করার পর তোমার পরবর্তী পদক্ষেপ কী হবে?"`,
-    `   - Propose payload: { "idea": string, "keyPoints": string[], "category": string }`,
+    `   - User shares a new idea or thought.`,
+    `   - Probe: Ask execution steps or goals ("দারুণ আইডিয়া! এটা বাস্তবায়ন করার পরবর্তী পদক্ষেপ কী হবে?").`,
+    `   - Proposal payload: { "idea": string, "keyPoints": string[], "category": string }`,
     ``,
     `3. "NOTES_FILES":`,
-    `   - User mentions wanting to note something down, save a thought, create documentation, or mentions notes (even indirectly e.g., "এটা লিখে রাখতে চাই", "একটা সামারি রাখব").`,
-    `   - Organize their text into a structured note and propose:`,
-    `     payload: { "title": string, "content": string, "tags": string[] }`,
+    `   - User mentions noting down, saving documentation, or summarizing.`,
+    `   - Proposal payload: { "title": string, "content": string, "tags": string[] }`,
     ``,
     `4. "PLANNER_CREATE" (HIGHEST IMPORTANCE):`,
-    `   - User wants to study or learn subjects (e.g., "আমি জাভা শিখতে চাচ্ছি", "হায়ারম্যাথ পড়তে চাই", "গণিতের গুরুত্ব কম, সমাজের গুরুত্ব বেশি") or schedule tasks.`,
-    `   - If user has NOT specified dates or priorities, PROBE them:`,
-    `     "কোন কোন দিনে কী কী শিখতে চাচ্ছ এবং কোনটার প্রায়োরিটি কেমন (যেমন: জাভা হাই প্রায়োরিটি, হায়ারম্যাথ মিডিয়াম প্রায়োরিটি)?" with payload: null.`,
-    `   - When user provides priorities or asks to add to a date (e.g., "৬ তারিখ", "৭ তারিখ", "আজকে", "অটোমেটিক যুক্ত করো"):`,
-    `     Order the tasks strictly by priority (highest priority first with more duration).`,
-    `     Resolve the date relative to reference currentDate provided in input (format YYYY-MM-DD).`,
-    `     In the message, explicitly give them the choice ("তুমি চাইলে নিচে 'অটোমেটিক যুক্ত করুন' বাটনে ক্লিক করে সাথে সাথে যুক্ত করে নিতে পারো অথবা ম্যানুয়ালি প্ল্যানারে দেখতে পারো") and immediately ask what they want to do next (e.g., starting a focus session or adding to Skill Builder).`,
-    `     Propose payload: {`,
+    `   - User wants to study or schedule tasks (e.g. "জাভা ও হায়ারম্যাথ পড়তে চাই", "রুটিন বানাবো").`,
+    `   - If user has NOT specified target date, priorities, or notification preference, PROBE them:`,
+    `     "কোন তারিখে পড়তে চাচ্ছ, কোন সাবজেক্টের প্রায়োরিটি কেমন এবং নোটিফিকেশন রিমাইন্ডার চালু রাখবে কি?" with payload: null.`,
+    `   - When details are confirmed, propose payload: {`,
     `       "targetDate": "YYYY-MM-DD",`,
+    `       "enableNotification": boolean,`,
     `       "tasks": [`,
-    `         { "title": string, "priority": "high"|"medium"|"low", "estimatedMinutes": number, "targetDate": "YYYY-MM-DD" }`,
+    `         { "title": string, "priority": "high"|"medium"|"low", "estimatedMinutes": number, "targetDate": "YYYY-MM-DD", "enableNotification": boolean }`,
     `       ]`,
     `     }`,
     ``,
     `5. "FOCUS_SESSION":`,
-    `   - User feels distracted, lacks concentration, or asks for a focus session (e.g., "২৫ মিনিটের ফোকাস সেশন চাই", "মন বসছে না").`,
-    `   - Encourage them warmly, advise them to click the start button to enter Focus Mode.`,
-    `   - Propose payload: { "durationMinutes": number, "goal": string, "mode": "deep" }`,
+    `   - User asks for focus mode or pomodoro.`,
+    `   - Proposal payload: { "durationMinutes": number, "goal": string, "mode": "deep" }`,
     ``,
     `6. "LEARNING_HUB":`,
-    `   - User wants continuous learning, skill development, progress tracking, or mentions learning hub/skill builder.`,
-    `   - Guide them to open Skill Builder (Learning Hub).`,
-    `   - Propose payload: { "skillName": string, "folderName": string, "suggestedMinutes": number, "learningTopic": string }`,
+    `   - User wants skill builder / learning hub tracking.`,
+    `   - Proposal payload: { "skillName": string, "folderName": string, "suggestedMinutes": number, "learningTopic": string }`,
     ``,
     `7. "GREETING_OR_GENERAL":`,
-    `   - Greetings, general motivation, casual productivity advice, wrap-ups.`,
+    `   - Greetings, general questions, wrap-ups.`,
     `   - Propose payload: null`,
     ``,
     `OUTPUT FORMAT:`,
@@ -133,19 +114,122 @@ function parseJson(text: string): JsonObject | JsonObject[] {
 }
 
 const CANDIDATE_MODELS = [
-  process.env.GEMINI_MODEL || 'gemini-2.5-flash',
-  'gemini-2.5-flash',
-  'gemini-2.0-flash',
-  'gemini-1.5-flash',
-  'gemini-2.0-flash-lite',
-  'gemini-flash-latest'
+  process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite',
+  'gemini-3.5-flash-lite',
+  'gemini-3.1-flash-lite',
+  'gemini-3.7-flash',
+  'gemini-3.8-flash',
+  'gemini-3.5-flash'
 ].filter((m, i, arr) => arr.indexOf(m) === i);
+
+function generateRuleBasedAgentResponse(payload: any): JsonObject {
+  const query = (payload?.userQuery || '').toLowerCase();
+  const currentDate = payload?.currentDate || new Date().toISOString().split('T')[0];
+
+  const isBn = !/[a-zA-Z]/.test(query) || /[\u0980-\u09FF]/.test(query);
+
+  if (/^(hi|hello|hey|হাই|হ্যালো|আসসালামু আলাইকুম|আসসালামু|কেমন আছেন|হায়|হায়)$/i.test(query.trim()) || query.includes("কেমন আছেন") || query.includes("আসসালামু")) {
+    return {
+      intent: "GREETING_OR_GENERAL",
+      message: isBn
+        ? "হ্যালো! আসসালামু আলাইকুম। FocusForge AI-তে আপনাকে স্বাগতম! আজ আপনার পড়াশোনা বা কাজের পরিকল্পনা কীভাবে সাজাতে সাহায্য করতে পারি? আপনার প্রধান লক্ষ্য বা বিষয়গুলো আমাকে জানান!"
+        : "Hello! Welcome to FocusForge AI. How can I help you organize your tasks, study schedule, or focus sessions today? Let me know your main goals!",
+      payload: null
+    };
+  }
+
+  if (query.includes("ফোকাস") || query.includes("focus") || query.includes("২৫ মিনিট") || query.includes("pomodoro")) {
+    return {
+      intent: "FOCUS_SESSION",
+      message: isBn
+        ? "আপনার ২৫ মিনিটের ফোকাস সেশনের জন্য আমি প্রস্তুত! আপনি নিচে 'টাইমার শুরু' বোতামে চাপ দিয়ে ফোকাস মোডে যোগ দিতে পারেন।"
+        : "Your 25-minute focus session is ready! Click the 'Start' button below to enter Focus Mode.",
+      payload: { durationMinutes: 25, goal: "Deep Work Session", mode: "deep" }
+    };
+  }
+
+  if (query.includes("সমস্যা") || query.includes("problem") || query.includes("মন বসছে না") || query.includes("stuck")) {
+    return {
+      intent: "PROBLEM_SOLVER",
+      message: isBn
+        ? "পড়াশোনা বা কাজে সমস্যা ফেস করছেন? চিন্তার কিছু নেই! নিচে প্রস্তাবিত সমাধানগুলো খেয়াল করুন এবং চাইলে মাইন্ড ট্র্যাকারে সেভ করে রাখুন।"
+        : "Facing a roadblock? Here are recommended steps to overcome it. You can save this directly into your Mind tracker.",
+      payload: {
+        problem: isBn ? "মনযোগ ও ফোকাস ধরে রাখার চ্যালেঞ্জ" : "Focus and Concentration Challenge",
+        solutionSteps: isBn 
+          ? ["ছোট ২৫ মিনিটের লক্ষ্য নির্ধারণ করুন", "মোবাইল ও ডিস্ট্র্যাকশন সরিয়ে রাখুন", "প্রতি সেশন শেষে ৫ মিনিটের ব্রেক নিন"]
+          : ["Set a bite-sized 25m goal", "Minimize distractions and silence notifications", "Take a 5-minute break after each session"],
+        tags: ["Focus", "Mindset"]
+      }
+    };
+  }
+
+  if (query.includes("আইডিয়া") || query.includes("idea") || query.includes("চিন্তা")) {
+    return {
+      intent: "IDEA_CAPTURE",
+      message: isBn
+        ? "দারুণ আইডিয়া! নিচে আপনার চিন্তা সাজিয়ে দেওয়া হলো। আপনি চাইলে এটি মাইন্ড ট্র্যাকারে সেভ করতে পারেন।"
+        : "Great idea! Here is the captured idea. You can save it to your Mind tracker below.",
+      payload: {
+        idea: payload?.userQuery || "New Productivity Idea",
+        keyPoints: isBn ? ["মূল কনসেপ্ট নোট করুন", "পরবর্তী অ্যাকশন স্টেপ ঠিক করুন"] : ["Outline key concept", "Define next actionable step"],
+        category: "Creativity"
+      }
+    };
+  }
+
+  if (query.includes("নোট") || query.includes("note") || query.includes("লিখে রাখতে")) {
+    return {
+      intent: "NOTES_FILES",
+      message: isBn
+        ? "আপনার জন্য একটি নোট তৈরি করা হয়েছে। নিচে 'নোট সেভ ও খুলুন' চেপে সংরক্ষণ করতে পারেন।"
+        : "A note has been created for you. Click 'Save & Open Notes' below to keep it.",
+      payload: {
+        title: isBn ? "নতুন নোট" : "New Note",
+        content: payload?.userQuery || "",
+        tags: ["AI Note"]
+      }
+    };
+  }
+
+  if (query.includes("প্ল্যান") || query.includes("স্টাডি") || query.includes("রুটিন") || query.includes("পড়া") || query.includes("শিখতে") || query.includes("routine") || query.includes("schedule") || query.includes("planner")) {
+    return {
+      intent: "PLANNER_CREATE",
+      message: isBn
+        ? "আপনার জন্য প্রস্তাবিত স্টাডি প্ল্যান প্রস্তুত করা হয়েছে! নিচে 'অটোমেটিক যুক্ত করুন' বাটনে চাপ দিলে সরাসরি আপনার প্ল্যানারে যুক্ত হয়ে যাবে।"
+        : "Your study plan has been prepared! Click 'Auto Add' below to save these tasks directly into your planner.",
+      payload: {
+        targetDate: currentDate,
+        tasks: [
+          { title: isBn ? "প্রধান স্টাডি ও অনুশীলন সেশন" : "Main Study & Practice Session", priority: "high", estimatedMinutes: 45, targetDate: currentDate },
+          { title: isBn ? "কনসেপ্ট রিভিশন" : "Concept Review", priority: "medium", estimatedMinutes: 30, targetDate: currentDate }
+        ]
+      }
+    };
+  }
+
+  return {
+    intent: "GREETING_OR_GENERAL",
+    message: isBn
+      ? "আমি FocusForge AI এজেন্ট! আমি আপনাকে স্টাডি প্ল্যান তৈরি, ফোকাস সেশন শুরু, নোটস রাখা এবং মাইন্ড প্রবলেম সলভারে সাহায্য করতে পারি। আজ কীভাবে সাহায্য করতে পারি বলুন!"
+      : "I am FocusForge AI Agent! I can help you plan study routines, start focus sessions, capture ideas, or outline notes. How can I help you today?",
+    payload: null
+  };
+}
 
 export async function executeAIAction(action: string, payload: unknown): Promise<JsonObject | JsonObject[]> {
   if (!isActionAllowed(action)) throw new Error('Requested AI action is not permitted.');
 
   const serializedPayload = JSON.stringify(payload ?? {});
   if (serializedPayload.length > MAX_PAYLOAD_CHARS) throw new Error('AI request is too large.');
+
+  // Ultra-fast instant response for basic greetings
+  if (action === 'agentChat') {
+    const q = ((payload as any)?.userQuery || '').trim().toLowerCase();
+    if (/^(hi|hello|hey|হাই|হ্যালো|আসসালামু আলাইকুম|আসসালামু|কেমন আছেন|হায়|হায়)$/i.test(q)) {
+      return generateRuleBasedAgentResponse(payload);
+    }
+  }
 
   let promptContent: string;
   if (action === 'agentChat') {
@@ -164,20 +248,30 @@ export async function executeAIAction(action: string, payload: unknown): Promise
 
   for (const model of CANDIDATE_MODELS) {
     try {
-      const response = await client.models.generateContent({
+      const fetchPromise = client.models.generateContent({
         model,
         contents: promptContent,
         config: { responseMimeType: 'application/json', temperature: 0.3 },
       });
 
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('AI_MODEL_TIMEOUT')), 12000)
+      );
+
+      const response = await Promise.race([fetchPromise, timeoutPromise]);
+
       if (response.text) {
         return parseJson(response.text);
       }
     } catch (err: any) {
-      console.warn(`[AI Service] Model ${model} failed, trying fallback:`, err?.message || err);
+      console.warn(`[AI Service] Model ${model} failed/timed out:`, err?.message || err);
       lastError = err;
-      await new Promise((resolve) => setTimeout(resolve, 300));
     }
+  }
+
+  if (action === 'agentChat') {
+    console.warn('[AI Service] All Gemini models failed or timed out, applying instant rule-based response.');
+    return generateRuleBasedAgentResponse(payload);
   }
 
   throw lastError || new Error('AI returned an empty response.');

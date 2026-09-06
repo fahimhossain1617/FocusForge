@@ -1010,6 +1010,24 @@
   color: #2563eb !important;
 }
 
+:global([data-theme="light"]) .quickActionsHero button,
+:global([data-theme="light"]) .quickActionsInline button,
+.page[data-theme="light"] .quickActionsHero button,
+.page[data-theme="light"] .quickActionsInline button {
+  background: rgba(255, 255, 255, 0.78) !important;
+  border-color: rgba(30, 64, 116, 0.12) !important;
+  color: #475569 !important;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.035) !important;
+}
+:global([data-theme="light"]) .quickActionsHero button:hover,
+:global([data-theme="light"]) .quickActionsInline button:hover,
+.page[data-theme="light"] .quickActionsHero button:hover,
+.page[data-theme="light"] .quickActionsInline button:hover {
+  background: rgba(239, 246, 255, 0.92) !important;
+  border-color: rgba(59, 130, 246, 0.40) !important;
+  color: #1D4ED8 !important;
+}
+
 :global([data-theme="light"]) .user,
 .page[data-theme="light"] .user {
   background: linear-gradient(135deg, #2563eb, #1d4ed8) !important;
@@ -1042,6 +1060,43 @@
 .page[data-theme="light"] .thinking {
   color: #64748b !important;
 }
+
+/* Refined atmospheric treatment: the arcs frame the conversation rather than
+   behaving as foreground objects, and the composer remains the visual anchor. */
+.page {
+  background:
+    radial-gradient(ellipse 88% 48% at 50% 24%, rgba(30, 64, 175, 0.10), transparent 69%),
+    radial-gradient(ellipse 78% 40% at 50% 88%, rgba(37, 99, 235, 0.07), transparent 72%),
+    linear-gradient(180deg, #02040A 0%, #07101D 52%, #03050A 100%);
+}
+.topHorizonArc, .bottomHorizonArc {
+  opacity: 0.76;
+  filter: blur(2.4px);
+}
+.topHorizonArc {
+  border-bottom-color: rgba(147, 197, 253, 0.20);
+  background: radial-gradient(ellipse at 50% 100%, rgba(37, 99, 235, 0.075), transparent 68%);
+  box-shadow: 0 5px 22px rgba(37, 99, 235, 0.07), inset 0 -2px 14px rgba(147, 203, 255, 0.035);
+}
+.bottomHorizonArc {
+  border-top-color: rgba(147, 197, 253, 0.18);
+  background: radial-gradient(ellipse at 50% 0%, rgba(37, 99, 235, 0.065), transparent 68%);
+  box-shadow: 0 -5px 22px rgba(37, 99, 235, 0.06), inset 0 2px 14px rgba(147, 203, 255, 0.03);
+}
+.composer {
+  border-color: rgba(148, 163, 184, 0.18);
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.34), inset 0 1px 0 rgba(255,255,255,0.06);
+}
+.composer:focus-within { box-shadow: 0 0 0 3px rgba(59,130,246,0.13), 0 14px 34px rgba(0,0,0,0.34); }
+.sendButton { box-shadow: 0 5px 14px rgba(37, 99, 235, 0.24); }
+.sendButton:hover:not(:disabled) { box-shadow: 0 7px 18px rgba(37, 99, 235, 0.30); }
+.historyDropdown, .customDropdownMenu { box-shadow: 0 16px 36px rgba(0,0,0,0.38); }
+
+:global([data-theme="light"]) .page, .page[data-theme="light"] {
+  background: radial-gradient(ellipse 88% 48% at 50% 23%, rgba(59,130,246,0.055), transparent 68%), linear-gradient(180deg, #FFFFFF 0%, #F3F7FD 55%, #F9FBFF 100%) !important;
+}
+:global([data-theme="light"]) .topHorizonArc, :global([data-theme="light"]) .bottomHorizonArc,
+.page[data-theme="light"] .topHorizonArc, .page[data-theme="light"] .bottomHorizonArc { opacity: 0.62; filter: blur(2.4px) !important; }
 
 /* Mobile Responsiveness for Composer & Controls */
 @media (max-width: 768px) {

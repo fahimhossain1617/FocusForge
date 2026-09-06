@@ -560,3 +560,20 @@
   transform: scale(0.97);
 }
 
+/* The voice stage keeps its depth, but lets the transcript and controls lead. */
+.voiceOverlay {
+  background-image: radial-gradient(ellipse 62% 42% at 50% 50%, rgba(29,78,216,0.10), transparent 60%), radial-gradient(ellipse 90% 42% at 50% 100%, rgba(29,78,216,0.14), rgba(2,6,18,0.65) 52%, #010206 100%);
+}
+.ambientGlowLeft, .ambientGlowRight { opacity: 0.68; filter: blur(72px); }
+.bottomUpwardGlow { opacity: 0.68; filter: blur(58px); background: radial-gradient(ellipse at 50% 100%, rgba(37,99,235,0.17), rgba(14,165,233,0.055) 46%, transparent 74%); }
+.bottomArcSvg { filter: drop-shadow(0 -4px 15px rgba(37,99,235,0.15)); }
+.voiceControlBox { box-shadow: 0 12px 30px rgba(0,0,0,0.38), inset 0 1px 1px rgba(255,255,255,0.10); }
+.voiceActionButton { box-shadow: 0 3px 12px rgba(37,99,235,0.28), inset 0 1px 1px rgba(255,255,255,0.26); }
+.voiceActionButton:hover { box-shadow: 0 5px 16px rgba(37,99,235,0.34), inset 0 1px 1px rgba(255,255,255,0.30); }
+.pulseDot { box-shadow: 0 0 6px rgba(56,189,248,0.70); }
+
+:global([data-theme="light"]) .voiceOverlay, .voiceOverlay[data-theme="light"] {
+  background-image: radial-gradient(ellipse 65% 45% at 50% 48%, rgba(59,130,246,0.075), transparent 62%), radial-gradient(ellipse 92% 40% at 50% 100%, rgba(37,99,235,0.095), transparent 70%), linear-gradient(180deg, #FFFFFF, #F5F9FF) !important;
+}
+:global([data-theme="light"]) .bottomUpwardGlow, .voiceOverlay[data-theme="light"] .bottomUpwardGlow { opacity: 0.62; filter: blur(58px); }
+

@@ -4,7 +4,7 @@ export type AIAgentLanguage = "auto" | "bn" | "en";
 export type AIAgentModel = "smart" | "fast" | "planning";
 export type AIAgentIntent =
   | "PROBLEM_SOLVER" | "IDEA_CAPTURE" | "NOTES_FILES" | "PLANNER_CREATE" 
-  | "FOCUS_SESSION" | "LEARNING_HUB" | "GREETING_OR_GENERAL";
+  | "FOCUS_SESSION" | "LEARNING_HUB" | "GREETING_OR_GENERAL" | "REQUIRE_LOGIN";
 
 export interface WorkspaceContext {
   tasks: Task[];

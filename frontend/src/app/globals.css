@@ -1584,6 +1584,119 @@ select.voice-lang-select:focus {
   padding: 10px 24px 10px 10px !important;
 }
 
+/* =========================================================
+   PREMIUM COHESION PASS
+   A deliberately quiet final layer for shared product surfaces.  These rules
+   keep legacy utilities participating in the same light/dark system without
+   changing their component semantics.
+   ========================================================= */
+:root {
+  --surface-1: rgba(13, 24, 43, 0.72);
+  --surface-2: rgba(6, 10, 18, 0.82);
+  --surface-border: rgba(148, 163, 184, 0.14);
+  --shadow-card: 0 10px 28px rgba(0, 0, 0, 0.28);
+  --shadow-float: 0 20px 52px rgba(0, 0, 0, 0.42);
+  --focus-ring: 0 0 0 3px rgba(59, 130, 246, 0.18);
+}
+
+button, input, select, textarea, a {
+  transition-duration: 160ms;
+  transition-timing-function: cubic-bezier(0.2, 0, 0, 1);
+}
+
+.card, .card-elevated, .planner-highlight-card {
+  border-color: var(--surface-border) !important;
+  box-shadow: var(--shadow-card), inset 0 1px 0 rgba(255, 255, 255, 0.045) !important;
+}
+.card:hover, .card-elevated:hover, .planner-highlight-card:hover {
+  border-color: rgba(96, 165, 250, 0.28) !important;
+  box-shadow: 0 13px 32px rgba(0, 0, 0, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.055) !important;
+}
+
+.btn-primary, .btn-accent-solid {
+  background: linear-gradient(135deg, #2563EB, #3B82F6) !important;
+  color: #fff !important;
+  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.24) !important;
+}
+.btn-primary:hover, .btn-accent-solid:hover {
+  background: linear-gradient(135deg, #1D4ED8, #2563EB) !important;
+  box-shadow: 0 8px 20px rgba(37, 99, 235, 0.30) !important;
+  transform: translateY(-1px);
+}
+.btn-primary:active, .btn-accent-solid:active { transform: translateY(0) scale(0.985); }
+.btn-secondary {
+  border-color: var(--surface-border) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.04) !important;
+}
+.btn-ghost:hover { background: rgba(59, 130, 246, 0.09) !important; color: var(--text-primary) !important; }
+
+button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible, [role="button"]:focus-visible {
+  outline: none !important;
+  box-shadow: var(--focus-ring) !important;
+}
+
+/* Native option popups must participate in the active theme as well. */
+:root[data-theme="light"] select { color-scheme: light !important; }
+:root[data-theme="light"] option, :root[data-theme="light"] optgroup,
+:root[data-theme="light"] select option {
+  background-color: #FFFFFF !important;
+  color: #1E293B !important;
+}
+:root[data-theme="light"] select option:checked { background-color: #DBEAFE !important; color: #1D4ED8 !important; }
+
+:root[data-theme="light"] {
+  --bg-void: #F7F9FD;
+  --bg-base: #F9FBFE;
+  --bg-elevated: #FFFFFF;
+  --bg-section-grad: linear-gradient(150deg, #FFFFFF 0%, #F3F7FD 52%, #F9FBFF 100%);
+  --surface-1: rgba(255, 255, 255, 0.82);
+  --surface-2: rgba(246, 249, 254, 0.92);
+  --surface-border: rgba(30, 64, 116, 0.10);
+  --shadow-card: 0 8px 24px rgba(15, 23, 42, 0.065);
+  --shadow-float: 0 18px 44px rgba(15, 23, 42, 0.12);
+  --focus-ring: 0 0 0 3px rgba(59, 130, 246, 0.14);
+}
+:root[data-theme="light"] body {
+  background-image: radial-gradient(circle at 88% -12%, rgba(59, 130, 246, 0.11), transparent 25%), radial-gradient(circle at 4% 102%, rgba(14, 165, 233, 0.045), transparent 28%), var(--bg-section-grad) !important;
+}
+:root[data-theme="light"] .sidebar {
+  background: rgba(255,255,255,0.90) !important;
+  border-right-color: rgba(30, 64, 116, 0.09) !important;
+  box-shadow: 6px 0 28px rgba(15, 23, 42, 0.045) !important;
+}
+:root[data-theme="light"] .card, :root[data-theme="light"] .card-elevated,
+:root[data-theme="light"] .planner-highlight-card, :root[data-theme="light"] .note-card {
+  background: linear-gradient(145deg, rgba(255,255,255,0.88), rgba(247,250,255,0.72)) !important;
+  border-color: var(--surface-border) !important;
+  box-shadow: var(--shadow-card), inset 0 1px 0 rgba(255,255,255,0.85) !important;
+}
+:root[data-theme="light"] .note-card:hover {
+  transform: translateY(-3px) !important;
+  box-shadow: 0 13px 30px rgba(15, 23, 42, 0.09), inset 0 1px 0 #fff !important;
+}
+:root[data-theme="light"] .btn-secondary {
+  background: rgba(255,255,255,0.78) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--surface-border) !important;
+}
+:root[data-theme="light"] .btn-ghost { border-color: transparent !important; }
+:root[data-theme="light"] .btn-ghost:hover { background: rgba(59,130,246,0.07) !important; }
+:root[data-theme="light"] .app-modal-panel, :root[data-theme="light"] .app-capture-modal,
+:root[data-theme="light"] .focus-dialog, :root[data-theme="light"] .completion-modal, :root[data-theme="light"] .app-toast,
+:root[data-theme="light"] .note-more-menu, :root[data-theme="light"] .note-command-menu,
+:root[data-theme="light"] .block-color-toolbar, :root[data-theme="light"] .custom-color-popover,
+:root[data-theme="light"] .calendar-popover {
+  background: linear-gradient(145deg, rgba(255,255,255,0.96), rgba(246,249,254,0.94)) !important;
+  border-color: var(--surface-border) !important;
+  box-shadow: var(--shadow-float), inset 0 1px 0 rgba(255,255,255,0.9) !important;
+}
+:root[data-theme="light"] .note-more-menu > button, :root[data-theme="light"] .note-command-menu button { color: var(--text-secondary) !important; }
+:root[data-theme="light"] .note-more-menu > button:hover, :root[data-theme="light"] .note-command-menu button:hover { color: var(--text-primary) !important; background: rgba(59,130,246,0.08) !important; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; }
+}
+
 /* ========================================================= */
 /* PROGRESSIVE WEB APP (PWA) & RESPONSIVE ADAPTATIONS       */
 /* ========================================================= */

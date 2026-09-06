@@ -126,26 +126,38 @@ export async function sendAgentMessage(
   const token = await getToken();
   const guestId = getGuestId();
 
-  const res = await fetch(`${API_URL}/ai/agent/chat`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      'x-guest-id': guestId,
-      'x-app-lang': lang,
-    },
-    body: JSON.stringify({ sessionId, message, context, history })
-  });
-  
-  if (!res.ok) {
-    const errorData = await res.json().catch(() => ({}));
-    const error: any = new Error(errorData.message || errorData.error || "Failed to process chat message");
-    error.code = errorData.code;
-    error.tokenStatus = errorData.tokenStatus;
-    throw error;
+  try {
+    const res = await fetch(`${API_URL}/ai/agent/chat`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        'x-guest-id': guestId,
+        'x-app-lang': lang,
+      },
+      body: JSON.stringify({ sessionId, message, context, history })
+    });
+    
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => ({}));
+      const error: any = new Error(errorData.message || errorData.error || "Failed to process chat message");
+      error.code = errorData.code;
+      error.tokenStatus = errorData.tokenStatus;
+      throw error;
+    }
+    
+    return await res.json();
+  } catch (err: any) {
+    if (err.name === 'TypeError' || err.message === 'Failed to fetch' || err.message?.includes('fetch')) {
+      const offlineMsg = lang === "bn"
+        ? "ব্যাকএন্ড সার্ভার রেসপন্স করছে না (http://localhost:5000)। অনুগ্রহ করে নিশ্চিত করুন backend সার্ভিসটি চালু আছে (`npm run dev --prefix backend`)।"
+        : "Could not connect to the backend server (http://localhost:5000). Please make sure backend service is running (`npm run dev --prefix backend`).";
+      const error: any = new Error(offlineMsg);
+      error.code = 'BACKEND_OFFLINE';
+      throw error;
+    }
+    throw err;
   }
-  
-  return res.json();
 }
 
 export async function transcribeAudioBlob(blob: Blob, language?: string): Promise<string> {

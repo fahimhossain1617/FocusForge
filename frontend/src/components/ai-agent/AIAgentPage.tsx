@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Check, ChevronDown, Mic, Send, MoreVertical, Trash2, Calendar, Sparkles, AlertCircle } from "lucide-react";
+import { Check, ChevronDown, Mic, Send, MoreVertical, Trash2, Calendar, Sparkles, AlertCircle, LogIn } from "lucide-react";
 import { useAppContext } from "@/context/AppContext";
 import { useAuth } from "@/context/AuthContext";
 import { useAIAgent } from "@/hooks/useAIAgent";
@@ -99,14 +99,14 @@ function CustomSelect<T extends string>({
                 type="button"
                 role="option"
                 aria-selected={isSelected}
-                className={`${styles.customDropdownItem} ${isSelected ? styles.customDropdownItemActive : ""}`}
+                className={`${styles.customOption} ${isSelected ? styles.customOptionSelected : ""}`}
                 onClick={() => {
                   onChange(option.value);
                   setOpen(false);
                 }}
               >
                 <span>{option.label}</span>
-                {isSelected && <Check size={13} className={styles.checkIcon} />}
+                {isSelected && <Check size={14} className={styles.optionCheck} />}
               </button>
             );
           })}
@@ -116,16 +116,18 @@ function CustomSelect<T extends string>({
   );
 }
 
-export default function AIAgentPage() {
-  const { state, updateState, addTask, updateTask, showToast, navigateTo, addMindItem, addNote } = useAppContext();
-  const isLight = state?.theme?.mode === "light";
-  const { user } = useAuth();
-  const isSystemBn = state?.lang === "bn";
-  const [input, setInput] = useState("");
-  const [language, setLanguage] = useState<AIAgentLanguage>(isSystemBn ? "bn" : "en");
+export function AIAgentPage() {
+  const { state, showToast, navigateTo, addTask, addTimeBlock, addMindItem, addNote, startFocusSession } = useAppContext();
+  const { user, openAuth } = useAuth();
+  const isLight = state.theme?.mode === "light";
+  const isSystemBn = state.lang === "bn";
+
   const [model, setModel] = useState<AIAgentModel>("smart");
+  const [language, setLanguage] = useState<AIAgentLanguage>(isSystemBn ? "bn" : "en");
+  const [input, setInput] = useState("");
   const [voiceOpen, setVoiceOpen] = useState(false);
-  const baseInputRef = useRef("");
+
+  const baseInputRef = useRef<string>("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const composerRef = useRef<HTMLDivElement>(null);
@@ -139,7 +141,7 @@ export default function AIAgentPage() {
   }, [state?.lang]);
 
   const context = useMemo(() => ({ tasks: state.tasks, notesCount: state.notes.length, timeBlocksCount: state.timeBlocks.length, productivityScore: state.productivityScore }), [state.tasks, state.notes.length, state.timeBlocks.length, state.productivityScore]);
-  const { messages, sessions, activeSessionId, tokenStatus, isThinking, error, send, setMessages, createNewSession, selectSession, removeSession } = useAIAgent(context, isSystemBn ? "bn" : "en");
+  const { messages, sessions, activeSessionId, tokenStatus, isThinking, error, send, setMessages, createNewSession, selectSession, removeSession, guestLimitExceeded } = useAIAgent(context, isSystemBn ? "bn" : "en");
   const name = user?.fullName || user?.displayName || "there";
   const quickActions = isSystemBn ? quickActionsBn : quickActionsEn;
   
@@ -179,8 +181,14 @@ export default function AIAgentPage() {
     };
   }, []);
 
-  const submit = async (value = input) => { if (!value.trim()) return; setInput(""); await send(value, language); };
+  const submit = async (value = input) => { 
+    if (!value.trim() || guestLimitExceeded) return; 
+    setInput(""); 
+    await send(value, language); 
+  };
+  
   const startVoice = () => {
+    if (guestLimitExceeded) return;
     baseInputRef.current = input.trim();
     setVoiceOpen(true);
   };
@@ -193,11 +201,10 @@ export default function AIAgentPage() {
     const el = textareaRef.current;
     if (!el) return;
 
-    // Reset height momentarily to measure scrollHeight accurately
     el.style.height = "auto";
 
-    const minHeight = 44; // single-line height with padding
-    const maxHeight = 200; // fits up to ~500 characters cleanly without scrolling
+    const minHeight = 44;
+    const maxHeight = 200;
     const scrollHeight = el.scrollHeight;
 
     if (scrollHeight <= minHeight) {
@@ -212,12 +219,10 @@ export default function AIAgentPage() {
     }
   }, []);
 
-  // Recalculate on any input change (grows and shrinks dynamically)
   useEffect(() => {
     adjustTextareaHeight();
   }, [input, adjustTextareaHeight]);
 
-  // Recalculate on window resize
   useEffect(() => {
     window.addEventListener("resize", adjustTextareaHeight);
     return () => window.removeEventListener("resize", adjustTextareaHeight);
@@ -238,13 +243,11 @@ export default function AIAgentPage() {
 
   return (
     <section className={styles.page} data-theme={isLight ? "light" : "dark"} aria-label="FocusForge AI Agent">
-      {/* 1. FIXED CELESTIAL HORIZON ARCS (Never shifts with text or scroll) */}
       <div className={styles.fixedArcContainer} aria-hidden="true">
         <div className={styles.topHorizonArc} />
         <div className={styles.bottomHorizonArc} />
       </div>
 
-      {/* 2. Top Header - strictly title text, no icons, no subtitles */}
       <header className={styles.header}>
         <div className={styles.title}>
           <p style={{ margin: 0, fontSize: '1.25rem', fontWeight: 600, letterSpacing: '-0.01em' }}>
@@ -252,26 +255,6 @@ export default function AIAgentPage() {
           </p>
         </div>
         <div className={styles.headerActions}>
-          {/* 5,000 Token Quota Indicator */}
-          <div
-            className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border shadow-xs transition-colors"
-            style={{
-              background: tokenStatus?.isExhausted ? "rgba(239, 68, 68, 0.12)" : "var(--color-bg-card)",
-              borderColor: tokenStatus?.isExhausted ? "rgba(239, 68, 68, 0.4)" : "var(--color-border-subtle)",
-              color: tokenStatus?.isExhausted ? "#ef4444" : "var(--color-text-secondary)"
-            }}
-            title={tokenStatus ? (isSystemBn ? `টোকেন রিসেট হওয়ার তারিখ: ${tokenStatus.formattedResetDate}` : `Tokens reset on: ${tokenStatus.formattedResetDate}`) : ""}
-          >
-            <Sparkles size={13} className={tokenStatus?.isExhausted ? "text-red-400" : "text-violet-400"} />
-            <span className="font-mono text-[11px] sm:text-xs">
-              {tokenStatus
-                ? (isSystemBn 
-                    ? `${toBnNum(tokenStatus.remaining)} / ৫,০০০ টোকেন` 
-                    : `${tokenStatus.remaining.toLocaleString()} / 5,000 tokens`)
-                : (isSystemBn ? "৫,০০০ / ৫,০০০ টোকেন" : "5,000 / 5,000 tokens")}
-            </span>
-          </div>
-
           <div ref={historyMenuRef} style={{ position: 'relative' }}>
             <button 
               className={styles.iconButton} 
@@ -299,14 +282,13 @@ export default function AIAgentPage() {
                     {isSystemBn ? 'কোনো পূর্ববর্তী চ্যাট নেই' : 'No past sessions'}
                   </div>
                 ) : (
-                  sessions.map(session => (
-                    <div key={session.id} className={`${styles.historyItem} ${session.id === activeSessionId ? styles.activeHistoryItem : ''}`}>
-                      <button 
-                        className={styles.historyItemBtn}
-                        onClick={() => { selectSession(session.id); setShowHistory(false); }}
-                      >
-                        {session.title}
-                      </button>
+                  sessions.map((session) => (
+                    <div 
+                      key={session.id} 
+                      className={`${styles.historyItem} ${session.id === activeSessionId ? styles.activeHistory : ''}`}
+                      onClick={() => { selectSession(session.id); setShowHistory(false); }}
+                    >
+                      <span className={styles.historyTitle}>{session.title}</span>
                       <button 
                         className={styles.historyDeleteBtn}
                         onClick={(e) => { e.stopPropagation(); removeSession(session.id); }}
@@ -324,7 +306,6 @@ export default function AIAgentPage() {
         </div>
       </header>
 
-      {/* 3. Main Scrollable Chat Area */}
       <div className={styles.chatArea} ref={chatAreaRef}>
         {messages.length === 0 ? (
           <div className={styles.heroWrapper}>
@@ -336,7 +317,7 @@ export default function AIAgentPage() {
             </div>
             <div className={styles.quickActionsHero}>
               {quickActions.map((action) => (
-                <button key={action} onClick={() => submit(action)} disabled={isThinking}>
+                <button key={action} onClick={() => submit(action)} disabled={isThinking || guestLimitExceeded}>
                   {action}
                 </button>
               ))}
@@ -348,16 +329,17 @@ export default function AIAgentPage() {
               <div key={message.id} className={`${styles.message} ${message.role === "user" ? styles.user : styles.assistant}`}>
                 <div className={styles.messageLabel}>{message.role === "user" ? "You" : "FocusForge AI"}</div>
                 <p>{message.content}</p>
+
                 {/* 1. PLANNER_CREATE */}
                 {message.payload && message.intent === 'PLANNER_CREATE' && (
                   <div className={styles.proposal}>
                     <div>
                       <strong>
-                        {language === 'bn' ? 'স্টাডি / টাস্ক প্ল্যান' : 'Planner Tasks'}
+                        {isSystemBn ? 'স্টাডি / টাস্ক প্ল্যান' : 'Planner Tasks'}
                       </strong>
                       <span>
                         {Array.isArray(message.payload.tasks) 
-                          ? `${message.payload.tasks.length} ${language === 'bn' ? 'টি টাস্ক পাওয়া গেছে' : 'tasks generated'}`
+                          ? `${message.payload.tasks.length} ${isSystemBn ? 'টি টাস্ক পাওয়া গেছে' : 'tasks generated'}`
                           : (message.payload.title || 'New Task')}
                       </span>
                     </div>
@@ -365,46 +347,89 @@ export default function AIAgentPage() {
                       <button className={styles.confirm} onClick={() => {
                         const fallbackDate = message.payload.targetDate || new Date().toISOString().split('T')[0];
                         if (Array.isArray(message.payload.tasks)) {
-                          message.payload.tasks.forEach((t: any) => {
-                            const totalMins = t.estimatedMinutes || 30;
+                          message.payload.tasks.forEach((t: any, idx: number) => {
+                            const totalMins = t.estimatedMinutes || 60;
+                            const taskId = Date.now() + idx + Math.floor(Math.random() * 1000);
+                            const taskDate = t.targetDate || fallbackDate;
+                            const taskTitle = t.title || 'New Study Task';
+                            
+                            const startHour = 10 + (idx * 2);
+                            const startTime = t.time || `${String(startHour).padStart(2, '0')}:00`;
+                            const endHour = startHour + Math.max(1, Math.ceil(totalMins / 60));
+                            const endTime = `${String(endHour).padStart(2, '0')}:00`;
+
                             addTask({
-                              name: t.title || 'New Task',
+                              id: taskId,
+                              name: taskTitle,
+                              title: taskTitle,
                               priority: t.priority || 'medium',
                               estHours: Math.floor(totalMins / 60),
                               estMinutes: totalMins % 60,
-                              targetDate: t.targetDate || fallbackDate,
+                              targetDate: taskDate,
+                              date: taskDate,
+                              time: startTime,
                               category: 'Study',
                               status: 'not_started',
-                              notes: '',
+                              notes: t.enableNotification ? '[Notification Reminders: ON]' : '',
                               tier: 'now'
                             });
+
+                            addTimeBlock({
+                              date: taskDate,
+                              startTime: startTime,
+                              endTime: endTime,
+                              label: taskTitle,
+                              category: 'Study',
+                              isBreak: false,
+                              taskId: taskId,
+                            });
                           });
-                          showToast(language === 'bn' ? 'সবগুলো টাস্ক সফলভাবে প্ল্যানারে যুক্ত হয়েছে!' : 'Tasks added to your planner!', "success");
+                          showToast(isSystemBn ? 'সবগুলো টাস্ক ও রুটিন ব্লকে সফলভাবে প্ল্যানারে যুক্ত হয়েছে!' : 'Tasks & time blocks added to your planner!', "success");
                         } else {
-                          const totalMins = message.payload.estimatedMinutes || 30;
+                          const totalMins = message.payload.estimatedMinutes || 60;
+                          const taskId = Date.now() + Math.floor(Math.random() * 1000);
+                          const taskDate = message.payload.targetDate || fallbackDate;
+                          const taskTitle = message.payload.title || 'New Study Task';
+                          const startTime = message.payload.time || "10:00";
+                          const endTime = "11:00";
+
                           addTask({
-                            name: message.payload.title || 'New Task',
+                            id: taskId,
+                            name: taskTitle,
+                            title: taskTitle,
                             priority: message.payload.priority || 'medium',
                             estHours: Math.floor(totalMins / 60),
                             estMinutes: totalMins % 60,
-                            targetDate: message.payload.targetDate || fallbackDate,
+                            targetDate: taskDate,
+                            date: taskDate,
+                            time: startTime,
                             category: 'Study',
                             status: 'not_started',
-                            notes: '',
+                            notes: message.payload.enableNotification ? '[Notification Reminders: ON]' : '',
                             tier: 'now'
                           });
-                          showToast(language === 'bn' ? 'টাস্ক সফলভাবে প্ল্যানারে যুক্ত হয়েছে!' : 'Task added to your planner!', "success");
+
+                          addTimeBlock({
+                            date: taskDate,
+                            startTime: startTime,
+                            endTime: endTime,
+                            label: taskTitle,
+                            category: 'Study',
+                            isBreak: false,
+                            taskId: taskId,
+                          });
+                          showToast(isSystemBn ? 'টাস্ক ও রুটিন ব্লক সফলভাবে প্ল্যানারে যুক্ত হয়েছে!' : 'Task & time block added to your planner!', "success");
                         }
                         setMessages(items => items.map(i => i.id === message.id ? { ...i, payload: null } : i));
                         navigateTo('planner');
                       }}>
-                        <Check size={14} /> {language === 'bn' ? 'অটোমেটিক যুক্ত করুন' : 'Auto Add'}
+                        <Check size={14} /> {isSystemBn ? 'অটোমেটিক যুক্ত করুন' : 'Auto Add'}
                       </button>
                       <button className={styles.secondary} onClick={() => {
-                        showToast(language === 'bn' ? 'প্ল্যানার খোলা হচ্ছে...' : 'Opening Planner...', 'info');
+                        showToast(isSystemBn ? 'প্ল্যানার খোলা হচ্ছে...' : 'Opening Planner...', 'info');
                         navigateTo('planner');
                       }}>
-                        <Calendar size={14} /> {language === 'bn' ? 'ম্যানুয়ালি দেখুন' : 'Manual View'}
+                        <Calendar size={14} /> {isSystemBn ? 'ম্যানুয়ালি দেখুন' : 'Manual View'}
                       </button>
                     </div>
                   </div>
@@ -414,18 +439,18 @@ export default function AIAgentPage() {
                 {message.payload && message.intent === 'PROBLEM_SOLVER' && (
                   <div className={styles.proposal}>
                     <div>
-                      <strong>{language === 'bn' ? 'সমস্যা সমাধান' : 'Problem Solver'}</strong>
+                      <strong>{isSystemBn ? 'সমস্যা সমাধান' : 'Problem Solver'}</strong>
                       <span>{message.payload.problem || 'Action plan ready'}</span>
                     </div>
                     <div className={styles.proposalActions}>
                       <button className={styles.confirm} onClick={() => {
                         const content = `[Problem]: ${message.payload.problem || ''}\n\nSteps:\n${(message.payload.solutionSteps || []).map((s: string, idx: number) => `${idx + 1}. ${s}`).join('\n')}`;
                         addMindItem(content, 'problem_solver');
-                        showToast(language === 'bn' ? 'সমস্যা মাইন্ডে সেভ করা হয়েছে' : 'Saved to Problem Solver!', 'success');
+                        showToast(isSystemBn ? 'সমস্যা মাইন্ডে সেভ করা হয়েছে' : 'Saved to Problem Solver!', 'success');
                         setMessages(items => items.map(i => i.id === message.id ? { ...i, payload: null } : i));
                         navigateTo('mind');
                       }}>
-                        <Check size={14} /> {language === 'bn' ? 'সেভ করুন' : 'Save'}
+                        <Check size={14} /> {isSystemBn ? 'সেভ করুন' : 'Save'}
                       </button>
                     </div>
                   </div>
@@ -435,18 +460,18 @@ export default function AIAgentPage() {
                 {message.payload && message.intent === 'IDEA_CAPTURE' && (
                   <div className={styles.proposal}>
                     <div>
-                      <strong>{language === 'bn' ? 'আইডিয়া ক্যাপচার' : 'Idea Capture'}</strong>
+                      <strong>{isSystemBn ? 'আইডিয়া ক্যাপচার' : 'Idea Capture'}</strong>
                       <span>{message.payload.idea || 'Creative thought'}</span>
                     </div>
                     <div className={styles.proposalActions}>
                       <button className={styles.confirm} onClick={() => {
                         const content = `[Idea]: ${message.payload.idea || ''}\n\nKey Points:\n${(message.payload.keyPoints || []).map((k: string) => `- ${k}`).join('\n')}`;
                         addMindItem(content, 'idea_capture');
-                        showToast(language === 'bn' ? 'আইডিয়া সেভ করা হয়েছে' : 'Saved to Ideas!', 'success');
+                        showToast(isSystemBn ? 'আইডিয়া সেভ করা হয়েছে' : 'Saved to Ideas!', 'success');
                         setMessages(items => items.map(i => i.id === message.id ? { ...i, payload: null } : i));
                         navigateTo('mind');
                       }}>
-                        <Check size={14} /> {language === 'bn' ? 'সেভ করুন' : 'Save'}
+                        <Check size={14} /> {isSystemBn ? 'সেভ করুন' : 'Save'}
                       </button>
                     </div>
                   </div>
@@ -456,7 +481,7 @@ export default function AIAgentPage() {
                 {message.payload && message.intent === 'NOTES_FILES' && (
                   <div className={styles.proposal}>
                     <div>
-                      <strong>{language === 'bn' ? 'নোটস ও ফাইলস' : 'Notes & Files'}</strong>
+                      <strong>{isSystemBn ? 'নোটস ও ফাইলস' : 'Notes & Files'}</strong>
                       <span>{message.payload.title || 'New Note'}</span>
                     </div>
                     <div className={styles.proposalActions}>
@@ -470,11 +495,11 @@ export default function AIAgentPage() {
                           }],
                           category: 'AI Generated',
                         });
-                        showToast(language === 'bn' ? 'নোট তৈরি হয়েছে!' : 'Note created successfully!', 'success');
+                        showToast(isSystemBn ? 'নোট তৈরি হয়েছে!' : 'Note created successfully!', 'success');
                         setMessages(items => items.map(i => i.id === message.id ? { ...i, payload: null } : i));
                         navigateTo('tasks');
                       }}>
-                        <Check size={14} /> {language === 'bn' ? 'নোট সেভ ও খুলুন' : 'Save & Open Notes'}
+                        <Check size={14} /> {isSystemBn ? 'নোট সেভ ও খুলুন' : 'Save & Open Notes'}
                       </button>
                     </div>
                   </div>
@@ -484,15 +509,22 @@ export default function AIAgentPage() {
                 {message.payload && message.intent === 'FOCUS_SESSION' && (
                   <div className={styles.proposal}>
                     <div>
-                      <strong>{language === 'bn' ? 'ফোকাস সেশন' : 'Focus Session'}</strong>
+                      <strong>{isSystemBn ? 'ফোকাস সেশন' : 'Focus Session'}</strong>
                       <span>{message.payload.durationMinutes || 25} min • {message.payload.goal || 'Deep Work'}</span>
                     </div>
                     <div className={styles.proposalActions}>
                       <button className={styles.confirm} onClick={() => {
-                        showToast(language === 'bn' ? 'ফোকাস মোড খোলা হচ্ছে...' : 'Opening Focus Mode...', 'info');
+                        startFocusSession(
+                          message.payload.goal || 'Deep Work Session',
+                          'Study',
+                          undefined,
+                          message.payload.durationMinutes || 25
+                        );
+                        showToast(isSystemBn ? 'ফোকাস সেশন শুরু হয়েছে!' : 'Focus session started!', 'success');
+                        setMessages(items => items.map(i => i.id === message.id ? { ...i, payload: null } : i));
                         navigateTo('focus');
                       }}>
-                        <Check size={14} /> {language === 'bn' ? 'টাইমার শুরু' : 'Start'}
+                        <Check size={14} /> {isSystemBn ? 'টাইমার শুরু' : 'Start'}
                       </button>
                     </div>
                   </div>
@@ -502,21 +534,48 @@ export default function AIAgentPage() {
                 {message.payload && message.intent === 'LEARNING_HUB' && (
                   <div className={styles.proposal}>
                     <div>
-                      <strong>{language === 'bn' ? 'স্কিল বিল্ডার' : 'Skill Builder'}</strong>
+                      <strong>{isSystemBn ? 'স্কিল বিল্ডার' : 'Skill Builder'}</strong>
                       <span>{message.payload.skillName || 'Skill'} • {message.payload.learningTopic || 'Track Learning'}</span>
                     </div>
                     <div className={styles.proposalActions}>
                       <button className={styles.confirm} onClick={() => {
-                        showToast(language === 'bn' ? 'স্কিল বিল্ডার খোলা হচ্ছে...' : 'Opening Learning Hub...', 'info');
+                        showToast(isSystemBn ? 'স্কিল বিল্ডার খোলা হচ্ছে...' : 'Opening Learning Hub...', 'info');
                         navigateTo('learning');
                       }}>
-                        <Check size={14} /> {language === 'bn' ? 'হাব খুলুন' : 'Open'}
+                        <Check size={14} /> {isSystemBn ? 'হাব খুলুন' : 'Open'}
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* 7. REQUIRE_LOGIN (Guest limit reached) */}
+                {(message.intent === 'REQUIRE_LOGIN' || message.payload?.requireLogin) && (
+                  <div className={styles.proposal} style={{ borderColor: 'rgba(99, 102, 241, 0.4)', background: 'rgba(99, 102, 241, 0.08)' }}>
+                    <div>
+                      <strong style={{ color: '#818cf8', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <Sparkles size={15} />
+                        {isSystemBn ? 'লগইন প্রয়োজন' : 'Login Required'}
+                      </strong>
+                      <span>
+                        {isSystemBn 
+                          ? 'আনলিমিটেড AI ও চ্যাট হিস্ট্রি সেভ রাখতে লগইন করুন' 
+                          : 'Log in to save your history and unlock unlimited AI features'}
+                      </span>
+                    </div>
+                    <div className={styles.proposalActions}>
+                      <button 
+                        className={styles.confirm} 
+                        style={{ background: 'linear-gradient(135deg, #6366f1, #4f46e5)', color: '#fff' }}
+                        onClick={() => openAuth('initial')}
+                      >
+                        <LogIn size={15} /> {isSystemBn ? 'লগইন করুন' : 'Log In Now'}
                       </button>
                     </div>
                   </div>
                 )}
               </div>
             ))}
+
             {isThinking && (
               <div className={`${styles.message} ${styles.assistant}`}>
                 <div className={styles.messageLabel}>{isSystemBn ? "ফোকাসফোর্স AI" : "FocusForge AI"}</div>
@@ -540,42 +599,11 @@ export default function AIAgentPage() {
         )}
       </div>
 
-      {/* 4. Pinned Bottom Composer Section */}
       <div className={styles.composerWrapper} ref={composerRef}>
-        {/* Token Exhausted Alert Banner */}
-        {tokenStatus?.isExhausted && (
-          <div 
-            className="p-3.5 mb-3 rounded-xl border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-sm"
-            style={{
-              background: "rgba(239, 68, 68, 0.09)",
-              borderColor: "rgba(239, 68, 68, 0.35)",
-              color: "var(--color-text-primary)"
-            }}
-            role="alert"
-          >
-            <div className="flex items-center gap-2.5 text-sm">
-              <AlertCircle className="w-5 h-5 text-red-400 shrink-0" />
-              <div>
-                <p className="font-semibold text-red-400 text-sm">
-                  {isSystemBn ? "আপনার ৫,০০০ AI টোকেন শেষ হয়ে গেছে" : "Your 5,000 AI tokens have been exhausted"}
-                </p>
-                <p className="text-xs text-[var(--color-text-muted)] mt-0.5">
-                  {isSystemBn
-                    ? `টোকেন রিসেট হওয়ার তারিখ: ${tokenStatus.formattedResetDate} (বাকি: ${tokenStatus.formattedRemainingTime})`
-                    : `Tokens will reset on: ${tokenStatus.formattedResetDate} (${tokenStatus.formattedRemainingTime} remaining)`}
-                </p>
-              </div>
-            </div>
-            <div className="text-xs px-2.5 py-1 rounded-md bg-red-500/15 text-red-400 font-mono shrink-0 font-medium">
-              {tokenStatus.formattedRemainingTime}
-            </div>
-          </div>
-        )}
-
-        {messages.length > 0 && !tokenStatus?.isExhausted && (
+        {messages.length > 0 && !guestLimitExceeded && (
           <div className={styles.quickActionsInline}>
             {quickActions.slice(0, 4).map((action) => (
-              <button key={action} onClick={() => submit(action)} disabled={isThinking}>
+              <button key={action} onClick={() => submit(action)} disabled={isThinking || guestLimitExceeded}>
                 {action}
               </button>
             ))}
@@ -586,7 +614,7 @@ export default function AIAgentPage() {
           <textarea
             ref={textareaRef}
             value={input}
-            disabled={isThinking || tokenStatus?.isExhausted}
+            disabled={isThinking || guestLimitExceeded}
             onChange={(event) => {
               setInput(event.target.value);
               requestAnimationFrame(adjustTextareaHeight);
@@ -603,10 +631,10 @@ export default function AIAgentPage() {
               }
             }}
             placeholder={
-              tokenStatus?.isExhausted
+              guestLimitExceeded
                 ? (isSystemBn 
-                    ? `টোকেন শেষ। রিসেট তারিখ: ${tokenStatus.formattedResetDate}` 
-                    : `Tokens exhausted. Resets on: ${tokenStatus.formattedResetDate}`)
+                    ? "গেস্ট লিমিট শেষ। ব্যবহার চালিয়ে যেতে লগইন করুন..." 
+                    : "Guest limit reached. Please log in to continue...")
                 : (isSystemBn ? "টাস্ক, স্টাডি প্ল্যান, ফোকাস, নোটস, আইডিয়া বা সমস্যা সম্পর্কে বলুন..." : "Ask me anything about your tasks, routine, goals, or productivity...")
             }
             aria-label="Message FocusForge AI"
@@ -620,7 +648,7 @@ export default function AIAgentPage() {
               <button
                 className={`${styles.voiceButton} ${voiceOpen ? styles.listening : ""}`}
                 onClick={voiceOpen ? stopVoice : startVoice}
-                disabled={tokenStatus?.isExhausted}
+                disabled={guestLimitExceeded}
                 aria-label={voiceOpen ? "Stop voice input" : "Start voice input"}
                 aria-pressed={voiceOpen}
               >
@@ -650,3 +678,5 @@ export default function AIAgentPage() {
     </section>
   );
 }
+
+export default AIAgentPage;

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { ArrowRight, CheckCircle2, Download, MoreVertical, Smartphone, Sparkles, X } from "lucide-react";
 import { useTranslation } from "@/hooks/useTranslation";
 import { useAppContext } from "@/context/AppContext";
@@ -88,65 +88,73 @@ export const ProductTour: React.FC<ProductTourProps> = ({
     }
   };
 
-  const steps: TourStep[] = [
-    {
-      id: "dashboard",
-      targetSelector: '[data-tour="tour-today"]',
-      title: ob.dashboard.title,
-      desc: ob.dashboard.desc,
-    },
-    {
-      id: "planner",
-      targetSelector: '[data-tour="tour-planner"]',
-      title: ob.planner.title,
-      desc: ob.planner.desc,
-    },
-    {
-      id: "aiAgent",
-      targetSelector: '[data-tour="tour-ai-agent"]',
-      title: ob.aiAgent.title,
-      desc: ob.aiAgent.desc,
-    },
-    {
-      id: "workspace",
-      targetSelector: '[data-tour="tour-tasks"]',
-      title: ob.workspace.title,
-      desc: ob.workspace.desc,
-    },
-    {
-      id: "mind",
-      targetSelector: '[data-tour="tour-mind"]',
-      title: ob.mind.title,
-      desc: ob.mind.desc,
-    },
-    {
-      id: "learning",
-      targetSelector: '[data-tour="tour-learning"]',
-      title: ob.learning.title,
-      desc: ob.learning.desc,
-    },
-    {
-      id: "focus",
-      targetSelector: '[data-tour="tour-focus"]',
-      title: ob.focus.title,
-      desc: ob.focus.desc,
-    },
-    {
-      id: "installGuide",
-      targetSelector: "",
-      title: ob.installGuide.title,
-      desc: ob.installGuide.desc,
-    },
-    {
-      id: "ready",
-      targetSelector: "",
-      title: ob.ready.title,
-      desc: ob.ready.desc,
-    },
-  ];
+  const steps: TourStep[] = useMemo(
+    () => [
+      {
+        id: "dashboard",
+        targetSelector: '[data-tour="tour-today"]',
+        title: ob.dashboard.title,
+        desc: ob.dashboard.desc,
+      },
+      {
+        id: "planner",
+        targetSelector: '[data-tour="tour-planner"]',
+        title: ob.planner.title,
+        desc: ob.planner.desc,
+      },
+      {
+        id: "aiAgent",
+        targetSelector: '[data-tour="tour-ai-agent"]',
+        title: ob.aiAgent.title,
+        desc: ob.aiAgent.desc,
+      },
+      {
+        id: "workspace",
+        targetSelector: '[data-tour="tour-tasks"]',
+        title: ob.workspace.title,
+        desc: ob.workspace.desc,
+      },
+      {
+        id: "mind",
+        targetSelector: '[data-tour="tour-mind"]',
+        title: ob.mind.title,
+        desc: ob.mind.desc,
+      },
+      {
+        id: "learning",
+        targetSelector: '[data-tour="tour-learning"]',
+        title: ob.learning.title,
+        desc: ob.learning.desc,
+      },
+      {
+        id: "focus",
+        targetSelector: '[data-tour="tour-focus"]',
+        title: ob.focus.title,
+        desc: ob.focus.desc,
+      },
+      {
+        id: "installGuide",
+        targetSelector: "",
+        title: ob.installGuide.title,
+        desc: ob.installGuide.desc,
+      },
+      {
+        id: "ready",
+        targetSelector: "",
+        title: ob.ready.title,
+        desc: ob.ready.desc,
+      },
+    ],
+    [ob]
+  );
 
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
-  const [highlightRect, setHighlightRect] = useState<DOMRect | null>(null);
+  const [highlightRect, setHighlightRect] = useState<{
+    top: number;
+    left: number;
+    width: number;
+    height: number;
+  } | null>(null);
   const [tooltipPos, setTooltipPos] = useState<{ top: number; left: number }>({ top: 120, left: 280 });
 
   const currentStep = steps[currentStepIndex];
@@ -170,7 +178,7 @@ export const ProductTour: React.FC<ProductTourProps> = ({
     if (!isOpen) return;
 
     const mobile = typeof window !== "undefined" && window.innerWidth < 768;
-    setIsMobileView(mobile);
+    setIsMobileView((prev) => (prev !== mobile ? mobile : prev));
 
     if (mobile) {
       if (isSidebarStep) {
@@ -179,29 +187,29 @@ export const ProductTour: React.FC<ProductTourProps> = ({
         onSetSidebarOpen?.(false);
       }
     }
-  }, [isOpen, currentStepIndex, isSidebarStep]);
+  }, [isOpen, currentStepIndex, isSidebarStep, onSetSidebarOpen]);
 
   // Clean up on tour unmount: ensure drawer is closed
   useEffect(() => {
     return () => {
       onSetSidebarOpen?.(false);
     };
-  }, []);
+  }, [onSetSidebarOpen]);
 
   // Reposition highlight ring and tooltip to target element
   const updatePosition = useCallback(() => {
     if (!isOpen) return;
 
     const mobile = typeof window !== "undefined" && window.innerWidth < 768;
-    setIsMobileView(mobile);
+    setIsMobileView((prev) => (prev !== mobile ? mobile : prev));
 
     if (isFinalStep || isInstallGuide || !currentStep?.targetSelector) {
       // Center on screen for install guide and final ready message
-      setHighlightRect(null);
+      setHighlightRect((prev) => (prev === null ? null : null));
       const cardWidth = isInstallGuide ? 390 : 320;
       const top = Math.max(60, window.innerHeight / 2 - (isInstallGuide ? 180 : 120));
       const left = Math.max(16, window.innerWidth / 2 - cardWidth / 2);
-      setTooltipPos({ top, left });
+      setTooltipPos((prev) => (prev.top === top && prev.left === left ? prev : { top, left }));
       return;
     }
 
@@ -214,7 +222,18 @@ export const ProductTour: React.FC<ProductTourProps> = ({
 
       const rect = el.getBoundingClientRect();
       if (rect.width > 0 && rect.height > 0) {
-        setHighlightRect(rect);
+        setHighlightRect((prev) => {
+          if (
+            prev &&
+            prev.top === rect.top &&
+            prev.left === rect.left &&
+            prev.width === rect.width &&
+            prev.height === rect.height
+          ) {
+            return prev;
+          }
+          return { top: rect.top, left: rect.left, width: rect.width, height: rect.height };
+        });
       }
 
       if (!mobile) {
@@ -235,10 +254,10 @@ export const ProductTour: React.FC<ProductTourProps> = ({
           top = Math.max(16, window.innerHeight - tooltipHeight - 20);
         }
 
-        setTooltipPos({ top, left });
+        setTooltipPos((prev) => (prev.top === top && prev.left === left ? prev : { top, left }));
       }
     } else {
-      setHighlightRect(null);
+      setHighlightRect((prev) => (prev === null ? null : null));
     }
   }, [isOpen, isFinalStep, isInstallGuide, currentStep]);
 
