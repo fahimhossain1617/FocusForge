@@ -1054,8 +1054,70 @@
 
 :global([data-theme="light"]) .thinking,
 .page[data-theme="light"] .thinking {
+  background: rgba(99, 102, 241, 0.12) !important;
+  border-color: rgba(99, 102, 241, 0.35) !important;
+  color: #3730a3 !important;
+}
+
+:global([data-theme="light"]) .thinking span,
+.page[data-theme="light"] .thinking span {
+  color: #3730a3 !important;
+  font-weight: 600 !important;
+}
+
+:global([data-theme="light"]) .sparkleSpin,
+.page[data-theme="light"] .sparkleSpin {
+  color: #4f46e5 !important;
+}
+
+:global([data-theme="light"]) .dotPulse span,
+.page[data-theme="light"] .dotPulse span {
+  background-color: #4f46e5 !important;
+}
+
+/* History Dropdown Light Theme Override */
+:global([data-theme="light"]) .historyDropdown,
+.page[data-theme="light"] .historyDropdown {
+  background: rgba(255, 255, 255, 0.98) !important;
+  border: 1px solid rgba(99, 102, 241, 0.25) !important;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.12), 0 0 24px rgba(99, 102, 241, 0.08) !important;
+  color: #0f172a !important;
+}
+
+:global([data-theme="light"]) .historyHeader,
+.page[data-theme="light"] .historyHeader {
+  color: #0f172a !important;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08) !important;
+}
+
+:global([data-theme="light"]) .historyHeader span,
+.page[data-theme="light"] .historyHeader span {
+  color: #0f172a !important;
+  font-weight: 700 !important;
+}
+
+:global([data-theme="light"]) .historyItemBtn,
+.page[data-theme="light"] .historyItemBtn {
+  color: #1e293b !important;
+  font-weight: 550 !important;
+}
+
+:global([data-theme="light"]) .historyItem:hover,
+.page[data-theme="light"] .historyItem:hover {
+  background: rgba(99, 102, 241, 0.08) !important;
+}
+
+:global([data-theme="light"]) .activeHistoryItem,
+.page[data-theme="light"] .activeHistoryItem {
+  background: rgba(99, 102, 241, 0.15) !important;
+  border-left: 3px solid #4f46e5 !important;
+}
+
+:global([data-theme="light"]) .historyEmpty,
+.page[data-theme="light"] .historyEmpty {
   color: #64748b !important;
 }
+
 
 /* Refined atmospheric treatment: the arcs frame the conversation rather than
    behaving as foreground objects, and the composer remains the visual anchor. */

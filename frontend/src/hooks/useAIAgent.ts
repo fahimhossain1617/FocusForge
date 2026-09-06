@@ -52,15 +52,12 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
 
   const [sessions, setSessions] = useState<ChatSession[]>(() => {
     if (typeof window === "undefined") return [];
-    if (isGuest || !user) {
-      try {
-        const storedGuestSessions = localStorage.getItem("focusforge_guest_sessions_list");
-        return storedGuestSessions ? JSON.parse(storedGuestSessions) : [];
-      } catch {
-        return [];
-      }
+    try {
+      const storedCache = localStorage.getItem("focusforge_active_sessions_cache") || localStorage.getItem("focusforge_guest_sessions_list");
+      return storedCache ? JSON.parse(storedCache) : [];
+    } catch {
+      return [];
     }
-    return [];
   });
 
   const [activeSessionId, setActiveSessionId] = useState<string | null>(() => {
@@ -309,18 +306,23 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
             ];
           }
 
-          if ((isGuest || !user) && typeof window !== "undefined") {
+          if (typeof window !== "undefined") {
             try {
-              localStorage.setItem("focusforge_guest_sessions_list", JSON.stringify(updated));
+              localStorage.setItem("focusforge_active_sessions_cache", JSON.stringify(updated));
             } catch {}
           }
           return updated;
         });
 
-        // Re-sync with backend for auth users
+        // Re-sync with backend for auth users safely
         if (!isGuest && user) {
           getChatSessions().then(data => {
-            if (Array.isArray(data)) setSessions(data);
+            if (Array.isArray(data) && data.length > 0) {
+              setSessions(data);
+              try {
+                localStorage.setItem("focusforge_active_sessions_cache", JSON.stringify(data));
+              } catch {}
+            }
           }).catch(() => {});
         }
       }
