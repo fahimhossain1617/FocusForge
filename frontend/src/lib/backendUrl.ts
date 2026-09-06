@@ -1,7 +1,10 @@
 /**
- * Dynamically resolves the Backend URL.
- * - If `NEXT_PUBLIC_BACKEND_URL` is set, uses that URL.
- * - If running in browser and accessed via local network IP (e.g. 192.168.x.x), connects to `http://<IP>:5000`.
+ * Dynamically resolves the Backend URL for both local dev and 100% cloud Vercel production.
+ * - If `NEXT_PUBLIC_BACKEND_URL` is explicitly set, uses that URL.
+ * - In browser environment:
+ *   - If accessing via local IP address (e.g. 192.168.x.x), connects to local backend `http://<IP>:5000`.
+ *   - If accessing via Vercel domain (`*.vercel.app`) or custom web domain, returns `""` (relative URL `/api`),
+ *     which automatically targets Next.js Serverless API routes running directly on Vercel.
  * - Defaults to `http://localhost:5000`.
  */
 export function getBackendUrl(): string {
@@ -16,6 +19,8 @@ export function getBackendUrl(): string {
       if (isIp) {
         return `http://${hostname}:5000`;
       }
+      // On Vercel or production domain: return empty string for relative /api routes
+      return "";
     }
   }
 
