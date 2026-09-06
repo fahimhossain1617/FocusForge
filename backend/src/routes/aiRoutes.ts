@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { requireAuth } from '../middleware/auth';
 import { executeAIAction, transcribeAudio } from '../services/aiService';
-import { getChatSessions, getChatMessages, createChatSession, addChatMessage, deleteChatSession } from '../services/aiChatService';
+import { getChatSessions, getChatMessages, createChatSession, updateChatSessionTitle, addChatMessage, deleteChatSession } from '../services/aiChatService';
 import { getUserTokenStatus, consumeUserTokens, estimateTokenUsage } from '../services/aiTokenService';
 
 const router = Router();
@@ -215,6 +215,21 @@ router.get('/agent/sessions/:id/messages', async (req, res) => {
   }
 });
 
+async function generateSmartTitle(message: string): Promise<string> {
+  try {
+    const titlePrompt = `Generate a concise 2-5 word title for a chat session starting with this user message: "${message.substring(0, 150)}". If the query is in Bengali, reply with a short Bengali title. If in English, reply in English. Reply ONLY with the title text and nothing else. No quotes, no punctuation.`;
+    const titleResult: any = await executeAIAction('customAi', { prompt: titlePrompt });
+    if (titleResult && titleResult.message) {
+      let title = titleResult.message.trim().replace(/^["'`]|["'`]$/g, '').trim();
+      if (title.length > 50) title = title.substring(0, 50) + '...';
+      if (title) return title;
+    }
+  } catch (e) {
+    console.warn("Failed to generate chat title:", e);
+  }
+  return message.length > 30 ? message.substring(0, 27) + '...' : message;
+}
+
 router.post('/agent/chat', async (req, res) => {
   try {
     const tokenCheck = await checkTokensOrReject(req, res);
@@ -269,13 +284,19 @@ router.post('/agent/chat', async (req, res) => {
     // 3. Deduct tokens
     const tokenStatus = await deductTokens(req, req.body, result);
 
+    let sessionTitle: string | undefined = undefined;
+
     if (isGuest) {
+      const activeGuestSessionId = sessionId || 'guest_' + Date.now();
+      sessionTitle = await generateSmartTitle(message);
+
       return res.json({
-        sessionId: sessionId || 'guest-session',
+        sessionId: activeGuestSessionId,
+        sessionTitle,
         tokenStatus,
         aiMessage: {
           id: 'guest_msg_' + Date.now(),
-          session_id: sessionId || 'guest-session',
+          session_id: activeGuestSessionId,
           role: 'assistant',
           content: result.message,
           intent: result.intent,
@@ -287,30 +308,36 @@ router.post('/agent/chat', async (req, res) => {
 
     // 4. Authenticated: Create session in DB if none provided
     if (!sessionId || sessionId === 'guest-session') {
-      let sessionTitle = message.substring(0, 30) + '...';
-      try {
-        const titlePrompt = `Generate a short 2-5 word title for a chat that starts with this message: "${message}". Reply ONLY with the title string and nothing else. Don't use quotes.`;
-        const titleResult: any = await executeAIAction('customAi', { prompt: titlePrompt });
-        if (titleResult && titleResult.message) {
-            sessionTitle = titleResult.message.trim().replace(/["']/g, '');
-        }
-      } catch (e) {
-        console.warn("Failed to generate chat title, falling back to substring", e);
-      }
+      sessionTitle = await generateSmartTitle(message);
       const session = await createChatSession(userId, sessionTitle);
       sessionId = session.id;
+    } else {
+      // Generate title if session was previously unnamed
+      try {
+        const existingSessions = await getChatSessions(userId);
+        const currentSession = existingSessions.find(s => s.id === sessionId);
+        if (currentSession && (currentSession.title === 'New Conversation' || !currentSession.title)) {
+          sessionTitle = await generateSmartTitle(message);
+          await updateChatSessionTitle(sessionId, userId, sessionTitle);
+        } else if (currentSession) {
+          sessionTitle = currentSession.title;
+        }
+      } catch (err) {
+        console.warn('Title update check failed:', err);
+      }
     }
 
     // 5. Save User Message & AI Message in DB
     await addChatMessage(sessionId, userId, 'user', message);
     const aiMessage = await addChatMessage(sessionId, userId, 'assistant', result.message, result.intent, result.payload);
     
-    res.json({ sessionId, aiMessage, tokenStatus });
+    res.json({ sessionId, sessionTitle, aiMessage, tokenStatus });
   } catch (error: any) {
     console.error('Agent chat error:', error);
     res.status(500).json({ error: error.message || 'Agent chat failed' });
   }
 });
+
 
 router.post('/transcribe', async (req, res) => {
   try {

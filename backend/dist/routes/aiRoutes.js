@@ -213,6 +213,23 @@ router.get('/agent/sessions/:id/messages', async (req, res) => {
         res.status(500).json({ error: error.message || 'Failed to fetch messages' });
     }
 });
+async function generateSmartTitle(message) {
+    try {
+        const titlePrompt = `Generate a concise 2-5 word title for a chat session starting with this user message: "${message.substring(0, 150)}". If the query is in Bengali, reply with a short Bengali title. If in English, reply in English. Reply ONLY with the title text and nothing else. No quotes, no punctuation.`;
+        const titleResult = await (0, aiService_1.executeAIAction)('customAi', { prompt: titlePrompt });
+        if (titleResult && titleResult.message) {
+            let title = titleResult.message.trim().replace(/^["'`]|["'`]$/g, '').trim();
+            if (title.length > 50)
+                title = title.substring(0, 50) + '...';
+            if (title)
+                return title;
+        }
+    }
+    catch (e) {
+        console.warn("Failed to generate chat title:", e);
+    }
+    return message.length > 30 ? message.substring(0, 27) + '...' : message;
+}
 router.post('/agent/chat', async (req, res) => {
     try {
         const tokenCheck = await checkTokensOrReject(req, res);
@@ -261,13 +278,17 @@ router.post('/agent/chat', async (req, res) => {
         }
         // 3. Deduct tokens
         const tokenStatus = await deductTokens(req, req.body, result);
+        let sessionTitle = undefined;
         if (isGuest) {
+            const activeGuestSessionId = sessionId || 'guest_' + Date.now();
+            sessionTitle = await generateSmartTitle(message);
             return res.json({
-                sessionId: sessionId || 'guest-session',
+                sessionId: activeGuestSessionId,
+                sessionTitle,
                 tokenStatus,
                 aiMessage: {
                     id: 'guest_msg_' + Date.now(),
-                    session_id: sessionId || 'guest-session',
+                    session_id: activeGuestSessionId,
                     role: 'assistant',
                     content: result.message,
                     intent: result.intent,
@@ -278,13 +299,31 @@ router.post('/agent/chat', async (req, res) => {
         }
         // 4. Authenticated: Create session in DB if none provided
         if (!sessionId || sessionId === 'guest-session') {
-            const session = await (0, aiChatService_1.createChatSession)(userId, message.substring(0, 30) + '...');
+            sessionTitle = await generateSmartTitle(message);
+            const session = await (0, aiChatService_1.createChatSession)(userId, sessionTitle);
             sessionId = session.id;
+        }
+        else {
+            // Generate title if session was previously unnamed
+            try {
+                const existingSessions = await (0, aiChatService_1.getChatSessions)(userId);
+                const currentSession = existingSessions.find(s => s.id === sessionId);
+                if (currentSession && (currentSession.title === 'New Conversation' || !currentSession.title)) {
+                    sessionTitle = await generateSmartTitle(message);
+                    await (0, aiChatService_1.updateChatSessionTitle)(sessionId, userId, sessionTitle);
+                }
+                else if (currentSession) {
+                    sessionTitle = currentSession.title;
+                }
+            }
+            catch (err) {
+                console.warn('Title update check failed:', err);
+            }
         }
         // 5. Save User Message & AI Message in DB
         await (0, aiChatService_1.addChatMessage)(sessionId, userId, 'user', message);
         const aiMessage = await (0, aiChatService_1.addChatMessage)(sessionId, userId, 'assistant', result.message, result.intent, result.payload);
-        res.json({ sessionId, aiMessage, tokenStatus });
+        res.json({ sessionId, sessionTitle, aiMessage, tokenStatus });
     }
     catch (error) {
         console.error('Agent chat error:', error);

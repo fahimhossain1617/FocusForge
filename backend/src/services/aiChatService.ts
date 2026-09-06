@@ -31,21 +31,37 @@ export async function getChatMessages(userId: string, sessionId: string) {
     [sessionId]
   );
 
-  return res.rows.map(row => ({
-    id: row.id,
-    session_id: row.session_id,
-    role: row.role,
-    content: row.content,
-    intent: row.intent,
-    payload_json: row.payload_json,
-    created_at: row.created_at,
-  }));
+  return res.rows.map(row => {
+    let payload = row.payload_json;
+    if (typeof payload === 'string') {
+      try {
+        payload = JSON.parse(payload);
+      } catch {}
+    }
+    return {
+      id: row.id,
+      session_id: row.session_id,
+      role: row.role,
+      content: row.content,
+      intent: row.intent,
+      payload_json: payload,
+      created_at: row.created_at,
+    };
+  });
 }
 
 export async function createChatSession(userId: string, title: string = 'New Conversation') {
   const res = await pool.query(
     'INSERT INTO ai_chat_sessions (user_id, title) VALUES ($1, $2) RETURNING *',
     [userId, title]
+  );
+  return res.rows[0];
+}
+
+export async function updateChatSessionTitle(sessionId: string, userId: string, title: string) {
+  const res = await pool.query(
+    'UPDATE ai_chat_sessions SET title = $1, updated_at = NOW() WHERE id = $2 AND user_id = $3 RETURNING *',
+    [title, sessionId, userId]
   );
   return res.rows[0];
 }
@@ -89,3 +105,4 @@ export async function deleteChatSession(sessionId: string, userId: string) {
   );
   return { success: true };
 }
+

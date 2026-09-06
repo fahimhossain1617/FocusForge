@@ -113,12 +113,10 @@ function parseJson(text) {
     return parsed;
 }
 const CANDIDATE_MODELS = [
-    process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite',
-    'gemini-3.5-flash-lite',
-    'gemini-3.1-flash-lite',
-    'gemini-3.7-flash',
-    'gemini-3.8-flash',
-    'gemini-3.5-flash'
+    process.env.GEMINI_MODEL || 'gemini-1.5-flash',
+    'gemini-1.5-flash',
+    'gemini-2.0-flash',
+    'gemini-1.5-pro'
 ].filter((m, i, arr) => arr.indexOf(m) === i);
 function generateRuleBasedAgentResponse(payload) {
     const query = (payload?.userQuery || '').toLowerCase();

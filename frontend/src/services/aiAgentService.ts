@@ -125,7 +125,7 @@ export async function sendAgentMessage(
   sessionId?: string,
   history?: Array<{ role: string; content: string }>,
   lang: string = "bn"
-): Promise<{ sessionId: string; aiMessage: AgentMessage; tokenStatus?: TokenStatus }> {
+): Promise<{ sessionId: string; sessionTitle?: string; aiMessage: AgentMessage; tokenStatus?: TokenStatus }> {
   const token = await getToken();
   const guestId = getGuestId();
 

@@ -285,10 +285,10 @@ export function AIAgentPage() {
                   sessions.map((session) => (
                     <div 
                       key={session.id} 
-                      className={`${styles.historyItem} ${session.id === activeSessionId ? styles.activeHistory : ''}`}
+                      className={`${styles.historyItem} ${session.id === activeSessionId ? styles.activeHistoryItem : ''}`}
                       onClick={() => { selectSession(session.id); setShowHistory(false); }}
                     >
-                      <span className={styles.historyTitle}>{session.title}</span>
+                      <span className={styles.historyItemBtn}>{session.title || (isSystemBn ? 'নতুন চ্যাট' : 'New Chat')}</span>
                       <button 
                         className={styles.historyDeleteBtn}
                         onClick={(e) => { e.stopPropagation(); removeSession(session.id); }}
