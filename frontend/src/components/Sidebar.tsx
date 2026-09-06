@@ -165,6 +165,8 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                 return (
                   <button
                     key={item.id}
+                    data-tour={`tour-${item.id}`}
+                    id={`nav-${item.id}`}
                     className={`nav-item flex items-center gap-3 px-3 py-2 rounded-xl text-left w-full transition-all group ${
                       state.activePage === item.id ? "active" : ""
                     }`}

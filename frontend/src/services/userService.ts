@@ -165,4 +165,87 @@ export const userService = {
       supabase.removeChannel(channel);
     };
   },
+
+  /**
+   * Fetches onboarding state for an authenticated user.
+   */
+  async fetchOnboardingState(userId: string): Promise<{
+    onboardingCompleted: boolean;
+    preferredLanguage: "en" | "bn";
+    preferredTheme: "dark" | "light";
+    accountMode: "guest" | "authenticated";
+    productTourCompleted: boolean;
+  } | null> {
+    try {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("onboarding_completed, preferred_language, preferred_theme, account_mode, product_tour_completed")
+        .eq("id", userId)
+        .maybeSingle();
+
+      if (error) {
+        console.warn("[userService] Error fetching onboarding state from DB:", error.message);
+        return null;
+      }
+
+      if (data) {
+        return {
+          onboardingCompleted: Boolean(data.onboarding_completed),
+          preferredLanguage: (data.preferred_language as "en" | "bn") || "en",
+          preferredTheme: (data.preferred_theme as "dark" | "light") || "dark",
+          accountMode: (data.account_mode as "guest" | "authenticated") || "authenticated",
+          productTourCompleted: Boolean(data.product_tour_completed),
+        };
+      }
+      return null;
+    } catch (err) {
+      console.warn("[userService] Unexpected error in fetchOnboardingState:", err);
+      return null;
+    }
+  },
+
+  /**
+   * Persists onboarding state for an authenticated user to Supabase PostgreSQL.
+   */
+  async saveOnboardingState(
+    userId: string,
+    state: {
+      onboardingCompleted?: boolean;
+      preferredLanguage?: "en" | "bn";
+      preferredTheme?: "dark" | "light";
+      accountMode?: "guest" | "authenticated";
+      productTourCompleted?: boolean;
+    }
+  ): Promise<boolean> {
+    try {
+      const updates: Record<string, any> = {
+        updated_at: new Date().toISOString(),
+      };
+
+      if (state.onboardingCompleted !== undefined) {
+        updates.onboarding_completed = state.onboardingCompleted;
+        if (state.onboardingCompleted) {
+          updates.onboarding_completed_at = new Date().toISOString();
+        }
+      }
+      if (state.preferredLanguage !== undefined) updates.preferred_language = state.preferredLanguage;
+      if (state.preferredTheme !== undefined) updates.preferred_theme = state.preferredTheme;
+      if (state.accountMode !== undefined) updates.account_mode = state.accountMode;
+      if (state.productTourCompleted !== undefined) updates.product_tour_completed = state.productTourCompleted;
+
+      const { error } = await supabase
+        .from("profiles")
+        .update(updates)
+        .eq("id", userId);
+
+      if (error) {
+        console.warn("[userService] Failed to save onboarding state to DB:", error.message);
+        return false;
+      }
+      return true;
+    } catch (err) {
+      console.warn("[userService] Unexpected error in saveOnboardingState:", err);
+      return false;
+    }
+  },
 };

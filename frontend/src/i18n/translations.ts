@@ -523,6 +523,90 @@ export const TRANSLATIONS = {
       full: "100%",
       removeImage: "Remove image",
       blankPagePrompt: "This page is currently blank.",
+    },
+    onboarding: {
+      welcome: {
+        tagline: "FOCUSFORGE AI",
+        title: "Welcome to FocusForge",
+        description: "Your intelligent space to organize your work, manage your priorities, stay focused, and make meaningful progress every day.",
+        getStarted: "Get Started",
+      },
+      language: {
+        title: "How would you like to use FocusForge?",
+        subtitle: "Choose your preferred language. You can change this anytime.",
+        bnLabel: "বাংলা",
+        enLabel: "English",
+        next: "Next",
+      },
+      theme: {
+        title: "Choose your experience",
+        subtitle: "Select a theme that fits your workflow. Experience it live right now.",
+        dark: "Dark",
+        darkDesc: "Focused, deep contrast for comfortable day and night use.",
+        light: "Light",
+        lightDesc: "Clean, vibrant clarity for bright daytime environments.",
+        next: "Continue",
+      },
+      philosophy: {
+        title: "Life doesn't come with an \"undo\" button.",
+        subtitle: "Once something happens, you can't completely erase it.",
+        goodNewsTitle: "But here's the good news — you can always:",
+        points: [
+          "Start again",
+          "Learn from what went wrong",
+          "Become a little better, one day at a time"
+        ],
+        quote1: "The person you are today can become better than the person you were yesterday.",
+        quote2: "Every day is a new chance to improve yourself.",
+        continueBtn: "Continue",
+      },
+      account: {
+        title: "How would you like to continue?",
+        subtitle: "Choose how you'd like to access FocusForge.",
+        guestTitle: "Continue as Guest",
+        guestDesc: "Jump straight into FocusForge. No registration needed.",
+        authTitle: "Login / Create Account",
+        authDesc: "Sync your tasks, notes, planner, and AI history securely across all devices.",
+      },
+      tour: {
+        skip: "Skip Tour",
+        next: "Next",
+        finish: "Get Started",
+        stepCount: "Step {current} of {total}",
+        dashboard: {
+          title: "Dashboard",
+          desc: "Your productivity overview. See what matters today and keep track of your progress.",
+        },
+        planner: {
+          title: "Planner",
+          desc: "Plan your days, weeks, or months. Create tasks and organize them around when you want to get things done.",
+        },
+        aiAgent: {
+          title: "AI Agent",
+          desc: "Your FocusForge AI Agent can help you organize your work, prioritize tasks, and make your workflow easier.",
+        },
+        workspace: {
+          title: "Notes & Files",
+          desc: "Your organized space for notes, rich documents, attachments, and ideas.",
+        },
+        mind: {
+          title: "Capture",
+          desc: "Your personal space to quickly capture and organize thoughts before you forget.",
+        },
+        learning: {
+          title: "Skill Builder",
+          desc: "Keep your learning resources, goals, and skill progress organized in one place.",
+        },
+        focus: {
+          title: "Focus",
+          desc: "Enter distraction-free deep work sessions with customizable Pomodoro timers.",
+        },
+        ready: {
+          title: "You're ready.",
+          desc: "FocusForge is here to help you focus, organize, and move forward — one step at a time.",
+          button: "Get Started",
+        },
+      },
     }
   },
   bn: {
@@ -1049,6 +1133,90 @@ export const TRANSLATIONS = {
       full: "১০০%",
       removeImage: "ছবি মুছে ফেলুন",
       blankPagePrompt: "এই পাতাটি বর্তমানে খালি রয়েছে।",
+    },
+    onboarding: {
+      welcome: {
+        tagline: "FOCUSFORGE AI",
+        title: "FocusForge-এ স্বাগতম",
+        description: "তোমার কাজ গুছিয়ে রাখা, প্রায়োরিটি নির্ধারণ, ফোকাস ধরে রাখা এবং প্রতিদিন কার্যকর অগ্রগতি অর্জনের এক বুদ্ধিমান প্ল্যাটফর্ম।",
+        getStarted: "শুরু করুন",
+      },
+      language: {
+        title: "তুমি কোন ভাষায় FocusForge ব্যবহার করতে চাও?",
+        subtitle: "তোমার পছন্দের ভাষা নির্বাচন করো। এটি পরবর্তীতে যেকোনো সময় পরিবর্তন করা যাবে।",
+        bnLabel: "বাংলা",
+        enLabel: "English",
+        next: "পরবর্তী",
+      },
+      theme: {
+        title: "তোমার পছন্দের অভিজ্ঞতা বেছে নাও",
+        subtitle: "তোমার কাজের পরিবেশের সাথে মানানসই থিম বেছে নাও। এখনই লাইভ অভিজ্ঞতা নাও।",
+        dark: "ডার্ক",
+        darkDesc: "চোখের জন্য আরামদায়ক ও গভীর ফোকাসড থিম।",
+        light: "লাইট",
+        lightDesc: "উজ্জ্বল ও পরিচ্ছন্ন ইন্টারফেস।",
+        next: "এগিয়ে যাই",
+      },
+      philosophy: {
+        title: "জীবনে \"মুছে ফেলার\" কোনো বোতাম নেই।",
+        subtitle: "কিছু ভুল একবার হয়ে গেলে, তা আর সম্পূর্ণভাবে মুছে ফেলা যায় না।",
+        goodNewsTitle: "কিন্তু ভালো খবর হলো — তুমি সবসময় পারো:",
+        points: [
+          "নতুন করে শুরু করতে",
+          "ভুল থেকে শিখতে",
+          "প্রতিদিন একটু একটু করে ভালো মানুষ হয়ে উঠতে"
+        ],
+        quote1: "আজকের তুমি, আগামীকালের তুমির চেয়ে আরও ভালো হতে পারো।",
+        quote2: "প্রতিটা দিন একটা নতুন সুযোগ — নিজেকে আরও উন্নত করার।",
+        continueBtn: "এগিয়ে যাই",
+      },
+      account: {
+        title: "তুমি কীভাবে শুরু করতে চাও?",
+        subtitle: "FocusForge কীভাবে অ্যাক্সেস করতে চাও বেছে নাও।",
+        guestTitle: "গেস্ট হিসেবে শুরু করুন",
+        guestDesc: "কোনো অ্যাকাউন্ট ছাড়াই সরাসরি FocusForge-এ প্রবেশ করুন।",
+        authTitle: "লগইন / নতুন অ্যাকাউন্ট",
+        authDesc: "সকল ডিভাইসে তোমার টাস্ক, নোটস ও AI হিস্ট্রি নিরাপদে সিঙ্ক করে রাখো।",
+      },
+      tour: {
+        skip: "স্কিপ করুন",
+        next: "পরবর্তী",
+        finish: "শুরু করি",
+        stepCount: "ধাপ {current} / {total}",
+        dashboard: {
+          title: "ড্যাশবোর্ড",
+          desc: "এখানে তোমার গুরুত্বপূর্ণ কাজ, অগ্রগতি এবং productivity-এর একটি overview দেখতে পারবে।",
+        },
+        planner: {
+          title: "প্ল্যানার",
+          desc: "তোমার দিন, সপ্তাহ বা মাস পরিকল্পনা করো। কোন কাজ কখন করতে চাও, তা দিনভিত্তিক সাজিয়ে রাখো।",
+        },
+        aiAgent: {
+          title: "AI এজেন্ট",
+          desc: "তোমার FocusForge AI Agent তোমার কাজ গুছিয়ে নিতে, priority ঠিক করতে এবং workflow আরও সহজ করতে সাহায্য করতে পারে।",
+        },
+        workspace: {
+          title: "নোটস ও ফাইলস",
+          desc: "নোটস, ডকুমেন্টস, ফাইল এবং প্রয়োজনীয় তথ্য গুছিয়ে রাখার নিরাপদ জায়গা।",
+        },
+        mind: {
+          title: "ক্যাপচার",
+          desc: "তোমার চিন্তা, আইডিয়া এবং গুরুত্বপূর্ণ বিষয়গুলো দ্রুত লিখে রাখার ব্যক্তিগত জায়গা।",
+        },
+        learning: {
+          title: "স্কিল বিল্ডার",
+          desc: "তোমার শেখার রিসোর্স, লক্ষ্য এবং স্কিল ডেভেলপমেন্ট এক জায়গায় ট্র্যাক করো।",
+        },
+        focus: {
+          title: "ফোকাস",
+          desc: "মনোযোগ ধরে রাখতে এবং কাজের গতি বাড়াতে ডিপ ফোকাস সেশন শুরু করো।",
+        },
+        ready: {
+          title: "তুমি এখন প্রস্তুত।",
+          desc: "FocusForge তোমাকে focus করতে, কাজ গুছিয়ে নিতে এবং ধাপে ধাপে এগিয়ে যেতে সাহায্য করবে।",
+          button: "শুরু করি",
+        },
+      },
     }
   }
 };

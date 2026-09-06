@@ -166,4 +166,107 @@ router.post('/state', async (req: AuthenticatedRequest, res: Response) => {
   }
 });
 
+/**
+ * GET /api/user/onboarding
+ * Get onboarding completion & preference state for authenticated user
+ */
+router.get('/onboarding', async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId || req.user?.isGuest) {
+      return res.json({
+        onboardingCompleted: false,
+        onboardingCompletedAt: null,
+        preferredLanguage: 'en',
+        preferredTheme: 'dark',
+        accountMode: 'guest',
+        productTourCompleted: false,
+      });
+    }
+
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('onboarding_completed, onboarding_completed_at, preferred_language, preferred_theme, account_mode, product_tour_completed')
+      .eq('id', userId)
+      .maybeSingle();
+
+    if (error) {
+      return res.status(500).json({ error: error.message });
+    }
+
+    if (data) {
+      return res.json({
+        onboardingCompleted: Boolean(data.onboarding_completed),
+        onboardingCompletedAt: data.onboarding_completed_at,
+        preferredLanguage: data.preferred_language || 'en',
+        preferredTheme: data.preferred_theme || 'dark',
+        accountMode: data.account_mode || 'authenticated',
+        productTourCompleted: Boolean(data.product_tour_completed),
+      });
+    }
+
+    res.json({
+      onboardingCompleted: false,
+      onboardingCompletedAt: null,
+      preferredLanguage: 'en',
+      preferredTheme: 'dark',
+      accountMode: 'authenticated',
+      productTourCompleted: false,
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to fetch onboarding state' });
+  }
+});
+
+/**
+ * POST /api/user/onboarding
+ * Persist onboarding completion and preferences for current user
+ */
+router.post('/onboarding', async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId || req.user?.isGuest) {
+      return res.json({ success: true, guest: true });
+    }
+
+    const {
+      onboardingCompleted,
+      preferredLanguage,
+      preferredTheme,
+      accountMode,
+      productTourCompleted,
+    } = req.body;
+
+    const updates: Record<string, any> = {
+      updated_at: new Date().toISOString(),
+    };
+
+    if (onboardingCompleted !== undefined) {
+      updates.onboarding_completed = Boolean(onboardingCompleted);
+      if (onboardingCompleted) {
+        updates.onboarding_completed_at = new Date().toISOString();
+      }
+    }
+    if (preferredLanguage !== undefined) updates.preferred_language = preferredLanguage;
+    if (preferredTheme !== undefined) updates.preferred_theme = preferredTheme;
+    if (accountMode !== undefined) updates.account_mode = accountMode;
+    if (productTourCompleted !== undefined) updates.product_tour_completed = Boolean(productTourCompleted);
+
+    const { data, error } = await supabase
+      .from('profiles')
+      .update(updates)
+      .eq('id', userId)
+      .select('onboarding_completed, onboarding_completed_at, preferred_language, preferred_theme, account_mode, product_tour_completed')
+      .maybeSingle();
+
+    if (error) {
+      return res.status(500).json({ error: error.message });
+    }
+
+    res.json({ success: true, data });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to save onboarding state' });
+  }
+});
+
 export default router;

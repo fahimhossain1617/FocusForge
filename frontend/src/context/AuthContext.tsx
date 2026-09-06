@@ -8,6 +8,7 @@ import { supabase } from "../lib/supabaseClient";
 import { useAppContext } from "./AppContext";
 import { useTranslation } from "../hooks/useTranslation";
 import { clearPersistedAppState } from "../services/indexedDBStorage";
+import { onboardingStorage } from "../services/onboardingStorage";
 
 interface AuthModalState {
   isOpen: boolean;
@@ -186,6 +187,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       showToast(t.auth.welcomeToastNew, "success");
     } else {
       showToast(t.auth.welcomeToastReturning, "success");
+    }
+
+    // Safely migrate any guest onboarding preferences to user database profile
+    const guestOnboarding = onboardingStorage.getLocalState();
+    if (guestOnboarding?.onboardingCompleted) {
+      userService.saveOnboardingState(authedUser.id, {
+        onboardingCompleted: true,
+        preferredLanguage: guestOnboarding.preferredLanguage,
+        preferredTheme: guestOnboarding.preferredTheme,
+        accountMode: "authenticated",
+        productTourCompleted: guestOnboarding.productTourCompleted,
+      });
     }
 
     if (callback) {

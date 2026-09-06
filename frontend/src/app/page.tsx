@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useAppContext } from "../context/AppContext";
+import { useAuth } from "../context/AuthContext";
 import Sidebar from "../components/Sidebar";
 import QuickCapture from "../components/QuickCapture";
 import Toast from "../components/ui/Toast";
@@ -16,6 +17,9 @@ import ProfilePage from "../components/pages/ProfilePage";
 import AIAgentPage from "../components/ai-agent/AIAgentPage";
 import AuthModal from "../components/auth/AuthModal";
 import AuthGuardModal from "../components/auth/AuthGuardModal";
+import { OnboardingModal, ProductTour } from "../components/onboarding";
+import { onboardingStorage } from "../services/onboardingStorage";
+import { userService } from "../services/userService";
 
 import { AppShellSkeleton, PageSkeleton } from "../components/ui/skeleton";
 import { useDailyPlan } from "../hooks/useDailyPlan";
@@ -34,7 +38,11 @@ const pageComponents: Record<string, React.ComponentType<{ onOpenSidebar?: () =>
 
 export default function Home() {
   const { state, isLoaded, isPageLoading } = useAppContext();
+  const { user, isLoading: isAuthLoading } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [showTour, setShowTour] = useState(false);
+  const [onboardingChecked, setOnboardingChecked] = useState(false);
 
   // Activate daily plan and task reminder scheduler
   useDailyPlan();
@@ -45,6 +53,82 @@ export default function Home() {
     root.dataset.theme = isLight ? "light" : "dark";
     root.classList.toggle("dark", !isLight);
   }, [state.theme]);
+
+  // First-time onboarding & interactive tour check
+  useEffect(() => {
+    if (!isLoaded || isAuthLoading || onboardingChecked) return;
+
+    async function checkOnboarding() {
+      try {
+        if (user && user.id) {
+          const dbState = await userService.fetchOnboardingState(user.id);
+          if (dbState && dbState.onboardingCompleted) {
+            setShowOnboarding(false);
+            setShowTour(false);
+          } else {
+            const local = onboardingStorage.getLocalState();
+            if (local?.onboardingCompleted) {
+              await userService.saveOnboardingState(user.id, {
+                onboardingCompleted: true,
+                preferredLanguage: local.preferredLanguage,
+                preferredTheme: local.preferredTheme,
+                accountMode: "authenticated",
+                productTourCompleted: true,
+              });
+              setShowOnboarding(false);
+              setShowTour(false);
+            } else {
+              setShowOnboarding(true);
+            }
+          }
+        } else {
+          // Guest check
+          const local = onboardingStorage.getLocalState();
+          if (local && local.onboardingCompleted) {
+            setShowOnboarding(false);
+            setShowTour(false);
+          } else {
+            setShowOnboarding(true);
+          }
+        }
+      } catch (err) {
+        console.warn("[Onboarding check error]:", err);
+      } finally {
+        setOnboardingChecked(true);
+      }
+    }
+
+    checkOnboarding();
+  }, [isLoaded, isAuthLoading, user, onboardingChecked]);
+
+  const handleEnterAppFromOnboarding = () => {
+    setShowOnboarding(false);
+    setShowTour(true);
+  };
+
+  const handleCompleteTour = async () => {
+    setShowTour(false);
+    const lang = state.lang === "bn" ? "bn" : "en";
+    const themeMode = state.theme?.mode === "light" ? "light" : "dark";
+
+    onboardingStorage.saveLocalState({
+      onboardingCompleted: true,
+      productTourCompleted: true,
+      preferredLanguage: lang,
+      preferredTheme: themeMode,
+      accountMode: user ? "authenticated" : "guest",
+    });
+
+    if (user?.id) {
+      await userService.saveOnboardingState(user.id, {
+        onboardingCompleted: true,
+        productTourCompleted: true,
+        preferredLanguage: lang,
+        preferredTheme: themeMode,
+        accountMode: "authenticated",
+      });
+    }
+  };
 
   // Initial App Shell Skeleton while storage / backend data is loading
   if (!isLoaded) {
@@ -125,6 +209,16 @@ export default function Home() {
       <Toast />
       <AuthModal />
       <AuthGuardModal />
+
+      {/* First-Time User Onboarding & Interactive Tour */}
+      <OnboardingModal
+        isOpen={showOnboarding}
+        onEnterApp={handleEnterAppFromOnboarding}
+      />
+      <ProductTour
+        isOpen={showTour}
+        onCompleteTour={handleCompleteTour}
+      />
     </div>
   );
 }
