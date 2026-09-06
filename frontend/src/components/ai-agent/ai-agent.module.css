@@ -1070,9 +1070,19 @@
   color: #4f46e5 !important;
 }
 
-:global([data-theme="light"]) .dotPulse span,
-.page[data-theme="light"] .dotPulse span {
-  background-color: #4f46e5 !important;
+:global([data-theme="light"]) .thinkingDots span,
+.page[data-theme="light"] .thinkingDots span {
+  background: linear-gradient(135deg, #4f46e5, #9333ea) !important;
+  box-shadow: 0 0 6px rgba(79, 70, 229, 0.4) !important;
+}
+
+:global([data-theme="light"]) .thinkingText,
+.page[data-theme="light"] .thinkingText {
+  background: linear-gradient(90deg, #3730a3 0%, #4f46e5 50%, #7e22ce 100%) !important;
+  background-size: 200% auto !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  font-weight: 700 !important;
 }
 
 /* History Dropdown Light Theme Override */

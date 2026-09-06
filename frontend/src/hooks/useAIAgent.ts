@@ -314,17 +314,8 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
           return updated;
         });
 
-        // Re-sync with backend for auth users safely
-        if (!isGuest && user) {
-          getChatSessions().then(data => {
-            if (Array.isArray(data) && data.length > 0) {
-              setSessions(data);
-              try {
-                localStorage.setItem("focusforge_active_sessions_cache", JSON.stringify(data));
-              } catch {}
-            }
-          }).catch(() => {});
-        }
+        // Re-sync removed to prevent optimistic state from being overwritten
+        // if the backend response is delayed or stale.
       }
       
       const normalizedAiMessage: AgentMessage = {
