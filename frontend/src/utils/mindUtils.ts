@@ -33,7 +33,9 @@ export function getMindSourceInfo(
 
   const isIdeaCapture =
     source === 'idea_capture' ||
+    content.startsWith('Idea Capture') ||
     content.startsWith('💡 Idea Capture') ||
+    content.startsWith('ধারণা ক্যাপচার') ||
     content.startsWith('💡 ধারণা ক্যাপচার');
 
   if (isProblemSolver) {

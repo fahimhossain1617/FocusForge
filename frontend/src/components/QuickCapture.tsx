@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, KeyboardEvent } from "react";
 import { useAppContext } from "../context/AppContext";
 import { useAuth } from "../context/AuthContext";
 import { useKeyboardShortcut } from "../hooks/useKeyboardShortcut";
+import { Brain } from "lucide-react";
 
 export default function QuickCapture() {
   const [isOpen, setIsOpen] = useState(false);
@@ -83,7 +84,7 @@ export default function QuickCapture() {
           }}
         >
           <div className="flex items-start gap-3 p-4">
-            <span className="text-xl pt-0.5">🧠</span>
+            <Brain className="w-5 h-5 text-indigo-400 shrink-0 mt-1" />
             <textarea
               ref={textareaRef}
               value={value}

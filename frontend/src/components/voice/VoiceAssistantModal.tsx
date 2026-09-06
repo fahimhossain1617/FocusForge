@@ -290,7 +290,7 @@ export const VoiceAssistantModal: React.FC<VoiceAssistantModalProps> = ({
         {/* Real-time speech display or transcription indicator */}
         {isTranscribing ? (
           <div className={styles.liveTranscript} style={{ opacity: 0.95, letterSpacing: '0.02em', color: '#60a5fa' }}>
-            🎙️ ভয়েস প্রসেস হচ্ছে (AI Transcribing)...
+            <Mic className="w-4 h-4 inline-block mr-1.5 animate-pulse" />ভয়েস প্রসেস হচ্ছে (AI Transcribing)...
           </div>
         ) : displayedText ? (
           <div className={styles.liveTranscript} ref={transcriptScrollRef} aria-live="polite">
@@ -298,7 +298,7 @@ export const VoiceAssistantModal: React.FC<VoiceAssistantModalProps> = ({
           </div>
         ) : (
           <div className={`${styles.liveTranscript} ${styles.listeningStateText}`}>
-            🎙️ কথা বলুন...
+            <Mic className="w-4 h-4 inline-block mr-1.5 animate-pulse" />কথা বলুন...
           </div>
         )}
 

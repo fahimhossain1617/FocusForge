@@ -18,6 +18,7 @@ import {
   Send,
   ShieldCheck,
   AlertTriangle,
+  X,
 } from "lucide-react";
 import { useFocusForgeAI } from "@/hooks/useFocusForgeAI";
 import { useAppContext } from "@/context/AppContext";
@@ -297,8 +298,9 @@ export default function FocusForgeAIAssistant({
             <button
               onClick={onClose}
               className="p-1.5 rounded-lg hover:bg-white/5 text-[var(--color-text-muted)] hover:text-white transition"
+              aria-label="Close"
             >
-              ✕
+              <X className="w-4 h-4" />
             </button>
           )}
         </div>
@@ -534,9 +536,9 @@ export default function FocusForgeAIAssistant({
                     onChange={(e) => setEnergyLevel(e.target.value as "high" | "medium" | "low")}
                     className="text-xs bg-[var(--color-bg-base)] border border-[var(--color-border-subtle)] rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-violet-500"
                   >
-                    <option value="high">⚡ High Energy</option>
-                    <option value="medium">🔋 Medium Energy</option>
-                    <option value="low">☕ Low Energy</option>
+                    <option value="high">High Energy</option>
+                    <option value="medium">Medium Energy</option>
+                    <option value="low">Low Energy</option>
                   </select>
                 </div>
 

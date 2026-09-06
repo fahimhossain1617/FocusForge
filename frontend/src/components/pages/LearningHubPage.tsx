@@ -210,7 +210,7 @@ export default function LearningHubPage() {
         {!activeFolder ? (
           <div className="card h-full min-h-[400px] flex items-center justify-center">
             <EmptyState
-              icon="📁"
+              icon={<Folder className="w-8 h-8 text-indigo-400" />}
               title={t.learningHub.selectFolder}
               description={t.learningHub.selectFolderDesc}
             />

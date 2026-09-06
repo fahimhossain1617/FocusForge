@@ -49,5 +49,5 @@ app.use((err, req, res, next) => {
 });
 // Start the server
 app.listen(port, () => {
-    console.log(`🚀 FocusForge Backend running on port ${port}`);
+    console.log(`FocusForge Backend running on port ${port}`);
 });

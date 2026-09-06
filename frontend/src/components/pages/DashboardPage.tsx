@@ -4,7 +4,7 @@ import { useState, useRef } from "react";
 import { useAppContext } from "../../context/AppContext";
 import { useTranslation } from "../../hooks/useTranslation";
 import { ResponsiveContainer, ComposedChart, Bar, Line, XAxis, YAxis, Tooltip, Cell } from "recharts";
-import { Shield, Play, CalendarDays, Clock, ArrowRight, Check, Plus } from "lucide-react";
+import { Shield, Play, CalendarDays, Clock, ArrowRight, Check, Plus, Flame } from "lucide-react";
 import { getLocalDateString } from "../../services/taskService";
 
 // --- Helpers ---
@@ -317,7 +317,7 @@ export default function DashboardPage({ onOpenSidebar }: DashboardPageProps) {
         <div className="flex items-center gap-3 min-w-0 flex-1">
           <div className="min-w-0 flex-1">
             <h1 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight truncate" style={{ color: "var(--color-text-primary)" }}>
-              {getGreeting(t)} 👋
+              {getGreeting(t)}
             </h1>
             <p className="text-xs sm:text-sm mt-0.5 font-medium truncate" style={{ color: "var(--color-text-secondary)" }}>
               {formatDate()} &nbsp;·&nbsp; {t.dashboard.readyText}
@@ -326,7 +326,7 @@ export default function DashboardPage({ onOpenSidebar }: DashboardPageProps) {
         </div>
 
         <div className="flex items-center gap-2 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-full shadow-sm shrink-0" style={{ background: "var(--color-bg-card)", border: "1px solid var(--color-border-active)" }}>
-          <span className="text-base sm:text-lg">🔥</span>
+          <Flame className="w-5 h-5 text-amber-500 shrink-0" />
           <div className="flex flex-col">
             <span className="text-[9px] font-bold uppercase tracking-wider" style={{ color: "var(--color-text-muted)" }}>{t.dashboard.currentStreak}</span>
             <span className="text-xs sm:text-sm font-semibold" style={{ color: "var(--color-text-primary)" }}>{currentStreak} {t.dashboard.days}</span>

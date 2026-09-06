@@ -5,7 +5,7 @@ import { useAppContext } from "../../context/AppContext";
 import { useFocusTimer } from "../../hooks/useFocusTimer";
 import { useTranslation } from "../../hooks/useTranslation";
 import confetti from "canvas-confetti";
-import { Smartphone, Globe, PartyPopper, MessageCircle, Video, MessageSquare, History, Trash2, X, ArrowLeft, Flame, Sparkles, ShieldAlert, Target } from "lucide-react";
+import { Smartphone, Globe, PartyPopper, MessageCircle, Video, MessageSquare, History, Trash2, X, ArrowLeft, Flame, Sparkles, ShieldAlert, Target, Lock } from "lucide-react";
 
 export default function FocusPage() {
   const { state, startFocusSession, endFocusSession, addDistraction, showToast, navigateTo, registerFocusLock, unregisterFocusLock } = useAppContext();
@@ -81,7 +81,7 @@ export default function FocusPage() {
 
   const handleWorkComplete = useCallback(() => {
     if (activeSessionId) {
-      showToast("🎉 Work session complete! Great job.");
+      showToast("Work session complete! Great job.");
     }
   }, [activeSessionId, showToast]);
 
@@ -299,7 +299,7 @@ export default function FocusPage() {
     addDistraction(activeSessionId, distractionText.trim());
     setDistractionText("");
     setShowDistraction(false);
-    showToast("Distraction logged. Stay focused! 💪", "info");
+    showToast("Distraction logged. Stay focused.", "info");
   };
 
   // Get current session distractions
@@ -387,10 +387,10 @@ export default function FocusPage() {
         {/* Distraction capture */}
         <button
           onClick={() => setShowDistraction(true)}
-          className="text-sm px-4 py-2 rounded-xl transition-colors"
+          className="text-sm px-4 py-2 rounded-xl transition-colors inline-flex items-center gap-1.5"
           style={{ color: "var(--color-text-muted)", background: "var(--color-bg-card)" }}
         >
-          💭 {t.focus.distracted}
+          <MessageSquare className="w-3.5 h-3.5" /> {t.focus.distracted}
         </button>
 
         {showDistraction && (
@@ -620,18 +620,18 @@ export default function FocusPage() {
             {/* Deep Focus Toggle */}
             <button
               onClick={() => setIsDeepFocus(true)}
-              className="text-xs font-medium px-4 py-2 rounded-lg transition-colors"
+              className="text-xs font-medium px-4 py-2 rounded-lg transition-colors inline-flex items-center gap-1.5"
               style={{ color: "var(--color-purple-bright)", background: "var(--color-purple-muted)" }}
             >
-              🔒 {t.focus.enterDeepFocus}
+              <Lock className="w-3.5 h-3.5" /> {t.focus.enterDeepFocus}
             </button>
           </div>
 
           {/* Distraction Capture */}
           <div className="card p-5">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-semibold" style={{ color: "var(--color-text-primary)" }}>
-                💭 {t.focus.distracted}
+              <h3 className="text-sm font-semibold flex items-center gap-1.5" style={{ color: "var(--color-text-primary)" }}>
+                <MessageSquare className="w-4 h-4 text-purple-400" /> {t.focus.distracted}
               </h3>
               <span className="text-xs tabular-nums" style={{ color: "var(--color-text-muted)" }}>
                 {sessionDistractions.length} {t.focus.logged}

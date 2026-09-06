@@ -142,7 +142,7 @@ export function generateDailyPlanSummary(
   if (lang === "bn") {
     if (totalCount === 0) {
       return {
-        title: "শুভ সকাল 👋",
+        title: "শুভ সকাল",
         body: "আজকের জন্য কোনো নির্ধারিত টাস্ক নেই। চমৎকার একটি দিন কাটুক!",
         count: 0,
       };
@@ -156,9 +156,9 @@ export function generateDailyPlanSummary(
         ...taskLines,
         "",
         `আজ আপনার ${totalCount}টি টাস্ক নির্ধারিত রয়েছে।`,
-        "চলুন আজকের দিনটি প্রোডাক্টিভ করে তুলি! 🚀",
+        "চলুন আজকের দিনটি প্রোডাক্টিভ করে তুলি!",
       ].join("\n");
-      return { title: "শুভ সকাল 👋", body, count: totalCount };
+      return { title: "শুভ সকাল", body, count: totalCount };
     } else {
       const topFive = sorted.slice(0, 5).map((t) => `• ${t.title || t.name}`);
       const remaining = totalCount - 5;
@@ -168,16 +168,16 @@ export function generateDailyPlanSummary(
         `+ আরও ${remaining}টি টাস্ক`,
         "",
         `মোট: ${totalCount}টি টাস্ক।`,
-        "চলুন আজকের দিনটি প্রোডাক্টিভ করে তুলি! 🚀",
+        "চলুন আজকের দিনটি প্রোডাক্টিভ করে তুলি!",
       ].join("\n");
-      return { title: "শুভ সকাল 👋", body, count: totalCount };
+      return { title: "শুভ সকাল", body, count: totalCount };
     }
   }
 
   // English
   if (totalCount === 0) {
     return {
-      title: "Good Morning 👋",
+      title: "Good Morning",
       body: "You have no tasks scheduled for today. Have a peaceful, restful day or capture a new goal!",
       count: 0,
     };
@@ -190,9 +190,9 @@ export function generateDailyPlanSummary(
       ...taskLines,
       "",
       `You have ${totalCount} task${totalCount > 1 ? "s" : ""} planned today.`,
-      "Let's make today productive! 🚀",
+      "Let's make today productive!",
     ].join("\n");
-    return { title: "Good Morning 👋", body, count: totalCount };
+    return { title: "Good Morning", body, count: totalCount };
   } else {
     const topFive = sorted.slice(0, 5).map((t) => `• ${t.title || t.name}`);
     const remaining = totalCount - 5;
@@ -202,8 +202,8 @@ export function generateDailyPlanSummary(
       `+ ${remaining} more task${remaining > 1 ? "s" : ""}`,
       "",
       `Total: ${totalCount} tasks planned today.`,
-      "Let's make today productive! 🚀",
+      "Let's make today productive!",
     ].join("\n");
-    return { title: "Good Morning 👋", body, count: totalCount };
+    return { title: "Good Morning", body, count: totalCount };
   }
 }

@@ -1,13 +1,18 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Check, ChevronDown, Mic, Send, MoreVertical, Trash2, Calendar, Sparkles } from "lucide-react";
+import { Check, ChevronDown, Mic, Send, MoreVertical, Trash2, Calendar, Sparkles, AlertCircle } from "lucide-react";
 import { useAppContext } from "@/context/AppContext";
 import { useAuth } from "@/context/AuthContext";
 import { useAIAgent } from "@/hooks/useAIAgent";
 import type { AIAgentLanguage, AIAgentModel, ProposedAction } from "@/types/aiAgent";
 import { VoiceAssistantModal } from "@/components/voice";
 import styles from "./ai-agent.module.css";
+
+function toBnNum(num: number): string {
+  const bnNums = ['০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯'];
+  return num.toLocaleString('en-US').split('').map(d => bnNums[parseInt(d, 10)] ?? d).join('');
+}
 const quickActionsBn = [
   "আজকের স্টাডি প্ল্যান তৈরি করো",
   "আমি একটি সমস্যায় পড়েছি",
@@ -134,7 +139,7 @@ export default function AIAgentPage() {
   }, [state?.lang]);
 
   const context = useMemo(() => ({ tasks: state.tasks, notesCount: state.notes.length, timeBlocksCount: state.timeBlocks.length, productivityScore: state.productivityScore }), [state.tasks, state.notes.length, state.timeBlocks.length, state.productivityScore]);
-  const { messages, sessions, activeSessionId, isThinking, error, send, setMessages, createNewSession, selectSession, removeSession } = useAIAgent(context);
+  const { messages, sessions, activeSessionId, tokenStatus, isThinking, error, send, setMessages, createNewSession, selectSession, removeSession } = useAIAgent(context, isSystemBn ? "bn" : "en");
   const name = user?.fullName || user?.displayName || "there";
   const quickActions = isSystemBn ? quickActionsBn : quickActionsEn;
   
@@ -246,15 +251,36 @@ export default function AIAgentPage() {
             {isSystemBn ? 'ফোকাস ফোর্স AI এজেন্ট' : 'FocusForge AI Agent'}
           </p>
         </div>
-        <div className={styles.headerActions} ref={historyMenuRef}>
-          <button 
-            className={styles.iconButton} 
-            onClick={() => setShowHistory(!showHistory)}
-            aria-label="Chat History"
-            aria-expanded={showHistory}
+        <div className={styles.headerActions}>
+          {/* 5,000 Token Quota Indicator */}
+          <div
+            className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border shadow-xs transition-colors"
+            style={{
+              background: tokenStatus?.isExhausted ? "rgba(239, 68, 68, 0.12)" : "var(--color-bg-card)",
+              borderColor: tokenStatus?.isExhausted ? "rgba(239, 68, 68, 0.4)" : "var(--color-border-subtle)",
+              color: tokenStatus?.isExhausted ? "#ef4444" : "var(--color-text-secondary)"
+            }}
+            title={tokenStatus ? (isSystemBn ? `টোকেন রিসেট হওয়ার তারিখ: ${tokenStatus.formattedResetDate}` : `Tokens reset on: ${tokenStatus.formattedResetDate}`) : ""}
           >
-            <MoreVertical size={20} />
-          </button>
+            <Sparkles size={13} className={tokenStatus?.isExhausted ? "text-red-400" : "text-violet-400"} />
+            <span className="font-mono text-[11px] sm:text-xs">
+              {tokenStatus
+                ? (isSystemBn 
+                    ? `${toBnNum(tokenStatus.remaining)} / ৫,০০০ টোকেন` 
+                    : `${tokenStatus.remaining.toLocaleString()} / 5,000 tokens`)
+                : (isSystemBn ? "৫,০০০ / ৫,০০০ টোকেন" : "5,000 / 5,000 tokens")}
+            </span>
+          </div>
+
+          <div ref={historyMenuRef} style={{ position: 'relative' }}>
+            <button 
+              className={styles.iconButton} 
+              onClick={() => setShowHistory(!showHistory)}
+              aria-label="Chat History"
+              aria-expanded={showHistory}
+            >
+              <MoreVertical size={20} />
+            </button>
           
           {showHistory && (
             <div className={styles.historyDropdown}>
@@ -294,6 +320,7 @@ export default function AIAgentPage() {
               </div>
             </div>
           )}
+          </div>
         </div>
       </header>
 
@@ -515,7 +542,37 @@ export default function AIAgentPage() {
 
       {/* 4. Pinned Bottom Composer Section */}
       <div className={styles.composerWrapper} ref={composerRef}>
-        {messages.length > 0 && (
+        {/* Token Exhausted Alert Banner */}
+        {tokenStatus?.isExhausted && (
+          <div 
+            className="p-3.5 mb-3 rounded-xl border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-sm"
+            style={{
+              background: "rgba(239, 68, 68, 0.09)",
+              borderColor: "rgba(239, 68, 68, 0.35)",
+              color: "var(--color-text-primary)"
+            }}
+            role="alert"
+          >
+            <div className="flex items-center gap-2.5 text-sm">
+              <AlertCircle className="w-5 h-5 text-red-400 shrink-0" />
+              <div>
+                <p className="font-semibold text-red-400 text-sm">
+                  {isSystemBn ? "আপনার ৫,০০০ AI টোকেন শেষ হয়ে গেছে" : "Your 5,000 AI tokens have been exhausted"}
+                </p>
+                <p className="text-xs text-[var(--color-text-muted)] mt-0.5">
+                  {isSystemBn
+                    ? `টোকেন রিসেট হওয়ার তারিখ: ${tokenStatus.formattedResetDate} (বাকি: ${tokenStatus.formattedRemainingTime})`
+                    : `Tokens will reset on: ${tokenStatus.formattedResetDate} (${tokenStatus.formattedRemainingTime} remaining)`}
+                </p>
+              </div>
+            </div>
+            <div className="text-xs px-2.5 py-1 rounded-md bg-red-500/15 text-red-400 font-mono shrink-0 font-medium">
+              {tokenStatus.formattedRemainingTime}
+            </div>
+          </div>
+        )}
+
+        {messages.length > 0 && !tokenStatus?.isExhausted && (
           <div className={styles.quickActionsInline}>
             {quickActions.slice(0, 4).map((action) => (
               <button key={action} onClick={() => submit(action)} disabled={isThinking}>
@@ -529,6 +586,7 @@ export default function AIAgentPage() {
           <textarea
             ref={textareaRef}
             value={input}
+            disabled={isThinking || tokenStatus?.isExhausted}
             onChange={(event) => {
               setInput(event.target.value);
               requestAnimationFrame(adjustTextareaHeight);
@@ -544,7 +602,13 @@ export default function AIAgentPage() {
                 submit();
               }
             }}
-            placeholder={isSystemBn ? "টাস্ক, স্টাডি প্ল্যান, ফোকাস, নোটস, আইডিয়া বা সমস্যা সম্পর্কে বলুন..." : "Ask me anything about your tasks, routine, goals, or productivity..."}
+            placeholder={
+              tokenStatus?.isExhausted
+                ? (isSystemBn 
+                    ? `টোকেন শেষ। রিসেট তারিখ: ${tokenStatus.formattedResetDate}` 
+                    : `Tokens exhausted. Resets on: ${tokenStatus.formattedResetDate}`)
+                : (isSystemBn ? "টাস্ক, স্টাডি প্ল্যান, ফোকাস, নোটস, আইডিয়া বা সমস্যা সম্পর্কে বলুন..." : "Ask me anything about your tasks, routine, goals, or productivity...")
+            }
             aria-label="Message FocusForge AI"
             rows={1}
           />
@@ -556,6 +620,7 @@ export default function AIAgentPage() {
               <button
                 className={`${styles.voiceButton} ${voiceOpen ? styles.listening : ""}`}
                 onClick={voiceOpen ? stopVoice : startVoice}
+                disabled={tokenStatus?.isExhausted}
                 aria-label={voiceOpen ? "Stop voice input" : "Start voice input"}
                 aria-pressed={voiceOpen}
               >
@@ -564,7 +629,7 @@ export default function AIAgentPage() {
               <button
                 className={styles.sendButton}
                 onClick={() => submit()}
-                disabled={!input.trim() || isThinking}
+                disabled={!input.trim() || isThinking || tokenStatus?.isExhausted}
                 aria-label="Send message"
               >
                 <Send size={17} />

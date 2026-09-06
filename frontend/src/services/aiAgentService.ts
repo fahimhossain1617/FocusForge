@@ -1,13 +1,60 @@
 import type { AIAgentLanguage, AgentMessage, WorkspaceContext } from "@/types/aiAgent";
 import { supabase } from "../lib/supabaseClient";
 
+export interface TokenStatus {
+  total: number;
+  used: number;
+  remaining: number;
+  resetAt: string;
+  isExhausted: boolean;
+  formattedResetDate?: string;
+  formattedRemainingTime?: string;
+}
+
 async function getToken() {
   const { data: { session } } = await supabase.auth.getSession();
   return session?.access_token || "";
 }
 
+function getGuestId(): string {
+  if (typeof window === "undefined") return "guest";
+  let gid = localStorage.getItem("focusforge_guest_id");
+  if (!gid) {
+    gid = "guest_" + Math.random().toString(36).substring(2, 10);
+    localStorage.setItem("focusforge_guest_id", gid);
+  }
+  return gid;
+}
+
 const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000";
 const API_URL = `${API_BASE}/api`;
+
+export async function getAITokenStatus(lang: string = "bn"): Promise<TokenStatus> {
+  try {
+    const token = await getToken();
+    const guestId = getGuestId();
+    const res = await fetch(`${API_URL}/ai/tokens?lang=${lang}`, {
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        "x-guest-id": guestId,
+        "x-app-lang": lang,
+      },
+    });
+    if (!res.ok) throw new Error("Failed to fetch tokens");
+    return await res.json();
+  } catch (err) {
+    console.warn("[aiAgentService] Token status fallback:", err);
+    return {
+      total: 5000,
+      used: 0,
+      remaining: 5000,
+      resetAt: new Date(Date.now() + 86400000).toISOString(),
+      isExhausted: false,
+      formattedResetDate: "",
+      formattedRemainingTime: "24h",
+    };
+  }
+}
 
 export async function getChatSessions() {
   try {
@@ -73,21 +120,29 @@ export async function sendAgentMessage(
   message: string, 
   context: WorkspaceContext, 
   sessionId?: string,
-  history?: Array<{ role: string; content: string }>
-): Promise<{ sessionId: string, aiMessage: AgentMessage }> {
+  history?: Array<{ role: string; content: string }>,
+  lang: string = "bn"
+): Promise<{ sessionId: string; aiMessage: AgentMessage; tokenStatus?: TokenStatus }> {
   const token = await getToken();
+  const guestId = getGuestId();
+
   const res = await fetch(`${API_URL}/ai/agent/chat`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      'x-guest-id': guestId,
+      'x-app-lang': lang,
     },
     body: JSON.stringify({ sessionId, message, context, history })
   });
   
   if (!res.ok) {
-    const error = await res.json().catch(() => ({}));
-    throw new Error(error.error || "Failed to process chat message");
+    const errorData = await res.json().catch(() => ({}));
+    const error: any = new Error(errorData.message || errorData.error || "Failed to process chat message");
+    error.code = errorData.code;
+    error.tokenStatus = errorData.tokenStatus;
+    throw error;
   }
   
   return res.json();
@@ -95,6 +150,8 @@ export async function sendAgentMessage(
 
 export async function transcribeAudioBlob(blob: Blob, language?: string): Promise<string> {
   const token = await getToken();
+  const guestId = getGuestId();
+
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onloadend = async () => {
@@ -111,7 +168,9 @@ export async function transcribeAudioBlob(blob: Blob, language?: string): Promis
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              ...(token ? { Authorization: `Bearer ${token}` } : {})
+              ...(token ? { Authorization: `Bearer ${token}` } : {}),
+              'x-guest-id': guestId,
+              'x-app-lang': language || 'bn',
             },
             body: JSON.stringify({
               audio: base64Data,
@@ -125,7 +184,9 @@ export async function transcribeAudioBlob(blob: Blob, language?: string): Promis
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              ...(token ? { Authorization: `Bearer ${token}` } : {})
+              ...(token ? { Authorization: `Bearer ${token}` } : {}),
+              'x-guest-id': guestId,
+              'x-app-lang': language || 'bn',
             },
             body: JSON.stringify({
               audio: base64Data,
@@ -137,7 +198,7 @@ export async function transcribeAudioBlob(blob: Blob, language?: string): Promis
 
         if (!res.ok) {
           const err = await res.json().catch(() => ({}));
-          throw new Error(err.error || 'Failed to transcribe audio');
+          throw new Error(err.message || err.error || 'Failed to transcribe audio');
         }
 
         const data = await res.json();
@@ -150,4 +211,3 @@ export async function transcribeAudioBlob(blob: Blob, language?: string): Promis
     reader.readAsDataURL(blob);
   });
 }
-

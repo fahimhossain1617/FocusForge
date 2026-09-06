@@ -5,7 +5,6 @@ import { useTranslation } from "../hooks/useTranslation";
 import { LayoutDashboard, PencilLine, CalendarDays, Target, GraduationCap, Settings as SettingsIcon, Files, User as ProfileIcon, Sparkles } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import UserMenu from "./auth/UserMenu";
-import InstallPrompt from "./pwa/InstallPrompt";
 
 const navGroups = [
   {
@@ -204,7 +203,6 @@ export default function Sidebar({ isOpen, onClose, isTourActive }: SidebarProps)
 
         {/* User / Authentication Entry Point */}
         <div className="mt-auto pt-3 px-2 border-t" style={{ borderTopColor: "var(--color-border-subtle)" }}>
-          <InstallPrompt variant="sidebar" />
           <UserMenu variant="sidebar" />
         </div>
       </aside>

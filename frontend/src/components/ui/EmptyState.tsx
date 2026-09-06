@@ -1,7 +1,10 @@
 "use client";
 
+import React from "react";
+import { Sparkles } from "lucide-react";
+
 interface EmptyStateProps {
-  icon?: string;
+  icon?: React.ReactNode;
   title: string;
   description?: string;
   action?: {
@@ -10,10 +13,15 @@ interface EmptyStateProps {
   };
 }
 
-export default function EmptyState({ icon = "✨", title, description, action }: EmptyStateProps) {
+export default function EmptyState({
+  icon = <Sparkles className="w-8 h-8 text-indigo-400" />,
+  title,
+  description,
+  action,
+}: EmptyStateProps) {
   return (
     <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
-      <span className="text-3xl mb-4">{icon}</span>
+      <div className="mb-4 flex items-center justify-center">{icon}</div>
       <h3
         className="text-base font-semibold mb-1"
         style={{ color: "var(--color-text-primary)" }}

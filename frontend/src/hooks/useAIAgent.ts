@@ -1,7 +1,14 @@
 "use client";
 
 import { useCallback, useState, useEffect } from "react";
-import { sendAgentMessage, getChatSessions, getChatMessages, deleteChatSession } from "@/services/aiAgentService";
+import { 
+  sendAgentMessage, 
+  getChatSessions, 
+  getChatMessages, 
+  deleteChatSession,
+  getAITokenStatus,
+  TokenStatus
+} from "@/services/aiAgentService";
 import type { AIAgentLanguage, AgentMessage, WorkspaceContext } from "@/types/aiAgent";
 
 export interface ChatSession {
@@ -10,28 +17,45 @@ export interface ChatSession {
   updated_at: string;
 }
 
-export function useAIAgent(context: WorkspaceContext) {
+export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn") {
   const [messages, setMessages] = useState<AgentMessage[]>([]);
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
+  const [tokenStatus, setTokenStatus] = useState<TokenStatus | null>(null);
   
   const [isThinking, setIsThinking] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
-  // Load sessions on mount
+  // Refresh token status
+  const refreshTokenStatus = useCallback(async (lang: string = initialLang) => {
+    try {
+      const status = await getAITokenStatus(lang);
+      setTokenStatus(status);
+    } catch (err) {
+      console.warn("Could not refresh token status:", err);
+    }
+  }, [initialLang]);
+
+  // Load sessions and token status on mount
   useEffect(() => {
-    const fetchSessions = async () => {
+    const fetchInitialData = async () => {
       try {
-        const data = await getChatSessions();
-        if (Array.isArray(data)) {
-          setSessions(data);
+        const [sessionsData, tokensData] = await Promise.all([
+          getChatSessions(),
+          getAITokenStatus(initialLang)
+        ]);
+        if (Array.isArray(sessionsData)) {
+          setSessions(sessionsData);
+        }
+        if (tokensData) {
+          setTokenStatus(tokensData);
         }
       } catch (err) {
-        console.error("Failed to load AI chat sessions", err);
+        console.error("Failed to load initial AI agent data", err);
       }
     };
-    fetchSessions();
-  }, []);
+    fetchInitialData();
+  }, [initialLang]);
 
   const createNewSession = useCallback(() => {
     setActiveSessionId(null);
@@ -77,9 +101,21 @@ export function useAIAgent(context: WorkspaceContext) {
   }, [activeSessionId, createNewSession]);
 
   const send = useCallback(async (content: string, language: AIAgentLanguage = "auto") => {
-    if (!content.trim()) { setError("Tell FocusForge what you need help with first."); return; }
+    if (!content.trim()) { 
+      setError(language === "bn" ? "প্রথমে আপনার প্রশ্ন বা টাস্ক লিখুন।" : "Tell FocusForge what you need help with first."); 
+      return; 
+    }
     setError(null); 
     
+    // Check local token state if exhausted
+    if (tokenStatus?.isExhausted) {
+      const exhaustedMsg = language === "bn"
+        ? `আপনার ৫,০০০ AI টোকেন শেষ হয়ে গেছে। টোকেন রিসেট হওয়ার তারিখ: ${tokenStatus.formattedResetDate} (বাকি: ${tokenStatus.formattedRemainingTime})`
+        : `Your 5,000 AI tokens have been exhausted. Tokens will reset on: ${tokenStatus.formattedResetDate} (${tokenStatus.formattedRemainingTime} remaining)`;
+      setError(exhaustedMsg);
+      return;
+    }
+
     // Optimistic user message
     const userMsg: AgentMessage = { id: crypto.randomUUID(), role: "user", content: content.trim(), createdAt: new Date() };
     setMessages((items) => [...items, userMsg]); 
@@ -87,8 +123,14 @@ export function useAIAgent(context: WorkspaceContext) {
     
     try { 
       const history = messages.slice(-8).map((m) => ({ role: m.role, content: m.content }));
-      const result = await sendAgentMessage(content, context, activeSessionId || undefined, history); 
+      const langParam = language === "en" ? "en" : "bn";
+      const result = await sendAgentMessage(content, context, activeSessionId || undefined, history, langParam); 
       
+      // Update token status if returned
+      if (result.tokenStatus) {
+        setTokenStatus(result.tokenStatus);
+      }
+
       // If this was a new session, update activeSessionId and refresh sessions
       if (!activeSessionId && result.sessionId) {
         setActiveSessionId(result.sessionId);
@@ -110,15 +152,24 @@ export function useAIAgent(context: WorkspaceContext) {
     }
     catch (err: any) { 
       console.error("AI send error:", err);
-      const friendlyMsg = language === "bn"
-        ? "দুঃখিত, এআই সার্ভার সাময়িক ব্যস্ত ছিল। অনুগ্রহ করে পুনরায় পাঠান বা কয়েক সেকেন্ড পর চেষ্টা করুন।"
-        : "FocusForge AI is temporarily busy. Please try sending your message again in a moment.";
-      setError(friendlyMsg); 
-      // Keep user's message and show assistant explanation so message never vanishes
+      if (err.tokenStatus) {
+        setTokenStatus(err.tokenStatus);
+      }
+
+      let errorMsg = err.message;
+      if (err.code === 'TOKENS_EXHAUSTED' || err.message?.includes('AI_TOKENS_EXHAUSTED')) {
+        errorMsg = err.message;
+      } else if (!errorMsg || errorMsg === "Failed to process chat message") {
+        errorMsg = language === "bn"
+          ? "দুঃখিত, এআই সার্ভার সাময়িক ব্যস্ত ছিল। অনুগ্রহ করে পুনরায় পাঠান বা কয়েক সেকেন্ড পর চেষ্টা করুন।"
+          : "FocusForge AI is temporarily busy. Please try sending your message again in a moment.";
+      }
+
+      setError(errorMsg); 
       const errorResponse: AgentMessage = {
         id: 'err_' + Date.now(),
         role: "assistant",
-        content: friendlyMsg,
+        content: errorMsg,
         createdAt: new Date()
       };
       setMessages((items) => [...items, errorResponse]);
@@ -126,12 +177,14 @@ export function useAIAgent(context: WorkspaceContext) {
     finally { 
       setIsThinking(false); 
     }
-  }, [context, activeSessionId]);
+  }, [context, activeSessionId, messages, tokenStatus]);
 
   return { 
     messages, 
     sessions,
     activeSessionId,
+    tokenStatus,
+    refreshTokenStatus,
     isThinking, 
     error, 
     send, 

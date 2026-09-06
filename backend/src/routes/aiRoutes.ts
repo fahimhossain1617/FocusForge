@@ -2,17 +2,74 @@ import { Router } from 'express';
 import { requireAuth } from '../middleware/auth';
 import { executeAIAction, transcribeAudio } from '../services/aiService';
 import { getChatSessions, getChatMessages, createChatSession, addChatMessage, deleteChatSession } from '../services/aiChatService';
+import { getUserTokenStatus, consumeUserTokens, estimateTokenUsage } from '../services/aiTokenService';
 
 const router = Router();
 
 // AI endpoints can incur paid provider usage and must never be public.
 router.use(requireAuth);
 
+function getRequestClientMeta(req: any) {
+  const user = req.user;
+  const isGuest = !user || user.isGuest;
+  const userId = user?.id;
+  const guestId = (req.headers['x-guest-id'] as string) || req.ip || 'guest';
+  const lang = (req.headers['x-app-lang'] as string) || (req.query.lang as string) || 'bn';
+  return { isGuest, userId, guestId, lang };
+}
+
+// Check tokens and return error response if exhausted
+async function checkTokensOrReject(req: any, res: any) {
+  const { isGuest, userId, guestId, lang } = getRequestClientMeta(req);
+  const status = await getUserTokenStatus(userId, isGuest, guestId, lang);
+  if (status.isExhausted || status.remaining <= 0) {
+    const message = lang === 'bn'
+      ? `আপনার ৫,০০০ AI টোকেন শেষ হয়ে গেছে। টোকেন রিসেট হওয়ার তারিখ: ${status.formattedResetDate} (বাকি: ${status.formattedRemainingTime})`
+      : `Your 5,000 AI tokens have been exhausted. Tokens will reset on: ${status.formattedResetDate} (${status.formattedRemainingTime} remaining)`;
+
+    res.status(429).json({
+      error: 'AI_TOKENS_EXHAUSTED',
+      code: 'TOKENS_EXHAUSTED',
+      tokenStatus: status,
+      message,
+    });
+    return null;
+  }
+  return status;
+}
+
+// Deduct tokens after successful execution
+async function deductTokens(req: any, promptData: any, responseData: any) {
+  try {
+    const { isGuest, userId, guestId, lang } = getRequestClientMeta(req);
+    const tokensUsed = estimateTokenUsage(JSON.stringify(promptData ?? ''), JSON.stringify(responseData ?? ''));
+    return await consumeUserTokens(userId, isGuest, guestId, tokensUsed, lang);
+  } catch (err) {
+    console.warn('[AI Routes] Token deduction error:', err);
+    return null;
+  }
+}
+
+// Endpoint to inspect current token balance and reset countdown
+router.get('/tokens', async (req, res) => {
+  try {
+    const { isGuest, userId, guestId, lang } = getRequestClientMeta(req);
+    const status = await getUserTokenStatus(userId, isGuest, guestId, lang);
+    res.json(status);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message || 'Failed to fetch token status' });
+  }
+});
+
 router.post('/what-should-i-do', async (req, res) => {
   try {
+    const tokenCheck = await checkTokensOrReject(req, res);
+    if (!tokenCheck) return;
+
     const { tasks, context, options } = req.body;
     const result = await executeAIAction('whatShouldIDo', { tasks, context, options });
-    res.json(result);
+    const tokenStatus = await deductTokens(req, req.body, result);
+    res.json(typeof result === 'object' && !Array.isArray(result) ? { ...result, tokenStatus } : result);
   } catch (error: any) {
     res.status(500).json({ error: error.message || 'AI request failed' });
   }
@@ -20,8 +77,12 @@ router.post('/what-should-i-do', async (req, res) => {
 
 router.post('/breakdown', async (req, res) => {
   try {
+    const tokenCheck = await checkTokensOrReject(req, res);
+    if (!tokenCheck) return;
+
     const { goal, breakdownOptions, options } = req.body;
     const result = await executeAIAction('taskBreakdown', { goal, breakdownOptions, options });
+    await deductTokens(req, req.body, result);
     res.json(result);
   } catch (error: any) {
     res.status(500).json({ error: error.message || 'Task breakdown failed' });
@@ -30,9 +91,13 @@ router.post('/breakdown', async (req, res) => {
 
 router.post('/parse-task', async (req, res) => {
   try {
+    const tokenCheck = await checkTokensOrReject(req, res);
+    if (!tokenCheck) return;
+
     const { naturalInput, referenceDate, options } = req.body;
     const result = await executeAIAction('parseTask', { naturalInput, referenceDate, options });
-    res.json(result);
+    const tokenStatus = await deductTokens(req, req.body, result);
+    res.json(typeof result === 'object' && !Array.isArray(result) ? { ...result, tokenStatus } : result);
   } catch (error: any) {
     res.status(500).json({ error: error.message || 'Task parsing failed' });
   }
@@ -40,8 +105,12 @@ router.post('/parse-task', async (req, res) => {
 
 router.post('/daily-plan', async (req, res) => {
   try {
+    const tokenCheck = await checkTokensOrReject(req, res);
+    if (!tokenCheck) return;
+
     const { tasks, plannerOptions, options } = req.body;
     const result = await executeAIAction('dailyPlanner', { tasks, plannerOptions, options });
+    await deductTokens(req, req.body, result);
     res.json(result);
   } catch (error: any) {
     res.status(500).json({ error: error.message || 'Daily planning failed' });
@@ -50,9 +119,13 @@ router.post('/daily-plan', async (req, res) => {
 
 router.post('/ask', async (req, res) => {
   try {
+    const tokenCheck = await checkTokensOrReject(req, res);
+    if (!tokenCheck) return;
+
     const { userQuery, context, options } = req.body;
     const result = await executeAIAction('askFocusForge', { userQuery, context, options });
-    res.json(result);
+    const tokenStatus = await deductTokens(req, req.body, result);
+    res.json(typeof result === 'object' && !Array.isArray(result) ? { ...result, tokenStatus } : result);
   } catch (error: any) {
     res.status(500).json({ error: error.message || 'AI query failed' });
   }
@@ -60,9 +133,13 @@ router.post('/ask', async (req, res) => {
 
 router.post('/execute-agent', async (req, res) => {
   try {
+    const tokenCheck = await checkTokensOrReject(req, res);
+    if (!tokenCheck) return;
+
     const { userQuery, context, options } = req.body;
     const result = await executeAIAction('executeAgenticTask', { userQuery, context, options });
-    res.json(result);
+    const tokenStatus = await deductTokens(req, req.body, result);
+    res.json(typeof result === 'object' && !Array.isArray(result) ? { ...result, tokenStatus } : result);
   } catch (error: any) {
     res.status(500).json({ error: error.message || 'Agent execution failed' });
   }
@@ -70,12 +147,16 @@ router.post('/execute-agent', async (req, res) => {
 
 router.post('/custom', async (req, res) => {
   try {
+    const tokenCheck = await checkTokensOrReject(req, res);
+    if (!tokenCheck) return;
+
     const { prompt } = req.body;
     if (!prompt) {
       return res.status(400).json({ error: 'Prompt is required' });
     }
     const result = await executeAIAction('customAi', { prompt });
-    res.json(result);
+    const tokenStatus = await deductTokens(req, req.body, result);
+    res.json(typeof result === 'object' && !Array.isArray(result) ? { ...result, tokenStatus } : result);
   } catch (error: any) {
     res.status(500).json({ error: error.message || 'Custom query failed' });
   }
@@ -136,6 +217,9 @@ router.get('/agent/sessions/:id/messages', async (req, res) => {
 
 router.post('/agent/chat', async (req, res) => {
   try {
+    const tokenCheck = await checkTokensOrReject(req, res);
+    if (!tokenCheck) return;
+
     const user = (req as any).user;
     const isGuest = !user || user.isGuest;
     const userId = user?.id;
@@ -182,9 +266,13 @@ router.post('/agent/chat', async (req, res) => {
       result.message = result.message || "I'm having trouble processing that right now.";
     }
 
+    // 3. Deduct tokens
+    const tokenStatus = await deductTokens(req, req.body, result);
+
     if (isGuest) {
       return res.json({
         sessionId: sessionId || 'guest-session',
+        tokenStatus,
         aiMessage: {
           id: 'guest_msg_' + Date.now(),
           session_id: sessionId || 'guest-session',
@@ -197,17 +285,17 @@ router.post('/agent/chat', async (req, res) => {
       });
     }
 
-    // 3. Authenticated: Create session in DB if none provided
+    // 4. Authenticated: Create session in DB if none provided
     if (!sessionId || sessionId === 'guest-session') {
       const session = await createChatSession(userId, message.substring(0, 30) + '...');
       sessionId = session.id;
     }
 
-    // 4. Save User Message & AI Message in DB
+    // 5. Save User Message & AI Message in DB
     await addChatMessage(sessionId, userId, 'user', message);
     const aiMessage = await addChatMessage(sessionId, userId, 'assistant', result.message, result.intent, result.payload);
     
-    res.json({ sessionId, aiMessage });
+    res.json({ sessionId, aiMessage, tokenStatus });
   } catch (error: any) {
     console.error('Agent chat error:', error);
     res.status(500).json({ error: error.message || 'Agent chat failed' });
@@ -216,12 +304,16 @@ router.post('/agent/chat', async (req, res) => {
 
 router.post('/transcribe', async (req, res) => {
   try {
+    const tokenCheck = await checkTokensOrReject(req, res);
+    if (!tokenCheck) return;
+
     const { audio, mimeType, language } = req.body;
     if (!audio) {
       return res.status(400).json({ error: 'Audio data is required' });
     }
     const text = await transcribeAudio(audio, mimeType || 'audio/webm', language);
-    res.json({ text });
+    const tokenStatus = await deductTokens(req, { mimeType, language }, { text });
+    res.json({ text, tokenStatus });
   } catch (error: any) {
     console.error('Audio transcribe error:', error);
     res.status(500).json({ error: error.message || 'Audio transcription failed' });
@@ -229,4 +321,3 @@ router.post('/transcribe', async (req, res) => {
 });
 
 export default router;
-

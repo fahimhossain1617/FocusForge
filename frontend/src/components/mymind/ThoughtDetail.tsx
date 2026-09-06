@@ -71,7 +71,7 @@ export default function ThoughtDetail({ thoughtId, navigate }: ThoughtDetailProp
     
     // Determine title based on content or source
     let title = t.myMind.myMindThought;
-    if (content.startsWith("💡 Idea Capture") || content.startsWith("💡 ধারণা ক্যাপচার")) title = t.myMind.myMindIdea;
+    if (content.startsWith("Idea Capture") || content.startsWith("💡 Idea Capture") || content.startsWith("ধারণা ক্যাপচার") || content.startsWith("💡 ধারণা ক্যাপচার")) title = t.myMind.myMindIdea;
     if (content.startsWith("Problem Solver Reflection") || content.startsWith("সমস্যা সমাধানকারীর ভাবনা")) title = t.myMind.myMindProblemSolver;
     
     addNote({

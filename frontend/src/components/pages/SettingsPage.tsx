@@ -66,7 +66,7 @@ export default function SettingsPage() {
     }
     const success = await notificationService.send({
       id: `test_notif_${Date.now()}`,
-      title: "FocusForge Notification Active 🚀",
+      title: "FocusForge Notification Active",
       body: "You will receive your Daily Morning Plan and scheduled task reminders on time!",
       tag: "test-notification",
     });
