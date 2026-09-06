@@ -105,7 +105,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ pa
       content: rawResult.message || (lang === 'bn' ? 'কীভাবে সাহায্য করতে পারি?' : 'How can I assist you?'),
       intent: rawResult.intent || 'GREETING_OR_GENERAL',
       payload: rawResult.payload || null,
-      timestamp: new Date().toISOString(),
+      createdAt: new Date().toISOString(),
     };
 
     return NextResponse.json({
