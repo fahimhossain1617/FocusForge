@@ -195,39 +195,20 @@ export async function transcribeAudioBlob(blob: Blob, language?: string): Promis
           resolve('');
           return;
         }
-        let res: Response;
-        try {
-          res = await fetch('/api/ai/transcribe', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              ...(token ? { Authorization: `Bearer ${token}` } : {}),
-              'x-guest-id': guestId,
-              'x-app-lang': language || 'bn',
-            },
-            body: JSON.stringify({
-              audio: base64Data,
-              mimeType: blob.type || 'audio/webm',
-              language: language || 'bn'
-            })
-          });
-          if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        } catch {
-          res = await fetch(`${getApiUrl()}/ai/transcribe`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              ...(token ? { Authorization: `Bearer ${token}` } : {}),
-              'x-guest-id': guestId,
-              'x-app-lang': language || 'bn',
-            },
-            body: JSON.stringify({
-              audio: base64Data,
-              mimeType: blob.type || 'audio/webm',
-              language: language || 'bn'
-            })
-          });
-        }
+        const res = await fetch(`${getApiUrl()}/ai/transcribe`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            'x-guest-id': guestId,
+            'x-app-lang': language || 'bn',
+          },
+          body: JSON.stringify({
+            audio: base64Data,
+            mimeType: blob.type || 'audio/webm',
+            language: language || 'bn'
+          })
+        });
 
         if (!res.ok) {
           const err = await res.json().catch(() => ({}));

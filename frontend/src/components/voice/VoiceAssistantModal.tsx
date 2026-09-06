@@ -133,7 +133,7 @@ export const VoiceAssistantModal: React.FC<VoiceAssistantModalProps> = ({
               audioChunksRef.current.push(e.data);
             }
           };
-          recorder.start(1000);
+          recorder.start(); // Removed timeslice (1000) to support iOS Safari
           mediaRecorderRef.current = recorder;
           if (intervalId) clearInterval(intervalId);
         } catch (e) {
@@ -181,7 +181,10 @@ export const VoiceAssistantModal: React.FC<VoiceAssistantModalProps> = ({
       setIsTranscribing(true);
       const audioPromise = new Promise<Blob>((resolve) => {
         recorder.onstop = () => {
-          const mime = recorder.mimeType || "audio/webm";
+          let mime = recorder.mimeType;
+          if (!mime) {
+            mime = (typeof window !== 'undefined' && window.navigator.userAgent.match(/iphone|ipad|ipod/i)) ? "audio/mp4" : "audio/webm";
+          }
           const blob = new Blob(audioChunksRef.current, { type: mime });
           resolve(blob);
         };

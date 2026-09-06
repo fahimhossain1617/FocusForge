@@ -76,11 +76,7 @@
 }
 
 @media (max-width: 768px) {
-  .title {
-    display: none;
-  }
   .header {
-    justify-content: flex-end;
     margin-bottom: 4px;
   }
 }

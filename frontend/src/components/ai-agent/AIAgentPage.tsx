@@ -99,14 +99,14 @@ function CustomSelect<T extends string>({
                 type="button"
                 role="option"
                 aria-selected={isSelected}
-                className={`${styles.customOption} ${isSelected ? styles.customOptionSelected : ""}`}
+                className={`${styles.customDropdownItem} ${isSelected ? styles.customDropdownItemActive : ""}`}
                 onClick={() => {
                   onChange(option.value);
                   setOpen(false);
                 }}
               >
                 <span>{option.label}</span>
-                {isSelected && <Check size={14} className={styles.optionCheck} />}
+                {isSelected && <Check size={14} className={styles.checkIcon} />}
               </button>
             );
           })}

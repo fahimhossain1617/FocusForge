@@ -8,6 +8,14 @@
  * - Defaults to `http://localhost:5000`.
  */
 export function getBackendUrl(): string {
+  if (typeof window !== "undefined") {
+    const hostname = window.location.hostname;
+    // If it's an IP address like 192.168.x.x, use that IP with port 5000 for mobile testing
+    if (/^(?:\d{1,3}\.){3}\d{1,3}$/.test(hostname) && hostname !== "127.0.0.1") {
+      return `http://${hostname}:5000`;
+    }
+  }
+
   if (process.env.NEXT_PUBLIC_BACKEND_URL) {
     return process.env.NEXT_PUBLIC_BACKEND_URL.replace(/\/$/, "");
   }

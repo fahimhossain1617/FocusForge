@@ -287,7 +287,17 @@ router.post('/agent/chat', async (req, res) => {
 
     // 4. Authenticated: Create session in DB if none provided
     if (!sessionId || sessionId === 'guest-session') {
-      const session = await createChatSession(userId, message.substring(0, 30) + '...');
+      let sessionTitle = message.substring(0, 30) + '...';
+      try {
+        const titlePrompt = `Generate a short 2-5 word title for a chat that starts with this message: "${message}". Reply ONLY with the title string and nothing else. Don't use quotes.`;
+        const titleResult: any = await executeAIAction('customAi', { prompt: titlePrompt });
+        if (titleResult && titleResult.message) {
+            sessionTitle = titleResult.message.trim().replace(/["']/g, '');
+        }
+      } catch (e) {
+        console.warn("Failed to generate chat title, falling back to substring", e);
+      }
+      const session = await createChatSession(userId, sessionTitle);
       sessionId = session.id;
     }
 
