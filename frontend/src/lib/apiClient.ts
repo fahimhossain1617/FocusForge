@@ -1,4 +1,5 @@
 import { supabase } from './supabaseClient';
+import { getBackendUrl } from './backendUrl';
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 
@@ -22,9 +23,8 @@ export async function fetchBackend<T>(endpoint: string, options: RequestInit = {
     headers['apikey'] = anonKey;
   }
 
-
   // Send all backend requests to the Express backend
-  const backendBase = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
+  const backendBase = getBackendUrl();
   const url = endpoint.startsWith('http') 
     ? endpoint 
     : `${backendBase}${endpoint.startsWith('/') ? '' : '/'}${endpoint}`;

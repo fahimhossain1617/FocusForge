@@ -48,6 +48,7 @@ app.use((err, req, res, next) => {
     res.status(500).json({ error: 'Internal Server Error' });
 });
 // Start the server
-app.listen(port, () => {
-    console.log(`FocusForge Backend running on port ${port}`);
+const host = process.env.HOST || '0.0.0.0';
+app.listen(Number(port), host, () => {
+    console.log(`FocusForge Backend running on http://${host}:${port}`);
 });

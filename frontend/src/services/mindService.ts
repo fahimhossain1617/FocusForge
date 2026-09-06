@@ -1,7 +1,8 @@
 import { supabase } from "../lib/supabaseClient";
 import { MindItem } from "../types";
+import { getBackendUrl } from "../lib/backendUrl";
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000";
+const getUrl = () => getBackendUrl();
 
 export const mindService = {
   /**
@@ -58,7 +59,7 @@ export const mindService = {
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (session?.access_token) {
-          await fetch(`${BACKEND_URL}/api/mind`, {
+          await fetch(`${getBackendUrl()}/api/mind`, {
             method: "POST",
             headers: {
               Authorization: `Bearer ${session.access_token}`,
@@ -91,7 +92,7 @@ export const mindService = {
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (session?.access_token) {
-          await fetch(`${BACKEND_URL}/api/mind`, {
+          await fetch(`${getBackendUrl()}/api/mind`, {
             method: "POST",
             headers: {
               Authorization: `Bearer ${session.access_token}`,
@@ -124,7 +125,7 @@ export const mindService = {
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (session?.access_token) {
-          await fetch(`${BACKEND_URL}/api/mind/${id}`, {
+          await fetch(`${getBackendUrl()}/api/mind/${id}`, {
             method: "DELETE",
             headers: {
               Authorization: `Bearer ${session.access_token}`,
@@ -154,7 +155,7 @@ export const mindService = {
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (session?.access_token) {
-          await fetch(`${BACKEND_URL}/api/mind`, {
+          await fetch(`${getBackendUrl()}/api/mind`, {
             method: "DELETE",
             headers: {
               Authorization: `Bearer ${session.access_token}`,

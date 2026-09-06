@@ -1,7 +1,6 @@
 import { supabase } from "../lib/supabaseClient";
 import { LearningFolder, LearningLog } from "../types";
-
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000";
+import { getBackendUrl } from "../lib/backendUrl";
 
 export const learningDbService = {
   /**
@@ -91,7 +90,7 @@ export const learningDbService = {
       try {
         const { data: { session: authSession } } = await supabase.auth.getSession();
         if (authSession?.access_token) {
-          await fetch(`${BACKEND_URL}/api/learning/folders`, {
+          await fetch(`${getBackendUrl()}/api/learning/folders`, {
             method: "POST",
             headers: {
               Authorization: `Bearer ${authSession.access_token}`,
@@ -137,7 +136,7 @@ export const learningDbService = {
       try {
         const { data: { session: authSession } } = await supabase.auth.getSession();
         if (authSession?.access_token) {
-          await fetch(`${BACKEND_URL}/api/learning/folders/${folderId}`, {
+          await fetch(`${getBackendUrl()}/api/learning/folders/${folderId}`, {
             method: "PATCH",
             headers: {
               Authorization: `Bearer ${authSession.access_token}`,
@@ -179,7 +178,7 @@ export const learningDbService = {
       try {
         const { data: { session: authSession } } = await supabase.auth.getSession();
         if (authSession?.access_token) {
-          await fetch(`${BACKEND_URL}/api/learning/folders/${folderId}`, {
+          await fetch(`${getBackendUrl()}/api/learning/folders/${folderId}`, {
             method: "DELETE",
             headers: {
               Authorization: `Bearer ${authSession.access_token}`,
@@ -226,7 +225,7 @@ export const learningDbService = {
       try {
         const { data: { session: authSession } } = await supabase.auth.getSession();
         if (authSession?.access_token) {
-          await fetch(`${BACKEND_URL}/api/learning/logs`, {
+          await fetch(`${getBackendUrl()}/api/learning/logs`, {
             method: "POST",
             headers: {
               Authorization: `Bearer ${authSession.access_token}`,
@@ -268,7 +267,7 @@ export const learningDbService = {
       try {
         const { data: { session: authSession } } = await supabase.auth.getSession();
         if (authSession?.access_token) {
-          await fetch(`${BACKEND_URL}/api/learning/logs/${logId}`, {
+          await fetch(`${getBackendUrl()}/api/learning/logs/${logId}`, {
             method: "DELETE",
             headers: {
               Authorization: `Bearer ${authSession.access_token}`,

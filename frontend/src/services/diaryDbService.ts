@@ -1,7 +1,6 @@
 import { supabase } from "../lib/supabaseClient";
 import { DiaryTopic, DiaryEntry } from "../types";
-
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000";
+import { getBackendUrl } from "../lib/backendUrl";
 
 export const diaryDbService = {
   /**
@@ -84,7 +83,7 @@ export const diaryDbService = {
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (session?.access_token) {
-          await fetch(`${BACKEND_URL}/api/diary/topics`, {
+          await fetch(`${getBackendUrl()}/api/diary/topics`, {
             method: "POST",
             headers: {
               Authorization: `Bearer ${session.access_token}`,
@@ -129,7 +128,7 @@ export const diaryDbService = {
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (session?.access_token) {
-          await fetch(`${BACKEND_URL}/api/diary/entries`, {
+          await fetch(`${getBackendUrl()}/api/diary/entries`, {
             method: "POST",
             headers: {
               Authorization: `Bearer ${session.access_token}`,
@@ -195,7 +194,7 @@ export const diaryDbService = {
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (session?.access_token) {
-          await fetch(`${BACKEND_URL}/api/diary/topics/${topicId}`, {
+          await fetch(`${getBackendUrl()}/api/diary/topics/${topicId}`, {
             method: 'DELETE',
             headers: {
               'Authorization': `Bearer ${session.access_token}`,
@@ -248,7 +247,7 @@ export const diaryDbService = {
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (session?.access_token) {
-          await fetch(`${BACKEND_URL}/api/diary/entries/${entryId}`, {
+          await fetch(`${getBackendUrl()}/api/diary/entries/${entryId}`, {
             method: 'DELETE',
             headers: {
               'Authorization': `Bearer ${session.access_token}`,

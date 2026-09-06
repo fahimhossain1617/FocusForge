@@ -26,14 +26,17 @@ function getGuestId(): string {
   return gid;
 }
 
-const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000";
-const API_URL = `${API_BASE}/api`;
+import { getBackendUrl } from "../lib/backendUrl";
+
+function getApiUrl(): string {
+  return `${getBackendUrl()}/api`;
+}
 
 export async function getAITokenStatus(lang: string = "bn"): Promise<TokenStatus> {
   try {
     const token = await getToken();
     const guestId = getGuestId();
-    const res = await fetch(`${API_URL}/ai/tokens?lang=${lang}`, {
+    const res = await fetch(`${getApiUrl()}/ai/tokens?lang=${lang}`, {
       headers: {
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
         "x-guest-id": guestId,
@@ -59,7 +62,7 @@ export async function getAITokenStatus(lang: string = "bn"): Promise<TokenStatus
 export async function getChatSessions() {
   try {
     const token = await getToken();
-    const res = await fetch(`${API_URL}/ai/agent/sessions`, {
+    const res = await fetch(`${getApiUrl()}/ai/agent/sessions`, {
       headers: { Authorization: `Bearer ${token}` }
     });
     if (!res.ok) return [];
@@ -73,7 +76,7 @@ export async function getChatSessions() {
 export async function createChatSession(title: string) {
   try {
     const token = await getToken();
-    const res = await fetch(`${API_URL}/ai/agent/sessions`, {
+    const res = await fetch(`${getApiUrl()}/ai/agent/sessions`, {
       method: 'POST',
       headers: { 
         'Content-Type': 'application/json',
@@ -92,7 +95,7 @@ export async function createChatSession(title: string) {
 export async function deleteChatSession(sessionId: string) {
   try {
     const token = await getToken();
-    await fetch(`${API_URL}/ai/agent/sessions/${sessionId}`, {
+    await fetch(`${getApiUrl()}/ai/agent/sessions/${sessionId}`, {
       method: 'DELETE',
       headers: { Authorization: `Bearer ${token}` }
     });
@@ -105,7 +108,7 @@ export async function deleteChatSession(sessionId: string) {
 export async function getChatMessages(sessionId: string) {
   try {
     const token = await getToken();
-    const res = await fetch(`${API_URL}/ai/agent/sessions/${sessionId}/messages`, {
+    const res = await fetch(`${getApiUrl()}/ai/agent/sessions/${sessionId}/messages`, {
       headers: { Authorization: `Bearer ${token}` }
     });
     if (!res.ok) return [];
@@ -127,7 +130,7 @@ export async function sendAgentMessage(
   const guestId = getGuestId();
 
   try {
-    const res = await fetch(`${API_URL}/ai/agent/chat`, {
+    const res = await fetch(`${getApiUrl()}/ai/agent/chat`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -149,9 +152,10 @@ export async function sendAgentMessage(
     return await res.json();
   } catch (err: any) {
     if (err.name === 'TypeError' || err.message === 'Failed to fetch' || err.message?.includes('fetch')) {
+      const backendUrlStr = getBackendUrl();
       const offlineMsg = lang === "bn"
-        ? "ব্যাকএন্ড সার্ভার রেসপন্স করছে না (http://localhost:5000)। অনুগ্রহ করে নিশ্চিত করুন backend সার্ভিসটি চালু আছে (`npm run dev --prefix backend`)।"
-        : "Could not connect to the backend server (http://localhost:5000). Please make sure backend service is running (`npm run dev --prefix backend`).";
+        ? `ব্যাকএন্ড সার্ভার রেসপন্স করছে না (${backendUrlStr})। অনুগ্রহ করে নিশ্চিত করুন backend সার্ভিসটি চালু আছে (\`npm run dev --prefix backend\`)।`
+        : `Could not connect to the backend server (${backendUrlStr}). Please make sure backend service is running (\`npm run dev --prefix backend\`).`;
       const error: any = new Error(offlineMsg);
       error.code = 'BACKEND_OFFLINE';
       throw error;
@@ -173,7 +177,6 @@ export async function transcribeAudioBlob(blob: Blob, language?: string): Promis
           resolve('');
           return;
         }
-        // Try native Next.js API route first, then fallback to API_URL
         let res: Response;
         try {
           res = await fetch('/api/ai/transcribe', {
@@ -192,7 +195,7 @@ export async function transcribeAudioBlob(blob: Blob, language?: string): Promis
           });
           if (!res.ok) throw new Error(`HTTP ${res.status}`);
         } catch {
-          res = await fetch(`${API_URL}/ai/transcribe`, {
+          res = await fetch(`${getApiUrl()}/ai/transcribe`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',

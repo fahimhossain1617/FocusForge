@@ -1,7 +1,6 @@
 import { supabase } from "../lib/supabaseClient";
 import { Note } from "../types";
-
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000";
+import { getBackendUrl } from "../lib/backendUrl";
 
 export interface DbNoteRow {
   id: number | string;
@@ -85,7 +84,7 @@ export const noteService = {
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (session?.access_token) {
-          await fetch(`${BACKEND_URL}/api/notes`, {
+          await fetch(`${getBackendUrl()}/api/notes`, {
             method: "POST",
             headers: {
               Authorization: `Bearer ${session.access_token}`,
@@ -141,7 +140,7 @@ export const noteService = {
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (session?.access_token) {
-          await fetch(`${BACKEND_URL}/api/notes/${noteId}`, {
+          await fetch(`${getBackendUrl()}/api/notes/${noteId}`, {
             method: "PATCH",
             headers: {
               Authorization: `Bearer ${session.access_token}`,
@@ -180,7 +179,7 @@ export const noteService = {
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (session?.access_token) {
-          await fetch(`${BACKEND_URL}/api/notes/${noteId}`, {
+          await fetch(`${getBackendUrl()}/api/notes/${noteId}`, {
             method: "DELETE",
             headers: {
               Authorization: `Bearer ${session.access_token}`,

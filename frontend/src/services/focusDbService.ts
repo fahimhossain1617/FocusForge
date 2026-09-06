@@ -1,7 +1,6 @@
 import { supabase } from "../lib/supabaseClient";
 import { FocusSession, DistractionEntry } from "../types";
-
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000";
+import { getBackendUrl } from "../lib/backendUrl";
 
 export const focusDbService = {
   /**
@@ -75,7 +74,7 @@ export const focusDbService = {
       try {
         const { data: { session: authSession } } = await supabase.auth.getSession();
         if (authSession?.access_token) {
-          await fetch(`${BACKEND_URL}/api/focus/sessions`, {
+          await fetch(`${getBackendUrl()}/api/focus/sessions`, {
             method: "POST",
             headers: {
               "Authorization": `Bearer ${authSession.access_token}`,
@@ -135,7 +134,7 @@ export const focusDbService = {
       try {
         const { data: { session: authSession } } = await supabase.auth.getSession();
         if (authSession?.access_token) {
-          await fetch(`${BACKEND_URL}/api/focus/sessions/${sessionId}/end`, {
+          await fetch(`${getBackendUrl()}/api/focus/sessions/${sessionId}/end`, {
             method: "PATCH",
             headers: {
               "Authorization": `Bearer ${authSession.access_token}`,
@@ -191,7 +190,7 @@ export const focusDbService = {
       try {
         const { data: { session: authSession } } = await supabase.auth.getSession();
         if (authSession?.access_token) {
-          await fetch(`${BACKEND_URL}/api/focus/sessions/${sessionId}/distractions`, {
+          await fetch(`${getBackendUrl()}/api/focus/sessions/${sessionId}/distractions`, {
             method: "POST",
             headers: {
               "Authorization": `Bearer ${authSession.access_token}`,
