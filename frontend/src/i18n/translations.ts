@@ -525,8 +525,9 @@ export const TRANSLATIONS = {
       blankPagePrompt: "This page is currently blank.",
     },
     onboarding: {
+      back: "Back",
       welcome: {
-        tagline: "FOCUSFORGE AI",
+        tagline: "",
         title: "Welcome to FocusForge",
         description: "Your intelligent space to organize your work, manage your priorities, stay focused, and make meaningful progress every day.",
         getStarted: "Get Started",
@@ -583,7 +584,7 @@ export const TRANSLATIONS = {
         },
         aiAgent: {
           title: "AI Agent",
-          desc: "Your FocusForge AI Agent can help you organize your work, prioritize tasks, and make your workflow easier.",
+          desc: "Your AI Agent can help you organize your work, prioritize tasks, and make your workflow easier.",
         },
         workspace: {
           title: "Notes & Files",
@@ -1148,8 +1149,9 @@ export const TRANSLATIONS = {
       blankPagePrompt: "এই পাতাটি বর্তমানে খালি রয়েছে।",
     },
     onboarding: {
+      back: "পেছনে যান",
       welcome: {
-        tagline: "FOCUSFORGE AI",
+        tagline: "",
         title: "FocusForge-এ স্বাগতম",
         description: "তোমার কাজ গুছিয়ে রাখা, প্রায়োরিটি নির্ধারণ, ফোকাস ধরে রাখা এবং প্রতিদিন কার্যকর অগ্রগতি অর্জনের এক বুদ্ধিমান প্ল্যাটফর্ম।",
         getStarted: "শুরু করুন",
@@ -1206,7 +1208,7 @@ export const TRANSLATIONS = {
         },
         aiAgent: {
           title: "AI এজেন্ট",
-          desc: "তোমার FocusForge AI Agent তোমার কাজ গুছিয়ে নিতে, priority ঠিক করতে এবং workflow আরও সহজ করতে সাহায্য করতে পারে।",
+          desc: "তোমার AI সহকারী তোমার কাজ গুছিয়ে নিতে, প্রায়োরিটি ঠিক করতে এবং workflow আরও সহজ করতে সাহায্য করবে।",
         },
         workspace: {
           title: "নোটস ও ফাইলস",

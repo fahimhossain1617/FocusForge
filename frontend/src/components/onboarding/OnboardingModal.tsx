@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Sparkles, Moon, Sun, UserCheck, ArrowRight, Check, Compass, LogIn } from "lucide-react";
+import { Moon, Sun, ArrowRight, ArrowLeft, Check, Compass, LogIn } from "lucide-react";
 import { useAppContext } from "@/context/AppContext";
 import { useAuth } from "@/context/AuthContext";
 import { useTranslation } from "@/hooks/useTranslation";
@@ -20,7 +20,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
   onEnterApp,
 }) => {
   const { state, updateState } = useAppContext();
-  const { openAuth, user } = useAuth();
+  const { openAuth } = useAuth();
   const { t } = useTranslation();
 
   const [step, setStep] = useState<OnboardingStep>("WELCOME");
@@ -108,12 +108,9 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
         {/* ==================== STEP 1: WELCOME ==================== */}
         {step === "WELCOME" && (
           <div className="fade-in flex flex-col items-center text-center">
-            <div className={styles.brandBadge}>
-              <Sparkles size={13} className="text-blue-400" />
-              <span>{ob.welcome.tagline}</span>
-            </div>
-
-            <h1 className={styles.cardTitle}>{ob.welcome.title}</h1>
+            <h1 className={styles.cardTitle} style={{ marginTop: "12px", marginBottom: "14px" }}>
+              {ob.welcome.title}
+            </h1>
 
             <p className={styles.cardSubtitle} style={{ marginBottom: "28px" }}>
               {ob.welcome.description}
@@ -135,10 +132,6 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
         {step === "LANGUAGE" && (
           <div className="fade-in flex flex-col">
             <div className={styles.cardHeader}>
-              <div className={styles.brandBadge}>
-                <Compass size={13} className="text-blue-400" />
-                <span>FocusForge</span>
-              </div>
               <h2 className={styles.cardTitle}>{ob.language.title}</h2>
               <p className={styles.cardSubtitle}>{ob.language.subtitle}</p>
             </div>
@@ -183,14 +176,28 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
               </button>
             </div>
 
-            <button
-              type="button"
-              className={styles.primaryButton}
-              onClick={() => setStep("THEME")}
-            >
-              <span>{ob.language.next}</span>
-              <ArrowRight size={17} />
-            </button>
+            <div className={styles.buttonRow}>
+              <button
+                type="button"
+                className={styles.backButton}
+                onClick={() => setStep("WELCOME")}
+                title={ob.back}
+              >
+                <ArrowLeft size={16} />
+                <span>{ob.back}</span>
+              </button>
+
+              <button
+                type="button"
+                className={styles.primaryButton}
+                onClick={() => setStep("THEME")}
+                style={{ flex: 1 }}
+                autoFocus
+              >
+                <span>{ob.language.next}</span>
+                <ArrowRight size={17} />
+              </button>
+            </div>
           </div>
         )}
 
@@ -198,10 +205,6 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
         {step === "THEME" && (
           <div className="fade-in flex flex-col">
             <div className={styles.cardHeader}>
-              <div className={styles.brandBadge}>
-                <Sparkles size={13} className="text-blue-400" />
-                <span>FocusForge</span>
-              </div>
               <h2 className={styles.cardTitle}>{ob.theme.title}</h2>
               <p className={styles.cardSubtitle}>{ob.theme.subtitle}</p>
             </div>
@@ -246,27 +249,34 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
               </button>
             </div>
 
-            <button
-              type="button"
-              className={styles.primaryButton}
-              onClick={() => setStep("PHILOSOPHY")}
-            >
-              <span>{ob.theme.next}</span>
-              <ArrowRight size={17} />
-            </button>
+            <div className={styles.buttonRow}>
+              <button
+                type="button"
+                className={styles.backButton}
+                onClick={() => setStep("LANGUAGE")}
+                title={ob.back}
+              >
+                <ArrowLeft size={16} />
+                <span>{ob.back}</span>
+              </button>
+
+              <button
+                type="button"
+                className={styles.primaryButton}
+                onClick={() => setStep("PHILOSOPHY")}
+                style={{ flex: 1 }}
+                autoFocus
+              >
+                <span>{ob.theme.next}</span>
+                <ArrowRight size={17} />
+              </button>
+            </div>
           </div>
         )}
 
         {/* ==================== STEP 4: PHILOSOPHY ==================== */}
         {step === "PHILOSOPHY" && (
           <div className="fade-in flex flex-col">
-            <div className={styles.cardHeader} style={{ marginBottom: "18px" }}>
-              <div className={styles.brandBadge}>
-                <Sparkles size={13} className="text-blue-400" />
-                <span>FocusForge Philosophy</span>
-              </div>
-            </div>
-
             <div className={styles.philosophyBody}>
               <p className={styles.philosophyIntro}>{ob.philosophy.title}</p>
               <p className={styles.philosophySub}>{ob.philosophy.subtitle}</p>
@@ -287,14 +297,28 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
               </div>
             </div>
 
-            <button
-              type="button"
-              className={styles.primaryButton}
-              onClick={() => setStep("ACCOUNT_MODE")}
-            >
-              <span>{ob.philosophy.continueBtn}</span>
-              <ArrowRight size={17} />
-            </button>
+            <div className={styles.buttonRow}>
+              <button
+                type="button"
+                className={styles.backButton}
+                onClick={() => setStep("THEME")}
+                title={ob.back}
+              >
+                <ArrowLeft size={16} />
+                <span>{ob.back}</span>
+              </button>
+
+              <button
+                type="button"
+                className={styles.primaryButton}
+                onClick={() => setStep("ACCOUNT_MODE")}
+                style={{ flex: 1 }}
+                autoFocus
+              >
+                <span>{ob.philosophy.continueBtn}</span>
+                <ArrowRight size={17} />
+              </button>
+            </div>
           </div>
         )}
 
@@ -302,10 +326,6 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
         {step === "ACCOUNT_MODE" && (
           <div className="fade-in flex flex-col">
             <div className={styles.cardHeader}>
-              <div className={styles.brandBadge}>
-                <UserCheck size={13} className="text-blue-400" />
-                <span>FocusForge</span>
-              </div>
               <h2 className={styles.cardTitle}>{ob.account.title}</h2>
               <p className={styles.cardSubtitle}>{ob.account.subtitle}</p>
             </div>
@@ -341,6 +361,17 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                 </div>
               </button>
             </div>
+
+            <button
+              type="button"
+              className={styles.backButton}
+              onClick={() => setStep("PHILOSOPHY")}
+              style={{ width: "100%", marginTop: "16px" }}
+              title={ob.back}
+            >
+              <ArrowLeft size={16} />
+              <span>{ob.back}</span>
+            </button>
           </div>
         )}
 

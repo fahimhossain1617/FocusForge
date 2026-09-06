@@ -689,12 +689,55 @@
   color: #0f172a;
 }
 
+/* Back Button & Action Button Row */
+.buttonRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+}
+
+.backButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 12px 18px;
+  border-radius: 12px;
+  background: rgba(30, 41, 59, 0.5);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  color: #cbd5e1;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.backButton:hover {
+  background: rgba(51, 65, 85, 0.8);
+  border-color: rgba(148, 163, 184, 0.4);
+  color: #ffffff;
+}
+
+:global([data-theme="light"]) .backButton {
+  background: rgba(241, 245, 249, 0.9);
+  border-color: rgba(203, 213, 225, 0.8);
+  color: #475569;
+}
+
+:global([data-theme="light"]) .backButton:hover {
+  background: rgba(226, 232, 240, 1);
+  color: #0f172a;
+}
 
 /* 8. Mobile Responsiveness */
-@media (max-width: 640px) {
+@media (max-width: 768px) {
   .onboardingCard {
-    padding: 26px 20px;
+    padding: 24px 18px;
     border-radius: 20px;
+    max-height: 90vh;
+    overflow-y: auto;
   }
 
   .cardTitle {
@@ -707,15 +750,50 @@
   }
 
   .optionCard {
-    padding: 16px 14px;
+    padding: 14px 12px;
     flex-direction: row;
     text-align: left;
-    gap: 14px;
+    gap: 12px;
   }
 
+  /* Tour Card on Mobile: docked at bottom, text fits perfectly over Dashboard */
   .tourCard {
-    width: calc(100vw - 32px);
-    left: 16px !important;
-    right: 16px !important;
+    width: calc(100vw - 28px) !important;
+    max-width: 440px !important;
+    left: 14px !important;
+    right: 14px !important;
+    bottom: 20px !important;
+    top: auto !important;
+    margin: 0 auto !important;
+    padding: 16px 18px !important;
+    border-radius: 18px !important;
+    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.7), 0 0 24px rgba(37, 99, 235, 0.25) !important;
+  }
+
+  .tourCardWide {
+    width: calc(100vw - 28px) !important;
+    max-width: 440px !important;
+  }
+
+  .tourTitle {
+    font-size: 15px !important;
+    margin-bottom: 4px !important;
+  }
+
+  .tourDesc {
+    font-size: 12.5px !important;
+    line-height: 1.4 !important;
+    margin-bottom: 12px !important;
+  }
+
+  .installGuideSteps {
+    margin: 8px 0 12px 0 !important;
+    gap: 8px !important;
+  }
+
+  .installStepRow {
+    padding: 8px 10px !important;
+    gap: 10px !important;
   }
 }
+

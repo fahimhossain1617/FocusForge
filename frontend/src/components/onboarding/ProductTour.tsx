@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { ArrowRight, CheckCircle2, Download, MoreVertical, Smartphone, Sparkles, X } from "lucide-react";
 import { useTranslation } from "@/hooks/useTranslation";
+import { useAppContext } from "@/context/AppContext";
 import styles from "./onboarding.module.css";
 
 interface TourStep {
@@ -28,9 +29,11 @@ export const ProductTour: React.FC<ProductTourProps> = ({
   onCompleteTour,
 }) => {
   const { t } = useTranslation();
+  const { showToast, state } = useAppContext();
   const ob = t.onboarding.tour;
 
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  const [isMobileView, setIsMobileView] = useState(false);
 
   useEffect(() => {
     const handleBeforeInstall = (e: Event) => {
@@ -42,15 +45,41 @@ export const ProductTour: React.FC<ProductTourProps> = ({
   }, []);
 
   const triggerNativeInstall = async () => {
-    if (deferredPrompt) {
+    const promptEvent =
+      deferredPrompt ||
+      (typeof window !== "undefined" &&
+        (window as unknown as { deferredPrompt?: BeforeInstallPromptEvent }).deferredPrompt);
+
+    if (promptEvent) {
       try {
-        await deferredPrompt.prompt();
-        const choice = await deferredPrompt.userChoice;
+        await promptEvent.prompt();
+        const choice = await promptEvent.userChoice;
         if (choice.outcome === "accepted") {
           setDeferredPrompt(null);
+          showToast(
+            state.lang === "bn" ? "FocusForge ইনস্টল হচ্ছে..." : "FocusForge is installing...",
+            "success"
+          );
         }
       } catch (err) {
         console.error("[PWA] Prompt error:", err);
+      }
+    } else {
+      const isIOS = typeof navigator !== "undefined" && /iPad|iPhone|iPod/.test(navigator.userAgent);
+      if (isIOS) {
+        showToast(
+          state.lang === "bn"
+            ? "Safari-এর নিচে Share আইকনে ট্যাপ করে 'Add to Home Screen' চাপুন।"
+            : "Tap the Share button in Safari, then select 'Add to Home Screen'.",
+          "info"
+        );
+      } else {
+        showToast(
+          state.lang === "bn"
+            ? "ব্রাউজারের ৩ ডট (⋮) মেনু থেকে 'Add to Home screen' বা 'Install app' সিলেক্ট করুন।"
+            : "Click the 3-dot menu (⋮) in Chrome and select 'Add to Home screen' or 'Install FocusForge'.",
+          "info"
+        );
       }
     }
   };
@@ -124,8 +153,17 @@ export const ProductTour: React.FC<ProductTourProps> = ({
   const updatePosition = useCallback(() => {
     if (!isOpen) return;
 
+    const mobile = typeof window !== "undefined" && window.innerWidth < 768;
+    setIsMobileView(mobile);
+
+    if (mobile) {
+      // On mobile devices, keep spotlight off hidden sidebar elements
+      setHighlightRect(null);
+      return;
+    }
+
     if (isFinalStep || isInstallGuide || !currentStep?.targetSelector) {
-      // Center on screen for install guide and final ready message
+      // Desktop: center on screen for install guide and final ready message
       setHighlightRect(null);
       const cardWidth = isInstallGuide ? 390 : 320;
       const top = Math.max(60, window.innerHeight / 2 - (isInstallGuide ? 180 : 120));
@@ -210,8 +248,8 @@ export const ProductTour: React.FC<ProductTourProps> = ({
       {/* Semi-transparent interactive backdrop */}
       <div className={styles.tourBackdrop} onClick={handleNext} />
 
-      {/* Spotlight Ring over real UI element */}
-      {highlightRect && (
+      {/* Spotlight Ring over real UI element (desktop only) */}
+      {!isMobileView && highlightRect && (
         <div
           className={styles.tourSpotlightRing}
           onClick={handleHighlightClick}
@@ -230,10 +268,14 @@ export const ProductTour: React.FC<ProductTourProps> = ({
       {/* Glassmorphism Tour Message Card */}
       <div
         className={`${styles.tourCard} ${isInstallGuide ? styles.tourCardWide : ""}`}
-        style={{
-          top: `${tooltipPos.top}px`,
-          left: `${tooltipPos.left}px`,
-        }}
+        style={
+          isMobileView
+            ? {}
+            : {
+                top: `${tooltipPos.top}px`,
+                left: `${tooltipPos.left}px`,
+              }
+        }
         role="dialog"
         aria-label="Product Tour Step"
       >
@@ -291,16 +333,15 @@ export const ProductTour: React.FC<ProductTourProps> = ({
               </div>
             </div>
 
-            {deferredPrompt && (
-              <button
-                type="button"
-                className={styles.installPromptDirectBtn}
-                onClick={triggerNativeInstall}
-              >
-                <Download size={14} />
-                <span>{ob.installGuide.installNow}</span>
-              </button>
-            )}
+            {/* Direct Auto Install Button (always visible) */}
+            <button
+              type="button"
+              className={styles.installPromptDirectBtn}
+              onClick={triggerNativeInstall}
+            >
+              <Download size={14} />
+              <span>{state.lang === "bn" ? "অ্যাপ ইনস্টল করুন (Auto Install)" : "Install App Now"}</span>
+            </button>
 
             <div className={styles.tourActions}>
               <button

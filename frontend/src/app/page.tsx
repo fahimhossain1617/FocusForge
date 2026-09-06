@@ -37,7 +37,7 @@ const pageComponents: Record<string, React.ComponentType<{ onOpenSidebar?: () =>
 };
 
 export default function Home() {
-  const { state, isLoaded, isPageLoading } = useAppContext();
+  const { state, isLoaded, isPageLoading, navigateTo } = useAppContext();
   const { user, isLoading: isAuthLoading } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
@@ -78,6 +78,7 @@ export default function Home() {
               setShowOnboarding(false);
               setShowTour(false);
             } else {
+              navigateTo("today");
               setShowOnboarding(true);
             }
           }
@@ -88,6 +89,7 @@ export default function Home() {
             setShowOnboarding(false);
             setShowTour(false);
           } else {
+            navigateTo("today");
             setShowOnboarding(true);
           }
         }
@@ -99,9 +101,11 @@ export default function Home() {
     }
 
     checkOnboarding();
-  }, [isLoaded, isAuthLoading, user, onboardingChecked]);
+  }, [isLoaded, isAuthLoading, user, onboardingChecked, navigateTo]);
 
   const handleEnterAppFromOnboarding = () => {
+    navigateTo("today");
+    setSidebarOpen(false);
     setShowOnboarding(false);
     setShowTour(true);
   };

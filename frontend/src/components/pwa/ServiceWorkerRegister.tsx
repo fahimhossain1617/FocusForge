@@ -19,6 +19,20 @@ export default function ServiceWorkerRegister() {
 
     navigator.serviceWorker.addEventListener("controllerchange", handleControllerChange);
 
+    // Capture native PWA install prompt globally
+    const handleBeforeInstallPrompt = (e: Event) => {
+      e.preventDefault();
+      (window as unknown as { deferredPrompt: Event }).deferredPrompt = e;
+    };
+
+    const handleAppInstalled = () => {
+      (window as unknown as { deferredPrompt: null }).deferredPrompt = null;
+      (window as unknown as { isAppInstalled: boolean }).isAppInstalled = true;
+    };
+
+    window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+    window.addEventListener("appinstalled", handleAppInstalled);
+
     const register = () => {
       // updateViaCache: "none" prevents the browser from caching sw.js via HTTP
       navigator.serviceWorker
