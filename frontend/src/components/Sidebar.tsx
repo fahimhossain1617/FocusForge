@@ -37,9 +37,10 @@ const navGroups = [
 interface SidebarProps {
   isOpen: boolean;
   onClose: () => void;
+  isTourActive?: boolean;
 }
 
-export default function Sidebar({ isOpen, onClose }: SidebarProps) {
+export default function Sidebar({ isOpen, onClose, isTourActive }: SidebarProps) {
   const { state, navigateTo } = useAppContext();
   const { user } = useAuth();
   const { t } = useTranslation();
@@ -69,7 +70,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   return (
     <>
       {/* Mobile backdrop */}
-      {isOpen && (
+      {isOpen && !isTourActive && (
         <div
           className="fixed inset-0 bg-black/50 z-40 md:hidden fade-in"
           onClick={onClose}
@@ -78,7 +79,9 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
 
       {/* Sidebar */}
       <aside
-        className={`sidebar w-60 min-h-screen flex flex-col py-6 px-3 fixed left-0 top-0 bottom-0 z-40 transition-transform duration-300 md:translate-x-0 ${
+        className={`sidebar w-60 min-h-screen flex flex-col py-6 px-3 fixed left-0 top-0 bottom-0 ${
+          isTourActive ? "z-[9999]" : "z-40"
+        } transition-transform duration-300 md:translate-x-0 ${
           isOpen ? "open translate-x-0" : ""
         }`}
         style={{

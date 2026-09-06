@@ -415,7 +415,7 @@
 /* Glowing spotlight ring around the targeted real UI element */
 .tourSpotlightRing {
   position: fixed;
-  z-index: 9999;
+  z-index: 10000;
   border-radius: 14px;
   border: 2px solid #3b82f6;
   box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.25), 0 0 28px rgba(59, 130, 246, 0.45);
@@ -436,7 +436,7 @@
 /* Small Glassmorphism Message Card for Tour */
 .tourCard {
   position: fixed;
-  z-index: 10000;
+  z-index: 10001;
   width: 320px;
   border-radius: 18px;
   padding: 18px 20px;

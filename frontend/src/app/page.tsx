@@ -143,7 +143,7 @@ export default function Home() {
 
   return (
     <div className={`flex min-h-screen ${state.lang === 'bn' ? 'font-bengali' : ''} overflow-x-hidden`}>
-      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} isTourActive={showTour} />
 
       {/* Main Content */}
       <main className="flex-1 md:ml-60 w-full min-w-0 overflow-x-hidden">
@@ -222,6 +222,8 @@ export default function Home() {
       <ProductTour
         isOpen={showTour}
         onCompleteTour={handleCompleteTour}
+        isSidebarOpen={sidebarOpen}
+        onSetSidebarOpen={(open) => setSidebarOpen(open)}
       />
     </div>
   );

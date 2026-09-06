@@ -17,6 +17,8 @@ interface TourStep {
 interface ProductTourProps {
   isOpen: boolean;
   onCompleteTour: () => void;
+  isSidebarOpen?: boolean;
+  onSetSidebarOpen?: (open: boolean) => void;
 }
 
 interface BeforeInstallPromptEvent extends Event {
@@ -27,6 +29,8 @@ interface BeforeInstallPromptEvent extends Event {
 export const ProductTour: React.FC<ProductTourProps> = ({
   isOpen,
   onCompleteTour,
+  isSidebarOpen,
+  onSetSidebarOpen,
 }) => {
   const { t } = useTranslation();
   const { showToast, state } = useAppContext();
@@ -149,6 +153,37 @@ export const ProductTour: React.FC<ProductTourProps> = ({
   const isFinalStep = currentStepIndex === steps.length - 1;
   const isInstallGuide = currentStep?.id === "installGuide";
 
+  const isSidebarStep =
+    currentStep &&
+    [
+      "dashboard",
+      "planner",
+      "aiAgent",
+      "workspace",
+      "mind",
+      "learning",
+      "focus",
+    ].includes(currentStep.id);
+
+  // Automatically open mobile sidebar drawer for sidebar items, and close for install/ready
+  useEffect(() => {
+    if (!isOpen) {
+      onSetSidebarOpen?.(false);
+      return;
+    }
+
+    const mobile = typeof window !== "undefined" && window.innerWidth < 768;
+    setIsMobileView(mobile);
+
+    if (mobile) {
+      if (isSidebarStep) {
+        onSetSidebarOpen?.(true);
+      } else {
+        onSetSidebarOpen?.(false);
+      }
+    }
+  }, [isOpen, currentStepIndex, isSidebarStep, onSetSidebarOpen]);
+
   // Reposition highlight ring and tooltip to target element
   const updatePosition = useCallback(() => {
     if (!isOpen) return;
@@ -156,14 +191,8 @@ export const ProductTour: React.FC<ProductTourProps> = ({
     const mobile = typeof window !== "undefined" && window.innerWidth < 768;
     setIsMobileView(mobile);
 
-    if (mobile) {
-      // On mobile devices, keep spotlight off hidden sidebar elements
-      setHighlightRect(null);
-      return;
-    }
-
     if (isFinalStep || isInstallGuide || !currentStep?.targetSelector) {
-      // Desktop: center on screen for install guide and final ready message
+      // Center on screen for install guide and final ready message
       setHighlightRect(null);
       const cardWidth = isInstallGuide ? 390 : 320;
       const top = Math.max(60, window.innerHeight / 2 - (isInstallGuide ? 180 : 120));
@@ -174,53 +203,64 @@ export const ProductTour: React.FC<ProductTourProps> = ({
 
     const el = document.querySelector(currentStep.targetSelector);
     if (el) {
+      // Ensure element is scrolled into view in sidebar if needed
+      if (typeof el.scrollIntoView === "function") {
+        el.scrollIntoView({ block: "nearest", behavior: "smooth" });
+      }
+
       const rect = el.getBoundingClientRect();
-      setHighlightRect(rect);
-
-      // Desktop: place tooltip to the right of the highlighted sidebar item
-      let top = rect.top;
-      let left = rect.right + 18;
-
-      // Viewport bounds detection
-      const tooltipWidth = 320;
-      const tooltipHeight = 180;
-
-      // If overflowing right, place below or left
-      if (left + tooltipWidth > window.innerWidth - 16) {
-        left = Math.max(16, rect.left);
-        top = rect.bottom + 14;
+      if (rect.width > 0 && rect.height > 0) {
+        setHighlightRect(rect);
       }
 
-      // If overflowing bottom, shift upward
-      if (top + tooltipHeight > window.innerHeight - 16) {
-        top = Math.max(16, window.innerHeight - tooltipHeight - 20);
-      }
+      if (!mobile) {
+        // Desktop: place tooltip to the right of the highlighted sidebar item
+        let top = rect.top;
+        let left = rect.right + 18;
 
-      setTooltipPos({ top, left });
+        // Viewport bounds detection
+        const tooltipWidth = 320;
+        const tooltipHeight = 180;
+
+        if (left + tooltipWidth > window.innerWidth - 16) {
+          left = Math.max(16, rect.left);
+          top = rect.bottom + 14;
+        }
+
+        if (top + tooltipHeight > window.innerHeight - 16) {
+          top = Math.max(16, window.innerHeight - tooltipHeight - 20);
+        }
+
+        setTooltipPos({ top, left });
+      }
     } else {
-      // Fallback to safe center
       setHighlightRect(null);
-      setTooltipPos({
-        top: Math.max(60, window.innerHeight / 2 - 100),
-        left: Math.max(16, window.innerWidth / 2 - 160),
-      });
     }
   }, [isOpen, isFinalStep, isInstallGuide, currentStep]);
 
+  // Check positions on step change and after drawer animation completes
   useEffect(() => {
     updatePosition();
+    const t1 = setTimeout(updatePosition, 100);
+    const t2 = setTimeout(updatePosition, 260);
+    const t3 = setTimeout(updatePosition, 420);
+
     const handleResize = () => updatePosition();
     window.addEventListener("resize", handleResize);
     window.addEventListener("scroll", handleResize, true);
     return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+      clearTimeout(t3);
       window.removeEventListener("resize", handleResize);
       window.removeEventListener("scroll", handleResize, true);
     };
-  }, [updatePosition]);
+  }, [updatePosition, currentStepIndex, isSidebarOpen]);
 
   // Advance to next step
   const handleNext = () => {
     if (isFinalStep) {
+      onSetSidebarOpen?.(false);
       onCompleteTour();
     } else {
       setCurrentStepIndex((prev) => Math.min(steps.length - 1, prev + 1));
@@ -229,6 +269,7 @@ export const ProductTour: React.FC<ProductTourProps> = ({
 
   // Skip tour entirely
   const handleSkip = () => {
+    onSetSidebarOpen?.(false);
     onCompleteTour();
   };
 
@@ -248,8 +289,8 @@ export const ProductTour: React.FC<ProductTourProps> = ({
       {/* Semi-transparent interactive backdrop */}
       <div className={styles.tourBackdrop} onClick={handleNext} />
 
-      {/* Spotlight Ring over real UI element (desktop only) */}
-      {!isMobileView && highlightRect && (
+      {/* Spotlight Ring over real UI element (renders on desktop AND mobile when drawer is open) */}
+      {highlightRect && (
         <div
           className={styles.tourSpotlightRing}
           onClick={handleHighlightClick}
@@ -260,6 +301,7 @@ export const ProductTour: React.FC<ProductTourProps> = ({
             height: `${highlightRect.height + 8}px`,
             pointerEvents: "auto",
             cursor: "pointer",
+            zIndex: 10000,
           }}
           title={ob.next}
         />
