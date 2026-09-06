@@ -8,6 +8,7 @@ import { User } from "../../types";
 import { 
   X, Mail, Lock, Eye, EyeOff, Check, AlertCircle, ArrowLeft, Loader2 
 } from "lucide-react";
+import { useAnimateExit } from "../../hooks/useAnimateExit";
 
 // Official Google SVG Icon
 function GoogleIcon({ className = "w-5 h-5" }: { className?: string }) {
@@ -380,18 +381,20 @@ export default function AuthModal() {
     }
   };
 
-  if (!authModal.isOpen) return null;
+  const { shouldRender, isExiting } = useAnimateExit({ isOpen: authModal.isOpen, durationMs: 200 });
+
+  if (!shouldRender) return null;
 
   const strength = getPasswordStrength(password);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/75 backdrop-blur-md animate-fade-in overflow-y-auto">
+    <div className={`fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/75 backdrop-blur-md overflow-y-auto ${isExiting ? "motion-exit-fade" : "motion-overlay"}`}>
       {/* Outer Glow Background Accent */}
       <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-blue-600/10 rounded-full blur-[140px] pointer-events-none" />
 
       {/* Main Glass Card */}
       <div 
-        className="relative w-full max-w-[420px] my-auto rounded-3xl border shadow-2xl p-6 sm:p-8 transition-all scale-in overflow-hidden"
+        className={`relative w-full max-w-[420px] my-auto rounded-3xl border shadow-2xl p-6 sm:p-8 overflow-hidden ${isExiting ? "motion-exit-reveal" : "motion-scale-in"}`}
         style={{
           background: "rgba(13, 20, 38, 0.84)",
           borderColor: "rgba(59, 130, 246, 0.22)",

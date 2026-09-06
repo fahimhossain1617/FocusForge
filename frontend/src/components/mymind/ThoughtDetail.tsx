@@ -88,7 +88,7 @@ export default function ThoughtDetail({ thoughtId, navigate }: ThoughtDetailProp
   const displayValue = content + (interim ? ((content && !content.endsWith(" ") && !content.endsWith("\n")) ? " " : "") + interim : "");
 
   return (
-    <div className="fade-in max-w-3xl mx-auto py-8">
+    <div className="motion-page max-w-3xl mx-auto py-8">
       <div className="flex items-center justify-between mb-8">
         <button 
           type="button"

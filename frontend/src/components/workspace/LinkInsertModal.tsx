@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { Link2, ExternalLink, X } from "lucide-react";
+import { useAnimateExit } from "../../hooks/useAnimateExit";
 
 interface LinkInsertModalProps {
   isOpen: boolean;
@@ -51,11 +52,12 @@ export const getLinkMetadata = (rawUrl: string) => {
 };
 
 export default function LinkInsertModal({ isOpen, onClose, onAddLink }: LinkInsertModalProps) {
+  const { shouldRender, isExiting } = useAnimateExit(isOpen, 200);
   const [url, setUrl] = useState("");
   const [title, setTitle] = useState("");
   const [error, setError] = useState("");
 
-  if (!isOpen) return null;
+  if (!shouldRender) return null;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -74,9 +76,16 @@ export default function LinkInsertModal({ isOpen, onClose, onAddLink }: LinkInse
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in">
+    <div 
+      className={`fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm ${
+        isExiting ? "motion-exit-fade" : "motion-overlay"
+      }`}
+      onClick={onClose}
+    >
       <div 
-        className="w-full max-w-md rounded-2xl border p-6 shadow-2xl relative animate-scale-up"
+        className={`w-full max-w-md rounded-2xl border p-6 shadow-2xl relative ${
+          isExiting ? "motion-exit-reveal" : "motion-dialog"
+        }`}
         style={{ 
           background: "var(--color-bg-card, #0B1120)", 
           borderColor: "var(--color-border-subtle, rgba(255,255,255,0.1))" 

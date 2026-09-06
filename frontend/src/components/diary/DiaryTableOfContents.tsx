@@ -63,7 +63,7 @@ export default function DiaryTableOfContents({
   };
 
   return (
-    <div className="w-full max-w-4xl mx-auto px-2 sm:px-4 py-4 animate-fade-in">
+    <div className="w-full max-w-4xl mx-auto px-2 sm:px-4 py-4 motion-page">
       {/* Navigation & Header */}
       <div className="flex items-center justify-between gap-3 mb-6">
         <button
@@ -178,7 +178,7 @@ export default function DiaryTableOfContents({
             </button>
           </div>
         ) : (
-          <div className="divide-y divide-black/5 dark:divide-white/5">
+          <div className="divide-y divide-black/5 dark:divide-white/5 motion-stagger-fast">
             {topics.map((topic) => {
               const wordCount = topic.entries.reduce(
                 (acc, e) => acc + (e.content ? e.content.trim().split(/\s+/).filter(Boolean).length : 0),
@@ -188,7 +188,7 @@ export default function DiaryTableOfContents({
                 <div
                   key={topic.id}
                   onClick={() => onOpenTopic(topic.id)}
-                  className="diary-toc-row flex items-center justify-between gap-4 px-6 py-4 cursor-pointer group"
+                  className="diary-toc-row motion-grid-item card-interactive flex items-center justify-between gap-4 px-6 py-4 cursor-pointer group"
                 >
                   {/* Left: Number & Title Info */}
                   <div className="flex items-center gap-3.5 min-w-0 flex-1">

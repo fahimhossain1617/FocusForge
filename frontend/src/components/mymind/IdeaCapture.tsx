@@ -64,7 +64,7 @@ export default function IdeaCapture({ navigate }: IdeaCaptureProps) {
   const displayValue = currentVal + (interim ? ((currentVal && !currentVal.endsWith(" ") && !currentVal.endsWith("\n")) ? " " : "") + interim : "");
 
   return (
-    <div className="fade-in max-w-2xl mx-auto py-10 min-h-[70vh] flex flex-col">
+    <div className="motion-page max-w-2xl mx-auto py-10 min-h-[70vh] flex flex-col">
       <div className="flex items-center justify-between mb-8">
         <button 
           type="button"

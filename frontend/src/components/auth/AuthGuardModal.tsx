@@ -4,6 +4,7 @@ import React from "react";
 import { useAuth } from "../../context/AuthContext";
 import { useTranslation } from "../../hooks/useTranslation";
 import { ShieldCheck, X } from "lucide-react";
+import { useAnimateExit } from "../../hooks/useAnimateExit";
 
 function GoogleIcon({ className = "w-5 h-5" }: { className?: string }) {
   return (
@@ -24,13 +25,14 @@ export default function AuthGuardModal() {
     loginWithGoogle 
   } = useAuth();
   const { t } = useTranslation();
+  const { shouldRender, isExiting } = useAnimateExit({ isOpen: authGuardModal.isOpen, durationMs: 200 });
 
-  if (!authGuardModal.isOpen) return null;
+  if (!shouldRender) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-fade-in">
+    <div className={`fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md ${isExiting ? "motion-exit-fade" : "motion-overlay"}`}>
       <div 
-        className="relative w-full max-w-md rounded-3xl border shadow-2xl p-6 sm:p-8 scale-in overflow-hidden text-center"
+        className={`relative w-full max-w-md rounded-3xl border shadow-2xl p-6 sm:p-8 overflow-hidden text-center ${isExiting ? "motion-exit-reveal" : "motion-scale-in"}`}
         style={{
           background: "rgba(13, 20, 38, 0.88)",
           borderColor: "rgba(59, 130, 246, 0.25)",

@@ -7,6 +7,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useAIAgent } from "@/hooks/useAIAgent";
 import type { AIAgentLanguage, AIAgentModel, ProposedAction } from "@/types/aiAgent";
 import { VoiceAssistantModal } from "@/components/voice";
+import { useAnimateExit } from "@/hooks/useAnimateExit";
 import styles from "./ai-agent.module.css";
 
 function toBnNum(num: number): string {
@@ -53,6 +54,7 @@ function CustomSelect<T extends string>({
   onChange: (val: T) => void;
 }) {
   const [open, setOpen] = useState(false);
+  const dropdownAnim = useAnimateExit({ isOpen: open, durationMs: 140 });
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -89,8 +91,8 @@ function CustomSelect<T extends string>({
         <ChevronDown size={13} className={`${styles.dropdownChevron} ${open ? styles.chevronOpen : ""}`} />
       </button>
 
-      {open && (
-        <div className={styles.customDropdownMenu} role="listbox">
+      {dropdownAnim.shouldRender && (
+        <div className={`${styles.customDropdownMenu} ${dropdownAnim.isExiting ? styles.customDropdownMenuExit : ""}`} role="listbox">
           {options.map((option) => {
             const isSelected = option.value === value;
             return (
@@ -146,6 +148,7 @@ export function AIAgentPage() {
   const quickActions = isSystemBn ? quickActionsBn : quickActionsEn;
   
   const [showHistory, setShowHistory] = useState(false);
+  const historyAnim = useAnimateExit({ isOpen: showHistory, durationMs: 150 });
   const historyMenuRef = useRef<HTMLDivElement>(null);
 
   // Close history dropdown when clicked outside
@@ -265,8 +268,8 @@ export function AIAgentPage() {
               <MoreVertical size={20} />
             </button>
           
-          {showHistory && (
-            <div className={styles.historyDropdown}>
+          {historyAnim.shouldRender && (
+            <div className={`${styles.historyDropdown} ${historyAnim.isExiting ? styles.historyDropdownExit : ''}`}>
               <div className={styles.historyHeader}>
                 <span>{isSystemBn ? 'চ্যাট হিস্ট্রি' : 'Chat History'}</span>
                 <button 

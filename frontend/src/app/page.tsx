@@ -198,11 +198,11 @@ export default function Home() {
         {/* Page Content */}
         <div className="p-3.5 sm:p-5 md:p-8 lg:p-10 max-w-5xl mx-auto w-full min-w-0">
           {isPageLoading ? (
-            <div className="fade-in">
+            <div className="app-page-transition" key={`loading-${state.activePage}`}>
               <PageSkeleton page={state.activePage} />
             </div>
           ) : (
-            <div className="fade-in">
+            <div className="app-page-transition" key={state.activePage}>
               <ActivePage onOpenSidebar={() => setSidebarOpen(true)} />
             </div>
           )}

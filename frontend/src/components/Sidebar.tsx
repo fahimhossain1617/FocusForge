@@ -5,6 +5,7 @@ import { useTranslation } from "../hooks/useTranslation";
 import { LayoutDashboard, PencilLine, CalendarDays, Target, GraduationCap, Settings as SettingsIcon, Files, User as ProfileIcon, Sparkles } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import UserMenu from "./auth/UserMenu";
+import { useAnimateExit } from "../hooks/useAnimateExit";
 
 const navGroups = [
   {
@@ -65,13 +66,14 @@ export default function Sidebar({ isOpen, onClose, isTourActive }: SidebarProps)
   };
 
   const fontSizePx = getFontSizePx(userName.length);
+  const backdrop = useAnimateExit({ isOpen: isOpen && !isTourActive, durationMs: 200 });
 
   return (
     <>
       {/* Mobile backdrop */}
-      {isOpen && !isTourActive && (
+      {backdrop.shouldRender && (
         <div
-          className="fixed inset-0 bg-black/50 z-40 md:hidden fade-in"
+          className={`fixed inset-0 bg-black/50 z-40 md:hidden ${backdrop.isExiting ? "motion-exit-fade" : "motion-overlay"}`}
           onClick={onClose}
         />
       )}

@@ -77,7 +77,7 @@ export default function MindHome({ navigate, setActiveThoughtId }: MindHomeProps
   const displayValue = input + (interim ? ((input && !input.endsWith(" ") && !input.endsWith("\n")) ? " " : "") + interim : "");
 
   return (
-    <div className="fade-in max-w-2xl mx-auto">
+    <div className="motion-page max-w-2xl mx-auto">
       <div className="mb-8 text-center mt-4">
         <h1 className="text-3xl font-bold mb-2" style={{ color: "var(--color-text-primary)" }}>
           {t.myMind.title}
@@ -166,14 +166,14 @@ export default function MindHome({ navigate, setActiveThoughtId }: MindHomeProps
       </div>
 
       {state.mindItems.length > 0 ? (
-        <div className="space-y-3">
+        <div className="space-y-3 motion-stagger-fast">
           {state.mindItems.slice(0, 5).map((item) => {
             const sourceInfo = getMindSourceInfo(item, t);
             return (
               <div
                 key={item.id}
                 onClick={() => openDetail(item.id)}
-                className="rounded-2xl p-4 border transition-colors cursor-pointer group hover:bg-black/5 dark:hover:bg-white/5"
+                className="motion-grid-item card-interactive rounded-2xl p-4 border transition-colors cursor-pointer group hover:bg-black/5 dark:hover:bg-white/5"
                 style={{ background: "var(--color-bg-card)", borderColor: "var(--color-border-subtle)" }}
               >
                 <div className="flex flex-wrap items-center gap-2 mb-2">

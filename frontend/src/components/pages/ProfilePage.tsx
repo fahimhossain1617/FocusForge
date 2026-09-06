@@ -185,7 +185,7 @@ export default function ProfilePage() {
   };
 
   return (
-    <div className="fade-in max-w-5xl mx-auto space-y-8 pb-16">
+    <div className="motion-page max-w-5xl mx-auto space-y-8 pb-16">
       {/* Hidden File Input for Avatar */}
       <input
         type="file"

@@ -6,6 +6,7 @@ import { useTranslation } from "../../hooks/useTranslation";
 import EmptyState from "../ui/EmptyState";
 import CalendarWidget from "../ui/CalendarWidget";
 import { ChevronLeft, ChevronRight, Plus, X, AlignLeft, Calendar as CalendarIcon, Clock, Bell } from "lucide-react";
+import { useAnimateExit } from "../../hooks/useAnimateExit";
 
 export default function PlannerPage() {
   const { state, addTimeBlock, deleteTimeBlock, updateTimeBlock, addTask, deleteTask } = useAppContext();
@@ -164,10 +165,16 @@ export default function PlannerPage() {
   // Blocks for selected date (highlight cards)
   const selectedDayBlocks = state.timeBlocks.filter((b) => b.date === selectedDateStr).sort((a, b) => a.startTime.localeCompare(b.startTime));
   
-  // Blocks for drawer date
-  const drawerDayBlocks = drawerDateStr 
-    ? state.timeBlocks.filter((b) => b.date === drawerDateStr).sort((a, b) => a.startTime.localeCompare(b.startTime))
+  // Blocks for drawer date with exit persistence
+  const [lastActiveDrawerDate, setLastActiveDrawerDate] = useState<string | null>(null);
+  useEffect(() => {
+    if (drawerDateStr) setLastActiveDrawerDate(drawerDateStr);
+  }, [drawerDateStr]);
+  const activeDrawerDate = drawerDateStr || lastActiveDrawerDate;
+  const drawerDayBlocks = activeDrawerDate 
+    ? state.timeBlocks.filter((b) => b.date === activeDrawerDate).sort((a, b) => a.startTime.localeCompare(b.startTime))
     : [];
+  const drawerAnim = useAnimateExit({ isOpen: Boolean(drawerDateStr), durationMs: 220 });
 
   const getBadgeColor = (category: string, isBreak: boolean) => {
     if (isBreak) return 'bg-gray-500';
@@ -226,14 +233,14 @@ export default function PlannerPage() {
   const nextDateStr = formatLocalDate(nextDate);
 
   return (
-    <div className="planner-premium relative w-full min-h-[calc(100vh-80px)] overflow-hidden">
+    <div className="planner-premium motion-page relative w-full min-h-[calc(100vh-80px)] overflow-hidden">
       
       {/* CYBER-NEON AURORA BACKGROUND */}
       <div className="absolute top-1/2 left-1/4 -translate-x-1/2 -translate-y-1/2 w-[60vw] h-[60vw] bg-indigo-600/10 rounded-full blur-[150px] pointer-events-none aurora-anim" />
       <div className="absolute top-1/4 right-1/4 translate-x-1/4 -translate-y-1/4 w-[50vw] h-[50vw] bg-purple-600/15 rounded-full blur-[120px] pointer-events-none aurora-anim" style={{ animationDirection: 'reverse', animationDuration: '25s' }} />
       <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[70vw] h-[40vw] bg-yellow-500/5 rounded-full blur-[150px] pointer-events-none aurora-anim" style={{ animationDelay: '-5s' }} />
 
-      <div className="relative z-10 fade-in max-w-[1300px] mx-auto p-4 md:p-8 pb-20 h-full flex flex-col">
+      <div className="motion-stagger relative z-10 max-w-[1300px] mx-auto p-4 md:p-8 pb-20 h-full flex flex-col">
         
         {/* HEADER & QUICK DAY NAV */}
         <div className="relative z-50 flex flex-col xl:flex-row xl:items-center justify-between gap-6 mb-8">
@@ -457,11 +464,11 @@ export default function PlannerPage() {
       </div>
 
       {/* GLASSMORPHISM SIDE DRAWER (Retained and Polished) */}
-      {drawerDateStr && (
+      {drawerAnim.shouldRender && (
         <>
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 transition-opacity" onClick={() => setDrawerDateStr(null)}></div>
+          <div className={`${drawerAnim.isExiting ? "motion-exit-fade" : "motion-overlay"} fixed inset-0 bg-black/60 backdrop-blur-sm z-40`} onClick={() => setDrawerDateStr(null)}></div>
           
-          <div className="planner-drawer fixed top-0 right-0 h-full w-full max-w-[420px] z-50 slide-in-right flex flex-col p-6 overflow-y-auto" style={{ background: "var(--color-bg-card)", borderLeft: "1px solid var(--color-border-subtle)" }}>
+          <div className={`planner-drawer ${drawerAnim.isExiting ? "motion-exit-drawer" : "motion-drawer"} fixed top-0 right-0 h-full w-full max-w-[420px] z-50 flex flex-col p-6 overflow-y-auto`} style={{ background: "var(--color-bg-card)", borderLeft: "1px solid var(--color-border-subtle)" }}>
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-xl font-bold" style={{ color: "var(--color-text-primary)" }}>
                 {t.planner.editDetails}

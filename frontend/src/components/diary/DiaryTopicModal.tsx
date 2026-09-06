@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { X, BookOpen, Sparkles, Trash2 } from "lucide-react";
 import { useTranslation } from "../../hooks/useTranslation";
 import { DiaryTopic } from "../../types";
+import { useAnimateExit } from "../../hooks/useAnimateExit";
 
 interface DiaryTopicModalProps {
   isOpen: boolean;
@@ -20,10 +21,16 @@ export default function DiaryTopicModal({
   onDelete,
   initialTopic,
 }: DiaryTopicModalProps) {
+  const { shouldRender, isExiting } = useAnimateExit(isOpen, 200);
   const { t } = useTranslation();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
+  const lastTopicRef = useRef<DiaryTopic | null | undefined>(initialTopic);
+
+  if (initialTopic) {
+    lastTopicRef.current = initialTopic;
+  }
 
   useEffect(() => {
     if (isOpen) {
@@ -33,7 +40,7 @@ export default function DiaryTopicModal({
     }
   }, [isOpen, initialTopic]);
 
-  if (!isOpen) return null;
+  if (!shouldRender) return null;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,12 +49,20 @@ export default function DiaryTopicModal({
     onClose();
   };
 
-  const isEditing = !!initialTopic;
+  const isEditing = !!(initialTopic || lastTopicRef.current);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+    <div 
+      className={`fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm ${
+        isExiting ? "motion-exit-fade" : "motion-overlay"
+      }`}
+      onClick={onClose}
+    >
       <div
-        className="w-full max-w-md rounded-3xl border p-6 shadow-2xl scale-in"
+        className={`w-full max-w-md rounded-3xl border p-6 shadow-2xl ${
+          isExiting ? "motion-exit-reveal" : "motion-dialog"
+        }`}
+        onClick={(e) => e.stopPropagation()}
         style={{
           background: "var(--color-bg-elevated)",
           borderColor: "var(--color-border-subtle)",
