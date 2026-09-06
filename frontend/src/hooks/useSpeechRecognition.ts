@@ -25,7 +25,8 @@ export function useSpeechRecognition({ onResult, onError }: UseSpeechRecognition
   const recognitionRef = useRef<any>(null);
   const shouldListenRef = useRef(false);
   const restartTimerRef = useRef<any>(null);
-  const accumulatedTranscriptRef = useRef("");
+  const pastSessionsFinalRef = useRef("");
+  const currentSessionFinalRef = useRef("");
   const onResultRef = useRef(onResult);
   const onErrorRef = useRef(onError);
   const currentLangRef = useRef<SpeechLanguage>("bn-BD");
@@ -84,37 +85,42 @@ export function useSpeechRecognition({ onResult, onError }: UseSpeechRecognition
       };
 
       recognition.onresult = (event: any) => {
-        let currentInterim = "";
-        let finalChunk = "";
+        let sessionFinal = "";
+        let sessionInterim = "";
 
-        for (let i = event.resultIndex; i < event.results.length; ++i) {
+        // Iterate through all results in the current recognition session
+        for (let i = 0; i < event.results.length; ++i) {
           const res = event.results[i];
-          const text = res[0]?.transcript || "";
+          const text = (res[0]?.transcript || "").trim();
+          if (!text) continue;
+
           if (res.isFinal) {
-            finalChunk += text;
+            sessionFinal = sessionFinal ? `${sessionFinal} ${text}` : text;
           } else {
-            currentInterim += text;
+            sessionInterim = sessionInterim ? `${sessionInterim} ${text}` : text;
           }
         }
 
-        if (finalChunk.trim()) {
-          const cleaned = finalChunk.trim();
-          accumulatedTranscriptRef.current = accumulatedTranscriptRef.current
-            ? `${accumulatedTranscriptRef.current} ${cleaned}`
-            : cleaned;
-          setTranscript(accumulatedTranscriptRef.current);
-        }
+        currentSessionFinalRef.current = sessionFinal;
+        interimTextRef.current = sessionInterim;
 
-        interimTextRef.current = currentInterim;
-        setInterimText(currentInterim);
+        // Combined finalized text across past sessions and current session
+        const combinedFinal = [pastSessionsFinalRef.current, sessionFinal]
+          .filter(Boolean)
+          .join(" ")
+          .trim();
 
-        // Notify caller with current live text
-        const liveText = accumulatedTranscriptRef.current
-          ? (currentInterim ? `${accumulatedTranscriptRef.current} ${currentInterim}` : accumulatedTranscriptRef.current)
-          : currentInterim;
+        setTranscript(combinedFinal);
+        setInterimText(sessionInterim);
 
-        if (liveText.trim() && onResultRef.current) {
-          onResultRef.current(liveText.trim(), Boolean(finalChunk.trim()));
+        // Combined live text (final + interim) for real-time streaming
+        const combinedLive = [combinedFinal, sessionInterim]
+          .filter(Boolean)
+          .join(" ")
+          .trim();
+
+        if (combinedLive && onResultRef.current) {
+          onResultRef.current(combinedLive, Boolean(sessionFinal));
         }
       };
 
@@ -134,10 +140,15 @@ export function useSpeechRecognition({ onResult, onError }: UseSpeechRecognition
         }
 
         if (err === "audio-capture") {
-          handleError("Microphone audio capture failed or conflict detected. Audio recording fallback active.");
-          shouldListenRef.current = false;
-          setIsListening(false);
-          cleanupRecognition();
+          console.warn("[SpeechRecognition] Audio capture notice, retrying in background...");
+          if (shouldListenRef.current) {
+            if (restartTimerRef.current) clearTimeout(restartTimerRef.current);
+            restartTimerRef.current = setTimeout(() => {
+              if (shouldListenRef.current) {
+                spawnAndStartRecognition();
+              }
+            }, 600);
+          }
           return;
         }
 
@@ -153,15 +164,26 @@ export function useSpeechRecognition({ onResult, onError }: UseSpeechRecognition
       };
 
       recognition.onend = () => {
+        // Commit any finalized text from this session to persistent past storage
+        if (currentSessionFinalRef.current) {
+          pastSessionsFinalRef.current = [pastSessionsFinalRef.current, currentSessionFinalRef.current]
+            .filter(Boolean)
+            .join(" ")
+            .trim();
+          currentSessionFinalRef.current = "";
+        }
+
         if (shouldListenRef.current) {
+          // Seamlessly restart for long speech
           if (restartTimerRef.current) clearTimeout(restartTimerRef.current);
           restartTimerRef.current = setTimeout(() => {
             if (shouldListenRef.current) {
               spawnAndStartRecognition();
             }
-          }, 50);
+          }, 150);
           return;
         }
+
         setIsListening(false);
         setInterimText("");
         interimTextRef.current = "";
@@ -176,7 +198,7 @@ export function useSpeechRecognition({ onResult, onError }: UseSpeechRecognition
           if (shouldListenRef.current) {
             spawnAndStartRecognition();
           }
-        }, 150);
+        }, 300);
       }
     }
   }, [cleanupRecognition, handleError]);
@@ -200,7 +222,9 @@ export function useSpeechRecognition({ onResult, onError }: UseSpeechRecognition
     (language: SpeechLanguage = "bn-BD", options?: { reset?: boolean }) => {
       setErrorState(null);
       if (options?.reset !== false) {
-        accumulatedTranscriptRef.current = "";
+        pastSessionsFinalRef.current = "";
+        currentSessionFinalRef.current = "";
+        interimTextRef.current = "";
         setTranscript("");
         setInterimText("");
       }
@@ -215,21 +239,32 @@ export function useSpeechRecognition({ onResult, onError }: UseSpeechRecognition
     shouldListenRef.current = false;
     if (restartTimerRef.current) clearTimeout(restartTimerRef.current);
 
+    // Merge session final and any pending interim before stopping
+    if (currentSessionFinalRef.current) {
+      pastSessionsFinalRef.current = [pastSessionsFinalRef.current, currentSessionFinalRef.current]
+        .filter(Boolean)
+        .join(" ")
+        .trim();
+      currentSessionFinalRef.current = "";
+    }
+
     const pendingInterim = interimTextRef.current.trim();
     if (pendingInterim) {
-      accumulatedTranscriptRef.current = accumulatedTranscriptRef.current
-        ? `${accumulatedTranscriptRef.current} ${pendingInterim}`
-        : pendingInterim;
-      setTranscript(accumulatedTranscriptRef.current);
-      if (onResultRef.current) {
-        onResultRef.current(accumulatedTranscriptRef.current, true);
-      }
+      pastSessionsFinalRef.current = [pastSessionsFinalRef.current, pendingInterim]
+        .filter(Boolean)
+        .join(" ")
+        .trim();
+      interimTextRef.current = "";
+    }
+
+    setTranscript(pastSessionsFinalRef.current);
+    if (pastSessionsFinalRef.current && onResultRef.current) {
+      onResultRef.current(pastSessionsFinalRef.current, true);
     }
 
     cleanupRecognition();
     setIsListening(false);
     setInterimText("");
-    interimTextRef.current = "";
   }, [cleanupRecognition]);
 
   const abortListening = useCallback(() => {
@@ -239,10 +274,13 @@ export function useSpeechRecognition({ onResult, onError }: UseSpeechRecognition
     setIsListening(false);
     setInterimText("");
     interimTextRef.current = "";
+    currentSessionFinalRef.current = "";
   }, [cleanupRecognition]);
 
   const resetTranscript = useCallback(() => {
-    accumulatedTranscriptRef.current = "";
+    pastSessionsFinalRef.current = "";
+    currentSessionFinalRef.current = "";
+    interimTextRef.current = "";
     setTranscript("");
     setInterimText("");
   }, []);

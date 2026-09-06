@@ -37,10 +37,17 @@ function buildAgentChatPrompt(serializedPayload: string): string {
     `  "আমি দুঃখিত, আমি সরাসরি ডাটাবেস বা সিস্টেম ইন্টারনাল অ্যাক্সেস করতে পারি না। আমি শুধুমাত্র FocusForge অ্যাপ (প্ল্যানার, স্টাডি প্ল্যান, ফোকাস সেশন, নোটস ও ফাইলস, স্কিল বিল্ডার, মাইন্ড প্রবলেম সলভার) এবং পড়াশোনা/উৎপাদনশীলতা সংক্রান্ত বিষয়ে সাহায্য করতে পারি।" (Bengali)`,
     `  "I'm sorry, but I do not have direct access to database tables or system internals. I can only assist with FocusForge productivity features (Planner, Focus, Notes, Skill Builder, Problem Solver) and study/work organization." (English)`,
     `  Set "intent": "GREETING_OR_GENERAL" and "payload": null.`,
-    ``,
-    `LANGUAGE REQUIREMENT:`,
-    `- If the user writes in Bengali (বাংলা) or Banglish, respond in natural, friendly, fluent Bengali (বাংলা).`,
-    `- If the user writes in English, respond in English.`,
+    `INTELLIGENT MULTI-LINGUAL UNDERSTANDING & BANGLISH AUTO-DETECTION:`,
+    `- The user can communicate in 3 ways:`,
+    `  1. বাংলা লিপি (Bengali script) - e.g. "আমি আজকে রুটিন বানাতে চাই"`,
+    `  2. English - e.g. "Create a study schedule for my exams"`,
+    `  3. বাংলিশ / Banglish (Bengali spoken/written using English letters) - e.g.:`,
+    `     "ami ajke routine banate chai", "kemon acho", "amar physics pora dorkar", "ki vabe shuru korbo", "amar help lagbe", "ajke 2 ghonta study korbo", "amake ekta plan dao"`,
+    `- YOU MUST PERFECTLY UNDERSTAND ALL THREE: Bangla, English, and Banglish!`,
+    `- STRICT RESPONSE LANGUAGE RULES:`,
+    `  * If the user communicates in English -> Respond entirely in natural, fluent, helpful English.`,
+    `  * If the user communicates in Bengali (বাংলা script) -> Respond entirely in natural, warm, grammatically correct Bengali (বাংলা লিপি).`,
+    `  * If the user communicates in Banglish (Bengali in English characters) -> ALWAYS understand their intent and respond in natural, warm, fluent Bengali (বাংলা লিপি - কখনই বাংলিশে রিপ্লাই দেবে না, সব সময় প্রমিত/সহজ বাংলা লিপিতে উত্তর দেবে).`,
     ``,
     `CONVERSATIONAL BEHAVIOR & PROACTIVE ENGAGEMENT:`,
     `- Act as an empathetic, friendly, highly capable productivity partner. Speak naturally and warmly like an expert coach.`,
@@ -126,11 +133,11 @@ function parseJson(text: string): JsonObject | JsonObject[] {
 }
 
 const CANDIDATE_MODELS = [
-  process.env.GEMINI_MODEL || 'gemini-3.1-flash-lite',
-  'gemini-3.1-flash-lite',
-  'gemini-flash-lite-latest',
-  'gemini-3.5-flash',
-  'gemini-3.7-flash',
+  process.env.GEMINI_MODEL || 'gemini-2.5-flash',
+  'gemini-2.5-flash',
+  'gemini-2.0-flash',
+  'gemini-1.5-flash',
+  'gemini-2.0-flash-lite',
   'gemini-flash-latest'
 ].filter((m, i, arr) => arr.indexOf(m) === i);
 
@@ -190,12 +197,16 @@ export async function transcribeAudio(
   const client = getGeminiClient();
 
   const prompt = [
-    'You are a high-accuracy voice transcriber for the FocusForge productivity app.',
-    'Transcribe the user\'s spoken audio accurately into text.',
-    languageHint === 'bn' 
-      ? 'The speaker is speaking in Bengali (or Bengali mixed with English). Output in natural Bengali script.' 
-      : 'If spoken in Bengali, output in Bengali script. If spoken in English, output in English.',
-    'If the audio is silent or only has noise/humming, return empty text: {"text": ""}.',
+    'You are an expert, multilingual speech-to-text transcriber for the FocusForge productivity app.',
+    'The user may speak in Bengali (বাংলা), English, or Banglish (Bengali spoken using colloquial or English mixed words).',
+    'AUTOMATIC MULTILINGUAL TRANSCRIPTION RULES:',
+    '1. If the user speaks in Bengali or Banglish (e.g. "ami ajke routine banate chai", "amar physics pora dorkar"):',
+    '   - Transcribe directly into clear, natural Bengali script (বাংলা লিপি).',
+    '2. If the user speaks in English (e.g. "Help me plan my study schedule"):',
+    '   - Transcribe into clean, punctuated English.',
+    '3. If the user speaks code-mixed Bengali and English (e.g. "ajke 2 ghonta React and Python shikhbo"):',
+    '   - Transcribe naturally in Bengali script keeping technical English terms (e.g. "আজকে ২ ঘণ্টা React এবং Python শিখব").',
+    '4. If silent or only noise/humming, return empty text: {"text": ""}.',
     'Return ONLY valid JSON: {"text": "the transcribed words"}'
   ].join('\n');
 
@@ -211,7 +222,7 @@ export async function transcribeAudio(
             parts: [
               {
                 inlineData: {
-                  mimeType,
+                  mimeType: mimeType || 'audio/webm',
                   data: cleanBase64
                 }
               },
@@ -220,21 +231,25 @@ export async function transcribeAudio(
               }
             ]
           }
-        ],
-        config: {
-          responseMimeType: 'application/json',
-          temperature: 0.1
-        }
+        ]
       });
 
-      if (response.text) {
-        const parsed = parseJson(response.text) as any;
-        return (parsed?.text || '').trim();
+      const rawText = (response.text || '').trim();
+      if (rawText) {
+        try {
+          const parsed = parseJson(rawText) as any;
+          if (parsed && typeof parsed.text === 'string') {
+            return parsed.text.trim();
+          }
+        } catch {
+          // If response is not JSON, use the raw text
+          return rawText.replace(/^"|"$/g, '').trim();
+        }
       }
     } catch (err: any) {
       console.warn(`[AI Service Audio] Model ${model} failed, trying next candidate:`, err?.message || err);
       lastError = err;
-      await new Promise((resolve) => setTimeout(resolve, 300));
+      await new Promise((resolve) => setTimeout(resolve, 250));
     }
   }
 

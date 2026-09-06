@@ -28,6 +28,9 @@ export const VoiceAssistantModal: React.FC<VoiceAssistantModalProps> = ({
 }) => {
   const [mounted, setMounted] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
+  const [activeLang, setActiveLang] = useState<"bn" | "en">(
+    language === "en" ? "en" : "bn"
+  );
   const { state } = useAppContext();
   const activeTheme = themeMode || (state?.theme?.mode === "light" ? "light" : "dark");
   const isLight = activeTheme === "light";
@@ -40,6 +43,12 @@ export const VoiceAssistantModal: React.FC<VoiceAssistantModalProps> = ({
     setMounted(true);
   }, []);
 
+  useEffect(() => {
+    if (language === "en" || language === "bn") {
+      setActiveLang(language);
+    }
+  }, [language]);
+
   // Real-time audio analyzer for 60fps canvas visualizer
   const {
     smoothedAmplitudeRef,
@@ -49,7 +58,7 @@ export const VoiceAssistantModal: React.FC<VoiceAssistantModalProps> = ({
   } = useAudioAnalyzer(isOpen);
 
   // Speech recognition for converting speech to text
-  const speechLang: SpeechLanguage = language === "en" ? "en-US" : "bn-BD";
+  const speechLang: SpeechLanguage = activeLang === "en" ? "en-US" : "bn-BD";
 
   const {
     isListening,
@@ -84,7 +93,7 @@ export const VoiceAssistantModal: React.FC<VoiceAssistantModalProps> = ({
     };
   }, [isOpen]);
 
-  // Manage start/stop lifecycle with modal visibility
+  // Manage start/stop lifecycle with modal visibility & language
   useEffect(() => {
     if (isOpen) {
       latestSpeechTextRef.current = "";
@@ -98,7 +107,7 @@ export const VoiceAssistantModal: React.FC<VoiceAssistantModalProps> = ({
     };
   }, [isOpen, speechLang]);
 
-  // Secondary audio recorder on the MediaStream for fallback Gemini transcription
+  // Audio recorder on the MediaStream for fallback Gemini transcription
   useEffect(() => {
     if (!isOpen) {
       if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
@@ -124,22 +133,31 @@ export const VoiceAssistantModal: React.FC<VoiceAssistantModalProps> = ({
               audioChunksRef.current.push(e.data);
             }
           };
-          recorder.start(250);
+          recorder.start(1000);
           mediaRecorderRef.current = recorder;
           if (intervalId) clearInterval(intervalId);
         } catch (e) {
-          console.warn("[VoiceModal] MediaRecorder start warning:", e);
+          console.warn("[VoiceModal] MediaRecorder init warning:", e);
         }
       }
     };
 
     initRecorder();
-    intervalId = setInterval(initRecorder, 300);
+    intervalId = setInterval(initRecorder, 350);
 
     return () => {
       if (intervalId) clearInterval(intervalId);
     };
   }, [isOpen, getMediaStream]);
+
+  // Language switch handler
+  const handleSwitchLanguage = (lang: "bn" | "en") => {
+    setActiveLang(lang);
+    stopListening();
+    setTimeout(() => {
+      startListening(lang === "en" ? "en-US" : "bn-BD", { reset: false });
+    }, 150);
+  };
 
   // Gracefully finalize speech on close or stop button
   const handleFinishVoice = async () => {
@@ -157,7 +175,7 @@ export const VoiceAssistantModal: React.FC<VoiceAssistantModalProps> = ({
       return;
     }
 
-    // If Web Speech yielded no text (common on Android mic locks or offline devices):
+    // If Web Speech yielded no text, fallback to Gemini AI Audio Transcription:
     const recorder = mediaRecorderRef.current;
     if (recorder && recorder.state !== "inactive") {
       setIsTranscribing(true);
@@ -176,10 +194,10 @@ export const VoiceAssistantModal: React.FC<VoiceAssistantModalProps> = ({
 
       try {
         const audioBlob = await audioPromise;
-        if (audioBlob.size > 1500) {
+        if (audioBlob.size > 500) {
           const transcribed = await transcribeAudioBlob(
             audioBlob,
-            language === "en" ? "en" : "bn"
+            activeLang
           );
           if (transcribed && onSpeechResult) {
             onSpeechResult(transcribed);
@@ -196,7 +214,7 @@ export const VoiceAssistantModal: React.FC<VoiceAssistantModalProps> = ({
     }
   };
 
-  // Auto-scroll transcript smoothly as text builds up without showing ugly scrollbars
+  // Auto-scroll transcript smoothly as text builds up without showing scrollbars
   const transcriptScrollRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (transcriptScrollRef.current) {
@@ -224,6 +242,7 @@ export const VoiceAssistantModal: React.FC<VoiceAssistantModalProps> = ({
 
   const hasError = Boolean(audioError || speechError);
   const errorMessage = audioError || speechError;
+  const displayedText = (transcript ? (interimText ? `${transcript} ${interimText}` : transcript) : interimText).trim();
 
   const modalContent = (
     <div
@@ -237,16 +256,18 @@ export const VoiceAssistantModal: React.FC<VoiceAssistantModalProps> = ({
       <div className={styles.ambientGlowLeft} />
       <div className={styles.ambientGlowRight} />
 
-      {/* Top right minimalist close button */}
-      <button
-        type="button"
-        className={styles.closeButton}
-        onClick={handleFinishVoice}
-        disabled={isTranscribing}
-        aria-label="Close voice interaction"
-      >
-        <X size={20} />
-      </button>
+      {/* Top action bar: Close button */}
+      <div style={{ position: "absolute", top: 20, right: 24, zIndex: 30 }}>
+        <button
+          type="button"
+          className={styles.closeButton}
+          onClick={handleFinishVoice}
+          disabled={isTranscribing}
+          aria-label="Close voice interaction"
+        >
+          <X size={20} />
+        </button>
+      </div>
 
       {/* Central 3D AI Orb */}
       <main className={styles.orbStage}>
@@ -268,15 +289,17 @@ export const VoiceAssistantModal: React.FC<VoiceAssistantModalProps> = ({
       <footer className={styles.bottomControls}>
         {/* Real-time speech display or transcription indicator */}
         {isTranscribing ? (
-          <div className={styles.liveTranscript} style={{ opacity: 0.9, letterSpacing: '0.02em' }}>
-            {language === "bn" ? "ভয়েস প্রসেস হচ্ছে (AI Transcribing)..." : "Transcribing speech with AI..."}
+          <div className={styles.liveTranscript} style={{ opacity: 0.95, letterSpacing: '0.02em', color: '#60a5fa' }}>
+            🎙️ ভয়েস প্রসেস হচ্ছে (AI Transcribing)...
+          </div>
+        ) : displayedText ? (
+          <div className={styles.liveTranscript} ref={transcriptScrollRef} aria-live="polite">
+            {displayedText}
           </div>
         ) : (
-          (transcript || interimText) && (
-            <div className={styles.liveTranscript} ref={transcriptScrollRef} aria-live="polite">
-              {transcript ? (interimText ? `${transcript} ${interimText}` : transcript) : interimText}
-            </div>
-          )
+          <div className={`${styles.liveTranscript} ${styles.listeningStateText}`}>
+            🎙️ কথা বলুন...
+          </div>
         )}
 
         {/* Compact glassmorphic box hosting the listening status and stop voice action */}
@@ -288,26 +311,26 @@ export const VoiceAssistantModal: React.FC<VoiceAssistantModalProps> = ({
             onClick={isListening ? stopListening : () => startListening(speechLang, { reset: false })}
             disabled={isTranscribing}
             aria-label={isListening ? "Pause microphone" : "Resume microphone"}
-            title={isListening ? (language === "bn" ? "পজ করুন" : "Pause") : (language === "bn" ? "শুরু করুন" : "Resume")}
+            title={isListening ? (activeLang === "bn" ? "পজ করুন" : "Pause") : (activeLang === "bn" ? "শুরু করুন" : "Resume")}
           >
             <span className={isListening ? styles.pulseDot : styles.pausedDot} />
             {isListening ? <Mic size={14} /> : <MicOff size={14} />}
-            <span>{isListening ? (language === "bn" ? "শুনছি..." : "Listening...") : (language === "bn" ? "পজ করা" : "Paused")}</span>
+            <span>{isListening ? (activeLang === "bn" ? "শুনছি..." : "Listening...") : (activeLang === "bn" ? "পজ করা" : "Paused")}</span>
           </button>
 
           <span className={styles.boxDivider} aria-hidden="true" />
 
-          {/* Stop / Turn off voice button */}
+          {/* Stop button - voice automatically adds to input */}
           <button
             type="button"
             className={styles.stopVoiceButton}
             onClick={handleFinishVoice}
             disabled={isTranscribing}
             aria-label="Stop and turn off voice"
-            title={language === "bn" ? "ভয়েস বন্ধ করুন" : "Stop voice"}
+            title={activeLang === "bn" ? "ভয়েস শেষ" : "Stop voice"}
           >
             <Square size={11} className={styles.stopIcon} />
-            <span>{language === "bn" ? (isTranscribing ? "প্রসেসিং..." : "ভয়েস বন্ধ") : (isTranscribing ? "Processing..." : "Stop")}</span>
+            <span>{activeLang === "bn" ? (isTranscribing ? "প্রসেসিং..." : "ভয়েস শেষ") : (isTranscribing ? "Processing..." : "Stop")}</span>
           </button>
         </div>
       </footer>

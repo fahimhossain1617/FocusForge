@@ -12,6 +12,36 @@ function mapSupabaseUserToUser(supabaseUser: any, authMethod: 'email' | 'google'
   };
 }
 
+export const LIVE_SITE_URL = 'https://focus-forge-fahimhossain1617-7909s-projects.vercel.app';
+
+/**
+ * Returns a valid absolute redirect URL for Supabase Auth flows (OAuth, OTP, Password Reset).
+ * Ensures a proper protocol ('https://') is always present and redirects to the live domain.
+ */
+export function getAuthRedirectUrl(): string {
+  // 1. Check if NEXT_PUBLIC_SITE_URL is defined
+  const envUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim();
+  if (envUrl) {
+    const formatted = envUrl.startsWith('http://') || envUrl.startsWith('https://')
+      ? envUrl
+      : `https://${envUrl}`;
+    return formatted.replace(/\/$/, '');
+  }
+
+  // 2. Check browser environment
+  if (typeof window !== 'undefined' && window.location?.origin) {
+    const origin = window.location.origin;
+    // If running on localhost or 127.0.0.1, use the live site URL as requested
+    if (origin.includes('localhost') || origin.includes('127.0.0.1')) {
+      return LIVE_SITE_URL;
+    }
+    return origin.replace(/\/$/, '');
+  }
+
+  // 3. Fallback to production live domain
+  return LIVE_SITE_URL;
+}
+
 export const authService = {
   async getSession(): Promise<AuthSession> {
     const { data: { session } } = await supabase.auth.getSession();
@@ -55,9 +85,11 @@ export const authService = {
   // ==========================================
   async sendOtp(email: string, purpose: 'signup' | 'login' | 'forgot' = 'login'): Promise<{ success: boolean; message: string; error?: string }> {
     const cleanEmail = email.trim().toLowerCase();
+    const redirectUrl = getAuthRedirectUrl();
+
     if (purpose === 'forgot') {
       const { error } = await supabase.auth.resetPasswordForEmail(cleanEmail, {
-        redirectTo: typeof window !== 'undefined' ? window.location.origin : undefined,
+        redirectTo: redirectUrl,
       });
       if (error) return { success: false, error: error.message, message: '' };
     } else {
@@ -66,7 +98,7 @@ export const authService = {
         type: 'signup',
         email: cleanEmail,
         options: {
-          emailRedirectTo: typeof window !== 'undefined' ? window.location.origin : undefined,
+          emailRedirectTo: redirectUrl,
         }
       });
       if (error) {
@@ -74,7 +106,7 @@ export const authService = {
         const { error: otpError } = await supabase.auth.signInWithOtp({
           email: cleanEmail,
           options: {
-            emailRedirectTo: typeof window !== 'undefined' ? window.location.origin : undefined,
+            emailRedirectTo: redirectUrl,
           }
         });
         if (otpError) return { success: false, error: otpError.message, message: '' };
@@ -122,12 +154,13 @@ export const authService = {
 
   async createAccount(email: string, password: string, rememberMe: boolean = true): Promise<{ success: boolean; user?: User; session?: any; error?: string }> {
     const cleanEmail = email.trim().toLowerCase();
+    const redirectUrl = getAuthRedirectUrl();
     
     const res = await supabase.auth.signUp({
       email: cleanEmail,
       password,
       options: {
-        emailRedirectTo: typeof window !== 'undefined' ? window.location.origin : undefined,
+        emailRedirectTo: redirectUrl,
       }
     });
 
@@ -157,14 +190,12 @@ export const authService = {
 
   async loginWithGoogle(rememberMe: boolean = true): Promise<{ success: boolean; user?: User; error?: string }> {
     try {
-      const origin = typeof window !== 'undefined' && window.location?.origin 
-        ? window.location.origin 
-        : (process.env.NEXT_PUBLIC_SITE_URL || 'https://frontend-pi-three-13.vercel.app');
+      const redirectUrl = getAuthRedirectUrl();
 
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: origin,
+          redirectTo: redirectUrl,
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',

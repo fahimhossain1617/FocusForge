@@ -21,9 +21,13 @@ dotenv_1.default.config();
 const app = (0, express_1.default)();
 const port = process.env.PORT || 5000;
 // Middleware
-app.use((0, helmet_1.default)());
-app.use((0, cors_1.default)());
-app.use(express_1.default.json());
+app.use((0, helmet_1.default)({ crossOriginResourcePolicy: false }));
+app.use((0, cors_1.default)({
+    origin: true,
+    credentials: true,
+}));
+app.use(express_1.default.json({ limit: '50mb' }));
+app.use(express_1.default.urlencoded({ limit: '50mb', extended: true }));
 app.use((0, morgan_1.default)('dev'));
 // Routes
 app.use('/api/ai', aiRoutes_1.default);

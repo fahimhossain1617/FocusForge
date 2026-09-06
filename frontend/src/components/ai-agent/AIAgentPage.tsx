@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Check, ChevronDown, Mic, Send, MoreVertical, Trash2, Calendar, Sparkles } from "lucide-react";
 import { useAppContext } from "@/context/AppContext";
 import { useAuth } from "@/context/AuthContext";
@@ -121,6 +121,7 @@ export default function AIAgentPage() {
   const [model, setModel] = useState<AIAgentModel>("smart");
   const [voiceOpen, setVoiceOpen] = useState(false);
   const baseInputRef = useRef("");
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const composerRef = useRef<HTMLDivElement>(null);
   const chatAreaRef = useRef<HTMLDivElement>(null);
@@ -181,9 +182,53 @@ export default function AIAgentPage() {
   const stopVoice = () => {
     setVoiceOpen(false);
   };
+
+  // Dynamically expands up to ~500 characters (max-height ~200px) and shrinks back automatically
+  const adjustTextareaHeight = useCallback(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+
+    // Reset height momentarily to measure scrollHeight accurately
+    el.style.height = "auto";
+
+    const minHeight = 44; // single-line height with padding
+    const maxHeight = 200; // fits up to ~500 characters cleanly without scrolling
+    const scrollHeight = el.scrollHeight;
+
+    if (scrollHeight <= minHeight) {
+      el.style.height = `${minHeight}px`;
+      el.style.overflowY = "hidden";
+    } else if (scrollHeight >= maxHeight) {
+      el.style.height = `${maxHeight}px`;
+      el.style.overflowY = "auto";
+    } else {
+      el.style.height = `${scrollHeight}px`;
+      el.style.overflowY = "hidden";
+    }
+  }, []);
+
+  // Recalculate on any input change (grows and shrinks dynamically)
+  useEffect(() => {
+    adjustTextareaHeight();
+  }, [input, adjustTextareaHeight]);
+
+  // Recalculate on window resize
+  useEffect(() => {
+    window.addEventListener("resize", adjustTextareaHeight);
+    return () => window.removeEventListener("resize", adjustTextareaHeight);
+  }, [adjustTextareaHeight]);
+
   const handleSpeechResult = (voiceText: string) => {
+    if (!voiceText) return;
     const base = baseInputRef.current;
-    setInput(base ? `${base} ${voiceText}`.trim() : voiceText);
+    const updated = base ? `${base} ${voiceText}`.trim() : voiceText;
+    setInput(updated);
+    setTimeout(() => {
+      if (textareaRef.current) {
+        textareaRef.current.focus();
+        adjustTextareaHeight();
+      }
+    }, 50);
   };
 
   return (
@@ -482,8 +527,12 @@ export default function AIAgentPage() {
 
         <div className={styles.composer}>
           <textarea
+            ref={textareaRef}
             value={input}
-            onChange={(event) => setInput(event.target.value)}
+            onChange={(event) => {
+              setInput(event.target.value);
+              requestAnimationFrame(adjustTextareaHeight);
+            }}
             onFocus={() => {
               setTimeout(() => {
                 composerRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
@@ -502,15 +551,6 @@ export default function AIAgentPage() {
           <div className={styles.controls}>
             <div className={styles.selectGroup}>
               <CustomSelect label="AI model" value={model} options={modelOptions} onChange={setModel} />
-              <CustomSelect 
-                label={isSystemBn ? "ভাষা" : "Language"} 
-                value={language} 
-                options={languageOptions} 
-                onChange={(val) => {
-                  setLanguage(val);
-                  updateState({ lang: val === "bn" ? "bn" : "en" });
-                }} 
-              />
             </div>
             <div className={styles.composeActions}>
               <button
@@ -538,7 +578,7 @@ export default function AIAgentPage() {
       <VoiceAssistantModal
         isOpen={voiceOpen}
         onClose={stopVoice}
-        language={language}
+        language="auto"
         onSpeechResult={handleSpeechResult}
         themeMode={isLight ? "light" : "dark"}
       />
