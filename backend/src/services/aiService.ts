@@ -114,9 +114,9 @@ function parseJson(text: string): JsonObject | JsonObject[] {
 }
 
 const CANDIDATE_MODELS = [
-  process.env.GEMINI_MODEL || 'gemini-1.5-flash',
-  'gemini-1.5-flash',
-  'gemini-2.0-flash',
+  process.env.GEMINI_MODEL || 'gemini-3.6-flash',
+  'gemini-3.6-flash',
+  'gemini-2.5-flash',
   'gemini-1.5-pro'
 ].filter((m, i, arr) => arr.indexOf(m) === i);
 

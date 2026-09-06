@@ -254,16 +254,7 @@ export function AIAgentPage() {
             {isSystemBn ? 'ফোকাস ফোর্স AI এজেন্ট' : 'FocusForge AI Agent'}
           </p>
         </div>
-        <div className={styles.headerActions} style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
-          <button
-            className={styles.iconButton}
-            onClick={() => createNewSession()}
-            aria-label="New Chat"
-            title={isSystemBn ? 'নতুন চ্যাট' : 'New Chat'}
-          >
-            <MessageSquarePlus size={20} />
-          </button>
-          
+        <div className={styles.headerActions}>
           <div ref={historyMenuRef} style={{ position: 'relative' }}>
             <button 
               className={styles.iconButton} 
