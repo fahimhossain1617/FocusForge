@@ -278,6 +278,7 @@ router.post('/agent/chat', async (req, res) => {
       result = await executeAIAction('agentChat', payload);
     } catch (aiError) {
       console.warn('AI execution failed, using fallback:', aiError);
+      const { lang } = getRequestClientMeta(req);
       const isBn = lang === 'bn' || !/[a-zA-Z]/.test(message);
       result = {
         intent: "GREETING_OR_GENERAL",

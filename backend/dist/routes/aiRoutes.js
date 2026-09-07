@@ -270,7 +270,22 @@ router.post('/agent/chat', async (req, res) => {
             context: lightweightContext
         };
         // 2. Call Gemini via Intent Router
-        const result = await (0, aiService_1.executeAIAction)('agentChat', payload);
+        let result;
+        try {
+            result = await (0, aiService_1.executeAIAction)('agentChat', payload);
+        }
+        catch (aiError) {
+            console.warn('AI execution failed, using fallback:', aiError);
+            const { lang } = getRequestClientMeta(req);
+            const isBn = lang === 'bn' || !/[a-zA-Z]/.test(message);
+            result = {
+                intent: "GREETING_OR_GENERAL",
+                message: isBn
+                    ? "দুঃখিত, এআই সার্ভার সাময়িক ব্যস্ত ছিল। আপনার পড়াশোনা বা কাজের বিষয়ে অন্য কোনো সাহায্য লাগলে বলতে পারেন!"
+                    : "FocusForge AI is temporarily busy. Please let me know if you need help with anything else!",
+                payload: null
+            };
+        }
         // Fallback if AI fails to return proper intent
         if (!result || !result.intent) {
             result.intent = "GREETING_OR_GENERAL";

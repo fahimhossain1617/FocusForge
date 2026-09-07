@@ -1,52 +1,75 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { transcribeAudioBlob } from "@/services/aiAgentService";
 
-// Extend Window interface for webkitSpeechRecognition
-declare global {
-  interface Window {
-    SpeechRecognition: any;
-    webkitSpeechRecognition: any;
-  }
-}
-
-export type SpeechLanguage = "bn-BD" | "en-US";
+export type SpeechLanguage = "bn-BD" | "en-US" | "auto";
 
 interface UseSpeechRecognitionProps {
-  onResult?: (text: string, isFinal: boolean) => void;
+  onResult?: (text: string, isFinal: boolean, isFullReplacement?: boolean) => void;
+  onInterimResult?: (text: string) => void;
   onError?: (error: string) => void;
 }
 
-export function useSpeechRecognition({ onResult, onError }: UseSpeechRecognitionProps = {}) {
+export function useSpeechRecognition({
+  onResult,
+  onInterimResult,
+  onError,
+}: UseSpeechRecognitionProps = {}) {
   const [isSupported, setIsSupported] = useState(true);
   const [isListening, setIsListening] = useState(false);
+  const [isTranscribing, setIsTranscribing] = useState(false);
   const [transcript, setTranscript] = useState("");
   const [interimText, setInterimText] = useState("");
   const [error, setErrorState] = useState<string | null>(null);
 
   const recognitionRef = useRef<any>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const streamRef = useRef<MediaStream | null>(null);
+
   const shouldListenRef = useRef(false);
   const restartTimerRef = useRef<any>(null);
-  const pastSessionsFinalRef = useRef("");
-  const currentSessionFinalRef = useRef("");
-  const onResultRef = useRef(onResult);
-  const onErrorRef = useRef(onError);
-  const currentLangRef = useRef<SpeechLanguage>("bn-BD");
-
+  const accumulatedFinalRef = useRef("");
   const interimTextRef = useRef("");
+  const currentLangRef = useRef<SpeechLanguage>("auto");
+  const chunksDeliveredRef = useRef(0);
+
+  const onResultRef = useRef(onResult);
+  const onInterimResultRef = useRef(onInterimResult);
+  const onErrorRef = useRef(onError);
 
   useEffect(() => {
     onResultRef.current = onResult;
   }, [onResult]);
 
   useEffect(() => {
+    onInterimResultRef.current = onInterimResult;
+  }, [onInterimResult]);
+
+  useEffect(() => {
     onErrorRef.current = onError;
   }, [onError]);
 
-  const handleError = useCallback((msg: string) => {
-    setErrorState(msg);
-    if (onErrorRef.current) onErrorRef.current(msg);
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const hasSpeech = Boolean(
+        (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+      );
+      const hasMedia = Boolean(
+        navigator.mediaDevices && typeof MediaRecorder !== "undefined"
+      );
+      setIsSupported(hasSpeech || hasMedia);
+    }
+    return () => {
+      cleanupAll();
+    };
   }, []);
 
-  const cleanupRecognition = useCallback(() => {
+  const cleanupAll = useCallback(() => {
+    shouldListenRef.current = false;
+    if (restartTimerRef.current) {
+      clearTimeout(restartTimerRef.current);
+      restartTimerRef.current = null;
+    }
     if (recognitionRef.current) {
       try {
         recognitionRef.current.onstart = null;
@@ -57,237 +80,334 @@ export function useSpeechRecognition({ onResult, onError }: UseSpeechRecognition
       } catch (e) {}
       recognitionRef.current = null;
     }
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+      try {
+        mediaRecorderRef.current.stop();
+      } catch (e) {}
+    }
+    mediaRecorderRef.current = null;
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
+    }
+    audioChunksRef.current = [];
   }, []);
 
-  const spawnAndStartRecognition = useCallback(() => {
-    if (!shouldListenRef.current) return;
-    if (typeof window === "undefined") return;
+  const handleError = useCallback((msg: string) => {
+    setErrorState(msg);
+    if (onErrorRef.current) onErrorRef.current(msg);
+  }, []);
 
-    cleanupRecognition();
+  const spawnSpeechRecognition = useCallback(
+    (lang: SpeechLanguage = "auto") => {
+      if (!shouldListenRef.current || typeof window === "undefined") return;
 
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognition) {
-      setIsSupported(false);
-      handleError("Speech recognition is not supported in this browser.");
-      return;
-    }
+      const SpeechRecognition =
+        (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
 
-    try {
-      const recognition = new SpeechRecognition();
-      recognition.continuous = true;
-      recognition.interimResults = true;
-      recognition.maxAlternatives = 1;
-      recognition.lang = currentLangRef.current;
+      if (!SpeechRecognition) {
+        console.warn("[Voice] Web Speech API not supported; relying on AI audio fallback.");
+        return;
+      }
 
-      recognition.onstart = () => {
-        setIsListening(true);
-        setErrorState(null);
-      };
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.onend = null;
+          recognitionRef.current.abort();
+        } catch (e) {}
+        recognitionRef.current = null;
+      }
 
-      recognition.onresult = (event: any) => {
-        let sessionFinal = "";
-        let sessionInterim = "";
+      try {
+        const recognition = new SpeechRecognition();
+        recognition.continuous = true;
+        recognition.interimResults = true;
+        recognition.maxAlternatives = 1;
 
-        // Iterate through all results in the current recognition session
-        for (let i = 0; i < event.results.length; ++i) {
-          const res = event.results[i];
-          const text = (res[0]?.transcript || "").trim();
-          if (!text) continue;
+        // Auto language: uses bn-BD as base which allows both Bengali and English loan words.
+        // If en-US is specified, uses that.
+        recognition.lang = lang === "en-US" ? "en-US" : "bn-BD";
 
-          if (res.isFinal) {
-            sessionFinal = sessionFinal ? `${sessionFinal} ${text}` : text;
-          } else {
-            sessionInterim = sessionInterim ? `${sessionInterim} ${text}` : text;
+        recognition.onstart = () => {
+          setIsListening(true);
+          setErrorState(null);
+        };
+
+        recognition.onresult = (event: any) => {
+          let sessionInterim = "";
+
+          for (let i = event.resultIndex; i < event.results.length; ++i) {
+            const res = event.results[i];
+            const text = (res[0]?.transcript || "").trim();
+            if (!text) continue;
+
+            if (res.isFinal) {
+              // 1. Immediately deliver newly finalized chunk with isFinal = true!
+              // This permanently commits words to state so they NEVER disappear when pausing.
+              chunksDeliveredRef.current += 1;
+              accumulatedFinalRef.current = [accumulatedFinalRef.current, text]
+                .filter(Boolean)
+                .join(" ")
+                .trim();
+
+              setTranscript(accumulatedFinalRef.current);
+              interimTextRef.current = "";
+              setInterimText("");
+
+              if (onInterimResultRef.current) {
+                onInterimResultRef.current("");
+              }
+
+              if (onResultRef.current) {
+                onResultRef.current(text, true);
+              }
+            } else {
+              sessionInterim = sessionInterim ? `${sessionInterim} ${text}` : text;
+            }
           }
-        }
 
-        currentSessionFinalRef.current = sessionFinal;
-        interimTextRef.current = sessionInterim;
+          // Live interim preview during active speaking
+          if (sessionInterim) {
+            interimTextRef.current = sessionInterim;
+            setInterimText(sessionInterim);
 
-        // Combined finalized text across past sessions and current session
-        const combinedFinal = [pastSessionsFinalRef.current, sessionFinal]
-          .filter(Boolean)
-          .join(" ")
-          .trim();
+            if (onInterimResultRef.current) {
+              onInterimResultRef.current(sessionInterim);
+            }
+          }
+        };
 
-        setTranscript(combinedFinal);
-        setInterimText(sessionInterim);
+        recognition.onerror = (event: any) => {
+          const err = event.error;
+          if (err === "no-speech" || err === "aborted") {
+            return;
+          }
+          if (err === "not-allowed" || err === "service-not-allowed") {
+            handleError("Microphone access is unavailable. Please allow microphone permissions.");
+            shouldListenRef.current = false;
+            setIsListening(false);
+            return;
+          }
+          console.warn("[Voice] Web Speech notice:", err);
+        };
 
-        // Combined live text (final + interim) for real-time streaming
-        const combinedLive = [combinedFinal, sessionInterim]
-          .filter(Boolean)
-          .join(" ")
-          .trim();
+        recognition.onend = () => {
+          // CRITICAL PAUSE PROTECTION:
+          // If the user paused speaking, Web Speech API ends the recognition session.
+          // If there were any unfinalized interim words, commit them IMMEDIATELY so they don't vanish!
+          const pending = interimTextRef.current.trim();
+          if (pending) {
+            chunksDeliveredRef.current += 1;
+            accumulatedFinalRef.current = [accumulatedFinalRef.current, pending]
+              .filter(Boolean)
+              .join(" ")
+              .trim();
 
-        if (combinedLive && onResultRef.current) {
-          onResultRef.current(combinedLive, Boolean(sessionFinal));
-        }
-      };
+            setTranscript(accumulatedFinalRef.current);
+            interimTextRef.current = "";
+            setInterimText("");
 
-      recognition.onerror = (event: any) => {
-        const err = event.error;
-        // Non-fatal errors that occur routinely during pauses:
-        if (err === "no-speech" || err === "aborted") {
-          return;
-        }
+            if (onInterimResultRef.current) {
+              onInterimResultRef.current("");
+            }
 
-        if (err === "not-allowed" || err === "service-not-allowed") {
-          handleError("Microphone access is unavailable. Please allow microphone permissions.");
-          shouldListenRef.current = false;
-          setIsListening(false);
-          cleanupRecognition();
-          return;
-        }
+            if (onResultRef.current) {
+              onResultRef.current(pending, true);
+            }
+          }
 
-        if (err === "audio-capture") {
-          console.warn("[SpeechRecognition] Audio capture notice, retrying in background...");
+          // LONG VOICE TRACKING:
+          // If the user hasn't clicked stop (still in listening mode), seamlessly restart in 60ms!
+          // Previous text is preserved in accumulatedFinalRef and in component state.
           if (shouldListenRef.current) {
             if (restartTimerRef.current) clearTimeout(restartTimerRef.current);
             restartTimerRef.current = setTimeout(() => {
               if (shouldListenRef.current) {
-                spawnAndStartRecognition();
+                spawnSpeechRecognition(lang);
               }
-            }, 600);
+            }, 60);
           }
-          return;
-        }
+        };
 
-        // Transient speech server network glitch: re-establish instance
-        if (shouldListenRef.current) {
-          if (restartTimerRef.current) clearTimeout(restartTimerRef.current);
-          restartTimerRef.current = setTimeout(() => {
-            if (shouldListenRef.current) {
-              spawnAndStartRecognition();
-            }
-          }, 450);
-        }
-      };
-
-      recognition.onend = () => {
-        // Commit any finalized text from this session to persistent past storage
-        if (currentSessionFinalRef.current) {
-          pastSessionsFinalRef.current = [pastSessionsFinalRef.current, currentSessionFinalRef.current]
-            .filter(Boolean)
-            .join(" ")
-            .trim();
-          currentSessionFinalRef.current = "";
-        }
-
-        if (shouldListenRef.current) {
-          // Seamlessly restart for long speech
-          if (restartTimerRef.current) clearTimeout(restartTimerRef.current);
-          restartTimerRef.current = setTimeout(() => {
-            if (shouldListenRef.current) {
-              spawnAndStartRecognition();
-            }
-          }, 150);
-          return;
-        }
-
-        setIsListening(false);
-        setInterimText("");
-        interimTextRef.current = "";
-      };
-
-      recognitionRef.current = recognition;
-      recognition.start();
-    } catch (err: any) {
-      if (shouldListenRef.current) {
-        if (restartTimerRef.current) clearTimeout(restartTimerRef.current);
-        restartTimerRef.current = setTimeout(() => {
-          if (shouldListenRef.current) {
-            spawnAndStartRecognition();
-          }
-        }, 300);
+        recognitionRef.current = recognition;
+        recognition.start();
+      } catch (err: any) {
+        console.warn("[Voice] Speech recognition start notice:", err?.message || err);
       }
-    }
-  }, [cleanupRecognition, handleError]);
-
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-      if (!SpeechRecognition) {
-        setIsSupported(false);
-      }
-    }
-
-    return () => {
-      shouldListenRef.current = false;
-      if (restartTimerRef.current) clearTimeout(restartTimerRef.current);
-      cleanupRecognition();
-    };
-  }, [cleanupRecognition]);
-
-  const startListening = useCallback(
-    (language: SpeechLanguage = "bn-BD", options?: { reset?: boolean }) => {
-      setErrorState(null);
-      if (options?.reset !== false) {
-        pastSessionsFinalRef.current = "";
-        currentSessionFinalRef.current = "";
-        interimTextRef.current = "";
-        setTranscript("");
-        setInterimText("");
-      }
-      currentLangRef.current = language;
-      shouldListenRef.current = true;
-      spawnAndStartRecognition();
     },
-    [spawnAndStartRecognition]
+    [handleError]
   );
 
-  const stopListening = useCallback(() => {
+  const startListening = useCallback(
+    async (language: SpeechLanguage = "auto", options?: { reset?: boolean }) => {
+      setErrorState(null);
+      if (options?.reset !== false) {
+        accumulatedFinalRef.current = "";
+        interimTextRef.current = "";
+        chunksDeliveredRef.current = 0;
+        setTranscript("");
+        setInterimText("");
+        if (onInterimResultRef.current) onInterimResultRef.current("");
+      }
+
+      currentLangRef.current = language;
+      shouldListenRef.current = true;
+      setIsListening(true);
+
+      // 1. Start real-time speech recognition for live typing
+      spawnSpeechRecognition(language);
+
+      // 2. Parallel audio recording for auto-language AI verification (English vs Bengali)
+      try {
+        if (!streamRef.current && navigator.mediaDevices) {
+          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          streamRef.current = stream;
+        }
+
+        if (typeof MediaRecorder !== "undefined" && streamRef.current) {
+          audioChunksRef.current = [];
+          let mime = "audio/webm";
+          if (typeof MediaRecorder.isTypeSupported === "function") {
+            if (MediaRecorder.isTypeSupported("audio/webm;codecs=opus")) {
+              mime = "audio/webm;codecs=opus";
+            } else if (MediaRecorder.isTypeSupported("audio/webm")) {
+              mime = "audio/webm";
+            } else if (MediaRecorder.isTypeSupported("audio/mp4")) {
+              mime = "audio/mp4";
+            }
+          }
+          const recorder = new MediaRecorder(streamRef.current, { mimeType: mime });
+          recorder.ondataavailable = (e) => {
+            if (e.data && e.data.size > 0) {
+              audioChunksRef.current.push(e.data);
+            }
+          };
+          recorder.start(300);
+          mediaRecorderRef.current = recorder;
+        }
+      } catch (err: any) {
+        console.warn("[Voice] MediaRecorder init notice:", err?.message || err);
+      }
+    },
+    [spawnSpeechRecognition]
+  );
+
+  const stopListening = useCallback(async (): Promise<string> => {
     shouldListenRef.current = false;
-    if (restartTimerRef.current) clearTimeout(restartTimerRef.current);
-
-    // Merge session final and any pending interim before stopping
-    if (currentSessionFinalRef.current) {
-      pastSessionsFinalRef.current = [pastSessionsFinalRef.current, currentSessionFinalRef.current]
-        .filter(Boolean)
-        .join(" ")
-        .trim();
-      currentSessionFinalRef.current = "";
-    }
-
-    const pendingInterim = interimTextRef.current.trim();
-    if (pendingInterim) {
-      pastSessionsFinalRef.current = [pastSessionsFinalRef.current, pendingInterim]
-        .filter(Boolean)
-        .join(" ")
-        .trim();
-      interimTextRef.current = "";
-    }
-
-    setTranscript(pastSessionsFinalRef.current);
-    if (pastSessionsFinalRef.current && onResultRef.current) {
-      onResultRef.current(pastSessionsFinalRef.current, true);
-    }
-
-    cleanupRecognition();
     setIsListening(false);
-    setInterimText("");
-  }, [cleanupRecognition]);
+
+    if (restartTimerRef.current) {
+      clearTimeout(restartTimerRef.current);
+      restartTimerRef.current = null;
+    }
+
+    // Stop speech recognition
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.onend = null;
+        recognitionRef.current.stop();
+      } catch (e) {}
+    }
+
+    // Commit any last pending interim text
+    const pending = interimTextRef.current.trim();
+    if (pending) {
+      chunksDeliveredRef.current += 1;
+      accumulatedFinalRef.current = [accumulatedFinalRef.current, pending]
+        .filter(Boolean)
+        .join(" ")
+        .trim();
+
+      setTranscript(accumulatedFinalRef.current);
+      interimTextRef.current = "";
+      setInterimText("");
+
+      if (onInterimResultRef.current) {
+        onInterimResultRef.current("");
+      }
+
+      if (onResultRef.current) {
+        onResultRef.current(pending, true);
+      }
+    }
+
+    const clientFinalText = accumulatedFinalRef.current.trim();
+
+    // 3. AI Audio Verification for True Multilingual Auto-Detection (Bangla vs English):
+    // Gemini 3.6 Flash listens to the actual recorded audio.
+    // If the user spoke English, it returns English. If Bengali, Bengali script!
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+      setIsTranscribing(true);
+
+      const audioPromise = new Promise<Blob>((resolve) => {
+        const recorder = mediaRecorderRef.current!;
+        recorder.onstop = () => {
+          let mime = recorder.mimeType || "audio/webm";
+          const blob = new Blob(audioChunksRef.current, { type: mime });
+          resolve(blob);
+        };
+        try {
+          recorder.stop();
+        } catch (e) {
+          resolve(new Blob([]));
+        }
+      });
+
+      try {
+        const audioBlob = await audioPromise;
+        if (audioBlob && audioBlob.size > 800) {
+          const aiText = await transcribeAudioBlob(audioBlob, "auto");
+          if (aiText && aiText.trim()) {
+            const finalAiText = aiText.trim();
+            setTranscript(finalAiText);
+
+            // If Web Speech didn't deliver any chunks (e.g. mobile unsupported), deliver Gemini text directly:
+            if (chunksDeliveredRef.current === 0 && onResultRef.current) {
+              onResultRef.current(finalAiText, true);
+            } else if (onResultRef.current) {
+              // Inform component of full AI refined text (e.g. converting English phonetic transliterations to clean English):
+              onResultRef.current(finalAiText, true, true);
+            }
+
+            cleanupAll();
+            return finalAiText;
+          }
+        }
+      } catch (aiErr: any) {
+        console.warn("[Voice] AI auto-transcribe fallback notice:", aiErr?.message || aiErr);
+      } finally {
+        setIsTranscribing(false);
+        cleanupAll();
+      }
+    } else {
+      cleanupAll();
+    }
+
+    return clientFinalText;
+  }, [cleanupAll]);
 
   const abortListening = useCallback(() => {
-    shouldListenRef.current = false;
-    if (restartTimerRef.current) clearTimeout(restartTimerRef.current);
-    cleanupRecognition();
+    cleanupAll();
     setIsListening(false);
+    setIsTranscribing(false);
     setInterimText("");
     interimTextRef.current = "";
-    currentSessionFinalRef.current = "";
-  }, [cleanupRecognition]);
+    if (onInterimResultRef.current) onInterimResultRef.current("");
+  }, [cleanupAll]);
 
   const resetTranscript = useCallback(() => {
-    pastSessionsFinalRef.current = "";
-    currentSessionFinalRef.current = "";
+    accumulatedFinalRef.current = "";
     interimTextRef.current = "";
+    chunksDeliveredRef.current = 0;
     setTranscript("");
     setInterimText("");
+    if (onInterimResultRef.current) onInterimResultRef.current("");
   }, []);
 
   return {
     isSupported,
     isListening,
+    isTranscribing,
     transcript,
     interimText,
     error,

@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState, useEffect, useRef, useCallback } from "react";
-import { Mic, MicOff, ChevronDown } from "lucide-react";
-import { useSpeechRecognition, SpeechLanguage } from "../../hooks/useSpeechRecognition";
+import React, { useEffect, useRef, useCallback } from "react";
+import { Mic, MicOff } from "lucide-react";
+import { useSpeechRecognition } from "../../hooks/useSpeechRecognition";
 import { useTranslation } from "../../hooks/useTranslation";
 
 interface DiaryVoiceInputProps {
@@ -12,8 +12,6 @@ interface DiaryVoiceInputProps {
 
 export default function DiaryVoiceInput({ onInsertText, onError }: DiaryVoiceInputProps) {
   const { t } = useTranslation();
-  const [language, setLanguage] = useState<SpeechLanguage>("bn-BD");
-  const waveRef = useRef<HTMLDivElement>(null);
 
   const onInsertTextRef = useRef(onInsertText);
   useEffect(() => {
@@ -31,6 +29,7 @@ export default function DiaryVoiceInput({ onInsertText, onError }: DiaryVoiceInp
   const {
     isSupported,
     isListening,
+    isTranscribing,
     startListening,
     stopListening,
   } = useSpeechRecognition({
@@ -38,57 +37,13 @@ export default function DiaryVoiceInput({ onInsertText, onError }: DiaryVoiceInp
     onError,
   });
 
-  // Audio waveform visualizer
-  useEffect(() => {
-    if (!isListening) return;
-
-    let audioContext: AudioContext;
-    let analyser: AnalyserNode;
-    let rafId: number;
-
-    navigator.mediaDevices
-      .getUserMedia({ audio: true })
-      .then((stream) => {
-        audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-        analyser = audioContext.createAnalyser();
-        const microphone = audioContext.createMediaStreamSource(stream);
-        microphone.connect(analyser);
-
-        const dataArray = new Uint8Array(analyser.frequencyBinCount);
-
-        const update = () => {
-          analyser.getByteFrequencyData(dataArray);
-          let sum = 0;
-          for (let i = 0; i < dataArray.length; i++) {
-            sum += dataArray[i];
-          }
-          const avg = sum / dataArray.length;
-          const vol = Math.min(avg / 75, 1.6);
-
-          if (waveRef.current) {
-            waveRef.current.style.setProperty("--voice-vol", vol.toString());
-          }
-          rafId = requestAnimationFrame(update);
-        };
-        update();
-      })
-      .catch((err) => console.error("Audio visualizer error:", err));
-
-    return () => {
-      cancelAnimationFrame(rafId);
-      if (audioContext) {
-        audioContext.close().catch(() => {});
-      }
-    };
-  }, [isListening]);
-
   if (!isSupported) return null;
 
   return (
     <div className={`voice-input flex items-center gap-2 ${isListening ? "is-listening" : ""}`}>
       <button
         type="button"
-        onClick={() => (isListening ? stopListening() : startListening(language))}
+        onClick={() => (isListening ? stopListening() : startListening("auto"))}
         className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all cursor-pointer ${
           isListening
             ? "bg-red-500/20 text-red-400 border border-red-500/30 animate-pulse shadow-sm shadow-red-500/20"
@@ -96,12 +51,19 @@ export default function DiaryVoiceInput({ onInsertText, onError }: DiaryVoiceInp
         }`}
         title={isListening ? t.myMind.stopListening : t.myMind.speakThought}
         aria-label={isListening ? t.myMind.stopListening : t.myMind.startVoiceInput}
+        disabled={isTranscribing}
       >
-        {isListening ? <MicOff size={16} /> : <Mic size={16} />}
+        {isTranscribing ? (
+          <div className="w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
+        ) : isListening ? (
+          <MicOff size={16} />
+        ) : (
+          <Mic size={16} />
+        )}
       </button>
 
       {isListening ? (
-        <div className="voice-wave" role="status" aria-label="Listening" ref={waveRef}>
+        <div className="voice-wave" role="status" aria-label="Listening">
           <svg viewBox="0 0 240 48" aria-hidden="true" focusable="false">
             <path
               className="voice-wave__line voice-wave__line--back"
@@ -117,24 +79,9 @@ export default function DiaryVoiceInput({ onInsertText, onError }: DiaryVoiceInp
             />
           </svg>
         </div>
-      ) : (
-        <div className="relative inline-flex items-center">
-          <select
-            value={language}
-            onChange={(e) => setLanguage(e.target.value as SpeechLanguage)}
-            className="text-xs py-1.5 pl-2.5 pr-6 rounded-lg bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 text-zinc-700 dark:text-zinc-300 appearance-none focus:outline-none cursor-pointer"
-            aria-label="Speech recognition language"
-          >
-            <option value="bn-BD" className="bg-[#0F1729] text-white">
-              {t.myMind.bangla}
-            </option>
-            <option value="en-US" className="bg-[#0F1729] text-white">
-              {t.myMind.english}
-            </option>
-          </select>
-          <ChevronDown size={12} className="pointer-events-none absolute right-1.5 text-zinc-400" />
-        </div>
-      )}
+      ) : isTranscribing ? (
+        <div className="text-xs text-blue-400 animate-pulse font-medium">Processing...</div>
+      ) : null}
     </div>
   );
 }

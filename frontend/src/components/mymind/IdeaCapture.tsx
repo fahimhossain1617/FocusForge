@@ -29,10 +29,11 @@ export default function IdeaCapture({ navigate }: IdeaCaptureProps) {
     textareaRef.current?.focus();
   }, [step]);
 
-  const handleResult = useCallback((text: string, isFinal: boolean) => {
-    if (isFinal) {
+  const handleResult = useCallback((text: string, isFinal: boolean, isFullReplacement?: boolean) => {
+    if (isFinal && text) {
       const setter = step === 1 ? setIdea : step === 2 ? setInteresting : step === 3 ? setWhoFor : step === 4 ? setProblem : setNextStep;
       setter((prev) => {
+        if (isFullReplacement) return text;
         const needsSpace = prev.length > 0 && !prev.endsWith(" ") && !prev.endsWith("\n");
         return prev + (needsSpace ? " " : "") + text;
       });
