@@ -192,23 +192,38 @@ export default function BlockEditor({
       if (event.key === "ArrowUp") { event.preventDefault(); setMenu((c) => ({ ...c, selected: Math.max(c.selected - 1, 0) })); return; }
       if (event.key === "Enter" && visibleOptions[menu.selected]) { event.preventDefault(); choose(visibleOptions[menu.selected].type); return; }
     }
-    if (event.key === "Enter" && !event.shiftKey) {
+    if (event.key === "Enter") {
       if (block.type === "code") return;
-      event.preventDefault();
-      if (block.type === "math" || block.type === "sticky" || block.type === "image" || block.type === "file" || block.type === "link") { 
-        insertAfter(index, "paragraph"); 
-        return; 
+
+      if (block.type === "math" || block.type === "sticky") {
+        if (!event.shiftKey) {
+          // Allow default Enter behavior (newline)
+          return;
+        } else {
+          // Shift+Enter creates a new block below
+          event.preventDefault();
+          insertAfter(index, "paragraph");
+          return;
+        }
       }
-      if (!block.content.trim() && (block.type === "bullet" || block.type === "numbered" || block.type === "todo")) {
-        update(index, { type: "paragraph", isCompleted: undefined });
+
+      if (!event.shiftKey) {
+        event.preventDefault();
+        if (block.type === "image" || block.type === "file" || block.type === "link") { 
+          insertAfter(index, "paragraph"); 
+          return; 
+        }
+        if (!block.content.trim() && (block.type === "bullet" || block.type === "numbered" || block.type === "todo")) {
+          update(index, { type: "paragraph", isCompleted: undefined });
+          return;
+        }
+        if (!block.content.trim() && block.type !== "paragraph") { 
+          update(index, { type: "paragraph", isCompleted: undefined }); 
+          return; 
+        }
+        insertAfter(index, block.type === "quote" ? "paragraph" : block.type);
         return;
       }
-      if (!block.content.trim() && block.type !== "paragraph") { 
-        update(index, { type: "paragraph", isCompleted: undefined }); 
-        return; 
-      }
-      insertAfter(index, block.type === "quote" ? "paragraph" : block.type);
-      return;
     }
     if (event.key === "Backspace" && !block.content) {
       event.preventDefault();
@@ -748,7 +763,7 @@ function StickyBlock({ block, control, input, textareaRef, onDelete, onUpdate }:
           ref={textareaRef} 
           {...input} 
           rows={1} 
-          placeholder={hidePlaceholder ? "" : "Write a sticky note... (Shift+Enter for newline)"} 
+          placeholder={hidePlaceholder ? "" : "Write a sticky note... (Shift+Enter for new block)"} 
           className={mode !== "text" ? "opacity-30" : ""}
           style={{ position: "relative", zIndex: 10, minHeight: "150px", width: "100%", background: "transparent" }}
           disabled={mode !== "text"}
@@ -1171,7 +1186,7 @@ function EditorBlock({
       {control}
       <button type="button" onClick={onDelete} className="absolute top-2 right-2 text-zinc-500 hover:text-red-400 bg-zinc-900/50 hover:bg-red-500/10 p-1.5 rounded-md transition-colors z-30" title="Delete Math Block"><Trash2 size={14} /></button>
       <div className="math-preview" dangerouslySetInnerHTML={{ __html: output }} />
-      <textarea ref={textarea} {...input} rows={1} placeholder="x^2 + y^2 = z^2 (Shift+Enter for newline)" />
+      <textarea ref={textarea} {...input} rows={1} placeholder="x^2 + y^2 = z^2 (Shift+Enter for new block)" />
     </div>;
   }
 
