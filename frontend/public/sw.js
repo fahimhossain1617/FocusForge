@@ -1,5 +1,5 @@
 // FocusForge Progressive Web App Service Worker
-const CACHE_NAME = 'focusforge-v3';
+const CACHE_NAME = 'focusforge-v4';
 
 const STATIC_ASSETS = [
   '/',

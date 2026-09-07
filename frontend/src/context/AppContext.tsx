@@ -1020,20 +1020,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     });
   }, []);
 
-  if (!isLoaded) {
-    return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: '#09090F' }}>
-        <div className="flex flex-col items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-purple-600 flex items-center justify-center">
-            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-            </svg>
-          </div>
-          <span className="text-sm text-zinc-500">Loading...</span>
-        </div>
-      </div>
-    );
-  }
+
 
   return (
     <AppContext.Provider

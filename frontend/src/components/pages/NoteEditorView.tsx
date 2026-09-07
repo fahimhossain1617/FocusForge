@@ -4,11 +4,10 @@ import React, { useEffect, useRef, useState } from "react";
 import { 
   ArrowLeft, Check, CloudUpload, Download, MoreHorizontal, 
   Share2, Trash2, Image as ImageIcon, 
-  FileUp, X, Sparkles
+  FileUp, X, Sparkles, ChevronDown
 } from "lucide-react";
 import BlockEditor from "../workspace/BlockEditor";
 import LinkInsertModal from "../workspace/LinkInsertModal";
-import NoteAttachmentsSection from "../workspace/NoteAttachmentsSection";
 import type { NoteBlock, Note } from "../../types";
 import { useAppContext } from "../../context/AppContext";
 import { useAuth } from "../../context/AuthContext";
@@ -20,9 +19,10 @@ interface NoteEditorViewProps {
   note?: Note | null;
   initialTitle: string; 
   initialBlocks: NoteBlock[]; 
+  initialCategory?: string;
   initialCreatedAt?: string;
   initialUpdatedAt?: string;
-  onUpdate: (title: string, blocks: NoteBlock[]) => void; 
+  onUpdate: (title: string, blocks: NoteBlock[], category?: string) => void; 
   onDelete: () => void; 
   onBack: () => void; 
 }
@@ -33,18 +33,23 @@ export default function NoteEditorView({
   note,
   initialTitle, 
   initialBlocks, 
+  initialCategory,
   initialCreatedAt,
   initialUpdatedAt,
   onUpdate, 
   onDelete, 
   onBack 
 }: NoteEditorViewProps) {
-  const { showToast } = useAppContext();
+  const { state, showToast } = useAppContext();
   const { user } = useAuth();
   const [title, setTitle] = useState(initialTitle); 
+  const [category, setCategory] = useState(initialCategory || note?.category || "Personal");
   const [blocks, setBlocks] = useState<NoteBlock[]>(() => {
-    if (!initialBlocks || initialBlocks.length <= 1) return initialBlocks || [];
-    return initialBlocks.filter((b) => !(b.type === "paragraph" && b.content.trim() === "#"));
+    if (!initialBlocks || initialBlocks.length === 0) {
+      return [{ id: newId(), type: "paragraph", content: "" }];
+    }
+    const filtered = initialBlocks.filter((b) => !(b.type === "paragraph" && b.content.trim() === "#"));
+    return filtered.length > 0 ? filtered : [{ id: newId(), type: "paragraph", content: "" }];
   }); 
   const [saveState, setSaveState] = useState<"saved" | "saving">("saved"); 
   const [moreOpen, setMoreOpen] = useState(false); 
@@ -87,18 +92,19 @@ export default function NoteEditorView({
     });
   }, [initialBlocks, user]);
 
-  const queueSave = (nextTitle: string, nextBlocks: NoteBlock[]) => { 
+  const queueSave = (nextTitle: string, nextBlocks: NoteBlock[], nextCategory?: string) => { 
     setSaveState("saving"); 
     if (saveTimer.current) clearTimeout(saveTimer.current); 
+    const currentCat = nextCategory !== undefined ? nextCategory : category;
     saveTimer.current = setTimeout(() => { 
-      onUpdate(nextTitle, nextBlocks); 
+      onUpdate(nextTitle, nextBlocks, currentCat); 
       setSaveState("saved"); 
     }, 450); 
   };
 
   const goBack = () => { 
     if (saveTimer.current) clearTimeout(saveTimer.current); 
-    onUpdate(title, blocks); 
+    onUpdate(title, blocks, category); 
     onBack(); 
   };
 
@@ -117,7 +123,7 @@ export default function NoteEditorView({
         await navigator.share({ title: title || "Untitled note", text }); 
       } else { 
         await navigator.clipboard.writeText(`${title}\n\n${text}`); 
-        showToast("Note copied to clipboard"); 
+        showToast(state.lang === 'bn' ? "নোট ক্লিপবোর্ডে কপি করা হয়েছে" : "Note copied to clipboard"); 
       } 
     } catch { 
       /* User cancelled sharing. */ 
@@ -172,27 +178,11 @@ export default function NoteEditorView({
       return true;
     });
 
-    // If the note starts with an empty paragraph immediately before our new media block, remove that empty paragraph
-    if (next.length >= 2 && next[0].type === "paragraph" && !next[0].content.trim() && next[1].id === newMediaBlock.id) {
-      next = next.slice(1);
-    }
-
-    // Ensure there is always a clean paragraph block after the media block if it's the last block, so the user can easily continue writing below it
+    // Ensure there is always a clean paragraph block after the media block if it's the last block
     const mediaIdx = next.findIndex((b) => b.id === newMediaBlock.id);
     if (mediaIdx === next.length - 1) {
       next.push({ id: newId(), type: "paragraph", content: "" });
     }
-
-    // Remove redundant consecutive empty paragraphs
-    next = next.filter((b, i) => {
-      if (b.id === newMediaBlock.id) return true;
-      if (b.type === "paragraph" && !b.content.trim()) {
-        if (i > 0 && next[i - 1]?.type === "paragraph" && !next[i - 1]?.content.trim()) {
-          return false;
-        }
-      }
-      return true;
-    });
 
     return next;
   };
@@ -271,7 +261,6 @@ export default function NoteEditorView({
 
     if (e.target) e.target.value = "";
   };
-
 
   // ── External Link Handling ──
   const handleAddLink = (url: string, linkTitle?: string, linkDomain?: string) => {
@@ -358,7 +347,7 @@ export default function NoteEditorView({
       }
     }
 
-    showToast("Files added to note");
+    showToast(state.lang === 'bn' ? "ফাইল নোটে যুক্ত করা হয়েছে" : "Files added to note");
   };
 
   const removeBlockById = (blockId: string) => {
@@ -367,9 +356,11 @@ export default function NoteEditorView({
     queueSave(title, nextBlocks);
   };
 
+  const isBn = state.lang === 'bn';
+
   return (
     <div 
-      className="note-editor-screen motion-page relative"
+      className="note-editor-screen motion-page relative h-full flex flex-col"
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
@@ -394,42 +385,53 @@ export default function NoteEditorView({
 
       {/* Header */}
       <header className="note-editor-screen__header">
-        <button type="button" onClick={goBack} className="note-editor-back cursor-pointer">
+        <button type="button" onClick={goBack} className="note-editor-back cursor-pointer flex items-center gap-2">
           <ArrowLeft size={18} />
-          <span>Back to notes</span>
+          <span className="font-semibold text-sm">{isBn ? "নোটসে ফিরে যান" : "Back to notes"}</span>
         </button>
 
-        <div className="note-editor-actions">
+        <div className="note-editor-actions flex items-center gap-3">
           <button 
             type="button" 
             className="note-header-icon note-header-icon--danger cursor-pointer" 
             onClick={() => setConfirmDelete(true)} 
             aria-label="Delete note"
+            title={isBn ? "নোট মুছুন" : "Delete note"}
           >
             <Trash2 size={16} />
           </button>
 
           <span className={saveState === "saving" ? "note-save-state is-saving" : "note-save-state"}>
-            {saveState === "saving" ? <CloudUpload size={14} className="animate-pulse text-blue-400" /> : <Check size={14} className="text-emerald-400" />}
-            {saveState === "saving" ? "Auto-saving..." : "All changes saved"}
+            {saveState === "saving" ? (
+              <>
+                <CloudUpload size={14} className="animate-pulse text-blue-400" />
+                <span>{isBn ? "সংরক্ষণ হচ্ছে..." : "Auto-saving..."}</span>
+              </>
+            ) : (
+              <>
+                <Check size={14} className="text-emerald-400" />
+                <span>{isBn ? "সংরক্ষিত" : "All changes saved"}</span>
+              </>
+            )}
           </span>
 
-          <div className="relative">
+          <div className="relative z-[9999]">
             <button 
               type="button" 
               className="note-header-icon cursor-pointer" 
               onClick={() => setMoreOpen((open) => !open)} 
               aria-label="More options"
+              title={isBn ? "আরও অপশন" : "More options"}
             >
               <MoreHorizontal size={19} />
             </button>
             {shouldRenderMore && (
               <div className={`note-more-menu ${isExitingMore ? "motion-dropdown-exit" : "motion-dropdown"}`}>
                 <button type="button" onClick={share}>
-                  <Share2 size={15} /> Share Note
+                  <Share2 size={15} /> {isBn ? "নোট শেয়ার করুন" : "Share Note"}
                 </button>
                 <button type="button" onClick={() => { window.print(); setMoreOpen(false); }}>
-                  <Download size={15} /> Download as PDF
+                  <Download size={15} /> {isBn ? "PDF ডাউনলোড করুন" : "Download as PDF"}
                 </button>
               </div>
             )}
@@ -438,8 +440,8 @@ export default function NoteEditorView({
       </header>
 
       {/* Editor Main Canvas */}
-      <main className="note-editor-screen__scroll custom-scrollbar">
-        <div className="note-editor-canvas relative">
+      <main className="note-editor-screen__scroll custom-scrollbar flex-1 overflow-y-auto">
+        <div className="note-editor-canvas relative !pt-8">
           
           {/* Drag and Drop Zone Overlay */}
           {isDraggingOver && (
@@ -447,10 +449,48 @@ export default function NoteEditorView({
               <div className="p-4 rounded-2xl bg-blue-500/20 text-blue-300">
                 <FileUp size={36} />
               </div>
-              <h3 className="text-lg font-bold text-white">Drop files here</h3>
-              <p className="text-xs text-blue-300">Images, PDFs, or documents will be added directly into your note</p>
+              <h3 className="text-lg font-bold text-white">
+                {isBn ? "ফাইলগুলো এখানে ছেড়ে দিন" : "Drop files here"}
+              </h3>
+              <p className="text-xs text-blue-300">
+                {isBn ? "ছবি, পিডিএফ বা ডকুমেন্টস স্বয়ংক্রিয়ভাবে নোটে যুক্ত হবে" : "Images, PDFs, or documents will be added directly into your note"}
+              </p>
             </div>
           )}
+
+          {/* Category Tag & Metadata Row */}
+          <div className="flex items-center gap-3 mb-4 flex-wrap">
+            <div className="relative">
+              <select
+                value={category}
+                onChange={(e) => {
+                  setCategory(e.target.value);
+                  queueSave(title, blocks, e.target.value);
+                }}
+                className="text-xs font-semibold px-3 py-1.5 rounded-xl border appearance-none pr-7 transition-all cursor-pointer"
+                style={{
+                  backgroundColor: "var(--color-bg-elevated, rgba(13, 20, 36, 0.6))",
+                  borderColor: "var(--color-border-subtle, rgba(255, 255, 255, 0.12))",
+                  color: "var(--color-accent, #60a5fa)",
+                }}
+              >
+                {(state.categories || ['Programming', 'Study', 'Personal', 'Project', 'Health']).map((cat) => (
+                  <option key={cat} value={cat} className="bg-zinc-900 text-white">
+                    {cat}
+                  </option>
+                ))}
+              </select>
+              <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-400">
+                <ChevronDown size={12} />
+              </div>
+            </div>
+
+            {initialUpdatedAt && (
+              <span className="text-[11px] text-zinc-500">
+                {isBn ? "সর্বশেষ আপডেট:" : "Last edited:"} {new Date(initialUpdatedAt).toLocaleDateString(isBn ? "bn-BD" : "en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+              </span>
+            )}
+          </div>
 
           {/* Note Title Input */}
           <input 
@@ -465,7 +505,7 @@ export default function NoteEditorView({
                 document.getElementById(`block-${blocks[0]?.id}`)?.focus(); 
               } 
             }} 
-            placeholder="Untitled note" 
+            placeholder={isBn ? "শিরোনামহীন নোট..." : "Untitled note..."} 
             className="note-editor-title w-full text-3xl sm:text-4xl font-black tracking-tight mb-6 bg-transparent outline-none text-white placeholder-zinc-600" 
             autoFocus 
           />
@@ -488,12 +528,6 @@ export default function NoteEditorView({
             onPreviewImage={(url) => setPreviewImageUrl(url)}
           />
 
-          {/* Dedicated Attachments & Resources Section */}
-          <NoteAttachmentsSection 
-            blocks={blocks} 
-            onRemoveBlock={removeBlockById}
-            onPreviewImage={(url) => setPreviewImageUrl(url)}
-          />
         </div>
       </main>
 
@@ -536,11 +570,15 @@ export default function NoteEditorView({
       {shouldRenderDelete && (
         <div className={`note-delete-confirm ${isExitingDelete ? "motion-exit-fade" : "motion-overlay"}`}>
           <div className={isExitingDelete ? "motion-exit-reveal" : "motion-dialog"}>
-            <h2>Delete this note?</h2>
-            <p>This action cannot be undone.</p>
+            <h2>{isBn ? "এই নোটটি মুছে ফেলতে চান?" : "Delete this note?"}</h2>
+            <p>{isBn ? "এই কাজটি আর ফেরানো যাবে না।" : "This action cannot be undone."}</p>
             <section>
-              <button type="button" onClick={() => setConfirmDelete(false)}>Cancel</button>
-              <button type="button" className="is-delete" onClick={onDelete}>Delete</button>
+              <button type="button" onClick={() => setConfirmDelete(false)}>
+                {isBn ? "বাতিল" : "Cancel"}
+              </button>
+              <button type="button" className="is-delete" onClick={onDelete}>
+                {isBn ? "মুছে ফেলুন" : "Delete"}
+              </button>
             </section>
           </div>
         </div>
