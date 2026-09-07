@@ -28,10 +28,11 @@ export default function ProblemSolver({ navigate }: ProblemSolverProps) {
     textareaRef.current?.focus();
   }, [step]);
 
-  const handleResult = useCallback((text: string, isFinal: boolean) => {
-    if (isFinal) {
+  const handleResult = useCallback((text: string, isFinal: boolean, isFullReplacement?: boolean) => {
+    if (isFinal && text) {
       const setter = step === 1 ? setHappened : step === 2 ? setBothering : step === 3 ? setOptions : setNextStep;
       setter((prev) => {
+        if (isFullReplacement) return text;
         const needsSpace = prev.length > 0 && !prev.endsWith(" ") && !prev.endsWith("\n");
         return prev + (needsSpace ? " " : "") + text;
       });

@@ -40,10 +40,11 @@ export default function ThoughtDetail({ thoughtId, navigate }: ThoughtDetailProp
     }
   }, [content, interim]);
 
-  const handleResult = useCallback((text: string, isFinal: boolean) => {
-    if (isFinal) {
+  const handleResult = useCallback((text: string, isFinal: boolean, isFullReplacement?: boolean) => {
+    if (isFinal && text) {
       setIsEditing(true);
       setContent((prev) => {
+        if (isFullReplacement) return text;
         const needsSpace = prev.length > 0 && !prev.endsWith(" ") && !prev.endsWith("\n");
         return prev + (needsSpace ? " " : "") + text;
       });

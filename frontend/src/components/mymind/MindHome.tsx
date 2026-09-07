@@ -25,12 +25,16 @@ export default function MindHome({ navigate, setActiveThoughtId }: MindHomeProps
     textareaRef.current?.focus();
   }, []);
 
-  const handleResult = useCallback((text: string, isFinal: boolean) => {
-    if (isFinal) {
+  const handleResult = useCallback((text: string, isFinal: boolean, isFullReplacement?: boolean) => {
+    if (isFinal && text) {
       setInput((prev) => {
+        if (isFullReplacement) {
+          return text;
+        }
         const needsSpace = prev.length > 0 && !prev.endsWith(" ") && !prev.endsWith("\n");
         return prev + (needsSpace ? " " : "") + text;
       });
+      setInterim("");
       // Auto-resize
       setTimeout(() => {
         if (textareaRef.current) {
