@@ -53,9 +53,9 @@ export default function RichFormattingToolbar({
   ];
 
   return (
-    <div className="sticky top-0 z-20 w-full mb-6">
+    <div className="w-full">
       <div 
-        className="flex items-center justify-between gap-2 p-1.5 sm:p-2 rounded-2xl border backdrop-blur-xl shadow-lg transition-all"
+        className="flex items-center justify-between gap-2 p-1 sm:p-1.5 rounded-xl border backdrop-blur-xl shadow-md transition-all"
         style={{
           background: "var(--color-bg-elevated, rgba(13, 20, 36, 0.85))",
           borderColor: "var(--color-border-subtle, rgba(255, 255, 255, 0.08))"

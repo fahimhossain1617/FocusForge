@@ -49,9 +49,9 @@ const options: MenuOption[] = [
   { type: "code", label: "Code block", command: "#code", icon: Braces },
   { type: "math", label: "Math equation", command: "#math", icon: Sigma },
   { type: "sticky", label: "Sticky note", command: "#sticky note", icon: StickyNote },
-  { type: "image", label: "Image", command: "#image", icon: ImageIcon },
-  { type: "file", label: "PDF / Document", command: "#file", icon: FileText },
-  { type: "link", label: "External link", command: "#link", icon: Link2 },
+  { type: "image", label: "Picture / Image", command: "#picture", icon: ImageIcon },
+  { type: "file", label: "PDF / Doc file", command: "#pdf", icon: FileText },
+  { type: "link", label: "Drive link / External link", command: "#drive link", icon: Link2 },
 ];
 
 const TEXT_COLORS = [
@@ -91,7 +91,7 @@ export default function BlockEditor({
   onReplaceImage,
   onPreviewImage
 }: BlockEditorProps) {
-  const [menu, setMenu] = useState({ visible: false, index: -1, query: "", selected: 0, top: 0, left: 0 });
+  const [menu, setMenu] = useState({ visible: false, index: -1, query: "", selected: 0 });
   const [colorToolbar, setColorToolbar] = useState<{ visible: boolean; index: number }>({ visible: false, index: -1 });
 
   useEffect(() => { if (!blocks.length) onChange([newBlock()]); }, [blocks.length, onChange]);
@@ -114,8 +114,12 @@ export default function BlockEditor({
 
   const visibleOptions = useMemo(() => options.filter((o) => {
     const q = menu.query.toLowerCase().trim();
+    if (!q) return true;
     if (o.type === "numbered" && (q === "1" || q === "num" || q === "number" || q === "ordered")) return true;
-    return `${o.command} ${o.label}`.toLowerCase().includes(q);
+    if (o.type === "image" && (q.startsWith("pic") || q.startsWith("img") || q.startsWith("photo"))) return true;
+    if (o.type === "file" && (q.startsWith("pdf") || q.startsWith("doc") || q.startsWith("file"))) return true;
+    if (o.type === "link" && (q.startsWith("drive") || q.startsWith("link") || q.startsWith("url"))) return true;
+    return `${o.command} ${o.label} ${o.type}`.toLowerCase().includes(q);
   }), [menu.query]);
 
   const update = (index: number, patch: Partial<NoteBlock>) => { onDirty(); onChange(blocks.map((b, i) => i === index ? { ...b, ...patch } : b)); };
@@ -152,8 +156,6 @@ export default function BlockEditor({
     focus(id);
   };
 
-
-
   const handleInput = (event: ChangeEvent<HTMLTextAreaElement | HTMLInputElement>, index: number) => {
     const value = event.target.value;
 
@@ -179,8 +181,7 @@ export default function BlockEditor({
     update(index, { content: value });
     const isCommand = blocks[index].type === "paragraph" && /^#[\w\s-]*$/.test(value);
     if (!isCommand) { setMenu((c) => ({ ...c, visible: false })); return; }
-    const rect = event.target.getBoundingClientRect();
-    setMenu({ visible: true, index, query: value.slice(1).trim(), selected: 0, top: Math.min(rect.bottom + 8, window.innerHeight - 300), left: Math.min(rect.left, window.innerWidth - 280) });
+    setMenu({ visible: true, index, query: value.slice(1).trim(), selected: 0 });
   };
 
   const handleKeyDown = (event: KeyboardEvent<HTMLTextAreaElement | HTMLInputElement | HTMLDivElement>, index: number) => {
@@ -235,9 +236,11 @@ export default function BlockEditor({
         onUpdateColor={(patch) => { update(index, patch); onDirty(); }}
         onReplaceImage={onReplaceImage}
         onPreviewImage={onPreviewImage}
+        commandMenu={menu.visible && menu.index === index && visibleOptions.length > 0 ? (
+          <CommandMenu options={visibleOptions} selected={menu.selected} onChoose={choose} />
+        ) : null}
       />
     ))}
-    {menu.visible && visibleOptions.length > 0 && <CommandMenu options={visibleOptions} selected={menu.selected} top={menu.top} left={menu.left} onChoose={choose} />}
     <div 
       className="mt-4 pb-32 cursor-text min-h-[150px]" 
       onClick={() => {
@@ -251,8 +254,30 @@ export default function BlockEditor({
 
 /* ───────────── Command Menu ───────────── */
 
-function CommandMenu({ options: shown, selected, top, left, onChoose }: { options: MenuOption[]; selected: number; top: number; left: number; onChoose: (type: BlockType) => void; }) {
-  return <div className="note-command-menu" style={{ top, left }}><p>What do you want to add?</p><div>{shown.map((option, index) => { const Icon = option.icon; return <button key={option.type} type="button" className={index === selected ? "is-selected" : ""} onMouseDown={(e) => e.preventDefault()} onClick={() => onChoose(option.type)}><Icon size={16} /><span>{option.label}</span><kbd>{option.command}</kbd></button>; })}</div></div>;
+function CommandMenu({ options: shown, selected, onChoose }: { options: MenuOption[]; selected: number; onChoose: (type: BlockType) => void; }) {
+  return (
+    <div className="note-command-menu">
+      <p>What do you want to add?</p>
+      <div>
+        {shown.map((option, index) => { 
+          const Icon = option.icon; 
+          return (
+            <button 
+              key={option.type} 
+              type="button" 
+              className={index === selected ? "is-selected" : ""} 
+              onMouseDown={(e) => e.preventDefault()} 
+              onClick={() => onChoose(option.type)}
+            >
+              <Icon size={16} />
+              <span>{option.label}</span>
+              <kbd>{option.command}</kbd>
+            </button>
+          ); 
+        })}
+      </div>
+    </div>
+  );
 }
 
 /* ───────────── Color Toolbar ───────────── */
@@ -760,7 +785,8 @@ function EditorBlock({
   onCloseColorToolbar, 
   onUpdateColor,
   onReplaceImage,
-  onPreviewImage
+  onPreviewImage,
+  commandMenu
 }: {
   block: NoteBlock;
   index: number;
@@ -777,6 +803,7 @@ function EditorBlock({
   onUpdateColor: (patch: Partial<NoteBlock>) => void;
   onReplaceImage?: (blockId: string) => void;
   onPreviewImage?: (url: string) => void;
+  commandMenu?: React.ReactNode;
 }) {
   const textarea = useRef<HTMLTextAreaElement>(null);
   useEffect(() => { if (textarea.current && block.type !== "code") { textarea.current.style.height = "0px"; textarea.current.style.height = `${textarea.current.scrollHeight}px`; } }, [block.content, block.type]);
@@ -1161,12 +1188,13 @@ function EditorBlock({
   }
 
   // ── Paragraph (default) ──
-  return <div className="editor-block editor-block--paragraph">
+  return <div className="editor-block editor-block--paragraph relative">
     {control}
     {wrapWithBox(
       <div style={highlightStyle}>
         <textarea ref={textarea} {...input} rows={1} placeholder="Type # to add a block, or start writing..." style={textStyle} />
       </div>
     )}
+    {commandMenu}
   </div>;
 }

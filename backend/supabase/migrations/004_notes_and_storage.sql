@@ -18,6 +18,12 @@ CREATE TABLE IF NOT EXISTS public.notes (
 -- If the table already existed without blocks, attachments, or links, add them safely
 DO $$
 BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'notes' AND column_name = 'id' AND data_type = 'integer') THEN
+        ALTER TABLE IF EXISTS public.note_blocks DROP CONSTRAINT IF EXISTS note_blocks_note_id_fkey;
+        ALTER TABLE public.notes ALTER COLUMN id TYPE BIGINT;
+        ALTER TABLE IF EXISTS public.note_blocks ALTER COLUMN note_id TYPE BIGINT;
+        ALTER TABLE IF EXISTS public.note_blocks ADD CONSTRAINT note_blocks_note_id_fkey FOREIGN KEY (note_id) REFERENCES public.notes(id) ON DELETE CASCADE;
+    END IF;
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'notes' AND column_name = 'blocks') THEN
         ALTER TABLE public.notes ADD COLUMN blocks JSONB NOT NULL DEFAULT '[]'::jsonb;
     END IF;

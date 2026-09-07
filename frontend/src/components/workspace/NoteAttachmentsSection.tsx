@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { 
   Paperclip, Image as ImageIcon, FileText, Link2, ExternalLink, 
-  Trash2, Download, Eye, ChevronDown, ChevronUp 
+  Trash2, Download, Eye, ChevronDown, ChevronUp, Plus 
 } from "lucide-react";
 import type { NoteBlock } from "../../types";
 
@@ -11,6 +11,9 @@ interface NoteAttachmentsSectionProps {
   blocks: NoteBlock[];
   onRemoveBlock: (blockId: string) => void;
   onPreviewImage?: (url: string) => void;
+  onTriggerFileUpload?: () => void;
+  onTriggerImageUpload?: () => void;
+  onTriggerLinkModal?: () => void;
 }
 
 export const formatBytes = (bytes?: number) => {
@@ -25,6 +28,9 @@ export default function NoteAttachmentsSection({
   blocks,
   onRemoveBlock,
   onPreviewImage,
+  onTriggerFileUpload,
+  onTriggerImageUpload,
+  onTriggerLinkModal,
 }: NoteAttachmentsSectionProps) {
   const [isExpanded, setIsExpanded] = useState(true);
 
@@ -33,7 +39,63 @@ export default function NoteAttachmentsSection({
     (b) => b.type === "image" || b.type === "file" || b.type === "link"
   );
 
-  if (mediaBlocks.length === 0) return null;
+  if (mediaBlocks.length === 0) {
+    return (
+      <div 
+        className="mt-12 pt-6 border-t border-dashed rounded-2xl p-6 transition-all"
+        style={{
+          borderColor: "var(--color-border-subtle, rgba(255, 255, 255, 0.12))",
+          background: "var(--color-bg-elevated, rgba(13, 20, 36, 0.35))"
+        }}
+      >
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-blue-500/10 text-blue-400 border border-blue-500/20 shrink-0">
+              <Paperclip size={18} />
+            </div>
+            <div>
+              <h4 className="text-sm font-bold text-white">Attachments & Resources</h4>
+              <p className="text-xs text-zinc-400">
+                Attach PDFs, documents, images, or web links to this note
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 flex-wrap">
+            {onTriggerFileUpload && (
+              <button
+                type="button"
+                onClick={onTriggerFileUpload}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-zinc-200 bg-white/5 hover:bg-white/10 hover:text-white border border-white/10 transition-colors cursor-pointer"
+              >
+                <FileText size={14} className="text-rose-400" />
+                <span>Attach File</span>
+              </button>
+            )}
+            {onTriggerImageUpload && (
+              <button
+                type="button"
+                onClick={onTriggerImageUpload}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-zinc-200 bg-white/5 hover:bg-white/10 hover:text-white border border-white/10 transition-colors cursor-pointer"
+              >
+                <ImageIcon size={14} className="text-blue-400" />
+                <span>Add Image</span>
+              </button>
+            )}
+            {onTriggerLinkModal && (
+              <button
+                type="button"
+                onClick={onTriggerLinkModal}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-zinc-200 bg-white/5 hover:bg-white/10 hover:text-white border border-white/10 transition-colors cursor-pointer"
+              >
+                <Link2 size={14} className="text-emerald-400" />
+                <span>Add Link</span>
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div 
@@ -43,7 +105,7 @@ export default function NoteAttachmentsSection({
         background: "var(--color-bg-elevated, rgba(13, 20, 36, 0.5))"
       }}
     >
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
         <button
           type="button"
           onClick={() => setIsExpanded(!isExpanded)}
@@ -58,6 +120,42 @@ export default function NoteAttachmentsSection({
           </span>
           {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
         </button>
+
+        <div className="flex items-center gap-1.5">
+          {onTriggerFileUpload && (
+            <button
+              type="button"
+              onClick={onTriggerFileUpload}
+              className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium text-zinc-300 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 transition-colors cursor-pointer"
+              title="Attach File"
+            >
+              <Plus size={12} />
+              <span>File</span>
+            </button>
+          )}
+          {onTriggerImageUpload && (
+            <button
+              type="button"
+              onClick={onTriggerImageUpload}
+              className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium text-zinc-300 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 transition-colors cursor-pointer"
+              title="Add Image"
+            >
+              <Plus size={12} />
+              <span>Image</span>
+            </button>
+          )}
+          {onTriggerLinkModal && (
+            <button
+              type="button"
+              onClick={onTriggerLinkModal}
+              className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium text-zinc-300 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 transition-colors cursor-pointer"
+              title="Add Link"
+            >
+              <Plus size={12} />
+              <span>Link</span>
+            </button>
+          )}
+        </div>
       </div>
 
       {isExpanded && (
@@ -75,7 +173,8 @@ export default function NoteAttachmentsSection({
                       <img 
                         src={block.url} 
                         alt={block.caption || "Attachment"} 
-                        className="w-full h-full object-cover" 
+                        className="w-full h-full object-cover cursor-pointer" 
+                        onClick={() => onPreviewImage?.(block.url!)}
                       />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-zinc-500">
@@ -84,10 +183,12 @@ export default function NoteAttachmentsSection({
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-semibold text-white truncate">
-                      {block.caption || "Attached Image"}
+                    <p className="text-xs font-semibold text-white truncate" title={block.caption || block.fileName || "Attached Image"}>
+                      {block.caption || block.fileName || "Attached Image"}
                     </p>
-                    <p className="text-[10px] text-zinc-400">Image file</p>
+                    <p className="text-[10px] text-zinc-400">
+                      {block.fileSize ? formatBytes(block.fileSize) : "Image file"}
+                    </p>
                   </div>
                   <div className="flex items-center gap-1 opacity-80 group-hover:opacity-100">
                     {block.url && (
