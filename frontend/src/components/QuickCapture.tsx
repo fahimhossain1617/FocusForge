@@ -6,10 +6,12 @@ import { useAuth } from "../context/AuthContext";
 import { useKeyboardShortcut } from "../hooks/useKeyboardShortcut";
 import { useAnimateExit } from "../hooks/useAnimateExit";
 import { Brain } from "lucide-react";
+import VoiceInput from "./mymind/VoiceInput";
 
 export default function QuickCapture() {
   const [isOpen, setIsOpen] = useState(false);
   const [value, setValue] = useState("");
+  const [interim, setInterim] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { addMindItem, showToast } = useAppContext();
   const { requireAuth } = useAuth();
@@ -22,6 +24,23 @@ export default function QuickCapture() {
       setTimeout(() => textareaRef.current?.focus(), 50);
     }
   }, [isOpen]);
+
+  const handleVoiceResult = (text: string, isFinal: boolean, isFullReplacement?: boolean) => {
+    if (isFinal && text) {
+      setValue((prev) => {
+        if (isFullReplacement) return text;
+        const needsSpace = prev.length > 0 && !prev.endsWith(" ") && !prev.endsWith("\n");
+        return prev + (needsSpace ? " " : "") + text;
+      });
+      setInterim("");
+      setTimeout(() => {
+        if (textareaRef.current) {
+          textareaRef.current.style.height = "auto";
+          textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 250)}px`;
+        }
+      }, 0);
+    }
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setValue(e.target.value);
@@ -89,10 +108,10 @@ export default function QuickCapture() {
             <Brain className="w-5 h-5 text-indigo-400 shrink-0 mt-1" />
             <textarea
               ref={textareaRef}
-              value={value}
+              value={value + (interim ? (value ? " " : "") + interim : "")}
               onChange={handleChange}
               onKeyDown={handleKeyDown}
-              placeholder="What's on your mind?"
+              placeholder="What's on your mind? (Speak in বাংলা or English...)"
               className="flex-1 py-1 text-base font-medium bg-transparent !border-none !shadow-none focus:!shadow-none resize-none"
               style={{
                 background: "transparent",
@@ -104,16 +123,24 @@ export default function QuickCapture() {
               }}
             />
           </div>
-          <div className="px-4 pb-4 flex justify-end">
+          <div className="px-4 pb-4 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <VoiceInput onResult={handleVoiceResult} onInterimResult={setInterim} />
+              {interim && (
+                <span className="text-xs text-blue-400 animate-pulse font-medium">
+                  Listening...
+                </span>
+              )}
+            </div>
             <button
               onClick={handleSubmit}
-              disabled={!value.trim()}
-              className="px-4 py-1.5 rounded-lg text-sm font-medium transition-colors"
+              disabled={!value.trim() && !interim.trim()}
+              className="px-4 py-1.5 rounded-lg text-sm font-medium transition-colors cursor-pointer"
               style={{
-                background: value.trim()
+                background: value.trim() || interim.trim()
                   ? "var(--color-purple-primary)"
                   : "var(--color-bg-secondary)",
-                color: value.trim()
+                color: value.trim() || interim.trim()
                   ? "white"
                   : "var(--color-text-muted)",
               }}

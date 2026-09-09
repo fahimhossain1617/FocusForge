@@ -135,6 +135,29 @@ router.delete('/topics/:id', async (req: AuthenticatedRequest, res: Response) =>
     }
 
     const { id } = req.params;
+
+    // 1. Fetch entries to clean up associated images in storage
+    const { data: entries } = await supabase
+      .from('diary_entries')
+      .select('images')
+      .eq('topic_id', id)
+      .eq('user_id', userId);
+
+    if (entries && entries.length > 0) {
+      const paths: string[] = [];
+      for (const e of entries) {
+        if (Array.isArray(e.images)) {
+          for (const img of e.images) {
+            if (img?.storagePath) paths.push(img.storagePath);
+          }
+        }
+      }
+      if (paths.length > 0) {
+        await supabase.storage.from('note-attachments').remove(paths);
+      }
+    }
+
+    // 2. Delete the topic
     const { error } = await supabase
       .from('diary_topics')
       .delete()
@@ -212,6 +235,23 @@ router.delete('/entries/:id', async (req: AuthenticatedRequest, res: Response) =
     }
 
     const { id } = req.params;
+
+    // 1. Fetch entry to clean up associated images in storage
+    const { data: entry } = await supabase
+      .from('diary_entries')
+      .select('images')
+      .eq('id', id)
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    if (entry && Array.isArray(entry.images)) {
+      const paths = entry.images.map((img: any) => img?.storagePath).filter(Boolean);
+      if (paths.length > 0) {
+        await supabase.storage.from('note-attachments').remove(paths);
+      }
+    }
+
+    // 2. Delete the entry
     const { error } = await supabase
       .from('diary_entries')
       .delete()

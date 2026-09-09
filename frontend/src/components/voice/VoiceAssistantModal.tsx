@@ -8,6 +8,7 @@ import { VoiceBottomArc } from "./VoiceBottomArc";
 import { useAudioAnalyzer } from "./useAudioAnalyzer";
 import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
 import { useAppContext } from "@/context/AppContext";
+import { useTranslation } from "@/hooks/useTranslation";
 import styles from "./voice-assistant.module.css";
 
 interface VoiceAssistantModalProps {
@@ -22,11 +23,13 @@ export const VoiceAssistantModal: React.FC<VoiceAssistantModalProps> = ({
   isOpen,
   onClose,
   onSpeechResult,
+  language = "auto",
   themeMode,
 }) => {
   const [mounted, setMounted] = useState(false);
   const [accumulatedText, setAccumulatedText] = useState("");
   const { state } = useAppContext();
+  const { lang } = useTranslation();
   const activeTheme = themeMode || (state?.theme?.mode === "light" ? "light" : "dark");
   const isLight = activeTheme === "light";
 
@@ -70,6 +73,8 @@ export const VoiceAssistantModal: React.FC<VoiceAssistantModalProps> = ({
     isTranscribing,
     transcript,
     interimText,
+    speechLanguage,
+    setSpeechLanguage,
     error: speechError,
     startListening,
     stopListening,
@@ -99,7 +104,9 @@ export const VoiceAssistantModal: React.FC<VoiceAssistantModalProps> = ({
     if (isOpen) {
       latestSpeechTextRef.current = "";
       setAccumulatedText("");
-      startListeningRef.current("auto", { reset: true });
+      const initialLang = language === "bn" ? "bn-BD" : language === "en" ? "en-US" : "auto";
+      setSpeechLanguage(initialLang);
+      startListeningRef.current(initialLang, { reset: true });
     }
   }, [isOpen]);
 
@@ -188,18 +195,91 @@ export const VoiceAssistantModal: React.FC<VoiceAssistantModalProps> = ({
         ) : displayedText ? (
           <div className={styles.liveTranscript} ref={transcriptScrollRef} aria-live="polite">
             {displayedText}
+            {isListening && (
+              <span
+                style={{
+                  display: "inline-block",
+                  width: "2px",
+                  height: "1em",
+                  backgroundColor: "#60a5fa",
+                  marginLeft: "4px",
+                  verticalAlign: "middle",
+                  animation: "pulse 0.8s ease-in-out infinite",
+                }}
+              />
+            )}
           </div>
         ) : (
           <div className={`${styles.liveTranscript} ${styles.listeningStateText}`}>
-            <Mic className="w-4 h-4 inline-block mr-1.5 animate-pulse" />কথা বলুন...
+            <Mic className="w-4 h-4 inline-block mr-1.5 animate-pulse" />
+            {speechLanguage === "bn-BD"
+              ? "বাংলায় কথা বলুন..."
+              : speechLanguage === "en-US"
+              ? "Speak in English..."
+              : "বাংলা বা ইংরেজিতে কথা বলুন (Auto)..."}
           </div>
         )}
+
+        {/* Auto / Bangla / English Mode Selector */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, marginBottom: 10, zIndex: 10 }}>
+          <button
+            type="button"
+            onClick={() => setSpeechLanguage('auto')}
+            style={{
+              padding: '4px 10px',
+              fontSize: '11px',
+              fontWeight: speechLanguage === 'auto' ? 600 : 400,
+              borderRadius: '20px',
+              background: speechLanguage === 'auto' ? 'rgba(59, 130, 246, 0.3)' : 'rgba(255, 255, 255, 0.08)',
+              border: speechLanguage === 'auto' ? '1px solid rgba(59, 130, 246, 0.6)' : '1px solid rgba(255, 255, 255, 0.12)',
+              color: speechLanguage === 'auto' ? '#60a5fa' : 'inherit',
+              cursor: 'pointer',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            🌐 Auto
+          </button>
+          <button
+            type="button"
+            onClick={() => setSpeechLanguage('bn-BD')}
+            style={{
+              padding: '4px 10px',
+              fontSize: '11px',
+              fontWeight: speechLanguage === 'bn-BD' ? 600 : 400,
+              borderRadius: '20px',
+              background: speechLanguage === 'bn-BD' ? 'rgba(59, 130, 246, 0.3)' : 'rgba(255, 255, 255, 0.08)',
+              border: speechLanguage === 'bn-BD' ? '1px solid rgba(59, 130, 246, 0.6)' : '1px solid rgba(255, 255, 255, 0.12)',
+              color: speechLanguage === 'bn-BD' ? '#60a5fa' : 'inherit',
+              cursor: 'pointer',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            🇧🇩 বাংলা
+          </button>
+          <button
+            type="button"
+            onClick={() => setSpeechLanguage('en-US')}
+            style={{
+              padding: '4px 10px',
+              fontSize: '11px',
+              fontWeight: speechLanguage === 'en-US' ? 600 : 400,
+              borderRadius: '20px',
+              background: speechLanguage === 'en-US' ? 'rgba(59, 130, 246, 0.3)' : 'rgba(255, 255, 255, 0.08)',
+              border: speechLanguage === 'en-US' ? '1px solid rgba(59, 130, 246, 0.6)' : '1px solid rgba(255, 255, 255, 0.12)',
+              color: speechLanguage === 'en-US' ? '#60a5fa' : 'inherit',
+              cursor: 'pointer',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            🇺🇸 English
+          </button>
+        </div>
 
         <div className={styles.voiceControlBox} role="toolbar" aria-label="Voice controls">
           <button
             type="button"
             className={`${styles.voiceActionButton} ${!isListening ? styles.pausedButton : ""}`}
-            onClick={isListening ? stopListening : () => startListening("auto", { reset: false })}
+            onClick={isListening ? stopListening : () => startListening(speechLanguage, { reset: false })}
             disabled={isTranscribing}
             aria-label={isListening ? "Pause microphone" : "Resume microphone"}
             title={isListening ? "Pause" : "Resume"}

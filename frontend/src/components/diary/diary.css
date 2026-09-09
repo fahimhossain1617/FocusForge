@@ -191,10 +191,16 @@
 }
 
 @media (max-width: 640px) {
-  .diary-img-size-small,
-  .diary-img-size-medium,
+  .diary-img-size-small {
+    width: calc(33.33% - 0.5rem) !important;
+    min-width: unset;
+  }
+  .diary-img-size-medium {
+    width: calc(50% - 0.5rem) !important;
+    min-width: unset;
+  }
   .diary-img-size-large {
-    width: 100% !important;
+    width: calc(100%) !important;
     min-width: unset;
   }
 }

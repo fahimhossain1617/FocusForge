@@ -20,6 +20,13 @@ export function useSpeechRecognition({
   const [transcript, setTranscript] = useState("");
   const [interimText, setInterimText] = useState("");
   const [error, setErrorState] = useState<string | null>(null);
+  const [speechLanguage, setSpeechLanguageState] = useState<SpeechLanguage>(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("focusforge_speech_lang") as SpeechLanguage;
+      if (saved === "auto" || saved === "bn-BD" || saved === "en-US") return saved;
+    }
+    return "auto";
+  });
 
   const recognitionRef = useRef<any>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -124,9 +131,14 @@ export function useSpeechRecognition({
         recognition.interimResults = true;
         recognition.maxAlternatives = 1;
 
-        // Auto language: uses bn-BD as base which allows both Bengali and English loan words.
-        // If en-US is specified, uses that.
-        recognition.lang = lang === "en-US" ? "en-US" : "bn-BD";
+        const resolveLang = (l: SpeechLanguage) => {
+          if (l === "bn-BD") return "bn-BD";
+          if (l === "en-US") return "en-US";
+          // In "auto" mode, use bn-BD which recognizes Bengali script while capturing English words
+          return "bn-BD";
+        };
+
+        recognition.lang = resolveLang(lang);
 
         recognition.onstart = () => {
           setIsListening(true);
@@ -188,6 +200,16 @@ export function useSpeechRecognition({
             setIsListening(false);
             return;
           }
+          if (err === "language-not-supported") {
+            console.warn("[Voice] Web Speech language not supported, attempting fallback");
+            if (recognition.lang === "bn-BD") {
+              recognition.lang = "bn-IN";
+              try { recognition.start(); return; } catch {}
+            } else if (recognition.lang === "bn-IN") {
+              recognition.lang = typeof navigator !== "undefined" ? navigator.language || "en-US" : "en-US";
+              try { recognition.start(); return; } catch {}
+            }
+          }
           console.warn("[Voice] Web Speech notice:", err);
         };
 
@@ -238,8 +260,31 @@ export function useSpeechRecognition({
     [handleError]
   );
 
+  const setSpeechLanguage = useCallback(
+    (newLang: SpeechLanguage) => {
+      setSpeechLanguageState(newLang);
+      currentLangRef.current = newLang;
+      if (typeof window !== "undefined") {
+        try {
+          localStorage.setItem("focusforge_speech_lang", newLang);
+        } catch {}
+      }
+      if (shouldListenRef.current) {
+        spawnSpeechRecognition(newLang);
+      }
+    },
+    [spawnSpeechRecognition]
+  );
+
+  const cycleLanguage = useCallback(() => {
+    const order: SpeechLanguage[] = ["auto", "bn-BD", "en-US"];
+    const nextIdx = (order.indexOf(speechLanguage) + 1) % order.length;
+    setSpeechLanguage(order[nextIdx]);
+  }, [speechLanguage, setSpeechLanguage]);
+
   const startListening = useCallback(
-    async (language: SpeechLanguage = "auto", options?: { reset?: boolean }) => {
+    async (language?: SpeechLanguage, options?: { reset?: boolean }) => {
+      const targetLang = language || speechLanguage || "auto";
       setErrorState(null);
       if (options?.reset !== false) {
         accumulatedFinalRef.current = "";
@@ -250,12 +295,12 @@ export function useSpeechRecognition({
         if (onInterimResultRef.current) onInterimResultRef.current("");
       }
 
-      currentLangRef.current = language;
+      currentLangRef.current = targetLang;
       shouldListenRef.current = true;
       setIsListening(true);
 
       // 1. Start real-time speech recognition for live typing
-      spawnSpeechRecognition(language);
+      spawnSpeechRecognition(targetLang);
 
       // 2. Parallel audio recording for auto-language AI verification (English vs Bengali)
       try {
@@ -355,10 +400,11 @@ export function useSpeechRecognition({
 
       try {
         const audioBlob = await audioPromise;
-        if (audioBlob && audioBlob.size > 800) {
+        if (audioBlob && audioBlob.size > 150) {
           const aiText = await transcribeAudioBlob(audioBlob, "auto");
           if (aiText && aiText.trim()) {
             const finalAiText = aiText.trim();
+            accumulatedFinalRef.current = finalAiText;
             setTranscript(finalAiText);
 
             // If Web Speech didn't deliver any chunks (e.g. mobile unsupported), deliver Gemini text directly:
@@ -411,6 +457,9 @@ export function useSpeechRecognition({
     transcript,
     interimText,
     error,
+    speechLanguage,
+    setSpeechLanguage,
+    cycleLanguage,
     startListening,
     stopListening,
     abortListening,

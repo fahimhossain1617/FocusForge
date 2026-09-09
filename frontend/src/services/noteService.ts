@@ -1,6 +1,6 @@
 import { supabase } from "../lib/supabaseClient";
 import { Note } from "../types";
-import { getBackendUrl } from "../lib/backendUrl";
+import { fetchBackend } from "../lib/apiClient";
 
 export interface DbNoteRow {
   id: number | string;
@@ -29,23 +29,13 @@ function mapDbToNote(row: DbNoteRow): Note {
 
 export const noteService = {
   /**
-   * Fetches all notes belonging to the authenticated user from Supabase PostgreSQL.
+   * Fetches all notes belonging to the authenticated user via Backend API.
    */
   async fetchNotes(userId: string): Promise<Note[]> {
     try {
-      const { data, error } = await supabase
-        .from("notes")
-        .select("*")
-        .eq("user_id", userId)
-        .order("updated_at", { ascending: false });
-
-      if (error) {
-        console.warn("[noteService] Error fetching notes from Supabase:", error.message);
-        return [];
-      }
-
+      const data = await fetchBackend<DbNoteRow[]>("/api/notes");
       if (!data) return [];
-      return data.map((row) => mapDbToNote(row as DbNoteRow));
+      return data.map((row) => mapDbToNote(row));
     } catch (err) {
       console.error("[noteService] Unexpected error fetching notes:", err);
       return [];
@@ -53,51 +43,18 @@ export const noteService = {
   },
 
   /**
-   * Saves or creates a note in Supabase PostgreSQL & syncs with Express backend.
+   * Saves or creates a note via Backend API.
    */
   async saveNote(note: Note, userId: string): Promise<{ success: boolean; note?: Note; error?: string }> {
     try {
-      const payload: Partial<DbNoteRow> = {
-        id: note.id,
-        user_id: userId,
-        title: note.title || "",
-        category: note.category || "",
-        blocks: note.blocks || [],
-        attachments: note.attachments || [],
-        links: note.links || [],
-        updated_at: new Date().toISOString(),
-      };
-
-      // 1. Supabase PostgreSQL
-      const { data, error } = await supabase
-        .from("notes")
-        .upsert(payload, { onConflict: "id" })
-        .select()
-        .maybeSingle();
-
-      if (error) {
-        console.error("[noteService] Error saving note to Supabase:", error.message);
-        return { success: false, error: error.message };
-      }
-
-      // 2. Express Backend Sync
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.access_token) {
-          await fetch(`${getBackendUrl()}/api/notes`, {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${session.access_token}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify(note),
-          }).catch(() => {});
-        }
-      } catch {}
+      const data = await fetchBackend<DbNoteRow>("/api/notes", {
+        method: "POST",
+        body: JSON.stringify(note),
+      });
 
       return {
         success: true,
-        note: data ? mapDbToNote(data as DbNoteRow) : note,
+        note: data ? mapDbToNote(data) : note,
       };
     } catch (err: any) {
       console.error("[noteService] Unexpected exception saving note:", err);
@@ -106,7 +63,7 @@ export const noteService = {
   },
 
   /**
-   * Partially updates a note in Supabase PostgreSQL & syncs with Express backend.
+   * Partially updates a note via Backend API.
    */
   async updateNote(
     noteId: number,
@@ -114,42 +71,10 @@ export const noteService = {
     userId: string
   ): Promise<{ success: boolean; error?: string }> {
     try {
-      const payload: Record<string, any> = {
-        updated_at: new Date().toISOString(),
-      };
-
-      if (updates.title !== undefined) payload.title = updates.title;
-      if (updates.category !== undefined) payload.category = updates.category;
-      if (updates.blocks !== undefined) payload.blocks = updates.blocks;
-      if (updates.attachments !== undefined) payload.attachments = updates.attachments;
-      if (updates.links !== undefined) payload.links = updates.links;
-
-      // 1. Supabase PostgreSQL
-      const { error } = await supabase
-        .from("notes")
-        .update(payload)
-        .eq("id", noteId)
-        .eq("user_id", userId);
-
-      if (error) {
-        console.error("[noteService] Error updating note:", error.message);
-        return { success: false, error: error.message };
-      }
-
-      // 2. Express Backend Sync
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.access_token) {
-          await fetch(`${getBackendUrl()}/api/notes/${noteId}`, {
-            method: "PATCH",
-            headers: {
-              Authorization: `Bearer ${session.access_token}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify(updates),
-          }).catch(() => {});
-        }
-      } catch {}
+      await fetchBackend(`/api/notes/${noteId}`, {
+        method: "PATCH",
+        body: JSON.stringify(updates),
+      });
 
       return { success: true };
     } catch (err: any) {
@@ -159,34 +84,13 @@ export const noteService = {
   },
 
   /**
-   * Deletes a note permanently from Supabase PostgreSQL & syncs with Express backend.
+   * Deletes a note permanently via Backend API.
    */
   async deleteNote(noteId: number, userId: string): Promise<{ success: boolean; error?: string }> {
     try {
-      // 1. Supabase PostgreSQL
-      const { error } = await supabase
-        .from("notes")
-        .delete()
-        .eq("id", noteId)
-        .eq("user_id", userId);
-
-      if (error) {
-        console.error("[noteService] Error deleting note:", error.message);
-        return { success: false, error: error.message };
-      }
-
-      // 2. Express Backend Sync
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.access_token) {
-          await fetch(`${getBackendUrl()}/api/notes/${noteId}`, {
-            method: "DELETE",
-            headers: {
-              Authorization: `Bearer ${session.access_token}`,
-            },
-          }).catch(() => {});
-        }
-      } catch {}
+      await fetchBackend(`/api/notes/${noteId}`, {
+        method: "DELETE",
+      });
 
       return { success: true };
     } catch (err: any) {

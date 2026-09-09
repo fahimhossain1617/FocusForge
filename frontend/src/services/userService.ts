@@ -1,5 +1,6 @@
 import { supabase } from "../lib/supabaseClient";
 import { User } from "../types";
+import { fetchBackend } from "../lib/apiClient";
 
 export interface ProfileRow {
   id: string;
@@ -24,22 +25,14 @@ function mapProfileToUser(profile: ProfileRow): User {
 
 export const userService = {
   /**
-   * Fetches user profile directly from Supabase PostgreSQL `profiles` table.
+   * Fetches user profile via Backend API.
    * Falls back to auth session metadata if profile row has not been populated yet.
    */
   async fetchUserProfile(userId: string): Promise<User | null> {
     try {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", userId)
-        .maybeSingle();
+      const data = await fetchBackend<ProfileRow>("/api/user/profile").catch(() => null);
 
-      if (error) {
-        console.warn("[userService] Error fetching profile from database:", error.message);
-      }
-
-      if (data) {
+      if (data && data.id) {
         return mapProfileToUser(data);
       }
 
@@ -56,20 +49,19 @@ export const userService = {
           createdAt: u.created_at,
         };
 
-        // Self-heal: insert into profiles if missing
+        // Self-heal: insert into profiles if missing via backend API
         try {
-          await supabase.from("profiles").upsert({
-            id: fallbackUser.id,
-            identifier: fallbackUser.identifier,
-            auth_method: fallbackUser.authMethod,
-            display_name: fallbackUser.displayName,
-            avatar_url: fallbackUser.avatarUrl || null,
-            updated_at: new Date().toISOString(),
+          await fetchBackend("/api/user/profile", {
+            method: "PATCH",
+            body: JSON.stringify({
+              displayName: fallbackUser.displayName,
+              avatarUrl: fallbackUser.avatarUrl,
+              identifier: fallbackUser.identifier,
+            }),
           });
         } catch (upsertErr) {
-          console.warn("[userService] Could not auto-upsert profile:", upsertErr);
+          console.warn("[userService] Could not auto-upsert profile via backend:", upsertErr);
         }
-
 
         return fallbackUser;
       }
@@ -82,7 +74,7 @@ export const userService = {
   },
 
   /**
-   * Updates user profile in Supabase PostgreSQL `profiles` table
+   * Updates user profile via Backend API
    * and synchronizes user_metadata in Supabase Auth.
    */
   async updateUserProfile(
@@ -90,32 +82,11 @@ export const userService = {
     updates: Partial<User>
   ): Promise<{ success: boolean; user?: User; error?: string }> {
     try {
-      const dbUpdates: Partial<ProfileRow> = {
-        updated_at: new Date().toISOString(),
-      };
-
-      if (updates.displayName !== undefined) {
-        dbUpdates.display_name = updates.displayName;
-      }
-      if (updates.avatarUrl !== undefined) {
-        dbUpdates.avatar_url = updates.avatarUrl || null;
-      }
-      if (updates.identifier !== undefined) {
-        dbUpdates.identifier = updates.identifier;
-      }
-
-      // 1. Update in Supabase PostgreSQL profiles table
-      const { data, error: dbError } = await supabase
-        .from("profiles")
-        .update(dbUpdates)
-        .eq("id", userId)
-        .select()
-        .maybeSingle();
-
-      if (dbError) {
-        console.error("[userService] Failed to update profiles in DB:", dbError.message);
-        return { success: false, error: dbError.message };
-      }
+      // 1. Update via Backend API
+      const data = await fetchBackend<ProfileRow>("/api/user/profile", {
+        method: "PATCH",
+        body: JSON.stringify(updates),
+      });
 
       // 2. Also update Supabase Auth user_metadata
       await supabase.auth.updateUser({
@@ -125,7 +96,7 @@ export const userService = {
         },
       });
 
-      const updatedUser = data
+      const updatedUser = data && data.id
         ? mapProfileToUser(data)
         : await this.fetchUserProfile(userId);
 
@@ -167,7 +138,7 @@ export const userService = {
   },
 
   /**
-   * Fetches onboarding state for an authenticated user.
+   * Fetches onboarding state for an authenticated user via Backend API.
    */
   async fetchOnboardingState(userId: string): Promise<{
     onboardingCompleted: boolean;
@@ -177,24 +148,15 @@ export const userService = {
     productTourCompleted: boolean;
   } | null> {
     try {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("onboarding_completed, preferred_language, preferred_theme, account_mode, product_tour_completed")
-        .eq("id", userId)
-        .maybeSingle();
+      const data = await fetchBackend<any>("/api/user/onboarding").catch(() => null);
 
-      if (error) {
-        console.warn("[userService] Error fetching onboarding state from DB:", error.message);
-        return null;
-      }
-
-      if (data) {
+      if (data && Object.keys(data).length > 0) {
         return {
-          onboardingCompleted: Boolean(data.onboarding_completed),
-          preferredLanguage: (data.preferred_language as "en" | "bn") || "en",
-          preferredTheme: (data.preferred_theme as "dark" | "light") || "dark",
-          accountMode: (data.account_mode as "guest" | "authenticated") || "authenticated",
-          productTourCompleted: Boolean(data.product_tour_completed),
+          onboardingCompleted: Boolean(data.onboardingCompleted),
+          preferredLanguage: (data.preferredLanguage as "en" | "bn") || "en",
+          preferredTheme: (data.preferredTheme as "dark" | "light") || "dark",
+          accountMode: (data.accountMode as "guest" | "authenticated") || "authenticated",
+          productTourCompleted: Boolean(data.productTourCompleted),
         };
       }
       return null;
@@ -205,7 +167,7 @@ export const userService = {
   },
 
   /**
-   * Persists onboarding state for an authenticated user to Supabase PostgreSQL.
+   * Persists onboarding state for an authenticated user via Backend API.
    */
   async saveOnboardingState(
     userId: string,
@@ -218,30 +180,10 @@ export const userService = {
     }
   ): Promise<boolean> {
     try {
-      const updates: Record<string, any> = {
-        updated_at: new Date().toISOString(),
-      };
-
-      if (state.onboardingCompleted !== undefined) {
-        updates.onboarding_completed = state.onboardingCompleted;
-        if (state.onboardingCompleted) {
-          updates.onboarding_completed_at = new Date().toISOString();
-        }
-      }
-      if (state.preferredLanguage !== undefined) updates.preferred_language = state.preferredLanguage;
-      if (state.preferredTheme !== undefined) updates.preferred_theme = state.preferredTheme;
-      if (state.accountMode !== undefined) updates.account_mode = state.accountMode;
-      if (state.productTourCompleted !== undefined) updates.product_tour_completed = state.productTourCompleted;
-
-      const { error } = await supabase
-        .from("profiles")
-        .update(updates)
-        .eq("id", userId);
-
-      if (error) {
-        console.warn("[userService] Failed to save onboarding state to DB:", error.message);
-        return false;
-      }
+      await fetchBackend("/api/user/onboarding", {
+        method: "POST",
+        body: JSON.stringify(state),
+      });
       return true;
     } catch (err) {
       console.warn("[userService] Unexpected error in saveOnboardingState:", err);

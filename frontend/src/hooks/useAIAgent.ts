@@ -282,7 +282,10 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
     
     try { 
       const history = messages.slice(-8).map((m) => ({ role: m.role, content: m.content }));
-      const langParam = language === "en" ? "en" : "bn";
+      const banglishRegex = /\b(ami|amar|tumi|tomar|apni|apnar|korbo|korchi|korte|chai|dorkar|shikhbo|hobe|kemon|achho|achen|bhalo|parbo|ki|kibhabe|kothay|kokhon|porbo|porte|porashona|ajke|aajke|ekhon|shuru|routine)\b/i;
+      const isContentBengali = /[\u0980-\u09FF]/.test(content) || banglishRegex.test(content);
+      const isContentPureEnglish = /^[a-zA-Z0-9\s.,!?'"()-]+$/.test(content.trim()) && !banglishRegex.test(content);
+      const langParam = isContentBengali ? "bn" : (isContentPureEnglish ? "en" : (language === "en" ? "en" : "bn"));
       const result = await sendAgentMessage(content, context, activeSessionId || undefined, history, langParam); 
       
       // Update token status if returned

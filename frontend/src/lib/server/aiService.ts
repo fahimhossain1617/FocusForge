@@ -114,8 +114,7 @@ function parseJson(text: string): JsonObject | JsonObject[] {
 
 const CANDIDATE_MODELS = [
   process.env.GEMINI_MODEL || 'gemini-3.6-flash',
-  'gemini-3.6-flash',
-  'gemini-3.5-flash'
+  'gemini-3.6-flash'
 ].filter((m, i, arr) => arr.indexOf(m) === i);
 
 function generateRuleBasedAgentResponse(payload: any): JsonObject {
@@ -251,7 +250,7 @@ export async function executeAIAction(action: string, payload: unknown): Promise
         });
 
         const timeoutPromise = new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error('AI_MODEL_TIMEOUT')), 12000)
+          setTimeout(() => reject(new Error('AI_MODEL_TIMEOUT')), 25000)
         );
 
         const response = await Promise.race([fetchPromise, timeoutPromise]);

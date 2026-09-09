@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { Mic, MicOff } from "lucide-react";
+import { Mic, MicOff, Globe } from "lucide-react";
 import { useSpeechRecognition } from "../../hooks/useSpeechRecognition";
 import { useTranslation } from "../../hooks/useTranslation";
 
@@ -19,6 +19,8 @@ export default function VoiceInput({ onResult, onInterimResult, onError }: Voice
     isListening,
     isTranscribing,
     interimText,
+    speechLanguage,
+    cycleLanguage,
     startListening,
     stopListening,
   } = useSpeechRecognition({
@@ -39,7 +41,7 @@ export default function VoiceInput({ onResult, onInterimResult, onError }: Voice
     <div className={`voice-input flex items-center gap-2 ${isListening ? "is-listening" : ""}`}>
       <button
         type="button"
-        onClick={() => (isListening ? stopListening() : startListening("auto"))}
+        onClick={() => (isListening ? stopListening() : startListening(speechLanguage))}
         className="voice-input__toggle w-10 h-10 flex items-center justify-center transition-all cursor-pointer"
         title={isListening ? t.myMind.stopListening : t.myMind.speakThought}
         aria-label={isListening ? t.myMind.stopListening : t.myMind.startVoiceInput}
@@ -52,6 +54,23 @@ export default function VoiceInput({ onResult, onInterimResult, onError }: Voice
         ) : (
           <Mic size={18} />
         )}
+      </button>
+
+      {/* Interactive Language Mode Toggle Pill */}
+      <button
+        type="button"
+        onClick={cycleLanguage}
+        className="px-2.5 py-1 text-[11px] font-medium rounded-full border border-black/10 dark:border-white/10 bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 transition-all flex items-center gap-1.5 text-zinc-600 dark:text-zinc-300 cursor-pointer shadow-xs"
+        title={
+          speechLanguage === "auto"
+            ? "স্বয়ংক্রিয় মোড: বাংলা ও ইংরেজি উভয়ই বোঝে (ক্লিক করে সুইচ করুন)"
+            : speechLanguage === "bn-BD"
+            ? "বাংলা মোড: শুধুমাত্র বাংলা (ক্লিক করে সুইচ করুন)"
+            : "English Mode: Transcribe English (Click to switch)"
+        }
+      >
+        <Globe size={12} className="opacity-70 text-blue-500" />
+        <span className="font-semibold">{speechLanguage === "auto" ? "Auto" : speechLanguage === "bn-BD" ? "বাংলা" : "EN"}</span>
       </button>
 
       {isListening ? (

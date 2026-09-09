@@ -4,7 +4,6 @@ import { GoogleGenAI } from "@google/genai";
 const CANDIDATE_MODELS = [
   process.env.GEMINI_MODEL || "gemini-3.6-flash",
   "gemini-3.6-flash",
-  "gemini-3.5-flash",
 ];
 
 export async function POST(req: NextRequest) {

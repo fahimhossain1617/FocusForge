@@ -237,7 +237,8 @@ async function generateClientGeminiResponse(
   lang: string = "bn"
 ): Promise<{ message: string; intent: string; payload: any }> {
   const apiKey = (process.env.NEXT_PUBLIC_GEMINI_API_KEY || "").replace(/^["']|["']$/g, '').trim();
-  const isBn = lang === "bn" || !/[a-zA-Z]/.test(message) || /[\u0980-\u09FF]/.test(message);
+  const banglishIndicators = /\b(ami|amar|tumi|tomar|apni|apnar|korbo|korchi|korte|chai|dorkar|shikhbo|hobe|kemon|achho|achen|bhalo|parbo|ki|kibhabe|kothay|kokhon|porbo|porte|porashona|ajke|aajke|ekhon|shuru|routine)\b/i;
+  const isBn = /[\u0980-\u09FF]/.test(message) || banglishIndicators.test(message) || (lang === "bn" && !/^[a-zA-Z0-9\s.,!?'"-]+$/.test(message.trim()));
 
   if (apiKey) {
     try {
@@ -252,7 +253,10 @@ async function generateClientGeminiResponse(
 
       const historyFormatted = history.slice(-6).map(h => `${h.role === 'user' ? 'User' : 'FocusForge AI'}: ${h.content}`).join('\n');
       const systemInstruction = `You are FocusForge AI Agent, an intelligent and friendly productivity & study companion.
-Languages: Bengali script (বাংলা) for Bengali/Banglish queries, English for English queries.
+AUTOMATIC MULTILINGUAL INTELLIGENCE:
+- If the user speaks/writes in Bengali script (বাংলা) or Banglish, respond directly in natural, warm, grammatically correct Bengali script (বাংলা লিপি).
+- If the user speaks/writes in English, respond in clean, natural English.
+- If code-mixed, respond in Bengali script keeping technical terms in English (e.g. 'আজকে ২ ঘণ্টা React পড়ুন').
 User tasks count: ${context?.tasks?.length || 0}, Notes count: ${context?.notesCount || 0}.
 
 Workflows:
@@ -261,7 +265,7 @@ Workflows:
 3. Notes & ideas: summarize and highlight key insights.
 4. Problem solver: break complex challenges into 2-3 manageable steps.
 
-Always respond warmly, clearly, and helpfully in ${isBn ? 'Bengali (বাংলা)' : 'English'}.`;
+Respond warmly, clearly, and helpfully in ${isBn ? 'Bengali (বাংলা)' : 'English'}.`;
 
       const prompt = `${systemInstruction}\n\n${historyFormatted ? 'Recent chat history:\n' + historyFormatted + '\n\n' : ''}User Message: "${message}"\n\nPlease answer helpfully:`;
       const res = await model.generateContent(prompt);
@@ -429,28 +433,68 @@ export async function transcribeAudioBlob(blob: Blob, language?: string): Promis
           resolve('');
           return;
         }
-        const res = await fetch(`${getApiUrl()}/ai/transcribe`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-            'x-guest-id': guestId,
-            'x-app-lang': language || 'bn',
-          },
-          body: JSON.stringify({
-            audio: base64Data,
-            mimeType: blob.type || 'audio/webm',
-            language: language || 'bn'
-          })
-        });
 
-        if (!res.ok) {
-          const err = await res.json().catch(() => ({}));
-          throw new Error(err.message || err.error || 'Failed to transcribe audio');
+        // 1. Primary: Express backend /api/ai/transcribe
+        try {
+          const res = await fetch(`${getApiUrl()}/ai/transcribe`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              ...(token ? { Authorization: `Bearer ${token}` } : {}),
+              'x-guest-id': guestId,
+              'x-app-lang': language || 'auto',
+            },
+            body: JSON.stringify({
+              audio: base64Data,
+              mimeType: blob.type || 'audio/webm',
+              language: language || 'auto',
+            }),
+          });
+
+          if (res.ok) {
+            const data = await res.json();
+            if (data && typeof data.text === 'string') {
+              resolve(data.text);
+              return;
+            }
+          }
+        } catch (backendErr) {
+          console.warn('[aiAgentService] Backend transcribe error, attempting client fallback:', backendErr);
         }
 
-        const data = await res.json();
-        resolve(data.text || '');
+        // 2. Client-side Gemini fallback if backend is down
+        const clientApiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY || (process.env as any)['NEXT_PUBLIC-GEMINI_API_KEY'];
+        if (clientApiKey) {
+          try {
+            const genAI = new GoogleGenerativeAI(clientApiKey);
+            const model = genAI.getGenerativeModel({ model: 'gemini-3.6-flash' });
+            const prompt = [
+              'You are a multilingual speech-to-text transcriber for the FocusForge app.',
+              'The user may speak in Bengali (বাংলা), English, or Banglish.',
+              'If the user speaks Bengali or Banglish, transcribe directly into clean Bengali script (বাংলা লিপি).',
+              'If the user speaks English, transcribe into clean, punctuated English.',
+              'Return ONLY the transcribed text. Do not add markdown or extra commentary.',
+            ].join('\n');
+
+            const result = await model.generateContent([
+              prompt,
+              {
+                inlineData: {
+                  mimeType: blob.type || 'audio/webm',
+                  data: base64Data,
+                },
+              },
+            ]);
+
+            const clientText = result.response.text();
+            resolve((clientText || '').trim());
+            return;
+          } catch (clientErr) {
+            console.warn('[aiAgentService] Client Gemini transcribe error:', clientErr);
+          }
+        }
+
+        resolve('');
       } catch (err) {
         reject(err);
       }
