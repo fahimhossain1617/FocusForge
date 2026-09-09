@@ -113,7 +113,7 @@ export default function AppShellSkeleton({ page = "today" }: AppShellSkeletonPro
           aria-hidden="true"
           className="md:hidden flex items-center justify-between px-3.5 py-3 sticky top-0 z-30 border-b"
           style={{
-            background: "rgba(7, 10, 18, 0.90)",
+            background: "var(--color-bg-card)",
             backdropFilter: "blur(20px)",
             borderColor: "var(--color-border-subtle)",
           }}
