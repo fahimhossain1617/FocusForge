@@ -304,9 +304,28 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
               return n;
             });
           }
+          let sessionActivePage: string | null = null;
+          if (typeof window !== 'undefined') {
+            try {
+              sessionActivePage = sessionStorage.getItem('focusforge_active_page');
+            } catch (err) {
+              console.warn('sessionStorage read warning:', err);
+            }
+          }
+
+          // Active tab session retains last used page; fresh app open / new tab session ALWAYS defaults to 'today' (Dashboard)
+          const initialActivePage = sessionActivePage || 'today';
+
+          if (typeof window !== 'undefined' && !sessionActivePage) {
+            try {
+              sessionStorage.setItem('focusforge_active_page', initialActivePage);
+            } catch {}
+          }
+
           setState({ 
             ...defaultState, 
             ...parsed, 
+            activePage: initialActivePage,
             notifPreferences: { ...defaultState.notifPreferences, ...(parsed.notifPreferences || {}) },
             calendarPreferences: { ...defaultState.calendarPreferences, ...(parsed.calendarPreferences || {}) },
             theme: { ...defaultState.theme, ...parsed.theme } 
@@ -445,11 +464,21 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const updateState = useCallback((updates: Partial<AppState>) => {
+    if (updates.activePage && typeof window !== 'undefined') {
+      try {
+        sessionStorage.setItem('focusforge_active_page', updates.activePage);
+      } catch {}
+    }
     setState((prev) => ({ ...prev, ...updates }));
   }, []);
 
   const resetState = useCallback(() => {
     localStorage.removeItem(STORAGE_KEY);
+    if (typeof window !== 'undefined') {
+      try {
+        sessionStorage.removeItem('focusforge_active_page');
+      } catch {}
+    }
     setState(defaultState);
   }, []);
 
@@ -474,6 +503,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       if (!allowed) {
         return; // Intercepted and blocked by focus lock
       }
+    }
+
+    if (typeof window !== 'undefined') {
+      try {
+        sessionStorage.setItem('focusforge_active_page', page);
+      } catch {}
     }
 
     setState((prev) => {
