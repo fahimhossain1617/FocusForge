@@ -119,12 +119,8 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
             } catch {}
           }
 
-          // Determine which session to open if activeSessionId is set or if we have past sessions
+          // Only load messages if an activeSessionId exists for this tab session
           let targetSessionId = activeSessionId;
-          if (!targetSessionId) {
-            targetSessionId = sessionsData[0].id;
-            setActiveSessionId(targetSessionId);
-          }
 
           if (targetSessionId) {
             const msgs = await getChatMessages(targetSessionId);
@@ -144,9 +140,8 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
               const parsedSessions = JSON.parse(guestSessionsRaw);
               if (Array.isArray(parsedSessions) && parsedSessions.length > 0) {
                 setSessions(parsedSessions);
-                let targetSessionId = activeSessionId || parsedSessions[0].id;
+                let targetSessionId = activeSessionId;
                 if (targetSessionId) {
-                  setActiveSessionId(targetSessionId);
                   const savedMsgs = localStorage.getItem(`focusforge_guest_msg_${targetSessionId}`);
                   if (savedMsgs) {
                     const parsedMsgs = JSON.parse(savedMsgs);
