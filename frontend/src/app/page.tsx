@@ -141,6 +141,7 @@ export default function Home() {
   }
 
   const ActivePage = pageComponents[state.activePage] || DashboardPage;
+  const isLight = state.theme?.mode === "light";
 
   return (
     <div className={`flex min-h-screen ${state.lang === 'bn' ? 'font-bengali' : ''} overflow-x-hidden`}>
@@ -150,9 +151,9 @@ export default function Home() {
       <main className="flex-1 md:ml-60 w-full min-w-0 overflow-x-hidden">
         {/* Universal Mobile Header with persistent 3-line Hamburger Menu */}
         <header 
-          className="md:hidden sticky top-0 z-30 flex items-center justify-between px-4 py-3 border-b backdrop-blur-xl"
+          className="md:hidden sticky top-0 z-30 flex items-center justify-between px-4 py-3 border-b backdrop-blur-xl transition-colors"
           style={{
-            backgroundColor: "rgba(10, 14, 26, 0.85)",
+            backgroundColor: isLight ? "rgba(241, 245, 249, 0.88)" : "rgba(10, 14, 26, 0.85)",
             borderColor: "var(--color-border-subtle)",
           }}
         >
@@ -173,7 +174,7 @@ export default function Home() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M4 6h16M4 12h16M4 18h16" />
               </svg>
             </button>
-            <span className="text-base font-bold tracking-tight truncate text-white">
+            <span className={`text-base font-bold tracking-tight truncate ${isLight ? 'text-slate-900' : 'text-white'}`}>
               {state.activePage === 'ai-agent'
                 ? (state.lang === 'bn' ? 'ফোকাস ফোর্স AI এজেন্ট' : 'FocusForge AI Agent')
                 : state.activePage === 'tasks'
