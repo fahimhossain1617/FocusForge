@@ -24,6 +24,7 @@ export default function DiaryEditor({ entry, onSave, lang }: DiaryEditorProps) {
   const [saveStatus, setSaveStatus] = useState<"saved" | "saving">("saved");
   const [writingStyle, setWritingStyle] = useState<WritingStyle>("clean");
   const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [viewingImage, setViewingImage] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -94,7 +95,7 @@ export default function DiaryEditor({ entry, onSave, lang }: DiaryEditorProps) {
   };
 
   // Voice speech insertion using functional update (100% immune to stale closures, never overwrites!)
-  const handleSpeechInsert = useCallback((speechText: string) => {
+  const handleSpeechInsert = useCallback((speechText: string, replaceLength: number = 0) => {
     if (!speechText || !speechText.trim()) return;
 
     setContent((currentContent) => {
@@ -105,7 +106,9 @@ export default function DiaryEditor({ entry, onSave, lang }: DiaryEditorProps) {
         insertPos = currentContent.length;
       }
 
-      const before = currentContent.substring(0, insertPos);
+      // If replaceLength > 0 (e.g. AI refined text replacing interim recognition draft)
+      const startPos = Math.max(0, insertPos - replaceLength);
+      const before = currentContent.substring(0, startPos);
       const after = currentContent.substring(insertPos);
 
       const spaceBefore = before.length > 0 && !before.endsWith(" ") && !before.endsWith("\n") ? " " : "";
@@ -352,7 +355,8 @@ export default function DiaryEditor({ entry, onSave, lang }: DiaryEditorProps) {
                   <img
                     src={img.url}
                     alt={img.fileName || "Diary image"}
-                    className="w-full h-auto block rounded-xl object-contain max-h-[500px]"
+                    onClick={() => setViewingImage(img.url)}
+                    className="w-full h-auto block rounded-xl object-contain max-h-[500px] cursor-zoom-in"
                   />
 
                   {/* Floating Size Selector & Remove Button Overlay */}
@@ -363,38 +367,38 @@ export default function DiaryEditor({ entry, onSave, lang }: DiaryEditorProps) {
                     <button
                       type="button"
                       onClick={() => handleUpdateImageSize(img.id, "small")}
-                      className={`px-2 py-0.5 rounded text-[11px] font-semibold transition-all ${
+                      className={`px-2 py-0.5 rounded text-[11px] font-semibold transition-all cursor-pointer ${
                         img.size === "small"
                           ? "bg-blue-600 text-white shadow-xs"
                           : "text-zinc-300 hover:text-white hover:bg-white/10"
                       }`}
                       title={t.diary?.small || "Small (25%)"}
                     >
-                      25%
+                      S
                     </button>
                     <button
                       type="button"
                       onClick={() => handleUpdateImageSize(img.id, "medium")}
-                      className={`px-2 py-0.5 rounded text-[11px] font-semibold transition-all ${
+                      className={`px-2 py-0.5 rounded text-[11px] font-semibold transition-all cursor-pointer ${
                         img.size === "medium" || !img.size
                           ? "bg-blue-600 text-white shadow-xs"
                           : "text-zinc-300 hover:text-white hover:bg-white/10"
                       }`}
                       title={t.diary?.medium || "Medium (50%)"}
                     >
-                      50%
+                      M
                     </button>
                     <button
                       type="button"
                       onClick={() => handleUpdateImageSize(img.id, "large")}
-                      className={`px-2 py-0.5 rounded text-[11px] font-semibold transition-all ${
+                      className={`px-2 py-0.5 rounded text-[11px] font-semibold transition-all cursor-pointer ${
                         img.size === "large"
                           ? "bg-blue-600 text-white shadow-xs"
                           : "text-zinc-300 hover:text-white hover:bg-white/10"
                       }`}
                       title={t.diary?.large || "Large (75%)"}
                     >
-                      75%
+                      L
                     </button>
                     <button
                       type="button"
@@ -406,7 +410,7 @@ export default function DiaryEditor({ entry, onSave, lang }: DiaryEditorProps) {
                       }`}
                       title={t.diary?.full || "Full (100%)"}
                     >
-                      100%
+                      Full
                     </button>
                     <div className="w-px h-3 bg-white/20 mx-0.5" />
                     <button
@@ -449,6 +453,30 @@ export default function DiaryEditor({ entry, onSave, lang }: DiaryEditorProps) {
           />
         </div>
       </div>
+
+      {/* Image Lightbox */}
+      {viewingImage && (
+        <div
+          className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-sm flex items-center justify-center p-2 sm:p-6 cursor-zoom-out"
+          onClick={() => setViewingImage(null)}
+        >
+          <div className="relative max-w-full max-h-full">
+            <img
+              src={viewingImage}
+              alt="Fullscreen view"
+              className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            />
+            <button
+              type="button"
+              className="absolute -top-10 right-0 sm:-right-10 text-white/70 hover:text-white p-2"
+              onClick={() => setViewingImage(null)}
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

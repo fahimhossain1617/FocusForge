@@ -38,6 +38,7 @@ export default function DiaryTopicView({
   const { t } = useTranslation();
   const [mode, setMode] = useState<"read" | "edit">(initialMode);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [viewingImage, setViewingImage] = useState<string | null>(null);
 
   // Sync mode whenever topic or initialMode changes
   useEffect(() => {
@@ -253,7 +254,8 @@ export default function DiaryTopicView({
                       <img
                         src={img.url}
                         alt={img.fileName || "Diary photo"}
-                        className="w-full h-auto block rounded-xl object-contain max-h-[550px]"
+                        onClick={() => setViewingImage(img.url)}
+                        className="w-full h-auto block rounded-xl object-contain max-h-[550px] cursor-zoom-in"
                       />
                     </div>
                   );
@@ -316,6 +318,30 @@ export default function DiaryTopicView({
         }}
         initialTopic={topic}
       />
+
+      {/* Image Lightbox */}
+      {viewingImage && (
+        <div
+          className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-sm flex items-center justify-center p-2 sm:p-6 cursor-zoom-out"
+          onClick={() => setViewingImage(null)}
+        >
+          <div className="relative max-w-full max-h-full">
+            <img
+              src={viewingImage}
+              alt="Fullscreen view"
+              className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            />
+            <button
+              type="button"
+              className="absolute -top-10 right-0 sm:-right-10 text-white/70 hover:text-white p-2"
+              onClick={() => setViewingImage(null)}
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

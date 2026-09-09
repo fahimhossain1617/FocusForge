@@ -114,8 +114,7 @@ function parseJson(text) {
 }
 const CANDIDATE_MODELS = [
     process.env.GEMINI_MODEL || 'gemini-3.6-flash',
-    'gemini-3.6-flash',
-    'gemini-3.5-flash'
+    'gemini-3.6-flash'
 ].filter((m, i, arr) => arr.indexOf(m) === i);
 function generateRuleBasedAgentResponse(payload) {
     const query = (payload?.userQuery || '').toLowerCase();
@@ -237,7 +236,7 @@ async function executeAIAction(action, payload) {
                 contents: promptContent,
                 config: { responseMimeType: 'application/json', temperature: 0.3 },
             });
-            const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('AI_MODEL_TIMEOUT')), 12000));
+            const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('AI_MODEL_TIMEOUT')), 25000));
             const response = await Promise.race([fetchPromise, timeoutPromise]);
             if (response.text) {
                 return parseJson(response.text);
@@ -277,7 +276,7 @@ async function transcribeAudio(audioBase64, mimeType = 'audio/webm', languageHin
     let lastError = null;
     for (const model of CANDIDATE_MODELS) {
         try {
-            const response = await client.models.generateContent({
+            const fetchPromise = client.models.generateContent({
                 model,
                 contents: [
                     {
@@ -296,6 +295,8 @@ async function transcribeAudio(audioBase64, mimeType = 'audio/webm', languageHin
                     }
                 ]
             });
+            const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('AI_AUDIO_TIMEOUT')), 15000));
+            const response = await Promise.race([fetchPromise, timeoutPromise]);
             const rawText = (response.text || '').trim();
             if (rawText) {
                 try {
@@ -309,11 +310,12 @@ async function transcribeAudio(audioBase64, mimeType = 'audio/webm', languageHin
                     return rawText.replace(/^"|"$/g, '').trim();
                 }
             }
+            return '';
         }
         catch (err) {
             console.warn(`[AI Service Audio] Model ${model} failed, trying next candidate:`, err?.message || err);
             lastError = err;
-            await new Promise((resolve) => setTimeout(resolve, 250));
+            await new Promise((resolve) => setTimeout(resolve, 200));
         }
     }
     throw lastError || new Error('Voice transcription failed.');
