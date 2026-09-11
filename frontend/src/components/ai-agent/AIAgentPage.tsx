@@ -463,7 +463,14 @@ export function AIAgentPage() {
             {messages.map((message) => (
               <div key={message.id} className={`${styles.message} ${message.role === "user" ? styles.user : styles.assistant}`}>
                 <div className={styles.messageLabel}>{message.role === "user" ? "You" : "FocusForge AI"}</div>
-                <p>{message.content}</p>
+                {message.intent === 'FAILED_TO_SEND' ? (
+                  <div className={styles.failedToSendBadge}>
+                    <AlertCircle size={14} className={styles.failedIcon} />
+                    <span>{message.content}</span>
+                  </div>
+                ) : (
+                  <p>{message.content}</p>
+                )}
 
                 {/* 1. PLANNER_CREATE */}
                 {message.payload && message.intent === 'PLANNER_CREATE' && (
@@ -789,7 +796,7 @@ export function AIAgentPage() {
                 <button
                   type="button"
                   className={`${styles.sendButton} ${styles.stopButton}`}
-                  onClick={stopGeneration}
+                  onClick={() => stopGeneration(isSystemBn ? "bn" : "en")}
                   aria-label={isSystemBn ? "থামুন" : "Stop generation"}
                   title={isSystemBn ? "থামুন (Stop generation)" : "Stop generation"}
                 >

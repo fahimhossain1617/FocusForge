@@ -62,7 +62,7 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
   const [error, setError] = useState<string | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  const stopGeneration = useCallback(() => {
+  const stopGeneration = useCallback((customLang?: string) => {
     if (abortControllerRef.current) {
       try {
         abortControllerRef.current.abort();
@@ -70,7 +70,25 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
       abortControllerRef.current = null;
     }
     setIsThinking(false);
-  }, []);
+    const isBn = (customLang || initialLang) === "bn";
+    const failedText = isBn ? "ফেইল্ড টু সেন্ড" : "Failed to send";
+    setError(failedText);
+
+    setMessages((prev) => {
+      const last = prev[prev.length - 1];
+      if (last && last.role === "user") {
+        const stopMsg: AgentMessage = {
+          id: "failed_" + Date.now(),
+          role: "assistant",
+          intent: "FAILED_TO_SEND",
+          content: failedText,
+          createdAt: new Date()
+        };
+        return [...prev, stopMsg];
+      }
+      return prev;
+    });
+  }, [initialLang]);
   
   // Persist current active messages & activeSessionId to memory / session
   useEffect(() => {
