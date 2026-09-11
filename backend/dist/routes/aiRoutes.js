@@ -238,13 +238,32 @@ async function generateSmartTitle(message) {
 }
 router.post('/agent/chat', async (req, res) => {
     try {
-        const tokenCheck = await checkTokensOrReject(req, res);
-        if (!tokenCheck)
-            return;
-        const user = req.user;
-        const isGuest = !user || user.isGuest;
-        const userId = user?.id;
+        const { isGuest, userId, guestId, lang } = getRequestClientMeta(req);
+        const initialTokenStatus = await (0, aiTokenService_1.getUserTokenStatus)(userId, isGuest, guestId, lang);
         let { sessionId, message, context, history, model } = req.body;
+        if (initialTokenStatus.isExhausted || initialTokenStatus.remaining <= 0) {
+            const exhaustedMessage = isGuest
+                ? (lang === 'bn'
+                    ? `আপনার ১,০০০ গেস্ট AI টোকেন শেষ হয়ে গেছে। ৫,০০০ টোকেন ও ক্লাউড সেভ সুবিধা পেতে অনুগ্রহ করে লগইন করুন।`
+                    : `Your 1,000 guest AI tokens have been exhausted. Please log in to unlock 5,000 tokens and cloud sync.`)
+                : (lang === 'bn'
+                    ? `আপনার আজকের ৫,০০০ AI টোকেন লিমিট শেষ হয়ে গেছে।\n\n• টোকেন রিসেট হওয়ার তারিখ: ${initialTokenStatus.formattedResetDate}\n• অবশিষ্ট সময়: ${initialTokenStatus.formattedRemainingTime}\n\nঅনুগ্রহ করে রিসেট হওয়া পর্যন্ত অপেক্ষা করুন। লিমিট রিসেট হওয়ার পর FocusForge AI Agent পুনরায় আপনাকে সাহায্য করতে সম্পূর্ণ প্রস্তুত থাকবে!`
+                    : `Your daily 5,000 AI token limit has been exhausted.\n\n• Resets on: ${initialTokenStatus.formattedResetDate}\n• Remaining time: ${initialTokenStatus.formattedRemainingTime}\n\nPlease wait until the reset time. Once refreshed, FocusForge AI Agent will be fully ready to assist you!`);
+            return res.json({
+                sessionId: sessionId || (isGuest ? 'guest-session' : `session_${Date.now()}`),
+                sessionTitle: message ? message.substring(0, 25) : 'FocusForge AI',
+                aiMessage: {
+                    id: 'msg_exhausted_' + Date.now(),
+                    role: 'assistant',
+                    content: exhaustedMessage,
+                    intent: isGuest ? 'REQUIRE_LOGIN' : 'LIMIT_EXHAUSTED',
+                    payload: isGuest ? { requireLogin: true } : { resetDate: initialTokenStatus.formattedResetDate, remainingTime: initialTokenStatus.formattedRemainingTime },
+                    createdAt: new Date().toISOString(),
+                },
+                tokenStatus: initialTokenStatus,
+                isExhausted: true,
+            });
+        }
         // Fetch previous messages for multi-turn conversational context if in an active session
         let recentHistory = [];
         if (Array.isArray(history) && history.length > 0) {

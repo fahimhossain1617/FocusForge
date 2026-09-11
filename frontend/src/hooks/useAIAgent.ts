@@ -247,6 +247,8 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
 
     // Check token exhaustion
     if (tokenStatus?.isExhausted || (tokenStatus && tokenStatus.remaining <= 0)) {
+      const userMsg: AgentMessage = { id: crypto.randomUUID(), role: "user", content: content.trim(), createdAt: new Date() };
+      
       if (isGuestUser) {
         const guestExhaustedMsg: AgentMessage = {
           id: 'guest_lockout_' + Date.now(),
@@ -258,14 +260,22 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
           payload: { requireLogin: true },
           createdAt: new Date()
         };
-        setMessages((items) => [...items, guestExhaustedMsg]);
-        setError(guestExhaustedMsg.content);
+        setMessages((items) => [...items, userMsg, guestExhaustedMsg]);
         return;
       } else {
-        const authExhaustedMsg = language === "bn"
-          ? `আপনার ৫,০০০ AI টোকেন শেষ হয়ে গেছে। টোকেন রিসেট হওয়ার তারিখ: ${tokenStatus.formattedResetDate || '২৪ ঘণ্টার মধ্যে'} (বাকি: ${tokenStatus.formattedRemainingTime || 'কিছু সময়'})। নির্ধারিত সময় পর আবার চেষ্টা করুন, FocusForge AI আপনাকে সাহায্য করার জন্য প্রস্তুত থাকবে!`
-          : `Your 5,000 AI tokens have been exhausted. Tokens will reset on: ${tokenStatus.formattedResetDate || 'within 24h'} (${tokenStatus.formattedRemainingTime || 'soon'}). Please try again after reset!`;
-        setError(authExhaustedMsg);
+        const resetDateStr = tokenStatus.formattedResetDate || (language === 'bn' ? 'আগামীকাল' : 'tomorrow');
+        const remTimeStr = tokenStatus.formattedRemainingTime || (language === 'bn' ? '২৪ ঘণ্টা' : '24h');
+        const authExhaustedMsg: AgentMessage = {
+          id: 'auth_exhausted_' + Date.now(),
+          role: 'assistant',
+          intent: 'LIMIT_EXHAUSTED',
+          content: language === "bn"
+            ? `আপনার আজকের ৫,০০০ AI টোকেন লিমিট শেষ হয়ে গেছে।\n\n• টোকেন রিসেট হওয়ার তারিখ: ${resetDateStr}\n• অবশিষ্ট সময়: ${remTimeStr}\n\nঅনুগ্রহ করে রিসেট হওয়া পর্যন্ত অপেক্ষা করুন। লিমিট রিসেট হওয়ার পর FocusForge AI Agent পুনরায় আপনাকে সাহায্য করতে সম্পূর্ণ প্রস্তুত থাকবে!`
+            : `Your daily 5,000 AI token limit has been exhausted.\n\n• Resets on: ${resetDateStr}\n• Remaining time: ${remTimeStr}\n\nPlease wait until the reset time. Once refreshed, FocusForge AI Agent will be fully ready to assist you!`,
+          payload: { resetDate: resetDateStr, remainingTime: remTimeStr },
+          createdAt: new Date()
+        };
+        setMessages((items) => [...items, userMsg, authExhaustedMsg]);
         return;
       }
     }
