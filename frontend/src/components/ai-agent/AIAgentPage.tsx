@@ -125,7 +125,7 @@ function CustomSelect<T extends string>({
 }
 
 export function AIAgentPage() {
-  const { state, showToast, navigateTo, addTask, addTimeBlock, addMindItem, addNote, startFocusSession } = useAppContext();
+  const { state, showToast, navigateTo, addTask, addTimeBlock, addMindItem, addNote, startFocusSession, isOnline } = useAppContext();
   const { user, openAuth } = useAuth();
   const isLight = state.theme?.mode === "light";
   const isSystemBn = state.lang === "bn";
@@ -280,6 +280,15 @@ export function AIAgentPage() {
 
   const submit = async (value = input) => { 
     if (!value.trim() || guestLimitExceeded) return; 
+    if (!isOnline) {
+      showToast(
+        isSystemBn
+          ? "আপনি বর্তমানে অফলাইনে আছেন। AI ফিচার ব্যবহার করতে ইন্টারনেট সংযোগ প্রয়োজন।"
+          : "You are currently offline. AI features require an active internet connection.",
+        "error"
+      );
+      return;
+    }
     setInput(""); 
     const aiMsg = await send(value, language, model); 
     if (aiMsg?.payload && aiMsg.intent && aiMsg.intent !== 'GREETING_OR_GENERAL') {
@@ -289,6 +298,15 @@ export function AIAgentPage() {
   
   const startVoice = () => {
     if (guestLimitExceeded) return;
+    if (!isOnline) {
+      showToast(
+        isSystemBn
+          ? "আপনি বর্তমানে অফলাইনে আছেন। ভয়েস ফিচার শুধুমাত্র অনলাইনে কাজ করে।"
+          : "You are currently offline. Voice features require an active internet connection.",
+        "error"
+      );
+      return;
+    }
     baseInputRef.current = input.trim();
     setVoiceOpen(true);
   };
@@ -349,10 +367,27 @@ export function AIAgentPage() {
       </div>
 
       <header className={styles.header}>
-        <div className={styles.title}>
+        <div className={styles.title} style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <p style={{ margin: 0, fontSize: '1.25rem', fontWeight: 600, letterSpacing: '-0.01em' }}>
             {isSystemBn ? 'ফোকাস ফোর্স AI এজেন্ট' : 'FocusForge AI Agent'}
           </p>
+          {!isOnline && (
+            <div style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '3px 9px',
+              borderRadius: '999px',
+              background: 'rgba(239, 68, 68, 0.15)',
+              border: '1px solid rgba(239, 68, 68, 0.3)',
+              color: '#f87171',
+              fontSize: '11px',
+              fontWeight: 500,
+            }}>
+              <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#ef4444' }} />
+              <span>{isSystemBn ? 'অফলাইন' : 'Offline'}</span>
+            </div>
+          )}
         </div>
         <div className={styles.headerActions}>
           <div ref={historyMenuRef} style={{ position: 'relative' }}>
@@ -633,6 +668,30 @@ export function AIAgentPage() {
       </div>
 
       <div className={styles.composerWrapper} ref={composerRef}>
+        {/* Offline Alert Banner right above composer */}
+        {!isOnline && (
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '10px 14px',
+            marginBottom: '10px',
+            borderRadius: '14px',
+            background: 'rgba(239, 68, 68, 0.12)',
+            border: '1px solid rgba(239, 68, 68, 0.25)',
+            color: '#fca5a5',
+            fontSize: '12px',
+            lineHeight: 1.4,
+          }}>
+            <AlertCircle size={16} className="shrink-0 text-red-400" />
+            <span>
+              {isSystemBn 
+                ? "আপনি বর্তমানে অফলাইনে আছেন। AI এজেন্ট রেসপন্স পেতে ইন্টারনেট সংযোগ প্রয়োজন। আপনার অন্যান্য ডাটা নিরাপদে লোকালি সেভ হচ্ছে।" 
+                : "You are currently offline. An internet connection is required to interact with the AI Agent. Your other data is safely stored locally."}
+            </span>
+          </div>
+        )}
+
         {/* Token Exhaustion Alert Banner right above composer */}
         {tokenStatus?.isExhausted && (
           <div className={styles.tokenLimitBanner}>

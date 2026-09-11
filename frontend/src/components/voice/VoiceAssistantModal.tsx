@@ -28,7 +28,7 @@ export const VoiceAssistantModal: React.FC<VoiceAssistantModalProps> = ({
 }) => {
   const [mounted, setMounted] = useState(false);
   const [accumulatedText, setAccumulatedText] = useState("");
-  const { state } = useAppContext();
+  const { state, showToast, isOnline } = useAppContext();
   const { lang } = useTranslation();
   const activeTheme = themeMode || (state?.theme?.mode === "light" ? "light" : "dark");
   const isLight = activeTheme === "light";
@@ -44,7 +44,7 @@ export const VoiceAssistantModal: React.FC<VoiceAssistantModalProps> = ({
     smoothedAmplitudeRef,
     error: audioError,
     retry: retryAudio,
-  } = useAudioAnalyzer(isOpen);
+  } = useAudioAnalyzer(isOpen && isOnline);
 
   // Speech recognition for converting speech to text
   const handleSpeechResultChunk = useCallback(
@@ -102,9 +102,20 @@ export const VoiceAssistantModal: React.FC<VoiceAssistantModalProps> = ({
     };
   }, [isOpen]);
 
-  // Manage start/stop lifecycle with modal visibility
+  // Manage start/stop lifecycle with modal visibility & offline guard
   useEffect(() => {
     if (isOpen) {
+      if (!isOnline) {
+        showToast(
+          lang === "bn"
+            ? "আপনি বর্তমানে অফলাইনে আছেন। ভয়েস ফিচার শুধুমাত্র অনলাইনে কাজ করে।"
+            : "You are currently offline. Voice features require an active internet connection.",
+          "error"
+        );
+        onClose();
+        return;
+      }
+
       latestSpeechTextRef.current = "";
       setAccumulatedText("");
       const initialLang = language === "bn" ? "bn-BD" : language === "en" ? "en-US" : "auto";
@@ -116,7 +127,7 @@ export const VoiceAssistantModal: React.FC<VoiceAssistantModalProps> = ({
     return () => {
       abortListeningRef.current();
     };
-  }, [isOpen]);
+  }, [isOpen, isOnline, onClose, showToast, lang, language, setSpeechLanguage]);
 
   // Handle manual close / stop: finalizes full speech (supports arbitrarily long speaking sessions)
   const handleManualClose = useCallback(async () => {

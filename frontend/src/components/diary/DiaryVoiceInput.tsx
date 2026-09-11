@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useCallback } from "react";
 import { Mic, MicOff, Globe } from "lucide-react";
 import { useSpeechRecognition } from "../../hooks/useSpeechRecognition";
 import { useTranslation } from "../../hooks/useTranslation";
+import { useAppContext } from "../../context/AppContext";
 
 interface DiaryVoiceInputProps {
   onInsertText: (text: string, replaceLength?: number) => void;
@@ -12,6 +13,7 @@ interface DiaryVoiceInputProps {
 
 export default function DiaryVoiceInput({ onInsertText, onError }: DiaryVoiceInputProps) {
   const { t } = useTranslation();
+  const { showToast, isOnline, state } = useAppContext();
   const sessionInsertedCharsRef = useRef(0);
 
   const onInsertTextRef = useRef(onInsertText);
@@ -51,10 +53,19 @@ export default function DiaryVoiceInput({ onInsertText, onError }: DiaryVoiceInp
     if (isListening) {
       stopListening();
     } else {
+      if (!isOnline) {
+        showToast(
+          state.lang === "bn"
+            ? "আপনি বর্তমানে অফলাইনে আছেন। ভয়েস ইনপুট শুধুমাত্র অনলাইনে কাজ করে।"
+            : "You are currently offline. Voice input is only available online.",
+          "error"
+        );
+        return;
+      }
       sessionInsertedCharsRef.current = 0;
       startListening(speechLanguage);
     }
-  }, [isListening, speechLanguage, startListening, stopListening]);
+  }, [isListening, isOnline, showToast, speechLanguage, startListening, state.lang, stopListening]);
 
   if (!isSupported) return null;
 
