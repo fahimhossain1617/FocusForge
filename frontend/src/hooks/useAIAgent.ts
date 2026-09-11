@@ -12,6 +12,16 @@ import {
 import type { AIAgentLanguage, AgentMessage, WorkspaceContext } from "@/types/aiAgent";
 import { useAuth } from "@/context/AuthContext";
 
+let memoryMessages: AgentMessage[] | null = null;
+let memoryActiveSessionId: string | null = null;
+let memoryGuestCount: number = 0;
+
+export function clearAIGlobals() {
+  memoryMessages = null;
+  memoryActiveSessionId = null;
+  memoryGuestCount = 0;
+}
+
 export interface ChatSession {
   id: string;
   title: string;
@@ -23,31 +33,13 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
 
   const [messages, setMessages] = useState<AgentMessage[]>(() => {
     if (typeof window === "undefined") return [];
-    try {
-      const cachedGuest = sessionStorage.getItem("focusforge_active_guest_messages");
-      const cachedAuth = sessionStorage.getItem("focusforge_auth_messages");
-      const cached = cachedAuth || cachedGuest;
-      if (cached) {
-        const parsed = JSON.parse(cached);
-        if (Array.isArray(parsed)) {
-          return parsed.map((m: any) => ({
-            ...m,
-            createdAt: new Date(m.createdAt || m.created_at || Date.now())
-          }));
-        }
-      }
-    } catch {}
+    if (memoryMessages) return memoryMessages;
     return [];
   });
 
   const [guestCount, setGuestCount] = useState<number>(() => {
     if (typeof window === "undefined") return 0;
-    try {
-      const stored = sessionStorage.getItem("focusforge_guest_ai_count");
-      return stored ? parseInt(stored, 10) : 0;
-    } catch {
-      return 0;
-    }
+    return memoryGuestCount;
   });
 
   const [sessions, setSessions] = useState<ChatSession[]>(() => {
@@ -62,30 +54,22 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
 
   const [activeSessionId, setActiveSessionId] = useState<string | null>(() => {
     if (typeof window === "undefined") return null;
-    return sessionStorage.getItem("focusforge_auth_session") || null;
+    return memoryActiveSessionId;
   });
 
   const [tokenStatus, setTokenStatus] = useState<TokenStatus | null>(null);
   const [isThinking, setIsThinking] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
-  // Persist current active messages & activeSessionId
+  // Persist current active messages & activeSessionId to memory
   useEffect(() => {
     if (typeof window !== "undefined") {
+      memoryMessages = messages;
+      memoryActiveSessionId = activeSessionId;
+      memoryGuestCount = guestCount;
       try {
-        if (isGuest || !user) {
-          sessionStorage.setItem("focusforge_active_guest_messages", JSON.stringify(messages));
-          sessionStorage.setItem("focusforge_guest_ai_count", String(guestCount));
-          if (activeSessionId) {
-            localStorage.setItem(`focusforge_guest_msg_${activeSessionId}`, JSON.stringify(messages));
-          }
-        } else {
-          sessionStorage.setItem("focusforge_auth_messages", JSON.stringify(messages));
-          if (activeSessionId) {
-            sessionStorage.setItem("focusforge_auth_session", activeSessionId);
-          } else {
-            sessionStorage.removeItem("focusforge_auth_session");
-          }
+        if ((isGuest || !user) && activeSessionId) {
+          localStorage.setItem(`focusforge_guest_msg_${activeSessionId}`, JSON.stringify(messages));
         }
       } catch {}
     }
@@ -173,12 +157,6 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
     setMessages([]);
     setGuestCount(0);
     setError(null);
-    if (typeof window !== "undefined") {
-      sessionStorage.removeItem("focusforge_active_guest_messages");
-      sessionStorage.removeItem("focusforge_auth_messages");
-      sessionStorage.removeItem("focusforge_auth_session");
-      sessionStorage.removeItem("focusforge_guest_ai_count");
-    }
   }, []);
 
   const selectSession = useCallback(async (sessionId: string) => {

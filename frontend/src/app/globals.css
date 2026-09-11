@@ -739,6 +739,19 @@ input::placeholder, textarea::placeholder {
   --r-xl: 28px;
   --r-full: 999px;
 
+  /* FocusForge Custom Picker & Select Tokens - Dark Mode */
+  --picker-bg: #0C1222;
+  --picker-surface: #111A30;
+  --picker-border: rgba(255, 255, 255, 0.12);
+  --picker-border-focus: #3B82F6;
+  --picker-text-primary: #F8FAFC;
+  --picker-text-secondary: #94A3B8;
+  --picker-text-muted: #64748B;
+  --picker-accent: #2563EB;
+  --picker-accent-hover: #3B82F6;
+  --picker-accent-glow: rgba(37, 99, 235, 0.4);
+  --picker-overlay: rgba(3, 6, 15, 0.65);
+
   /* Skeleton Loading Tokens */
   --skeleton-base: rgba(148, 163, 255, 0.05);
   --skeleton-highlight: rgba(59, 130, 246, 0.12);
@@ -763,6 +776,19 @@ input::placeholder, textarea::placeholder {
   --border-subtle: rgba(0, 0, 0, 0.06);
   --border-default: rgba(0, 0, 0, 0.12);
   --border-accent: rgba(59, 130, 246, 0.55);
+
+  /* FocusForge Custom Picker & Select Tokens - Light Mode */
+  --picker-bg: #FFFFFF;
+  --picker-surface: #F8FAFC;
+  --picker-border: rgba(0, 0, 0, 0.10);
+  --picker-border-focus: #2563EB;
+  --picker-text-primary: #0F172A;
+  --picker-text-secondary: #475569;
+  --picker-text-muted: #94A3B8;
+  --picker-accent: #2563EB;
+  --picker-accent-hover: #1D4ED8;
+  --picker-accent-glow: rgba(37, 99, 235, 0.25);
+  --picker-overlay: rgba(15, 23, 42, 0.45);
   
   /* Additional overrides for light mode so cards aren't fully transparent */
   --color-bg-card: rgba(255, 255, 255, 0.6) !important;

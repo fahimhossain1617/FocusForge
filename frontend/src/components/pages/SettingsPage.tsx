@@ -9,6 +9,8 @@ import {
 } from "lucide-react";
 import notificationService from "../../services/notificationService";
 import { useAnimateExit } from "../../hooks/useAnimateExit";
+import FocusForgeSelect from "../ui/FocusForgeSelect";
+import FocusForgeTimePicker from "../ui/FocusForgeTimePicker";
 
 // Reusable Toggle component ensuring perfectly centered knob and no layout shift
 function Toggle({ checked, onChange, ariaLabel }: { checked: boolean, onChange: (c: boolean) => void, ariaLabel?: string }) {
@@ -369,13 +371,13 @@ export default function SettingsPage() {
                       <label className="block text-xs font-semibold mb-2 uppercase tracking-wide" style={{ color: "var(--color-text-muted)" }}>
                         {t.settings.dailyMorningPlanTime || "Daily Plan Notification Time"}
                       </label>
-                      <input 
-                        type="time" 
-                        value={state.notifPreferences.dailyMorningPlanTime || "07:00"}
-                        onChange={(e) => updateNotifPref('dailyMorningPlanTime', e.target.value)}
-                        className="w-full sm:w-48 p-3 rounded-xl text-sm bg-transparent border outline-none transition-colors focus:border-[var(--color-purple-primary)]"
-                        style={{ borderColor: "var(--color-border-subtle)", color: "var(--color-text-primary)" }}
-                      />
+                      <div className="w-full sm:w-56">
+                        <FocusForgeTimePicker 
+                          value={state.notifPreferences.dailyMorningPlanTime || "07:00"}
+                          onChange={(e) => updateNotifPref('dailyMorningPlanTime', e.target.value)}
+                          ariaLabel={t.settings.dailyMorningPlanTime || "Daily Plan Notification Time"}
+                        />
+                      </div>
                     </div>
                   )}
                 </div>
@@ -460,33 +462,36 @@ export default function SettingsPage() {
                 <div className="p-5 rounded-2xl border" style={{ borderColor: "var(--color-border-subtle)", background: "var(--color-bg-card)" }}>
                   <label className="block text-sm font-bold mb-1" style={{ color: "var(--color-text-primary)" }}>{t.settings.defaultTaskReminder}</label>
                   <p className="text-xs mb-4" style={{ color: "var(--color-text-muted)" }}>Default alert time for newly created tasks.</p>
-                  <select 
-                    value={state.calendarPreferences.defaultTaskReminder}
-                    onChange={(e) => updateCalPref('defaultTaskReminder', parseInt(e.target.value))}
-                    className="w-full sm:w-64 p-3 rounded-xl text-sm bg-transparent border outline-none transition-colors focus:border-[var(--color-purple-primary)]"
-                    style={{ borderColor: "var(--color-border-subtle)", color: "var(--color-text-primary)" }}
-                  >
-                    <option value={-1}>{t.settings.noReminder}</option>
-                    {t.settings.reminderOpts.map(opt => (
-                      <option key={opt.value} value={opt.value}>{opt.label}</option>
-                    ))}
-                  </select>
+                  <div className="w-full sm:w-64">
+                    <FocusForgeSelect 
+                      value={state.calendarPreferences.defaultTaskReminder}
+                      onChange={(e) => updateCalPref('defaultTaskReminder', parseInt(e.target.value, 10))}
+                      options={[
+                        { value: -1, label: t.settings.noReminder },
+                        ...t.settings.reminderOpts.map(opt => ({ value: opt.value, label: opt.label }))
+                      ]}
+                      ariaLabel={t.settings.defaultTaskReminder}
+                    />
+                  </div>
                 </div>
 
                 <div className="p-5 rounded-2xl border" style={{ borderColor: "var(--color-border-subtle)", background: "var(--color-bg-card)" }}>
                   <label className="block text-sm font-bold mb-1" style={{ color: "var(--color-text-primary)" }}>{t.settings.weekStartsOn}</label>
                   <p className="text-xs mb-4" style={{ color: "var(--color-text-muted)" }}>First day of the week in calendar views.</p>
-                  <select 
-                    value={state.calendarPreferences.weekStartsOn}
-                    onChange={(e) => updateCalPref('weekStartsOn', e.target.value)}
-                    className="w-full sm:w-64 p-3 rounded-xl text-sm bg-transparent border outline-none transition-colors focus:border-[var(--color-purple-primary)]"
-                    style={{ borderColor: "var(--color-border-subtle)", color: "var(--color-text-primary)" }}
-                  >
-                    <option value="saturday">{t.settings.saturday}</option>
-                    <option value="sunday">{t.settings.sunday}</option>
-                    <option value="monday">{t.settings.monday}</option>
-                  </select>
+                  <div className="w-full sm:w-64">
+                    <FocusForgeSelect 
+                      value={state.calendarPreferences.weekStartsOn}
+                      onChange={(e) => updateCalPref('weekStartsOn', e.target.value)}
+                      options={[
+                        { value: "saturday", label: t.settings.saturday },
+                        { value: "sunday", label: t.settings.sunday },
+                        { value: "monday", label: t.settings.monday },
+                      ]}
+                      ariaLabel={t.settings.weekStartsOn}
+                    />
+                  </div>
                 </div>
+
 
                 <div className="p-5 rounded-2xl border flex items-center justify-between" style={{ borderColor: "var(--color-border-subtle)", background: "var(--color-bg-card)" }}>
                   <div>

@@ -750,10 +750,11 @@
   }
 
   .optionCard {
-    padding: 14px 12px;
+    padding: 14px 16px;
     flex-direction: row;
+    justify-content: flex-start;
     text-align: left;
-    gap: 12px;
+    gap: 14px;
   }
 
   /* Tour Card on Mobile: docked at bottom, text fits perfectly over Dashboard */

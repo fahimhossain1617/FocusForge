@@ -144,14 +144,16 @@ export default function Home() {
   const isLight = state.theme?.mode === "light";
 
   return (
-    <div className={`flex min-h-screen ${state.lang === 'bn' ? 'font-bengali' : ''} overflow-x-hidden`}>
+    <div className={`flex min-h-screen ${state.activePage === 'ai-agent' ? 'h-dvh max-h-dvh overflow-hidden' : ''} ${state.lang === 'bn' ? 'font-bengali' : ''} overflow-x-hidden`}>
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} isTourActive={showTour} />
 
       {/* Main Content */}
-      <main className="flex-1 md:ml-60 w-full min-w-0 overflow-x-hidden">
+      <main className={`flex-1 md:ml-60 w-full min-w-0 flex flex-col ${
+        state.activePage === 'ai-agent' ? 'h-dvh max-h-dvh overflow-hidden' : 'min-h-screen overflow-x-hidden'
+      }`}>
         {/* Universal Mobile Header with persistent 3-line Hamburger Menu */}
         <header 
-          className="md:hidden sticky top-0 z-30 flex items-center justify-between px-4 py-3 border-b backdrop-blur-xl transition-colors"
+          className="md:hidden sticky top-0 z-30 flex items-center justify-between px-4 py-3 border-b backdrop-blur-xl transition-colors shrink-0"
           style={{
             backgroundColor: isLight ? "rgba(241, 245, 249, 0.88)" : "rgba(10, 14, 26, 0.85)",
             borderColor: "var(--color-border-subtle)",
@@ -197,13 +199,19 @@ export default function Home() {
         </header>
 
         {/* Page Content */}
-        <div className="p-3.5 sm:p-5 md:p-8 lg:p-10 max-w-5xl mx-auto w-full min-w-0">
+        <div className={`w-full min-w-0 ${
+          state.activePage === 'ai-agent'
+            ? 'flex-1 flex flex-col p-0 max-w-none h-full'
+            : state.activePage === 'planner'
+            ? 'flex-1 flex flex-col p-0 max-w-none'
+            : 'flex-1 p-3.5 sm:p-5 md:p-8 lg:p-10 max-w-7xl mx-auto'
+        }`}>
           {isPageLoading ? (
-            <div className="app-page-transition" key={`loading-${state.activePage}`}>
+            <div className={`app-page-transition ${state.activePage === 'ai-agent' ? 'flex-1 flex flex-col h-full' : ''}`} key={`loading-${state.activePage}`}>
               <PageSkeleton page={state.activePage} />
             </div>
           ) : (
-            <div className="app-page-transition" key={state.activePage}>
+            <div className={`app-page-transition ${state.activePage === 'ai-agent' ? 'flex-1 flex flex-col h-full' : ''}`} key={state.activePage}>
               <ActivePage onOpenSidebar={() => setSidebarOpen(true)} />
             </div>
           )}

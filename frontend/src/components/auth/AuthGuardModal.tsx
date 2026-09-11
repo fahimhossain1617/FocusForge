@@ -30,7 +30,7 @@ export default function AuthGuardModal() {
   if (!shouldRender) return null;
 
   return (
-    <div className={`fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md ${isExiting ? "motion-exit-fade" : "motion-overlay"}`}>
+    <div className={`fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-black/70 backdrop-blur-md ${isExiting ? "motion-exit-fade" : "motion-overlay"}`}>
       <div 
         className={`relative w-full max-w-md rounded-3xl border shadow-2xl p-6 sm:p-8 overflow-hidden text-center ${isExiting ? "motion-exit-reveal" : "motion-scale-in"}`}
         style={{
