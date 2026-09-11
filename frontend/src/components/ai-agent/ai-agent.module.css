@@ -812,6 +812,25 @@
   font-size: 12px;
 }
 
+.failedToSendBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: #fca5a5;
+  font-size: 13px;
+  font-weight: 550;
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.28);
+  padding: 6px 12px;
+  border-radius: 999px;
+  margin: 2px 0;
+}
+
+.failedIcon {
+  color: #ef4444;
+  flex-shrink: 0;
+}
+
 /* Custom dropdown styling to eliminate native white select popup bugs */
 .customSelectWrapper {
   position: relative;
