@@ -7,30 +7,23 @@ import { useTranslation } from "../../hooks/useTranslation";
 import { useAppContext } from "../../context/AppContext";
 
 interface DiaryVoiceInputProps {
-  onInsertText: (text: string, replaceLength?: number) => void;
+  onInsertText: (text: string) => void;
   onError?: (err: string) => void;
 }
 
 export default function DiaryVoiceInput({ onInsertText, onError }: DiaryVoiceInputProps) {
   const { t } = useTranslation();
   const { showToast, isOnline, state } = useAppContext();
-  const sessionInsertedCharsRef = useRef(0);
 
   const onInsertTextRef = useRef(onInsertText);
   useEffect(() => {
     onInsertTextRef.current = onInsertText;
   }, [onInsertText]);
 
-  const handleResult = useCallback((text: string, isFinal: boolean, isFullReplacement?: boolean) => {
+  const handleResult = useCallback((text: string, isFinal: boolean) => {
     if (isFinal && text.trim()) {
       if (onInsertTextRef.current) {
-        if (isFullReplacement) {
-          onInsertTextRef.current(text, sessionInsertedCharsRef.current);
-          sessionInsertedCharsRef.current = text.length;
-        } else {
-          onInsertTextRef.current(text, 0);
-          sessionInsertedCharsRef.current += text.length + 1;
-        }
+        onInsertTextRef.current(text.trim());
       }
     }
   }, []);
@@ -62,7 +55,6 @@ export default function DiaryVoiceInput({ onInsertText, onError }: DiaryVoiceInp
         );
         return;
       }
-      sessionInsertedCharsRef.current = 0;
       startListening(speechLanguage);
     }
   }, [isListening, isOnline, showToast, speechLanguage, startListening, state.lang, stopListening]);

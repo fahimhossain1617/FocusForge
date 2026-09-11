@@ -39,13 +39,6 @@ export const VoiceAssistantModal: React.FC<VoiceAssistantModalProps> = ({
     setMounted(true);
   }, []);
 
-  // Real-time audio analyzer for 60fps canvas visualizer
-  const {
-    smoothedAmplitudeRef,
-    error: audioError,
-    retry: retryAudio,
-  } = useAudioAnalyzer(isOpen && isOnline);
-
   // Speech recognition for converting speech to text
   const handleSpeechResultChunk = useCallback(
     (chunk: string, isFinal: boolean, isFullReplacement?: boolean) => {
@@ -82,6 +75,13 @@ export const VoiceAssistantModal: React.FC<VoiceAssistantModalProps> = ({
   } = useSpeechRecognition({
     onResult: handleSpeechResultChunk,
   });
+
+  // Real-time audio analyzer for 60fps canvas visualizer
+  const {
+    smoothedAmplitudeRef,
+    error: audioError,
+    retry: retryAudio,
+  } = useAudioAnalyzer(isOpen && isOnline, Boolean(interimText.trim() || accumulatedText.trim()));
 
   const startListeningRef = useRef(startListening);
   const stopListeningRef = useRef(stopListening);

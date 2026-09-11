@@ -305,6 +305,49 @@ export function useSpeechRecognition({
     setSpeechLanguage(order[nextIdx]);
   }, [speechLanguage, setSpeechLanguage]);
 
+  const startMediaRecorderFallback = useCallback(async () => {
+    try {
+      if (!streamRef.current && navigator?.mediaDevices?.getUserMedia) {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true,
+          },
+        });
+        streamRef.current = stream;
+      }
+
+      if (typeof MediaRecorder !== "undefined" && streamRef.current) {
+        audioChunksRef.current = [];
+        let mime = "audio/webm";
+        if (typeof MediaRecorder.isTypeSupported === "function") {
+          if (MediaRecorder.isTypeSupported("audio/webm;codecs=opus")) {
+            mime = "audio/webm;codecs=opus";
+          } else if (MediaRecorder.isTypeSupported("audio/webm")) {
+            mime = "audio/webm";
+          } else if (MediaRecorder.isTypeSupported("audio/mp4")) {
+            mime = "audio/mp4";
+          }
+        }
+
+        const recorder = new MediaRecorder(streamRef.current, { mimeType: mime });
+        recorder.ondataavailable = (e) => {
+          if (e.data && e.data.size > 0) {
+            audioChunksRef.current.push(e.data);
+          }
+        };
+        recorder.start(300);
+        mediaRecorderRef.current = recorder;
+      }
+    } catch (err: any) {
+      console.warn("[Voice] MediaRecorder fallback notice:", err?.message || err);
+      handleError("Microphone access is unavailable. Please allow microphone permissions.");
+      shouldListenRef.current = false;
+      setIsListening(false);
+    }
+  }, [handleError]);
+
   const startListening = useCallback(
     async (language?: SpeechLanguage, options?: { reset?: boolean }) => {
       const targetLang = language || speechLanguage || "auto";
@@ -323,49 +366,19 @@ export function useSpeechRecognition({
       shouldListenRef.current = true;
       setIsListening(true);
 
-      // 1. Instant real-time Speech Recognition
-      spawnSpeechRecognition(targetLang);
+      const hasSpeech = typeof window !== "undefined" && Boolean(
+        (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+      );
 
-      // 2. Parallel background MediaRecorder for fallback if Web Speech API returns empty
-      try {
-        if (!streamRef.current && navigator?.mediaDevices?.getUserMedia) {
-          const stream = await navigator.mediaDevices.getUserMedia({
-            audio: {
-              echoCancellation: true,
-              noiseSuppression: true,
-              autoGainControl: true,
-            },
-          });
-          streamRef.current = stream;
-        }
-
-        if (typeof MediaRecorder !== "undefined" && streamRef.current) {
-          audioChunksRef.current = [];
-          let mime = "audio/webm";
-          if (typeof MediaRecorder.isTypeSupported === "function") {
-            if (MediaRecorder.isTypeSupported("audio/webm;codecs=opus")) {
-              mime = "audio/webm;codecs=opus";
-            } else if (MediaRecorder.isTypeSupported("audio/webm")) {
-              mime = "audio/webm";
-            } else if (MediaRecorder.isTypeSupported("audio/mp4")) {
-              mime = "audio/mp4";
-            }
-          }
-
-          const recorder = new MediaRecorder(streamRef.current, { mimeType: mime });
-          recorder.ondataavailable = (e) => {
-            if (e.data && e.data.size > 0) {
-              audioChunksRef.current.push(e.data);
-            }
-          };
-          recorder.start(300);
-          mediaRecorderRef.current = recorder;
-        }
-      } catch (err: any) {
-        console.warn("[Voice] MediaRecorder background init notice:", err?.message || err);
+      // When Web Speech API is present (Android Chrome, iOS Safari 14.5+, Chrome Desktop, Edge):
+      // Use it exclusively! Do NOT start a parallel MediaRecorder stream which steals exclusive mic focus on mobile devices.
+      if (hasSpeech) {
+        spawnSpeechRecognition(targetLang);
+      } else {
+        await startMediaRecorderFallback();
       }
     },
-    [spawnSpeechRecognition, speechLanguage]
+    [spawnSpeechRecognition, speechLanguage, startMediaRecorderFallback]
   );
 
   const stopListening = useCallback(async (): Promise<string> => {
@@ -409,15 +422,9 @@ export function useSpeechRecognition({
 
     const clientFinalText = accumulatedFinalRef.current.trim();
 
-    // FAST-PATH: If real-time recognition already captured words, return IMMEDIATELY!
+    // FAST-PATH: If real-time recognition captured words OR no MediaRecorder was used, return IMMEDIATELY!
     // No artificial 5-10 second waiting. The user experiences instantaneous responsiveness!
-    if (clientFinalText.length > 0) {
-      // Safely stop background media recording without blocking the return
-      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
-        try {
-          mediaRecorderRef.current.stop();
-        } catch (e) {}
-      }
+    if (clientFinalText.length > 0 || !mediaRecorderRef.current) {
       cleanupAll();
       return clientFinalText;
     }
