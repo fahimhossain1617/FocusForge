@@ -163,17 +163,25 @@ export function AIAgentPage() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [showHistory]);
 
-  // Auto-scroll down smoothly when messages update
+  // Auto-scroll down smoothly within chatArea when messages update
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (chatAreaRef.current) {
+      chatAreaRef.current.scrollTo({
+        top: chatAreaRef.current.scrollHeight,
+        behavior: "smooth"
+      });
+    }
   }, [messages, isThinking]);
 
   // Keep composer and controls in view when mobile virtual keyboard opens/resizes
   useEffect(() => {
     if (typeof window === "undefined" || !window.visualViewport) return;
     const handleViewportChange = () => {
-      if (document.activeElement?.tagName === "TEXTAREA" && composerRef.current) {
-        composerRef.current.scrollIntoView({ behavior: "smooth", block: "end" });
+      if (document.activeElement?.tagName === "TEXTAREA" && chatAreaRef.current) {
+        chatAreaRef.current.scrollTo({
+          top: chatAreaRef.current.scrollHeight,
+          behavior: "smooth"
+        });
       }
     };
     window.visualViewport.addEventListener("resize", handleViewportChange);
@@ -634,7 +642,12 @@ export function AIAgentPage() {
             }}
             onFocus={() => {
               setTimeout(() => {
-                composerRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+                if (chatAreaRef.current) {
+                  chatAreaRef.current.scrollTo({
+                    top: chatAreaRef.current.scrollHeight,
+                    behavior: "smooth"
+                  });
+                }
               }, 120);
             }}
             onKeyDown={(event) => {

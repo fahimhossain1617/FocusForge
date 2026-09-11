@@ -388,7 +388,7 @@ export default function AuthModal() {
   const strength = getPasswordStrength(password);
 
   return (
-    <div className={`fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/75 backdrop-blur-md overflow-y-auto ${isExiting ? "motion-exit-fade" : "motion-overlay"}`}>
+    <div className={`fixed inset-0 z-[10000] flex items-center justify-center p-4 sm:p-6 bg-black/75 backdrop-blur-md overflow-y-auto ${isExiting ? "motion-exit-fade" : "motion-overlay"}`}>
       {/* Outer Glow Background Accent */}
       <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-blue-600/10 rounded-full blur-[140px] pointer-events-none" />
 

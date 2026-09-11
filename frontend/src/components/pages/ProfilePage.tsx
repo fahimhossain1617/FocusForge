@@ -8,6 +8,8 @@ import {
   User as UserIcon, Mail, Phone, MapPin, Calendar, Camera, Trash2, 
   CheckCircle2, ShieldCheck, Edit3, Save, X, Globe, UserCheck, ArrowLeft
 } from "lucide-react";
+import FocusForgeDatePicker from "../ui/FocusForgeDatePicker";
+import FocusForgeSelect from "../ui/FocusForgeSelect";
 
 export default function ProfilePage() {
   const { user, isGuest, updateUserProfile, openAuth } = useAuth();
@@ -464,11 +466,12 @@ export default function ProfilePage() {
                     Date of Birth <span className="text-zinc-500 font-normal">(Optional)</span>
                   </label>
                   {isEditing ? (
-                    <input
-                      type="date"
+                    <FocusForgeDatePicker
                       value={formData.dob}
                       onChange={(e) => setFormData({ ...formData, dob: e.target.value })}
-                      className="w-full px-3.5 py-2 rounded-xl text-sm bg-[#0F172A] border border-white/10 text-white focus:border-blue-500 focus:outline-none transition-colors"
+                      maxDate={new Date().toISOString().split("T")[0]}
+                      placeholder="Select date of birth"
+                      ariaLabel="Date of Birth"
                     />
                   ) : (
                     <p className="text-sm font-medium text-white px-3.5 py-2.5 rounded-xl bg-white/[0.02] border border-white/5 flex items-center gap-2">
@@ -484,17 +487,19 @@ export default function ProfilePage() {
                     Gender <span className="text-zinc-500 font-normal">(Optional)</span>
                   </label>
                   {isEditing ? (
-                    <select
+                    <FocusForgeSelect
                       value={formData.gender}
                       onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
-                      className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-[#0F172A] border border-white/10 text-white focus:border-blue-500 focus:outline-none transition-colors"
-                    >
-                      <option value="">Select gender</option>
-                      <option value="Male">Male</option>
-                      <option value="Female">Female</option>
-                      <option value="Non-binary">Non-binary</option>
-                      <option value="Prefer not to say">Prefer not to say</option>
-                    </select>
+                      options={[
+                        { value: "", label: "Select gender" },
+                        { value: "Male", label: "Male" },
+                        { value: "Female", label: "Female" },
+                        { value: "Non-binary", label: "Non-binary" },
+                        { value: "Prefer not to say", label: "Prefer not to say" },
+                      ]}
+                      placeholder="Select gender"
+                      ariaLabel="Gender"
+                    />
                   ) : (
                     <p className="text-sm font-medium text-white px-3.5 py-2.5 rounded-xl bg-white/[0.02] border border-white/5">
                       {formData.gender || "Not specified"}

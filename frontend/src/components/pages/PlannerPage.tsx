@@ -7,6 +7,7 @@ import EmptyState from "../ui/EmptyState";
 import CalendarWidget from "../ui/CalendarWidget";
 import { ChevronLeft, ChevronRight, Plus, X, AlignLeft, Calendar as CalendarIcon, Clock, Bell } from "lucide-react";
 import { useAnimateExit } from "../../hooks/useAnimateExit";
+import FocusForgeTimePicker from "../ui/FocusForgeTimePicker";
 
 export default function PlannerPage() {
   const { state, addTimeBlock, deleteTimeBlock, updateTimeBlock, addTask, deleteTask } = useAppContext();
@@ -523,11 +524,11 @@ export default function PlannerPage() {
                 <div className="flex gap-3">
                   <div className="w-1/2">
                     <label className="block text-xs font-semibold mb-1 text-zinc-400">Start Time</label>
-                    <input type="time" value={newStart} onChange={e => setNewStart(e.target.value)} className="w-full rounded-lg px-3 py-2 outline-none border transition-colors bg-transparent text-sm" style={{ color: "var(--color-text-primary)", borderColor: "var(--color-border-subtle)" }} required />
+                    <FocusForgeTimePicker value={newStart} onChange={e => setNewStart(e.target.value)} ariaLabel="Start Time" />
                   </div>
                   <div className="w-1/2">
                     <label className="block text-xs font-semibold mb-1 text-zinc-400">End Time</label>
-                    <input type="time" value={newEnd} onChange={e => setNewEnd(e.target.value)} className="w-full rounded-lg px-3 py-2 outline-none border transition-colors bg-transparent text-sm" style={{ color: "var(--color-text-primary)", borderColor: "var(--color-border-subtle)" }} required />
+                    <FocusForgeTimePicker value={newEnd} onChange={e => setNewEnd(e.target.value)} ariaLabel="End Time" />
                   </div>
                 </div>
 
@@ -570,13 +571,13 @@ export default function PlannerPage() {
                   {newReminderEnabled && (
                     <div className="flex items-center justify-between pt-2 border-t animate-fade-in" style={{ borderColor: "var(--color-border-subtle)" }}>
                       <span className="text-xs text-zinc-400">Reminder Time</span>
-                      <input
-                        type="time"
-                        value={newReminderTime}
-                        onChange={(e) => setNewReminderTime(e.target.value)}
-                        className="rounded-lg px-2.5 py-1 text-xs outline-none border transition-colors bg-transparent font-medium"
-                        style={{ borderColor: "var(--color-border-subtle)", color: "var(--color-text-primary)" }}
-                      />
+                      <div className="w-36">
+                        <FocusForgeTimePicker
+                          value={newReminderTime}
+                          onChange={(e) => setNewReminderTime(e.target.value)}
+                          ariaLabel="Reminder Time"
+                        />
+                      </div>
                     </div>
                   )}
                 </div>
