@@ -94,44 +94,33 @@ export default function DiaryEditor({ entry, onSave, lang }: DiaryEditorProps) {
     updateCursorPosition();
   };
 
-  // Voice speech insertion using functional update (100% immune to stale closures, never overwrites!)
-  const handleSpeechInsert = useCallback((speechText: string, replaceLength: number = 0) => {
-    if (!speechText || !speechText.trim()) return;
+  // Voice speech insertion: Strictly chronological, sequential appending
+  // Ensures 1st phrase is 1st, 2nd is 2nd, 3rd is 3rd, never prepending backwards or scrambling!
+  const handleSpeechInsert = useCallback((speechText: string) => {
+    const cleanSpeech = speechText.trim();
+    if (!cleanSpeech) return;
 
     setContent((currentContent) => {
-      // Determine insertion point
-      let insertPos = lastCursorPosRef.current;
-      // If no valid cursor position stored, default to the very end of current content
-      if (insertPos === null || insertPos < 0 || insertPos > currentContent.length) {
-        insertPos = currentContent.length;
+      let updated = "";
+      if (!currentContent || !currentContent.trim()) {
+        updated = cleanSpeech;
+      } else {
+        const trimmed = currentContent.trimEnd();
+        const needsSpace = !trimmed.endsWith(" ") && !trimmed.endsWith("\n");
+        updated = trimmed + (needsSpace ? " " : "") + cleanSpeech;
       }
 
-      // If replaceLength > 0 (e.g. AI refined text replacing interim recognition draft)
-      const startPos = Math.max(0, insertPos - replaceLength);
-      const before = currentContent.substring(0, startPos);
-      const after = currentContent.substring(insertPos);
-
-      const spaceBefore = before.length > 0 && !before.endsWith(" ") && !before.endsWith("\n") ? " " : "";
-      const spaceAfter = after.length > 0 && !after.startsWith(" ") && !after.startsWith("\n") ? " " : "";
-
-      const insertedChunk = spaceBefore + speechText.trim();
-      const updated = before + insertedChunk + spaceAfter + after;
-
-      // Advance cursor position immediately so consecutive speech chunks chain continuously without overwriting
-      const newPos = before.length + insertedChunk.length;
-      lastCursorPosRef.current = newPos;
-
-      // Trigger autosave
+      lastCursorPosRef.current = updated.length;
       triggerAutoSave(title, updated, images);
 
-      // Reposition cursor in textarea
+      // Keep cursor synced to the end of appended text
       setTimeout(() => {
         if (textareaRef.current) {
-          textareaRef.current.selectionStart = newPos;
-          textareaRef.current.selectionEnd = newPos;
-          textareaRef.current.focus();
+          textareaRef.current.selectionStart = updated.length;
+          textareaRef.current.selectionEnd = updated.length;
+          textareaRef.current.scrollTop = textareaRef.current.scrollHeight;
         }
-      }, 0);
+      }, 10);
 
       return updated;
     });
