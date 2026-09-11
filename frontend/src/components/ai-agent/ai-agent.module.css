@@ -1327,9 +1327,67 @@
   to { opacity: 0; transform: translateY(4px) scale(0.96); }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .historyDropdownExit, .customDropdownMenuExit {
-    animation: none !important;
+.tokenLimitBanner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 16px 8px 16px;
+  padding: 8px 14px;
+  border-radius: 12px;
+  background: rgba(245, 158, 11, 0.09);
+  border: 1px solid rgba(245, 158, 11, 0.28);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+  animation: fadeInDown 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.tokenLimitIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #f59e0b;
+  flex-shrink: 0;
+}
+
+.tokenLimitText {
+  flex: 1;
+  font-size: 12px;
+  line-height: 1.4;
+  color: #fde68a;
+  font-weight: 500;
+}
+
+.tokenLimitLoginBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 8px;
+  background: #f59e0b;
+  color: #1a1a1a;
+  font-size: 11px;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.18s ease;
+}
+
+.tokenLimitLoginBtn:hover {
+  background: #fbbf24;
+  transform: translateY(-1px);
+}
+
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
+
 

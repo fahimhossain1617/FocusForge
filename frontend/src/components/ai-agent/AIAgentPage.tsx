@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Check, ChevronDown, Mic, Send, MoreVertical, Trash2, Calendar, Sparkles, AlertCircle, LogIn, MessageSquarePlus, Compass, CheckCircle2 } from "lucide-react";
+import { Check, ChevronDown, Mic, Send, MoreVertical, Trash2, Calendar, Sparkles, AlertCircle, LogIn, MessageSquarePlus, Compass, CheckCircle2, Clock } from "lucide-react";
 import { useAppContext } from "@/context/AppContext";
 import { useAuth } from "@/context/AuthContext";
 import { useAIAgent } from "@/hooks/useAIAgent";
@@ -633,10 +633,44 @@ export function AIAgentPage() {
       </div>
 
       <div className={styles.composerWrapper} ref={composerRef}>
-        {messages.length > 0 && !guestLimitExceeded && (
+        {/* Token Exhaustion Alert Banner right above composer */}
+        {tokenStatus?.isExhausted && (
+          <div className={styles.tokenLimitBanner}>
+            <div className={styles.tokenLimitIcon}>
+              <Clock size={16} />
+            </div>
+            <div className={styles.tokenLimitText}>
+              {guestLimitExceeded ? (
+                <span>
+                  {isSystemBn 
+                    ? "আপনার ১,০০০ গেস্ট AI টোকেন শেষ হয়ে গেছে। ৫,০০০ টোকেন পেতে লগইন করুন।" 
+                    : "You've reached your 1,000 guest token limit. Log in to unlock 5,000 tokens."}
+                </span>
+              ) : (
+                <span>
+                  {isSystemBn 
+                    ? `দৈনিক ৫,০০০ AI টোকেন লিমিট শেষ। রিসেট হওয়ার সময়: ${tokenStatus.formattedResetDate || 'আগামীকাল'} (${tokenStatus.formattedRemainingTime || '২৪ ঘণ্টা'} বাকি)।`
+                    : `Daily 5,000 AI token limit reached. Resets on: ${tokenStatus.formattedResetDate || 'tomorrow'} (${tokenStatus.formattedRemainingTime || '24h'} remaining).`}
+                </span>
+              )}
+            </div>
+            {guestLimitExceeded && (
+              <button
+                type="button"
+                className={styles.tokenLimitLoginBtn}
+                onClick={() => openAuth('login')}
+              >
+                <LogIn size={13} />
+                <span>{isSystemBn ? "লগইন করুন" : "Log In"}</span>
+              </button>
+            )}
+          </div>
+        )}
+
+        {messages.length > 0 && !tokenStatus?.isExhausted && (
           <div className={styles.quickActionsInline}>
             {quickActions.slice(0, 4).map((action) => (
-              <button key={action} onClick={() => submit(action)} disabled={isThinking || guestLimitExceeded}>
+              <button key={action} onClick={() => submit(action)} disabled={isThinking}>
                 {action}
               </button>
             ))}
@@ -647,7 +681,7 @@ export function AIAgentPage() {
           <textarea
             ref={textareaRef}
             value={input}
-            disabled={isThinking || guestLimitExceeded}
+            disabled={isThinking}
             onChange={(event) => {
               setInput(event.target.value);
               requestAnimationFrame(adjustTextareaHeight);
@@ -669,10 +703,10 @@ export function AIAgentPage() {
               }
             }}
             placeholder={
-              guestLimitExceeded
+              tokenStatus?.isExhausted
                 ? (isSystemBn 
-                    ? "গেস্ট লিমিট শেষ। ব্যবহার চালিয়ে যেতে লগইন করুন..." 
-                    : "Guest limit reached. Please log in to continue...")
+                    ? "টোকেন লিমিট শেষ। মেসেজ পাঠালে রিসেট হওয়ার তারিখ ও সময় দেখতে পাবেন..." 
+                    : "Token limit reached. Send a message to see reset date & time details...")
                 : (isSystemBn ? "টাস্ক, স্টাডি প্ল্যান, ফোকাস, নোটস, আইডিয়া বা সমস্যা সম্পর্কে বলুন..." : "Ask me anything about your tasks, routine, goals, or productivity...")
             }
             aria-label="Message FocusForge AI"
@@ -686,7 +720,7 @@ export function AIAgentPage() {
               <button
                 className={`${styles.voiceButton} ${voiceOpen ? styles.listening : ""}`}
                 onClick={voiceOpen ? stopVoice : startVoice}
-                disabled={guestLimitExceeded}
+                disabled={isThinking || tokenStatus?.isExhausted}
                 aria-label={voiceOpen ? "Stop voice input" : "Start voice input"}
                 aria-pressed={voiceOpen}
               >
@@ -695,7 +729,7 @@ export function AIAgentPage() {
               <button
                 className={styles.sendButton}
                 onClick={() => submit()}
-                disabled={!input.trim() || isThinking || tokenStatus?.isExhausted}
+                disabled={!input.trim() || isThinking}
                 aria-label="Send message"
               >
                 <Send size={17} />

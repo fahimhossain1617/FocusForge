@@ -148,6 +148,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ pa
 
   // 1. AI Agent Chat
   if (pathStr === 'ai/agent/chat') {
+    const { sessionId: requestedSessionId, message: userMsg, context: wsContext, history, model: selectedModel } = body;
     const tokenStatus = await getUserTokenStatus(userId, isGuest, guestId, lang);
     if (tokenStatus.isExhausted || tokenStatus.remaining <= 0) {
       const message = isGuest
@@ -155,19 +156,26 @@ export async function POST(request: NextRequest, context: { params: Promise<{ pa
             ? `আপনার ১,০০০ গেস্ট AI টোকেন শেষ হয়ে গেছে। ৫,০০০ টোকেন ও ক্লাউড সেভ সুবিধা পেতে অনুগ্রহ করে লগইন করুন।`
             : `Your 1,000 guest AI tokens have been exhausted. Please log in to unlock 5,000 tokens and cloud sync.`)
         : (lang === 'bn'
-            ? `আপনার ৫,০০০ AI টোকেন শেষ হয়ে গেছে। টোকেন রিসেট হওয়ার তারিখ: ${tokenStatus.formattedResetDate} (বাকি: ${tokenStatus.formattedRemainingTime})। নির্ধারিত সময় পর আবার চেষ্টা করুন, FocusForge AI আপনাকে সাহায্য করার জন্য প্রস্তুত থাকবে!`
-            : `Your 5,000 AI tokens have been exhausted. Tokens will reset on: ${tokenStatus.formattedResetDate} (${tokenStatus.formattedRemainingTime} remaining). Please try again after reset!`);
+            ? `আপনার আজকের ৫,০০০ AI টোকেন লিমিট শেষ হয়ে গেছে।\n\n• টোকেন রিসেট হওয়ার তারিখ: ${tokenStatus.formattedResetDate}\n• অবশিষ্ট সময়: ${tokenStatus.formattedRemainingTime}\n\nঅনুগ্রহ করে রিসেট হওয়া পর্যন্ত অপেক্ষা করুন। লিমিট রিসেট হওয়ার পর FocusForge AI Agent পুনরায় আপনাকে সাহায্য করতে সম্পূর্ণ প্রস্তুত থাকবে!`
+            : `Your daily 5,000 AI token limit has been exhausted.\n\n• Resets on: ${tokenStatus.formattedResetDate}\n• Remaining time: ${tokenStatus.formattedRemainingTime}\n\nPlease wait until the reset time. Once refreshed, FocusForge AI Agent will be fully ready to assist you!`);
+
+      const exhaustedAiMsg = {
+        id: 'msg_exhausted_' + Date.now(),
+        role: 'assistant' as const,
+        content: message,
+        intent: isGuest ? 'REQUIRE_LOGIN' : 'LIMIT_EXHAUSTED',
+        payload: isGuest ? { requireLogin: true } : { resetDate: tokenStatus.formattedResetDate, remainingTime: tokenStatus.formattedRemainingTime },
+        createdAt: new Date().toISOString(),
+      };
 
       return NextResponse.json({
-        error: 'AI_TOKENS_EXHAUSTED',
-        code: 'TOKENS_EXHAUSTED',
+        sessionId: requestedSessionId || (isGuest ? 'guest-session' : `session_${Date.now()}`),
+        sessionTitle: userMsg ? userMsg.substring(0, 25) : 'FocusForge AI',
+        aiMessage: exhaustedAiMsg,
         tokenStatus,
-        requireLogin: isGuest,
-        message,
-      }, { status: 429 });
+        isExhausted: true,
+      });
     }
-
-    const { sessionId: requestedSessionId, message: userMsg, context: wsContext, history, model: selectedModel } = body;
     
     // Fetch prior messages from Supabase if not provided in request history
     let chatHistory = history || [];
