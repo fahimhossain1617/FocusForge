@@ -843,7 +843,7 @@ export async function transcribeAudioBlob(blob: Blob, language?: string): Promis
   const token = await getToken();
   const guestId = getGuestId();
 
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve) => {
     const reader = new FileReader();
     reader.onloadend = async () => {
       try {
@@ -853,10 +853,13 @@ export async function transcribeAudioBlob(blob: Blob, language?: string): Promis
           return;
         }
 
-        // 1. Primary: Express backend /api/ai/transcribe
+        // 1. Primary: Express backend /api/ai/transcribe (fast 6s timeout)
         try {
+          const controller = new AbortController();
+          const timer = setTimeout(() => controller.abort(), 6500);
           const res = await fetch(`${getApiUrl()}/ai/transcribe`, {
             method: 'POST',
+            signal: controller.signal,
             headers: {
               'Content-Type': 'application/json',
               ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -869,56 +872,92 @@ export async function transcribeAudioBlob(blob: Blob, language?: string): Promis
               language: language || 'auto',
             }),
           });
+          clearTimeout(timer);
 
           if (res.ok) {
             const data = await res.json();
-            if (data && typeof data.text === 'string') {
-              resolve(data.text);
+            if (data && typeof data.text === 'string' && data.text.trim()) {
+              resolve(data.text.trim());
               return;
             }
           }
         } catch (backendErr) {
-          console.warn('[aiAgentService] Backend transcribe error, attempting client fallback:', backendErr);
+          console.warn('[aiAgentService] Backend transcribe error/timeout, trying Next.js internal route:', backendErr);
         }
 
-        // 2. Client-side Gemini fallback if backend is down
+        // 2. Secondary: Next.js internal route /api/ai/transcribe
+        try {
+          const controller2 = new AbortController();
+          const timer2 = setTimeout(() => controller2.abort(), 6500);
+          const res2 = await fetch('/api/ai/transcribe', {
+            method: 'POST',
+            signal: controller2.signal,
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              audio: base64Data,
+              mimeType: blob.type || 'audio/webm',
+              language: language || 'auto',
+            }),
+          });
+          clearTimeout(timer2);
+
+          if (res2.ok) {
+            const data2 = await res2.json();
+            if (data2 && typeof data2.text === 'string' && data2.text.trim()) {
+              resolve(data2.text.trim());
+              return;
+            }
+          }
+        } catch (nextErr) {
+          console.warn('[aiAgentService] Next.js transcribe route notice:', nextErr);
+        }
+
+        // 3. Tertiary: Client-side Gemini fallback
         const clientApiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY || (process.env as any)['NEXT_PUBLIC-GEMINI_API_KEY'];
         if (clientApiKey) {
-          try {
-            const genAI = new GoogleGenerativeAI(clientApiKey);
-            const model = genAI.getGenerativeModel({ model: 'gemini-3.5-flash' });
-            const prompt = [
-              'You are a multilingual speech-to-text transcriber for the FocusForge app.',
-              'The user may speak in Bengali (বাংলা), English, or Banglish.',
-              'If the user speaks Bengali or Banglish, transcribe directly into clean Bengali script (বাংলা লিপি).',
-              'If the user speaks English, transcribe into clean, punctuated English.',
-              'Return ONLY the transcribed text. Do not add markdown or extra commentary.',
-            ].join('\n');
+          const fallbackModels = ['gemini-2.0-flash', 'gemini-1.5-flash'];
+          for (const m of fallbackModels) {
+            try {
+              const genAI = new GoogleGenerativeAI(clientApiKey);
+              const model = genAI.getGenerativeModel({ model: m });
+              const prompt = [
+                'You are a fast, multilingual speech-to-text transcriber for the FocusForge app.',
+                'The audio contains spoken words in Bengali (বাংলা), English, or Banglish.',
+                'If Bengali or Banglish, transcribe into clear Bengali script (বাংলা লিপি).',
+                'If English, transcribe into clean English.',
+                'Return ONLY the raw transcribed text. Do not add quotes or commentary.',
+              ].join('\n');
 
-            const result = await model.generateContent([
-              prompt,
-              {
-                inlineData: {
-                  mimeType: blob.type || 'audio/webm',
-                  data: base64Data,
+              const result = await model.generateContent([
+                prompt,
+                {
+                  inlineData: {
+                    mimeType: blob.type || 'audio/webm',
+                    data: base64Data,
+                  },
                 },
-              },
-            ]);
+              ]);
 
-            const clientText = result.response.text();
-            resolve((clientText || '').trim());
-            return;
-          } catch (clientErr) {
-            console.warn('[aiAgentService] Client Gemini transcribe error:', clientErr);
+              const clientText = result.response.text();
+              if (clientText && clientText.trim()) {
+                resolve(clientText.trim());
+                return;
+              }
+            } catch (clientErr) {
+              console.warn(`[aiAgentService] Client Gemini ${m} transcribe error:`, clientErr);
+            }
           }
         }
 
         resolve('');
       } catch (err) {
-        reject(err);
+        console.warn('[aiAgentService] Audio transcribe error:', err);
+        resolve('');
       }
     };
-    reader.onerror = (e) => reject(e);
+    reader.onerror = () => resolve('');
     reader.readAsDataURL(blob);
   });
 }
