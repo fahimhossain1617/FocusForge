@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { Mic, MicOff, Globe } from "lucide-react";
 import { useSpeechRecognition } from "../../hooks/useSpeechRecognition";
 import { useTranslation } from "../../hooks/useTranslation";
+import { useAppContext } from "../../context/AppContext";
 
 interface VoiceInputProps {
   onResult: (text: string, isFinal: boolean, isFullReplacement?: boolean) => void;
@@ -13,6 +14,7 @@ interface VoiceInputProps {
 
 export default function VoiceInput({ onResult, onInterimResult, onError }: VoiceInputProps) {
   const { t } = useTranslation();
+  const { showToast, isOnline, state } = useAppContext();
 
   const {
     isSupported,
@@ -41,7 +43,18 @@ export default function VoiceInput({ onResult, onInterimResult, onError }: Voice
     <div className={`voice-input flex items-center gap-2 ${isListening ? "is-listening" : ""}`}>
       <button
         type="button"
-        onClick={() => (isListening ? stopListening() : startListening(speechLanguage))}
+        onClick={() => {
+          if (!isListening && !isOnline) {
+            showToast(
+              state.lang === "bn"
+                ? "আপনি বর্তমানে অফলাইনে আছেন। ভয়েস ইনপুট শুধুমাত্র অনলাইনে কাজ করে।"
+                : "You are currently offline. Voice input is only available online.",
+              "error"
+            );
+            return;
+          }
+          isListening ? stopListening() : startListening(speechLanguage);
+        }}
         className="voice-input__toggle w-10 h-10 flex items-center justify-center transition-all cursor-pointer"
         title={isListening ? t.myMind.stopListening : t.myMind.speakThought}
         aria-label={isListening ? t.myMind.stopListening : t.myMind.startVoiceInput}

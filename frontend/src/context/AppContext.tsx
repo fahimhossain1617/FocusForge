@@ -96,6 +96,9 @@ interface AppContextType {
   updateState: (updates: Partial<AppState>) => void;
   resetState: () => void;
 
+  // Network Connectivity
+  isOnline: boolean;
+
   // Loading States
   isLoaded: boolean;
   isPageLoading: boolean;
@@ -164,6 +167,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<AppState>(defaultState);
   const [isLoaded, setIsLoaded] = useState(false);
   const [isPageLoading, setIsPageLoading] = useState(false);
+  const [isOnline, setIsOnline] = useState<boolean>(() => {
+    if (typeof navigator !== "undefined" && typeof navigator.onLine === "boolean") {
+      return navigator.onLine;
+    }
+    return true;
+  });
   const [toasts, setToasts] = useState<{ id: string; message: string; type: string }[]>([]);
 
   // Load state: Cloud for logged-in users; fresh clean state (or tab temporary state) for guests
@@ -532,6 +541,59 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setToasts((prev) => prev.filter((t) => t.id !== id));
     }, 3000);
   }, []);
+
+  // Network online/offline event handlers & automatic cloud resynchronization
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const handleOnline = async () => {
+      setIsOnline(true);
+      showToast(
+        state.lang === 'bn' 
+          ? "ইন্টারনেট সংযোগ চালু হয়েছে। সকল ডাটা সিঙ্ক হচ্ছে..." 
+          : "Back online. Synchronizing data with cloud...",
+        'info'
+      );
+
+      // Trigger immediate cloud sync for authenticated users
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          await supabase.from('user_cloud_state').upsert({
+            id: session.user.id,
+            state: state,
+            updated_at: new Date().toISOString()
+          });
+
+          // Also refresh any notes from cloud
+          const freshNotes = await noteService.fetchNotes(session.user.id);
+          if (freshNotes && freshNotes.length > 0) {
+            setState((prev) => ({ ...prev, notes: freshNotes }));
+          }
+        }
+      } catch (syncErr) {
+        console.warn("[AppContext] Auto-sync on online event error:", syncErr);
+      }
+    };
+
+    const handleOffline = () => {
+      setIsOnline(false);
+      showToast(
+        state.lang === 'bn' 
+          ? "আপনি অফলাইনে আছেন। আপনার সকল পরিবর্তন নিরাপদে লোকালি সেভ হচ্ছে।" 
+          : "You are offline. All changes are being saved locally.",
+        'info'
+      );
+    };
+
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, [state, showToast]);
 
   // ==================== Mind Items ====================
 
@@ -1103,6 +1165,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         isLoaded,
         isPageLoading,
         setPageLoading: setIsPageLoading,
+        isOnline,
       }}
     >
       {children}

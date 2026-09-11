@@ -40,7 +40,7 @@ export default function NoteEditorView({
   onDelete, 
   onBack 
 }: NoteEditorViewProps) {
-  const { state, showToast } = useAppContext();
+  const { state, showToast, isOnline } = useAppContext();
   const { user } = useAuth();
   const [title, setTitle] = useState(initialTitle); 
   const [category, setCategory] = useState(initialCategory || note?.category || "Personal");
@@ -133,12 +133,30 @@ export default function NoteEditorView({
 
   // ── Image Handling ──
   const handleImageUploadTrigger = (targetBlockId?: string) => {
+    if (!isOnline) {
+      showToast(
+        state.lang === 'bn'
+          ? "আপনি বর্তমানে অফলাইনে আছেন। ছবি যুক্ত করার ফিচারটি শুধুমাত্র অনলাইনে কাজ করে।"
+          : "You are currently offline. Adding images is only available online.",
+        'error'
+      );
+      return;
+    }
     setReplacingBlockId(null);
     targetBlockIdRef.current = targetBlockId || null;
     imageInputRef.current?.click();
   };
 
   const handleReplaceImage = (blockId: string) => {
+    if (!isOnline) {
+      showToast(
+        state.lang === 'bn'
+          ? "আপনি বর্তমানে অফলাইনে আছেন। ছবি পরিবর্তনের ফিচারটি শুধুমাত্র অনলাইনে কাজ করে।"
+          : "You are currently offline. Changing images is only available online.",
+        'error'
+      );
+      return;
+    }
     setReplacingBlockId(blockId);
     imageInputRef.current?.click();
   };
@@ -231,6 +249,15 @@ export default function NoteEditorView({
 
   // ── File / PDF Handling ──
   const handleFileUploadTrigger = (targetBlockId?: string) => {
+    if (!isOnline) {
+      showToast(
+        state.lang === 'bn'
+          ? "আপনি বর্তমানে অফলাইনে আছেন। পিডিএফ বা ফাইল যুক্ত করার ফিচারটি শুধুমাত্র অনলাইনে কাজ করে।"
+          : "You are currently offline. Adding PDF or files is only available online.",
+        'error'
+      );
+      return;
+    }
     targetBlockIdRef.current = targetBlockId || null;
     fileInputRef.current?.click();
   };
@@ -297,6 +324,16 @@ export default function NoteEditorView({
     e.preventDefault();
     e.stopPropagation();
     setIsDraggingOver(false);
+
+    if (!isOnline) {
+      showToast(
+        state.lang === 'bn'
+          ? "আপনি বর্তমানে অফলাইনে আছেন। ফাইল বা ছবি যুক্ত করতে ইন্টারনেট সংযোগ প্রয়োজন।"
+          : "You are currently offline. An internet connection is required to attach files or images.",
+        'error'
+      );
+      return;
+    }
 
     const files = e.dataTransfer.files;
     if (!files || files.length === 0) return;
@@ -430,7 +467,23 @@ export default function NoteEditorView({
                 <button type="button" onClick={share}>
                   <Share2 size={15} /> {isBn ? "নোট শেয়ার করুন" : "Share Note"}
                 </button>
-                <button type="button" onClick={() => { window.print(); setMoreOpen(false); }}>
+                <button 
+                  type="button" 
+                  onClick={() => { 
+                    if (!isOnline) {
+                      showToast(
+                        state.lang === 'bn'
+                          ? "আপনি বর্তমানে অফলাইনে আছেন। পিডিএফ তৈরি ও ডাউনলোড করার ফিচারটি শুধুমাত্র অনলাইনে কাজ করে।"
+                          : "You are currently offline. PDF generation and download is only available online.",
+                        'error'
+                      );
+                      setMoreOpen(false);
+                      return;
+                    }
+                    window.print(); 
+                    setMoreOpen(false); 
+                  }}
+                >
                   <Download size={15} /> {isBn ? "PDF ডাউনলোড করুন" : "Download as PDF"}
                 </button>
               </div>
