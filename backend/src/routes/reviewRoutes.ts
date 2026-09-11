@@ -229,9 +229,8 @@ router.post('/skip', async (req: AuthenticatedRequest, res: Response) => {
 router.post('/submit', async (req: AuthenticatedRequest, res: Response) => {
   try {
     const userId = req.user?.id;
-    if (!userId || req.user?.isGuest) {
-      return res.status(401).json({ error: 'Authentication required to submit feedback' });
-    }
+    const isGuestUser = !userId || req.user?.isGuest || userId === 'guest';
+    const effectiveUserId = isGuestUser ? null : userId;
 
     const { rating, comment } = req.body;
 
@@ -244,28 +243,30 @@ router.post('/submit', async (req: AuthenticatedRequest, res: Response) => {
       return res.status(400).json({ error: 'Please provide either a star rating or a comment.' });
     }
 
-    // Check if already submitted to prevent duplicate insertion
-    const { data: existingReview } = await supabase
-      .from('reviews')
-      .select('id')
-      .eq('user_id', userId)
-      .maybeSingle();
+    // If authenticated user, check if already submitted to prevent duplicate insertion
+    if (effectiveUserId) {
+      const { data: existingReview } = await supabase
+        .from('reviews')
+        .select('id')
+        .eq('user_id', effectiveUserId)
+        .maybeSingle();
 
-    if (existingReview) {
-      // Idempotent: already submitted
-      await supabase.from('review_prompt_state').upsert({
-        user_id: userId,
-        status: 'submitted',
-        submitted_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      });
-      return res.json({ success: true, message: 'Review already submitted' });
+      if (existingReview) {
+        // Idempotent: already submitted
+        await supabase.from('review_prompt_state').upsert({
+          user_id: effectiveUserId,
+          status: 'submitted',
+          submitted_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        });
+        return res.json({ success: true, message: 'Review already submitted' });
+      }
     }
 
     // Insert into reviews table
     const nowIso = new Date().toISOString();
     const { error: insertError } = await supabase.from('reviews').insert({
-      user_id: userId,
+      user_id: effectiveUserId,
       rating: parsedRating,
       comment: trimmedComment,
       created_at: nowIso,
@@ -277,19 +278,21 @@ router.post('/submit', async (req: AuthenticatedRequest, res: Response) => {
       return res.status(500).json({ error: 'Failed to save review. Please try again.' });
     }
 
-    // Permanently mark user state as 'submitted'
-    const { error: stateError } = await supabase.from('review_prompt_state').upsert({
-      user_id: userId,
-      status: 'submitted',
-      submitted_at: nowIso,
-      updated_at: nowIso,
-    });
-
-    if (stateError) {
-      console.warn('[reviewRoutes] Warning updating prompt state after submission:', stateError);
+    // Permanently mark user state as 'submitted' if logged in
+    if (effectiveUserId) {
+      try {
+        await supabase.from('review_prompt_state').upsert({
+          user_id: effectiveUserId,
+          status: 'submitted',
+          submitted_at: nowIso,
+          updated_at: nowIso,
+        });
+      } catch (e) {
+        console.warn('[reviewRoutes] Warning updating prompt state after submission:', e);
+      }
     }
 
-    res.json({
+    return res.json({
       success: true,
       message: 'Review submitted successfully',
     });

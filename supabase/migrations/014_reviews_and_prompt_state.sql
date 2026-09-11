@@ -4,13 +4,12 @@
 -- 1. Reviews Table (Stores private user feedback for the app owner)
 CREATE TABLE IF NOT EXISTS reviews (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
     rating SMALLINT CHECK (rating >= 1 AND rating <= 5),
     comment TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    CONSTRAINT review_has_content CHECK (rating IS NOT NULL OR (comment IS NOT NULL AND trim(comment) <> '')),
-    CONSTRAINT unique_user_review UNIQUE (user_id)
+    CONSTRAINT review_has_content CHECK (rating IS NOT NULL OR (comment IS NOT NULL AND trim(comment) <> ''))
 );
 
 -- Index on user_id for high-efficiency lookups
