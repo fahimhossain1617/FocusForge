@@ -114,6 +114,45 @@ export default function FocusPage() {
     };
   }, [activeSessionId, timer.remaining, registerFocusLock, unregisterFocusLock]);
 
+  // Auto-launch focus session if triggered from AI Agent Explore button
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("focusforge_pending_focus_launch");
+      if (raw) {
+        localStorage.removeItem("focusforge_pending_focus_launch");
+        const data = JSON.parse(raw);
+        if (data && (data.durationMinutes > 0 || data.workMinutes > 0)) {
+          const mins = Number(data.durationMinutes || data.workMinutes || 25);
+          const taskName = data.taskName || (state.lang === "bn" ? "ডিপ ওয়ার্ক সেশন" : "Deep Work Session");
+          const category = data.category || "Study";
+
+          setSelectedTask({ id: 0, name: taskName, category });
+          setShowTaskError(false);
+          setShowDurationError(false);
+          setExitAttempts(0);
+          saveToHistory(taskName);
+
+          timer.setPreset(mins);
+          const sessionId = startFocusSession(taskName, category, undefined, mins);
+          setActiveSessionId(sessionId);
+          
+          setTimeout(() => {
+            timer.start();
+          }, 150);
+
+          showToast(
+            state.lang === "bn"
+              ? `${mins} মিনিটের ফোকাস সেশন স্বয়ংক্রিয়ভাবে শুরু হয়েছে!`
+              : `${mins}m Focus session started automatically!`,
+            "success"
+          );
+        }
+      }
+    } catch (err) {
+      console.warn("[FocusPage] Error auto-launching focus session:", err);
+    }
+  }, [saveToHistory, startFocusSession, timer, showToast, state.lang]);
+
   // App Switch / Tab Switch Detection: If user leaves app and comes back, trigger motivation modal
   useEffect(() => {
     if (!activeSessionId) return;

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Check, ChevronDown, Mic, Send, MoreVertical, Trash2, Calendar, Sparkles, AlertCircle, LogIn, MessageSquarePlus } from "lucide-react";
+import { Check, ChevronDown, Mic, Send, MoreVertical, Trash2, Calendar, Sparkles, AlertCircle, LogIn, MessageSquarePlus, Compass, CheckCircle2 } from "lucide-react";
 import { useAppContext } from "@/context/AppContext";
 import { useAuth } from "@/context/AuthContext";
 import { useAIAgent } from "@/hooks/useAIAgent";
@@ -31,7 +31,13 @@ const quickActionsEn = [
   "Start 25m Focus Session",
   "Learn a New Skill"
 ];
-const modelOptions: { value: AIAgentModel; label: string }[] = [
+const modelOptionsBn: { value: AIAgentModel; label: string }[] = [
+  { value: "smart", label: "FocusForge Smart" },
+  { value: "fast", label: "Fast Response (দ্রুত)" },
+  { value: "planning", label: "Deep Planning (গভীর)" },
+];
+
+const modelOptionsEn: { value: AIAgentModel; label: string }[] = [
   { value: "smart", label: "FocusForge Smart" },
   { value: "fast", label: "Fast Response" },
   { value: "planning", label: "Deep Planning" },
@@ -192,10 +198,93 @@ export function AIAgentPage() {
     };
   }, []);
 
+  const appliedPayloadsRef = useRef<Set<string>>(new Set());
+
+  const applyPayloadToApp = useCallback((msgId: string, intent: string | undefined, payload: any) => {
+    if (!payload || !intent || appliedPayloadsRef.current.has(msgId)) return;
+    appliedPayloadsRef.current.add(msgId);
+
+    const fallbackDate = payload.targetDate || new Date().toISOString().split('T')[0];
+
+    if (intent === 'PLANNER_CREATE') {
+      const tasks = Array.isArray(payload.tasks) ? payload.tasks : [payload];
+      tasks.forEach((t: any, idx: number) => {
+        const totalMins = t.estimatedMinutes || 45;
+        const taskId = Date.now() + idx + Math.floor(Math.random() * 1000);
+        const taskDate = t.targetDate || fallbackDate;
+        const taskTitle = t.title || (isSystemBn ? 'নতুন স্টাডি টাস্ক' : 'New Study Task');
+        const startHour = 10 + (idx * 2);
+        const startTime = t.time || `${String(startHour).padStart(2, '0')}:00`;
+        const endHour = startHour + Math.max(1, Math.ceil(totalMins / 60));
+        const endTime = `${String(endHour).padStart(2, '0')}:00`;
+
+        addTask({
+          id: taskId,
+          name: taskTitle,
+          title: taskTitle,
+          priority: t.priority || 'medium',
+          estHours: Math.floor(totalMins / 60),
+          estMinutes: totalMins % 60,
+          targetDate: taskDate,
+          date: taskDate,
+          time: startTime,
+          category: 'Study',
+          status: 'not_started',
+          notes: t.enableNotification ? '[Notification Reminders: ON]' : '',
+          tier: 'now'
+        });
+
+        addTimeBlock({
+          date: taskDate,
+          startTime: startTime,
+          endTime: endTime,
+          label: taskTitle,
+          category: 'Study',
+          isBreak: false,
+          taskId: taskId,
+        });
+      });
+      showToast(isSystemBn ? 'টাস্ক ও স্টাডি প্ল্যান সফলভাবে প্ল্যানারে যুক্ত হয়েছে!' : 'Tasks & schedule added to Planner!', 'success');
+    } else if (intent === 'NOTES_FILES') {
+      addNote({
+        title: payload.title || (isSystemBn ? 'নতুন স্টাডি নোট' : 'New Study Note'),
+        blocks: [{
+          id: 'block_' + Date.now(),
+          type: 'paragraph',
+          content: payload.content || ''
+        }],
+        category: 'AI Generated',
+      });
+      showToast(isSystemBn ? 'নোটটি সফলভাবে নোটস ও ফাইলস-এ যুক্ত হয়েছে!' : 'Note added to Notes & Files!', 'success');
+    } else if (intent === 'PROBLEM_SOLVER') {
+      const content = `[Problem]: ${payload.problem || ''}\n\nSteps:\n${(payload.solutionSteps || []).map((s: string, idx: number) => `${idx + 1}. ${s}`).join('\n')}`;
+      addMindItem(content, 'problem_solver');
+      showToast(isSystemBn ? 'সমাধান পরিকল্পনা মাইন্ড ট্র্যাকারে যুক্ত হয়েছে!' : 'Solution added to Mind Hub!', 'success');
+    } else if (intent === 'IDEA_CAPTURE') {
+      const content = `[Idea]: ${payload.idea || ''}\n\nKey Points:\n${(payload.keyPoints || []).map((k: string) => `- ${k}`).join('\n')}`;
+      addMindItem(content, 'idea_capture');
+      showToast(isSystemBn ? 'আইডিয়াটি মাইন্ড ট্র্যাকারে যুক্ত হয়েছে!' : 'Idea saved to Mind Hub!', 'success');
+    } else if (intent === 'FOCUS_SESSION') {
+      const mins = payload.durationMinutes || 25;
+      const taskName = payload.goal || (isSystemBn ? 'ডিপ ওয়ার্ক সেশন' : 'Deep Work Session');
+      localStorage.setItem('focusforge_pending_focus_launch', JSON.stringify({
+        taskName,
+        category: 'Study',
+        durationMinutes: mins,
+        autoStart: true,
+        timestamp: Date.now()
+      }));
+      showToast(isSystemBn ? `${mins} মিনিটের ফোকাস সেশন প্রস্তুত হয়েছে!` : `${mins}m Focus session ready!`, 'success');
+    }
+  }, [addTask, addTimeBlock, addNote, addMindItem, showToast, isSystemBn]);
+
   const submit = async (value = input) => { 
     if (!value.trim() || guestLimitExceeded) return; 
     setInput(""); 
-    await send(value, language); 
+    const aiMsg = await send(value, language, model); 
+    if (aiMsg?.payload && aiMsg.intent && aiMsg.intent !== 'GREETING_OR_GENERAL') {
+      applyPayloadToApp(aiMsg.id, aiMsg.intent, aiMsg.payload);
+    }
   };
   
   const startVoice = () => {
@@ -345,104 +434,26 @@ export function AIAgentPage() {
                 {message.payload && message.intent === 'PLANNER_CREATE' && (
                   <div className={styles.proposal}>
                     <div>
+                      <div className={styles.proposalSuccessBadge}>
+                        <CheckCircle2 size={12} />
+                        <span>{isSystemBn ? 'প্ল্যানারে সফলভাবে যুক্ত হয়েছে' : 'Successfully Added to Planner'}</span>
+                      </div>
                       <strong>
                         {isSystemBn ? 'স্টাডি / টাস্ক প্ল্যান' : 'Planner Tasks'}
                       </strong>
                       <span>
                         {Array.isArray(message.payload.tasks) 
-                          ? `${message.payload.tasks.length} ${isSystemBn ? 'টি টাস্ক পাওয়া গেছে' : 'tasks generated'}`
-                          : (message.payload.title || 'New Task')}
+                          ? `${message.payload.tasks.length} ${isSystemBn ? 'টি টাস্ক যুক্ত করা হয়েছে' : 'tasks scheduled in planner'}`
+                          : (message.payload.title || 'Study Task')}
                       </span>
                     </div>
                     <div className={styles.proposalActions}>
-                      <button className={styles.confirm} onClick={() => {
-                        const fallbackDate = message.payload.targetDate || new Date().toISOString().split('T')[0];
-                        if (Array.isArray(message.payload.tasks)) {
-                          message.payload.tasks.forEach((t: any, idx: number) => {
-                            const totalMins = t.estimatedMinutes || 60;
-                            const taskId = Date.now() + idx + Math.floor(Math.random() * 1000);
-                            const taskDate = t.targetDate || fallbackDate;
-                            const taskTitle = t.title || 'New Study Task';
-                            
-                            const startHour = 10 + (idx * 2);
-                            const startTime = t.time || `${String(startHour).padStart(2, '0')}:00`;
-                            const endHour = startHour + Math.max(1, Math.ceil(totalMins / 60));
-                            const endTime = `${String(endHour).padStart(2, '0')}:00`;
-
-                            addTask({
-                              id: taskId,
-                              name: taskTitle,
-                              title: taskTitle,
-                              priority: t.priority || 'medium',
-                              estHours: Math.floor(totalMins / 60),
-                              estMinutes: totalMins % 60,
-                              targetDate: taskDate,
-                              date: taskDate,
-                              time: startTime,
-                              category: 'Study',
-                              status: 'not_started',
-                              notes: t.enableNotification ? '[Notification Reminders: ON]' : '',
-                              tier: 'now'
-                            });
-
-                            addTimeBlock({
-                              date: taskDate,
-                              startTime: startTime,
-                              endTime: endTime,
-                              label: taskTitle,
-                              category: 'Study',
-                              isBreak: false,
-                              taskId: taskId,
-                            });
-                          });
-                          showToast(isSystemBn ? 'সবগুলো টাস্ক ও রুটিন ব্লকে সফলভাবে প্ল্যানারে যুক্ত হয়েছে!' : 'Tasks & time blocks added to your planner!', "success");
-                        } else {
-                          const totalMins = message.payload.estimatedMinutes || 60;
-                          const taskId = Date.now() + Math.floor(Math.random() * 1000);
-                          const taskDate = message.payload.targetDate || fallbackDate;
-                          const taskTitle = message.payload.title || 'New Study Task';
-                          const startTime = message.payload.time || "10:00";
-                          const endTime = "11:00";
-
-                          addTask({
-                            id: taskId,
-                            name: taskTitle,
-                            title: taskTitle,
-                            priority: message.payload.priority || 'medium',
-                            estHours: Math.floor(totalMins / 60),
-                            estMinutes: totalMins % 60,
-                            targetDate: taskDate,
-                            date: taskDate,
-                            time: startTime,
-                            category: 'Study',
-                            status: 'not_started',
-                            notes: message.payload.enableNotification ? '[Notification Reminders: ON]' : '',
-                            tier: 'now'
-                          });
-
-                          addTimeBlock({
-                            date: taskDate,
-                            startTime: startTime,
-                            endTime: endTime,
-                            label: taskTitle,
-                            category: 'Study',
-                            isBreak: false,
-                            taskId: taskId,
-                          });
-                          showToast(isSystemBn ? 'টাস্ক ও রুটিন ব্লক সফলভাবে প্ল্যানারে যুক্ত হয়েছে!' : 'Task & time block added to your planner!', "success");
-                        }
-                        setMessages(items => items.map(i => i.id === message.id ? { ...i, payload: null } : i));
-                        setTimeout(() => {
-                          navigateTo('planner');
-                        }, 1500);
-                      }}>
-                        <Check size={14} /> {isSystemBn ? 'অটোমেটিক যুক্ত করুন' : 'Auto Add'}
-                      </button>
-                      <button className={styles.secondary} onClick={() => {
+                      <button className={styles.exploreBtn} onClick={() => {
+                        applyPayloadToApp(message.id, message.intent, message.payload);
                         showToast(isSystemBn ? 'প্ল্যানার খোলা হচ্ছে...' : 'Opening Planner...', 'info');
                         navigateTo('planner');
                       }}>
-                        <Calendar size={14} /> {isSystemBn ? 'ম্যানুয়ালি দেখুন' : 'Manual View'}
+                        <Compass size={14} /> {isSystemBn ? 'এক্সপ্লোর করুন (প্ল্যানার দেখুন)' : 'Explore Planner'}
                       </button>
                     </div>
                   </div>
@@ -452,20 +463,20 @@ export function AIAgentPage() {
                 {message.payload && message.intent === 'PROBLEM_SOLVER' && (
                   <div className={styles.proposal}>
                     <div>
+                      <div className={styles.proposalSuccessBadge}>
+                        <CheckCircle2 size={12} />
+                        <span>{isSystemBn ? 'মাইন্ড ট্র্যাকার সেভ হয়েছে' : 'Saved to Mind Hub'}</span>
+                      </div>
                       <strong>{isSystemBn ? 'সমস্যা সমাধান' : 'Problem Solver'}</strong>
                       <span>{message.payload.problem || 'Action plan ready'}</span>
                     </div>
                     <div className={styles.proposalActions}>
-                      <button className={styles.confirm} onClick={() => {
-                        const content = `[Problem]: ${message.payload.problem || ''}\n\nSteps:\n${(message.payload.solutionSteps || []).map((s: string, idx: number) => `${idx + 1}. ${s}`).join('\n')}`;
-                        addMindItem(content, 'problem_solver');
-                        showToast(isSystemBn ? 'সমস্যা মাইন্ডে সেভ করা হয়েছে' : 'Saved to Problem Solver!', 'success');
-                        setMessages(items => items.map(i => i.id === message.id ? { ...i, payload: null } : i));
-                        setTimeout(() => {
-                          navigateTo('mind');
-                        }, 1500);
+                      <button className={styles.exploreBtn} onClick={() => {
+                        applyPayloadToApp(message.id, message.intent, message.payload);
+                        showToast(isSystemBn ? 'মাইন্ড হাব খোলা হচ্ছে...' : 'Opening Mind Hub...', 'info');
+                        navigateTo('mind');
                       }}>
-                        <Check size={14} /> {isSystemBn ? 'সেভ করুন' : 'Save'}
+                        <Compass size={14} /> {isSystemBn ? 'এক্সপ্লোর করুন (মাইন্ড দেখুন)' : 'Explore Mind Hub'}
                       </button>
                     </div>
                   </div>
@@ -475,20 +486,20 @@ export function AIAgentPage() {
                 {message.payload && message.intent === 'IDEA_CAPTURE' && (
                   <div className={styles.proposal}>
                     <div>
+                      <div className={styles.proposalSuccessBadge}>
+                        <CheckCircle2 size={12} />
+                        <span>{isSystemBn ? 'আইডিয়া বক্সে যুক্ত হয়েছে' : 'Saved to Ideas'}</span>
+                      </div>
                       <strong>{isSystemBn ? 'আইডিয়া ক্যাপচার' : 'Idea Capture'}</strong>
                       <span>{message.payload.idea || 'Creative thought'}</span>
                     </div>
                     <div className={styles.proposalActions}>
-                      <button className={styles.confirm} onClick={() => {
-                        const content = `[Idea]: ${message.payload.idea || ''}\n\nKey Points:\n${(message.payload.keyPoints || []).map((k: string) => `- ${k}`).join('\n')}`;
-                        addMindItem(content, 'idea_capture');
-                        showToast(isSystemBn ? 'আইডিয়া সেভ করা হয়েছে' : 'Saved to Ideas!', 'success');
-                        setMessages(items => items.map(i => i.id === message.id ? { ...i, payload: null } : i));
-                        setTimeout(() => {
-                          navigateTo('mind');
-                        }, 1500);
+                      <button className={styles.exploreBtn} onClick={() => {
+                        applyPayloadToApp(message.id, message.intent, message.payload);
+                        showToast(isSystemBn ? 'মাইন্ড আইডিয়া খোলা হচ্ছে...' : 'Opening Mind Ideas...', 'info');
+                        navigateTo('mind');
                       }}>
-                        <Check size={14} /> {isSystemBn ? 'সেভ করুন' : 'Save'}
+                        <Compass size={14} /> {isSystemBn ? 'এক্সপ্লোর করুন (আইডিয়া দেখুন)' : 'Explore Ideas'}
                       </button>
                     </div>
                   </div>
@@ -498,27 +509,20 @@ export function AIAgentPage() {
                 {message.payload && message.intent === 'NOTES_FILES' && (
                   <div className={styles.proposal}>
                     <div>
+                      <div className={styles.proposalSuccessBadge}>
+                        <CheckCircle2 size={12} />
+                        <span>{isSystemBn ? 'নোটস ও ফাইলসে যুক্ত হয়েছে' : 'Saved to Notes & Files'}</span>
+                      </div>
                       <strong>{isSystemBn ? 'নোটস ও ফাইলস' : 'Notes & Files'}</strong>
                       <span>{message.payload.title || 'New Note'}</span>
                     </div>
                     <div className={styles.proposalActions}>
-                      <button className={styles.confirm} onClick={() => {
-                        addNote({
-                          title: message.payload.title || 'AI Note',
-                          blocks: [{
-                            id: 'block_' + Date.now(),
-                            type: 'paragraph',
-                            content: message.payload.content || ''
-                          }],
-                          category: 'AI Generated',
-                        });
-                        showToast(isSystemBn ? 'নোট তৈরি হয়েছে!' : 'Note created successfully!', 'success');
-                        setMessages(items => items.map(i => i.id === message.id ? { ...i, payload: null } : i));
-                        setTimeout(() => {
-                          navigateTo('tasks');
-                        }, 1500);
+                      <button className={styles.exploreBtn} onClick={() => {
+                        applyPayloadToApp(message.id, message.intent, message.payload);
+                        showToast(isSystemBn ? 'নোটস ও ফাইলস খোলা হচ্ছে...' : 'Opening Notes...', 'info');
+                        navigateTo('tasks');
                       }}>
-                        <Check size={14} /> {isSystemBn ? 'নোট সেভ ও খুলুন' : 'Save & Open Notes'}
+                        <Compass size={14} /> {isSystemBn ? 'এক্সপ্লোর করুন (নোটস দেখুন)' : 'Explore Notes'}
                       </button>
                     </div>
                   </div>
@@ -528,24 +532,28 @@ export function AIAgentPage() {
                 {message.payload && message.intent === 'FOCUS_SESSION' && (
                   <div className={styles.proposal}>
                     <div>
+                      <div className={styles.proposalSuccessBadge}>
+                        <CheckCircle2 size={12} />
+                        <span>{isSystemBn ? 'ফোকাস সেশন প্রস্তুত' : 'Focus Session Ready'}</span>
+                      </div>
                       <strong>{isSystemBn ? 'ফোকাস সেশন' : 'Focus Session'}</strong>
-                      <span>{message.payload.durationMinutes || 25} min • {message.payload.goal || 'Deep Work'}</span>
+                      <span>{message.payload.durationMinutes || 25} min • {message.payload.goal || (isSystemBn ? 'ডিপ ওয়ার্ক' : 'Deep Work')}</span>
                     </div>
                     <div className={styles.proposalActions}>
-                      <button className={styles.confirm} onClick={() => {
-                        startFocusSession(
-                          message.payload.goal || 'Deep Work Session',
-                          'Study',
-                          undefined,
-                          message.payload.durationMinutes || 25
-                        );
-                        showToast(isSystemBn ? 'ফোকাস সেশন শুরু হয়েছে!' : 'Focus session started!', 'success');
-                        setMessages(items => items.map(i => i.id === message.id ? { ...i, payload: null } : i));
-                        setTimeout(() => {
-                          navigateTo('focus');
-                        }, 1500);
+                      <button className={styles.exploreBtn} onClick={() => {
+                        const mins = message.payload.durationMinutes || 25;
+                        const taskName = message.payload.goal || (isSystemBn ? 'ডিপ ওয়ার্ক সেশন' : 'Deep Work Session');
+                        localStorage.setItem('focusforge_pending_focus_launch', JSON.stringify({
+                          taskName,
+                          category: 'Study',
+                          durationMinutes: mins,
+                          autoStart: true,
+                          timestamp: Date.now()
+                        }));
+                        showToast(isSystemBn ? 'ফোকাস টাইমার শুরু করা হচ্ছে...' : 'Starting Focus Mode...', 'info');
+                        navigateTo('focus');
                       }}>
-                        <Check size={14} /> {isSystemBn ? 'টাইমার শুরু' : 'Start'}
+                        <Compass size={14} /> {isSystemBn ? 'এক্সপ্লোর করুন (সেশন শুরু করুন)' : 'Explore (Start Focus)'}
                       </button>
                     </div>
                   </div>
@@ -555,15 +563,19 @@ export function AIAgentPage() {
                 {message.payload && message.intent === 'LEARNING_HUB' && (
                   <div className={styles.proposal}>
                     <div>
+                      <div className={styles.proposalSuccessBadge}>
+                        <CheckCircle2 size={12} />
+                        <span>{isSystemBn ? 'লার্নিং হাবে যুক্ত হয়েছে' : 'Ready in Learning Hub'}</span>
+                      </div>
                       <strong>{isSystemBn ? 'স্কিল বিল্ডার' : 'Skill Builder'}</strong>
                       <span>{message.payload.skillName || 'Skill'} • {message.payload.learningTopic || 'Track Learning'}</span>
                     </div>
                     <div className={styles.proposalActions}>
-                      <button className={styles.confirm} onClick={() => {
+                      <button className={styles.exploreBtn} onClick={() => {
                         showToast(isSystemBn ? 'স্কিল বিল্ডার খোলা হচ্ছে...' : 'Opening Learning Hub...', 'info');
                         navigateTo('learning');
                       }}>
-                        <Check size={14} /> {isSystemBn ? 'হাব খুলুন' : 'Open'}
+                        <Compass size={14} /> {isSystemBn ? 'এক্সপ্লোর করুন (লার্নিং হাব)' : 'Explore Learning Hub'}
                       </button>
                     </div>
                   </div>
@@ -668,7 +680,7 @@ export function AIAgentPage() {
           />
           <div className={styles.controls}>
             <div className={styles.selectGroup}>
-              <CustomSelect label="AI model" value={model} options={modelOptions} onChange={setModel} />
+              <CustomSelect label={isSystemBn ? "এআই মডেল" : "AI model"} value={model} options={isSystemBn ? modelOptionsBn : modelOptionsEn} onChange={setModel} />
             </div>
             <div className={styles.composeActions}>
               <button

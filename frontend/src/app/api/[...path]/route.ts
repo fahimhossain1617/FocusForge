@@ -140,19 +140,24 @@ export async function POST(request: NextRequest, context: { params: Promise<{ pa
   if (pathStr === 'ai/agent/chat') {
     const tokenStatus = await getUserTokenStatus(userId, isGuest, guestId, lang);
     if (tokenStatus.isExhausted || tokenStatus.remaining <= 0) {
-      const message = lang === 'bn'
-        ? `আপনার ৫,০০০ AI টোকেন শেষ হয়ে গেছে। টোকেন রিসেট হওয়ার তারিখ: ${tokenStatus.formattedResetDate} (বাকি: ${tokenStatus.formattedRemainingTime})`
-        : `Your 5,000 AI tokens have been exhausted. Tokens will reset on: ${tokenStatus.formattedResetDate} (${tokenStatus.formattedRemainingTime} remaining)`;
+      const message = isGuest
+        ? (lang === 'bn'
+            ? `আপনার ১,০০০ গেস্ট AI টোকেন শেষ হয়ে গেছে। ৫,০০০ টোকেন ও ক্লাউড সেভ সুবিধা পেতে অনুগ্রহ করে লগইন করুন।`
+            : `Your 1,000 guest AI tokens have been exhausted. Please log in to unlock 5,000 tokens and cloud sync.`)
+        : (lang === 'bn'
+            ? `আপনার ৫,০০০ AI টোকেন শেষ হয়ে গেছে। টোকেন রিসেট হওয়ার তারিখ: ${tokenStatus.formattedResetDate} (বাকি: ${tokenStatus.formattedRemainingTime})। নির্ধারিত সময় পর আবার চেষ্টা করুন, FocusForge AI আপনাকে সাহায্য করার জন্য প্রস্তুত থাকবে!`
+            : `Your 5,000 AI tokens have been exhausted. Tokens will reset on: ${tokenStatus.formattedResetDate} (${tokenStatus.formattedRemainingTime} remaining). Please try again after reset!`);
 
       return NextResponse.json({
         error: 'AI_TOKENS_EXHAUSTED',
         code: 'TOKENS_EXHAUSTED',
         tokenStatus,
+        requireLogin: isGuest,
         message,
       }, { status: 429 });
     }
 
-    const { sessionId: requestedSessionId, message: userMsg, context: wsContext, history } = body;
+    const { sessionId: requestedSessionId, message: userMsg, context: wsContext, history, model: selectedModel } = body;
     
     // Fetch prior messages from Supabase if not provided in request history
     let chatHistory = history || [];
@@ -172,6 +177,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ pa
       context: wsContext,
       history: chatHistory,
       currentDate: new Date().toISOString().split('T')[0],
+      model: selectedModel || 'smart',
     };
 
     let rawResult: any;
@@ -188,7 +194,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ pa
       };
     }
 
-    const tokensUsed = estimateTokenUsage(JSON.stringify(aiPayload), JSON.stringify(rawResult));
+    const tokensUsed = estimateTokenUsage(JSON.stringify(aiPayload), JSON.stringify(rawResult), selectedModel || 'smart');
     const updatedTokens = await consumeUserTokens(userId, isGuest, guestId, tokensUsed, lang);
 
     // Save or update session in Supabase
