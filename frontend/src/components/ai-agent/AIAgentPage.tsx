@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Check, ChevronDown, Mic, Send, MoreVertical, Trash2, Calendar, Sparkles, AlertCircle, LogIn, MessageSquarePlus, Compass, CheckCircle2, Clock } from "lucide-react";
+import { Check, ChevronDown, Mic, Send, Square, MoreVertical, Trash2, Calendar, Sparkles, AlertCircle, LogIn, MessageSquarePlus, Compass, CheckCircle2, Clock } from "lucide-react";
 import { useAppContext } from "@/context/AppContext";
 import { useAuth } from "@/context/AuthContext";
 import { useAIAgent } from "@/hooks/useAIAgent";
@@ -149,7 +149,7 @@ export function AIAgentPage() {
   }, [state?.lang]);
 
   const context = useMemo(() => ({ tasks: state.tasks, notesCount: state.notes.length, timeBlocksCount: state.timeBlocks.length, productivityScore: state.productivityScore }), [state.tasks, state.notes.length, state.timeBlocks.length, state.productivityScore]);
-  const { messages, sessions, activeSessionId, tokenStatus, isThinking, error, send, setMessages, createNewSession, selectSession, removeSession, guestLimitExceeded } = useAIAgent(context, isSystemBn ? "bn" : "en");
+  const { messages, sessions, activeSessionId, tokenStatus, isThinking, stopGeneration, error, send, setMessages, createNewSession, selectSession, removeSession, guestLimitExceeded } = useAIAgent(context, isSystemBn ? "bn" : "en");
   const name = user?.fullName || user?.displayName || "there";
   const quickActions = isSystemBn ? quickActionsBn : quickActionsEn;
   
@@ -785,14 +785,28 @@ export function AIAgentPage() {
               >
                 <Mic size={18} />
               </button>
-              <button
-                className={styles.sendButton}
-                onClick={() => submit()}
-                disabled={!input.trim() || isThinking}
-                aria-label="Send message"
-              >
-                <Send size={17} />
-              </button>
+              {isThinking ? (
+                <button
+                  type="button"
+                  className={`${styles.sendButton} ${styles.stopButton}`}
+                  onClick={stopGeneration}
+                  aria-label={isSystemBn ? "থামুন" : "Stop generation"}
+                  title={isSystemBn ? "থামুন (Stop generation)" : "Stop generation"}
+                >
+                  <Square size={13} fill="currentColor" />
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className={styles.sendButton}
+                  onClick={() => submit()}
+                  disabled={!input.trim()}
+                  aria-label={isSystemBn ? "মেসেজ পাঠান" : "Send message"}
+                  title={isSystemBn ? "মেসেজ পাঠান" : "Send message"}
+                >
+                  <Send size={17} />
+                </button>
+              )}
             </div>
           </div>
           {error && <p className={styles.error}>{error}</p>}

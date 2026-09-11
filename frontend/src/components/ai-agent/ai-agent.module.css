@@ -778,6 +778,34 @@
   cursor: not-allowed;
 }
 
+.stopButton {
+  background: linear-gradient(135deg, #ef4444, #dc2626) !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 16px rgba(239, 68, 68, 0.45), 0 0 0 1px rgba(248, 113, 113, 0.3) !important;
+  cursor: pointer !important;
+  opacity: 1 !important;
+  animation: stopButtonGlow 1.8s ease-in-out infinite;
+}
+
+.stopButton:hover {
+  transform: scale(1.05) translateY(-1px) !important;
+  background: linear-gradient(135deg, #f87171, #ef4444) !important;
+  box-shadow: 0 6px 22px rgba(239, 68, 68, 0.65), 0 0 0 2px rgba(254, 202, 202, 0.4) !important;
+}
+
+.stopButton:active {
+  transform: scale(0.95) !important;
+}
+
+@keyframes stopButtonGlow {
+  0%, 100% {
+    box-shadow: 0 4px 16px rgba(239, 68, 68, 0.45), 0 0 0 1px rgba(248, 113, 113, 0.3);
+  }
+  50% {
+    box-shadow: 0 6px 20px rgba(239, 68, 68, 0.7), 0 0 0 2px rgba(248, 113, 113, 0.5);
+  }
+}
+
 .error {
   padding: 7px 5px 0;
   color: #fca5a5;

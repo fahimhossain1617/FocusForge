@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState, useEffect } from "react";
+import { useCallback, useState, useEffect, useRef } from "react";
 import { 
   sendAgentMessage, 
   getChatSessions, 
@@ -60,6 +60,17 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
   const [tokenStatus, setTokenStatus] = useState<TokenStatus | null>(null);
   const [isThinking, setIsThinking] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
+
+  const stopGeneration = useCallback(() => {
+    if (abortControllerRef.current) {
+      try {
+        abortControllerRef.current.abort();
+      } catch {}
+      abortControllerRef.current = null;
+    }
+    setIsThinking(false);
+  }, []);
   
   // Persist current active messages & activeSessionId to memory / session
   useEffect(() => {
@@ -285,13 +296,16 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
     setMessages((items) => [...items, userMsg]); 
     setIsThinking(true);
     
+    const abortController = new AbortController();
+    abortControllerRef.current = abortController;
+
     try { 
       const history = messages.slice(-8).map((m) => ({ role: m.role, content: m.content }));
       const banglishRegex = /\b(ami|amar|tumi|tomar|apni|apnar|korbo|korchi|korte|chai|dorkar|shikhbo|hobe|kemon|achho|achen|bhalo|parbo|ki|kibhabe|kothay|kokhon|porbo|porte|porashona|ajke|aajke|ekhon|shuru|routine)\b/i;
       const isContentBengali = /[\u0980-\u09FF]/.test(content) || banglishRegex.test(content);
       const isContentPureEnglish = /^[a-zA-Z0-9\s.,!?'"()-]+$/.test(content.trim()) && !banglishRegex.test(content);
       const langParam = isContentBengali ? "bn" : (isContentPureEnglish ? "en" : (language === "en" ? "en" : "bn"));
-      const result = await sendAgentMessage(content, context, activeSessionId || undefined, history, langParam, model); 
+      const result = await sendAgentMessage(content, context, activeSessionId || undefined, history, langParam, model, abortController.signal); 
       
       // Update token status if returned
       if (result.tokenStatus) {
@@ -365,6 +379,11 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
       return normalizedAiMessage;
     }
     catch (err: any) { 
+      if (err?.name === 'AbortError' || abortController.signal.aborted) {
+        // User aborted/stopped generation: exit cleanly without printing error banner
+        return;
+      }
+
       console.error("AI send error:", err);
       if (err.tokenStatus) {
         setTokenStatus(err.tokenStatus);
@@ -404,6 +423,7 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
     }
     finally { 
       setIsThinking(false); 
+      abortControllerRef.current = null;
     }
   }, [context, activeSessionId, messages, tokenStatus, isGuest, user]);
 
@@ -416,6 +436,7 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
     tokenStatus,
     refreshTokenStatus,
     isThinking, 
+    stopGeneration,
     error, 
     send, 
     setMessages,
