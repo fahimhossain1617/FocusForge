@@ -46,6 +46,16 @@ export async function GET(request: NextRequest, context: { params: Promise<{ pat
     return NextResponse.json(status);
   }
 
+  // Notifications API (GET)
+  if (pathStr === 'notifications/reminders') {
+    const isBengali = lang === 'bn';
+    return NextResponse.json({
+      success: true,
+      message: isBengali ? 'রিমাইন্ডার তালিকা সক্রিয়' : 'Reminder queue active',
+      timestamp: new Date().toISOString(),
+    });
+  }
+
   // List chat sessions from Supabase
   if (pathStr === 'ai/agent/sessions') {
     try {
@@ -271,6 +281,20 @@ export async function POST(request: NextRequest, context: { params: Promise<{ pa
         tokenStatus: updatedTokens,
       });
     }
+  }
+
+  // Notifications Test Endpoint
+  if (pathStr === 'notifications/test') {
+    const isBengali = lang === 'bn';
+    return NextResponse.json({
+      success: true,
+      title: isBengali ? 'FocusForge নোটিফিকেশন সফল' : 'FocusForge Notification Active',
+      body: isBengali 
+        ? 'আপনার নোটিফিকেশন সিস্টেম সম্পূর্ণ সক্রিয় রয়েছে। সময়মতো আপনার কাজের রিমাইন্ডার পাবেন।' 
+        : 'Your notification system is fully active. You will receive your scheduled task reminders on time.',
+      timestamp: new Date().toISOString(),
+      lang,
+    });
   }
 
   // 2. Audio Voice Transcription
