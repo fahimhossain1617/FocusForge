@@ -509,6 +509,23 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     focusLockRef.current = { isLocked: false };
   }, []);
 
+  // ==================== Review System Meaningful Action Tracking ====================
+  const recentActionTimesRef = useRef<Map<string, number>>(new Map());
+
+  const trackMeaningfulAction = useCallback((actionType: string) => {
+    const now = Date.now();
+    const lastTime = recentActionTimesRef.current.get(actionType) || 0;
+    if (now - lastTime < 1500) {
+      return; // Deduplicate rapid clicks of the exact same action within 1.5 seconds
+    }
+    recentActionTimesRef.current.set(actionType, now);
+
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("focusforge:action", { detail: actionType }));
+    }
+    reviewService.recordAction().catch(() => {});
+  }, []);
+
   const navigateTo = useCallback((page: string) => {
     if (focusLockRef.current.isLocked && focusLockRef.current.onAttemptExit) {
       const allowed = focusLockRef.current.onAttemptExit(page);
@@ -525,13 +542,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     setState((prev) => {
       if (prev.activePage === page) return prev;
+      trackMeaningfulAction('feature_' + page);
       setIsPageLoading(true);
       setTimeout(() => {
         setIsPageLoading(false);
       }, 160);
       return { ...prev, activePage: page };
     });
-  }, []);
+  }, [trackMeaningfulAction]);
 
   // ==================== Toast ====================
 
@@ -598,18 +616,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     };
   }, [state, showToast]);
 
-  // ==================== Review System Meaningful Action Tracking ====================
-  const recentActionTimesRef = useRef<Map<string, number>>(new Map());
-
-  const trackMeaningfulAction = useCallback((actionType: string) => {
-    const now = Date.now();
-    const lastTime = recentActionTimesRef.current.get(actionType) || 0;
-    if (now - lastTime < 15000) {
-      return; // Deduplicate rapid clicks within 15 seconds
-    }
-    recentActionTimesRef.current.set(actionType, now);
-    reviewService.recordAction().catch(() => {});
-  }, []);
 
   // ==================== Mind Items ====================
 
@@ -741,8 +747,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         return { ...t, status, completed: status === 'completed', updatedAt: new Date().toISOString() };
       }),
     }));
+    trackMeaningfulAction('check_task');
     updateTaskInBackend(id, { status: nextStatus, completed: (nextStatus as string) === 'completed' }).catch(() => {});
-  }, []);
+  }, [trackMeaningfulAction]);
 
   const setDailyBig3 = useCallback((taskIds: number[]) => {
     const today = todayStr();
