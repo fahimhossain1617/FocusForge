@@ -643,14 +643,14 @@ export function AIAgentPage() {
               {guestLimitExceeded ? (
                 <span>
                   {isSystemBn 
-                    ? "আপনার ১,০০০ গেস্ট AI টোকেন শেষ হয়ে গেছে। ৫,০০০ টোকেন পেতে লগইন করুন।" 
-                    : "You've reached your 1,000 guest token limit. Log in to unlock 5,000 tokens."}
+                    ? "আপনার গেস্ট লিমিট শেষ হয়ে গেছে। সম্পূর্ণ সুবিধা ও ব্যবহার চালিয়ে যেতে লগইন করুন।" 
+                    : "Your guest limit has been reached. Please log in to continue."}
                 </span>
               ) : (
                 <span>
                   {isSystemBn 
-                    ? `দৈনিক ৫,০০০ AI টোকেন লিমিট শেষ। রিসেট হওয়ার সময়: ${tokenStatus.formattedResetDate || 'আগামীকাল'} (${tokenStatus.formattedRemainingTime || '২৪ ঘণ্টা'} বাকি)।`
-                    : `Daily 5,000 AI token limit reached. Resets on: ${tokenStatus.formattedResetDate || 'tomorrow'} (${tokenStatus.formattedRemainingTime || '24h'} remaining).`}
+                    ? `আপনার আজকের লিমিট শেষ। রিসেট হওয়ার সময়: ${tokenStatus.formattedResetDate || 'আগামীকাল'} (${tokenStatus.formattedRemainingTime || '২৪ ঘণ্টা'} বাকি)।`
+                    : `Your daily limit has been reached. Resets on: ${tokenStatus.formattedResetDate || 'tomorrow'} (${tokenStatus.formattedRemainingTime || '24h'} remaining).`}
                 </span>
               )}
             </div>

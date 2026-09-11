@@ -255,8 +255,8 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
           role: 'assistant',
           intent: 'REQUIRE_LOGIN',
           content: language === 'bn'
-            ? "আপনার ১,০০০ গেস্ট AI টোকেন শেষ হয়ে গেছে। আনলিমিটেড ৫,০০০ টোকেন ও ক্লাউড ব্যাকআপ পেতে এখনই লগইন করুন।"
-            : "Your 1,000 guest AI tokens have been exhausted. Please log in to unlock 5,000 tokens and cloud backup.",
+            ? "আপনার গেস্ট লিমিট শেষ হয়ে গেছে। আনলিমিটেড ব্যবহার ও ক্লাউড ব্যাকআপ পেতে এখনই লগইন করুন।"
+            : "Your guest limit has been reached. Please log in to unlock full access and cloud backup.",
           payload: { requireLogin: true },
           createdAt: new Date()
         };
@@ -270,8 +270,8 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
           role: 'assistant',
           intent: 'LIMIT_EXHAUSTED',
           content: language === "bn"
-            ? `আপনার আজকের ৫,০০০ AI টোকেন লিমিট শেষ হয়ে গেছে।\n\n• টোকেন রিসেট হওয়ার তারিখ: ${resetDateStr}\n• অবশিষ্ট সময়: ${remTimeStr}\n\nঅনুগ্রহ করে রিসেট হওয়া পর্যন্ত অপেক্ষা করুন। লিমিট রিসেট হওয়ার পর FocusForge AI Agent পুনরায় আপনাকে সাহায্য করতে সম্পূর্ণ প্রস্তুত থাকবে!`
-            : `Your daily 5,000 AI token limit has been exhausted.\n\n• Resets on: ${resetDateStr}\n• Remaining time: ${remTimeStr}\n\nPlease wait until the reset time. Once refreshed, FocusForge AI Agent will be fully ready to assist you!`,
+            ? `আপনার আজকের লিমিট শেষ হয়ে গেছে।\n\n• লিমিট রিসেট হওয়ার তারিখ: ${resetDateStr}\n• অবশিষ্ট সময়: ${remTimeStr}\n\nঅনুগ্রহ করে রিসেট হওয়া পর্যন্ত অপেক্ষা করুন। লিমিট রিসেট হওয়ার পর FocusForge AI Agent পুনরায় আপনাকে সাহায্য করতে সম্পূর্ণ প্রস্তুত থাকবে!`
+            : `Your daily limit has been reached.\n\n• Resets on: ${resetDateStr}\n• Remaining time: ${remTimeStr}\n\nPlease wait until the reset time. Once refreshed, FocusForge AI Agent will be fully ready to assist you!`,
           payload: { resetDate: resetDateStr, remainingTime: remTimeStr },
           createdAt: new Date()
         };
@@ -353,8 +353,8 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
             role: 'assistant',
             intent: 'REQUIRE_LOGIN',
             content: language === 'bn'
-              ? "আপনার ১,০০০ গেস্ট AI টোকেন শেষ হয়ে গেছে। আনলিমিটেড ৫,০০০ টোকেন ও ক্লাউড সেভ সুবিধা পেতে লগইন করুন।"
-              : "Your 1,000 guest AI tokens have been exhausted. Please log in to unlock 5,000 tokens and save your history.",
+              ? "আপনার গেস্ট লিমিট শেষ হয়ে গেছে। আনলিমিটেড ব্যবহার ও ক্লাউড সেভ সুবিধা পেতে লগইন করুন।"
+              : "Your guest limit has been reached. Please log in to unlock full access and save your history.",
             payload: { requireLogin: true },
             createdAt: new Date()
           };
@@ -379,8 +379,8 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
           role: "assistant",
           intent: 'REQUIRE_LOGIN',
           content: language === "bn"
-            ? "আপনার ১,০০০ গেস্ট AI টোকেন শেষ হয়ে গেছে। ৫,০০০ টোকেন ও ক্লাউড ব্যাকআপ পেতে এখনই লগইন করুন।"
-            : "Your 1,000 guest AI tokens have been exhausted. Please log in to unlock 5,000 tokens and save your history.",
+            ? "আপনার গেস্ট লিমিট শেষ হয়ে গেছে। আনলিমিটেড ব্যবহার ও ক্লাউড ব্যাকআপ পেতে এখনই লগইন করুন।"
+            : "Your guest limit has been reached. Please log in to unlock full access and save your history.",
           payload: { requireLogin: true },
           createdAt: new Date()
         };
