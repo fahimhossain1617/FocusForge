@@ -523,8 +523,12 @@ async function generateClientGeminiResponse(
   context: WorkspaceContext,
   history: Array<{ role: string; content: string }> = [],
   lang: string = "bn",
-  modelMode: AIAgentModel = "smart"
+  modelMode: AIAgentModel = "smart",
+  signal?: AbortSignal
 ): Promise<{ message: string; intent: string; payload: any }> {
+  if (signal?.aborted) {
+    throw new DOMException('Aborted', 'AbortError');
+  }
   const apiKey = (process.env.NEXT_PUBLIC_GEMINI_API_KEY || "").replace(/^["']|["']$/g, '').trim();
   const banglishIndicators = /\b(ami|amar|tumi|tomar|apni|apnar|korbo|korchi|korte|chai|dorkar|shikhbo|hobe|kemon|achho|achen|bhalo|parbo|ki|kibhabe|kothay|kokhon|porbo|porte|porashona|ajke|aajke|ekhon|shuru|routine)\b/i;
   const isBn = /[\u0980-\u09FF]/.test(message) || banglishIndicators.test(message) || (lang === "bn" && !/^[a-zA-Z0-9\s.,!?'"-]+$/.test(message.trim()));
@@ -660,8 +664,13 @@ export async function sendAgentMessage(
   sessionId?: string,
   history?: Array<{ role: string; content: string }>,
   lang: string = "bn",
-  model: AIAgentModel = "smart"
+  model: AIAgentModel = "smart",
+  signal?: AbortSignal
 ): Promise<{ sessionId: string; sessionTitle?: string; aiMessage: AgentMessage; tokenStatus?: TokenStatus }> {
+  if (signal?.aborted) {
+    throw new DOMException('Aborted', 'AbortError');
+  }
+
   // Ensure valid UUID for PostgreSQL uuid type
   const targetSessionId = (sessionId && isUuid.test(sessionId)) ? sessionId : crypto.randomUUID();
   const token = await getToken();
@@ -673,6 +682,7 @@ export async function sendAgentMessage(
   try {
     const res = await fetch(`${getApiUrl()}/ai/agent/chat`, {
       method: 'POST',
+      signal,
       headers: {
         'Content-Type': 'application/json',
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -685,11 +695,19 @@ export async function sendAgentMessage(
     if (res.ok) {
       resData = await res.json();
     }
-  } catch {}
+  } catch (err: any) {
+    if (err?.name === 'AbortError' || signal?.aborted) {
+      throw new DOMException('Aborted', 'AbortError');
+    }
+  }
+
+  if (signal?.aborted) {
+    throw new DOMException('Aborted', 'AbortError');
+  }
 
   // If server didn't provide a customized response, generate via client-side Gemini
   if (!resData || !resData.aiMessage?.content || resData.sessionId?.startsWith('session_')) {
-    const generated = await generateClientGeminiResponse(message, context, history, lang, model);
+    const generated = await generateClientGeminiResponse(message, context, history, lang, model, signal);
     resData = {
       sessionId: targetSessionId,
       sessionTitle: undefined,
