@@ -108,6 +108,33 @@
   z-index: 60;
   display: flex;
   align-items: center;
+  gap: 10px;
+}
+
+.tokenPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: rgba(99, 102, 241, 0.1);
+  border: 1px solid rgba(99, 102, 241, 0.28);
+  color: #a5b4fc;
+  font-size: 12px;
+  font-weight: 550;
+  letter-spacing: -0.01em;
+  user-select: none;
+  transition: all 0.2s ease;
+}
+
+.tokenPill:hover {
+  background: rgba(99, 102, 241, 0.18);
+  border-color: rgba(99, 102, 241, 0.45);
+  color: #c7d2fe;
+}
+
+.tokenIcon {
+  color: #818cf8;
 }
 
 .iconButton {
@@ -568,6 +595,44 @@
 
 .proposalActions .secondary:hover {
   background: rgba(255, 255, 255, 0.14);
+}
+
+.proposalSuccessBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 650;
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  padding: 3px 9px;
+  border-radius: 999px;
+  margin-bottom: 6px;
+  width: fit-content;
+}
+
+.proposalActions .exploreBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: linear-gradient(135deg, #2563eb, #6366f1);
+  border: 1px solid rgba(147, 197, 253, 0.45);
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 650;
+  padding: 7px 15px;
+  border-radius: 10px;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.proposalActions .exploreBtn:hover {
+  transform: translateY(-1px);
+  background: linear-gradient(135deg, #1d4ed8, #4f46e5);
+  box-shadow: 0 6px 20px rgba(99, 102, 241, 0.5);
+  border-color: rgba(191, 219, 254, 0.6);
 }
 
 /* Pinned Bottom Composer Section */

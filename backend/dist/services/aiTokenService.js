@@ -10,7 +10,8 @@ exports.estimateTokenUsage = estimateTokenUsage;
 const pg_1 = require("pg");
 const dotenv_1 = __importDefault(require("dotenv"));
 dotenv_1.default.config();
-const DEFAULT_TOTAL_TOKENS = 5000;
+const DEFAULT_AUTH_TOKENS = 5000;
+const DEFAULT_GUEST_TOKENS = 1000;
 const RESET_DURATION_MS = 24 * 60 * 60 * 1000; // 24 hours rolling reset
 let pool = null;
 if (process.env.DATABASE_URL) {
@@ -68,13 +69,14 @@ async function getUserTokenStatus(userId, isGuest = false, guestId, lang = 'bn')
     const effectiveKey = (isGuest || !userId || userId === 'guest')
         ? `guest_${guestId || 'default'}`
         : userId;
+    const quota = isGuest ? DEFAULT_GUEST_TOKENS : DEFAULT_AUTH_TOKENS;
     const now = new Date();
     // 1. Authenticated User with Database connection
     if (!isGuest && userId && userId !== 'guest' && pool) {
         try {
             const res = await pool.query('SELECT ai_tokens_total, ai_tokens_used, ai_tokens_reset_at FROM profiles WHERE id = $1', [userId]);
             if (res.rows.length > 0) {
-                let total = res.rows[0].ai_tokens_total ?? DEFAULT_TOTAL_TOKENS;
+                let total = res.rows[0].ai_tokens_total ?? DEFAULT_AUTH_TOKENS;
                 let used = res.rows[0].ai_tokens_used ?? 0;
                 let resetAt = res.rows[0].ai_tokens_reset_at ? new Date(res.rows[0].ai_tokens_reset_at) : getNextResetDate();
                 // Check if reset period has elapsed
@@ -102,10 +104,10 @@ async function getUserTokenStatus(userId, isGuest = false, guestId, lang = 'bn')
     }
     // 2. Memory / Guest Store
     let record = memoryStore.get(effectiveKey);
-    if (!record || now >= record.resetAt) {
+    if (!record || now >= record.resetAt || record.total !== quota) {
         record = {
-            total: DEFAULT_TOTAL_TOKENS,
-            used: 0,
+            total: quota,
+            used: record?.used && record.total === quota ? record.used : 0,
             resetAt: getNextResetDate(),
         };
         memoryStore.set(effectiveKey, record);
@@ -166,9 +168,23 @@ async function consumeUserTokens(userId, isGuest = false, guestId, tokensToConsu
         formattedRemainingTime: formattedTimeRemaining,
     };
 }
-function estimateTokenUsage(promptText = '', responseText = '') {
-    const combinedLength = (promptText?.length || 0) + (responseText?.length || 0);
-    // ~4 characters per token on average for natural language & Bengali
-    const calculated = Math.ceil(combinedLength / 4);
-    return Math.max(15, calculated);
+function estimateTokenUsage(promptText = '', responseText = '', modelMode = 'smart', geminiUsage) {
+    if (geminiUsage?.totalTokenCount && geminiUsage.totalTokenCount > 0) {
+        return geminiUsage.totalTokenCount;
+    }
+    const promptChars = promptText?.length || 0;
+    const responseChars = responseText?.length || 0;
+    // Natural language and Unicode character to token calculation
+    const promptTokens = Math.ceil(promptChars / 3.5);
+    const responseTokens = Math.ceil(responseChars / 3.5);
+    const baseTokens = Math.max(10, promptTokens + responseTokens);
+    if (modelMode === 'fast') {
+        // Fast response uses least tokens
+        return Math.max(8, Math.round(baseTokens * 0.75));
+    }
+    else if (modelMode === 'planning') {
+        // Deep planning uses most tokens
+        return Math.max(25, Math.round(baseTokens * 1.4));
+    }
+    return baseTokens;
 }

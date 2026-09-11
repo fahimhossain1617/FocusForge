@@ -43,15 +43,21 @@ function buildAgentChatPrompt(serializedPayload: string): string {
     `- YOU MUST PERFECTLY UNDERSTAND ALL THREE: Bangla, English, and Banglish!`,
     `- STRICT RESPONSE LANGUAGE: Respond in natural, warm, grammatically correct Bengali script (বাংলা লিপি) for Bengali/Banglish inputs, or English for English inputs.`,
     ``,
-    `CONVERSATIONAL STEP-BY-STEP PROBING & CONFIRMATION WORKFLOW (CRITICAL):`,
-    `- When a user asks to plan a schedule, start a session, create notes, or use a feature:`,
-    `  1. IDENTIFY THE BEST FOCUSFORGE FEATURE for their goal automatically.`,
-    `  2. PROBE FOR MISSING DETAILS STEP-BY-STEP:`,
-    `     If key parameters are missing (e.g. date, subjects, priority, estimated duration, or whether to enable notification reminders), ASK clarifying questions FIRST with payload: null!`,
-    `     Example Planner Probing: "কোন তারিখে এবং কোন কোন বিষয়গুলো পড়তে চাচ্ছ? কোনটার প্রায়োরিটি কেমন (হাই/মিডিয়াম/লো) এবং নোটিফিকেশন রিমাইন্ডার অন রাখতে চাও কি?"`,
-    `  3. CONFIRM & OFFER AUTO-ADD: Once all necessary details are clarified, explain the recommendation clearly and ask:`,
-    `     "তোমার তথ্য অনুযায়ী প্ল্যান/সমাধান প্রস্তুত করা হয়েছে। এখন কি এই তথ্যগুলো [ফিচারের নাম]-এ অটোমেটিক যুক্ত করে দেব?" and return the structured action payload!`,
-    `     CRITICAL: Do NOT claim "যুক্ত করে দেওয়া হয়েছে" (already added) in the text message before the user clicks the Auto Add button! Say that the plan is prepared and prompt the user to click Auto Add below to save it.`,
+    `MANDATORY TWO-STEP CLARIFICATION & EXECUTION WORKFLOW (CRITICAL):`,
+    `1. IF THE USER'S RESPONSE IS UNCLEAR, VAGUE, OR LACKS DETAILS (e.g. "হ্যাঁ করে দাও", "করো", "আমার সমস্যা হয়েছে", "একটা রুটিন দাও" without subject/time/details):`,
+    `   -> DO NOT make random assumptions, do not pretend you added something, and never output incomplete text!`,
+    `   -> You MUST explicitly state:`,
+    `      "আপনার কাজটি আমি অবশ্যই সুন্দরভাবে করে দিতে পারব, তবে এর জন্য আমাকে প্রয়োজনীয় তথ্য দিন।" (Bengali) / "I can certainly do this for you, but please provide the necessary information." (English)`,
+    `   -> Then ask clear, numbered specific questions for the details needed for that feature:`,
+    `      For Problem Solver: Ask if they are struggling with (1) lack of concentration/focus, (2) understanding a difficult topic, or (3) fatigue/procrastination.`,
+    `      For Planner: Ask for (1) subject name, (2) study time/date, (3) estimated duration.`,
+    `      For Focus: Ask for (1) duration in minutes (e.g. 25 or 50 min), (2) task goal.`,
+    `      For Notes: Ask for (1) note title, (2) content summary.`,
+    `   -> Set "intent": "GREETING_OR_GENERAL" and "payload": null.`,
+    ``,
+    `2. WHEN THE USER PROVIDES CLEAR DETAILS OR CHOOSES AN OPTION:`,
+    `   -> Propose/generate the structured payload immediately!`,
+    `   -> Clearly explain what has been prepared/added and invite the user to click the Explore (এক্সপ্লোর করুন) button to view or start it!`,
     ``,
     `CONVERSATIONAL PROBING & INTENT CONTRACTS:`,
     ``,
@@ -113,16 +119,56 @@ function parseJson(text: string): JsonObject | JsonObject[] {
   return parsed as JsonObject | JsonObject[];
 }
 
-const CANDIDATE_MODELS = [
-  process.env.GEMINI_MODEL || 'gemini-3.6-flash',
+const FAST_CANDIDATE_MODELS = [
+  'gemini-2.5-flash-lite',
+  'gemini-2.0-flash-lite',
+  'gemini-1.5-flash-8b',
+  'gemini-1.5-flash',
+  'gemini-3.5-flash-lite',
+  'gemini-flash-latest'
+];
+
+const SMART_CANDIDATE_MODELS = [
+  'gemini-2.5-flash',
+  'gemini-2.0-flash',
+  'gemini-3.5-flash',
+  'gemini-1.5-flash',
   'gemini-3.6-flash'
+];
+
+const PLANNING_CANDIDATE_MODELS = [
+  'gemini-2.5-pro',
+  'gemini-2.0-flash-thinking-exp',
+  'gemini-3.5-flash',
+  'gemini-1.5-pro',
+  'gemini-2.5-flash'
+];
+
+const CANDIDATE_MODELS = [
+  'gemini-2.5-flash',
+  'gemini-3.5-flash',
+  'gemini-3.6-flash',
+  'gemini-1.5-flash',
+  'gemini-flash-latest'
 ].filter((m, i, arr) => arr.indexOf(m) === i);
 
 function generateRuleBasedAgentResponse(payload: any): JsonObject {
   const query = (payload?.userQuery || '').toLowerCase();
   const currentDate = payload?.currentDate || new Date().toISOString().split('T')[0];
+  const modelMode = payload?.model || 'smart';
 
   const isBn = !/[a-zA-Z]/.test(query) || /[\u0980-\u09FF]/.test(query);
+
+  const isAffirmative = /^(হ্যাঁ|হ্যা|হ্যাঁ করে দাও|করে দাও|কর|করো|হ্যাঁ প্লিজ|yes|yeah|sure|do it|okay|ok)$/i.test(query.trim());
+  if (isAffirmative) {
+    return {
+      intent: "GREETING_OR_GENERAL",
+      message: isBn
+        ? "আপনার কাজটি আমি অবশ্যই সুন্দরভাবে করে দিতে পারব, তবে এর জন্য আমাকে প্রয়োজনীয় তথ্য দিন। যেমন:\n\n১. আপনি কি পড়ার মনোযোগ বা অন্য কোনো সমস্যা সমাধান করতে চান?\n২. একটি নতুন ফোকাস সেশন শুরু করতে চান?\n৩. নাকি একটি নির্দিষ্ট পড়ার রুটিন তৈরি করতে চান?\n\nকোন কাজটি করতে চান এবং এর বিষয় বা সময় জানালে আমি সাথে সাথে তা অ্যাপে যুক্ত করে দেব!"
+        : "I can certainly do this for you, but please give me the necessary information. For example:\n\n1. Do you want a solution for study focus / mental blocks?\n2. Do you want to start a focus timer session?\n3. Do you want to schedule a study routine?\n\nLet me know your choice and time/subject, and I will add it to your app right away!",
+      payload: null
+    };
+  }
 
   if (/^(hi|hello|hey|হাই|হ্যালো|আসসালামু আলাইকুম|আসসালামু|কেমন আছেন|হায়|হায়)$/i.test(query.trim()) || query.includes("কেমন আছেন") || query.includes("আসসালামু")) {
     return {
@@ -138,8 +184,8 @@ function generateRuleBasedAgentResponse(payload: any): JsonObject {
     return {
       intent: "FOCUS_SESSION",
       message: isBn
-        ? "আপনার ২৫ মিনিটের ফোকাস সেশনের জন্য আমি প্রস্তুত! আপনি নিচে 'টাইমার শুরু' বোতামে চাপ দিয়ে ফোকাস মোডে যোগ দিতে পারেন।"
-        : "Your 25-minute focus session is ready! Click the 'Start' button below to enter Focus Mode.",
+        ? "আপনার ২৫ মিনিটের ফোকাস সেশনের জন্য আমি প্রস্তুত! আপনি নিচে 'এক্সপ্লোর করুন' বোতামে চাপ দিয়ে ফোকাস টাইমার শুরু করতে পারেন।"
+        : "Your 25-minute focus session is ready! Click 'Explore' below to start the timer directly.",
       payload: { durationMinutes: 25, goal: "Deep Work Session", mode: "deep" }
     };
   }
@@ -148,12 +194,14 @@ function generateRuleBasedAgentResponse(payload: any): JsonObject {
     return {
       intent: "PROBLEM_SOLVER",
       message: isBn
-        ? "পড়াশোনা বা কাজে সমস্যা ফেস করছেন? চিন্তার কিছু নেই! নিচে প্রস্তাবিত সমাধানগুলো খেয়াল করুন এবং চাইলে মাইন্ড ট্র্যাকারে সেভ করে রাখুন।"
-        : "Facing a roadblock? Here are recommended steps to overcome it. You can save this directly into your Mind tracker.",
+        ? "পড়াশোনা বা কাজে মনোযোগ বৃদ্ধির জন্য একটি বিস্তারিত সমাধান পরিকল্পনা তৈরি করা হয়েছে। নিচে 'এক্সপ্লোর করুন' বাটনে ক্লিক করে এটি মাইন্ড হাব-এ দেখে নিতে পারেন।"
+        : "An actionable solution plan for focus and concentration has been added to your Mind Hub. Click 'Explore' below to view it.",
       payload: {
         problem: isBn ? "মনযোগ ও ফোকাস ধরে রাখার চ্যালেঞ্জ" : "Focus and Concentration Challenge",
         solutionSteps: isBn 
-          ? ["ছোট ২৫ মিনিটের লক্ষ্য নির্ধারণ করুন", "মোবাইল ও ডিস্ট্র্যাকশন সরিয়ে রাখুন", "প্রতি সেশন শেষে ৫ মিনিটের ব্রেক নিন"]
+          ? (modelMode === "planning"
+              ? ["মূল সমস্যা চিহ্নিত করুন ও পড়ার পরিবেশ সম্পূর্ণ শান্ত রাখুন", "বড় অধ্যায়কে ছোট ২৫-৩০ মিনিটের সহজ ভাগে বিভক্ত করুন", "পোমোডোরো টেকনিক মেনে একটানা পড়ার পর ৫ মিনিট বিরতি নিন", "পর্যাপ্ত পানি পান ও হালকা শারীরিক ব্যায়াম করুন"]
+              : ["ছোট ২৫ মিনিটের লক্ষ্য নির্ধারণ করুন", "মোবাইল ও ডিস্ট্র্যাকশন সরিয়ে রাখুন", "প্রতি সেশন শেষে ৫ মিনিটের ব্রেক নিন"])
           : ["Set a bite-sized 25m goal", "Minimize distractions and silence notifications", "Take a 5-minute break after each session"],
         tags: ["Focus", "Mindset"]
       }
@@ -192,11 +240,15 @@ function generateRuleBasedAgentResponse(payload: any): JsonObject {
     return {
       intent: "PLANNER_CREATE",
       message: isBn
-        ? "আপনার জন্য প্রস্তাবিত স্টাডি প্ল্যান প্রস্তুত করা হয়েছে! নিচে 'অটোমেটিক যুক্ত করুন' বাটনে চাপ দিলে সরাসরি আপনার প্ল্যানারে যুক্ত হয়ে যাবে।"
-        : "Your study plan has been prepared! Click 'Auto Add' below to save these tasks directly into your planner.",
+        ? "আপনার জন্য প্রস্তাবিত স্টাডি প্ল্যান প্রস্তুত করা হয়েছে! নিচে 'এক্সপ্লোর করুন' বাটনে চাপ দিয়ে সরাসরি আপনার প্ল্যানারে যুক্ত করতে পারেন।"
+        : "Your study plan has been prepared! Click 'Explore' below to view and add these tasks to your planner.",
       payload: {
         targetDate: currentDate,
-        tasks: [
+        tasks: modelMode === "planning" ? [
+          { title: isBn ? "গভীর স্টাডি ও কনসেপ্ট আয়ত্তকরণ" : "Deep Study & Concept Mastery", priority: "high", estimatedMinutes: 60, targetDate: currentDate },
+          { title: isBn ? "সমস্যা সমাধান ও গাণিতিক অনুশীলন" : "Problem Solving & Exercises", priority: "high", estimatedMinutes: 45, targetDate: currentDate },
+          { title: isBn ? "রিভিশন ও সংক্ষিপ্ত নোট পর্যালোচনা" : "Revision & Key Notes Review", priority: "medium", estimatedMinutes: 30, targetDate: currentDate }
+        ] : [
           { title: isBn ? "প্রধান স্টাডি ও অনুশীলন সেশন" : "Main Study & Practice Session", priority: "high", estimatedMinutes: 45, targetDate: currentDate },
           { title: isBn ? "কনসেপ্ট রিভিশন" : "Concept Review", priority: "medium", estimatedMinutes: 30, targetDate: currentDate }
         ]
@@ -218,6 +270,8 @@ export async function executeAIAction(action: string, payload: unknown): Promise
 
   const serializedPayload = JSON.stringify(payload ?? {});
   if (serializedPayload.length > MAX_PAYLOAD_CHARS) throw new Error('AI request is too large.');
+
+  const modelMode = (payload as any)?.model || 'smart';
 
   // Ultra-fast instant response for basic greetings
   if (action === 'agentChat') {
@@ -242,16 +296,36 @@ export async function executeAIAction(action: string, payload: unknown): Promise
   const client = getGeminiClient();
   let lastError: any = null;
 
-  for (const model of CANDIDATE_MODELS) {
+  let candidateModels = CANDIDATE_MODELS;
+  let temperature = 0.4;
+  let timeoutMs = 20000;
+
+  if (action === 'agentChat') {
+    if (modelMode === 'fast') {
+      candidateModels = FAST_CANDIDATE_MODELS;
+      temperature = 0.2;
+      timeoutMs = 12000;
+    } else if (modelMode === 'planning') {
+      candidateModels = PLANNING_CANDIDATE_MODELS;
+      temperature = 0.7;
+      timeoutMs = 30000;
+    } else {
+      candidateModels = SMART_CANDIDATE_MODELS;
+      temperature = 0.5;
+      timeoutMs = 20000;
+    }
+  }
+
+  for (const model of candidateModels) {
     try {
       const fetchPromise = client.models.generateContent({
         model,
         contents: promptContent,
-        config: { responseMimeType: 'application/json', temperature: 0.3 },
+        config: { responseMimeType: 'application/json', temperature },
       });
 
       const timeoutPromise = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('AI_MODEL_TIMEOUT')), 25000)
+        setTimeout(() => reject(new Error('AI_MODEL_TIMEOUT')), timeoutMs)
       );
 
       const response = await Promise.race([fetchPromise, timeoutPromise]);

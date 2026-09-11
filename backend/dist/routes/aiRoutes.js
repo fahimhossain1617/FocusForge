@@ -21,13 +21,18 @@ async function checkTokensOrReject(req, res) {
     const { isGuest, userId, guestId, lang } = getRequestClientMeta(req);
     const status = await (0, aiTokenService_1.getUserTokenStatus)(userId, isGuest, guestId, lang);
     if (status.isExhausted || status.remaining <= 0) {
-        const message = lang === 'bn'
-            ? `আপনার ৫,০০০ AI টোকেন শেষ হয়ে গেছে। টোকেন রিসেট হওয়ার তারিখ: ${status.formattedResetDate} (বাকি: ${status.formattedRemainingTime})`
-            : `Your 5,000 AI tokens have been exhausted. Tokens will reset on: ${status.formattedResetDate} (${status.formattedRemainingTime} remaining)`;
+        const message = isGuest
+            ? (lang === 'bn'
+                ? `আপনার ১,০০০ গেস্ট AI টোকেন শেষ হয়ে গেছে। ৫,০০০ টোকেন ও ক্লাউড সেভ সুবিধা পেতে অনুগ্রহ করে লগইন করুন।`
+                : `Your 1,000 guest AI tokens have been exhausted. Please log in to unlock 5,000 tokens and cloud sync.`)
+            : (lang === 'bn'
+                ? `আপনার ৫,০০০ AI টোকেন শেষ হয়ে গেছে। টোকেন রিসেট হওয়ার তারিখ: ${status.formattedResetDate} (বাকি: ${status.formattedRemainingTime})। নির্ধারিত সময় পর আবার চেষ্টা করুন, FocusForge AI আপনাকে সাহায্য করার জন্য প্রস্তুত থাকবে!`
+                : `Your 5,000 AI tokens have been exhausted. Tokens will reset on: ${status.formattedResetDate} (${status.formattedRemainingTime} remaining). Please try again after reset!`);
         res.status(429).json({
             error: 'AI_TOKENS_EXHAUSTED',
             code: 'TOKENS_EXHAUSTED',
             tokenStatus: status,
+            requireLogin: isGuest,
             message,
         });
         return null;
@@ -38,7 +43,8 @@ async function checkTokensOrReject(req, res) {
 async function deductTokens(req, promptData, responseData) {
     try {
         const { isGuest, userId, guestId, lang } = getRequestClientMeta(req);
-        const tokensUsed = (0, aiTokenService_1.estimateTokenUsage)(JSON.stringify(promptData ?? ''), JSON.stringify(responseData ?? ''));
+        const modelMode = req.body?.model || 'smart';
+        const tokensUsed = (0, aiTokenService_1.estimateTokenUsage)(JSON.stringify(promptData ?? ''), JSON.stringify(responseData ?? ''), modelMode);
         return await (0, aiTokenService_1.consumeUserTokens)(userId, isGuest, guestId, tokensUsed, lang);
     }
     catch (err) {
@@ -238,7 +244,7 @@ router.post('/agent/chat', async (req, res) => {
         const user = req.user;
         const isGuest = !user || user.isGuest;
         const userId = user?.id;
-        let { sessionId, message, context, history } = req.body;
+        let { sessionId, message, context, history, model } = req.body;
         // Fetch previous messages for multi-turn conversational context if in an active session
         let recentHistory = [];
         if (Array.isArray(history) && history.length > 0) {
@@ -267,7 +273,8 @@ router.post('/agent/chat', async (req, res) => {
             userQuery: message,
             recentHistory,
             currentDate: new Date().toISOString().split('T')[0],
-            context: lightweightContext
+            context: lightweightContext,
+            model: model || 'smart'
         };
         // 2. Call Gemini via Intent Router
         let result;

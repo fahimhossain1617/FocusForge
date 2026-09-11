@@ -9,7 +9,7 @@ import {
   getAITokenStatus,
   TokenStatus
 } from "@/services/aiAgentService";
-import type { AIAgentLanguage, AgentMessage, WorkspaceContext } from "@/types/aiAgent";
+import type { AIAgentLanguage, AIAgentModel, AgentMessage, WorkspaceContext } from "@/types/aiAgent";
 import { useAuth } from "@/context/AuthContext";
 
 let memoryMessages: AgentMessage[] | null = null;
@@ -61,7 +61,7 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
   const [isThinking, setIsThinking] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
-  // Persist current active messages & activeSessionId to memory
+  // Persist current active messages & activeSessionId to memory / session
   useEffect(() => {
     if (typeof window !== "undefined") {
       memoryMessages = messages;
@@ -69,7 +69,9 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
       memoryGuestCount = guestCount;
       try {
         if ((isGuest || !user) && activeSessionId) {
-          localStorage.setItem(`focusforge_guest_msg_${activeSessionId}`, JSON.stringify(messages));
+          sessionStorage.setItem(`focusforge_guest_msg_${activeSessionId}`, JSON.stringify(messages));
+        } else if (user && activeSessionId) {
+          localStorage.setItem(`focusforge_auth_msg_${activeSessionId}`, JSON.stringify(messages));
         }
       } catch {}
     }
@@ -96,12 +98,6 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
 
         if (Array.isArray(sessionsData) && sessionsData.length > 0) {
           setSessions(sessionsData);
-          if (typeof window !== "undefined") {
-            try {
-              localStorage.setItem("focusforge_guest_sessions_list", JSON.stringify(sessionsData));
-              localStorage.setItem("focusforge_active_sessions_cache", JSON.stringify(sessionsData));
-            } catch {}
-          }
 
           // Only load messages if an activeSessionId exists for this tab session
           let targetSessionId = activeSessionId;
@@ -117,16 +113,22 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
             }
           }
         } else if (typeof window !== "undefined") {
-          // Local cache fallback
+          // Local / session cache fallback
           try {
-            const guestSessionsRaw = localStorage.getItem("focusforge_guest_sessions_list") || localStorage.getItem("focusforge_active_sessions_cache");
-            if (guestSessionsRaw) {
-              const parsedSessions = JSON.parse(guestSessionsRaw);
+            const isAuth = !!user && !isGuest;
+            const sessionsRaw = isAuth 
+              ? localStorage.getItem("focusforge_active_sessions_cache")
+              : sessionStorage.getItem("focusforge_guest_sessions_list");
+
+            if (sessionsRaw) {
+              const parsedSessions = JSON.parse(sessionsRaw);
               if (Array.isArray(parsedSessions) && parsedSessions.length > 0) {
                 setSessions(parsedSessions);
                 let targetSessionId = activeSessionId;
                 if (targetSessionId) {
-                  const savedMsgs = localStorage.getItem(`focusforge_guest_msg_${targetSessionId}`);
+                  const savedMsgs = isAuth 
+                    ? localStorage.getItem(`focusforge_auth_msg_${targetSessionId}`)
+                    : sessionStorage.getItem(`focusforge_guest_msg_${targetSessionId}`);
                   if (savedMsgs) {
                     const parsedMsgs = JSON.parse(savedMsgs);
                     if (Array.isArray(parsedMsgs)) {
@@ -176,7 +178,10 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
           payload: m.payload || m.payload_json,
         })));
       } else if (typeof window !== "undefined") {
-        const savedMsgs = localStorage.getItem(`focusforge_guest_msg_${sessionId}`);
+        const isAuth = !!user && !isGuest;
+        const savedMsgs = isAuth 
+          ? localStorage.getItem(`focusforge_auth_msg_${sessionId}`)
+          : sessionStorage.getItem(`focusforge_guest_msg_${sessionId}`);
         if (savedMsgs) {
           const parsed = JSON.parse(savedMsgs);
           if (Array.isArray(parsed)) {
@@ -195,21 +200,25 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
     } finally {
       setIsThinking(false);
     }
-  }, []);
+  }, [isGuest, user]);
 
   const removeSession = useCallback(async (sessionId: string) => {
     try {
       await deleteChatSession(sessionId);
       if (typeof window !== "undefined") {
-        localStorage.removeItem(`focusforge_guest_msg_${sessionId}`);
+        sessionStorage.removeItem(`focusforge_guest_msg_${sessionId}`);
+        localStorage.removeItem(`focusforge_auth_msg_${sessionId}`);
       }
       
       setSessions((prev) => {
         const updated = prev.filter((s) => s.id !== sessionId);
         if (typeof window !== "undefined") {
           try {
-            localStorage.setItem("focusforge_guest_sessions_list", JSON.stringify(updated));
-            localStorage.setItem("focusforge_active_sessions_cache", JSON.stringify(updated));
+            if (user && !isGuest) {
+              localStorage.setItem("focusforge_active_sessions_cache", JSON.stringify(updated));
+            } else {
+              sessionStorage.setItem("focusforge_guest_sessions_list", JSON.stringify(updated));
+            }
           } catch {}
         }
         return updated;
@@ -221,31 +230,44 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
     } catch (err) {
       console.error("Failed to delete session", err);
     }
-  }, [activeSessionId, createNewSession]);
+  }, [activeSessionId, createNewSession, isGuest, user]);
 
-  const send = useCallback(async (content: string, language: AIAgentLanguage = "auto") => {
+  const send = useCallback(async (
+    content: string, 
+    language: AIAgentLanguage = "auto",
+    model: AIAgentModel = "smart"
+  ) => {
     if (!content.trim()) { 
       setError(language === "bn" ? "প্রথমে আপনার প্রশ্ন বা টাস্ক লিখুন।" : "Tell FocusForge what you need help with first."); 
       return; 
     }
     setError(null); 
 
-    // Guest Mode Limit: Allow up to 15 messages per guest session
-    if ((isGuest || !user) && guestCount >= 15) {
-      const lockoutNotice = language === "bn"
-        ? "আপনি এই গেস্ট চ্যাটের ১৫টি ফ্রি মেসেজের সীমা সম্পন্ন করেছেন। আনলিমিটেড AI ও ক্লাউড সেভ রাখতে লগইন করুন অথবা উপরে '+ New Chat'-এ চাপ দিয়ে নতুন চ্যাট শুরু করুন।"
-        : "You have reached the free 15-message limit for this guest chat. Please log in to unlock unlimited access, or click '+ New Chat' to start a new chat.";
-      setError(lockoutNotice);
-      return;
-    }
-    
-    // Check local token state if exhausted (for auth users)
-    if (tokenStatus?.isExhausted) {
-      const exhaustedMsg = language === "bn"
-        ? `আপনার ৫,০০০ AI টোকেন শেষ হয়ে গেছে। টোকেন রিসেট হওয়ার তারিখ: ${tokenStatus.formattedResetDate} (বাকি: ${tokenStatus.formattedRemainingTime})`
-        : `Your 5,000 AI tokens have been exhausted. Tokens will reset on: ${tokenStatus.formattedResetDate} (${tokenStatus.formattedRemainingTime} remaining)`;
-      setError(exhaustedMsg);
-      return;
+    const isGuestUser = isGuest || !user;
+
+    // Check token exhaustion
+    if (tokenStatus?.isExhausted || (tokenStatus && tokenStatus.remaining <= 0)) {
+      if (isGuestUser) {
+        const guestExhaustedMsg: AgentMessage = {
+          id: 'guest_lockout_' + Date.now(),
+          role: 'assistant',
+          intent: 'REQUIRE_LOGIN',
+          content: language === 'bn'
+            ? "আপনার ১,০০০ গেস্ট AI টোকেন শেষ হয়ে গেছে। আনলিমিটেড ৫,০০০ টোকেন ও ক্লাউড ব্যাকআপ পেতে এখনই লগইন করুন।"
+            : "Your 1,000 guest AI tokens have been exhausted. Please log in to unlock 5,000 tokens and cloud backup.",
+          payload: { requireLogin: true },
+          createdAt: new Date()
+        };
+        setMessages((items) => [...items, guestExhaustedMsg]);
+        setError(guestExhaustedMsg.content);
+        return;
+      } else {
+        const authExhaustedMsg = language === "bn"
+          ? `আপনার ৫,০০০ AI টোকেন শেষ হয়ে গেছে। টোকেন রিসেট হওয়ার তারিখ: ${tokenStatus.formattedResetDate || '২৪ ঘণ্টার মধ্যে'} (বাকি: ${tokenStatus.formattedRemainingTime || 'কিছু সময়'})। নির্ধারিত সময় পর আবার চেষ্টা করুন, FocusForge AI আপনাকে সাহায্য করার জন্য প্রস্তুত থাকবে!`
+          : `Your 5,000 AI tokens have been exhausted. Tokens will reset on: ${tokenStatus.formattedResetDate || 'within 24h'} (${tokenStatus.formattedRemainingTime || 'soon'}). Please try again after reset!`;
+        setError(authExhaustedMsg);
+        return;
+      }
     }
 
     // Optimistic user message
@@ -259,7 +281,7 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
       const isContentBengali = /[\u0980-\u09FF]/.test(content) || banglishRegex.test(content);
       const isContentPureEnglish = /^[a-zA-Z0-9\s.,!?'"()-]+$/.test(content.trim()) && !banglishRegex.test(content);
       const langParam = isContentBengali ? "bn" : (isContentPureEnglish ? "en" : (language === "en" ? "en" : "bn"));
-      const result = await sendAgentMessage(content, context, activeSessionId || undefined, history, langParam); 
+      const result = await sendAgentMessage(content, context, activeSessionId || undefined, history, langParam, model); 
       
       // Update token status if returned
       if (result.tokenStatus) {
@@ -292,15 +314,15 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
 
           if (typeof window !== "undefined") {
             try {
-              localStorage.setItem("focusforge_active_sessions_cache", JSON.stringify(updated));
-              localStorage.setItem("focusforge_guest_sessions_list", JSON.stringify(updated));
+              if (user && !isGuest) {
+                localStorage.setItem("focusforge_active_sessions_cache", JSON.stringify(updated));
+              } else {
+                sessionStorage.setItem("focusforge_guest_sessions_list", JSON.stringify(updated));
+              }
             } catch {}
           }
           return updated;
         });
-
-        // Re-sync removed to prevent optimistic state from being overwritten
-        // if the backend response is delayed or stale.
       }
       
       const normalizedAiMessage: AgentMessage = {
@@ -314,26 +336,23 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
 
       setMessages((items) => {
         const updated = [...items, normalizedAiMessage];
-        // If guest sent 10th message, append login requirement card
-        if (isGuest || !user) {
-          const nextGuestCount = guestCount + 1;
-          setGuestCount(nextGuestCount);
-          if (nextGuestCount >= 10) {
-            const loginRequirementMsg: AgentMessage = {
-              id: 'guest_lockout_' + Date.now(),
-              role: 'assistant',
-              intent: 'REQUIRE_LOGIN',
-              content: language === 'bn'
-                ? "আপনি এই গেস্ট চ্যাটের ১০টি ফ্রি মেসেজের সীমা সম্পূর্ণ করেছেন। সম্পূর্ণ ফিচার সুবিধা উপভোগ করতে এবং আপনার ফাইলস ও চ্যাট হিস্ট্রি সুরক্ষিত রাখতে লগইন করুন অথবা উপরে '+ New Chat'-এ চাপ দিন।"
-                : "You have completed your 10 free guest messages for this session. Please log in to unlock unlimited access and save your history, or start a new conversation via '+ New Chat'.",
-              payload: { requireLogin: true },
-              createdAt: new Date()
-            };
-            return [...updated, loginRequirementMsg];
-          }
+        // If guest token is now exhausted after this turn, append login requirement card
+        if (result.tokenStatus && result.tokenStatus.remaining <= 0 && isGuestUser) {
+          const loginRequirementMsg: AgentMessage = {
+            id: 'guest_lockout_' + Date.now(),
+            role: 'assistant',
+            intent: 'REQUIRE_LOGIN',
+            content: language === 'bn'
+              ? "আপনার ১,০০০ গেস্ট AI টোকেন শেষ হয়ে গেছে। আনলিমিটেড ৫,০০০ টোকেন ও ক্লাউড সেভ সুবিধা পেতে লগইন করুন।"
+              : "Your 1,000 guest AI tokens have been exhausted. Please log in to unlock 5,000 tokens and save your history.",
+            payload: { requireLogin: true },
+            createdAt: new Date()
+          };
+          return [...updated, loginRequirementMsg];
         }
         return updated;
       }); 
+      return normalizedAiMessage;
     }
     catch (err: any) { 
       console.error("AI send error:", err);
@@ -342,8 +361,22 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
       }
 
       let errorMsg = err.message;
-      if (err.code === 'TOKENS_EXHAUSTED' || err.message?.includes('AI_TOKENS_EXHAUSTED')) {
-        errorMsg = err.message;
+      const isTokensExhausted = err.code === 'TOKENS_EXHAUSTED' || err.message?.includes('AI_TOKENS_EXHAUSTED') || err.requireLogin;
+
+      if (isTokensExhausted && isGuestUser) {
+        const guestLockoutMsg: AgentMessage = {
+          id: 'err_lockout_' + Date.now(),
+          role: "assistant",
+          intent: 'REQUIRE_LOGIN',
+          content: language === "bn"
+            ? "আপনার ১,০০০ গেস্ট AI টোকেন শেষ হয়ে গেছে। ৫,০০০ টোকেন ও ক্লাউড ব্যাকআপ পেতে এখনই লগইন করুন।"
+            : "Your 1,000 guest AI tokens have been exhausted. Please log in to unlock 5,000 tokens and save your history.",
+          payload: { requireLogin: true },
+          createdAt: new Date()
+        };
+        setError(guestLockoutMsg.content);
+        setMessages((items) => [...items, guestLockoutMsg]);
+        return;
       } else if (!errorMsg || errorMsg === "Failed to process chat message") {
         errorMsg = language === "bn"
           ? "দুঃখিত, এআই সার্ভার সাময়িক ব্যস্ত ছিল। অনুগ্রহ করে পুনরায় পাঠান বা কয়েক সেকেন্ড পর চেষ্টা করুন।"
@@ -362,9 +395,9 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
     finally { 
       setIsThinking(false); 
     }
-  }, [context, activeSessionId, messages, tokenStatus, isGuest, user, guestCount]);
+  }, [context, activeSessionId, messages, tokenStatus, isGuest, user]);
 
-  const guestLimitExceeded = (isGuest || !user) && guestCount >= 15;
+  const guestLimitExceeded = Boolean((isGuest || !user) && (tokenStatus?.isExhausted || (tokenStatus && tokenStatus.remaining <= 0)));
 
   return { 
     messages, 
