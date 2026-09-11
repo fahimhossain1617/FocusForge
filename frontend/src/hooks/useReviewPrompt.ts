@@ -244,13 +244,11 @@ export function useReviewPrompt() {
       setIsOpen(false);
       sessionShownRef.current = true;
 
-      // If user is authenticated, submit to backend / Supabase
-      if (user && !isGuest) {
-        await reviewService.submitReview({
-          rating: hasRating ? payload.rating : null,
-          comment: hasComment ? payload.comment : null,
-        });
-      }
+      // Submit to backend / Supabase so review is saved
+      await reviewService.submitReview({
+        rating: hasRating ? payload.rating : null,
+        comment: hasComment ? payload.comment : null,
+      }).catch((err) => console.warn("[useReviewPrompt] submit error:", err));
 
       showToast(
         isBn
