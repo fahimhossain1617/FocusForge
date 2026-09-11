@@ -153,11 +153,11 @@ export async function POST(request: NextRequest, context: { params: Promise<{ pa
     if (tokenStatus.isExhausted || tokenStatus.remaining <= 0) {
       const message = isGuest
         ? (lang === 'bn'
-            ? `আপনার ১,০০০ গেস্ট AI টোকেন শেষ হয়ে গেছে। ৫,০০০ টোকেন ও ক্লাউড সেভ সুবিধা পেতে অনুগ্রহ করে লগইন করুন।`
-            : `Your 1,000 guest AI tokens have been exhausted. Please log in to unlock 5,000 tokens and cloud sync.`)
+            ? `আপনার গেস্ট লিমিট শেষ হয়ে গেছে। আনলিমিটেড ব্যবহার ও ক্লাউড সেভ সুবিধা পেতে অনুগ্রহ করে লগইন করুন।`
+            : `Your guest limit has been reached. Please log in to unlock full access and cloud sync.`)
         : (lang === 'bn'
-            ? `আপনার আজকের ৫,০০০ AI টোকেন লিমিট শেষ হয়ে গেছে।\n\n• টোকেন রিসেট হওয়ার তারিখ: ${tokenStatus.formattedResetDate}\n• অবশিষ্ট সময়: ${tokenStatus.formattedRemainingTime}\n\nঅনুগ্রহ করে রিসেট হওয়া পর্যন্ত অপেক্ষা করুন। লিমিট রিসেট হওয়ার পর FocusForge AI Agent পুনরায় আপনাকে সাহায্য করতে সম্পূর্ণ প্রস্তুত থাকবে!`
-            : `Your daily 5,000 AI token limit has been exhausted.\n\n• Resets on: ${tokenStatus.formattedResetDate}\n• Remaining time: ${tokenStatus.formattedRemainingTime}\n\nPlease wait until the reset time. Once refreshed, FocusForge AI Agent will be fully ready to assist you!`);
+            ? `আপনার আজকের লিমিট শেষ হয়ে গেছে।\n\n• লিমিট রিসেট হওয়ার তারিখ: ${tokenStatus.formattedResetDate}\n• অবশিষ্ট সময়: ${tokenStatus.formattedRemainingTime}\n\nঅনুগ্রহ করে রিসেট হওয়া পর্যন্ত অপেক্ষা করুন। লিমিট রিসেট হওয়ার পর FocusForge AI Agent পুনরায় আপনাকে সাহায্য করতে সম্পূর্ণ প্রস্তুত থাকবে!`
+            : `Your daily limit has been reached.\n\n• Resets on: ${tokenStatus.formattedResetDate}\n• Remaining time: ${tokenStatus.formattedRemainingTime}\n\nPlease wait until the reset time. Once refreshed, FocusForge AI Agent will be fully ready to assist you!`);
 
       const exhaustedAiMsg = {
         id: 'msg_exhausted_' + Date.now(),
