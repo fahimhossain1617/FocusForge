@@ -18,11 +18,13 @@ import AIAgentPage from "../components/ai-agent/AIAgentPage";
 import AuthModal from "../components/auth/AuthModal";
 import AuthGuardModal from "../components/auth/AuthGuardModal";
 import { OnboardingModal, ProductTour } from "../components/onboarding";
+import { ReviewModal } from "../components/review";
 import { onboardingStorage } from "../services/onboardingStorage";
 import { userService } from "../services/userService";
 
 import { AppShellSkeleton, PageSkeleton } from "../components/ui/skeleton";
 import { useDailyPlan } from "../hooks/useDailyPlan";
+import { useReviewPrompt } from "../hooks/useReviewPrompt";
 
 const pageComponents: Record<string, React.ComponentType<{ onOpenSidebar?: () => void }>> = {
   today: DashboardPage,
@@ -46,6 +48,14 @@ export default function Home() {
 
   // Activate daily plan and task reminder scheduler
   useDailyPlan();
+
+  // Smart Review & Feedback System Hook
+  const {
+    isOpen: showReviewModal,
+    isSubmitting: isReviewSubmitting,
+    skip: skipReview,
+    submit: submitReview,
+  } = useReviewPrompt();
 
   useEffect(() => {
     const root = document.documentElement;
@@ -237,6 +247,14 @@ export default function Home() {
           onSetSidebarOpen={setSidebarOpen}
         />
       )}
+
+      {/* Smart Review & Feedback Modal */}
+      <ReviewModal
+        isOpen={showReviewModal && !showOnboarding && !showTour}
+        onClose={skipReview}
+        onSubmit={submitReview}
+        isSubmitting={isReviewSubmitting}
+      />
     </div>
   );
 }

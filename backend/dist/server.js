@@ -17,6 +17,7 @@ const taskRoutes_1 = __importDefault(require("./routes/taskRoutes"));
 const noteRoutes_1 = __importDefault(require("./routes/noteRoutes"));
 const userRoutes_1 = __importDefault(require("./routes/userRoutes"));
 const notificationRoutes_1 = __importDefault(require("./routes/notificationRoutes"));
+const reviewRoutes_1 = __importDefault(require("./routes/reviewRoutes"));
 // Load environment variables
 dotenv_1.default.config();
 const app = (0, express_1.default)();
@@ -40,6 +41,7 @@ app.use('/api/tasks', taskRoutes_1.default);
 app.use('/api/notes', noteRoutes_1.default);
 app.use('/api/user', userRoutes_1.default);
 app.use('/api/notifications', notificationRoutes_1.default);
+app.use('/api/reviews', reviewRoutes_1.default);
 // Health check endpoint
 app.get('/health', (req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });

@@ -22,6 +22,7 @@ import { diaryDbService } from '../services/diaryDbService';
 import { focusDbService } from '../services/focusDbService';
 import { learningDbService } from '../services/learningDbService';
 import { syncTaskToBackend, updateTaskInBackend, deleteTaskFromBackend } from '../services/taskService';
+import { reviewService } from '../services/reviewService';
 
 
 const defaultCategories = ['Programming', 'Study', 'University', 'Exam', 'Personal', 'Health', 'Project', 'Business'];
@@ -159,6 +160,8 @@ interface AppContextType {
   addDiaryEntryItem: (topicId: string, title?: string, content?: string) => DiaryEntry;
   saveDiaryEntryItem: (topicId: string, entryId: string, updates: Partial<Pick<DiaryEntry, 'title' | 'content' | 'images'>>) => void;
   deleteDiaryEntryItem: (topicId: string, entryId: string) => void;
+  // Review System Meaningful Action Tracking
+  trackMeaningfulAction: (actionType: string) => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -595,6 +598,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     };
   }, [state, showToast]);
 
+  // ==================== Review System Meaningful Action Tracking ====================
+  const recentActionTimesRef = useRef<Map<string, number>>(new Map());
+
+  const trackMeaningfulAction = useCallback((actionType: string) => {
+    const now = Date.now();
+    const lastTime = recentActionTimesRef.current.get(actionType) || 0;
+    if (now - lastTime < 15000) {
+      return; // Deduplicate rapid clicks within 15 seconds
+    }
+    recentActionTimesRef.current.set(actionType, now);
+    reviewService.recordAction().catch(() => {});
+  }, []);
+
   // ==================== Mind Items ====================
 
   const addMindItem = useCallback((content: string, source?: MindItem['source']) => {
@@ -611,13 +627,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       mindItems: [newItem, ...prev.mindItems],
     }));
 
+    trackMeaningfulAction('add_mind_thought');
+
     // Asynchronously persist to Supabase if logged in
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
         mindService.saveMindItem(newItem, session.user.id);
       }
     });
-  }, []);
+  }, [trackMeaningfulAction]);
 
   const updateMindItem = useCallback((id: string, content: string) => {
     setState((prev) => ({
@@ -675,8 +693,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       updatedAt: new Date().toISOString(),
     };
     setState((prev) => ({ ...prev, tasks: [...prev.tasks, newTask] }));
+    trackMeaningfulAction('create_task');
     syncTaskToBackend(newTask).catch(() => {});
-  }, []);
+  }, [trackMeaningfulAction]);
 
   const updateTask = useCallback((id: number, updates: Partial<Task>) => {
     setState((prev) => ({
@@ -762,8 +781,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }
     });
 
+    trackMeaningfulAction('create_note');
     return newNote;
-  }, []);
+  }, [trackMeaningfulAction]);
 
   const updateNote = useCallback((id: number, updates: Partial<Note>) => {
     setState((prev) => ({
@@ -881,11 +901,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       };
     });
 
+    trackMeaningfulAction('focus_session');
+
     // Async update in Supabase & Express backend
     focusDbService.endFocusSession(sessionId, durationMinutes, completed).catch((err) => {
       console.warn("[AppContext] Error concluding focus session in DB:", err);
     });
-  }, []);
+  }, [trackMeaningfulAction]);
 
   const addDistraction = useCallback((sessionId: string, content: string) => {
     const entry: DistractionEntry = {
@@ -957,12 +979,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       ...prev,
       learningFolders: [...prev.learningFolders, newFolder]
     }));
+    trackMeaningfulAction('learning_folder');
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
         learningDbService.saveFolder(newFolder, session.user.id);
       }
     });
-  }, []);
+  }, [trackMeaningfulAction]);
 
   const deleteLearningFolder = useCallback((id: string) => {
     setState((prev) => ({
@@ -1040,8 +1063,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }
     });
 
+    trackMeaningfulAction('save_diary');
+
     return createdTopic!;
-  }, []);
+  }, [trackMeaningfulAction]);
 
   const updateDiaryTopicItem = useCallback((topicId: string, updates: Partial<Pick<DiaryTopic, 'title' | 'description'>>) => {
     setState((prev) => {
@@ -1162,6 +1187,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         addDiaryEntryItem,
         saveDiaryEntryItem,
         deleteDiaryEntryItem,
+        trackMeaningfulAction,
         isLoaded,
         isPageLoading,
         setPageLoading: setIsPageLoading,

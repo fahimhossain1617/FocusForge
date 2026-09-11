@@ -125,7 +125,7 @@ function CustomSelect<T extends string>({
 }
 
 export function AIAgentPage() {
-  const { state, showToast, navigateTo, addTask, addTimeBlock, addMindItem, addNote, startFocusSession, isOnline } = useAppContext();
+  const { state, showToast, navigateTo, addTask, addTimeBlock, addMindItem, addNote, startFocusSession, isOnline, trackMeaningfulAction } = useAppContext();
   const { user, openAuth } = useAuth();
   const isLight = state.theme?.mode === "light";
   const isSystemBn = state.lang === "bn";
@@ -291,6 +291,9 @@ export function AIAgentPage() {
     }
     setInput(""); 
     const aiMsg = await send(value, language, model); 
+    if (aiMsg) {
+      trackMeaningfulAction?.('ai_agent_interaction');
+    }
     if (aiMsg?.payload && aiMsg.intent && aiMsg.intent !== 'GREETING_OR_GENERAL') {
       applyPayloadToApp(aiMsg.id, aiMsg.intent, aiMsg.payload);
     }
