@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { useAppContext } from "../../context/AppContext";
 import { useTranslation } from "../../hooks/useTranslation";
 import { 
-  Palette, Bell, Calendar, Tags, Globe, DownloadCloud, AlertTriangle, Info,
+  Palette, Bell, Globe, AlertTriangle, Info,
   Moon, Sun, ChevronRight, Check, X, BellRing, ArrowLeft
 } from "lucide-react";
 import notificationService from "../../services/notificationService";
@@ -55,10 +55,22 @@ export default function SettingsPage() {
       const permission = await Notification.requestPermission();
       setNotificationPermission(permission);
       if (permission === 'granted') {
-        showToast(t.settings.toasts.notifEnabled);
+        const isBn = state.lang === 'bn';
+        showToast(isBn ? "নোটিফিকেশন সফলভাবে সক্রিয় হয়েছে!" : "Notifications enabled successfully!", "success");
         updateState({ notifPreferences: { ...state.notifPreferences, enabled: true } });
+        
+        // Immediate welcome notification
+        await notificationService.send({
+          id: `welcome_notif_${Date.now()}`,
+          title: isBn ? "FocusForge নোটিফিকেশন চালু হয়েছে" : "FocusForge Notifications Active",
+          body: isBn 
+            ? "আপনার আজকের পরিকল্পনা এবং নির্ধারিত কাজের সময়মতো রিমাইন্ডার পাবেন।" 
+            : "You will receive your daily plan and scheduled task reminders on time.",
+          tag: "focusforge-enabled",
+          requireInteraction: true,
+        });
       } else {
-        showToast(t.settings.toasts.notifDenied, "error");
+        showToast(state.lang === 'bn' ? "নোটিফিকেশন পারমিশন পাওয়া যায়নি" : "Notification permission denied", "error");
       }
     }
   };
@@ -68,16 +80,39 @@ export default function SettingsPage() {
       await requestNotificationPermission();
       return;
     }
+    const isBn = state.lang === 'bn';
     const success = await notificationService.send({
       id: `test_notif_${Date.now()}`,
-      title: "FocusForge Notification Active",
-      body: "You will receive your Daily Morning Plan and scheduled task reminders on time!",
+      title: isBn ? "FocusForge নোটিফিকেশন সক্রিয়" : "FocusForge Notification Active",
+      body: isBn 
+        ? "আপনার নোটিফিকেশন ও অডিও সফলভাবে কাজ করছে! সময়মতো টাস্কের অ্যালার্ট পাবেন।" 
+        : "Your notifications and audio alerts are working perfectly! You will receive all reminders on time.",
       tag: "test-notification",
+      requireInteraction: true,
     });
     if (success) {
-      showToast(t.settings.testNotifSuccess || "Test notification sent!");
+      showToast(isBn ? "টেস্ট নোটিফিকেশন পাঠানো হয়েছে!" : "Test notification sent!", "success");
     } else {
-      showToast(t.settings.toasts.notifDenied || "Notification blocked", "error");
+      showToast(isBn ? "নোটিফিকেশন পাঠানো যায়নি, ব্রাউজার সেটিংস চেক করুন" : "Notification blocked or failed", "error");
+    }
+  };
+
+  const updateNotifPref = async (key: keyof typeof state.notifPreferences, value: any) => {
+    if (key === 'enabled' && value === true && notificationPermission !== 'granted') {
+      await requestNotificationPermission();
+      return;
+    }
+    updateState({ notifPreferences: { ...state.notifPreferences, [key]: value } });
+    if (key === 'enabled' && value === true && notificationPermission === 'granted') {
+      const isBn = state.lang === 'bn';
+      await notificationService.send({
+        id: `enabled_notif_${Date.now()}`,
+        title: isBn ? "FocusForge নোটিফিকেশন চালু হয়েছে" : "FocusForge Notifications Active",
+        body: isBn 
+          ? "আপনার আজকের পরিকল্পনা এবং নির্ধারিত কাজের সময়মতো রিমাইন্ডার সক্রিয় রয়েছে।" 
+          : "Your daily plan and scheduled task reminders are now active.",
+        tag: "focusforge-enabled",
+      });
     }
   };
 
@@ -91,10 +126,6 @@ export default function SettingsPage() {
       },
     });
     showToast(mode === "light" ? t.settings.toasts.lightTheme : t.settings.toasts.darkTheme, "info");
-  };
-
-  const updateNotifPref = (key: keyof typeof state.notifPreferences, value: any) => {
-    updateState({ notifPreferences: { ...state.notifPreferences, [key]: value } });
   };
 
   const updateCalPref = (key: keyof typeof state.calendarPreferences, value: any) => {
@@ -159,10 +190,7 @@ export default function SettingsPage() {
   const sections = [
     { id: 'appearance', icon: Palette, label: t.settings.appearance },
     { id: 'notifications', icon: Bell, label: t.settings.notifications },
-    { id: 'calendar', icon: Calendar, label: t.settings.calendarTasks },
-    { id: 'categories', icon: Tags, label: t.settings.categories },
     { id: 'language', icon: Globe, label: t.settings.language },
-    { id: 'data', icon: DownloadCloud, label: t.settings.dataBackup },
     { id: 'danger', icon: AlertTriangle, label: t.settings.dangerZone },
     { id: 'about', icon: Info, label: t.settings.aboutFocusForge },
   ];
@@ -453,107 +481,7 @@ export default function SettingsPage() {
               </div>
             </div>
 
-            {/* 3. CALENDAR & TASKS */}
-            <div className={activeSection === 'calendar' ? 'block' : 'hidden'}>
-              <h2 className="text-xl font-bold mb-2" style={{ color: "var(--color-text-primary)" }}>{t.settings.calendarTasks}</h2>
-              <p className="text-sm mb-8" style={{ color: "var(--color-text-muted)" }}>{t.settings.calendarTasksDesc}</p>
-              
-              <div className="space-y-4">
-                <div className="p-5 rounded-2xl border" style={{ borderColor: "var(--color-border-subtle)", background: "var(--color-bg-card)" }}>
-                  <label className="block text-sm font-bold mb-1" style={{ color: "var(--color-text-primary)" }}>{t.settings.defaultTaskReminder}</label>
-                  <p className="text-xs mb-4" style={{ color: "var(--color-text-muted)" }}>Default alert time for newly created tasks.</p>
-                  <div className="w-full sm:w-64">
-                    <FocusForgeSelect 
-                      value={state.calendarPreferences.defaultTaskReminder}
-                      onChange={(e) => updateCalPref('defaultTaskReminder', parseInt(e.target.value, 10))}
-                      options={[
-                        { value: -1, label: t.settings.noReminder },
-                        ...t.settings.reminderOpts.map(opt => ({ value: opt.value, label: opt.label }))
-                      ]}
-                      ariaLabel={t.settings.defaultTaskReminder}
-                    />
-                  </div>
-                </div>
 
-                <div className="p-5 rounded-2xl border" style={{ borderColor: "var(--color-border-subtle)", background: "var(--color-bg-card)" }}>
-                  <label className="block text-sm font-bold mb-1" style={{ color: "var(--color-text-primary)" }}>{t.settings.weekStartsOn}</label>
-                  <p className="text-xs mb-4" style={{ color: "var(--color-text-muted)" }}>First day of the week in calendar views.</p>
-                  <div className="w-full sm:w-64">
-                    <FocusForgeSelect 
-                      value={state.calendarPreferences.weekStartsOn}
-                      onChange={(e) => updateCalPref('weekStartsOn', e.target.value)}
-                      options={[
-                        { value: "saturday", label: t.settings.saturday },
-                        { value: "sunday", label: t.settings.sunday },
-                        { value: "monday", label: t.settings.monday },
-                      ]}
-                      ariaLabel={t.settings.weekStartsOn}
-                    />
-                  </div>
-                </div>
-
-
-                <div className="p-5 rounded-2xl border flex items-center justify-between" style={{ borderColor: "var(--color-border-subtle)", background: "var(--color-bg-card)" }}>
-                  <div>
-                    <h3 className="text-sm font-bold" style={{ color: "var(--color-text-primary)" }}>{t.settings.showCompletedTasks}</h3>
-                    <p className="text-xs mt-1" style={{ color: "var(--color-text-muted)" }}>{t.settings.showCompletedTasksDesc}</p>
-                  </div>
-                  <Toggle 
-                    checked={state.calendarPreferences.showCompletedTasks} 
-                    onChange={(val) => updateCalPref('showCompletedTasks', val)} 
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* 4. CATEGORIES */}
-            <div className={activeSection === 'categories' ? 'block' : 'hidden'}>
-              <h2 className="text-xl font-bold mb-2" style={{ color: "var(--color-text-primary)" }}>{t.settings.categories}</h2>
-              <p className="text-sm mb-8" style={{ color: "var(--color-text-muted)" }}>{t.settings.categoriesDesc}</p>
-              
-              <div className="p-6 rounded-2xl border" style={{ borderColor: "var(--color-border-subtle)", background: "var(--color-bg-card)" }}>
-                <div className="flex flex-wrap gap-2.5 mb-8">
-                  {state.categories.map((cat) => (
-                    <div
-                      key={cat}
-                      className="group flex items-center gap-2 pl-4 pr-2 py-2 rounded-full border text-sm font-medium transition-all"
-                      style={{ background: "rgba(124, 58, 237, 0.08)", borderColor: "rgba(124, 58, 237, 0.2)", color: "var(--color-purple-primary)" }}
-                    >
-                      <span>{cat}</span>
-                      <button
-                        onClick={() => removeCategory(cat)}
-                        className="w-6 h-6 flex items-center justify-center rounded-full opacity-60 hover:opacity-100 hover:bg-red-500 hover:text-white transition-all"
-                        aria-label={`Remove category ${cat}`}
-                      >
-                        <X size={14} />
-                      </button>
-                    </div>
-                  ))}
-                  {state.categories.length === 0 && (
-                    <p className="text-sm italic" style={{ color: "var(--color-text-muted)" }}>No categories defined yet.</p>
-                  )}
-                </div>
-                
-                <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-                  <input
-                    type="text"
-                    value={newCategory}
-                    onChange={(e) => setNewCategory(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && handleAddCategory()}
-                    placeholder={t.settings.addCategoryPlaceholder}
-                    className="flex-1 max-w-sm p-3 rounded-xl text-sm bg-transparent border outline-none transition-colors focus:border-[var(--color-purple-primary)] shadow-sm"
-                    style={{ borderColor: "var(--color-border-subtle)", color: "var(--color-text-primary)" }}
-                  />
-                  <button 
-                    onClick={handleAddCategory} 
-                    className="px-6 py-3 rounded-xl text-sm font-bold shadow-sm transition-transform hover:scale-105 active:scale-95" 
-                    style={{ background: "var(--color-purple-primary)", color: "white" }}
-                  >
-                    {t.settings.addBtn}
-                  </button>
-                </div>
-              </div>
-            </div>
 
             {/* 5. LANGUAGE */}
             <div className={activeSection === 'language' ? 'block' : 'hidden'}>
@@ -581,42 +509,7 @@ export default function SettingsPage() {
               </div>
             </div>
 
-            {/* 6. DATA & BACKUP */}
-            <div className={activeSection === 'data' ? 'block' : 'hidden'}>
-              <h2 className="text-xl font-bold mb-2" style={{ color: "var(--color-text-primary)" }}>{t.settings.dataBackup}</h2>
-              <p className="text-sm mb-8" style={{ color: "var(--color-text-muted)" }}>{t.settings.dataBackupDesc}</p>
-              
-              <div className="space-y-4">
-                <div className="p-6 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-6" style={{ borderColor: "var(--color-border-subtle)", background: "var(--color-bg-card)" }}>
-                  <div>
-                    <h3 className="text-sm font-bold" style={{ color: "var(--color-text-primary)" }}>{t.settings.exportData}</h3>
-                    <p className="text-xs mt-1" style={{ color: "var(--color-text-muted)" }}>{t.settings.exportDataDesc}</p>
-                  </div>
-                  <button 
-                    onClick={exportData} 
-                    className="px-5 py-2.5 rounded-xl text-sm font-semibold transition-all hover:opacity-80 shrink-0 border" 
-                    style={{ background: "transparent", color: "var(--color-text-primary)", borderColor: "var(--color-border-subtle)" }}
-                  >
-                    {t.settings.exportJson}
-                  </button>
-                </div>
-                
-                <div className="p-6 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-6" style={{ borderColor: "var(--color-border-subtle)", background: "var(--color-bg-card)" }}>
-                  <div>
-                    <h3 className="text-sm font-bold" style={{ color: "var(--color-text-primary)" }}>{t.settings.importData}</h3>
-                    <p className="text-xs mt-1" style={{ color: "var(--color-text-muted)" }}>{t.settings.importDataDesc}</p>
-                  </div>
-                  <button 
-                    onClick={() => fileInputRef.current?.click()} 
-                    className="px-5 py-2.5 rounded-xl text-sm font-semibold transition-all hover:opacity-80 shrink-0 border" 
-                    style={{ background: "transparent", color: "var(--color-text-primary)", borderColor: "var(--color-border-subtle)" }}
-                  >
-                    {t.settings.importJson}
-                  </button>
-                  <input ref={fileInputRef} type="file" accept=".json" onChange={importData} className="hidden" />
-                </div>
-              </div>
-            </div>
+
 
             {/* 7. DANGER ZONE */}
             <div className={activeSection === 'danger' ? 'block' : 'hidden'}>
