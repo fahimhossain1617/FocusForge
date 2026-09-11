@@ -22,13 +22,16 @@ export function useSpeechRecognition({
   const [error, setErrorState] = useState<string | null>(null);
   const [speechLanguage, setSpeechLanguageState] = useState<SpeechLanguage>(() => {
     if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("focusforge_speech_lang") as SpeechLanguage;
-      if (saved === "auto" || saved === "bn-BD" || saved === "en-US") return saved;
+      try {
+        const saved = localStorage.getItem("focusforge_speech_lang") as SpeechLanguage;
+        if (saved === "auto" || saved === "bn-BD" || saved === "en-US") return saved;
+      } catch {}
     }
     return "auto";
   });
 
   const recognitionRef = useRef<any>(null);
+  const isRecognitionActiveRef = useRef(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const streamRef = useRef<MediaStream | null>(null);
@@ -73,10 +76,13 @@ export function useSpeechRecognition({
 
   const cleanupAll = useCallback(() => {
     shouldListenRef.current = false;
+    isRecognitionActiveRef.current = false;
+
     if (restartTimerRef.current) {
       clearTimeout(restartTimerRef.current);
       restartTimerRef.current = null;
     }
+
     if (recognitionRef.current) {
       try {
         recognitionRef.current.onstart = null;
@@ -87,16 +93,23 @@ export function useSpeechRecognition({
       } catch (e) {}
       recognitionRef.current = null;
     }
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+
+    if (mediaRecorderRef.current) {
       try {
-        mediaRecorderRef.current.stop();
+        if (mediaRecorderRef.current.state !== "inactive") {
+          mediaRecorderRef.current.stop();
+        }
       } catch (e) {}
+      mediaRecorderRef.current = null;
     }
-    mediaRecorderRef.current = null;
+
     if (streamRef.current) {
-      streamRef.current.getTracks().forEach((track) => track.stop());
+      try {
+        streamRef.current.getTracks().forEach((track) => track.stop());
+      } catch (e) {}
       streamRef.current = null;
     }
+
     audioChunksRef.current = [];
   }, []);
 
@@ -109,38 +122,43 @@ export function useSpeechRecognition({
     (lang: SpeechLanguage = "auto") => {
       if (!shouldListenRef.current || typeof window === "undefined") return;
 
-      const SpeechRecognition =
+      const SpeechRecognitionClass =
         (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
 
-      if (!SpeechRecognition) {
-        console.warn("[Voice] Web Speech API not supported; relying on AI audio fallback.");
+      if (!SpeechRecognitionClass) {
         return;
       }
 
+      // If an existing instance is active, cleanly detach and abort
       if (recognitionRef.current) {
         try {
+          recognitionRef.current.onstart = null;
+          recognitionRef.current.onresult = null;
+          recognitionRef.current.onerror = null;
           recognitionRef.current.onend = null;
           recognitionRef.current.abort();
         } catch (e) {}
         recognitionRef.current = null;
+        isRecognitionActiveRef.current = false;
       }
 
       try {
-        const recognition = new SpeechRecognition();
+        const recognition = new SpeechRecognitionClass();
         recognition.continuous = true;
         recognition.interimResults = true;
         recognition.maxAlternatives = 1;
 
+        // Auto mode defaults to bn-BD which can recognize both Bengali and transliterated words
         const resolveLang = (l: SpeechLanguage) => {
           if (l === "bn-BD") return "bn-BD";
           if (l === "en-US") return "en-US";
-          // In "auto" mode, use bn-BD which recognizes Bengali script while capturing English words
           return "bn-BD";
         };
 
         recognition.lang = resolveLang(lang);
 
         recognition.onstart = () => {
+          isRecognitionActiveRef.current = true;
           setIsListening(true);
           setErrorState(null);
         };
@@ -154,8 +172,6 @@ export function useSpeechRecognition({
             if (!text) continue;
 
             if (res.isFinal) {
-              // 1. Immediately deliver newly finalized chunk with isFinal = true!
-              // This permanently commits words to state so they NEVER disappear when pausing.
               chunksDeliveredRef.current += 1;
               accumulatedFinalRef.current = [accumulatedFinalRef.current, text]
                 .filter(Boolean)
@@ -178,7 +194,6 @@ export function useSpeechRecognition({
             }
           }
 
-          // Live interim preview during active speaking
           if (sessionInterim) {
             interimTextRef.current = sessionInterim;
             setInterimText(sessionInterim);
@@ -201,22 +216,18 @@ export function useSpeechRecognition({
             return;
           }
           if (err === "language-not-supported") {
-            console.warn("[Voice] Web Speech language not supported, attempting fallback");
-            if (recognition.lang === "bn-BD") {
-              recognition.lang = "bn-IN";
-              try { recognition.start(); return; } catch {}
-            } else if (recognition.lang === "bn-IN") {
-              recognition.lang = typeof navigator !== "undefined" ? navigator.language || "en-US" : "en-US";
-              try { recognition.start(); return; } catch {}
-            }
+            try {
+              recognition.lang = "en-US";
+              recognition.start();
+              return;
+            } catch {}
           }
-          console.warn("[Voice] Web Speech notice:", err);
         };
 
         recognition.onend = () => {
-          // CRITICAL PAUSE PROTECTION:
-          // If the user paused speaking, Web Speech API ends the recognition session.
-          // If there were any unfinalized interim words, commit them IMMEDIATELY so they don't vanish!
+          isRecognitionActiveRef.current = false;
+
+          // Commit any pending interim words
           const pending = interimTextRef.current.trim();
           if (pending) {
             chunksDeliveredRef.current += 1;
@@ -238,9 +249,7 @@ export function useSpeechRecognition({
             }
           }
 
-          // LONG VOICE TRACKING:
-          // If the user hasn't clicked stop (still in listening mode), seamlessly restart in 60ms!
-          // Previous text is preserved in accumulatedFinalRef and in component state.
+          // Seamless restart loop if still in listening mode (continuous recording support)
           if (shouldListenRef.current) {
             if (restartTimerRef.current) clearTimeout(restartTimerRef.current);
             restartTimerRef.current = setTimeout(() => {
@@ -252,7 +261,21 @@ export function useSpeechRecognition({
         };
 
         recognitionRef.current = recognition;
-        recognition.start();
+
+        try {
+          recognition.start();
+        } catch (startErr: any) {
+          // If browser throws InvalidStateError, retry in a clean tick
+          if (shouldListenRef.current) {
+            setTimeout(() => {
+              if (shouldListenRef.current) {
+                try {
+                  recognition.start();
+                } catch {}
+              }
+            }, 100);
+          }
+        }
       } catch (err: any) {
         console.warn("[Voice] Speech recognition start notice:", err?.message || err);
       }
@@ -286,6 +309,7 @@ export function useSpeechRecognition({
     async (language?: SpeechLanguage, options?: { reset?: boolean }) => {
       const targetLang = language || speechLanguage || "auto";
       setErrorState(null);
+
       if (options?.reset !== false) {
         accumulatedFinalRef.current = "";
         interimTextRef.current = "";
@@ -299,13 +323,19 @@ export function useSpeechRecognition({
       shouldListenRef.current = true;
       setIsListening(true);
 
-      // 1. Start real-time speech recognition for live typing
+      // 1. Instant real-time Speech Recognition
       spawnSpeechRecognition(targetLang);
 
-      // 2. Parallel audio recording for auto-language AI verification (English vs Bengali)
+      // 2. Parallel background MediaRecorder for fallback if Web Speech API returns empty
       try {
-        if (!streamRef.current && navigator.mediaDevices) {
-          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        if (!streamRef.current && navigator?.mediaDevices?.getUserMedia) {
+          const stream = await navigator.mediaDevices.getUserMedia({
+            audio: {
+              echoCancellation: true,
+              noiseSuppression: true,
+              autoGainControl: true,
+            },
+          });
           streamRef.current = stream;
         }
 
@@ -321,6 +351,7 @@ export function useSpeechRecognition({
               mime = "audio/mp4";
             }
           }
+
           const recorder = new MediaRecorder(streamRef.current, { mimeType: mime });
           recorder.ondataavailable = (e) => {
             if (e.data && e.data.size > 0) {
@@ -331,10 +362,10 @@ export function useSpeechRecognition({
           mediaRecorderRef.current = recorder;
         }
       } catch (err: any) {
-        console.warn("[Voice] MediaRecorder init notice:", err?.message || err);
+        console.warn("[Voice] MediaRecorder background init notice:", err?.message || err);
       }
     },
-    [spawnSpeechRecognition]
+    [spawnSpeechRecognition, speechLanguage]
   );
 
   const stopListening = useCallback(async (): Promise<string> => {
@@ -378,41 +409,54 @@ export function useSpeechRecognition({
 
     const clientFinalText = accumulatedFinalRef.current.trim();
 
-    // 3. AI Audio Verification for True Multilingual Auto-Detection (Bangla vs English):
-    // Gemini 3.6 Flash listens to the actual recorded audio.
-    // If the user spoke English, it returns English. If Bengali, Bengali script!
+    // FAST-PATH: If real-time recognition already captured words, return IMMEDIATELY!
+    // No artificial 5-10 second waiting. The user experiences instantaneous responsiveness!
+    if (clientFinalText.length > 0) {
+      // Safely stop background media recording without blocking the return
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+        try {
+          mediaRecorderRef.current.stop();
+        } catch (e) {}
+      }
+      cleanupAll();
+      return clientFinalText;
+    }
+
+    // FALLBACK-PATH: Only if client transcript is completely empty (e.g. browser without Web Speech API or silence)
+    // do we attempt fast AI audio transcription
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
       setIsTranscribing(true);
 
       const audioPromise = new Promise<Blob>((resolve) => {
         const recorder = mediaRecorderRef.current!;
+        const safetyTimer = setTimeout(() => resolve(new Blob([])), 1200);
+
         recorder.onstop = () => {
-          let mime = recorder.mimeType || "audio/webm";
+          clearTimeout(safetyTimer);
+          const mime = recorder.mimeType || "audio/webm";
           const blob = new Blob(audioChunksRef.current, { type: mime });
           resolve(blob);
         };
+
         try {
           recorder.stop();
         } catch (e) {
+          clearTimeout(safetyTimer);
           resolve(new Blob([]));
         }
       });
 
       try {
         const audioBlob = await audioPromise;
-        if (audioBlob && audioBlob.size > 150) {
-          const aiText = await transcribeAudioBlob(audioBlob, "auto");
+        if (audioBlob && audioBlob.size > 200) {
+          const aiText = await transcribeAudioBlob(audioBlob, currentLangRef.current);
           if (aiText && aiText.trim()) {
             const finalAiText = aiText.trim();
             accumulatedFinalRef.current = finalAiText;
             setTranscript(finalAiText);
 
-            // If Web Speech didn't deliver any chunks (e.g. mobile unsupported), deliver Gemini text directly:
-            if (chunksDeliveredRef.current === 0 && onResultRef.current) {
+            if (onResultRef.current) {
               onResultRef.current(finalAiText, true);
-            } else if (onResultRef.current) {
-              // Inform component of full AI refined text (e.g. converting English phonetic transliterations to clean English):
-              onResultRef.current(finalAiText, true, true);
             }
 
             cleanupAll();
@@ -420,7 +464,7 @@ export function useSpeechRecognition({
           }
         }
       } catch (aiErr: any) {
-        console.warn("[Voice] AI auto-transcribe fallback notice:", aiErr?.message || aiErr);
+        console.warn("[Voice] AI fallback notice:", aiErr?.message || aiErr);
       } finally {
         setIsTranscribing(false);
         cleanupAll();

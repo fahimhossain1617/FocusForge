@@ -373,16 +373,12 @@ router.post('/agent/chat', async (req, res) => {
 });
 router.post('/transcribe', async (req, res) => {
     try {
-        const tokenCheck = await checkTokensOrReject(req, res);
-        if (!tokenCheck)
-            return;
         const { audio, mimeType, language } = req.body;
-        if (!audio) {
+        if (!audio || typeof audio !== 'string' || audio.trim().length === 0) {
             return res.status(400).json({ error: 'Audio data is required' });
         }
         const text = await (0, aiService_1.transcribeAudio)(audio, mimeType || 'audio/webm', language);
-        const tokenStatus = await deductTokens(req, { mimeType, language }, { text });
-        res.json({ text, tokenStatus });
+        res.json({ text, success: true });
     }
     catch (error) {
         console.error('Audio transcribe error:', error);

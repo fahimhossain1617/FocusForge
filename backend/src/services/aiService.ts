@@ -347,6 +347,13 @@ export async function executeAIAction(action: string, payload: unknown): Promise
   throw lastError || new Error('AI returned an empty response.');
 }
 
+const AUDIO_TRANSCRIBE_MODELS = [
+  'gemini-2.0-flash',
+  'gemini-1.5-flash',
+  'gemini-2.0-flash-lite',
+  'gemini-flash-latest'
+];
+
 export async function transcribeAudio(
   audioBase64: string,
   mimeType: string = 'audio/webm',
@@ -361,22 +368,19 @@ export async function transcribeAudio(
   const client = getGeminiClient();
 
   const prompt = [
-    'You are an expert, multilingual speech-to-text transcriber for the FocusForge productivity app.',
-    'The user may speak in Bengali (বাংলা), English, or Banglish (Bengali spoken using colloquial or English mixed words).',
-    'AUTOMATIC MULTILINGUAL TRANSCRIPTION RULES:',
-    '1. If the user speaks in Bengali or Banglish (e.g. "ami ajke routine banate chai", "amar physics pora dorkar"):',
-    '   - Transcribe directly into clear, natural Bengali script (বাংলা লিপি).',
-    '2. If the user speaks in English (e.g. "Help me plan my study schedule"):',
-    '   - Transcribe into clean, punctuated English.',
-    '3. If the user speaks code-mixed Bengali and English (e.g. "ajke 2 ghonta React and Python shikhbo"):',
-    '   - Transcribe naturally in Bengali script keeping technical English terms (e.g. "আজকে ২ ঘণ্টা React এবং Python শিখব").',
-    '4. If silent or only noise/humming, return empty text: {"text": ""}.',
-    'Return ONLY valid JSON: {"text": "the transcribed words"}'
+    'You are a high-speed, multilingual speech-to-text transcriber for the FocusForge app.',
+    'The audio contains spoken words in Bengali (বাংলা), English, or Banglish (colloquial mixed).',
+    'TRANSCRIPTION INSTRUCTIONS:',
+    '1. Bengali/Banglish -> Transcribe into clean, natural Bengali script (বাংলা লিপি).',
+    '2. English -> Transcribe into clean, accurate English text.',
+    '3. Mixed -> Transcribe naturally in Bengali script keeping technical English terms intact.',
+    '4. If silent or static/noise, return an empty string.',
+    'Output ONLY the raw transcribed text. Do NOT add any quotes, explanations, markdown or JSON.'
   ].join('\n');
 
   let lastError: any = null;
 
-  for (const model of CANDIDATE_MODELS) {
+  for (const model of AUDIO_TRANSCRIBE_MODELS) {
     try {
       const fetchPromise = client.models.generateContent({
         model,
@@ -399,7 +403,7 @@ export async function transcribeAudio(
       });
 
       const timeoutPromise = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('AI_AUDIO_TIMEOUT')), 15000)
+        setTimeout(() => reject(new Error('AI_AUDIO_TIMEOUT')), 7000)
       );
 
       const response = await Promise.race([fetchPromise, timeoutPromise]);
@@ -407,20 +411,21 @@ export async function transcribeAudio(
       const rawText = (response.text || '').trim();
       if (rawText) {
         try {
-          const parsed = parseJson(rawText) as any;
-          if (parsed && typeof parsed.text === 'string') {
-            return parsed.text.trim();
+          if (rawText.startsWith('{') && rawText.endsWith('}')) {
+            const parsed = parseJson(rawText) as any;
+            if (parsed && typeof parsed.text === 'string') {
+              return parsed.text.trim();
+            }
           }
         } catch {
-          // If response is not JSON, use the raw text
-          return rawText.replace(/^"|"$/g, '').trim();
+          // not json, proceed
         }
+        return rawText.replace(/^["'`]|["'`]$/g, '').trim();
       }
       return '';
     } catch (err: any) {
-      console.warn(`[AI Service Audio] Model ${model} failed, trying next candidate:`, err?.message || err);
+      console.warn(`[AI Service Audio] Model ${model} notice:`, err?.message || err);
       lastError = err;
-      await new Promise((resolve) => setTimeout(resolve, 200));
     }
   }
 

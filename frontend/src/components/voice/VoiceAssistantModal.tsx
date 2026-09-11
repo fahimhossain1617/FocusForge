@@ -78,15 +78,18 @@ export const VoiceAssistantModal: React.FC<VoiceAssistantModalProps> = ({
     error: speechError,
     startListening,
     stopListening,
+    abortListening,
   } = useSpeechRecognition({
     onResult: handleSpeechResultChunk,
   });
 
   const startListeningRef = useRef(startListening);
   const stopListeningRef = useRef(stopListening);
+  const abortListeningRef = useRef(abortListening);
   useEffect(() => {
     startListeningRef.current = startListening;
     stopListeningRef.current = stopListening;
+    abortListeningRef.current = abortListening;
   });
 
   // Lock background page from scrolling while modal is open
@@ -107,7 +110,12 @@ export const VoiceAssistantModal: React.FC<VoiceAssistantModalProps> = ({
       const initialLang = language === "bn" ? "bn-BD" : language === "en" ? "en-US" : "auto";
       setSpeechLanguage(initialLang);
       startListeningRef.current(initialLang, { reset: true });
+    } else {
+      abortListeningRef.current();
     }
+    return () => {
+      abortListeningRef.current();
+    };
   }, [isOpen]);
 
   // Handle manual close / stop: finalizes full speech (supports arbitrarily long speaking sessions)

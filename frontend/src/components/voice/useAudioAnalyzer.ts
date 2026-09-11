@@ -10,6 +10,27 @@ export interface AudioAnalyzerState {
   amplitude: number;
 }
 
+// Global AudioContext singleton to strictly stay within Chrome's 6 hardware contexts limit
+let sharedAudioContext: AudioContext | null = null;
+
+function getOrCreateAudioContext(): AudioContext | null {
+  if (typeof window === "undefined") return null;
+  const AudioCtx =
+    window.AudioContext ||
+    (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+  if (!AudioCtx) return null;
+
+  try {
+    if (!sharedAudioContext || sharedAudioContext.state === "closed") {
+      sharedAudioContext = new AudioCtx();
+    }
+    return sharedAudioContext;
+  } catch (e) {
+    console.warn("[useAudioAnalyzer] Error creating AudioContext:", e);
+    return null;
+  }
+}
+
 export function useAudioAnalyzer(isActive: boolean = false) {
   const [state, setState] = useState<AudioAnalyzerState>({
     isInitialized: false,
@@ -18,8 +39,8 @@ export function useAudioAnalyzer(isActive: boolean = false) {
     amplitude: 0,
   });
 
-  const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
+  const sourceNodeRef = useRef<MediaStreamAudioSourceNode | null>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
   const dataArrayRef = useRef<Uint8Array | null>(null);
   const rafIdRef = useRef<number | null>(null);
@@ -33,15 +54,34 @@ export function useAudioAnalyzer(isActive: boolean = false) {
       cancelAnimationFrame(rafIdRef.current);
       rafIdRef.current = null;
     }
+
+    if (sourceNodeRef.current) {
+      try {
+        sourceNodeRef.current.disconnect();
+      } catch (e) {}
+      sourceNodeRef.current = null;
+    }
+
+    if (analyserRef.current) {
+      try {
+        analyserRef.current.disconnect();
+      } catch (e) {}
+      analyserRef.current = null;
+    }
+
     if (mediaStreamRef.current) {
-      mediaStreamRef.current.getTracks().forEach((track) => track.stop());
+      mediaStreamRef.current.getTracks().forEach((track) => {
+        try {
+          track.stop();
+        } catch (e) {}
+      });
       mediaStreamRef.current = null;
     }
-    if (audioContextRef.current && audioContextRef.current.state !== "closed") {
-      audioContextRef.current.close().catch(() => {});
-      audioContextRef.current = null;
+
+    if (sharedAudioContext && sharedAudioContext.state === "running") {
+      sharedAudioContext.suspend().catch(() => {});
     }
-    analyserRef.current = null;
+
     dataArrayRef.current = null;
     smoothedAmplitudeRef.current = 0;
     rawAmplitudeRef.current = 0;
@@ -65,12 +105,13 @@ export function useAudioAnalyzer(isActive: boolean = false) {
 
       mediaStreamRef.current = stream;
 
-      const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-      const audioContext = new AudioCtx();
-      audioContextRef.current = audioContext;
+      const audioContext = getOrCreateAudioContext();
+      if (!audioContext) {
+        throw new Error("AudioContext is not supported on this browser.");
+      }
 
       if (audioContext.state === "suspended") {
-        await audioContext.resume();
+        await audioContext.resume().catch(() => {});
       }
 
       const analyser = audioContext.createAnalyser();
@@ -80,6 +121,7 @@ export function useAudioAnalyzer(isActive: boolean = false) {
 
       const source = audioContext.createMediaStreamSource(stream);
       source.connect(analyser);
+      sourceNodeRef.current = source;
 
       const bufferLength = analyser.frequencyBinCount;
       const dataArray = new Uint8Array(bufferLength);
@@ -135,7 +177,8 @@ export function useAudioAnalyzer(isActive: boolean = false) {
 
       rafIdRef.current = requestAnimationFrame(tick);
     } catch (err: unknown) {
-      const errorMsg = err instanceof Error ? err.message : "Microphone permission denied or unavailable.";
+      const errorMsg =
+        err instanceof Error ? err.message : "Microphone permission denied or unavailable.";
       setState({
         isInitialized: false,
         hasPermission: false,

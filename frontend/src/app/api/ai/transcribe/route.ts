@@ -2,8 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { GoogleGenAI } from "@google/genai";
 
 const CANDIDATE_MODELS = [
-  process.env.GEMINI_MODEL || "gemini-3.6-flash",
-  "gemini-3.6-flash",
+  process.env.GEMINI_MODEL || "gemini-2.0-flash",
+  "gemini-2.0-flash",
+  "gemini-1.5-flash",
+  "gemini-2.0-flash-lite",
+  "gemini-flash-latest",
 ];
 
 export async function POST(req: NextRequest) {
