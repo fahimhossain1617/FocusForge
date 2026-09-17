@@ -189,21 +189,20 @@ export default function DiaryTopicView({
             {formatTopicNumber(topic.order)}.
           </span>
           <h1
-            className="text-2xl sm:text-3xl font-extrabold tracking-tight"
-            style={{ color: "var(--color-text-primary)" }}
+            className="text-2xl md:text-3xl lg:text-4xl font-bold tracking-tight text-foreground"
           >
             {topic.title}
           </h1>
         </div>
 
         {topic.description && (
-          <p className="text-xs sm:text-sm mt-1 text-zinc-500 dark:text-zinc-400">
+          <p className="text-xs sm:text-sm mt-1 text-muted-foreground">
             {topic.description}
           </p>
         )}
 
         {/* Entry Human Timestamp */}
-        <div className="flex items-center gap-2 mt-2 text-xs font-medium text-zinc-400 dark:text-zinc-500">
+        <div className="flex items-center gap-2 mt-2 text-xs font-medium text-muted-foreground">
           <Calendar size={13} className="text-blue-500/80" />
           <span>{formatDiaryDate(continuousEntry.createdAt, lang)}</span>
         </div>
@@ -229,8 +228,7 @@ export default function DiaryTopicView({
             {/* Entry Title if present */}
             {continuousEntry.title && (
               <h2
-                className="text-xl sm:text-2xl font-bold tracking-tight mb-4 pb-2 border-b border-black/5 dark:border-white/5"
-                style={{ color: "var(--color-text-primary)" }}
+                className="text-lg md:text-xl font-semibold tracking-tight text-foreground mb-4 pb-2 border-b border-black/5 dark:border-white/5"
               >
                 {continuousEntry.title}
               </h2>

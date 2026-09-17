@@ -111,14 +111,12 @@ export default function DiaryTableOfContents({
           <BookOpen size={24} />
         </div>
         <h1
-          className="text-3xl sm:text-4xl font-extrabold tracking-tight"
-          style={{ color: "var(--color-text-primary)" }}
+          className="text-2xl md:text-3xl lg:text-4xl font-bold tracking-tight text-foreground"
         >
           {t.diary?.title || "My Diary"}
         </h1>
         <p
-          className="text-xs sm:text-sm mt-2 max-w-md mx-auto"
-          style={{ color: "var(--color-text-secondary)" }}
+          className="text-xs sm:text-sm mt-2 max-w-md mx-auto text-muted-foreground font-normal"
         >
           {t.diary?.subtitle || "Your thoughts, memories and moments — all in one place."}
         </p>
@@ -197,14 +195,14 @@ export default function DiaryTableOfContents({
 
                     <div className="min-w-0 flex-1">
                       <h3
-                        className="text-sm sm:text-base font-bold truncate group-hover:text-blue-500 transition-colors"
+                        className="text-sm sm:text-base font-semibold break-words group-hover:text-blue-500 transition-colors"
                         style={{ color: "var(--color-text-primary)" }}
                       >
                         {topic.title}
                       </h3>
 
                       {topic.description ? (
-                        <p className="text-xs text-zinc-500 dark:text-zinc-400 truncate mt-0.5">
+                        <p className="text-xs text-muted-foreground break-words mt-0.5">
                           {topic.description}
                         </p>
                       ) : null}

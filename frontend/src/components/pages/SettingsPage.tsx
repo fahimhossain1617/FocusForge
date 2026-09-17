@@ -215,10 +215,10 @@ export default function SettingsPage() {
       </div>
 
       <div className="mb-10">
-        <h1 className="text-3xl font-bold tracking-tight" style={{ color: "var(--color-text-primary)" }}>
+        <h1 className="text-base md:text-lg font-semibold tracking-tight text-foreground">
           {t.settings.title}
         </h1>
-        <p className="text-sm mt-2 font-medium" style={{ color: "var(--color-text-muted)" }}>
+        <p className="text-xs sm:text-sm mt-0.5 text-muted-foreground font-normal">
           {t.settings.subtitle}
         </p>
       </div>
@@ -256,8 +256,8 @@ export default function SettingsPage() {
             
             {/* 1. APPEARANCE */}
             <div className={activeSection === 'appearance' ? 'block' : 'hidden'}>
-              <h2 className="text-xl font-bold mb-2" style={{ color: "var(--color-text-primary)" }}>{t.settings.appearance}</h2>
-              <p className="text-sm mb-8" style={{ color: "var(--color-text-muted)" }}>{t.settings.appearanceDesc}</p>
+              <h2 className="text-base md:text-lg font-semibold mb-2 text-foreground tracking-tight">{t.settings.appearance}</h2>
+              <p className="text-sm mb-8 text-muted-foreground">{t.settings.appearanceDesc}</p>
               
               <div className="flex gap-4">
                 <button
@@ -326,8 +326,8 @@ export default function SettingsPage() {
 
             {/* 2. NOTIFICATIONS */}
             <div className={activeSection === 'notifications' ? 'block' : 'hidden'}>
-              <h2 className="text-xl font-bold mb-2" style={{ color: "var(--color-text-primary)" }}>{t.settings.notifications}</h2>
-              <p className="text-sm mb-8" style={{ color: "var(--color-text-muted)" }}>{t.settings.notificationsDesc}</p>
+              <h2 className="text-base md:text-lg font-semibold mb-2 text-foreground tracking-tight">{t.settings.notifications}</h2>
+              <p className="text-sm mb-8 text-muted-foreground">{t.settings.notificationsDesc}</p>
 
               {/* Notification Permission Banner */}
               {notificationPermission !== 'granted' && (
@@ -485,8 +485,8 @@ export default function SettingsPage() {
 
             {/* 5. LANGUAGE */}
             <div className={activeSection === 'language' ? 'block' : 'hidden'}>
-              <h2 className="text-xl font-bold mb-2" style={{ color: "var(--color-text-primary)" }}>{t.settings.language}</h2>
-              <p className="text-sm mb-8" style={{ color: "var(--color-text-muted)" }}>{t.settings.languageDesc}</p>
+              <h2 className="text-base md:text-lg font-semibold mb-2 text-foreground tracking-tight">{t.settings.language}</h2>
+              <p className="text-sm mb-8 text-muted-foreground">{t.settings.languageDesc}</p>
               
               <div className="p-6 rounded-2xl border" style={{ borderColor: "var(--color-border-subtle)", background: "var(--color-bg-card)" }}>
                 <label className="block text-sm font-bold mb-3" style={{ color: "var(--color-text-primary)" }}>{t.settings.appLanguage}</label>
@@ -513,12 +513,12 @@ export default function SettingsPage() {
 
             {/* 7. DANGER ZONE */}
             <div className={activeSection === 'danger' ? 'block' : 'hidden'}>
-              <h2 className="text-xl font-bold mb-2 text-red-500">{t.settings.dangerZone}</h2>
-              <p className="text-sm mb-8" style={{ color: "var(--color-text-muted)" }}>{t.settings.dangerZoneDesc}</p>
+              <h2 className="text-base md:text-lg font-semibold mb-2 text-red-500 tracking-tight">{t.settings.dangerZone}</h2>
+              <p className="text-sm mb-8 text-muted-foreground">{t.settings.dangerZoneDesc}</p>
               
               <div className="p-6 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-6" style={{ borderColor: "rgba(239, 68, 68, 0.2)", background: "rgba(239, 68, 68, 0.03)" }}>
                 <div>
-                  <h3 className="text-sm font-bold" style={{ color: "var(--color-text-primary)" }}>{t.settings.resetAllData}</h3>
+                  <h3 className="text-sm font-semibold text-foreground">{t.settings.resetAllData}</h3>
                   <p className="text-xs mt-1 max-w-sm leading-relaxed" style={{ color: "var(--color-text-muted)" }}>{t.settings.resetAllDataDesc}</p>
                 </div>
                 <button 
@@ -532,8 +532,8 @@ export default function SettingsPage() {
 
             {/* 8. ABOUT FOCUSFORGE */}
             <div className={activeSection === 'about' ? 'block' : 'hidden'}>
-              <h2 className="text-xl font-bold mb-2" style={{ color: "var(--color-text-primary)" }}>{t.settings.aboutFocusForge}</h2>
-              <p className="text-sm leading-relaxed mb-8" style={{ color: "var(--color-text-muted)" }}>
+              <h2 className="text-base md:text-lg font-semibold mb-2 text-foreground tracking-tight">{t.settings.aboutFocusForge}</h2>
+              <p className="text-sm leading-relaxed mb-8 text-muted-foreground">
                 {t.settings.aboutDesc}
               </p>
               

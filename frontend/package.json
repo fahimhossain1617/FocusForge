@@ -19,6 +19,7 @@
     "dompurify": "^3.4.14",
     "fabric": "^7.4.0",
     "framer-motion": "^13.4.0",
+    "geist": "^1.7.2",
     "katex": "^0.18.5",
     "lucide-react": "^1.38.0",
     "next": "16.3.3",

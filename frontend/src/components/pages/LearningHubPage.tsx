@@ -200,8 +200,8 @@ export default function LearningHubPage() {
       {/* LEFT PANE: Folders List */}
       <div className="w-full md:w-1/3 flex flex-col gap-4">
         <div className="mb-2">
-          <h1 className="text-2xl font-bold" style={{ color: "var(--color-text-primary)" }}>{t.learningHub.title}</h1>
-          <p className="text-sm mt-1" style={{ color: "var(--color-text-muted)" }}>{t.learningHub.subtitle}</p>
+          <h1 className="text-base md:text-lg font-semibold tracking-tight text-foreground">{t.learningHub.title}</h1>
+          <p className="text-xs sm:text-sm mt-0.5 text-muted-foreground font-normal">{t.learningHub.subtitle}</p>
         </div>
 
         <form onSubmit={handleCreateFolder} className="flex gap-2">
@@ -290,11 +290,11 @@ export default function LearningHubPage() {
             {/* Workspace Header */}
             <div className="card p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
-                <h2 className="text-xl font-bold flex items-center gap-2" style={{ color: "var(--color-text-primary)" }}>
+                <h2 className="text-base md:text-lg font-semibold flex items-center gap-2 text-foreground tracking-tight">
                   {activeFolder.name}
                   {activeFolder.completed && <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/20 text-green-500 ml-2">{t.learningHub.completed}</span>}
                 </h2>
-                <p className="text-xs mt-1" style={{ color: "var(--color-text-muted)" }}>
+                <p className="text-xs mt-1 text-muted-foreground">
                   {t.learningHub.created} {new Date(activeFolder.createdAt).toLocaleDateString()}
                 </p>
               </div>

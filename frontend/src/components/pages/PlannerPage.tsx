@@ -1,17 +1,30 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { useAppContext } from "../../context/AppContext";
 import { useTranslation } from "../../hooks/useTranslation";
 import EmptyState from "../ui/EmptyState";
 import CalendarWidget from "../ui/CalendarWidget";
-import { ChevronLeft, ChevronRight, Plus, X, AlignLeft, Calendar as CalendarIcon, Clock, Bell } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, X, AlignLeft, Calendar as CalendarIcon, Clock, Bell, Layers, ArrowDownToLine, Sparkles } from "lucide-react";
 import { useAnimateExit } from "../../hooks/useAnimateExit";
 import FocusForgeTimePicker from "../ui/FocusForgeTimePicker";
+import RoutineLibraryModal from "../planner/RoutineLibraryModal";
+import ImportRoutineModal from "../planner/ImportRoutineModal";
+import AddTaskModal from "../planner/AddTaskModal";
+import { Weekday } from "../../types";
+import { formatTime12hr } from "../../utils/timeUtils";
 
 export default function PlannerPage() {
   const { state, addTimeBlock, deleteTimeBlock, updateTimeBlock, addTask, deleteTask } = useAppContext();
   const { t } = useTranslation();
+  
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const drawerContentRef = useRef<HTMLDivElement>(null);
   
   // Timezone-safe local date formatting helpers
   const formatLocalDate = (d: Date = new Date()): string => {
@@ -26,6 +39,13 @@ export default function PlannerPage() {
     return new Date(y, m - 1, d);
   };
 
+  const getWeekdayFromDate = (dateStr: string): Weekday => {
+    const [y, m, d] = dateStr.split('-').map(Number);
+    const date = new Date(y, m - 1, d);
+    const mapping: Weekday[] = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+    return mapping[date.getDay()] || 'monday';
+  };
+
   // Calendar Engine State
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
   const [realToday, setRealToday] = useState<string>(formatLocalDate(new Date()));
@@ -33,6 +53,45 @@ export default function PlannerPage() {
   // Side Drawer & Highlight State
   const [selectedDateStr, setSelectedDateStr] = useState<string>(formatLocalDate(new Date()));
   const [drawerDateStr, setDrawerDateStr] = useState<string | null>(null);
+
+  // Modals State
+  const [showAddTaskModal, setShowAddTaskModal] = useState(false);
+  const [showRoutineLibrary, setShowRoutineLibrary] = useState(false);
+  const [showImportRoutine, setShowImportRoutine] = useState(false);
+
+  // Handle cross-navigation from Dashboard (e.g. 3-dots on a task)
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const applySelectedDate = (dateStr: string, openDrawer: boolean = false) => {
+      setSelectedDateStr(dateStr);
+      setCurrentDate(parseLocalDate(dateStr));
+      if (openDrawer) {
+        setDrawerDateStr(dateStr);
+      }
+    };
+
+    const handleOpenDate = (e: any) => {
+      if (e.detail?.date) {
+        applySelectedDate(e.detail.date, Boolean(e.detail.openDrawer));
+      }
+    };
+
+    window.addEventListener("focusforge:open_planner_date", handleOpenDate);
+
+    // Check sessionStorage on mount
+    const savedDate = sessionStorage.getItem("focusforge_planner_selected_date");
+    const shouldOpenDrawer = sessionStorage.getItem("focusforge_planner_open_drawer");
+    if (savedDate) {
+      applySelectedDate(savedDate, shouldOpenDrawer === "true");
+      sessionStorage.removeItem("focusforge_planner_selected_date");
+      sessionStorage.removeItem("focusforge_planner_open_drawer");
+    }
+
+    return () => {
+      window.removeEventListener("focusforge:open_planner_date", handleOpenDate);
+    };
+  }, []);
   
   // Form State inside Drawer
   const [showAddBlock, setShowAddBlock] = useState(false);
@@ -169,7 +228,12 @@ export default function PlannerPage() {
   // Blocks for drawer date with exit persistence
   const [lastActiveDrawerDate, setLastActiveDrawerDate] = useState<string | null>(null);
   useEffect(() => {
-    if (drawerDateStr) setLastActiveDrawerDate(drawerDateStr);
+    if (drawerDateStr) {
+      setLastActiveDrawerDate(drawerDateStr);
+      if (drawerContentRef.current) {
+        drawerContentRef.current.scrollTop = 0;
+      }
+    }
   }, [drawerDateStr]);
   const activeDrawerDate = drawerDateStr || lastActiveDrawerDate;
   const drawerDayBlocks = activeDrawerDate 
@@ -214,15 +278,6 @@ export default function PlannerPage() {
     return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   };
 
-  const formatTime12hr = (time24: string) => {
-    if (!time24) return "";
-    const [hourStr, minStr] = time24.split(':');
-    let hour = parseInt(hourStr, 10);
-    const ampm = hour >= 12 ? 'PM' : 'AM';
-    hour = hour % 12;
-    if (hour === 0) hour = 12;
-    return `${hour}:${minStr} ${ampm}`;
-  };
 
   // Calculate prev, current, next for the carousel
   const prevDate = parseLocalDate(selectedDateStr);
@@ -238,72 +293,71 @@ export default function PlannerPage() {
       
       <div className="motion-stagger relative z-10 w-full max-w-[1440px] mx-auto px-4 sm:px-6 md:px-8 py-4 sm:py-6 md:py-8 pb-20 h-full flex flex-col">
         
-        {/* HEADER & QUICK DAY NAV */}
-        <div className="relative z-50 flex flex-col xl:flex-row xl:items-center justify-between gap-6 mb-8">
-          <div>
-            <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-white">
-              {t.planner.title}
-            </h1>
-            <p className="text-sm mt-1 text-slate-400 font-medium">
-              {t.planner.subtitle}
-            </p>
+        {/* HEADER */}
+        <div className="relative z-50 mb-6 sm:mb-8">
+          <h1 className="text-base md:text-lg font-semibold tracking-tight text-foreground">
+            {t.planner.title}
+          </h1>
+          <p className="text-xs sm:text-sm mt-0.5 text-muted-foreground font-normal">
+            {t.planner.subtitle}
+          </p>
+        </div>
+
+        {/* QUICK DAY NAV & TOOLBAR */}
+        <div className="planner-toolbar relative z-50 flex flex-col sm:flex-row items-center justify-between gap-3 p-2 w-full mb-6 sm:mb-8">
+          
+          {/* Quick Day Navigation (Carousel) */}
+          <div className="planner-day-tabs flex items-center p-1 relative overflow-hidden w-full max-w-[320px] h-[36px] justify-between touch-manipulation">
+            <button 
+              onClick={() => jumpToDay(-1)} 
+              className="absolute left-1 px-3 py-1.5 rounded-full text-xs font-medium text-slate-400 hover:text-white hover:bg-white/10 transition-colors z-10 w-[95px] text-center touch-manipulation cursor-pointer"
+            >
+              {formatShortDate(prevDateStr)}
+            </button>
+            
+            <div className="absolute left-1/2 -translate-x-1/2 z-20 transition-all duration-300">
+              <button className="px-3.5 py-1.5 rounded-full text-xs font-semibold text-white bg-blue-600 hover:bg-blue-500 transition-colors whitespace-nowrap touch-manipulation w-[100px] text-center cursor-pointer">
+                {formatShortDate(selectedDateStr)}
+              </button>
+            </div>
+
+            <button 
+              onClick={() => jumpToDay(1)} 
+              className="absolute right-1 px-3 py-1.5 rounded-full text-xs font-medium text-slate-400 hover:text-white hover:bg-white/10 transition-colors z-10 w-[95px] text-center touch-manipulation cursor-pointer"
+            >
+              {formatShortDate(nextDateStr)}
+            </button>
           </div>
-
-          <div className="planner-toolbar relative z-50 flex flex-col sm:flex-row items-center justify-between gap-3 p-2 w-full">
+          
+          {/* Month Nav + Mini Calendar Picker */}
+          <div className="flex items-center justify-center sm:justify-end gap-2 w-full sm:w-auto">
+            <button onClick={() => changeMonth(-1)} className="p-1.5 rounded-full hover:bg-white/10 transition-colors text-slate-400 hover:text-blue-400">
+              <ChevronLeft className="w-5 h-5" />
+            </button>
             
-            {/* Quick Day Navigation (Carousel) */}
-            <div className="planner-day-tabs flex items-center p-1 relative overflow-hidden w-full max-w-[320px] h-[36px] justify-between touch-manipulation">
-              <button 
-                onClick={() => jumpToDay(-1)} 
-                className="absolute left-1 px-3 py-1.5 rounded-full text-xs font-medium text-slate-400 hover:text-white hover:bg-white/10 transition-colors z-10 w-[95px] text-center touch-manipulation cursor-pointer"
-              >
-                {formatShortDate(prevDateStr)}
-              </button>
+            <div className="flex items-center gap-2">
+              <span className="text-sm sm:text-base font-bold tracking-wide text-white drop-shadow-md text-center whitespace-nowrap">
+                {parseLocalDate(selectedDateStr).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
+              </span>
               
-              <div className="absolute left-1/2 -translate-x-1/2 z-20 transition-all duration-300">
-                <button className="px-3.5 py-1.5 rounded-full text-xs font-semibold text-white bg-blue-600 hover:bg-blue-500 transition-colors whitespace-nowrap touch-manipulation w-[100px] text-center cursor-pointer">
-                  {formatShortDate(selectedDateStr)}
-                </button>
-              </div>
-
-              <button 
-                onClick={() => jumpToDay(1)} 
-                className="absolute right-1 px-3 py-1.5 rounded-full text-xs font-medium text-slate-400 hover:text-white hover:bg-white/10 transition-colors z-10 w-[95px] text-center touch-manipulation cursor-pointer"
-              >
-                {formatShortDate(nextDateStr)}
-              </button>
+              {/* Custom Popup Calendar Widget */}
+              <CalendarWidget 
+                currentDate={currentDate} 
+                selectedDateStr={selectedDateStr}
+                onDateSelect={(date) => {
+                  setCurrentDate(date);
+                  setSelectedDateStr(formatLocalDate(date));
+                }}
+                onAddEvent={() => {
+                  handleOpenDrawer(selectedDateStr);
+                  setShowAddBlock(true);
+                }}
+              />
             </div>
-            
-            {/* Month Nav + Mini Calendar Picker */}
-            <div className="flex items-center justify-center sm:justify-end gap-2 w-full sm:w-auto">
-              <button onClick={() => changeMonth(-1)} className="p-1.5 rounded-full hover:bg-white/10 transition-colors text-slate-400 hover:text-blue-400">
-                <ChevronLeft className="w-5 h-5" />
-              </button>
-              
-              <div className="flex items-center gap-2">
-                <span className="text-sm sm:text-base font-bold tracking-wide text-white drop-shadow-md text-center whitespace-nowrap">
-                  {parseLocalDate(selectedDateStr).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
-                </span>
-                
-                {/* Custom Popup Calendar Widget */}
-                <CalendarWidget 
-                  currentDate={currentDate} 
-                  selectedDateStr={selectedDateStr}
-                  onDateSelect={(date) => {
-                    setCurrentDate(date);
-                    setSelectedDateStr(formatLocalDate(date));
-                  }}
-                  onAddEvent={() => {
-                    handleOpenDrawer(selectedDateStr);
-                    setShowAddBlock(true);
-                  }}
-                />
-              </div>
 
-              <button onClick={() => changeMonth(1)} className="p-1.5 rounded-full hover:bg-white/10 transition-colors text-slate-400 hover:text-blue-400">
-                <ChevronRight className="w-5 h-5" />
-              </button>
-            </div>
+            <button onClick={() => changeMonth(1)} className="p-1.5 rounded-full hover:bg-white/10 transition-colors text-slate-400 hover:text-blue-400">
+              <ChevronRight className="w-5 h-5" />
+            </button>
           </div>
         </div>
 
@@ -347,8 +401,9 @@ export default function PlannerPage() {
                     
                     {/* Quick Add Button (Desktop only) */}
                     <button 
-                      onClick={(e) => { e.stopPropagation(); handleOpenDrawer(day.dateStr); setShowAddBlock(true); }}
+                      onClick={(e) => { e.stopPropagation(); setSelectedDateStr(day.dateStr); setDrawerDateStr(day.dateStr); setShowAddTaskModal(true); }}
                       className="hidden sm:flex opacity-0 group-hover:opacity-100 w-6 h-6 rounded-full bg-white/5 border border-white/10 items-center justify-center text-zinc-400 hover:text-white hover:bg-white/10 hover:border-white/20 transition-all cursor-pointer"
+                      title="Add Task"
                     >
                       <Plus className="w-3.5 h-3.5" />
                     </button>
@@ -364,7 +419,7 @@ export default function PlannerPage() {
                         />
                       ))}
                       {blocksForDay.length > 3 && (
-                        <span className="text-[8px] font-extrabold text-blue-400 leading-none">
+                        <span className="text-[8px] font-bold text-blue-400 leading-none">
                           +{blocksForDay.length - 3}
                         </span>
                       )}
@@ -413,43 +468,85 @@ export default function PlannerPage() {
 
         {/* HIGHLIGHT CARDS SECTION (BOTTOM) */}
         <div className="fade-in">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-2 h-2 rounded-full bg-blue-500"></div>
-            <h3 className="text-lg font-bold text-white tracking-wide">
-              {t.planner.highlightsFor} {new Date(selectedDateStr).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
-            </h3>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+            <div className="flex items-center gap-3">
+              <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+              <h3 className="text-lg font-bold text-white tracking-wide">
+                {t.planner.highlightsFor} {new Date(selectedDateStr).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
+              </h3>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setShowImportRoutine(true)}
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-blue-600/15 hover:bg-blue-600/25 border border-blue-500/30 text-blue-300 hover:text-white text-xs font-bold transition-all cursor-pointer shadow-sm"
+              >
+                <ArrowDownToLine className="w-3.5 h-3.5 text-blue-400" />
+                {t.planner.importRoutine || "Import Routine"}
+              </button>
+              <button
+                onClick={() => { handleOpenDrawer(selectedDateStr); setShowAddBlock(true); }}
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-200 text-xs font-bold transition-all cursor-pointer"
+              >
+                <Plus className="w-3.5 h-3.5 text-slate-300" />
+                {t.planner.addNoteEvent || "Add Note / Event"}
+              </button>
+            </div>
           </div>
           
           <div className="flex overflow-x-auto gap-4 pb-4 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
             {selectedDayBlocks.length > 0 ? (
-              selectedDayBlocks.map(block => (
-                <div key={block.id} className="planner-highlight-card min-w-[280px] max-w-[320px] p-5 transition-colors group relative overflow-hidden">
-                  {/* Inner glowing accent */}
-                  <div className={`absolute top-0 left-0 w-1 h-full ${getBadgeColor(block.category, block.isBreak)} opacity-70 group-hover:opacity-100 transition-opacity`}></div>
-                  
-                  <div className="flex items-center justify-between mb-3 pl-2">
-                    <div className="flex items-center gap-2 text-xs font-bold text-slate-400">
-                      <Clock className="w-3.5 h-3.5" />
-                      {formatTime12hr(block.startTime)} <span className="opacity-50">{t.planner.to}</span> {formatTime12hr(block.endTime)}
+              selectedDayBlocks.map(block => {
+                const linkedTask = state.tasks.find((t) => t.id === block.taskId);
+                const isRoutine = block.sourceType === 'routine' || linkedTask?.sourceType === 'routine';
+
+                return (
+                  <div key={block.id} className="planner-highlight-card min-w-[280px] max-w-[320px] p-5 transition-colors group relative overflow-hidden">
+                    {/* Inner glowing accent */}
+                    <div className={`absolute top-0 left-0 w-1 h-full ${getBadgeColor(block.category, block.isBreak)} opacity-70 group-hover:opacity-100 transition-opacity`}></div>
+                    
+                    <div className="flex items-center justify-between mb-3 pl-2">
+                      <div className="flex items-center gap-2 text-xs font-bold text-slate-400">
+                        <Clock className="w-3.5 h-3.5" />
+                        {formatTime12hr(block.startTime)} <span className="opacity-50">{t.planner.to}</span> {formatTime12hr(block.endTime)}
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        {isRoutine ? (
+                          <span className="px-1.5 py-0.5 rounded-md bg-blue-500/15 border border-blue-500/30 text-[9px] font-bold text-blue-300 uppercase tracking-wider">
+                            {t.planner.routineBadge || "Routine"}
+                          </span>
+                        ) : (
+                          <span className="px-1.5 py-0.5 rounded-md bg-white/5 border border-white/10 text-[9px] font-bold text-slate-400 uppercase tracking-wider">
+                            {t.planner.customBadge || "Custom"}
+                          </span>
+                        )}
+                        {block.category && (
+                          <span className="px-2 py-0.5 rounded-md bg-white/5 border border-white/5 text-[9px] uppercase tracking-wider text-slate-400">{block.category}</span>
+                        )}
+                      </div>
                     </div>
-                    {block.category && (
-                       <span className="px-2 py-1 rounded-md bg-white/5 border border-white/5 text-[9px] uppercase tracking-wider text-slate-400">{block.category}</span>
-                    )}
+                    
+                    <h4 className={`text-xl font-bold text-white mb-2 pl-2 ${block.isBreak ? 'italic opacity-50' : ''}`}>{block.label}</h4>
+                    
+                    <button onClick={() => { handleOpenDrawer(selectedDateStr); }} className="pl-2 text-xs font-semibold text-blue-400 hover:text-blue-300 transition-colors flex items-center gap-1 mt-4 cursor-pointer">
+                      {t.planner.editDetails} <ChevronRight className="w-3 h-3" />
+                    </button>
                   </div>
-                  
-                  <h4 className={`text-xl font-bold text-white mb-2 pl-2 ${block.isBreak ? 'italic opacity-50' : ''}`}>{block.label}</h4>
-                  
-                  <button onClick={() => { handleOpenDrawer(selectedDateStr); }} className="pl-2 text-xs font-semibold text-blue-400 hover:text-blue-300 transition-colors flex items-center gap-1 mt-4 cursor-pointer">
-                    {t.planner.editDetails} <ChevronRight className="w-3 h-3" />
+                );
+              })
+            ) : (
+              <div className="w-full bg-white/[0.03] border border-white/[0.08] border-dashed rounded-2xl p-6 flex flex-col items-center justify-center text-slate-400 text-center">
+                <p className="text-sm font-medium mb-3">{t.planner.noHighlights}</p>
+                <div className="flex items-center gap-2.5 flex-wrap justify-center">
+                  <button onClick={() => setShowImportRoutine(true)} className="px-4 py-2 rounded-xl bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/30 text-blue-400 text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5">
+                    <ArrowDownToLine className="w-3.5 h-3.5" />
+                    {t.planner.importRoutine || "Import Routine"}
+                  </button>
+                  <button onClick={() => { setSelectedDateStr(selectedDateStr); setDrawerDateStr(selectedDateStr); setShowAddTaskModal(true); }} className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5">
+                    <Plus className="w-3.5 h-3.5" />
+                    {t.planner.addTask || "Add Task"}
                   </button>
                 </div>
-              ))
-            ) : (
-              <div className="w-full bg-white/[0.03] border border-white/[0.08] border-dashed rounded-2xl p-6 flex flex-col items-center justify-center text-slate-400">
-                <p className="text-sm font-medium mb-3">{t.planner.noHighlights}</p>
-                <button onClick={() => { handleOpenDrawer(selectedDateStr); setShowAddBlock(true); }} className="px-5 py-2 rounded-xl bg-blue-600/20 text-blue-400 text-xs font-bold hover:bg-blue-600/30 transition-colors cursor-pointer">
-                  {t.planner.addNoteEvent}
-                </button>
               </div>
             )}
           </div>
@@ -458,11 +555,21 @@ export default function PlannerPage() {
       </div>
 
       {/* GLASSMORPHISM SIDE DRAWER */}
-      {drawerAnim.shouldRender && (
-        <>
-          <div className={`${drawerAnim.isExiting ? "motion-exit-fade" : "motion-overlay"} fixed inset-0 bg-black/60 backdrop-blur-sm z-40`} onClick={() => setDrawerDateStr(null)}></div>
+      {mounted && drawerAnim.shouldRender && createPortal(
+        <div className="fixed inset-0 z-[9999] pointer-events-auto">
+          <div 
+            className={`${drawerAnim.isExiting ? "motion-exit-fade" : "motion-overlay"} fixed inset-0 bg-black/60 backdrop-blur-sm z-[9998]`} 
+            onClick={() => setDrawerDateStr(null)}
+          />
           
-          <div className={`planner-drawer ${drawerAnim.isExiting ? "motion-exit-drawer" : "motion-drawer"} fixed top-0 right-0 h-full w-full max-w-[420px] z-50 flex flex-col p-6 overflow-y-auto`} style={{ background: "linear-gradient(145deg, rgba(16, 22, 36, 0.98), rgba(11, 15, 26, 0.99))", borderLeft: "1px solid rgba(59, 130, 246, 0.14)" }}>
+          <div 
+            ref={drawerContentRef}
+            className={`planner-drawer ${drawerAnim.isExiting ? "motion-exit-drawer" : "motion-drawer"} fixed top-0 right-0 h-full w-full max-w-[420px] z-[9999] flex flex-col p-6 overflow-y-auto shadow-2xl`} 
+            style={{ 
+              background: "linear-gradient(145deg, rgba(16, 22, 36, 0.98), rgba(11, 15, 26, 0.99))", 
+              borderLeft: "1px solid rgba(59, 130, 246, 0.14)" 
+            }}
+          >
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-xl font-bold text-white">
                 {t.planner.editDetails}
@@ -473,30 +580,37 @@ export default function PlannerPage() {
             </div>
             
             {drawerDayBlocks.map((block) => {
-              const linkedTask = state.tasks.find((t) => t.id === block.taskId);
+              const linkedTask = state.tasks.find((t) => String(t.id) === String(block.taskId));
+              const isRoutine = block.sourceType === 'routine' || linkedTask?.sourceType === 'routine';
+
               return (
                 <div key={block.id} className="mb-4 p-4 rounded-xl border flex items-start justify-between" style={{ background: "rgba(15, 23, 42, 0.75)", borderColor: "rgba(59, 130, 246, 0.14)" }}>
                   <div className="space-y-1">
-                    <h4 className="font-bold text-sm text-white">{block.label}</h4>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h4 className="font-bold text-sm text-white">{block.label}</h4>
+                      {isRoutine ? (
+                        <span className="px-1.5 py-0.2 rounded bg-blue-500/15 border border-blue-500/30 text-[9px] font-bold text-blue-300">
+                          Routine
+                        </span>
+                      ) : (
+                        <span className="px-1.5 py-0.2 rounded bg-white/5 border border-white/10 text-[9px] font-bold text-slate-400">
+                          Custom
+                        </span>
+                      )}
+                    </div>
                     <div className="flex items-center gap-2.5 flex-wrap">
                       <p className="text-xs text-slate-400">
                         {formatTime12hr(block.startTime)} - {formatTime12hr(block.endTime)}
                       </p>
-                      {linkedTask?.reminderEnabled && (
-                        <span className="inline-flex items-center gap-1 text-[11px] text-blue-400 font-semibold bg-blue-500/10 px-2 py-0.5 rounded-md">
-                          <Bell size={11} /> {linkedTask.reminderTime || block.startTime}
-                        </span>
-                      )}
                     </div>
                   </div>
                   <button 
-                    onClick={() => {
-                      if (window.confirm("Are you sure you want to delete this event?")) {
-                        deleteTimeBlock(block.id);
-                        if (block.taskId) deleteTask(block.taskId);
-                      }
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      deleteTimeBlock(block.id);
+                      if (block.taskId) deleteTask(block.taskId);
                     }} 
-                    className="text-red-400 hover:text-red-500 transition-colors p-1 cursor-pointer"
+                    className="text-red-400 hover:text-red-500 hover:bg-red-500/10 transition-colors p-1.5 rounded-lg cursor-pointer"
                     aria-label="Delete task"
                   >
                     <X className="w-4 h-4" />
@@ -505,87 +619,47 @@ export default function PlannerPage() {
               );
             })}
             
-            {!showAddBlock ? (
-              <button onClick={() => setShowAddBlock(true)} className="w-full mt-4 py-3 rounded-xl font-bold transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-sm bg-blue-600 hover:bg-blue-500 text-white">
-                <Plus className="w-5 h-5" /> {t.planner.addNoteEvent}
+            <div className="mt-4 flex flex-col sm:flex-row items-center gap-2.5">
+              <button 
+                onClick={() => setShowAddTaskModal(true)} 
+                className="w-full sm:flex-1 py-3 px-3 rounded-xl font-bold text-xs sm:text-sm transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm bg-blue-600 hover:bg-blue-500 text-white active:scale-[0.98]"
+              >
+                <Plus className="w-4 h-4 shrink-0" />
+                <span>{t.planner.addTask || "Add Task"}</span>
               </button>
-            ) : (
-              <form onSubmit={handleAddBlockSubmit} className="mt-4 p-4 rounded-xl border space-y-4 animate-fade-in" style={{ background: "rgba(15, 23, 42, 0.85)", borderColor: "rgba(59, 130, 246, 0.14)" }}>
-                <div>
-                  <label className="block text-xs font-semibold mb-1 text-slate-400">Task Title</label>
-                  <input type="text" placeholder="e.g. Study Mathematics" value={newLabel} onChange={e => setNewLabel(e.target.value)} className="w-full bg-slate-900/60 border border-slate-700/60 rounded-lg px-3 py-2 outline-none transition-colors text-sm text-white focus:border-blue-500" required />
-                </div>
-
-                <div className="flex gap-3">
-                  <div className="w-1/2">
-                    <label className="block text-xs font-semibold mb-1 text-slate-400">Start Time</label>
-                    <FocusForgeTimePicker value={newStart} onChange={e => setNewStart(e.target.value)} ariaLabel="Start Time" />
-                  </div>
-                  <div className="w-1/2">
-                    <label className="block text-xs font-semibold mb-1 text-slate-400">End Time</label>
-                    <FocusForgeTimePicker value={newEnd} onChange={e => setNewEnd(e.target.value)} ariaLabel="End Time" />
-                  </div>
-                </div>
-
-                {/* Priority Selection */}
-                <div>
-                  <label className="block text-xs font-semibold mb-1.5 text-slate-400">Priority</label>
-                  <div className="grid grid-cols-3 gap-2">
-                    {(["low", "medium", "high"] as const).map((p) => (
-                      <button
-                        key={p}
-                        type="button"
-                        onClick={() => setNewPriority(p)}
-                        className={`py-1.5 rounded-lg text-xs font-semibold capitalize border transition-all cursor-pointer ${
-                          newPriority === p
-                            ? "border-blue-500 bg-blue-500/20 text-blue-400"
-                            : "border-white/10 text-slate-400 hover:border-white/20"
-                        }`}
-                      >
-                        {p}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Individual Task Reminder Toggle */}
-                <div className="p-3 rounded-xl border flex flex-col gap-2.5" style={{ borderColor: "rgba(59, 130, 246, 0.14)", background: "rgba(255,255,255,0.02)" }}>
-                  <label className="flex items-center justify-between cursor-pointer">
-                    <div className="flex items-center gap-2">
-                      <Bell size={15} className={newReminderEnabled ? "text-blue-400" : "text-slate-500"} />
-                      <span className="text-xs font-semibold text-white">Enable Task Reminder</span>
-                    </div>
-                    <input
-                      type="checkbox"
-                      checked={newReminderEnabled}
-                      onChange={(e) => setNewReminderEnabled(e.target.checked)}
-                      className="w-4 h-4 rounded accent-blue-600 cursor-pointer"
-                    />
-                  </label>
-
-                  {newReminderEnabled && (
-                    <div className="flex items-center justify-between pt-2 border-t animate-fade-in border-slate-700/50">
-                      <span className="text-xs text-slate-400">Reminder Time</span>
-                      <div className="w-36">
-                        <FocusForgeTimePicker
-                          value={newReminderTime}
-                          onChange={(e) => setNewReminderTime(e.target.value)}
-                          ariaLabel="Reminder Time"
-                        />
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                <div className="flex gap-3 pt-2">
-                  <button type="button" onClick={() => setShowAddBlock(false)} className="w-1/2 py-2.5 rounded-xl font-semibold text-xs transition-colors border cursor-pointer text-slate-300 border-slate-700 hover:bg-white/5 bg-transparent">Cancel</button>
-                  <button type="submit" className="w-1/2 py-2.5 rounded-xl font-semibold text-xs transition-colors cursor-pointer shadow-sm bg-blue-600 hover:bg-blue-500 text-white">Save Task</button>
-                </div>
-              </form>
-            )}
+              <button 
+                onClick={() => setShowRoutineLibrary(true)} 
+                className="w-full sm:flex-1 py-3 px-3 rounded-xl font-bold text-xs sm:text-sm transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm bg-blue-600/15 hover:bg-blue-600/25 border border-blue-500/30 text-blue-300 hover:text-white active:scale-[0.98]"
+              >
+                <Plus className="w-4 h-4 text-blue-400 shrink-0" />
+                <span>{t.planner.createRoutine || "Create Routine"}</span>
+              </button>
+            </div>
           </div>
-        </>
+        </div>,
+        document.body
       )}
+
+      {/* ADD TASK MODAL POPUP */}
+      <AddTaskModal
+        isOpen={showAddTaskModal}
+        onClose={() => setShowAddTaskModal(false)}
+        targetDateStr={drawerDateStr || selectedDateStr || realToday}
+      />
+
+      {/* ROUTINE LIBRARY MODAL */}
+      <RoutineLibraryModal
+        isOpen={showRoutineLibrary}
+        onClose={() => setShowRoutineLibrary(false)}
+        initialWeekday={getWeekdayFromDate(selectedDateStr)}
+      />
+
+      {/* IMPORT ROUTINE MODAL */}
+      <ImportRoutineModal
+        isOpen={showImportRoutine}
+        onClose={() => setShowImportRoutine(false)}
+        targetDateStr={selectedDateStr}
+      />
     </div>
   );
 }

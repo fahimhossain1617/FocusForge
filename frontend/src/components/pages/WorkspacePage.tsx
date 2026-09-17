@@ -111,14 +111,14 @@ export default function WorkspacePage() {
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-6">
         <div className="flex flex-col gap-1.5">
           <div className="flex items-center gap-3">
-            <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+            <h1 className="text-base md:text-lg font-semibold text-foreground tracking-tight">
               {isBn ? "নোটস ও ফাইলস" : "Notes & Files"}
             </h1>
             <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-500/10 text-blue-400 border border-blue-500/20">
               {state.notes.length} {isBn ? "টি নোট" : (state.notes.length === 1 ? "note" : "notes")}
             </span>
           </div>
-          <p className="text-zinc-400 text-sm font-medium">
+          <p className="text-muted-foreground text-xs sm:text-sm font-normal">
             {isBn 
               ? "আপনার আইডিয়া, কোড, ডকুমেন্ট ও ফাইল এক জায়গায় সাজিয়ে রাখুন" 
               : "Capture ideas, code, documents, and rich notes in one focused space."}

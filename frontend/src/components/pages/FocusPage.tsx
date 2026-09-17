@@ -525,7 +525,7 @@ export default function FocusPage() {
 
         {/* Center Timer & Task */}
         <div className="flex flex-col items-center justify-center my-auto text-center z-10 max-w-md w-full py-6">
-          <h2 className="text-xl sm:text-2xl font-bold text-white mb-2 leading-snug px-2">
+          <h2 className="text-base md:text-lg font-semibold text-foreground mb-2 leading-snug px-2">
             {selectedTask.name}
           </h2>
 
@@ -658,8 +658,8 @@ export default function FocusPage() {
             >
               {pauseAttemptCount === 1 ? (
                 <>
-                  <h2 className="text-xl font-bold text-white mb-3">{t.focus.holdOn}</h2>
-                  <p className="text-sm text-zinc-300 mb-6 leading-relaxed">{t.focus.distractionEnemy}</p>
+                  <h2 className="text-lg md:text-xl font-semibold text-foreground mb-3">{t.focus.holdOn}</h2>
+                  <p className="text-sm text-muted-foreground mb-6 leading-relaxed">{t.focus.distractionEnemy}</p>
                   <div className="flex flex-col gap-3">
                     <button
                       onClick={() => setShowPauseModal(false)}
@@ -677,8 +677,8 @@ export default function FocusPage() {
                 </>
               ) : (
                 <>
-                  <h2 className="text-xl font-bold text-white mb-3">{t.focus.thinkGoals}</h2>
-                  <p className="text-sm text-zinc-300 mb-6 leading-relaxed">{t.focus.consistencyKey}</p>
+                  <h2 className="text-lg md:text-xl font-semibold text-foreground mb-3">{t.focus.thinkGoals}</h2>
+                  <p className="text-sm text-muted-foreground mb-6 leading-relaxed">{t.focus.consistencyKey}</p>
                   <div className="flex flex-col gap-3">
                     <button
                       onClick={() => {
@@ -714,10 +714,10 @@ export default function FocusPage() {
         <div className="max-w-2xl mx-auto space-y-6">
           {/* Setup Header - Aligned directly with the cards */}
           <div className="pb-1">
-            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
+            <h1 className="text-base md:text-lg font-semibold tracking-tight text-foreground">
               {t.focus.title}
             </h1>
-            <p className="text-xs sm:text-sm text-zinc-400 mt-1">
+            <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
               {t.focus.subtitleInactive}
             </p>
           </div>
@@ -911,7 +911,7 @@ export default function FocusPage() {
 
               {/* Task Info */}
               <div className="mb-3.5 relative z-10">
-                <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-white mb-1 px-2">
+                <h2 className="text-base md:text-lg font-semibold tracking-tight text-foreground mb-1 px-2">
                   {selectedTask.name}
                 </h2>
                 {selectedTask.category && (
@@ -1044,11 +1044,11 @@ export default function FocusPage() {
               <PartyPopper className="w-8 h-8 text-purple-400 animate-bounce" />
             </div>
 
-            <h2 className="text-2xl font-extrabold text-white mb-2">
+            <h2 className="text-base md:text-lg font-semibold text-foreground mb-2">
               {t.focus.breakSelectionTitle}
             </h2>
 
-            <p className="text-sm text-zinc-300 mb-2 max-w-md mx-auto leading-relaxed">
+            <p className="text-sm text-muted-foreground mb-2 max-w-md mx-auto leading-relaxed">
               {t.focus.breakSelectionSubtitle}
             </p>
 
@@ -1082,9 +1082,9 @@ export default function FocusPage() {
                     onClick={() => handleSelectBreak(mins)}
                     className="group relative p-3 rounded-xl border border-white/10 hover:border-purple-500/50 bg-black/30 hover:bg-purple-950/20 text-center transition-all hover:scale-[1.03] active:scale-[0.98] focus:outline-none"
                   >
-                    <div className="text-lg font-bold text-white group-hover:text-purple-300 transition-colors">
+                    <div className="text-lg font-bold text-foreground group-hover:text-purple-300 transition-colors">
                       {mins}
-                      <span className="text-xs font-normal text-zinc-400 ml-0.5">m</span>
+                      <span className="text-xs font-normal text-muted-foreground ml-0.5">m</span>
                     </div>
                     <div className="text-[10px] text-zinc-400 group-hover:text-zinc-300 mt-0.5">
                       {mins <= 5
@@ -1202,11 +1202,11 @@ export default function FocusPage() {
               background: "linear-gradient(180deg, rgba(16, 26, 23, 0.95) 0%, rgba(10, 15, 14, 0.98) 100%)",
             }}
           >
-            <h2 className="text-2xl font-extrabold text-white mb-2">
+            <h2 className="text-base md:text-lg font-semibold text-foreground mb-2">
               {t.focus.breakComplete}
             </h2>
 
-            <p className="text-sm text-zinc-300 mb-8 max-w-md mx-auto leading-relaxed">
+            <p className="text-sm text-muted-foreground mb-8 max-w-md mx-auto leading-relaxed">
               {t.focus.breakCompleteSubtitle}
             </p>
 
@@ -1248,7 +1248,7 @@ export default function FocusPage() {
           >
             {pauseAttemptCount === 1 ? (
               <>
-                <h2 className="text-xl font-bold text-white mb-3">{t.focus.holdOn}</h2>
+                <h2 className="text-lg md:text-xl font-semibold text-foreground mb-3">{t.focus.holdOn}</h2>
                 <p className="text-sm text-zinc-300 mb-6 leading-relaxed">
                   {t.focus.distractionEnemy}
                 </p>
@@ -1270,7 +1270,7 @@ export default function FocusPage() {
               </>
             ) : (
               <>
-                <h2 className="text-xl font-bold text-white mb-3">{t.focus.thinkGoals}</h2>
+                <h2 className="text-lg md:text-xl font-semibold text-foreground mb-3">{t.focus.thinkGoals}</h2>
                 <p className="text-sm text-zinc-300 mb-6 leading-relaxed">
                   {t.focus.consistencyKey}
                 </p>
@@ -1377,12 +1377,12 @@ export default function FocusPage() {
               </div>
 
               {/* Title */}
-              <h2 className="text-base sm:text-lg font-bold text-white mb-2 leading-tight">
+              <h2 className="text-base sm:text-lg font-semibold text-foreground mb-2 leading-tight">
                 {modalTitle}
               </h2>
 
               {/* Message */}
-              <p className="text-xs sm:text-sm text-zinc-300 mb-6 leading-relaxed px-1">
+              <p className="text-xs sm:text-sm text-muted-foreground mb-6 leading-relaxed px-1">
                 {modalMessage}
               </p>
 
@@ -1424,7 +1424,7 @@ export default function FocusPage() {
             }`}
           >
             <div className="p-4 border-b border-white/5 flex items-center justify-between">
-              <h2 className="text-lg font-bold text-white flex items-center gap-2">
+              <h2 className="text-base md:text-lg font-semibold text-foreground flex items-center gap-2">
                 <History className="w-5 h-5 text-purple-400" /> {t.focus.taskHistory}
               </h2>
               <button onClick={() => setShowHistoryModal(false)} className="text-zinc-400 hover:text-white p-1">

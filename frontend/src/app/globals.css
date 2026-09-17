@@ -5,7 +5,17 @@
   font-family: 'Hind Siliguri', sans-serif !important;
 }
 @theme inline {
-  /* Dark-blue glass design system */
+  /* ── Semantic Design Tokens ── */
+  --color-background: #0A0E1A;
+  --color-surface: #111827;
+  --color-surface-hover: #1A2233;
+  --color-border: #1F2937;
+  --color-foreground: #F5F7FA;
+  --color-muted-foreground: #94A3B8;
+  --color-accent: #3B82F6;
+  --color-accent-hover: #2563EB;
+
+  /* Dark-blue glass design system (legacy aliases) */
   --color-bg-base: #0A0E1A;
   --color-bg-secondary: #0F1729;
   --color-bg-card: rgba(148, 163, 255, 0.06);
@@ -30,8 +40,8 @@
   --color-danger: #EF4444;
 
   /* Text */
-  --color-text-primary: #F8FAFC;
-  --color-text-secondary: #A8B3C7;
+  --color-text-primary: #F5F7FA;
+  --color-text-secondary: #94A3B8;
   --color-text-muted: #64748B;
 
   /* Borders */
@@ -75,8 +85,8 @@ select option:hover {
 body {
   background: var(--bg-section-grad);
   background-attachment: fixed;
-  color: var(--color-text-primary);
-  font-family: var(--font-inter), var(--font-bengali), sans-serif;
+  color: var(--color-foreground);
+  font-family: var(--font-geist-sans), var(--font-bengali), system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }

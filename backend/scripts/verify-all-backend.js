@@ -13,11 +13,13 @@ const learningRoutes = require('../dist/routes/learningRoutes').default;
 const taskRoutes = require('../dist/routes/taskRoutes').default;
 const noteRoutes = require('../dist/routes/noteRoutes').default;
 const userRoutes = require('../dist/routes/userRoutes').default;
+const notificationRoutes = require('../dist/routes/notificationRoutes').default;
+const reviewRoutes = require('../dist/routes/reviewRoutes').default;
 
 const app = express();
 app.use(helmet());
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '50mb' }));
 
 app.use('/api/ai', aiRoutes);
 app.use('/api/mind', mindRoutes);
@@ -27,6 +29,8 @@ app.use('/api/learning', learningRoutes);
 app.use('/api/tasks', taskRoutes);
 app.use('/api/notes', noteRoutes);
 app.use('/api/user', userRoutes);
+app.use('/api/notifications', notificationRoutes);
+app.use('/api/reviews', reviewRoutes);
 app.get('/health', (req, res) => res.json({ status: 'ok' }));
 
 let server;
@@ -82,15 +86,36 @@ async function runVerification() {
     const userState = await req('/api/user/state');
     assert('GET /api/user/state responds', userState.ok);
 
-    // 3. Tasks API
-    console.log('\n--- 3. Tasks API ---');
+    // 3. Tasks & Routine Templates API
+    console.log('\n--- 3. Tasks & Routine Templates API ---');
     const listTasks = await req('/api/tasks');
     assert('GET /api/tasks responds with array', listTasks.ok && Array.isArray(listTasks.data));
+
+    const listTemplates = await req('/api/tasks/templates');
+    assert('GET /api/tasks/templates responds with array', listTemplates.ok && Array.isArray(listTemplates.data));
+
+    const saveTpl = await req('/api/tasks/templates', {
+      method: 'POST',
+      body: JSON.stringify({
+        weekday: 'monday',
+        title: 'Monday Power Routine',
+        tasks: [{ id: 'test-1', title: 'Morning workout', priority: 'high', duration: 30, completed: false }]
+      })
+    });
+    assert('POST /api/tasks/templates saves routine template', saveTpl.ok && saveTpl.data.weekday === 'monday');
 
     // 4. Notes API
     console.log('\n--- 4. Notes API ---');
     const listNotes = await req('/api/notes');
     assert('GET /api/notes responds with array', listNotes.ok && Array.isArray(listNotes.data));
+
+    // 5. Notifications & Reviews API
+    console.log('\n--- 5. Notifications & Reviews API ---');
+    const notifTest = await req('/api/notifications/test', { method: 'POST' });
+    assert('POST /api/notifications/test succeeds', notifTest.ok && notifTest.data.success);
+
+    const reviewState = await req('/api/reviews/state');
+    assert('GET /api/reviews/state responds', reviewState.ok && reviewState.data.status !== undefined);
 
     // 5. Mind API
     console.log('\n--- 5. Mind API ---');

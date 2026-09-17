@@ -33,10 +33,145 @@ function mapRowToTask(row: any) {
     category: row.category || '',
     notes: row.notes || '',
     tier: row.tier || 'now',
+    sourceType: row.source_type || 'custom',
+    sourceRoutineId: row.source_routine_id || undefined,
+    sourceRoutineTaskId: row.source_routine_task_id || undefined,
+    importedAt: row.imported_at || undefined,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
 }
+
+/**
+ * Routine Templates Endpoints
+ */
+
+/**
+ * GET /api/tasks/templates
+ * Fetch all routine templates for the user
+ */
+router.get('/templates', async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId || req.user?.isGuest) {
+      return res.json([]);
+    }
+
+    const { data, error } = await supabase
+      .from('routine_templates')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: true });
+
+    if (error) {
+      return res.status(500).json({ error: error.message });
+    }
+
+    const templates = (data || []).map((row) => ({
+      id: row.id,
+      weekday: row.weekday,
+      title: row.title || '',
+      tasks: Array.isArray(row.tasks) ? row.tasks : [],
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    }));
+
+    res.json(templates);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to fetch routine templates' });
+  }
+});
+
+/**
+ * POST /api/tasks/templates
+ * Create or upsert a routine template
+ */
+router.post('/templates', async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    const { id, weekday, title, tasks } = req.body;
+    if (!weekday) {
+      return res.status(400).json({ error: 'Weekday is required' });
+    }
+
+    const validWeekdays = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+    if (!validWeekdays.includes(weekday.toLowerCase())) {
+      return res.status(400).json({ error: 'Invalid weekday' });
+    }
+
+    const templateId = id || `tpl_${weekday.toLowerCase()}_${Date.now()}`;
+
+    if (!userId || req.user?.isGuest) {
+      return res.json({
+        id: templateId,
+        weekday: weekday.toLowerCase(),
+        title: (title || '').trim(),
+        tasks: Array.isArray(tasks) ? tasks : [],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
+    }
+
+    const payload = {
+      id: templateId,
+      user_id: userId,
+      weekday: weekday.toLowerCase(),
+      title: (title || '').trim(),
+      tasks: Array.isArray(tasks) ? tasks : [],
+      updated_at: new Date().toISOString(),
+    };
+
+    const { data, error } = await supabase
+      .from('routine_templates')
+      .upsert(payload)
+      .select()
+      .single();
+
+    if (error) {
+      return res.status(500).json({ error: error.message });
+    }
+
+    res.json({
+      id: data.id,
+      weekday: data.weekday,
+      title: data.title || '',
+      tasks: Array.isArray(data.tasks) ? data.tasks : [],
+      createdAt: data.created_at,
+      updatedAt: data.updated_at,
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to save routine template' });
+  }
+});
+
+/**
+ * DELETE /api/tasks/templates/:id
+ * Delete a routine template
+ */
+router.delete('/templates/:id', async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    const { id } = req.params;
+
+    if (!userId || req.user?.isGuest) {
+      return res.json({ success: true, id });
+    }
+
+    const { error } = await supabase
+      .from('routine_templates')
+      .delete()
+      .eq('id', id)
+      .eq('user_id', userId);
+
+    if (error) {
+      return res.status(500).json({ error: error.message });
+    }
+
+    res.json({ success: true, id });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to delete routine template' });
+  }
+});
 
 /**
  * GET /api/tasks
@@ -104,6 +239,10 @@ router.post('/', async (req: AuthenticatedRequest, res: Response) => {
       category = '',
       notes = '',
       tier = 'now',
+      sourceType = 'custom',
+      sourceRoutineId = null,
+      sourceRoutineTaskId = null,
+      importedAt = null,
     } = req.body;
 
     const taskTitle = (title || name || '').trim();
@@ -136,6 +275,10 @@ router.post('/', async (req: AuthenticatedRequest, res: Response) => {
       category: category || null,
       notes: notes || null,
       tier: validTier,
+      source_type: sourceType || 'custom',
+      source_routine_id: sourceRoutineId || null,
+      source_routine_task_id: sourceRoutineTaskId || null,
+      imported_at: importedAt || null,
       updated_at: new Date().toISOString(),
     };
 
@@ -189,6 +332,10 @@ router.patch('/:id', async (req: AuthenticatedRequest, res: Response) => {
       category,
       notes,
       tier,
+      sourceType,
+      sourceRoutineId,
+      sourceRoutineTaskId,
+      importedAt,
     } = req.body;
 
     const updates: Record<string, any> = {
@@ -218,6 +365,10 @@ router.patch('/:id', async (req: AuthenticatedRequest, res: Response) => {
     if (tier !== undefined) {
       updates.tier = ['now', 'next', 'later'].includes(tier) ? tier : 'now';
     }
+    if (sourceType !== undefined) updates.source_type = sourceType;
+    if (sourceRoutineId !== undefined) updates.source_routine_id = sourceRoutineId;
+    if (sourceRoutineTaskId !== undefined) updates.source_routine_task_id = sourceRoutineTaskId;
+    if (importedAt !== undefined) updates.imported_at = importedAt;
 
     const { data, error } = await supabase
       .from('tasks')

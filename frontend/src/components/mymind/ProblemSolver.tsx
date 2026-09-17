@@ -84,7 +84,7 @@ export default function ProblemSolver({ navigate }: ProblemSolverProps) {
 
       <div className="flex-1 flex flex-col justify-center">
         <div className="slide-up">
-          <h2 className="text-2xl font-medium mb-6 text-center" style={{ color: "var(--color-text-primary)" }}>
+          <h2 className="text-lg md:text-xl font-semibold mb-6 text-center text-foreground">
             {step === 1 && t.myMind.whatHappened}
             {step === 2 && t.myMind.whyBothering}
             {step === 3 && t.myMind.whatOptions}

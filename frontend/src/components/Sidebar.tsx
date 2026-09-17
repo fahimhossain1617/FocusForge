@@ -82,7 +82,7 @@ export default function Sidebar({ isOpen, onClose, isTourActive }: SidebarProps)
 
       {/* Sidebar */}
       <aside
-        className={`w-64 min-h-screen flex flex-col py-6 px-3.5 fixed left-0 top-0 bottom-0 bg-[#0c0d11] text-zinc-200 border-r border-white/[0.06] transition-transform duration-300 md:translate-x-0 select-none ${
+        className={`w-64 min-h-screen flex flex-col py-6 px-3.5 fixed left-0 top-0 bottom-0 bg-[#070a14] text-muted-foreground border-r border-border transition-transform duration-300 md:translate-x-0 select-none ${
           isTourActive ? "z-[9999]" : "z-40"
         } ${isOpen ? "translate-x-0 shadow-2xl" : "-translate-x-full md:translate-x-0"}`}
       >
@@ -121,8 +121,8 @@ export default function Sidebar({ isOpen, onClose, isTourActive }: SidebarProps)
           </div>
 
           {/* Centered User Name */}
-          <div className="mt-2.5 flex flex-col items-center max-w-full px-1">
-            <h2 className="text-sm font-bold text-white tracking-tight truncate max-w-[190px]">
+          <div className="mt-2.5 flex flex-col items-center w-full px-2">
+            <h2 className="text-xs sm:text-sm md:text-[15px] font-semibold text-foreground tracking-tight text-center break-words max-w-full leading-snug">
               {userName}
             </h2>
           </div>
@@ -157,7 +157,7 @@ export default function Sidebar({ isOpen, onClose, isTourActive }: SidebarProps)
                 id={`nav-${item.id}`}
                 onClick={() => handleNav(item.id)}
                 className={`relative flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-left w-full transition-colors group cursor-pointer ${
-                  isActive ? "text-white font-medium" : "text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.03]"
+                  isActive ? "text-foreground font-medium" : "text-muted-foreground hover:text-foreground hover:bg-white/[0.03]"
                 }`}
                 title={displayTagline ? `${displayLabel} — ${displayTagline}` : displayLabel}
               >
@@ -177,14 +177,14 @@ export default function Sidebar({ isOpen, onClose, isTourActive }: SidebarProps)
 
                 <span 
                   className={`relative z-10 flex items-center justify-center w-5 shrink-0 transition-colors ${
-                    isActive ? "text-blue-300" : "text-zinc-400 group-hover:text-zinc-200"
+                    isActive ? "text-blue-300" : "text-muted-foreground group-hover:text-foreground"
                   }`}
                 >
                   <Icon className="w-5 h-5" strokeWidth={isActive ? 2.2 : 1.8} />
                 </span>
 
                 <div className="relative z-10 flex flex-col min-w-0 flex-1">
-                  <span className={`truncate text-[13px] leading-tight ${isActive ? "text-white font-semibold" : ""}`}>
+                  <span className={`text-xs sm:text-[13px] md:text-sm font-medium leading-tight break-words ${isActive ? "text-foreground font-semibold" : ""}`}>
                     {displayLabel}
                   </span>
                 </div>
@@ -199,23 +199,23 @@ export default function Sidebar({ isOpen, onClose, isTourActive }: SidebarProps)
             <button
               type="button"
               onClick={() => openAuth('login')}
-              className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-left w-full text-zinc-300 hover:text-white hover:bg-white/[0.04] transition-colors group cursor-pointer"
+              className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-left w-full text-muted-foreground hover:text-foreground hover:bg-white/[0.04] transition-colors group cursor-pointer"
             >
               <div className="w-6 h-6 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400 group-hover:bg-blue-500/20 group-hover:border-blue-500/40 transition-colors shrink-0">
                 <LogIn size={14} className="group-hover:scale-110 transition-transform" />
               </div>
-              <span className="font-medium text-[13px]">{t.auth.logIn || "Log In"}</span>
+              <span className="font-medium text-sm">{t.auth.logIn || "Log In"}</span>
             </button>
           ) : (
             <button
               type="button"
               onClick={promptLogout}
-              className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-left w-full text-zinc-400 hover:text-red-400 hover:bg-red-500/10 transition-colors group cursor-pointer"
+              className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-left w-full text-muted-foreground hover:text-red-400 hover:bg-red-500/10 transition-colors group cursor-pointer"
             >
               <div className="w-6 h-6 rounded-lg bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-400 group-hover:bg-red-500/20 group-hover:border-red-500/40 transition-colors shrink-0">
                 <LogOut size={14} className="group-hover:scale-110 transition-transform" />
               </div>
-              <span className="font-medium text-[13px]">{t.auth.logOut || "Log Out"}</span>
+              <span className="font-medium text-sm">{t.auth.logOut || "Log Out"}</span>
             </button>
           )}
         </div>
@@ -229,10 +229,10 @@ export default function Sidebar({ isOpen, onClose, isTourActive }: SidebarProps)
               <ShieldAlert size={24} />
             </div>
 
-            <h3 className="text-lg font-bold text-white mb-2">
+            <h3 className="text-lg font-semibold text-foreground mb-2">
               {t.auth.logOutConfirmTitle || "Confirm Logout"}
             </h3>
-            <p className="text-xs text-zinc-400 leading-relaxed mb-6">
+            <p className="text-xs text-muted-foreground leading-relaxed mb-6">
               {t.auth.logOutConfirmDesc || "Are you sure you want to log out?"}
             </p>
 
@@ -240,7 +240,7 @@ export default function Sidebar({ isOpen, onClose, isTourActive }: SidebarProps)
               <button
                 type="button"
                 onClick={cancelLogout}
-                className="flex-1 py-2.5 px-4 rounded-xl text-xs font-semibold text-zinc-300 hover:bg-white/10 border border-zinc-700 transition-all cursor-pointer"
+                className="flex-1 py-2.5 px-4 rounded-xl text-xs font-semibold text-muted-foreground hover:bg-white/10 border border-border transition-all cursor-pointer"
               >
                 {t.auth.cancel || "Cancel"}
               </button>

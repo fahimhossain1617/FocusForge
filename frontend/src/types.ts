@@ -74,6 +74,30 @@ export interface Activity {
   createdAt: string;
 }
 
+export type Weekday = 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday';
+
+export interface RoutineTemplateTask {
+  id: string;
+  title: string;
+  startTime: string; // "HH:MM"
+  endTime: string;   // "HH:MM"
+  priority: 'low' | 'medium' | 'high' | 'urgent';
+  category?: string;
+  reminderEnabled?: boolean;
+  reminderTime?: string;
+  notes?: string;
+  order: number;
+}
+
+export interface RoutineTemplate {
+  id: string;
+  weekday: Weekday;
+  title?: string;
+  tasks: RoutineTemplateTask[];
+  updatedAt: string;
+  createdAt: string;
+}
+
 export interface Task {
   id: number;
   name: string;
@@ -82,6 +106,7 @@ export interface Task {
   targetDate: string;
   date?: string;
   time?: string;
+  endTime?: string;
   priority: 'low' | 'medium' | 'high' | 'urgent';
   estHours: number;
   estMinutes: number;
@@ -94,6 +119,10 @@ export interface Task {
   tier: 'now' | 'next' | 'later';
   createdAt: string;
   updatedAt?: string;
+  sourceType?: 'routine' | 'custom';
+  sourceRoutineId?: string;
+  sourceRoutineTaskId?: string;
+  importedAt?: string;
 }
 
 export interface MindItem {
@@ -142,6 +171,9 @@ export interface TimeBlock {
   category: string;
   isBreak: boolean;
   completed?: boolean;
+  sourceType?: 'routine' | 'custom';
+  sourceRoutineId?: string;
+  sourceRoutineTaskId?: string;
 }
 
 export interface DistractionEntry {
@@ -280,6 +312,7 @@ export interface AppState {
   learningFolders: LearningFolder[];
   learningLogs: LearningLog[];
   theme: ThemePreferences;
+  routineTemplates: RoutineTemplate[];
   diaryTopics?: DiaryTopic[];
   focusTaskHistory?: { name: string; totalMinutes: number }[];
 }

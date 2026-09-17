@@ -186,7 +186,7 @@ export default function Home() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M4 6h16M4 12h16M4 18h16" />
               </svg>
             </button>
-            <span className={`text-base font-bold tracking-tight truncate ${isLight ? 'text-slate-900' : 'text-white'}`}>
+            <span className={`text-sm sm:text-base font-medium sm:font-semibold tracking-normal whitespace-nowrap ${isLight ? 'text-slate-900' : 'text-foreground'}`}>
               {state.activePage === 'ai-agent'
                 ? (state.lang === 'bn' ? 'ফোকাস ফোর্স AI এজেন্ট' : 'FocusForge AI Agent')
                 : state.activePage === 'tasks'
