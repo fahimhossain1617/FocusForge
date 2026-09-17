@@ -933,21 +933,27 @@ export default function DashboardPage() {
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
               <div className="p-4 rounded-xl bg-slate-900/60 border border-white/[0.06]">
                 <div>
-                  <p className="text-xs text-muted-foreground font-medium">Total Focus Time</p>
+                  <p className="text-xs text-muted-foreground font-medium">
+                    {state.lang === 'bn' ? "সাপ্তাহিক মোট ফোকাস টাইম" : "Total Weekly Focus Time"}
+                  </p>
                   <p className="mt-1 text-xl font-bold text-foreground tracking-tight">{weeklySummary.focusTime}</p>
                 </div>
               </div>
 
               <div className="p-4 rounded-xl bg-slate-900/60 border border-white/[0.06]">
                 <div>
-                  <p className="text-xs text-muted-foreground font-medium">Tasks Completed</p>
+                  <p className="text-xs text-muted-foreground font-medium">
+                    {state.lang === 'bn' ? "সাপ্তাহিক সম্পন্ন টাস্ক" : "Weekly Tasks Completed"}
+                  </p>
                   <p className="mt-1 text-xl font-bold text-foreground tracking-tight">{weeklySummary.tasksDoneRatio}</p>
                 </div>
               </div>
 
               <div className="p-4 rounded-xl bg-slate-900/60 border border-white/[0.06]">
                 <div>
-                  <p className="text-xs text-muted-foreground font-medium">Missed Tasks</p>
+                  <p className="text-xs text-muted-foreground font-medium">
+                    {state.lang === 'bn' ? "সাপ্তাহিক মিস হওয়া টাস্ক" : "Weekly Missed Tasks"}
+                  </p>
                   <p className="mt-1 text-xl font-bold text-foreground tracking-tight">{weeklySummary.totalMissed}</p>
                 </div>
               </div>
@@ -1034,28 +1040,38 @@ export default function DashboardPage() {
               })}
             </div>
 
-            {/* Monthly Summary Bar */}
-            <div className="p-4 rounded-xl bg-slate-900/50 border border-white/[0.06] flex flex-wrap items-center justify-between gap-4 text-xs">
-              <div className="flex items-center gap-6">
+            {/* Monthly Bottom 3 Summary Metric Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
+              <div className="p-4 rounded-xl bg-slate-900/60 border border-white/[0.06]">
                 <div>
-                  <span className="text-slate-400 block text-[10px]">Monthly Total Focus</span>
-                  <span className="text-base font-bold text-white font-mono">{monthlySummary.focusTime}</span>
-                </div>
-                <div className="h-7 w-[1px] bg-white/[0.08]" />
-                <div>
-                  <span className="text-slate-400 block text-[10px]">Total Completed Tasks</span>
-                  <span className="text-base font-bold text-emerald-400 font-mono">
-                    {monthlySummary.tasksDoneRatio} ({monthlySummary.completionPercent}%)
-                  </span>
-                </div>
-                <div className="h-7 w-[1px] bg-white/[0.08]" />
-                <div>
-                  <span className="text-slate-400 block text-[10px]">Total Missed</span>
-                  <span className="text-base font-bold text-rose-400 font-mono">{monthlySummary.totalMissed} tasks</span>
+                  <p className="text-xs text-muted-foreground font-medium">
+                    {state.lang === 'bn' ? "মাসিক মোট ফোকাস টাইম" : "Total Monthly Focus Time"}
+                  </p>
+                  <p className="mt-1 text-xl font-bold text-foreground tracking-tight">{monthlySummary.focusTime}</p>
                 </div>
               </div>
 
+              <div className="p-4 rounded-xl bg-slate-900/60 border border-white/[0.06]">
+                <div>
+                  <p className="text-xs text-muted-foreground font-medium">
+                    {state.lang === 'bn' ? "মাসিক সম্পন্ন টাস্ক" : "Monthly Tasks Completed"}
+                  </p>
+                  <p className="mt-1 text-xl font-bold text-foreground tracking-tight">
+                    {monthlySummary.tasksDoneRatio} <span className="text-sm font-normal text-muted-foreground">({monthlySummary.completionPercent}%)</span>
+                  </p>
+                </div>
+              </div>
 
+              <div className="p-4 rounded-xl bg-slate-900/60 border border-white/[0.06]">
+                <div>
+                  <p className="text-xs text-muted-foreground font-medium">
+                    {state.lang === 'bn' ? "মাসিক মিস হওয়া টাস্ক" : "Monthly Missed Tasks"}
+                  </p>
+                  <p className="mt-1 text-xl font-bold text-foreground tracking-tight">
+                    {monthlySummary.totalMissed} {state.lang === 'bn' ? "টাস্ক" : "tasks"}
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
         )}
