@@ -8,11 +8,16 @@ export interface AppShellSkeletonProps {
 }
 
 export default function AppShellSkeleton({ page = "today" }: AppShellSkeletonProps) {
+  const isAIAgent = page === "ai-agent";
+  const isPlanner = page === "planner";
+  const isToday = page === "today";
+
   return (
     <div
       aria-busy="true"
       aria-label="Loading application structure"
-      className="flex min-h-screen overflow-x-hidden"
+      role="status"
+      className={`flex min-h-screen ${isAIAgent ? "h-dvh max-h-dvh overflow-hidden" : ""} overflow-x-hidden`}
       style={{ background: "var(--bg-section-grad)" }}
     >
       {/* ============================================================ */}
@@ -69,11 +74,15 @@ export default function AppShellSkeleton({ page = "today" }: AppShellSkeletonPro
 
           <div className="h-px bg-black/5 dark:bg-white/5 mx-3" />
 
-          {/* Group 3: Learning Hub */}
+          {/* Group 3: Learning Hub & AI Agent */}
           <div className="space-y-1">
             <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl border border-transparent">
               <SkeletonCircle size={18} />
               <Skeleton variant="rounded" className="h-4 w-28" />
+            </div>
+            <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl border border-transparent">
+              <SkeletonCircle size={18} />
+              <Skeleton variant="rounded" className="h-4 w-24" />
             </div>
           </div>
 
@@ -107,27 +116,41 @@ export default function AppShellSkeleton({ page = "today" }: AppShellSkeletonPro
       {/* ============================================================ */}
       {/* 2. MAIN CONTENT AREA + MOBILE HEADER SKELETON               */}
       {/* ============================================================ */}
-      <main className="flex-1 md:ml-64 w-full min-w-0 overflow-x-hidden">
-        {/* Mobile Header Skeleton */}
+      <main
+        className={`flex-1 md:ml-64 w-full min-w-0 flex flex-col ${
+          isAIAgent ? "h-dvh max-h-dvh overflow-hidden" : "min-h-screen overflow-x-hidden"
+        }`}
+      >
+        {/* Universal Mobile Header Skeleton */}
         <div
           aria-hidden="true"
-          className="md:hidden flex items-center justify-between px-3.5 py-3 sticky top-0 z-30 border-b"
+          className="md:hidden flex items-center justify-between px-4 py-3 sticky top-0 z-30 border-b shrink-0"
           style={{
             background: "var(--color-bg-card)",
             backdropFilter: "blur(20px)",
             borderColor: "var(--color-border-subtle)",
           }}
         >
-          <div className="flex items-center gap-2.5">
-            <SkeletonCircle size={28} />
-            <Skeleton variant="rounded" className="h-4 w-24" />
+          <div className="flex items-center gap-3">
+            <Skeleton variant="rounded" className="w-9 h-9 rounded-xl" />
+            <Skeleton variant="rounded" className="h-4 w-28" />
           </div>
 
           <Skeleton variant="rounded" className="h-8 w-20 rounded-xl" />
         </div>
 
-        {/* Page Content Container with Active Page Skeleton */}
-        <div className="p-3.5 sm:p-5 md:p-8 lg:p-10 max-w-5xl mx-auto w-full min-w-0">
+        {/* Page Content Container matching exact real page responsive wrapper */}
+        <div
+          className={`w-full min-w-0 ${
+            isAIAgent
+              ? "flex-1 flex flex-col p-0 max-w-none h-full"
+              : isPlanner
+              ? "flex-1 flex flex-col p-0 max-w-none"
+              : isToday
+              ? "flex-1 p-3.5 sm:p-5 md:p-6 lg:p-8 max-w-[1700px] mx-auto"
+              : "flex-1 p-3.5 sm:p-5 md:p-8 lg:p-10 max-w-7xl mx-auto"
+          }`}
+        >
           <PageSkeleton page={page} />
         </div>
       </main>

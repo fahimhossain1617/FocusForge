@@ -8,6 +8,7 @@ import PlannerSkeleton from "./pages/PlannerSkeleton";
 import ProfileSkeleton from "./pages/ProfileSkeleton";
 import SettingsSkeleton from "./pages/SettingsSkeleton";
 import LearningHubSkeleton from "./pages/LearningHubSkeleton";
+import AIAgentSkeleton from "./pages/AIAgentSkeleton";
 
 export interface PageSkeletonProps {
   page?: string;
@@ -33,6 +34,8 @@ export default function PageSkeleton({ page = "today" }: PageSkeletonProps) {
       return <SettingsSkeleton />;
     case "learning":
       return <LearningHubSkeleton />;
+    case "ai-agent":
+      return <AIAgentSkeleton />;
     default:
       return <DashboardSkeleton />;
   }
