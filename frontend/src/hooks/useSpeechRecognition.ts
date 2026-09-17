@@ -350,6 +350,13 @@ export function useSpeechRecognition({
 
   const startListening = useCallback(
     async (language?: SpeechLanguage, options?: { reset?: boolean }) => {
+      if (typeof navigator !== "undefined" && navigator.onLine === false) {
+        handleError("You are currently offline. Voice recognition requires an active internet connection.");
+        shouldListenRef.current = false;
+        setIsListening(false);
+        return;
+      }
+
       const targetLang = language || speechLanguage || "auto";
       setErrorState(null);
 

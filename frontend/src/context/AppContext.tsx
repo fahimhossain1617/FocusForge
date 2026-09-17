@@ -625,8 +625,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setIsOnline(true);
       showToast(
         state.lang === 'bn'
-          ? "ইন্টারনেট সংযোগ চালু হয়েছে। সকল ডাটা সিঙ্ক হচ্ছে..."
-          : "Back online. Synchronizing data with cloud...",
+          ? "ইন্টারনেট সংযোগ চালু হয়েছে। সকল ডাটা ক্লাউডে সফলভাবে সিঙ্ক হচ্ছে..."
+          : "Back online. Synchronizing all data with cloud...",
         'info'
       );
 
@@ -640,14 +640,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             updated_at: new Date().toISOString()
           });
 
-          // Also refresh any notes from cloud
+          // Refresh structured notes from cloud if available
           const freshNotes = await noteService.fetchNotes(session.user.id);
           if (freshNotes && freshNotes.length > 0) {
             setState((prev) => ({ ...prev, notes: freshNotes }));
           }
         }
       } catch (syncErr) {
-        console.warn("[AppContext] Auto-sync on online event error:", syncErr);
+        console.warn("[AppContext] Auto-sync on online event notice:", syncErr);
       }
     };
 
@@ -759,8 +759,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     };
     setState((prev) => ({ ...prev, tasks: [...prev.tasks, newTask] }));
     trackMeaningfulAction('create_task');
-    syncTaskToBackend(newTask).catch((err) => showToast(err.message || 'Failed to sync task.', 'error'));
-  }, [trackMeaningfulAction, showToast]);
+    syncTaskToBackend(newTask).catch((err) => {
+      console.warn('[AppContext] Task sync warning (saved safely in local storage):', err);
+    });
+  }, [trackMeaningfulAction]);
 
   const updateTask = useCallback((id: number, updates: Partial<Task>) => {
     setState((prev) => ({

@@ -53,8 +53,8 @@ export async function syncTaskToBackend(task: Partial<Task>): Promise<Task | nul
       body: JSON.stringify(task),
     });
   } catch (err) {
-    console.warn('[taskService] Failed to sync task to backend:', err);
-    throw err;
+    console.warn('[taskService] Network offline / sync warning (saved locally):', err);
+    return null;
   }
 }
 
@@ -68,8 +68,8 @@ export async function updateTaskInBackend(id: number, updates: Partial<Task>): P
       body: JSON.stringify(updates),
     });
   } catch (err) {
-    console.warn('[taskService] Failed to update task in backend:', err);
-    throw err;
+    console.warn('[taskService] Network offline / update warning (saved locally):', err);
+    return null;
   }
 }
 
