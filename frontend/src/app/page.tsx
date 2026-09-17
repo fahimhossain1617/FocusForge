@@ -1,20 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import dynamic from "next/dynamic";
+import { Suspense, useEffect, useState } from "react";
 import { useAppContext } from "../context/AppContext";
 import { useAuth } from "../context/AuthContext";
 import Sidebar from "../components/Sidebar";
 import QuickCapture from "../components/QuickCapture";
 import Toast from "../components/ui/Toast";
-import DashboardPage from "../components/pages/DashboardPage";
-import MyMindPage from "../components/pages/MyMindPage";
-import WorkspacePage from "../components/pages/WorkspacePage";
-import PlannerPage from "../components/pages/PlannerPage";
-import FocusPage from "../components/pages/FocusPage";
-import LearningHubPage from "../components/pages/LearningHubPage";
-import SettingsPage from "../components/pages/SettingsPage";
-import ProfilePage from "../components/pages/ProfilePage";
-import AIAgentPage from "../components/ai-agent/AIAgentPage";
 import AuthModal from "../components/auth/AuthModal";
 import AuthGuardModal from "../components/auth/AuthGuardModal";
 import { OnboardingModal, ProductTour } from "../components/onboarding";
@@ -22,9 +14,50 @@ import { ReviewModal } from "../components/review";
 import { onboardingStorage } from "../services/onboardingStorage";
 import { userService } from "../services/userService";
 
-import { AppShellSkeleton, PageSkeleton } from "../components/ui/skeleton";
+import {
+  AppShellSkeleton,
+  PageSkeleton,
+  DashboardSkeleton,
+  MyMindSkeleton,
+  WorkspaceSkeleton,
+  PlannerSkeleton,
+  FocusSkeleton,
+  LearningHubSkeleton,
+  ProfileSkeleton,
+  SettingsSkeleton,
+  AIAgentSkeleton,
+} from "../components/ui/skeleton";
 import { useDailyPlan } from "../hooks/useDailyPlan";
 import { useReviewPrompt } from "../hooks/useReviewPrompt";
+
+// Dynamic page imports with exact matching skeleton fallbacks for optimal bundle splitting
+const DashboardPage = dynamic(() => import("../components/pages/DashboardPage"), {
+  loading: () => <DashboardSkeleton />,
+});
+const MyMindPage = dynamic(() => import("../components/pages/MyMindPage"), {
+  loading: () => <MyMindSkeleton />,
+});
+const WorkspacePage = dynamic(() => import("../components/pages/WorkspacePage"), {
+  loading: () => <WorkspaceSkeleton />,
+});
+const PlannerPage = dynamic(() => import("../components/pages/PlannerPage"), {
+  loading: () => <PlannerSkeleton />,
+});
+const FocusPage = dynamic(() => import("../components/pages/FocusPage"), {
+  loading: () => <FocusSkeleton />,
+});
+const LearningHubPage = dynamic(() => import("../components/pages/LearningHubPage"), {
+  loading: () => <LearningHubSkeleton />,
+});
+const ProfilePage = dynamic(() => import("../components/pages/ProfilePage"), {
+  loading: () => <ProfileSkeleton />,
+});
+const SettingsPage = dynamic(() => import("../components/pages/SettingsPage"), {
+  loading: () => <SettingsSkeleton />,
+});
+const AIAgentPage = dynamic(() => import("../components/ai-agent/AIAgentPage"), {
+  loading: () => <AIAgentSkeleton />,
+});
 
 const pageComponents: Record<string, React.ComponentType<{ onOpenSidebar?: () => void }>> = {
   today: DashboardPage,
@@ -218,15 +251,17 @@ export default function Home() {
             ? 'flex-1 p-3.5 sm:p-5 md:p-6 lg:p-8 max-w-[1700px] mx-auto'
             : 'flex-1 p-3.5 sm:p-5 md:p-8 lg:p-10 max-w-7xl mx-auto'
         }`}>
-          {isPageLoading ? (
-            <div className={`app-page-transition ${state.activePage === 'ai-agent' ? 'flex-1 flex flex-col h-full' : ''}`} key={`loading-${state.activePage}`}>
-              <PageSkeleton page={state.activePage} />
-            </div>
-          ) : (
-            <div className={`app-page-transition ${state.activePage === 'ai-agent' ? 'flex-1 flex flex-col h-full' : ''}`} key={state.activePage}>
-              <ActivePage onOpenSidebar={() => setSidebarOpen(true)} />
-            </div>
-          )}
+          <Suspense fallback={<PageSkeleton page={state.activePage} />}>
+            {isPageLoading ? (
+              <div className={`app-page-transition ${state.activePage === 'ai-agent' ? 'flex-1 flex flex-col h-full' : ''}`} key={`loading-${state.activePage}`}>
+                <PageSkeleton page={state.activePage} />
+              </div>
+            ) : (
+              <div className={`app-page-transition ${state.activePage === 'ai-agent' ? 'flex-1 flex flex-col h-full' : ''}`} key={state.activePage}>
+                <ActivePage onOpenSidebar={() => setSidebarOpen(true)} />
+              </div>
+            )}
+          </Suspense>
         </div>
       </main>
 

@@ -205,193 +205,199 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     async function initStorage() {
       try {
-        let loadedData: AppState | null = null;
+        // 1. Instant Synchronous Cache Hydration (0ms first paint)
+        let cachedState: AppState | null = null;
+        if (typeof window !== 'undefined') {
+          try {
+            const syncLocal = localStorage.getItem(STORAGE_KEY);
+            if (syncLocal) {
+              cachedState = JSON.parse(syncLocal);
+            }
+          } catch { }
+        }
+
+        // 2. Asynchronous IndexedDB check (handles media/large datasets)
+        if (!cachedState) {
+          try {
+            cachedState = await loadStateFromIndexedDB();
+          } catch { }
+        }
+
+        let sessionActivePage: string | null = null;
+        if (typeof window !== 'undefined') {
+          try {
+            sessionActivePage = sessionStorage.getItem('focusforge_active_page');
+          } catch { }
+        }
+        const initialActivePage = sessionActivePage || 'today';
+
+        if (cachedState && isMounted) {
+          setState({
+            ...defaultState,
+            ...cachedState,
+            activePage: initialActivePage,
+            notifPreferences: { ...defaultState.notifPreferences, ...(cachedState.notifPreferences || {}) },
+            calendarPreferences: { ...defaultState.calendarPreferences, ...(cachedState.calendarPreferences || {}) },
+            theme: { ...defaultState.theme, ...cachedState.theme }
+          });
+          setIsLoaded(true);
+        }
+
         const { data: { session } } = await supabase.auth.getSession();
 
-        // If logged in, prefer cloud state from Supabase
         if (session?.user) {
-          const { data: cloudData, error } = await supabase
-            .from('user_cloud_state')
-            .select('state')
-            .eq('id', session.user.id)
-            .maybeSingle();
+          // Parallelized fetching: Fetch all independent tables simultaneously with Promise.allSettled
+          const [
+            cloudStateResult,
+            notesResult,
+            mindResult,
+            diaryResult,
+            focusResult,
+            learningResult,
+            tasksResult,
+            templatesResult
+          ] = await Promise.allSettled([
+            supabase.from('user_cloud_state').select('state').eq('id', session.user.id).maybeSingle(),
+            noteService.fetchNotes(session.user.id),
+            mindService.fetchMindItems(session.user.id),
+            diaryDbService.fetchDiaryTopics(session.user.id),
+            focusDbService.fetchFocusSessions(session.user.id),
+            learningDbService.fetchLearningData(session.user.id),
+            fetchTasksFromBackend(),
+            fetchRoutineTemplatesFromBackend()
+          ]);
 
-          if (!error && cloudData && cloudData.state) {
-            loadedData = cloudData.state as AppState;
-          } else {
-            // First time login for new user: clean fresh state
-            loadedData = { ...defaultState };
-            try {
-              await supabase.from('user_cloud_state').upsert({
-                id: session.user.id,
-                state: defaultState,
-                updated_at: new Date().toISOString()
+          let loadedData: AppState = cachedState ? { ...cachedState } : { ...defaultState };
+
+          // 1. User Cloud State
+          if (cloudStateResult.status === 'fulfilled') {
+            const { data: cloudData, error } = cloudStateResult.value;
+            if (!error && cloudData?.state) {
+              loadedData = { ...loadedData, ...(cloudData.state as AppState) };
+            } else if (!cachedState) {
+              // Initialize empty state in cloud for new user
+              try {
+                await supabase.from('user_cloud_state').upsert({
+                  id: session.user.id,
+                  state: defaultState,
+                  updated_at: new Date().toISOString()
+                });
+              } catch { }
+            }
+          }
+
+          // 2. Structured Notes
+          if (notesResult.status === 'fulfilled' && notesResult.value && notesResult.value.length > 0) {
+            loadedData.notes = notesResult.value;
+          }
+
+          // 3. Structured Mind Items
+          if (mindResult.status === 'fulfilled' && mindResult.value && mindResult.value.length > 0) {
+            loadedData.mindItems = mindResult.value;
+          }
+
+          // 4. Diary Topics
+          if (diaryResult.status === 'fulfilled' && diaryResult.value && diaryResult.value.length > 0) {
+            loadedData.diaryTopics = diaryResult.value;
+          }
+
+          // 5. Focus Sessions
+          if (focusResult.status === 'fulfilled' && focusResult.value && focusResult.value.length > 0) {
+            loadedData.focusSessions = focusResult.value;
+          }
+
+          // 6. Learning Hub Folders & Logs
+          if (learningResult.status === 'fulfilled' && learningResult.value) {
+            if (learningResult.value.folders && learningResult.value.folders.length > 0) {
+              loadedData.learningFolders = learningResult.value.folders;
+            }
+            if (learningResult.value.logs && learningResult.value.logs.length > 0) {
+              loadedData.learningLogs = learningResult.value.logs;
+            }
+          }
+
+          // 7. Structured Tasks
+          if (tasksResult.status === 'fulfilled' && tasksResult.value && tasksResult.value.length > 0) {
+            const dbTasks = tasksResult.value;
+            const existingIds = new Set(dbTasks.map((t: Task) => t.id));
+            const localOnlyTasks = (loadedData.tasks || []).filter((t: any) => !existingIds.has(t.id));
+            loadedData.tasks = [...dbTasks, ...localOnlyTasks];
+          }
+
+          // 8. Routine Templates
+          if (templatesResult.status === 'fulfilled' && templatesResult.value && templatesResult.value.length > 0) {
+            loadedData.routineTemplates = templatesResult.value;
+          }
+
+          if (isMounted) {
+            const parsed = loadedData;
+            if (parsed.tasks) {
+              const seenIds = new Set<number>();
+              parsed.tasks = parsed.tasks.map((t: any, index: number) => {
+                let taskId = t.id ? Number(t.id) : (Date.now() + index);
+                while (seenIds.has(taskId)) {
+                  taskId = taskId + 1 + Math.floor(Math.random() * 10000);
+                }
+                seenIds.add(taskId);
+                return {
+                  ...t,
+                  id: taskId,
+                  status: t.status === 'pending' ? 'not_started' : t.status,
+                  category: t.category || '',
+                  notes: t.notes || '',
+                  tier: t.tier || (t.priority === 'high' || t.priority === 'urgent' ? 'now' : t.priority === 'medium' ? 'next' : 'later'),
+                  estMinutes: t.estMinutes || (t.estHours ? t.estHours * 60 : 60),
+                };
               });
-            } catch { }
-          }
-
-          // Fetch structured notes from Supabase PostgreSQL notes table
-          try {
-            const dbNotes = await noteService.fetchNotes(session.user.id);
-            if (dbNotes && dbNotes.length > 0) {
-              if (!loadedData) loadedData = { ...defaultState };
-              loadedData.notes = dbNotes;
             }
-          } catch (notesErr) {
-            console.warn("[AppContext] Error syncing PostgreSQL notes on load:", notesErr);
-          }
-
-          // Fetch structured mind items from Supabase PostgreSQL mind_items table
-          try {
-            const dbMindItems = await mindService.fetchMindItems(session.user.id);
-            if (dbMindItems && dbMindItems.length > 0) {
-              if (!loadedData) loadedData = { ...defaultState };
-              loadedData.mindItems = dbMindItems;
+            if (parsed.notes) {
+              parsed.notes = parsed.notes.map((n: any) => {
+                if (n.content !== undefined) {
+                  const migratedBlocks = [{ id: Math.random().toString(36).substr(2, 9), type: 'paragraph', content: n.content }];
+                  const { content, ...rest } = n;
+                  return { ...rest, blocks: migratedBlocks };
+                }
+                return n;
+              });
             }
-          } catch (mindErr) {
-            console.warn("[AppContext] Error syncing PostgreSQL mind items on load:", mindErr);
-          }
 
-          // Fetch structured diary topics & entries from Supabase PostgreSQL
-          try {
-            const dbDiaryTopics = await diaryDbService.fetchDiaryTopics(session.user.id);
-            if (dbDiaryTopics && dbDiaryTopics.length > 0) {
-              if (!loadedData) loadedData = { ...defaultState };
-              loadedData.diaryTopics = dbDiaryTopics;
-            }
-          } catch (diaryErr) {
-            console.warn("[AppContext] Error syncing PostgreSQL diary on load:", diaryErr);
-          }
+            setState({
+              ...defaultState,
+              ...parsed,
+              activePage: initialActivePage,
+              notifPreferences: { ...defaultState.notifPreferences, ...(parsed.notifPreferences || {}) },
+              calendarPreferences: { ...defaultState.calendarPreferences, ...(parsed.calendarPreferences || {}) },
+              theme: { ...defaultState.theme, ...parsed.theme }
+            });
 
-          // Fetch focus sessions from Supabase PostgreSQL focus_sessions table
-          try {
-            const dbFocusSessions = await focusDbService.fetchFocusSessions(session.user.id);
-            if (dbFocusSessions && dbFocusSessions.length > 0) {
-              if (!loadedData) loadedData = { ...defaultState };
-              loadedData.focusSessions = dbFocusSessions;
-            }
-          } catch (focusErr) {
-            console.warn("[AppContext] Error syncing PostgreSQL focus sessions on load:", focusErr);
-          }
-
-          // Fetch learning folders and logs from Supabase PostgreSQL
-          try {
-            const dbLearning = await learningDbService.fetchLearningData(session.user.id);
-            if (dbLearning) {
-              if (!loadedData) loadedData = { ...defaultState };
-              if (dbLearning.folders && dbLearning.folders.length > 0) {
-                loadedData.learningFolders = dbLearning.folders;
-              }
-              if (dbLearning.logs && dbLearning.logs.length > 0) {
-                loadedData.learningLogs = dbLearning.logs;
-              }
-            }
-          } catch (learningErr) {
-            console.warn("[AppContext] Error syncing PostgreSQL learning data on load:", learningErr);
-          }
-
-          // Fetch structured tasks from backend / Supabase
-          try {
-            const dbTasks = await fetchTasksFromBackend();
-            if (dbTasks && dbTasks.length > 0) {
-              if (!loadedData) loadedData = { ...defaultState };
-              // Merge tasks avoiding duplicates
-              const existingIds = new Set(dbTasks.map((t: Task) => t.id));
-              const localOnlyTasks = (loadedData.tasks || []).filter((t: any) => !existingIds.has(t.id));
-              loadedData.tasks = [...dbTasks, ...localOnlyTasks];
-            }
-          } catch (taskErr) {
-            console.warn("[AppContext] Error syncing backend tasks on load:", taskErr);
-          }
-
-          // Fetch routine templates from backend / Supabase
-          try {
-            const dbTemplates = await fetchRoutineTemplatesFromBackend();
-            if (dbTemplates && dbTemplates.length > 0) {
-              if (!loadedData) loadedData = { ...defaultState };
-              loadedData.routineTemplates = dbTemplates;
-            }
-          } catch (tplErr) {
-            console.warn("[AppContext] Error syncing routine templates on load:", tplErr);
+            // Cache freshly fetched data to IndexedDB
+            saveStateToIndexedDB(parsed);
           }
         } else {
           // Guest Mode:
-          // Temporary session data during current browser tab session only.
-          // Fresh clean zero state on initial visit.
+          let guestData: AppState | null = null;
           if (typeof window !== 'undefined') {
             const sessionRaw = sessionStorage.getItem('focusforge_guest_temp_data');
             if (sessionRaw) {
               try {
-                loadedData = JSON.parse(sessionRaw);
+                guestData = JSON.parse(sessionRaw);
               } catch { }
             }
           }
-          if (!loadedData) {
-            loadedData = { ...defaultState };
+          if (!guestData) {
+            guestData = { ...defaultState };
           }
-        }
 
-        if (loadedData && isMounted) {
-          const parsed = loadedData;
-          if (parsed.tasks) {
-            const seenIds = new Set<number>();
-            parsed.tasks = parsed.tasks.map((t: any, index: number) => {
-              let taskId = t.id ? Number(t.id) : (Date.now() + index);
-              while (seenIds.has(taskId)) {
-                taskId = taskId + 1 + Math.floor(Math.random() * 10000);
-              }
-              seenIds.add(taskId);
-              return {
-                ...t,
-                id: taskId,
-                status: t.status === 'pending' ? 'not_started' : t.status,
-                category: t.category || '',
-                notes: t.notes || '',
-                tier: t.tier || (t.priority === 'high' || t.priority === 'urgent' ? 'now' : t.priority === 'medium' ? 'next' : 'later'),
-                estMinutes: t.estMinutes || (t.estHours ? t.estHours * 60 : 60),
-              };
+          if (isMounted) {
+            setState({
+              ...defaultState,
+              ...guestData,
+              activePage: initialActivePage,
             });
           }
-          if (parsed.notes) {
-            parsed.notes = parsed.notes.map((n: any) => {
-              if (n.content !== undefined) {
-                const migratedBlocks = [{ id: Math.random().toString(36).substr(2, 9), type: 'paragraph', content: n.content }];
-                const { content, ...rest } = n;
-                return { ...rest, blocks: migratedBlocks };
-              }
-              return n;
-            });
-          }
-          let sessionActivePage: string | null = null;
-          if (typeof window !== 'undefined') {
-            try {
-              sessionActivePage = sessionStorage.getItem('focusforge_active_page');
-            } catch (err) {
-              console.warn('sessionStorage read warning:', err);
-            }
-          }
-
-          // Active tab session retains last used page; fresh app open / new tab session ALWAYS defaults to 'today' (Dashboard)
-          const initialActivePage = sessionActivePage || 'today';
-
-          if (typeof window !== 'undefined' && !sessionActivePage) {
-            try {
-              sessionStorage.setItem('focusforge_active_page', initialActivePage);
-            } catch { }
-          }
-
-          setState({
-            ...defaultState,
-            ...parsed,
-            activePage: initialActivePage,
-            notifPreferences: { ...defaultState.notifPreferences, ...(parsed.notifPreferences || {}) },
-            calendarPreferences: { ...defaultState.calendarPreferences, ...(parsed.calendarPreferences || {}) },
-            theme: { ...defaultState.theme, ...parsed.theme }
-          });
         }
       } catch (e) {
         console.warn('State load warning:', e);
-      } finally {
         if (isMounted) setIsLoaded(true);
       }
     }
@@ -587,10 +593,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
 
     trackMeaningfulAction('feature_' + page);
-    setIsPageLoading(true);
-    setTimeout(() => {
-      setIsPageLoading(false);
-    }, 160);
 
     setState((prev) => {
       if (prev.activePage === page) return prev;

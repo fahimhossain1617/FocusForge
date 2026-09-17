@@ -25,6 +25,7 @@ import { useAuth } from "../../context/AuthContext";
 import { useTranslation } from "../../hooks/useTranslation";
 import { getLocalDateString } from "../../services/taskService";
 import { formatTimeRange } from "../../utils/timeUtils";
+import { DashboardSkeleton } from "../ui/skeleton";
 
 type ProgressView = "weekly" | "monthly";
 
@@ -446,13 +447,7 @@ export default function DashboardPage() {
   }, [monthlyWeeks]);
 
   if (!isLoaded) {
-    return (
-      <div className="max-w-[1600px] mx-auto grid gap-6 animate-pulse">
-        <div className="h-16 rounded-2xl bg-white/[.04]" />
-        <div className="h-96 rounded-3xl bg-white/[.04]" />
-        <div className="h-96 rounded-3xl bg-white/[.04]" />
-      </div>
-    );
+    return <DashboardSkeleton />;
   }
 
   return (

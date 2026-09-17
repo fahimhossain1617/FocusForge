@@ -18,3 +18,4 @@ export { default as PlannerSkeleton } from "./pages/PlannerSkeleton";
 export { default as ProfileSkeleton } from "./pages/ProfileSkeleton";
 export { default as SettingsSkeleton } from "./pages/SettingsSkeleton";
 export { default as LearningHubSkeleton } from "./pages/LearningHubSkeleton";
+export { default as AIAgentSkeleton } from "./pages/AIAgentSkeleton";

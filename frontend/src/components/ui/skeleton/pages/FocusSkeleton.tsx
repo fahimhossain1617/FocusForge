@@ -5,50 +5,50 @@ import SkeletonCard from "../SkeletonCard";
 
 export default function FocusSkeleton() {
   return (
-    <div aria-busy="true" aria-label="Loading focus session" className="fade-in max-w-2xl mx-auto space-y-8 pb-12">
-      {/* Header */}
-      <div className="text-center space-y-2">
-        <Skeleton variant="rounded" className="h-8 w-44 mx-auto" />
-        <Skeleton variant="rounded" className="h-4 w-64 mx-auto" />
+    <div aria-busy="true" aria-label="Loading focus session" role="status" className="fade-in max-w-2xl mx-auto space-y-6 pb-12">
+      {/* 1. Setup Header */}
+      <div className="pb-1 space-y-1">
+        <Skeleton variant="rounded" className="h-6 w-36" />
+        <Skeleton variant="rounded" className="h-4 w-72 max-w-full" />
       </div>
 
-      {/* Main Focus Timer Container Card */}
-      <SkeletonCard className="p-8 sm:p-12 flex flex-col items-center justify-center space-y-8">
-        {/* Task Selector Placeholder */}
-        <div className="w-full max-w-sm">
-          <Skeleton variant="rounded" className="h-11 w-full rounded-xl" />
-        </div>
-
-        {/* Circular Timer Ring Placeholder */}
-        <div className="relative w-56 h-56 flex items-center justify-center">
-          {/* Subtle Outer Ring */}
-          <div className="w-52 h-52 rounded-full border-4 border-blue-500/10 dark:border-white/5 flex items-center justify-center">
-            {/* Center Digits & Mode */}
-            <div className="flex flex-col items-center space-y-2">
-              <Skeleton variant="rounded" className="h-10 w-28" />
-              <Skeleton variant="rounded" className="h-3 w-16" />
-            </div>
+      {/* 2. Task Selection Card */}
+      <SkeletonCard className="p-5 space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <SkeletonCircle size={18} />
+            <Skeleton variant="rounded" className="h-4 w-32" />
+          </div>
+          <div className="flex items-center gap-1">
+            <SkeletonCircle size={14} />
+            <Skeleton variant="rounded" className="h-3 w-16" />
           </div>
         </div>
 
-        {/* Action Controls */}
-        <div className="flex items-center gap-3">
-          <Skeleton variant="rounded" className="h-11 w-28 rounded-xl" />
-          <Skeleton variant="rounded" className="h-11 w-24 rounded-xl" />
+        {/* Task Selection Button */}
+        <Skeleton variant="rounded" className="h-12 w-full rounded-xl" />
+
+        {/* Custom Task Input Field */}
+        <Skeleton variant="rounded" className="h-10 w-full rounded-xl" />
+      </SkeletonCard>
+
+      {/* 3. Timer Presets Card */}
+      <SkeletonCard className="p-5 space-y-3">
+        <div className="flex items-center gap-2 mb-1">
+          <SkeletonCircle size={18} />
+          <Skeleton variant="rounded" className="h-4 w-28" />
         </div>
 
-        {/* Preset Durations */}
-        <div className="flex items-center gap-2 pt-2">
-          <Skeleton variant="rounded" className="h-8 w-16 rounded-lg" />
-          <Skeleton variant="rounded" className="h-8 w-16 rounded-lg" />
-          <Skeleton variant="rounded" className="h-8 w-16 rounded-lg" />
+        <div className="flex flex-wrap items-center gap-2.5">
+          <Skeleton variant="rounded" className="h-10 w-16 rounded-xl" />
+          <Skeleton variant="rounded" className="h-10 w-16 rounded-xl" />
+          <Skeleton variant="rounded" className="h-10 w-16 rounded-xl" />
+          <Skeleton variant="rounded" className="h-10 w-36 rounded-xl" />
         </div>
       </SkeletonCard>
 
-      {/* Bottom Distraction Helper */}
-      <div className="flex justify-center">
-        <Skeleton variant="rounded" className="h-9 w-40 rounded-xl" />
-      </div>
+      {/* 4. Start Focus Button */}
+      <Skeleton variant="rounded" className="h-14 w-full rounded-2xl shadow-lg" />
     </div>
   );
 }
