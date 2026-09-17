@@ -484,13 +484,6 @@ export default function PlannerPage() {
                 <ArrowDownToLine className="w-3.5 h-3.5 text-blue-400" />
                 {t.planner.importRoutine || "Import Routine"}
               </button>
-              <button
-                onClick={() => { handleOpenDrawer(selectedDateStr); setShowAddBlock(true); }}
-                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-200 text-xs font-bold transition-all cursor-pointer"
-              >
-                <Plus className="w-3.5 h-3.5 text-slate-300" />
-                {t.planner.addNoteEvent || "Add Note / Event"}
-              </button>
             </div>
           </div>
           
