@@ -500,26 +500,19 @@ export default function PlannerPage() {
                     
                     <div className="flex items-center justify-between mb-3 pl-2">
                       <div className="flex items-center gap-2 text-xs font-bold text-slate-400">
-                        <Clock className="w-3.5 h-3.5" />
+                        <Clock className="w-3.5 h-3.5 text-blue-400" />
                         {formatTime12hr(block.startTime)} <span className="opacity-50">{t.planner.to}</span> {formatTime12hr(block.endTime)}
                       </div>
-                      <div className="flex items-center gap-1.5">
-                        {isRoutine ? (
-                          <span className="px-1.5 py-0.5 rounded-md bg-blue-500/15 border border-blue-500/30 text-[9px] font-bold text-blue-300 uppercase tracking-wider">
-                            {t.planner.routineBadge || "Routine"}
-                          </span>
-                        ) : (
-                          <span className="px-1.5 py-0.5 rounded-md bg-white/5 border border-white/10 text-[9px] font-bold text-slate-400 uppercase tracking-wider">
-                            {t.planner.customBadge || "Custom"}
-                          </span>
-                        )}
-                        {block.category && (
-                          <span className="px-2 py-0.5 rounded-md bg-white/5 border border-white/5 text-[9px] uppercase tracking-wider text-slate-400">{block.category}</span>
-                        )}
-                      </div>
+                      {block.category && (
+                        <span className="px-2 py-0.5 rounded-md bg-white/5 border border-white/5 text-[9px] uppercase tracking-wider text-slate-400 font-medium">
+                          {block.category}
+                        </span>
+                      )}
                     </div>
                     
-                    <h4 className={`text-xl font-bold text-white mb-2 pl-2 break-words line-clamp-2 ${block.isBreak ? 'italic opacity-50' : ''}`} title={block.label}>{block.label}</h4>
+                    <h4 className={`text-xl font-bold text-white mb-2 pl-2 break-words line-clamp-2 ${block.isBreak ? 'italic opacity-50' : ''}`} title={block.label}>
+                      {block.label || "Untitled Task"}
+                    </h4>
                     
                     <button onClick={() => { handleOpenDrawer(selectedDateStr); }} className="pl-2 text-xs font-semibold text-blue-400 hover:text-blue-300 transition-colors flex items-center gap-1 mt-4 cursor-pointer">
                       {t.planner.editDetails} <ChevronRight className="w-3 h-3" />
@@ -577,24 +570,14 @@ export default function PlannerPage() {
               const isRoutine = block.sourceType === 'routine' || linkedTask?.sourceType === 'routine';
 
               return (
-                <div key={block.id} className="mb-4 p-4 rounded-xl border flex items-start justify-between gap-3" style={{ background: "rgba(15, 23, 42, 0.75)", borderColor: "rgba(59, 130, 246, 0.14)" }}>
+                <div key={block.id} className="mb-3 p-3.5 rounded-xl border flex items-center justify-between gap-3" style={{ background: "rgba(15, 23, 42, 0.75)", borderColor: "rgba(59, 130, 246, 0.14)" }}>
                   <div className="space-y-1 min-w-0 flex-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <h4 className="font-bold text-sm text-white break-words" title={block.label}>{block.label}</h4>
-                      {isRoutine ? (
-                        <span className="px-1.5 py-0.5 rounded bg-blue-500/15 border border-blue-500/30 text-[9px] font-bold text-blue-300 shrink-0 whitespace-nowrap">
-                          Routine
-                        </span>
-                      ) : (
-                        <span className="px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-[9px] font-bold text-slate-400 shrink-0 whitespace-nowrap">
-                          Custom
-                        </span>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2.5 flex-wrap">
-                      <p className="text-xs text-slate-400 font-mono">
-                        {formatTime12hr(block.startTime)} - {formatTime12hr(block.endTime)}
-                      </p>
+                    <h4 className="font-semibold text-sm text-white break-words line-clamp-1" title={block.label}>
+                      {block.label || "Untitled Task"}
+                    </h4>
+                    <div className="flex items-center gap-2 text-xs text-slate-400 font-mono">
+                      <Clock className="w-3 h-3 text-blue-400 shrink-0" />
+                      <span>{formatTime12hr(block.startTime)} – {formatTime12hr(block.endTime)}</span>
                     </div>
                   </div>
                   <button 
@@ -603,7 +586,7 @@ export default function PlannerPage() {
                       deleteTimeBlock(block.id);
                       if (block.taskId) deleteTask(block.taskId);
                     }} 
-                    className="text-red-400 hover:text-red-500 hover:bg-red-500/10 transition-colors p-1.5 rounded-lg cursor-pointer shrink-0"
+                    className="text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-colors p-1.5 rounded-lg cursor-pointer shrink-0"
                     aria-label="Delete task"
                   >
                     <X className="w-4 h-4" />
