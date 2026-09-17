@@ -41,72 +41,47 @@ export default function AppShellSkeleton({ page = "today" }: AppShellSkeletonPro
         </div>
 
         {/* Navigation Group Items */}
-        <div className="flex-1 space-y-6">
-          {/* Group 1: Dashboard & My Mind */}
-          <div className="space-y-1">
-            <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl border border-transparent">
-              <SkeletonCircle size={18} />
-              <Skeleton variant="rounded" className="h-4 w-24" />
-            </div>
-            <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl border border-transparent">
-              <SkeletonCircle size={18} />
-              <Skeleton variant="rounded" className="h-4 w-20" />
-            </div>
-          </div>
-
-          <div className="h-px bg-black/5 dark:bg-white/5 mx-3" />
-
-          {/* Group 2: Workspace, Planner, Focus */}
-          <div className="space-y-1">
-            <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl border border-transparent">
-              <SkeletonCircle size={18} />
-              <Skeleton variant="rounded" className="h-4 w-24" />
-            </div>
-            <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl border border-transparent">
-              <SkeletonCircle size={18} />
-              <Skeleton variant="rounded" className="h-4 w-20" />
-            </div>
-            <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl border border-transparent">
-              <SkeletonCircle size={18} />
-              <Skeleton variant="rounded" className="h-4 w-16" />
-            </div>
-          </div>
-
-          <div className="h-px bg-black/5 dark:bg-white/5 mx-3" />
-
-          {/* Group 3: Learning Hub & AI Agent */}
-          <div className="space-y-1">
-            <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl border border-transparent">
-              <SkeletonCircle size={18} />
-              <Skeleton variant="rounded" className="h-4 w-28" />
-            </div>
-            <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl border border-transparent">
-              <SkeletonCircle size={18} />
-              <Skeleton variant="rounded" className="h-4 w-24" />
-            </div>
-          </div>
-
-          <div className="h-px bg-black/5 dark:bg-white/5 mx-3" />
-
-          {/* Group 4: Theme & Settings */}
-          <div className="space-y-1">
-            <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl border border-transparent">
-              <SkeletonCircle size={18} />
-              <Skeleton variant="rounded" className="h-4 w-16" />
-            </div>
-            <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl border border-transparent">
-              <SkeletonCircle size={18} />
-              <Skeleton variant="rounded" className="h-4 w-20" />
-            </div>
-          </div>
+        <div className="flex-1 space-y-1">
+          {[
+            { id: "today", w: "w-24" },
+            { id: "ai-agent", w: "w-20" },
+            { id: "tasks", w: "w-28" },
+            { id: "planner", w: "w-20" },
+            { id: "mind", w: "w-20" },
+            { id: "learning", w: "w-24" },
+            { id: "focus", w: "w-16" },
+            { id: "settings", w: "w-20" },
+          ].map((item) => {
+            const isActive = page === item.id || (item.id === "today" && page === "dashboard");
+            return (
+              <div
+                key={item.id}
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl border transition-all ${
+                  isActive
+                    ? "bg-blue-500/10 border-blue-500/30 text-blue-400"
+                    : "border-transparent opacity-75"
+                }`}
+              >
+                <SkeletonCircle size={18} className={isActive ? "bg-blue-500/30" : ""} />
+                <Skeleton
+                  variant="rounded"
+                  className={`h-4 ${item.w} ${isActive ? "bg-blue-500/30" : ""}`}
+                />
+              </div>
+            );
+          })}
         </div>
 
         {/* Bottom Install Card / Profile Skeleton */}
         <div className="mt-auto px-2 space-y-2">
-          <div className="p-3 rounded-2xl border border-black/5 dark:border-white/5 space-y-2 bg-black/[0.02] dark:bg-white/[0.02]">
+          <div className={`p-3 rounded-2xl border space-y-2 transition-all ${
+            page === "profile" 
+              ? "bg-blue-500/10 border-blue-500/30" 
+              : "border-black/5 dark:border-white/5 bg-black/[0.02] dark:bg-white/[0.02]"
+          }`}>
             <div className="flex items-center gap-2">
-              <SkeletonCircle size={20} />
-              <Skeleton variant="rounded" className="h-3.5 w-24" />
+              <SkeletonCircle size={20} className={page === "profile" ? "bg-blue-500/30" : ""} />
+              <Skeleton variant="rounded" className={`h-3.5 w-24 ${page === "profile" ? "bg-blue-500/30" : ""}`} />
             </div>
             <Skeleton variant="rounded" className="h-2 w-full" />
           </div>

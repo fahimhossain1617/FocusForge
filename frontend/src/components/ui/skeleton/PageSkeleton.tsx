@@ -17,12 +17,16 @@ export interface PageSkeletonProps {
 export default function PageSkeleton({ page = "today" }: PageSkeletonProps) {
   switch (page) {
     case "today":
+    case "dashboard":
       return <DashboardSkeleton />;
     case "mind":
+    case "capture":
       return <MyMindSkeleton />;
     case "diary":
       return <DiarySkeleton />;
     case "tasks":
+    case "notes":
+    case "workspace":
       return <WorkspaceSkeleton />;
     case "focus":
       return <FocusSkeleton />;
