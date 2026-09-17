@@ -188,24 +188,7 @@ interface AppContextType {
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
-  const [state, setState] = useState<AppState>(() => {
-    let sessionActivePage: string | null = null;
-    let cachedLocal: Partial<AppState> | null = null;
-    if (typeof window !== 'undefined') {
-      try {
-        sessionActivePage = sessionStorage.getItem('focusforge_active_page');
-        const syncLocal = localStorage.getItem(STORAGE_KEY);
-        if (syncLocal) {
-          cachedLocal = JSON.parse(syncLocal);
-        }
-      } catch { }
-    }
-    return {
-      ...defaultState,
-      ...(cachedLocal || {}),
-      activePage: sessionActivePage || 'today',
-    };
-  });
+  const [state, setState] = useState<AppState>(defaultState);
   const [isLoaded, setIsLoaded] = useState(false);
   const [isPageLoading, setIsPageLoading] = useState(false);
   const [isOnline, setIsOnline] = useState<boolean>(() => {
