@@ -510,52 +510,45 @@ export default function DashboardPage() {
                   <div
                     key={item.id}
                     onClick={() => handleToggleTask(item)}
-                    className="group flex items-center justify-between gap-2.5 py-2 px-2 rounded-xl hover:bg-white/[0.03] transition-colors cursor-pointer"
+                    className="group flex items-center justify-between gap-3 py-2.5 px-2.5 rounded-xl hover:bg-white/[0.04] transition-all cursor-pointer"
                   >
-                    {/* Left: Checkbox + Title + Badges */}
-                    <div className="flex items-center gap-2.5 min-w-0 flex-1 mr-1.5">
+                    {/* Left: Checkbox + Task Name */}
+                    <div className="flex items-center gap-2.5 min-w-0 flex-1">
                       <div
                         className={`shrink-0 w-5 h-5 rounded-full flex items-center justify-center transition-all duration-200 cursor-pointer ${
                           item.completed
-                            ? "bg-emerald-500 border border-emerald-400 text-white"
-                            : "border-2 border-slate-600/80 hover:border-blue-400 bg-slate-900/40"
+                            ? "bg-emerald-500 border border-emerald-400 text-white shadow-sm shadow-emerald-500/30"
+                            : "border-2 border-slate-600/80 hover:border-blue-400 bg-slate-900/50"
                         }`}
                         aria-label={`Mark task ${item.completed ? "pending" : "done"}`}
                       >
                         {item.completed && <Check size={11} strokeWidth={3.2} />}
                       </div>
-                      <div className="flex items-center gap-1.5 min-w-0 flex-1 overflow-hidden">
-                        <span
-                          className={`text-xs sm:text-[13px] truncate transition-colors ${
-                            item.completed ? "text-muted-foreground line-through" : "text-foreground font-medium"
-                          }`}
-                          title={item.name}
-                        >
-                          {item.name}
-                        </span>
-                        {item.sourceType === 'routine' && (
-                          <span className="text-[9px] font-bold text-blue-400 bg-blue-500/10 border border-blue-500/20 px-1.5 py-0.5 rounded shrink-0 whitespace-nowrap">
-                            Routine
-                          </span>
-                        )}
-                      </div>
+                      <span
+                        className={`text-xs sm:text-sm font-medium tracking-tight break-words transition-colors line-clamp-1 ${
+                          item.completed ? "text-muted-foreground line-through opacity-70" : "text-foreground"
+                        }`}
+                        title={item.name}
+                      >
+                        {item.name || "Untitled Task"}
+                      </span>
                     </div>
 
                     {/* Right side: Time & Action */}
-                    <div className="flex items-center gap-1.5 shrink-0 ml-auto">
+                    <div className="flex items-center gap-2 shrink-0">
                       {item.time && (
-                        <span className="text-[11px] text-muted-foreground font-mono flex items-center gap-1 whitespace-nowrap shrink-0">
-                          <Clock3 size={11} className="text-muted-foreground shrink-0" />
+                        <span className="text-[11px] text-muted-foreground font-mono flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-white/[0.03] border border-white/[0.06] whitespace-nowrap">
+                          <Clock3 size={11} className="text-blue-400 shrink-0" />
                           <span>{item.time}</span>
                         </span>
                       )}
                       <button
                         onClick={(e) => handleOpenTaskInPlanner(item, e)}
-                        className="text-slate-500 hover:text-slate-300 p-1.5 rounded-lg transition-colors cursor-pointer hover:bg-white/10 shrink-0"
+                        className="text-slate-400 hover:text-white p-1 rounded-lg transition-colors cursor-pointer hover:bg-white/10 shrink-0"
                         title="Open in Planner"
                         aria-label="Open in Planner"
                       >
-                        <MoreVertical size={13} />
+                        <MoreVertical size={14} />
                       </button>
                     </div>
                   </div>
