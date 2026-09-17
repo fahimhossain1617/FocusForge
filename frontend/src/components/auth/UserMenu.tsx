@@ -119,14 +119,16 @@ export default function UserMenu({ variant = "sidebar" }: UserMenuProps) {
               )}
               <div className="flex-1 min-w-0">
                 <p 
-                  className="text-xs font-semibold break-words leading-tight transition-colors"
+                  className="text-xs font-semibold truncate leading-tight transition-colors"
                   style={{ color: "var(--color-text-primary)" }}
+                  title={user?.displayName || "FocusForge User"}
                 >
                   {user?.displayName || "FocusForge User"}
                 </p>
                 <p 
-                  className="text-[10px] break-all mt-0.5 transition-colors"
+                  className="text-[10px] truncate mt-0.5 transition-colors"
                   style={{ color: "var(--color-text-secondary)" }}
+                  title={user?.identifier}
                 >
                   {user?.identifier}
                 </p>

@@ -512,43 +512,46 @@ export default function DashboardPage() {
                     onClick={() => handleToggleTask(item)}
                     className="group flex items-center justify-between gap-2.5 py-2 px-2 rounded-xl hover:bg-white/[0.03] transition-colors cursor-pointer"
                   >
-                    {/* Circular Check Button */}
-                    <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                    {/* Left: Checkbox + Title + Badges */}
+                    <div className="flex items-center gap-2.5 min-w-0 flex-1 mr-1.5">
                       <div
                         className={`shrink-0 w-5 h-5 rounded-full flex items-center justify-center transition-all duration-200 cursor-pointer ${
                           item.completed
-                            ? "bg-emerald-500 border border-emerald-400 text-white "
+                            ? "bg-emerald-500 border border-emerald-400 text-white"
                             : "border-2 border-slate-600/80 hover:border-blue-400 bg-slate-900/40"
                         }`}
                         aria-label={`Mark task ${item.completed ? "pending" : "done"}`}
                       >
                         {item.completed && <Check size={11} strokeWidth={3.2} />}
                       </div>
-                      <span
-                        className={`text-xs sm:text-[13px] break-words transition-colors ${
-                          item.completed ? "text-muted-foreground line-through" : "text-foreground font-medium"
-                        }`}
-                      >
-                        {item.name}
-                      </span>
-                      {item.sourceType === 'routine' && (
-                        <span className="text-[9px] font-bold text-blue-400/90 bg-blue-500/10 border border-blue-500/20 px-1.5 py-0.2 rounded shrink-0">
-                          Routine
+                      <div className="flex items-center gap-1.5 min-w-0 flex-1 overflow-hidden">
+                        <span
+                          className={`text-xs sm:text-[13px] truncate transition-colors ${
+                            item.completed ? "text-muted-foreground line-through" : "text-foreground font-medium"
+                          }`}
+                          title={item.name}
+                        >
+                          {item.name}
                         </span>
-                      )}
+                        {item.sourceType === 'routine' && (
+                          <span className="text-[9px] font-bold text-blue-400 bg-blue-500/10 border border-blue-500/20 px-1.5 py-0.5 rounded shrink-0 whitespace-nowrap">
+                            Routine
+                          </span>
+                        )}
+                      </div>
                     </div>
 
                     {/* Right side: Time & Action */}
-                    <div className="flex items-center gap-1.5 shrink-0">
+                    <div className="flex items-center gap-1.5 shrink-0 ml-auto">
                       {item.time && (
-                        <span className="text-[11px] text-muted-foreground font-mono flex items-center gap-1">
-                          <Clock3 size={11} className="text-muted-foreground" />
-                          {item.time}
+                        <span className="text-[11px] text-muted-foreground font-mono flex items-center gap-1 whitespace-nowrap shrink-0">
+                          <Clock3 size={11} className="text-muted-foreground shrink-0" />
+                          <span>{item.time}</span>
                         </span>
                       )}
                       <button
                         onClick={(e) => handleOpenTaskInPlanner(item, e)}
-                        className="text-slate-500 hover:text-slate-300 p-1.5 rounded-lg transition-colors cursor-pointer hover:bg-white/10"
+                        className="text-slate-500 hover:text-slate-300 p-1.5 rounded-lg transition-colors cursor-pointer hover:bg-white/10 shrink-0"
                         title="Open in Planner"
                         aria-label="Open in Planner"
                       >
@@ -737,7 +740,10 @@ export default function DashboardPage() {
                       </div>
 
                       {/* Skill Name */}
-                      <span className="text-xs sm:text-[13px] font-medium text-foreground min-w-[70px] max-w-[130px] break-words shrink-0">
+                      <span 
+                        className="text-xs sm:text-[13px] font-medium text-foreground min-w-[70px] max-w-[130px] truncate shrink-0"
+                        title={skill.name}
+                      >
                         {skill.name}
                       </span>
 
