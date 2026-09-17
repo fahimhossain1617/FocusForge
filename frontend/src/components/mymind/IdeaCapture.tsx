@@ -88,7 +88,7 @@ export default function IdeaCapture({ navigate }: IdeaCaptureProps) {
 
       <div className="flex-1 flex flex-col justify-center">
         <div className="slide-up">
-          <h2 className="text-2xl font-medium mb-2 text-center" style={{ color: "var(--color-text-primary)" }}>
+          <h2 className="text-lg md:text-xl font-semibold mb-2 text-center text-foreground">
             {step === 1 && t.myMind.whatIsIdea}
             {step === 2 && t.myMind.whyInteresting}
             {step === 3 && t.myMind.whoIsItFor}
@@ -96,7 +96,7 @@ export default function IdeaCapture({ navigate }: IdeaCaptureProps) {
             {step === 5 && t.myMind.whatCouldBeNextStep}
           </h2>
           {step > 1 && (
-            <p className="text-center text-sm mb-6" style={{ color: "var(--color-text-muted)" }}>
+            <p className="text-center text-sm mb-6 text-muted-foreground">
               {t.myMind.optionalStr}
             </p>
           )}

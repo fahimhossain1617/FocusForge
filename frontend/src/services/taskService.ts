@@ -1,5 +1,47 @@
-import { Task } from "../types";
+import { Task, RoutineTemplate } from "../types";
 import { fetchBackend } from "../lib/apiClient";
+
+/**
+ * Fetch all routine templates from backend /api/tasks/templates
+ */
+export async function fetchRoutineTemplatesFromBackend(): Promise<RoutineTemplate[]> {
+  try {
+    return await fetchBackend<RoutineTemplate[]>('/api/tasks/templates');
+  } catch (err) {
+    console.warn('[taskService] Failed to fetch routine templates from backend:', err);
+    return [];
+  }
+}
+
+/**
+ * Save or update a routine template in backend /api/tasks/templates
+ */
+export async function saveRoutineTemplateToBackend(template: Partial<RoutineTemplate>): Promise<RoutineTemplate | null> {
+  try {
+    return await fetchBackend<RoutineTemplate>('/api/tasks/templates', {
+      method: 'POST',
+      body: JSON.stringify(template),
+    });
+  } catch (err) {
+    console.warn('[taskService] Failed to save routine template to backend:', err);
+    return null;
+  }
+}
+
+/**
+ * Delete a routine template from backend /api/tasks/templates/:id
+ */
+export async function deleteRoutineTemplateFromBackend(id: string): Promise<boolean> {
+  try {
+    await fetchBackend(`/api/tasks/templates/${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+    });
+    return true;
+  } catch (err) {
+    console.warn('[taskService] Failed to delete routine template from backend:', err);
+    return false;
+  }
+}
 
 /**
  * Synchronize task creation or upsert to backend /api/tasks

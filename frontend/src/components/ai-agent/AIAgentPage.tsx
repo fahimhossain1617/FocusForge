@@ -371,9 +371,9 @@ export function AIAgentPage() {
 
       <header className={styles.header}>
         <div className={styles.title} style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <p style={{ margin: 0, fontSize: '1.25rem', fontWeight: 600, letterSpacing: '-0.01em' }}>
+          <h1 className="text-base md:text-lg font-semibold text-foreground tracking-tight m-0">
             {isSystemBn ? 'ফোকাস ফোর্স AI এজেন্ট' : 'FocusForge AI Agent'}
-          </p>
+          </h1>
           {!isOnline && (
             <div style={{
               display: 'inline-flex',

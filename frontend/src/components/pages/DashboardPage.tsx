@@ -15,16 +15,16 @@ import {
   BookOpen,
   Palette,
   Globe,
-  ArrowUpRight,
-  ArrowDownRight,
   Calendar,
   Coffee,
   AlertCircle,
 } from "lucide-react";
+
 import { useAppContext } from "../../context/AppContext";
 import { useAuth } from "../../context/AuthContext";
 import { useTranslation } from "../../hooks/useTranslation";
 import { getLocalDateString } from "../../services/taskService";
+import { formatTimeRange } from "../../utils/timeUtils";
 
 type ProgressView = "weekly" | "monthly";
 
@@ -35,6 +35,10 @@ interface TaskItem {
   name: string;
   completed: boolean;
   time?: string;
+  startTime?: string;
+  endTime?: string;
+  targetDate?: string;
+  sourceType?: 'routine' | 'custom';
 }
 
 interface SkillDisplay {
@@ -57,12 +61,10 @@ function greetingText(name: string) {
 }
 
 function formatMinutes(totalMins: number): string {
-  if (totalMins <= 0) return "0m";
-  const h = Math.floor(totalMins / 60);
-  const m = Math.round(totalMins % 60);
-  if (h === 0) return `${m}m`;
-  if (m === 0) return `${h}h`;
-  return `${h}h ${m}m`;
+  const hours = Math.floor(totalMins / 60);
+  const minutes = totalMins % 60;
+  if (hours === 0) return `${minutes}m`;
+  return `${hours}h ${minutes}m`;
 }
 
 export default function DashboardPage() {
@@ -74,6 +76,15 @@ export default function DashboardPage() {
   const [progressView, setProgressView] = useState<ProgressView>("weekly");
   const [hoveredDay, setHoveredDay] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState<string>(today);
+
+  // Dynamic user display name
+  const userName = useMemo(() => {
+    return (
+      user?.displayName ||
+      user?.identifier?.split("@")[0] ||
+      "Champion"
+    );
+  }, [user]);
 
   // Dynamic 7-day Weekly Data (Ending Today)
   const weeklyData = useMemo(() => {
@@ -180,6 +191,20 @@ export default function DashboardPage() {
     return weeks;
   }, [state.focusSessions, state.activities, state.tasks]);
 
+  // Helper to format start and end time for task items (always displayed in 12h AM/PM)
+  const formatTaskTimeRange = (t: any): string => {
+    const correspondingBlock = (state.timeBlocks || []).find(
+      (b) =>
+        (t.id && String(b.taskId) === String(t.id)) ||
+        (b.date === (t.targetDate || t.date) && b.label === (t.name || t.title))
+    );
+
+    const start = t.time || correspondingBlock?.startTime || (t.reminderTime ? t.reminderTime : "");
+    const end = t.endTime || correspondingBlock?.endTime || "";
+
+    return formatTimeRange(start, end);
+  };
+
   // Derive display tasks for the selected date
   const tasksList: TaskItem[] = useMemo(() => {
     const realDayTasks = (state.tasks || []).filter(
@@ -191,7 +216,9 @@ export default function DashboardPage() {
         taskId: t.id,
         name: t.name || t.title || "Untitled Task",
         completed: Boolean(t.completed || t.status === "completed"),
-        time: t.time || (t.reminderTime ? t.reminderTime : "10:00 AM"),
+        time: formatTaskTimeRange(t),
+        targetDate: t.targetDate || t.date || selectedDate,
+        sourceType: t.sourceType || "custom",
       }));
     }
 
@@ -207,13 +234,15 @@ export default function DashboardPage() {
           taskId: t.id,
           name: t.name || t.title || "Untitled Task",
           completed: Boolean(t.completed || t.status === "completed"),
-          time: t.time || (t.reminderTime ? t.reminderTime : "10:00 AM"),
+          time: formatTaskTimeRange(t),
+          targetDate: t.targetDate || t.date || selectedDate,
+          sourceType: t.sourceType || "custom",
         }));
       }
     }
     
     return [];
-  }, [state.tasks, selectedDate, monthlyWeeks]);
+  }, [state.tasks, state.timeBlocks, selectedDate, monthlyWeeks]);
 
   const completedCount = tasksList.filter((t) => t.completed).length;
   const pendingCount = tasksList.length - completedCount;
@@ -227,6 +256,22 @@ export default function DashboardPage() {
         status: nextCompleted ? "completed" : "not_started",
       });
     }
+  };
+
+  // 3-dot click -> jump directly to that date in planner and open edit details drawer
+  const handleOpenTaskInPlanner = (item: TaskItem, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const targetDate = item.targetDate || selectedDate;
+    if (typeof window !== "undefined") {
+      sessionStorage.setItem("focusforge_planner_selected_date", targetDate);
+      sessionStorage.setItem("focusforge_planner_open_drawer", "true");
+      window.dispatchEvent(
+        new CustomEvent("focusforge:open_planner_date", {
+          detail: { date: targetDate, openDrawer: true, taskId: item.taskId },
+        })
+      );
+    }
+    navigateTo("planner");
   };
 
   // Skills list with clean inline progress bars (100% dynamic from real user folders)
@@ -400,8 +445,6 @@ export default function DashboardPage() {
     };
   }, [monthlyWeeks]);
 
-  const userName = user?.displayName || user?.fullName || "Fahim";
-
   if (!isLoaded) {
     return (
       <div className="max-w-[1600px] mx-auto grid gap-6 animate-pulse">
@@ -413,21 +456,21 @@ export default function DashboardPage() {
   }
 
   return (
-    <main className="w-full max-w-[1680px] mx-auto pb-16 space-y-6 text-slate-100 select-none">
+    <main className="w-full max-w-[1680px] mx-auto pb-16 space-y-6 text-foreground select-none">
       {/* Top Header: Clean, dynamic greeting with NO emojis */}
-      <header className="pt-2 px-1 flex items-center justify-between">
+      <header className="pt-2 px-1 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white">
+          <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold tracking-tight text-foreground leading-tight break-words">
             {greetingText(userName)}
           </h1>
-          <p className="mt-1 text-sm text-slate-400 font-medium">
+          <p className="mt-1 text-xs sm:text-sm md:text-base text-muted-foreground font-normal leading-relaxed">
             Your focus today builds your future tomorrow.
           </p>
         </div>
         {!isToday && (
           <button
             onClick={() => setSelectedDate(today)}
-            className="px-3 py-1.5 rounded-lg bg-blue-600/20 text-blue-400 hover:bg-blue-600/30 border border-blue-500/30 text-sm font-medium transition-colors cursor-pointer shadow-sm flex items-center gap-2"
+            className="self-start sm:self-auto px-3 py-1.5 rounded-lg bg-blue-600/20 text-blue-400 hover:bg-blue-600/30 border border-blue-500/30 text-xs sm:text-sm font-medium transition-colors cursor-pointer shadow-sm flex items-center gap-2"
           >
             Back to Today
           </button>
@@ -450,8 +493,8 @@ export default function DashboardPage() {
             {/* Header: Title + Natural Subtitle + Plus (+) button to Planner */}
             <div className="flex items-center justify-between gap-3 pb-3">
               <div>
-                <h2 className="text-base font-semibold text-white tracking-tight">{tasksTitle}</h2>
-                <p className="text-xs text-slate-400 mt-0.5">
+                <h2 className="text-base md:text-lg font-semibold text-foreground tracking-tight">{tasksTitle}</h2>
+                <p className="text-xs text-muted-foreground mt-0.5">
                   {tasksList.length} tasks · {completedCount} completed · {pendingCount} pending
                 </p>
               </div>
@@ -487,29 +530,32 @@ export default function DashboardPage() {
                         {item.completed && <Check size={11} strokeWidth={3.2} />}
                       </div>
                       <span
-                        className={`text-xs sm:text-[13px] truncate transition-colors ${
-                          item.completed ? "text-slate-500 line-through" : "text-slate-100 font-medium"
+                        className={`text-xs sm:text-[13px] break-words transition-colors ${
+                          item.completed ? "text-muted-foreground line-through" : "text-foreground font-medium"
                         }`}
                       >
                         {item.name}
                       </span>
+                      {item.sourceType === 'routine' && (
+                        <span className="text-[9px] font-bold text-blue-400/90 bg-blue-500/10 border border-blue-500/20 px-1.5 py-0.2 rounded shrink-0">
+                          Routine
+                        </span>
+                      )}
                     </div>
 
                     {/* Right side: Time & Action */}
                     <div className="flex items-center gap-1.5 shrink-0">
                       {item.time && (
-                        <span className="text-[11px] text-slate-400 font-mono flex items-center gap-1">
-                          <Clock3 size={11} className="text-slate-500" />
+                        <span className="text-[11px] text-muted-foreground font-mono flex items-center gap-1">
+                          <Clock3 size={11} className="text-muted-foreground" />
                           {item.time}
                         </span>
                       )}
                       <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          navigateTo("planner");
-                        }}
-                        className="text-slate-500 hover:text-slate-300 p-1 rounded transition-colors cursor-pointer"
-                        title="More options"
+                        onClick={(e) => handleOpenTaskInPlanner(item, e)}
+                        className="text-slate-500 hover:text-slate-300 p-1.5 rounded-lg transition-colors cursor-pointer hover:bg-white/10"
+                        title="Open in Planner"
+                        aria-label="Open in Planner"
                       >
                         <MoreVertical size={13} />
                       </button>
@@ -539,8 +585,8 @@ export default function DashboardPage() {
             {/* Header: Clean title without Live badge */}
             <div className="flex items-center justify-between pb-3">
               <div>
-                <h2 className="text-base font-semibold text-white tracking-tight">{focusTitle}</h2>
-                <p className="text-xs text-slate-400 mt-0.5">Focus time &amp; daily breakdown</p>
+                <h2 className="text-base md:text-lg font-semibold text-foreground tracking-tight">{focusTitle}</h2>
+                <p className="text-xs text-muted-foreground mt-0.5">Focus time &amp; daily breakdown</p>
               </div>
             </div>
 
@@ -613,21 +659,21 @@ export default function DashboardPage() {
                 </svg>
                 {/* Center text: Pure calculated focus time */}
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                  <span className="text-lg font-bold text-white tracking-tight">{selectedFocusStats.focusTime}</span>
+                  <span className="text-lg font-bold text-foreground tracking-tight">{selectedFocusStats.focusTime}</span>
                 </div>
               </div>
 
               {/* Focus Time & Break Time breakdown */}
               <div className="flex-1 space-y-3">
                 <div className="flex items-center justify-between text-xs">
-                  <span className="flex items-center gap-2 text-slate-200 font-medium">
+                  <span className="flex items-center gap-2 text-foreground font-medium">
                     <span className="w-2.5 h-2.5 rounded-full bg-blue-500 " />
                     Focus Time
                   </span>
-                  <span className="font-bold text-white font-mono text-xs">{selectedFocusStats.focusTime}</span>
+                  <span className="font-bold text-foreground font-mono text-xs">{selectedFocusStats.focusTime}</span>
                 </div>
                 <div className="flex items-center justify-between text-xs">
-                  <span className="flex items-center gap-2 text-slate-200 font-medium">
+                  <span className="flex items-center gap-2 text-foreground font-medium">
                     <span className="w-2.5 h-2.5 rounded-full bg-amber-500 " />
                     Break Time
                   </span>
@@ -639,14 +685,14 @@ export default function DashboardPage() {
 
           {/* Integrated Compact Distractions Info */}
           <div className="mt-4 pt-3 border-t border-white/[0.06] flex items-center justify-between text-xs">
-            <div className="flex items-center gap-1.5 text-slate-400">
+            <div className="flex items-center gap-1.5 text-muted-foreground">
               <AlertCircle size={13} className="text-rose-400" />
               <span>Daily Distractions:</span>
               <span className="font-semibold text-rose-300 font-mono">
                 {selectedFocusStats.distractionCount > 0 ? `${selectedFocusStats.distractionCount}` : "0"}
               </span>
             </div>
-            <span className="text-[11px] text-slate-500 truncate max-w-[180px]">
+            <span className="text-[11px] text-muted-foreground truncate max-w-[180px]">
               {selectedFocusStats.distractionSummary}
             </span>
           </div>
@@ -665,8 +711,8 @@ export default function DashboardPage() {
             {/* Header: Title + Plus (+) button to Skill Builder */}
             <div className="flex items-center justify-between pb-3">
               <div>
-                <h2 className="text-base font-semibold text-white tracking-tight">Current Skills</h2>
-                <p className="text-xs text-slate-400 mt-0.5">Skill Builder progress</p>
+                <h2 className="text-base md:text-lg font-semibold text-foreground tracking-tight">Current Skills</h2>
+                <p className="text-xs text-muted-foreground mt-0.5">Skill Builder progress</p>
               </div>
               <button
                 onClick={() => navigateTo("learning")}
@@ -696,7 +742,7 @@ export default function DashboardPage() {
                       </div>
 
                       {/* Skill Name */}
-                      <span className="text-xs sm:text-[13px] font-medium text-white w-28 truncate shrink-0">
+                      <span className="text-xs sm:text-[13px] font-medium text-foreground min-w-[70px] max-w-[130px] break-words shrink-0">
                         {skill.name}
                       </span>
 
@@ -709,7 +755,7 @@ export default function DashboardPage() {
                       </div>
 
                       {/* Percentage on the right */}
-                      <span className="text-slate-400 font-mono text-xs font-semibold w-9 text-right shrink-0">
+                      <span className="text-muted-foreground font-mono text-xs font-semibold w-9 text-right shrink-0">
                         {skill.progress}%
                       </span>
                     </div>
@@ -718,8 +764,8 @@ export default function DashboardPage() {
               ) : (
                 <div className="py-8 text-center text-slate-400 text-sm flex flex-col items-center">
                   <BookOpen size={24} className="text-slate-600 mb-2" />
-                  <p className="font-medium text-slate-300">No skills added yet</p>
-                  <p className="text-xs text-slate-500 mt-1">Add a skill in Skill Builder to track your progress</p>
+                  <p className="font-medium text-foreground">No skills added yet</p>
+                  <p className="text-xs text-muted-foreground mt-1">Add a skill in Skill Builder to track your progress</p>
                 </div>
               )}
             </div>
@@ -744,8 +790,8 @@ export default function DashboardPage() {
               <TrendingUp size={18} />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-white tracking-tight">Focus &amp; Productivity Progress</h2>
-              <p className="text-xs text-slate-400 mt-0.5">
+              <h2 className="text-base md:text-lg font-semibold text-foreground tracking-tight">Focus &amp; Productivity Progress</h2>
+              <p className="text-xs text-muted-foreground mt-0.5">
                 {progressView === "weekly"
                   ? "Weekly Overview · Real-time 7-day focus & task performance"
                   : "Monthly Overview · 4-Week breakdown and cumulative performance"}
@@ -759,8 +805,8 @@ export default function DashboardPage() {
               onClick={() => setProgressView("weekly")}
               className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-all duration-150 cursor-pointer ${
                 progressView === "weekly"
-                  ? "bg-blue-600 text-white "
-                  : "text-slate-400 hover:text-white hover:bg-white/[0.04]"
+                  ? "bg-accent text-white "
+                  : "text-muted-foreground hover:text-foreground hover:bg-white/[0.04]"
               }`}
             >
               Weekly
@@ -769,8 +815,8 @@ export default function DashboardPage() {
               onClick={() => setProgressView("monthly")}
               className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-all duration-150 cursor-pointer ${
                 progressView === "monthly"
-                  ? "bg-blue-600 text-white "
-                  : "text-slate-400 hover:text-white hover:bg-white/[0.04]"
+                  ? "bg-accent text-white "
+                  : "text-muted-foreground hover:text-foreground hover:bg-white/[0.04]"
               }`}
             >
               Monthly
@@ -882,8 +928,8 @@ export default function DashboardPage() {
 
                     {/* Day & Date Labels */}
                     <div className="mt-3 text-center">
-                      <span className="block text-xs sm:text-sm font-bold text-slate-200">{d.day}</span>
-                      <span className="block text-[11px] text-slate-400 font-mono mt-0.5">{d.date}</span>
+                      <span className="block text-xs sm:text-sm font-bold text-foreground">{d.day}</span>
+                      <span className="block text-[11px] text-muted-foreground font-mono mt-0.5">{d.date}</span>
                     </div>
                   </div>
                 );
@@ -892,34 +938,25 @@ export default function DashboardPage() {
 
             {/* Bottom 3 Summary Metric Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
-              <div className="p-4 rounded-xl bg-slate-900/60 border border-white/[0.06] flex items-center justify-between">
+              <div className="p-4 rounded-xl bg-slate-900/60 border border-white/[0.06]">
                 <div>
-                  <p className="text-xs text-slate-400 font-medium">Total Focus Time</p>
-                  <p className="mt-1 text-xl font-bold text-white tracking-tight">{weeklySummary.focusTime}</p>
+                  <p className="text-xs text-muted-foreground font-medium">Total Focus Time</p>
+                  <p className="mt-1 text-xl font-bold text-foreground tracking-tight">{weeklySummary.focusTime}</p>
                 </div>
-                <span className="inline-flex items-center text-xs font-semibold text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded-lg border border-emerald-500/20">
-                  <ArrowUpRight size={14} className="mr-0.5" /> {weeklySummary.completionPercent}%
-                </span>
               </div>
 
-              <div className="p-4 rounded-xl bg-slate-900/60 border border-white/[0.06] flex items-center justify-between">
+              <div className="p-4 rounded-xl bg-slate-900/60 border border-white/[0.06]">
                 <div>
-                  <p className="text-xs text-slate-400 font-medium">Tasks Completed</p>
-                  <p className="mt-1 text-xl font-bold text-white tracking-tight">{weeklySummary.tasksDoneRatio}</p>
+                  <p className="text-xs text-muted-foreground font-medium">Tasks Completed</p>
+                  <p className="mt-1 text-xl font-bold text-foreground tracking-tight">{weeklySummary.tasksDoneRatio}</p>
                 </div>
-                <span className="inline-flex items-center text-xs font-semibold text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded-lg border border-emerald-500/20">
-                  <ArrowUpRight size={14} className="mr-0.5" /> {weeklySummary.completionPercent}%
-                </span>
               </div>
 
-              <div className="p-4 rounded-xl bg-slate-900/60 border border-white/[0.06] flex items-center justify-between">
+              <div className="p-4 rounded-xl bg-slate-900/60 border border-white/[0.06]">
                 <div>
-                  <p className="text-xs text-slate-400 font-medium">Missed Tasks</p>
-                  <p className="mt-1 text-xl font-bold text-white tracking-tight">{weeklySummary.totalMissed}</p>
+                  <p className="text-xs text-muted-foreground font-medium">Missed Tasks</p>
+                  <p className="mt-1 text-xl font-bold text-foreground tracking-tight">{weeklySummary.totalMissed}</p>
                 </div>
-                <span className="inline-flex items-center text-xs font-semibold text-rose-400 bg-rose-500/10 px-2 py-1 rounded-lg border border-rose-500/20">
-                  <ArrowDownRight size={14} className="mr-0.5" /> {weeklySummary.totalMissed}
-                </span>
               </div>
             </div>
           </div>
@@ -1025,9 +1062,7 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              <span className="text-xs text-emerald-400 font-medium flex items-center gap-1">
-                <ArrowUpRight size={14} /> {monthlySummary.completionPercent}% overall completion rate
-              </span>
+
             </div>
           </div>
         )}

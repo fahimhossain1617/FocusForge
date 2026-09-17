@@ -437,7 +437,7 @@ export default function AuthModal() {
         {authModal.view === 'initial' && (
           <div className="space-y-6 animate-fade-in">
             <div>
-              <h2 className="text-2xl font-bold text-white tracking-tight mb-2">
+              <h2 className="text-lg md:text-xl font-semibold text-foreground tracking-tight mb-2">
                 {t.auth.welcomeTitle}
               </h2>
               <p className="text-xs text-zinc-400 leading-relaxed">
@@ -512,7 +512,7 @@ export default function AuthModal() {
                 <ArrowLeft size={16} />
               </button>
               <div>
-                <h2 className="text-xl font-bold text-white tracking-tight">
+                <h2 className="text-lg md:text-xl font-semibold text-foreground tracking-tight">
                   {t.auth.welcomeBackTitle}
                 </h2>
                 <p className="text-xs text-zinc-400">
@@ -732,7 +732,7 @@ export default function AuthModal() {
                 <ArrowLeft size={16} />
               </button>
               <div>
-                <h2 className="text-xl font-bold text-white tracking-tight">
+                <h2 className="text-lg md:text-xl font-semibold text-foreground tracking-tight">
                   {t.auth.createPasswordTitle}
                 </h2>
                 <p className="text-xs text-zinc-400">
@@ -839,7 +839,7 @@ export default function AuthModal() {
         {(authModal.view === 'otp' || authModal.view === 'forgot_otp') && (
           <form onSubmit={handleVerifyOtp} className="space-y-6 animate-fade-in text-center">
             <div>
-              <h2 className="text-xl font-bold text-white tracking-tight mb-1.5">
+              <h2 className="text-lg md:text-xl font-semibold text-foreground tracking-tight mb-1.5">
                 {otpPurpose === 'login' ? t.auth.verifyItsYou : t.auth.verifyAccountTitle}
               </h2>
               <p className="text-xs text-zinc-400">
@@ -957,7 +957,7 @@ export default function AuthModal() {
                 <ArrowLeft size={16} />
               </button>
               <div>
-                <h2 className="text-xl font-bold text-white tracking-tight">
+                <h2 className="text-lg md:text-xl font-semibold text-foreground tracking-tight">
                   {t.auth.forgotPasswordTitle}
                 </h2>
                 <p className="text-xs text-zinc-400">
@@ -1014,7 +1014,7 @@ export default function AuthModal() {
         {authModal.view === 'forgot_new_password' && (
           <form onSubmit={handleResetPasswordSubmit} className="space-y-5 animate-fade-in">
             <div>
-              <h2 className="text-xl font-bold text-white tracking-tight mb-1">
+              <h2 className="text-lg md:text-xl font-semibold text-foreground tracking-tight mb-1">
                 {t.auth.newPasswordTitle}
               </h2>
               <p className="text-xs text-zinc-400">

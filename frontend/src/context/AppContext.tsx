@@ -1,19 +1,19 @@
 "use client";
 
 import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
-import type { AppState, Task, Note, MindItem, TimeBlock, FocusSession, DistractionEntry, DailyBig3, LearningFolder, LearningLog, DiaryTopic, DiaryEntry } from '../types';
-import { 
-  createDiaryTopic, 
-  updateDiaryTopic, 
-  deleteDiaryTopic, 
-  createDiaryEntry, 
-  updateDiaryEntry, 
-  deleteDiaryEntry 
+import type { AppState, Task, Note, MindItem, TimeBlock, FocusSession, DistractionEntry, DailyBig3, LearningFolder, LearningLog, DiaryTopic, DiaryEntry, Weekday, RoutineTemplate, RoutineTemplateTask } from '../types';
+import {
+  createDiaryTopic,
+  updateDiaryTopic,
+  deleteDiaryTopic,
+  createDiaryEntry,
+  updateDiaryEntry,
+  deleteDiaryEntry
 } from '../services/diaryStorageService';
-import { 
-  loadStateFromIndexedDB, 
-  saveStateToIndexedDB, 
-  safeSaveToLocalStorage 
+import {
+  loadStateFromIndexedDB,
+  saveStateToIndexedDB,
+  safeSaveToLocalStorage
 } from '../services/indexedDBStorage';
 import { supabase } from '../lib/supabaseClient';
 import { noteService } from '../services/noteService';
@@ -21,7 +21,15 @@ import { mindService } from '../services/mindService';
 import { diaryDbService } from '../services/diaryDbService';
 import { focusDbService } from '../services/focusDbService';
 import { learningDbService } from '../services/learningDbService';
-import { syncTaskToBackend, updateTaskInBackend, deleteTaskFromBackend, fetchTasksFromBackend } from '../services/taskService';
+import {
+  syncTaskToBackend,
+  updateTaskInBackend,
+  deleteTaskFromBackend,
+  fetchTasksFromBackend,
+  fetchRoutineTemplatesFromBackend,
+  saveRoutineTemplateToBackend,
+  deleteRoutineTemplateFromBackend
+} from '../services/taskService';
 import { reviewService } from '../services/reviewService';
 
 
@@ -70,6 +78,7 @@ const defaultState: AppState = {
   learningFolders: [],
   learningLogs: [],
   theme: { accent: '#2563EB', background: '#08090C', preset: 'Obsidian Kinetic', mode: 'dark' },
+  routineTemplates: [],
   diaryTopics: [],
   focusTaskHistory: []
 };
@@ -119,7 +128,7 @@ interface AppContextType {
   // Tasks
   addTask: (task: Partial<Task> & { name?: string; title?: string }) => void;
   updateTask: (id: number, updates: Partial<Task>) => void;
-  deleteTask: (id: number) => void;
+  deleteTask: (id: number | string) => void;
   cycleTaskStatus: (id: number) => void;
   setDailyBig3: (taskIds: number[]) => void;
   getDailyBig3: () => Task[];
@@ -132,7 +141,7 @@ interface AppContextType {
   // Time Blocks
   addTimeBlock: (block: Omit<TimeBlock, 'id'>) => void;
   updateTimeBlock: (id: string, updates: Partial<TimeBlock>) => void;
-  deleteTimeBlock: (id: string) => void;
+  deleteTimeBlock: (id: string | number) => void;
 
   // Focus Sessions
   startFocusSession: (taskName: string, category: string, taskId?: number, targetMinutes?: number) => string;
@@ -162,6 +171,16 @@ interface AppContextType {
   addDiaryEntryItem: (topicId: string, title?: string, content?: string) => DiaryEntry;
   saveDiaryEntryItem: (topicId: string, entryId: string, updates: Partial<Pick<DiaryEntry, 'title' | 'content' | 'images'>>) => void;
   deleteDiaryEntryItem: (topicId: string, entryId: string) => void;
+
+  // Routine Templates & Import
+  saveRoutineTemplate: (template: RoutineTemplate) => void;
+  deleteRoutineTemplate: (templateId: string) => void;
+  addRoutineTask: (weekday: Weekday, task: Omit<RoutineTemplateTask, 'id' | 'order'>) => void;
+  updateRoutineTask: (weekday: Weekday, taskId: string, updates: Partial<RoutineTemplateTask>) => void;
+  deleteRoutineTask: (weekday: Weekday, taskId: string) => void;
+  reorderRoutineTasks: (weekday: Weekday, taskIds: string[]) => void;
+  importRoutineToDate: (weekday: Weekday, dateStr: string, options?: { mode: 'all' | 'missing_only' }) => { importedCount: number; skippedCount: number };
+
   // Review System Meaningful Action Tracking
   trackMeaningfulAction: (actionType: string) => void;
 }
@@ -188,7 +207,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       try {
         let loadedData: AppState | null = null;
         const { data: { session } } = await supabase.auth.getSession();
-        
+
         // If logged in, prefer cloud state from Supabase
         if (session?.user) {
           const { data: cloudData, error } = await supabase
@@ -208,7 +227,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
                 state: defaultState,
                 updated_at: new Date().toISOString()
               });
-            } catch {}
+            } catch { }
           }
 
           // Fetch structured notes from Supabase PostgreSQL notes table
@@ -284,6 +303,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           } catch (taskErr) {
             console.warn("[AppContext] Error syncing backend tasks on load:", taskErr);
           }
+
+          // Fetch routine templates from backend / Supabase
+          try {
+            const dbTemplates = await fetchRoutineTemplatesFromBackend();
+            if (dbTemplates && dbTemplates.length > 0) {
+              if (!loadedData) loadedData = { ...defaultState };
+              loadedData.routineTemplates = dbTemplates;
+            }
+          } catch (tplErr) {
+            console.warn("[AppContext] Error syncing routine templates on load:", tplErr);
+          }
         } else {
           // Guest Mode:
           // Temporary session data during current browser tab session only.
@@ -293,7 +323,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             if (sessionRaw) {
               try {
                 loadedData = JSON.parse(sessionRaw);
-              } catch {}
+              } catch { }
             }
           }
           if (!loadedData) {
@@ -347,16 +377,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           if (typeof window !== 'undefined' && !sessionActivePage) {
             try {
               sessionStorage.setItem('focusforge_active_page', initialActivePage);
-            } catch {}
+            } catch { }
           }
 
-          setState({ 
-            ...defaultState, 
-            ...parsed, 
+          setState({
+            ...defaultState,
+            ...parsed,
             activePage: initialActivePage,
             notifPreferences: { ...defaultState.notifPreferences, ...(parsed.notifPreferences || {}) },
             calendarPreferences: { ...defaultState.calendarPreferences, ...(parsed.calendarPreferences || {}) },
-            theme: { ...defaultState.theme, ...parsed.theme } 
+            theme: { ...defaultState.theme, ...parsed.theme }
           });
         }
       } catch (e) {
@@ -450,7 +480,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
                 learningLogs: dbLearning.logs || prev.learningLogs
               }));
             }
-          } catch (e) {}
+          } catch (e) { }
         } catch (err) {
           console.warn("[AppContext] Error on SIGNED_IN load:", err);
         }
@@ -495,7 +525,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (updates.activePage && typeof window !== 'undefined') {
       try {
         sessionStorage.setItem('focusforge_active_page', updates.activePage);
-      } catch {}
+      } catch { }
     }
     setState((prev) => ({ ...prev, ...updates }));
   }, []);
@@ -505,7 +535,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (typeof window !== 'undefined') {
       try {
         sessionStorage.removeItem('focusforge_active_page');
-      } catch {}
+      } catch { }
     }
     setState(defaultState);
   }, []);
@@ -539,7 +569,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (typeof window !== "undefined") {
       window.dispatchEvent(new CustomEvent("focusforge:action", { detail: actionType }));
     }
-    reviewService.recordAction().catch(() => {});
+    reviewService.recordAction().catch(() => { });
   }, []);
 
   const navigateTo = useCallback((page: string) => {
@@ -553,7 +583,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (typeof window !== 'undefined') {
       try {
         sessionStorage.setItem('focusforge_active_page', page);
-      } catch {}
+      } catch { }
     }
 
     trackMeaningfulAction('feature_' + page);
@@ -587,8 +617,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const handleOnline = async () => {
       setIsOnline(true);
       showToast(
-        state.lang === 'bn' 
-          ? "ইন্টারনেট সংযোগ চালু হয়েছে। সকল ডাটা সিঙ্ক হচ্ছে..." 
+        state.lang === 'bn'
+          ? "ইন্টারনেট সংযোগ চালু হয়েছে। সকল ডাটা সিঙ্ক হচ্ছে..."
           : "Back online. Synchronizing data with cloud...",
         'info'
       );
@@ -617,8 +647,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const handleOffline = () => {
       setIsOnline(false);
       showToast(
-        state.lang === 'bn' 
-          ? "আপনি অফলাইনে আছেন। আপনার সকল পরিবর্তন নিরাপদে লোকালি সেভ হচ্ছে।" 
+        state.lang === 'bn'
+          ? "আপনি অফলাইনে আছেন। আপনার সকল পরিবর্তন নিরাপদে লোকালি সেভ হচ্ছে।"
           : "You are offline. All changes are being saved locally.",
         'info'
       );
@@ -638,10 +668,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const addMindItem = useCallback((content: string, source?: MindItem['source']) => {
     if (!content.trim()) return;
-    const newItem: MindItem = { 
-      id: generateId(), 
-      content: content.trim(), 
-      type: 'thought', 
+    const newItem: MindItem = {
+      id: generateId(),
+      content: content.trim(),
+      type: 'thought',
       createdAt: new Date().toISOString(),
       source: source || 'home',
     };
@@ -702,6 +732,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       targetDate: taskDate,
       date: taskDate,
       time: taskData.time || '',
+      endTime: taskData.endTime || '',
       priority: taskData.priority || 'medium',
       estHours: taskData.estHours || 1,
       estMinutes: taskData.estMinutes || 60,
@@ -712,6 +743,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       category: taskData.category || '',
       notes: taskData.notes || taskData.description || '',
       tier: taskData.tier || 'next',
+      sourceType: taskData.sourceType || 'custom',
+      sourceRoutineId: taskData.sourceRoutineId || undefined,
+      sourceRoutineTaskId: taskData.sourceRoutineTaskId || undefined,
+      importedAt: taskData.importedAt || undefined,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -740,33 +775,47 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         return updated;
       }),
     }));
-    updateTaskInBackend(id, updates).catch((err) => showToast(err.message || 'Failed to update task.', 'error'));
-  }, [showToast]);
+    if (updates.completed === true || updates.status === 'completed') {
+      trackMeaningfulAction('check_task');
+      showToast("Boom!Task completed successfully.", "success");
+    }
+    updateTaskInBackend(id, updates).catch((err) => {
+      console.warn('[AppContext] Failed to sync task update to backend (saved locally):', err);
+    });
+  }, [trackMeaningfulAction, showToast]);
 
-  const deleteTask = useCallback((id: number) => {
+  const deleteTask = useCallback((id: number | string) => {
+    const numId = typeof id === 'number' ? id : parseInt(String(id), 10);
     setState((prev) => ({
       ...prev,
-      tasks: prev.tasks.filter((t) => t.id !== id),
+      tasks: prev.tasks.filter((t) => String(t.id) !== String(id) && (!isNaN(numId) ? t.id !== numId : true)),
     }));
-    deleteTaskFromBackend(id).catch((err) => showToast(err.message || 'Failed to delete task.', 'error'));
-  }, [showToast]);
+    if (!isNaN(numId)) {
+      deleteTaskFromBackend(numId).catch((err) => console.warn('[AppContext] Failed to delete task in backend:', err));
+    }
+  }, []);
 
   const cycleTaskStatus = useCallback((id: number) => {
     const statusCycle: ('not_started' | 'in_progress' | 'completed')[] = ['not_started', 'in_progress', 'completed'];
-    let nextStatus: 'not_started' | 'in_progress' | 'completed' = 'not_started';
+    const currentTask = state.tasks.find((t) => t.id === id);
+    const currentIdx = currentTask ? statusCycle.indexOf(currentTask.status) : -1;
+    const nextStatus = statusCycle[(currentIdx + 1) % statusCycle.length];
+
     setState((prev) => ({
       ...prev,
       tasks: prev.tasks.map((t) => {
         if (t.id !== id) return t;
-        const idx = statusCycle.indexOf(t.status);
-        const status = statusCycle[(idx + 1) % statusCycle.length];
-        nextStatus = status;
-        return { ...t, status, completed: status === 'completed', updatedAt: new Date().toISOString() };
+        return { ...t, status: nextStatus, completed: nextStatus === 'completed', updatedAt: new Date().toISOString() };
       }),
     }));
     trackMeaningfulAction('check_task');
-    updateTaskInBackend(id, { status: nextStatus, completed: (nextStatus as string) === 'completed' }).catch((err) => showToast(err.message || 'Failed to update task status.', 'error'));
-  }, [trackMeaningfulAction, showToast]);
+    if (nextStatus === 'completed') {
+      showToast("🎉 দারুণ! কাজ সম্পন্ন করায় অভিনন্দন!", "success");
+    }
+    updateTaskInBackend(id, { status: nextStatus, completed: nextStatus === 'completed' }).catch((err) => {
+      console.warn('[AppContext] Failed to sync task status to backend (saved locally):', err);
+    });
+  }, [state.tasks, trackMeaningfulAction, showToast]);
 
   const setDailyBig3 = useCallback((taskIds: number[]) => {
     const today = todayStr();
@@ -858,12 +907,250 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }));
   }, []);
 
-  const deleteTimeBlock = useCallback((id: string) => {
+  const deleteTimeBlock = useCallback((id: string | number) => {
     setState((prev) => ({
       ...prev,
-      timeBlocks: prev.timeBlocks.filter((b) => b.id !== id),
+      timeBlocks: prev.timeBlocks.filter((b) => String(b.id) !== String(id)),
     }));
   }, []);
+
+  // ==================== Routine Templates ====================
+
+  const saveRoutineTemplate = useCallback((template: RoutineTemplate) => {
+    setState((prev) => {
+      const templates = prev.routineTemplates || [];
+      const index = templates.findIndex((t) => t.id === template.id || t.weekday === template.weekday);
+      let updated: RoutineTemplate[];
+      let targetTemplate: RoutineTemplate;
+      if (index >= 0) {
+        targetTemplate = { ...template, updatedAt: new Date().toISOString() };
+        updated = [...templates];
+        updated[index] = targetTemplate;
+      } else {
+        targetTemplate = { ...template, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
+        updated = [...templates, targetTemplate];
+      }
+      saveRoutineTemplateToBackend(targetTemplate).catch((err) =>
+        console.warn('[AppContext] saveRoutineTemplate backend sync error:', err)
+      );
+      return { ...prev, routineTemplates: updated };
+    });
+  }, []);
+
+  const deleteRoutineTemplate = useCallback((templateId: string) => {
+    deleteRoutineTemplateFromBackend(templateId).catch((err) =>
+      console.warn('[AppContext] deleteRoutineTemplate backend sync error:', err)
+    );
+    setState((prev) => ({
+      ...prev,
+      routineTemplates: (prev.routineTemplates || []).filter((t) => String(t.id) !== String(templateId)),
+    }));
+  }, []);
+
+  const addRoutineTask = useCallback((weekday: Weekday, taskData: Omit<RoutineTemplateTask, 'id' | 'order'>) => {
+    setState((prev) => {
+      const templates = [...(prev.routineTemplates || [])];
+      const templateIndex = templates.findIndex((t) => t.weekday === weekday);
+      const newTaskId = 'rt_' + Date.now().toString(36) + Math.random().toString(36).substring(2, 6);
+
+      if (templateIndex === -1) {
+        const newTemplate: RoutineTemplate = {
+          id: 'routine_' + weekday,
+          weekday,
+          tasks: [{
+            ...taskData,
+            id: newTaskId,
+            order: 0,
+          }],
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+        saveRoutineTemplateToBackend(newTemplate).catch((err) =>
+          console.warn('[AppContext] addRoutineTask backend sync error:', err)
+        );
+        return { ...prev, routineTemplates: [...templates, newTemplate] };
+      }
+
+      const template = { ...templates[templateIndex] };
+      const currentTasks = template.tasks || [];
+      const nextOrder = currentTasks.length > 0 ? Math.max(...currentTasks.map((t) => t.order ?? 0)) + 1 : 0;
+      template.tasks = [...currentTasks, { ...taskData, id: newTaskId, order: nextOrder }];
+      template.updatedAt = new Date().toISOString();
+      templates[templateIndex] = template;
+
+      saveRoutineTemplateToBackend(template).catch((err) =>
+        console.warn('[AppContext] addRoutineTask backend sync error:', err)
+      );
+
+      return { ...prev, routineTemplates: templates };
+    });
+  }, []);
+
+  const updateRoutineTask = useCallback((weekday: Weekday, taskId: string, updates: Partial<RoutineTemplateTask>) => {
+    setState((prev) => {
+      const templates = [...(prev.routineTemplates || [])];
+      const templateIndex = templates.findIndex((t) => t.weekday === weekday);
+      if (templateIndex === -1) return prev;
+
+      const template = { ...templates[templateIndex] };
+      template.tasks = (template.tasks || []).map((t) => (String(t.id) === String(taskId) ? { ...t, ...updates } : t));
+      template.updatedAt = new Date().toISOString();
+      templates[templateIndex] = template;
+
+      saveRoutineTemplateToBackend(template).catch((err) =>
+        console.warn('[AppContext] updateRoutineTask backend sync error:', err)
+      );
+
+      return { ...prev, routineTemplates: templates };
+    });
+  }, []);
+
+  const deleteRoutineTask = useCallback((weekday: Weekday, taskId: string) => {
+    setState((prev) => {
+      const templates = [...(prev.routineTemplates || [])];
+      const templateIndex = templates.findIndex((t) => t.weekday === weekday);
+      if (templateIndex === -1) return prev;
+
+      const template = { ...templates[templateIndex] };
+      template.tasks = (template.tasks || []).filter((t) => String(t.id) !== String(taskId));
+      template.updatedAt = new Date().toISOString();
+      templates[templateIndex] = template;
+
+      saveRoutineTemplateToBackend(template).catch((err) =>
+        console.warn('[AppContext] deleteRoutineTask backend sync error:', err)
+      );
+
+      return { ...prev, routineTemplates: templates };
+    });
+  }, []);
+
+  const reorderRoutineTasks = useCallback((weekday: Weekday, taskIds: string[]) => {
+    setState((prev) => {
+      const templates = [...(prev.routineTemplates || [])];
+      const templateIndex = templates.findIndex((t) => t.weekday === weekday);
+      if (templateIndex === -1) return prev;
+
+      const template = { ...templates[templateIndex] };
+      const taskMap = new Map((template.tasks || []).map((t) => [t.id, t]));
+      const reordered: RoutineTemplateTask[] = [];
+      taskIds.forEach((id, index) => {
+        const item = taskMap.get(id);
+        if (item) {
+          reordered.push({ ...item, order: index });
+        }
+      });
+      template.tasks = reordered;
+      template.updatedAt = new Date().toISOString();
+      templates[templateIndex] = template;
+
+      saveRoutineTemplateToBackend(template).catch((err) =>
+        console.warn('[AppContext] reorderRoutineTasks backend sync error:', err)
+      );
+
+      return { ...prev, routineTemplates: templates };
+    });
+  }, []);
+
+  const importRoutineToDate = useCallback((weekday: Weekday, dateStr: string, options?: { mode: 'all' | 'missing_only' }): { importedCount: number; skippedCount: number } => {
+    const mode = options?.mode || 'missing_only';
+    const templates = state.routineTemplates || [];
+    const template = templates.find((t) => t.weekday === weekday);
+    if (!template || !template.tasks || template.tasks.length === 0) {
+      showToast('No routine template found for this weekday', 'info');
+      return { importedCount: 0, skippedCount: 0 };
+    }
+
+    const sortedTasks = [...template.tasks].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+    const existingDateTasks = (state.tasks || []).filter((t) => t.targetDate === dateStr || t.date === dateStr);
+
+    let importedCount = 0;
+    let skippedCount = 0;
+    const newTasksToCreate: Task[] = [];
+    const newBlocksToCreate: TimeBlock[] = [];
+
+    sortedTasks.forEach((tmplTask, index) => {
+      // Duplicate detection
+      const isDuplicate = existingDateTasks.some((existing) => {
+        if (existing.sourceRoutineTaskId && existing.sourceRoutineTaskId === tmplTask.id) return true;
+        const sameTitle = (existing.name || existing.title || '').trim().toLowerCase() === tmplTask.title.trim().toLowerCase();
+        const sameTime = existing.time === tmplTask.startTime;
+        return sameTitle && sameTime;
+      });
+
+      if (isDuplicate && mode === 'missing_only') {
+        skippedCount++;
+        return;
+      }
+
+      const newTaskId = Date.now() + Math.floor(Math.random() * 100000) + index;
+      const createdTask: Task = {
+        id: newTaskId,
+        name: tmplTask.title,
+        title: tmplTask.title,
+        description: tmplTask.notes || '',
+        notes: tmplTask.notes || '',
+        targetDate: dateStr,
+        date: dateStr,
+        time: tmplTask.startTime,
+        endTime: tmplTask.endTime,
+        priority: tmplTask.priority,
+        estHours: 1,
+        estMinutes: 60,
+        status: 'not_started',
+        completed: false,
+        reminderEnabled: tmplTask.reminderEnabled ?? false,
+        reminderTime: tmplTask.reminderEnabled ? (tmplTask.reminderTime || tmplTask.startTime) : undefined,
+        category: tmplTask.category || '',
+        tier: tmplTask.priority === 'urgent' || tmplTask.priority === 'high' ? 'now' : 'next',
+        sourceType: 'routine',
+        sourceRoutineId: template.id,
+        sourceRoutineTaskId: tmplTask.id,
+        importedAt: new Date().toISOString(),
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      const createdBlock: TimeBlock = {
+        id: generateId(),
+        date: dateStr,
+        startTime: tmplTask.startTime,
+        endTime: tmplTask.endTime,
+        label: tmplTask.title,
+        category: tmplTask.category || '',
+        isBreak: false,
+        taskId: newTaskId,
+        sourceType: 'routine',
+        sourceRoutineId: template.id,
+        sourceRoutineTaskId: tmplTask.id,
+      };
+
+      newTasksToCreate.push(createdTask);
+      newBlocksToCreate.push(createdBlock);
+      importedCount++;
+    });
+
+    if (newTasksToCreate.length > 0) {
+      setState((prev) => ({
+        ...prev,
+        tasks: [...prev.tasks, ...newTasksToCreate],
+        timeBlocks: [...prev.timeBlocks, ...newBlocksToCreate],
+      }));
+
+      // Async backend sync for created tasks
+      newTasksToCreate.forEach((t) => {
+        syncTaskToBackend(t).catch((err) => console.warn('[AppContext] Failed to sync imported task:', err));
+      });
+
+      trackMeaningfulAction('import_routine');
+      showToast(importedCount + ' routine task' + (importedCount > 1 ? 's' : '') + ' imported for ' + dateStr, 'success');
+    } else {
+      if (skippedCount > 0) {
+        showToast('All routine tasks are already scheduled for this date.', 'info');
+      }
+    }
+
+    return { importedCount, skippedCount };
+  }, [state.routineTemplates, state.tasks, showToast, trackMeaningfulAction]);
 
   // ==================== Focus Sessions ====================
 
@@ -1249,6 +1536,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         addDiaryEntryItem,
         saveDiaryEntryItem,
         deleteDiaryEntryItem,
+        saveRoutineTemplate,
+        deleteRoutineTemplate,
+        addRoutineTask,
+        updateRoutineTask,
+        deleteRoutineTask,
+        reorderRoutineTasks,
+        importRoutineToDate,
         trackMeaningfulAction,
         isLoaded,
         isPageLoading,

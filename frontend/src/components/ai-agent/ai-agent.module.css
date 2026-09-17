@@ -342,9 +342,9 @@
 }
 
 .hero h1 {
-  font-size: clamp(26px, 4vw, 38px);
-  letter-spacing: -0.045em;
-  font-weight: 780;
+  font-size: clamp(1.125rem, 2.5vw, 1.25rem);
+  letter-spacing: -0.02em;
+  font-weight: 600;
 }
 
 .heroContent > p {

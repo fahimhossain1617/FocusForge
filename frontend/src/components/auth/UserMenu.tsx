@@ -60,13 +60,13 @@ export default function UserMenu({ variant = "sidebar" }: UserMenuProps) {
               </div>
               <div className="flex-1 min-w-0">
                 <p 
-                  className="text-xs font-bold truncate leading-tight transition-colors"
+                  className="text-xs font-semibold break-words leading-tight transition-colors"
                   style={{ color: "var(--color-text-primary)" }}
                 >
                   {state.lang === 'bn' ? "গেস্ট মোড" : "Guest Mode"}
                 </p>
                 <p 
-                  className="text-[10px] truncate mt-0.5 transition-colors flex items-center gap-1 text-blue-400 font-medium"
+                  className="text-[10px] break-words mt-0.5 transition-colors flex items-center gap-1 text-blue-400 font-medium"
                 >
                   <span>{t.auth.logIn}</span>
                   <span className="text-[9px] opacity-70">→</span>
@@ -119,13 +119,13 @@ export default function UserMenu({ variant = "sidebar" }: UserMenuProps) {
               )}
               <div className="flex-1 min-w-0">
                 <p 
-                  className="text-xs font-semibold truncate leading-tight transition-colors"
+                  className="text-xs font-semibold break-words leading-tight transition-colors"
                   style={{ color: "var(--color-text-primary)" }}
                 >
                   {user?.displayName || "FocusForge User"}
                 </p>
                 <p 
-                  className="text-[10px] truncate mt-0.5 transition-colors"
+                  className="text-[10px] break-all mt-0.5 transition-colors"
                   style={{ color: "var(--color-text-secondary)" }}
                 >
                   {user?.identifier}

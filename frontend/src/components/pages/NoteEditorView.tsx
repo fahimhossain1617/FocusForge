@@ -559,7 +559,7 @@ export default function NoteEditorView({
               } 
             }} 
             placeholder={isBn ? "শিরোনামহীন নোট..." : "Untitled note..."} 
-            className="note-editor-title w-full text-3xl sm:text-4xl font-black tracking-tight mb-6 bg-transparent outline-none text-white placeholder-zinc-600" 
+            className="note-editor-title w-full text-2xl sm:text-3xl font-bold tracking-tight mb-6 bg-transparent outline-none text-foreground placeholder-zinc-600" 
             autoFocus 
           />
 

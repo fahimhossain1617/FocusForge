@@ -247,7 +247,7 @@ export default function ProfilePage() {
               ) : (
                 <div className="w-full h-full flex items-center justify-center" style={{ background: "linear-gradient(135deg, #090e1a, #131d36)" }}>
                   {formData.fullName && /^[A-Za-z\u0980-\u09FF]/.test(formData.fullName.trim()) ? (
-                    <span className="text-3xl font-bold text-blue-300/90 uppercase">
+                    <span className="text-2xl font-bold text-blue-300/90 uppercase">
                       {formData.fullName.trim()[0]}
                     </span>
                   ) : (
@@ -280,12 +280,12 @@ export default function ProfilePage() {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
                 <div className="flex items-center justify-center sm:justify-start gap-2.5 mb-1">
-                  <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">
+                  <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground tracking-tight break-words leading-tight">
                     {formData.fullName || sanitizePhone(user?.displayName) || "Guest User"}
                   </h1>
                 </div>
 
-                <p className="text-xs sm:text-sm text-zinc-400">
+                <p className="text-xs sm:text-sm text-muted-foreground break-all">
                   {sanitizePhone(user?.identifier || formData.email || "Guest Mode")}
                 </p>
 

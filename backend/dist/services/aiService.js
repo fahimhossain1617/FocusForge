@@ -119,32 +119,26 @@ function parseJson(text) {
     return parsed;
 }
 const FAST_CANDIDATE_MODELS = [
-    'gemini-2.5-flash-lite',
-    'gemini-2.0-flash-lite',
-    'gemini-1.5-flash-8b',
-    'gemini-1.5-flash',
+    'gemini-3.6-flash',
     'gemini-3.5-flash-lite',
+    'gemini-3.5-flash',
     'gemini-flash-latest'
 ];
 const SMART_CANDIDATE_MODELS = [
-    'gemini-2.5-flash',
-    'gemini-2.0-flash',
+    'gemini-3.6-flash',
     'gemini-3.5-flash',
-    'gemini-1.5-flash',
-    'gemini-3.6-flash'
+    'gemini-3.5-flash-lite',
+    'gemini-flash-latest'
 ];
 const PLANNING_CANDIDATE_MODELS = [
-    'gemini-2.5-pro',
-    'gemini-2.0-flash-thinking-exp',
+    'gemini-3.6-flash',
     'gemini-3.5-flash',
-    'gemini-1.5-pro',
-    'gemini-2.5-flash'
+    'gemini-flash-latest'
 ];
 const CANDIDATE_MODELS = [
-    'gemini-2.5-flash',
-    'gemini-3.5-flash',
     'gemini-3.6-flash',
-    'gemini-1.5-flash',
+    'gemini-3.5-flash-lite',
+    'gemini-3.5-flash',
     'gemini-flash-latest'
 ].filter((m, i, arr) => arr.indexOf(m) === i);
 function generateRuleBasedAgentResponse(payload) {
@@ -323,9 +317,9 @@ async function executeAIAction(action, payload) {
     throw lastError || new Error('AI returned an empty response.');
 }
 const AUDIO_TRANSCRIBE_MODELS = [
-    'gemini-2.0-flash',
-    'gemini-1.5-flash',
-    'gemini-2.0-flash-lite',
+    'gemini-3.6-flash',
+    'gemini-3.5-flash-lite',
+    'gemini-3.5-flash',
     'gemini-flash-latest'
 ];
 async function transcribeAudio(audioBase64, mimeType = 'audio/webm', languageHint) {
