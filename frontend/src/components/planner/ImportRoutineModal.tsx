@@ -146,10 +146,8 @@ export default function ImportRoutineModal({
 
   const handleExecuteImport = (mode: "all" | "missing_only") => {
     if (typeof contextImportRoutineToDate === "function") {
-      const res = contextImportRoutineToDate(selectedWeekday, targetDateStr, { mode });
-      if (res.importedCount > 0) {
-        onClose();
-      }
+      contextImportRoutineToDate(selectedWeekday, targetDateStr, { mode });
+      onClose();
       return;
     }
 
