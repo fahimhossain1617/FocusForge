@@ -1055,104 +1055,112 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const importRoutineToDate = useCallback((weekday: Weekday, dateStr: string, options?: { mode: 'all' | 'missing_only' }): { importedCount: number; skippedCount: number } => {
     const mode = options?.mode || 'missing_only';
-    const templates = state.routineTemplates || [];
-    const template = templates.find((t) => t.weekday === weekday);
-    if (!template || !template.tasks || template.tasks.length === 0) {
-      showToast('No routine template found for this weekday', 'info');
-      return { importedCount: 0, skippedCount: 0 };
-    }
-
-    const sortedTasks = [...template.tasks].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
-    const existingDateTasks = (state.tasks || []).filter((t) => t.targetDate === dateStr || t.date === dateStr);
-
     let importedCount = 0;
     let skippedCount = 0;
-    const newTasksToCreate: Task[] = [];
-    const newBlocksToCreate: TimeBlock[] = [];
 
-    sortedTasks.forEach((tmplTask, index) => {
-      // Duplicate detection
-      const isDuplicate = existingDateTasks.some((existing) => {
-        if (existing.sourceRoutineTaskId && existing.sourceRoutineTaskId === tmplTask.id) return true;
-        const sameTitle = (existing.name || existing.title || '').trim().toLowerCase() === tmplTask.title.trim().toLowerCase();
-        const sameTime = existing.time === tmplTask.startTime;
-        return sameTitle && sameTime;
-      });
-
-      if (isDuplicate && mode === 'missing_only') {
-        skippedCount++;
-        return;
+    setState((prev) => {
+      const templates = prev.routineTemplates || [];
+      const template = templates.find((t) => t.weekday === weekday);
+      if (!template || !template.tasks || template.tasks.length === 0) {
+        showToast('No routine template found for ' + weekday, 'info');
+        return prev;
       }
 
-      const newTaskId = Date.now() + Math.floor(Math.random() * 100000) + index;
-      const createdTask: Task = {
-        id: newTaskId,
-        name: tmplTask.title,
-        title: tmplTask.title,
-        description: tmplTask.notes || '',
-        notes: tmplTask.notes || '',
-        targetDate: dateStr,
-        date: dateStr,
-        time: tmplTask.startTime,
-        endTime: tmplTask.endTime,
-        priority: tmplTask.priority,
-        estHours: 1,
-        estMinutes: 60,
-        status: 'not_started',
-        completed: false,
-        reminderEnabled: tmplTask.reminderEnabled ?? false,
-        reminderTime: tmplTask.reminderEnabled ? (tmplTask.reminderTime || tmplTask.startTime) : undefined,
-        category: tmplTask.category || '',
-        tier: tmplTask.priority === 'urgent' || tmplTask.priority === 'high' ? 'now' : 'next',
-        sourceType: 'routine',
-        sourceRoutineId: template.id,
-        sourceRoutineTaskId: tmplTask.id,
-        importedAt: new Date().toISOString(),
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
+      const sortedTasks = [...template.tasks].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+      const existingDateTasks = (prev.tasks || []).filter((t) => t.targetDate === dateStr || t.date === dateStr);
 
-      const createdBlock: TimeBlock = {
-        id: generateId(),
-        date: dateStr,
-        startTime: tmplTask.startTime,
-        endTime: tmplTask.endTime,
-        label: tmplTask.title,
-        category: tmplTask.category || '',
-        isBreak: false,
-        taskId: newTaskId,
-        sourceType: 'routine',
-        sourceRoutineId: template.id,
-        sourceRoutineTaskId: tmplTask.id,
-      };
+      const newTasksToCreate: Task[] = [];
+      const newBlocksToCreate: TimeBlock[] = [];
 
-      newTasksToCreate.push(createdTask);
-      newBlocksToCreate.push(createdBlock);
-      importedCount++;
+      sortedTasks.forEach((tmplTask, index) => {
+        // Duplicate detection
+        const isDuplicate = existingDateTasks.some((existing) => {
+          if (existing.sourceRoutineTaskId && existing.sourceRoutineTaskId === tmplTask.id) return true;
+          const sameTitle = (existing.name || existing.title || '').trim().toLowerCase() === tmplTask.title.trim().toLowerCase();
+          const sameTime = existing.time === tmplTask.startTime;
+          return sameTitle && sameTime;
+        });
+
+        if (isDuplicate && mode === 'missing_only') {
+          skippedCount++;
+          return;
+        }
+
+        const newTaskId = Date.now() + Math.floor(Math.random() * 100000) + index;
+        const createdTask: Task = {
+          id: newTaskId,
+          name: tmplTask.title,
+          title: tmplTask.title,
+          description: tmplTask.notes || '',
+          notes: tmplTask.notes || '',
+          targetDate: dateStr,
+          date: dateStr,
+          time: tmplTask.startTime,
+          endTime: tmplTask.endTime,
+          priority: tmplTask.priority,
+          estHours: 1,
+          estMinutes: 60,
+          status: 'not_started',
+          completed: false,
+          reminderEnabled: tmplTask.reminderEnabled ?? false,
+          reminderTime: tmplTask.reminderEnabled ? (tmplTask.reminderTime || tmplTask.startTime) : undefined,
+          category: tmplTask.category || '',
+          tier: tmplTask.priority === 'urgent' || tmplTask.priority === 'high' ? 'now' : 'next',
+          sourceType: 'routine',
+          sourceRoutineId: template.id,
+          sourceRoutineTaskId: tmplTask.id,
+          importedAt: new Date().toISOString(),
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+
+        const createdBlock: TimeBlock = {
+          id: generateId(),
+          date: dateStr,
+          startTime: tmplTask.startTime,
+          endTime: tmplTask.endTime,
+          label: tmplTask.title,
+          category: tmplTask.category || '',
+          isBreak: false,
+          taskId: newTaskId,
+          sourceType: 'routine',
+          sourceRoutineId: template.id,
+          sourceRoutineTaskId: tmplTask.id,
+        };
+
+        newTasksToCreate.push(createdTask);
+        newBlocksToCreate.push(createdBlock);
+        importedCount++;
+      });
+
+      if (newTasksToCreate.length > 0) {
+        // Async backend sync for created tasks
+        newTasksToCreate.forEach((t) => {
+          syncTaskToBackend(t).catch((err) => console.warn('[AppContext] Failed to sync imported task:', err));
+        });
+
+        trackMeaningfulAction('import_routine');
+        setTimeout(() => {
+          showToast(importedCount + ' routine task' + (importedCount > 1 ? 's' : '') + ' added to ' + dateStr, 'success');
+        }, 0);
+
+        return {
+          ...prev,
+          tasks: [...prev.tasks, ...newTasksToCreate],
+          timeBlocks: [...prev.timeBlocks, ...newBlocksToCreate],
+        };
+      } else {
+        if (skippedCount > 0) {
+          setTimeout(() => {
+            showToast('Routine tasks are already scheduled on ' + dateStr, 'info');
+          }, 0);
+        }
+        return prev;
+      }
     });
 
-    if (newTasksToCreate.length > 0) {
-      setState((prev) => ({
-        ...prev,
-        tasks: [...prev.tasks, ...newTasksToCreate],
-        timeBlocks: [...prev.timeBlocks, ...newBlocksToCreate],
-      }));
-
-      // Async backend sync for created tasks
-      newTasksToCreate.forEach((t) => {
-        syncTaskToBackend(t).catch((err) => console.warn('[AppContext] Failed to sync imported task:', err));
-      });
-
-      trackMeaningfulAction('import_routine');
-      showToast(importedCount + ' routine task' + (importedCount > 1 ? 's' : '') + ' imported for ' + dateStr, 'success');
-    } else {
-      if (skippedCount > 0) {
-        showToast('All routine tasks are already scheduled for this date.', 'info');
-      }
-    }
-
     return { importedCount, skippedCount };
-  }, [state.routineTemplates, state.tasks, showToast, trackMeaningfulAction]);
+  }, [showToast, trackMeaningfulAction]);
 
   // ==================== Focus Sessions ====================
 

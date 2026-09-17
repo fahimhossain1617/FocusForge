@@ -28,6 +28,7 @@ interface RoutineLibraryModalProps {
   isOpen: boolean;
   onClose: () => void;
   initialWeekday?: Weekday;
+  targetDateStr?: string;
 }
 
 const ALL_WEEKDAYS: { key: Weekday; label: string; short: string }[] = [
@@ -52,6 +53,7 @@ export default function RoutineLibraryModal({
   isOpen,
   onClose,
   initialWeekday = "monday",
+  targetDateStr,
 }: RoutineLibraryModalProps) {
   const [mounted, setMounted] = useState(false);
   useEffect(() => {
@@ -65,6 +67,7 @@ export default function RoutineLibraryModal({
     updateRoutineTask: contextUpdateRoutineTask,
     deleteRoutineTask: contextDeleteRoutineTask,
     reorderRoutineTasks: contextReorderRoutineTasks,
+    importRoutineToDate: contextImportRoutineToDate,
     showToast,
   } = useAppContext();
   const { t } = useTranslation();
@@ -625,19 +628,47 @@ export default function RoutineLibraryModal({
         </div>
 
         {/* MODAL FOOTER */}
-        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-white/[0.08] bg-slate-950/50">
-          <button
-            onClick={onClose}
-            className="px-5 py-2.5 rounded-xl border border-white/10 hover:bg-white/5 text-slate-300 hover:text-white text-xs font-bold transition-colors cursor-pointer"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={onClose}
-            className="px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition-all shadow-md shadow-blue-600/25 cursor-pointer"
-          >
-            Done
-          </button>
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-6 py-4 border-t border-white/[0.08] bg-slate-950/50">
+          <div className="text-xs text-slate-400 text-center sm:text-left">
+            {targetDateStr && (
+              <span className="text-slate-400">
+                Selected date: <span className="text-blue-400 font-bold font-mono">{targetDateStr}</span>
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-2.5 w-full sm:w-auto justify-end">
+            <button
+              onClick={onClose}
+              className="px-4 py-2.5 rounded-xl border border-white/10 hover:bg-white/5 text-slate-300 hover:text-white text-xs font-bold transition-colors cursor-pointer"
+            >
+              Cancel
+            </button>
+            {targetDateStr && tasksList.length > 0 && (
+              <button
+                onClick={() => {
+                  if (typeof contextImportRoutineToDate === "function") {
+                    contextImportRoutineToDate(activeWeekday, targetDateStr, { mode: "missing_only" });
+                  }
+                  onClose();
+                }}
+                className="px-5 py-2.5 rounded-xl bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/30 text-blue-300 hover:text-white text-xs font-bold transition-all shadow-sm cursor-pointer flex items-center gap-1.5"
+              >
+                <Check className="w-3.5 h-3.5 text-blue-400" />
+                Apply to Date
+              </button>
+            )}
+            <button
+              onClick={() => {
+                if (targetDateStr && typeof contextImportRoutineToDate === "function" && tasksList.length > 0) {
+                  contextImportRoutineToDate(activeWeekday, targetDateStr, { mode: "missing_only" });
+                }
+                onClose();
+              }}
+              className="px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition-all shadow-md shadow-blue-600/25 cursor-pointer"
+            >
+              Done
+            </button>
+          </div>
         </div>
       </div>
     </div>,

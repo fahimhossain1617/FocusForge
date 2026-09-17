@@ -644,7 +644,8 @@ export default function PlannerPage() {
       <RoutineLibraryModal
         isOpen={showRoutineLibrary}
         onClose={() => setShowRoutineLibrary(false)}
-        initialWeekday={getWeekdayFromDate(selectedDateStr)}
+        initialWeekday={getWeekdayFromDate(drawerDateStr || selectedDateStr || realToday)}
+        targetDateStr={drawerDateStr || selectedDateStr || realToday}
       />
 
       {/* IMPORT ROUTINE MODAL */}

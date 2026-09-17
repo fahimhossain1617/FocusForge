@@ -123,7 +123,7 @@ router.post('/templates', async (req: AuthenticatedRequest, res: Response) => {
 
     const { data, error } = await supabase
       .from('routine_templates')
-      .upsert(payload)
+      .upsert(payload, { onConflict: 'user_id,weekday' })
       .select()
       .single();
 
