@@ -1,14 +1,15 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, Noto_Sans_Bengali } from "next/font/google";
+import { Plus_Jakarta_Sans, Noto_Sans_Bengali } from "next/font/google";
 import "./globals.css";
 import { AppProvider } from "../context/AppContext";
 import { AuthProvider } from "../context/AuthContext";
 import ServiceWorkerRegister from "../components/pwa/ServiceWorkerRegister";
 
-const inter = Inter({
+const plusJakartaSans = Plus_Jakarta_Sans({
   subsets: ["latin"],
-  variable: "--font-inter",
+  variable: "--font-plus-jakarta",
   display: "swap",
+  weight: ["400", "500", "600", "700", "800"],
 });
 
 const notoSansBengali = Noto_Sans_Bengali({
@@ -19,7 +20,7 @@ const notoSansBengali = Noto_Sans_Bengali({
 });
 
 export const viewport: Viewport = {
-  themeColor: "#0B132B",
+  themeColor: "#08090C",
   width: "device-width",
   initialScale: 1,
   maximumScale: 5,
@@ -66,12 +67,18 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-title" content="FocusForge" />
       </head>
       <body
-        className={`${inter.variable} ${notoSansBengali.variable} font-[family-name:var(--font-inter)] min-h-screen antialiased`}
+        className={`${plusJakartaSans.variable} ${notoSansBengali.variable} font-[family-name:var(--font-plus-jakarta)] min-h-screen antialiased bg-[#08090C] text-[#F8FAFC] relative selection:bg-[#2563EB] selection:text-[#FFFFFF]`}
       >
+        <div 
+          className="pointer-events-none fixed top-0 left-0 right-0 h-[480px] bg-[radial-gradient(ellipse_80%_60%_at_50%_-10%,rgba(37,99,235,0.28)_0%,rgba(8,9,12,0)_75%)] z-0" 
+          aria-hidden="true" 
+        />
         <AppProvider>
           <AuthProvider>
             <ServiceWorkerRegister />
-            {children}
+            <div className="relative z-10 min-h-screen">
+              {children}
+            </div>
           </AuthProvider>
         </AppProvider>
       </body>

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, useMemo } from "react";
-import { ArrowRight, CheckCircle2, Download, MoreVertical, Smartphone, Sparkles, X } from "lucide-react";
+import { ArrowRight, CheckCircle2, Download, MoreVertical, Smartphone, X } from "lucide-react";
 import { useTranslation } from "@/hooks/useTranslation";
 import { useAppContext } from "@/context/AppContext";
 import styles from "./onboarding.module.css";
@@ -487,7 +487,7 @@ export const ProductTour: React.FC<ProductTourProps> = ({
                   onClick={onCompleteTour}
                   autoFocus
                 >
-                  <Sparkles size={16} />
+                  <CheckCircle2 size={16} />
                   <span>{ob.finish}</span>
                 </button>
               )}

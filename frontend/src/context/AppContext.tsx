@@ -21,7 +21,7 @@ import { mindService } from '../services/mindService';
 import { diaryDbService } from '../services/diaryDbService';
 import { focusDbService } from '../services/focusDbService';
 import { learningDbService } from '../services/learningDbService';
-import { syncTaskToBackend, updateTaskInBackend, deleteTaskFromBackend } from '../services/taskService';
+import { syncTaskToBackend, updateTaskInBackend, deleteTaskFromBackend, fetchTasksFromBackend } from '../services/taskService';
 import { reviewService } from '../services/reviewService';
 
 
@@ -68,9 +68,10 @@ const defaultState: AppState = {
   focusLogs: [],
   activeFocusTaskId: null,
   learningFolders: [],
-  learningLogs: []
-  ,theme: { accent: '#3B82F6', background: '#070A12', preset: 'Midnight Blue', mode: 'dark' },
-  diaryTopics: []
+  learningLogs: [],
+  theme: { accent: '#2563EB', background: '#08090C', preset: 'Obsidian Kinetic', mode: 'dark' },
+  diaryTopics: [],
+  focusTaskHistory: []
 };
 
 const STORAGE_KEY = 'focusforge_data';
@@ -136,6 +137,7 @@ interface AppContextType {
   // Focus Sessions
   startFocusSession: (taskName: string, category: string, taskId?: number, targetMinutes?: number) => string;
   endFocusSession: (sessionId: string, durationMinutes: number, completed?: boolean) => void;
+  addBreakTime: (breakMinutes: number, sessionId?: string) => void;
   addDistraction: (sessionId: string, content: string) => void;
 
   // Activities
@@ -267,6 +269,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             }
           } catch (learningErr) {
             console.warn("[AppContext] Error syncing PostgreSQL learning data on load:", learningErr);
+          }
+
+          // Fetch structured tasks from backend / Supabase
+          try {
+            const dbTasks = await fetchTasksFromBackend();
+            if (dbTasks && dbTasks.length > 0) {
+              if (!loadedData) loadedData = { ...defaultState };
+              // Merge tasks avoiding duplicates
+              const existingIds = new Set(dbTasks.map((t: Task) => t.id));
+              const localOnlyTasks = (loadedData.tasks || []).filter((t: any) => !existingIds.has(t.id));
+              loadedData.tasks = [...dbTasks, ...localOnlyTasks];
+            }
+          } catch (taskErr) {
+            console.warn("[AppContext] Error syncing backend tasks on load:", taskErr);
           }
         } else {
           // Guest Mode:
@@ -540,13 +556,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       } catch {}
     }
 
+    trackMeaningfulAction('feature_' + page);
+    setIsPageLoading(true);
+    setTimeout(() => {
+      setIsPageLoading(false);
+    }, 160);
+
     setState((prev) => {
       if (prev.activePage === page) return prev;
-      trackMeaningfulAction('feature_' + page);
-      setIsPageLoading(true);
-      setTimeout(() => {
-        setIsPageLoading(false);
-      }, 160);
       return { ...prev, activePage: page };
     });
   }, [trackMeaningfulAction]);
@@ -700,8 +717,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     };
     setState((prev) => ({ ...prev, tasks: [...prev.tasks, newTask] }));
     trackMeaningfulAction('create_task');
-    syncTaskToBackend(newTask).catch(() => {});
-  }, [trackMeaningfulAction]);
+    syncTaskToBackend(newTask).catch((err) => showToast(err.message || 'Failed to sync task.', 'error'));
+  }, [trackMeaningfulAction, showToast]);
 
   const updateTask = useCallback((id: number, updates: Partial<Task>) => {
     setState((prev) => ({
@@ -723,16 +740,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         return updated;
       }),
     }));
-    updateTaskInBackend(id, updates).catch(() => {});
-  }, []);
+    updateTaskInBackend(id, updates).catch((err) => showToast(err.message || 'Failed to update task.', 'error'));
+  }, [showToast]);
 
   const deleteTask = useCallback((id: number) => {
     setState((prev) => ({
       ...prev,
       tasks: prev.tasks.filter((t) => t.id !== id),
     }));
-    deleteTaskFromBackend(id).catch(() => {});
-  }, []);
+    deleteTaskFromBackend(id).catch((err) => showToast(err.message || 'Failed to delete task.', 'error'));
+  }, [showToast]);
 
   const cycleTaskStatus = useCallback((id: number) => {
     const statusCycle: ('not_started' | 'in_progress' | 'completed')[] = ['not_started', 'in_progress', 'completed'];
@@ -748,8 +765,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }),
     }));
     trackMeaningfulAction('check_task');
-    updateTaskInBackend(id, { status: nextStatus, completed: (nextStatus as string) === 'completed' }).catch(() => {});
-  }, [trackMeaningfulAction]);
+    updateTaskInBackend(id, { status: nextStatus, completed: (nextStatus as string) === 'completed' }).catch((err) => showToast(err.message || 'Failed to update task status.', 'error'));
+  }, [trackMeaningfulAction, showToast]);
 
   const setDailyBig3 = useCallback((taskIds: number[]) => {
     const today = todayStr();
@@ -915,6 +932,43 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       console.warn("[AppContext] Error concluding focus session in DB:", err);
     });
   }, [trackMeaningfulAction]);
+
+  const addBreakTime = useCallback((breakMinutes: number, sessionId?: string) => {
+    if (breakMinutes <= 0) return;
+    setState((prev) => {
+      let updatedSessions = prev.focusSessions;
+      if (sessionId) {
+        updatedSessions = prev.focusSessions.map((s) =>
+          s.id === sessionId ? { ...s, breakMinutes: (s.breakMinutes || 0) + breakMinutes } : s
+        );
+      } else if (prev.focusSessions.length > 0) {
+        const lastSession = prev.focusSessions[prev.focusSessions.length - 1];
+        updatedSessions = prev.focusSessions.map((s) =>
+          s.id === lastSession.id ? { ...s, breakMinutes: (s.breakMinutes || 0) + breakMinutes } : s
+        );
+      }
+
+      const newActivities = [
+        ...prev.activities,
+        {
+          id: Date.now(),
+          category: 'Break',
+          hours: Math.floor(breakMinutes / 60),
+          minutes: breakMinutes % 60,
+          totalMinutes: breakMinutes,
+          date: todayStr(),
+          notes: 'Focus Break',
+          createdAt: new Date().toISOString(),
+        }
+      ];
+
+      return {
+        ...prev,
+        focusSessions: updatedSessions,
+        activities: newActivities,
+      };
+    });
+  }, []);
 
   const addDistraction = useCallback((sessionId: string, content: string) => {
     const entry: DistractionEntry = {
@@ -1178,6 +1232,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         deleteTimeBlock,
         startFocusSession,
         endFocusSession,
+        addBreakTime,
         addDistraction,
         logActivity,
         deleteActivity,

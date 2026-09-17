@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Check, ChevronDown, Mic, Send, Square, MoreVertical, Trash2, Calendar, Sparkles, AlertCircle, LogIn, MessageSquarePlus, Compass, CheckCircle2, Clock } from "lucide-react";
+import { Check, ChevronDown, Mic, Send, Square, MoreVertical, Trash2, Calendar, Bot, AlertCircle, LogIn, MessageSquarePlus, Compass, CheckCircle2, Clock } from "lucide-react";
 import { useAppContext } from "@/context/AppContext";
 import { useAuth } from "@/context/AuthContext";
 import { useAIAgent } from "@/hooks/useAIAgent";
@@ -631,7 +631,7 @@ export function AIAgentPage() {
                   <div className={styles.proposal} style={{ borderColor: 'rgba(99, 102, 241, 0.4)', background: 'rgba(99, 102, 241, 0.08)' }}>
                     <div>
                       <strong style={{ color: '#818cf8', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <Sparkles size={15} />
+                        <Bot size={15} />
                         {isSystemBn ? 'লগইন প্রয়োজন' : 'Login Required'}
                       </strong>
                       <span>
@@ -659,7 +659,7 @@ export function AIAgentPage() {
                 <div className={styles.messageLabel}>{isSystemBn ? "ফোকাসফোর্স AI" : "FocusForge AI"}</div>
                 <div className={styles.thinking}>
                   <div className={styles.thinkingIcon}>
-                    <Sparkles size={14} className={styles.sparkleSpin} />
+                    <Bot size={14} className={styles.sparkleSpin} />
                   </div>
                   <div className={styles.thinkingDots}>
                     <span />

@@ -52,7 +52,7 @@ export default function UserMenu({ variant = "sidebar" }: UserMenuProps) {
             <button
               type="button"
               onClick={() => openAuth('login')}
-              className="user-menu-sidebar-btn w-full flex items-center gap-2.5 p-2 rounded-xl text-left border transition-all duration-200 cursor-pointer shadow-sm hover:border-blue-500/50 hover:shadow-[0_0_20px_rgba(59,130,246,0.18)] group"
+              className="user-menu-sidebar-btn w-full flex items-center gap-2.5 p-2 rounded-xl text-left border transition-all duration-200 cursor-pointer shadow-sm hover:border-blue-500/50 hover: group"
               title={state.lang === 'bn' ? "গেস্ট মোড - লগইন করতে ক্লিক করুন" : "Guest Mode - Click to Sign In"}
             >
               <div className="w-8 h-8 rounded-full bg-blue-500/20 border border-blue-500/30 flex items-center justify-center text-xs font-bold text-blue-400 uppercase shadow-sm shrink-0 group-hover:bg-blue-500/30 transition-colors">
@@ -81,7 +81,7 @@ export default function UserMenu({ variant = "sidebar" }: UserMenuProps) {
             <button
               type="button"
               onClick={() => openAuth('login')}
-              className="user-menu-guest-btn flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-semibold border transition-all duration-200 cursor-pointer shadow-sm hover:shadow-[0_0_15px_rgba(59,130,246,0.22)] hover:border-blue-500/50"
+              className="user-menu-guest-btn flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-semibold border transition-all duration-200 cursor-pointer shadow-sm hover: hover:border-blue-500/50"
             >
               <div className="w-5 h-5 rounded-full bg-blue-500/15 flex items-center justify-center text-blue-500">
                 <UserIcon size={12} />
@@ -257,7 +257,7 @@ export default function UserMenu({ variant = "sidebar" }: UserMenuProps) {
               <button
                 type="button"
                 onClick={confirmLogout}
-                className="btn-accent-solid flex-1 py-2.5 px-4 rounded-xl text-xs font-semibold bg-red-600 hover:bg-red-500 shadow-lg shadow-red-600/25 transition-all cursor-pointer"
+                className="btn-accent-solid flex-1 py-2.5 px-4 rounded-xl text-xs font-semibold bg-red-600 hover:bg-red-500  transition-all cursor-pointer"
                 style={{ color: "#FFFFFF" }}
               >
                 {t.auth.logOut}

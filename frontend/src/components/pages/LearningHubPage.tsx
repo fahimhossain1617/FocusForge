@@ -1,12 +1,14 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { useAppContext } from "../../context/AppContext";
 import { useAuth } from "../../context/AuthContext";
 import { useTranslation } from "../../hooks/useTranslation";
 import EmptyState from "../ui/EmptyState";
-import { Folder, Plus, Trash2, CheckCircle, Clock, CalendarDays, AlertTriangle, Trophy, Sparkles, Star, ArrowLeft, Check } from "lucide-react";
+import { Folder, Plus, Trash2, CheckCircle, Clock, CalendarDays, AlertTriangle, Trophy, Star, ArrowLeft, Check, X } from "lucide-react";
 import { useAnimateExit } from "../../hooks/useAnimateExit";
+import confetti from "canvas-confetti";
 
 function formatHoursMins(totalMins: number): string {
   const h = Math.floor(totalMins / 60);
@@ -80,10 +82,55 @@ export default function LearningHubPage() {
   const [practiceDetails, setPracticeDetails] = useState("");
   const [topics, setTopics] = useState("");
   const [blockers, setBlockers] = useState("");
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const triggerCelebrationConfetti = () => {
+    try {
+      // Left side blast
+      confetti({
+        particleCount: 90,
+        angle: 60,
+        spread: 60,
+        origin: { x: 0, y: 0.65 },
+        colors: ["#3B82F6", "#60A5FA", "#38BDF8", "#FFD700", "#10B981", "#EC4899", "#8B5CF6"],
+        zIndex: 10001,
+      });
+
+      // Right side blast
+      confetti({
+        particleCount: 90,
+        angle: 120,
+        spread: 60,
+        origin: { x: 1, y: 0.65 },
+        colors: ["#3B82F6", "#60A5FA", "#38BDF8", "#FFD700", "#10B981", "#EC4899", "#8B5CF6"],
+        zIndex: 10001,
+      });
+
+      // Center celebratory burst
+      setTimeout(() => {
+        confetti({
+          particleCount: 70,
+          spread: 100,
+          origin: { x: 0.5, y: 0.5 },
+          colors: ["#3B82F6", "#60A5FA", "#FFD700", "#FFFFFF", "#38BDF8"],
+          zIndex: 10001,
+        });
+      }, 180);
+    } catch {
+      // Ignore if canvas-confetti fails in non-browser env
+    }
+  };
+
   const [completedModalData, setCompletedModalData] = useState<{ id: string, name: string, totalMins: number, streak: number } | null>(null);
   const [lastCompletedModalData, setLastCompletedModalData] = useState<typeof completedModalData>(null);
   useEffect(() => {
-    if (completedModalData) setLastCompletedModalData(completedModalData);
+    if (completedModalData) {
+      setLastCompletedModalData(completedModalData);
+      triggerCelebrationConfetti();
+    }
   }, [completedModalData]);
   const activeCompletedData = completedModalData || lastCompletedModalData;
   const completionModalAnim = useAnimateExit({ isOpen: Boolean(completedModalData), durationMs: 200 });
@@ -176,7 +223,7 @@ export default function LearningHubPage() {
             title={newFolderName.trim() ? t.learningHub.saveFolder : t.learningHub.createFolder}
             className={`p-2 rounded-xl flex items-center justify-center transition-all duration-200 cursor-pointer ${
               newFolderName.trim()
-                ? "bg-emerald-600 hover:bg-emerald-500 text-white shadow-[0_0_12px_rgba(16,185,129,0.4)] scale-105"
+                ? "bg-emerald-600 hover:bg-emerald-500 text-white  scale-105"
                 : "btn-primary"
             }`}
           >
@@ -443,68 +490,74 @@ export default function LearningHubPage() {
       </div>
 
       {/* Completion Modal */}
-      {completionModalAnim.shouldRender && activeCompletedData && (
-        <div className={`fixed inset-0 z-50 flex items-center justify-center p-4 ${completionModalAnim.isExiting ? "motion-exit-fade" : "motion-overlay"}`}>
-          <div className="absolute inset-0 bg-black/40 backdrop-blur-md" onClick={() => setCompletedModalData(null)}></div>
+      {mounted && completionModalAnim.shouldRender && activeCompletedData && createPortal(
+        <div 
+          className={`fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/25 ${completionModalAnim.isExiting ? "motion-exit-fade" : "motion-overlay"}`}
+          style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}
+        >
+          <div className="absolute inset-0" onClick={() => setCompletedModalData(null)} />
 
-          <div className={`completion-modal relative w-full max-w-md rounded-2xl border p-8 shadow-2xl overflow-hidden flex flex-col items-center text-center ${completionModalAnim.isExiting ? "motion-exit-reveal" : "motion-reveal"}`}
-            style={{ background: "rgba(20, 20, 30, 0.75)", backdropFilter: "blur(20px)" }}>
+          <div 
+            className={`completion-modal relative w-full max-w-sm rounded-2xl border border-white/10 p-5 shadow-2xl overflow-hidden flex flex-col items-center text-center bg-[#111319]/95 backdrop-blur-md -translate-y-6 sm:-translate-y-8 ${completionModalAnim.isExiting ? "motion-exit-reveal" : "motion-reveal"}`}
+          >
+            {/* Close button */}
+            <button
+              onClick={() => setCompletedModalData(null)}
+              className="absolute top-3.5 right-3.5 p-1 rounded-lg text-zinc-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+              aria-label="Close"
+            >
+              <X size={16} />
+            </button>
 
-            {/* Glowing orb background effect */}
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-32 bg-purple-500/30 rounded-full blur-[50px] pointer-events-none"></div>
-
-            <div className="relative mb-6">
-              <div className="w-16 h-16 rounded-full bg-purple-500/20 border border-purple-500/30 flex items-center justify-center mb-2 shadow-[0_0_15px_rgba(124,58,237,0.3)]">
-                <Trophy className="w-8 h-8 text-purple-400 drop-shadow-[0_0_8px_rgba(124,58,237,0.8)]" />
+            <div className="relative mb-2.5">
+              <div className="w-12 h-12 rounded-2xl bg-blue-500/15 border border-blue-500/30 flex items-center justify-center text-blue-400 shadow-sm">
+                <Trophy className="w-6 h-6" />
               </div>
-              <Sparkles className="w-5 h-5 text-yellow-400 absolute top-0 -right-2 animate-pulse" />
-              <Star className="w-4 h-4 text-purple-300 absolute bottom-2 -left-3 animate-pulse delay-150" />
+              <Star className="w-4 h-4 text-amber-400 absolute -top-1 -right-1.5 animate-pulse" />
             </div>
 
-            <h2 className="text-xl md:text-2xl font-bold text-white mb-2">{t.learningHub.destinationReached}</h2>
-            <h3 className="text-lg font-semibold text-purple-300 mb-3">{t.learningHub.milestoneUnlocked}</h3>
+            <h2 className="text-lg font-bold text-white mb-0.5">{t.learningHub.destinationReached}</h2>
+            <h3 className="text-xs font-semibold text-blue-400 mb-2">{t.learningHub.milestoneUnlocked}</h3>
 
-            <p className="text-sm text-zinc-300 mb-6 leading-relaxed">
-              {t.learningHub.congratsOnCompleting} <strong className="text-white">{activeCompletedData.name}</strong>{t.learningHub.consistencyPayingOff}<br /><br />
-              <span className="text-xs opacity-80 text-zinc-400 font-medium font-bengali">{t.learningHub.bengaliCongrats}</span>
+            <p className="text-xs text-zinc-300 mb-3.5 leading-relaxed max-w-xs">
+              {t.learningHub.congratsOnCompleting} <strong className="text-white">{activeCompletedData.name}</strong>{t.learningHub.consistencyPayingOff}
             </p>
 
-            <div className="w-full bg-black/40 border border-white/5 rounded-xl p-4 flex justify-around mb-8 shadow-inner">
+            <div className="w-full bg-black/30 border border-white/5 rounded-xl py-2 px-3 flex justify-around mb-4 shadow-inner">
               <div className="flex flex-col items-center">
-                <span className="text-[10px] uppercase tracking-wider text-zinc-500 font-bold mb-1">{t.learningHub.timeInvested}</span>
-                <span className="text-lg font-bold text-white">{formatHoursMins(activeCompletedData.totalMins)}</span>
+                <span className="text-[10px] uppercase tracking-wider text-zinc-400 font-medium">{t.learningHub.timeInvested}</span>
+                <span className="text-sm font-bold text-white mt-0.5">{formatHoursMins(activeCompletedData.totalMins)}</span>
               </div>
-              <div className="w-px bg-white/10"></div>
+              <div className="w-px bg-white/10" />
               <div className="flex flex-col items-center">
-                <span className="text-[10px] uppercase tracking-wider text-zinc-500 font-bold mb-1">{t.learningHub.activeStreak}</span>
-                <span className="text-lg font-bold text-purple-400">{activeCompletedData.streak} {t.learningHub.days}</span>
+                <span className="text-[10px] uppercase tracking-wider text-zinc-400 font-medium">{t.learningHub.activeStreak}</span>
+                <span className="text-sm font-bold text-blue-400 mt-0.5">{activeCompletedData.streak} {t.learningHub.days}</span>
               </div>
             </div>
 
-            <div className="w-full flex flex-col gap-3">
+            <div className="w-full flex flex-col gap-2">
               <button
                 onClick={() => {
                   setCompletedModalData(null);
                   setSelectedFolderId(null);
                   folderInputRef.current?.focus();
                 }}
-                className="w-full py-3 rounded-xl font-bold text-white transition-all shadow-[0_0_15px_rgba(124,58,237,0.4)] hover:shadow-[0_0_25px_rgba(124,58,237,0.6)] hover:-translate-y-0.5 relative overflow-hidden group"
-                style={{ background: "linear-gradient(135deg, var(--color-purple-primary) 0%, #9333ea 100%)" }}
+                className="w-full py-2.5 rounded-xl font-semibold text-xs text-white bg-blue-600 hover:bg-blue-500 transition-all shadow-md shadow-blue-600/30 cursor-pointer"
               >
-                <span className="relative z-10">{t.learningHub.startNewSkill}</span>
-                <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out"></div>
+                {t.learningHub.startNewSkill}
               </button>
 
               <button
                 onClick={() => setCompletedModalData(null)}
-                className="w-full py-3 rounded-xl font-medium text-zinc-300 bg-white/5 border border-white/10 hover:bg-white/10 hover:text-white transition-colors backdrop-blur-sm"
+                className="w-full py-1.5 rounded-xl text-xs font-medium text-zinc-400 hover:text-white hover:bg-white/5 transition-colors cursor-pointer"
               >
                 {t.learningHub.keepInArchive}
               </button>
             </div>
 
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
     </div>

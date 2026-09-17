@@ -234,22 +234,17 @@ export default function PlannerPage() {
   const nextDateStr = formatLocalDate(nextDate);
 
   return (
-    <div className="planner-premium motion-page relative w-full min-h-[calc(100vh-80px)] overflow-hidden">
+    <div className="planner-premium motion-page relative w-full min-h-[calc(100vh-80px)]">
       
-      {/* CYBER-NEON AURORA BACKGROUND */}
-      <div className="absolute top-1/2 left-1/4 -translate-x-1/2 -translate-y-1/2 w-[60vw] h-[60vw] bg-indigo-600/10 rounded-full blur-[150px] pointer-events-none aurora-anim" />
-      <div className="absolute top-1/4 right-1/4 translate-x-1/4 -translate-y-1/4 w-[50vw] h-[50vw] bg-purple-600/15 rounded-full blur-[120px] pointer-events-none aurora-anim" style={{ animationDirection: 'reverse', animationDuration: '25s' }} />
-      <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[70vw] h-[40vw] bg-yellow-500/5 rounded-full blur-[150px] pointer-events-none aurora-anim" style={{ animationDelay: '-5s' }} />
-
-      <div className="motion-stagger relative z-10 max-w-[1300px] mx-auto p-4 md:p-8 pb-20 h-full flex flex-col">
+      <div className="motion-stagger relative z-10 w-full max-w-[1440px] mx-auto px-4 sm:px-6 md:px-8 py-4 sm:py-6 md:py-8 pb-20 h-full flex flex-col">
         
         {/* HEADER & QUICK DAY NAV */}
         <div className="relative z-50 flex flex-col xl:flex-row xl:items-center justify-between gap-6 mb-8">
           <div>
-            <h1 className="text-4xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-purple-500 via-white to-indigo-400 drop-shadow-[0_0_10px_rgba(168,85,247,0.3)]">
+            <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-white">
               {t.planner.title}
             </h1>
-            <p className="text-sm mt-1 text-purple-200/60 font-medium">
+            <p className="text-sm mt-1 text-slate-400 font-medium">
               {t.planner.subtitle}
             </p>
           </div>
@@ -260,30 +255,28 @@ export default function PlannerPage() {
             <div className="planner-day-tabs flex items-center p-1 relative overflow-hidden w-full max-w-[320px] h-[36px] justify-between touch-manipulation">
               <button 
                 onClick={() => jumpToDay(-1)} 
-                className="absolute left-1 px-3 py-1.5 rounded-full text-xs font-semibold text-white/50 hover:text-white hover:bg-white/10 transition-all z-10 w-[95px] text-center touch-manipulation"
+                className="absolute left-1 px-3 py-1.5 rounded-full text-xs font-medium text-slate-400 hover:text-white hover:bg-white/10 transition-colors z-10 w-[95px] text-center touch-manipulation cursor-pointer"
               >
                 {formatShortDate(prevDateStr)}
               </button>
               
               <div className="absolute left-1/2 -translate-x-1/2 z-20 transition-all duration-300">
-                <button className="px-3 py-1.5 rounded-full text-xs font-bold text-black bg-gradient-to-r from-purple-500 to-purple-300 shadow-[0_0_15px_rgba(168,85,247,0.4)] whitespace-nowrap touch-manipulation w-[100px] text-center">
+                <button className="px-3.5 py-1.5 rounded-full text-xs font-semibold text-white bg-blue-600 hover:bg-blue-500 transition-colors whitespace-nowrap touch-manipulation w-[100px] text-center cursor-pointer">
                   {formatShortDate(selectedDateStr)}
                 </button>
               </div>
 
               <button 
                 onClick={() => jumpToDay(1)} 
-                className="absolute right-1 px-3 py-1.5 rounded-full text-xs font-semibold text-white/50 hover:text-white hover:bg-white/10 transition-all z-10 w-[95px] text-center touch-manipulation"
+                className="absolute right-1 px-3 py-1.5 rounded-full text-xs font-medium text-slate-400 hover:text-white hover:bg-white/10 transition-colors z-10 w-[95px] text-center touch-manipulation cursor-pointer"
               >
                 {formatShortDate(nextDateStr)}
               </button>
             </div>
-
-            <div className="w-[1px] h-6 bg-white/10 mx-2 hidden md:block"></div>
             
             {/* Month Nav + Mini Calendar Picker */}
             <div className="flex items-center justify-center sm:justify-end gap-2 w-full sm:w-auto">
-              <button onClick={() => changeMonth(-1)} className="p-1.5 rounded-full hover:bg-white/10 transition-colors text-white/50 hover:text-purple-500">
+              <button onClick={() => changeMonth(-1)} className="p-1.5 rounded-full hover:bg-white/10 transition-colors text-slate-400 hover:text-blue-400">
                 <ChevronLeft className="w-5 h-5" />
               </button>
               
@@ -307,7 +300,7 @@ export default function PlannerPage() {
                 />
               </div>
 
-              <button onClick={() => changeMonth(1)} className="p-1.5 rounded-full hover:bg-white/10 transition-colors text-white/50 hover:text-purple-500">
+              <button onClick={() => changeMonth(1)} className="p-1.5 rounded-full hover:bg-white/10 transition-colors text-slate-400 hover:text-blue-400">
                 <ChevronRight className="w-5 h-5" />
               </button>
             </div>
@@ -321,7 +314,7 @@ export default function PlannerPage() {
           <div className="planner-weekdays grid grid-cols-7 p-2 sm:p-4 gap-1 sm:gap-2">
             {t.planner.weekDays.map(day => (
               <div key={day} className="text-center">
-                <div className="inline-block px-1.5 sm:px-4 py-1 sm:py-1.5 rounded-full bg-black/40 border border-white/5 text-[9px] sm:text-[10px] font-bold uppercase tracking-wider sm:tracking-widest text-purple-200/50 shadow-inner">
+                <div className="inline-block px-1.5 sm:px-4 py-1 sm:py-1.5 rounded-full bg-slate-800/60 border border-slate-700/50 text-[9px] sm:text-[10px] font-bold uppercase tracking-wider sm:tracking-widest text-slate-300 shadow-inner">
                   {day.slice(0, 3)}
                 </div>
               </div>
@@ -388,7 +381,7 @@ export default function PlannerPage() {
                         className="group/block relative w-full px-2 py-1 rounded-[4px] text-[10px] font-bold truncate transition-all hover:brightness-125 border border-white/5 flex items-center gap-1.5 shadow-sm"
                         style={{ background: 'rgba(255,255,255,0.04)' }}
                       >
-                        <div className={`w-2 h-2 rounded-full flex-shrink-0 shadow-[0_0_5px_currentColor] ${getBadgeColor(block.category, block.isBreak)}`}></div>
+                        <div className={`w-2 h-2 rounded-full flex-shrink-0  ${getBadgeColor(block.category, block.isBreak)}`}></div>
                         <span className="truncate flex-1 text-white/80" style={{ opacity: block.isBreak ? 0.5 : 1 }}>
                           {block.label}
                         </span>
@@ -421,7 +414,7 @@ export default function PlannerPage() {
         {/* HIGHLIGHT CARDS SECTION (BOTTOM) */}
         <div className="fade-in">
           <div className="flex items-center gap-3 mb-4">
-            <div className="w-2 h-2 rounded-full bg-purple-500 shadow-[0_0_10px_rgba(168,85,247,0.8)]"></div>
+            <div className="w-2 h-2 rounded-full bg-blue-500"></div>
             <h3 className="text-lg font-bold text-white tracking-wide">
               {t.planner.highlightsFor} {new Date(selectedDateStr).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
             </h3>
@@ -435,26 +428,26 @@ export default function PlannerPage() {
                   <div className={`absolute top-0 left-0 w-1 h-full ${getBadgeColor(block.category, block.isBreak)} opacity-70 group-hover:opacity-100 transition-opacity`}></div>
                   
                   <div className="flex items-center justify-between mb-3 pl-2">
-                    <div className="flex items-center gap-2 text-xs font-bold text-purple-300/70">
+                    <div className="flex items-center gap-2 text-xs font-bold text-slate-400">
                       <Clock className="w-3.5 h-3.5" />
                       {formatTime12hr(block.startTime)} <span className="opacity-50">{t.planner.to}</span> {formatTime12hr(block.endTime)}
                     </div>
                     {block.category && (
-                       <span className="px-2 py-1 rounded-md bg-white/5 border border-white/5 text-[9px] uppercase tracking-wider text-white/50">{block.category}</span>
+                       <span className="px-2 py-1 rounded-md bg-white/5 border border-white/5 text-[9px] uppercase tracking-wider text-slate-400">{block.category}</span>
                     )}
                   </div>
                   
                   <h4 className={`text-xl font-bold text-white mb-2 pl-2 ${block.isBreak ? 'italic opacity-50' : ''}`}>{block.label}</h4>
                   
-                  <button onClick={() => { handleOpenDrawer(selectedDateStr); }} className="pl-2 text-xs font-semibold text-purple-500/80 hover:text-purple-400 transition-colors flex items-center gap-1 mt-4">
+                  <button onClick={() => { handleOpenDrawer(selectedDateStr); }} className="pl-2 text-xs font-semibold text-blue-400 hover:text-blue-300 transition-colors flex items-center gap-1 mt-4 cursor-pointer">
                     {t.planner.editDetails} <ChevronRight className="w-3 h-3" />
                   </button>
                 </div>
               ))
             ) : (
-              <div className="w-full bg-white/5 border border-white/5 border-dashed rounded-2xl p-6 flex flex-col items-center justify-center text-white/30">
+              <div className="w-full bg-white/[0.03] border border-white/[0.08] border-dashed rounded-2xl p-6 flex flex-col items-center justify-center text-slate-400">
                 <p className="text-sm font-medium mb-3">{t.planner.noHighlights}</p>
-                <button onClick={() => { handleOpenDrawer(selectedDateStr); setShowAddBlock(true); }} className="px-5 py-2 rounded-xl bg-purple-600/20 text-purple-400 text-xs font-bold hover:bg-purple-600/30 transition-colors">
+                <button onClick={() => { handleOpenDrawer(selectedDateStr); setShowAddBlock(true); }} className="px-5 py-2 rounded-xl bg-blue-600/20 text-blue-400 text-xs font-bold hover:bg-blue-600/30 transition-colors cursor-pointer">
                   {t.planner.addNoteEvent}
                 </button>
               </div>
@@ -464,17 +457,17 @@ export default function PlannerPage() {
 
       </div>
 
-      {/* GLASSMORPHISM SIDE DRAWER (Retained and Polished) */}
+      {/* GLASSMORPHISM SIDE DRAWER */}
       {drawerAnim.shouldRender && (
         <>
           <div className={`${drawerAnim.isExiting ? "motion-exit-fade" : "motion-overlay"} fixed inset-0 bg-black/60 backdrop-blur-sm z-40`} onClick={() => setDrawerDateStr(null)}></div>
           
-          <div className={`planner-drawer ${drawerAnim.isExiting ? "motion-exit-drawer" : "motion-drawer"} fixed top-0 right-0 h-full w-full max-w-[420px] z-50 flex flex-col p-6 overflow-y-auto`} style={{ background: "var(--color-bg-card)", borderLeft: "1px solid var(--color-border-subtle)" }}>
+          <div className={`planner-drawer ${drawerAnim.isExiting ? "motion-exit-drawer" : "motion-drawer"} fixed top-0 right-0 h-full w-full max-w-[420px] z-50 flex flex-col p-6 overflow-y-auto`} style={{ background: "linear-gradient(145deg, rgba(16, 22, 36, 0.98), rgba(11, 15, 26, 0.99))", borderLeft: "1px solid rgba(59, 130, 246, 0.14)" }}>
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-bold" style={{ color: "var(--color-text-primary)" }}>
+              <h2 className="text-xl font-bold text-white">
                 {t.planner.editDetails}
               </h2>
-              <button onClick={() => setDrawerDateStr(null)} className="p-2 rounded-full transition-colors hover:bg-black/10 dark:hover:bg-white/10" style={{ color: "var(--color-text-secondary)" }}>
+              <button onClick={() => setDrawerDateStr(null)} className="p-2 rounded-full transition-colors hover:bg-white/10 text-slate-400 hover:text-white cursor-pointer">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -482,11 +475,11 @@ export default function PlannerPage() {
             {drawerDayBlocks.map((block) => {
               const linkedTask = state.tasks.find((t) => t.id === block.taskId);
               return (
-                <div key={block.id} className="mb-4 p-4 rounded-xl border flex items-start justify-between" style={{ background: "var(--color-bg-secondary)", borderColor: "var(--color-border-subtle)" }}>
+                <div key={block.id} className="mb-4 p-4 rounded-xl border flex items-start justify-between" style={{ background: "rgba(15, 23, 42, 0.75)", borderColor: "rgba(59, 130, 246, 0.14)" }}>
                   <div className="space-y-1">
-                    <h4 className="font-bold text-sm" style={{ color: "var(--color-text-primary)" }}>{block.label}</h4>
+                    <h4 className="font-bold text-sm text-white">{block.label}</h4>
                     <div className="flex items-center gap-2.5 flex-wrap">
-                      <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>
+                      <p className="text-xs text-slate-400">
                         {formatTime12hr(block.startTime)} - {formatTime12hr(block.endTime)}
                       </p>
                       {linkedTask?.reminderEnabled && (
@@ -498,8 +491,10 @@ export default function PlannerPage() {
                   </div>
                   <button 
                     onClick={() => {
-                      deleteTimeBlock(block.id);
-                      if (block.taskId) deleteTask(block.taskId);
+                      if (window.confirm("Are you sure you want to delete this event?")) {
+                        deleteTimeBlock(block.id);
+                        if (block.taskId) deleteTask(block.taskId);
+                      }
                     }} 
                     className="text-red-400 hover:text-red-500 transition-colors p-1 cursor-pointer"
                     aria-label="Delete task"
@@ -511,30 +506,30 @@ export default function PlannerPage() {
             })}
             
             {!showAddBlock ? (
-              <button onClick={() => setShowAddBlock(true)} className="w-full mt-4 py-3 rounded-xl font-bold transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-sm" style={{ background: "var(--color-purple-primary)", color: "white" }}>
+              <button onClick={() => setShowAddBlock(true)} className="w-full mt-4 py-3 rounded-xl font-bold transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-sm bg-blue-600 hover:bg-blue-500 text-white">
                 <Plus className="w-5 h-5" /> {t.planner.addNoteEvent}
               </button>
             ) : (
-              <form onSubmit={handleAddBlockSubmit} className="mt-4 p-4 rounded-xl border space-y-4 animate-fade-in" style={{ background: "var(--color-bg-elevated)", borderColor: "var(--color-border-subtle)" }}>
+              <form onSubmit={handleAddBlockSubmit} className="mt-4 p-4 rounded-xl border space-y-4 animate-fade-in" style={{ background: "rgba(15, 23, 42, 0.85)", borderColor: "rgba(59, 130, 246, 0.14)" }}>
                 <div>
-                  <label className="block text-xs font-semibold mb-1 text-zinc-400">Task Title</label>
-                  <input type="text" placeholder="e.g. Study Mathematics" value={newLabel} onChange={e => setNewLabel(e.target.value)} className="w-full bg-transparent border rounded-lg px-3 py-2 outline-none transition-colors text-sm" style={{ color: "var(--color-text-primary)", borderColor: "var(--color-border-subtle)" }} required />
+                  <label className="block text-xs font-semibold mb-1 text-slate-400">Task Title</label>
+                  <input type="text" placeholder="e.g. Study Mathematics" value={newLabel} onChange={e => setNewLabel(e.target.value)} className="w-full bg-slate-900/60 border border-slate-700/60 rounded-lg px-3 py-2 outline-none transition-colors text-sm text-white focus:border-blue-500" required />
                 </div>
 
                 <div className="flex gap-3">
                   <div className="w-1/2">
-                    <label className="block text-xs font-semibold mb-1 text-zinc-400">Start Time</label>
+                    <label className="block text-xs font-semibold mb-1 text-slate-400">Start Time</label>
                     <FocusForgeTimePicker value={newStart} onChange={e => setNewStart(e.target.value)} ariaLabel="Start Time" />
                   </div>
                   <div className="w-1/2">
-                    <label className="block text-xs font-semibold mb-1 text-zinc-400">End Time</label>
+                    <label className="block text-xs font-semibold mb-1 text-slate-400">End Time</label>
                     <FocusForgeTimePicker value={newEnd} onChange={e => setNewEnd(e.target.value)} ariaLabel="End Time" />
                   </div>
                 </div>
 
                 {/* Priority Selection */}
                 <div>
-                  <label className="block text-xs font-semibold mb-1.5 text-zinc-400">Priority</label>
+                  <label className="block text-xs font-semibold mb-1.5 text-slate-400">Priority</label>
                   <div className="grid grid-cols-3 gap-2">
                     {(["low", "medium", "high"] as const).map((p) => (
                       <button
@@ -544,7 +539,7 @@ export default function PlannerPage() {
                         className={`py-1.5 rounded-lg text-xs font-semibold capitalize border transition-all cursor-pointer ${
                           newPriority === p
                             ? "border-blue-500 bg-blue-500/20 text-blue-400"
-                            : "border-white/10 text-zinc-400 hover:border-white/20"
+                            : "border-white/10 text-slate-400 hover:border-white/20"
                         }`}
                       >
                         {p}
@@ -554,11 +549,11 @@ export default function PlannerPage() {
                 </div>
 
                 {/* Individual Task Reminder Toggle */}
-                <div className="p-3 rounded-xl border flex flex-col gap-2.5" style={{ borderColor: "var(--color-border-subtle)", background: "rgba(255,255,255,0.02)" }}>
+                <div className="p-3 rounded-xl border flex flex-col gap-2.5" style={{ borderColor: "rgba(59, 130, 246, 0.14)", background: "rgba(255,255,255,0.02)" }}>
                   <label className="flex items-center justify-between cursor-pointer">
                     <div className="flex items-center gap-2">
-                      <Bell size={15} className={newReminderEnabled ? "text-blue-400" : "text-zinc-500"} />
-                      <span className="text-xs font-semibold" style={{ color: "var(--color-text-primary)" }}>Enable Task Reminder</span>
+                      <Bell size={15} className={newReminderEnabled ? "text-blue-400" : "text-slate-500"} />
+                      <span className="text-xs font-semibold text-white">Enable Task Reminder</span>
                     </div>
                     <input
                       type="checkbox"
@@ -569,8 +564,8 @@ export default function PlannerPage() {
                   </label>
 
                   {newReminderEnabled && (
-                    <div className="flex items-center justify-between pt-2 border-t animate-fade-in" style={{ borderColor: "var(--color-border-subtle)" }}>
-                      <span className="text-xs text-zinc-400">Reminder Time</span>
+                    <div className="flex items-center justify-between pt-2 border-t animate-fade-in border-slate-700/50">
+                      <span className="text-xs text-slate-400">Reminder Time</span>
                       <div className="w-36">
                         <FocusForgeTimePicker
                           value={newReminderTime}
@@ -583,8 +578,8 @@ export default function PlannerPage() {
                 </div>
 
                 <div className="flex gap-3 pt-2">
-                  <button type="button" onClick={() => setShowAddBlock(false)} className="w-1/2 py-2.5 rounded-xl font-semibold text-xs transition-colors border cursor-pointer" style={{ color: "var(--color-text-primary)", borderColor: "var(--color-border-subtle)", background: "transparent" }}>Cancel</button>
-                  <button type="submit" className="w-1/2 py-2.5 rounded-xl font-semibold text-xs transition-colors cursor-pointer shadow-sm" style={{ background: "var(--color-purple-primary)", color: "white" }}>Save Task</button>
+                  <button type="button" onClick={() => setShowAddBlock(false)} className="w-1/2 py-2.5 rounded-xl font-semibold text-xs transition-colors border cursor-pointer text-slate-300 border-slate-700 hover:bg-white/5 bg-transparent">Cancel</button>
+                  <button type="submit" className="w-1/2 py-2.5 rounded-xl font-semibold text-xs transition-colors cursor-pointer shadow-sm bg-blue-600 hover:bg-blue-500 text-white">Save Task</button>
                 </div>
               </form>
             )}

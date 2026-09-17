@@ -101,7 +101,7 @@ export default function QuickCapture() {
           style={{
             background: "var(--color-bg-elevated)",
             borderColor: "var(--color-border-active)",
-            boxShadow: "0 20px 60px rgba(0,0,0,0.5), 0 0 40px rgba(124,58,237,0.1)",
+            boxShadow: "0 20px 60px rgba(0,0,0,0.5), 0 0 40px rgba(37,99,235,0.25)",
           }}
         >
           <div className="flex items-start gap-3 p-4">

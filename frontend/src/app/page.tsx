@@ -158,7 +158,7 @@ export default function Home() {
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} isTourActive={showTour} />
 
       {/* Main Content */}
-      <main className={`flex-1 md:ml-60 w-full min-w-0 flex flex-col ${
+      <main className={`flex-1 md:ml-64 w-full min-w-0 flex flex-col ${
         state.activePage === 'ai-agent' ? 'h-dvh max-h-dvh overflow-hidden' : 'min-h-screen overflow-x-hidden'
       }`}>
         {/* Universal Mobile Header with persistent 3-line Hamburger Menu */}
@@ -214,6 +214,8 @@ export default function Home() {
             ? 'flex-1 flex flex-col p-0 max-w-none h-full'
             : state.activePage === 'planner'
             ? 'flex-1 flex flex-col p-0 max-w-none'
+            : state.activePage === 'today'
+            ? 'flex-1 p-3.5 sm:p-5 md:p-6 lg:p-8 max-w-[1700px] mx-auto'
             : 'flex-1 p-3.5 sm:p-5 md:p-8 lg:p-10 max-w-7xl mx-auto'
         }`}>
           {isPageLoading ? (

@@ -159,6 +159,7 @@ export interface FocusSession {
   endedAt?: string;
   targetMinutes?: number;
   durationMinutes: number;
+  breakMinutes?: number;
   distractions: DistractionEntry[];
   completed: boolean;
 }
@@ -280,6 +281,7 @@ export interface AppState {
   learningLogs: LearningLog[];
   theme: ThemePreferences;
   diaryTopics?: DiaryTopic[];
+  focusTaskHistory?: { name: string; totalMinutes: number }[];
 }
 
 // ==================== Task Categories ====================

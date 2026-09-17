@@ -10,11 +10,11 @@
   padding: 0;
   color: var(--color-text-primary);
   background: 
-    radial-gradient(ellipse 95% 55% at 50% 25%, rgba(30, 64, 175, 0.16), transparent 68%),
-    radial-gradient(ellipse 85% 45% at 50% 85%, rgba(29, 78, 216, 0.12), transparent 70%),
-    radial-gradient(circle at 6% 45%, rgba(37, 99, 235, 0.07), transparent 48%),
-    radial-gradient(circle at 94% 45%, rgba(67, 56, 202, 0.06), transparent 48%),
-    linear-gradient(180deg, #010207 0%, #050b18 45%, #010207 100%);
+    radial-gradient(ellipse 95% 55% at 50% 25%, rgba(37, 99, 235, 0.20), transparent 68%),
+    radial-gradient(ellipse 85% 45% at 50% 85%, rgba(37, 99, 235, 0.08), transparent 70%),
+    radial-gradient(circle at 6% 45%, rgba(56, 189, 248, 0.05), transparent 48%),
+    radial-gradient(circle at 94% 45%, rgba(129, 140, 248, 0.05), transparent 48%),
+    linear-gradient(180deg, #08090C 0%, #0D0F17 45%, #08090C 100%);
   overflow: hidden;
 }
 
@@ -1267,9 +1267,9 @@
    behaving as foreground objects, and the composer remains the visual anchor. */
 .page {
   background:
-    radial-gradient(ellipse 88% 48% at 50% 24%, rgba(30, 64, 175, 0.10), transparent 69%),
+    radial-gradient(ellipse 88% 48% at 50% 24%, rgba(37, 99, 235, 0.18), transparent 69%),
     radial-gradient(ellipse 78% 40% at 50% 88%, rgba(37, 99, 235, 0.07), transparent 72%),
-    linear-gradient(180deg, #02040A 0%, #07101D 52%, #03050A 100%);
+    linear-gradient(180deg, #08090C 0%, #0D0F17 52%, #08090C 100%);
 }
 .topHorizonArc, .bottomHorizonArc {
   opacity: 0.76;

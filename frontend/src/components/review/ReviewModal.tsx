@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { X, Star, Sparkles, Loader2 } from "lucide-react";
+import { X, Star, Loader2 } from "lucide-react";
 import { useAppContext } from "../../context/AppContext";
 import styles from "./review-modal.module.css";
 
@@ -115,7 +115,7 @@ export function ReviewModal({
         {/* Header */}
         <div className={styles.header}>
           <div className={styles.badge}>
-            <Sparkles size={12} />
+            <Star size={12} />
             <span>{isBn ? "ফিডব্যাক" : "FocusForge Feedback"}</span>
           </div>
           <h2 className={styles.title} id="review-title">

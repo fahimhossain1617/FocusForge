@@ -20,7 +20,7 @@ export default function AppShellSkeleton({ page = "today" }: AppShellSkeletonPro
       {/* ============================================================ */}
       <aside
         aria-hidden="true"
-        className="w-60 min-h-screen hidden md:flex flex-col py-6 px-3 fixed left-0 top-0 bottom-0 z-40 border-r"
+        className="w-64 min-h-screen hidden md:flex flex-col py-6 px-3 fixed left-0 top-0 bottom-0 z-40 border-r"
         style={{
           background: "var(--color-bg-secondary)",
           borderColor: "var(--color-border-subtle)",
@@ -107,7 +107,7 @@ export default function AppShellSkeleton({ page = "today" }: AppShellSkeletonPro
       {/* ============================================================ */}
       {/* 2. MAIN CONTENT AREA + MOBILE HEADER SKELETON               */}
       {/* ============================================================ */}
-      <main className="flex-1 md:ml-60 w-full min-w-0 overflow-x-hidden">
+      <main className="flex-1 md:ml-64 w-full min-w-0 overflow-x-hidden">
         {/* Mobile Header Skeleton */}
         <div
           aria-hidden="true"

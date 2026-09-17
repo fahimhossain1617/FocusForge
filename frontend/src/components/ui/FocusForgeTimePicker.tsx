@@ -216,7 +216,7 @@ export default function FocusForgeTimePicker({
           key={n}
           className={`absolute flex items-center justify-center rounded-full select-none pointer-events-none transition-all duration-100 ${
             isSelected
-              ? "bg-blue-600 text-white font-bold shadow-[0_0_10px_rgba(37,99,235,0.5)]"
+              ? "bg-blue-600 text-white font-bold "
               : "text-zinc-400"
           }`}
           style={{

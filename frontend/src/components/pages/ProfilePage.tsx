@@ -312,7 +312,7 @@ export default function ProfilePage() {
                   <button
                     type="button"
                     onClick={() => setIsEditing(true)}
-                    className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold text-white shadow-lg shadow-blue-500/20 hover:opacity-95 border border-blue-500/30 transition-all cursor-pointer"
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold text-white  hover:opacity-95 border border-blue-500/30 transition-all cursor-pointer"
                     style={{ background: "linear-gradient(135deg, #2563EB, #3B82F6)" }}
                   >
                     <Edit3 size={14} />
@@ -584,7 +584,7 @@ export default function ProfilePage() {
                   <button
                     type="submit"
                     disabled={isSaving}
-                    className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-semibold text-white shadow-lg shadow-blue-500/25 hover:opacity-95 border border-blue-500/30 transition-all cursor-pointer disabled:opacity-50"
+                    className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-semibold text-white  hover:opacity-95 border border-blue-500/30 transition-all cursor-pointer disabled:opacity-50"
                     style={{ background: "linear-gradient(135deg, #2563EB, #3B82F6)" }}
                   >
                     <Save size={14} />
