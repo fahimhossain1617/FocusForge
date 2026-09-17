@@ -1006,14 +1006,14 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
   box-shadow: 0 12px 36px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 .planner-day-tabs {
-  background: rgba(5, 7, 13, 0.52) !important;
-  border: 1px solid var(--border-subtle) !important;
+  background: rgba(15, 23, 42, 0.60) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
   border-radius: var(--r-full) !important;
 }
 .planner-day-tabs > div button {
-  background: linear-gradient(135deg, #2563EB, #3B82F6) !important;
-  color: var(--text-on-accent) !important;
-  box-shadow: 0 8px 20px rgba(37, 99, 235, 0.42) !important;
+  background: #2563EB !important;
+  color: #FFFFFF !important;
+  box-shadow: none !important;
 }
 .planner-toolbar > div:last-child > button:hover { color: var(--accent-300) !important; background: rgba(59, 130, 246, 0.12) !important; }
 .planner-toolbar span.text-lg { color: var(--text-primary) !important; text-shadow: none !important; }
@@ -1155,12 +1155,17 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 .note-delete-confirm .is-delete { background: var(--danger) !important; border-color: var(--danger) !important; }
 
 .calendar-trigger {
-  background: rgba(59, 130, 246, 0.12) !important;
-  border: 1px solid rgba(59, 130, 246, 0.40) !important;
-  color: var(--accent-300) !important;
-  box-shadow: 0 0 18px rgba(59, 130, 246, 0.16) !important;
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.10) !important;
+  color: #94A3B8 !important;
+  box-shadow: none !important;
 }
-.calendar-trigger:hover { background: rgba(59, 130, 246, 0.20) !important; border-color: var(--accent-500) !important; color: var(--text-primary) !important; }
+.calendar-trigger:hover {
+  background: rgba(255, 255, 255, 0.10) !important;
+  border-color: rgba(59, 130, 246, 0.35) !important;
+  color: #FFFFFF !important;
+  box-shadow: none !important;
+}
 .calendar-popover {
   background: rgba(15, 23, 41, 0.94) !important;
   backdrop-filter: blur(24px) saturate(165%);
@@ -1222,28 +1227,62 @@ input:not([type="checkbox"]):not([type="radio"]):not([type="color"]):not(.note-e
   border-color: rgba(148, 163, 184, 0.18) !important;
 }
 
-.notes-workspace, .planner-premium {
+.notes-workspace {
   background:
     radial-gradient(circle at 88% 4%, rgba(37, 99, 235, 0.12), transparent 25%),
     radial-gradient(circle at 10% 98%, rgba(8, 145, 178, 0.045), transparent 32%),
     linear-gradient(145deg, #03050A 0%, #08111F 48%, #03050A 100%) !important;
 }
-.note-card, .planner-highlight-card {
+.note-card {
   background: linear-gradient(145deg, rgba(15, 28, 51, 0.68), rgba(4, 7, 13, 0.86)) !important;
   border-color: rgba(148, 163, 184, 0.14) !important;
 }
+.planner-premium {
+  background: transparent !important;
+}
+.planner-highlight-card {
+  background: linear-gradient(145deg, rgba(16, 22, 36, 0.95), rgba(11, 15, 26, 0.98)) !important;
+  border: 1px solid rgba(59, 130, 246, 0.14) !important;
+  border-radius: 16px !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35) !important;
+}
 .planner-calendar {
-  background: linear-gradient(145deg, rgba(14, 26, 47, 0.60), rgba(3, 6, 12, 0.82)) !important;
-  border-color: rgba(148, 163, 184, 0.14) !important;
+  background: linear-gradient(145deg, rgba(16, 22, 36, 0.95), rgba(11, 15, 26, 0.98)) !important;
+  border: 1px solid rgba(59, 130, 246, 0.14) !important;
+  border-radius: 16px !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35) !important;
 }
-.planner-weekdays { background: rgba(3, 6, 12, 0.62) !important; }
-.planner-day-cell { background: rgba(3, 6, 12, 0.76) !important; }
-.planner-day-cell:hover { background: rgba(12, 26, 48, 0.82) !important; }
-.planner-day-cell.is-selected { background: rgba(14, 26, 48, 0.50) !important; }
-.planner-toolbar, .calendar-popover {
-  background: linear-gradient(145deg, rgba(14, 27, 49, 0.86), rgba(3, 6, 12, 0.90)) !important;
-  border-color: rgba(148, 163, 184, 0.16) !important;
+.planner-weekdays {
+  background: rgba(15, 23, 42, 0.70) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
 }
+.planner-day-cell {
+  background: rgba(13, 21, 39, 0.65) !important;
+}
+.planner-day-cell:hover {
+  background: rgba(22, 36, 66, 0.75) !important;
+}
+.planner-day-cell.is-selected {
+  background: rgba(30, 58, 110, 0.35) !important;
+}
+.planner-toolbar {
+  background: linear-gradient(145deg, rgba(16, 22, 36, 0.95), rgba(11, 15, 26, 0.98)) !important;
+  border: 1px solid rgba(59, 130, 246, 0.14) !important;
+  border-radius: 16px !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35) !important;
+}
+.calendar-popover {
+  background: #0e1626 !important;
+  border: 1px solid rgba(59, 130, 246, 0.22) !important;
+  border-radius: 18px !important;
+  box-shadow: 
+    0 24px 60px rgba(0, 0, 0, 0.90),
+    0 8px 24px rgba(0, 0, 0, 0.70),
+    inset 1px 1px 1px rgba(255, 255, 255, 0.12),
+    inset -1px -1px 2px rgba(0, 0, 0, 0.60) !important;
+}
+
+
 
 .app-modal-panel, .app-capture-modal, .focus-dialog, .completion-modal {
   background: linear-gradient(145deg, rgba(15, 28, 51, 0.94), rgba(2, 5, 11, 0.97)) !important;
@@ -1639,19 +1678,64 @@ button, input, select, textarea, a {
   box-shadow: 0 13px 32px rgba(0, 0, 0, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.055) !important;
 }
 
-.btn-primary, .btn-accent-solid {
-  background: linear-gradient(135deg, #2563EB, #3B82F6) !important;
-  color: #fff !important;
-  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.24) !important;
+button,
+[role="button"],
+.btn-primary,
+.btn-secondary,
+.btn-ghost {
+  box-shadow: none !important;
+  text-shadow: none !important;
+  transition: transform 0.12s ease-in-out, opacity 0.12s ease-in-out !important;
 }
-.btn-primary:hover, .btn-accent-solid:hover {
-  background: linear-gradient(135deg, #1D4ED8, #2563EB) !important;
-  box-shadow: 0 8px 20px rgba(37, 99, 235, 0.30) !important;
-  transform: translateY(-1px);
+
+button:active:not(:disabled),
+[role="button"]:active:not([aria-disabled="true"]),
+.btn-primary:active,
+.btn-secondary:active,
+.btn-ghost:active {
+  transform: scale(0.95) !important;
 }
-.btn-primary:active, .btn-accent-solid:active { transform: translateY(0) scale(0.985); }
+
+button:hover,
+[role="button"]:hover,
+.btn-primary:hover,
+.btn-secondary:hover,
+.btn-ghost:hover {
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+
+/* Specifically for role="button" elements */
+button::before,
+button::after,
+[role="button"]::before,
+[role="button"]::after {
+  display: none !important;
+}
+
+.btn-primary {
+  background: var(--color-purple-primary);
+  color: white;
+  font-weight: 600;
+  border-radius: 10px;
+  padding: 10px 20px;
+  font-size: 14px;
+  transition: transform 0.12s ease-in-out;
+  border: none;
+  cursor: pointer;
+  box-shadow: none !important;
+}
+
+.btn-primary:hover {
+  background: var(--color-purple-primary);
+  box-shadow: none !important;
+}
+
+.btn-primary:active {
+  transform: scale(0.95) !important;
+}
+
 .btn-secondary {
-  border-color: var(--surface-border) !important;
   box-shadow: inset 0 1px 0 rgba(255,255,255,0.04) !important;
 }
 .btn-ghost:hover { background: rgba(59, 130, 246, 0.09) !important; color: var(--text-primary) !important; }

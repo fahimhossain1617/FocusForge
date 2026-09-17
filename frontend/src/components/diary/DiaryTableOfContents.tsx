@@ -11,8 +11,7 @@ import {
   Lock, 
   ChevronRight, 
   Edit3, 
-  Trash2,
-  Sparkles 
+  Trash2
 } from "lucide-react";
 import { useTranslation } from "../../hooks/useTranslation";
 import { DiaryTopic } from "../../types";
@@ -97,7 +96,7 @@ export default function DiaryTableOfContents({
           <button
             type="button"
             onClick={() => setIsCreateModalOpen(true)}
-            className="btn-accent-solid flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold text-white bg-blue-600 hover:bg-blue-500 shadow-sm shadow-blue-600/30 transition-all cursor-pointer"
+            className="btn-accent-solid flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold text-white bg-blue-600 hover:bg-blue-500  transition-all cursor-pointer"
             style={{ color: "#FFFFFF" }}
           >
             <Plus size={15} style={{ color: "#FFFFFF" }} />
@@ -153,7 +152,7 @@ export default function DiaryTableOfContents({
         {topics.length === 0 ? (
           <div className="py-16 px-6 text-center">
             <div className="w-14 h-14 rounded-3xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center mx-auto mb-4 text-blue-500">
-              <Sparkles size={24} />
+              <BookOpen size={24} />
             </div>
             <h3
               className="text-base sm:text-lg font-bold"
@@ -170,7 +169,7 @@ export default function DiaryTableOfContents({
             <button
               type="button"
               onClick={() => setIsCreateModalOpen(true)}
-              className="btn-accent-solid inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-blue-600 hover:bg-blue-500 shadow-md shadow-blue-600/30 transition-all cursor-pointer"
+              className="btn-accent-solid inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-blue-600 hover:bg-blue-500  transition-all cursor-pointer"
               style={{ color: "#FFFFFF" }}
             >
               <Plus size={16} style={{ color: "#FFFFFF" }} />

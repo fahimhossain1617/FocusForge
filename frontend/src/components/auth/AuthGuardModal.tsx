@@ -53,7 +53,7 @@ export default function AuthGuardModal() {
 
         {/* Shield Icon Badge */}
         <div 
-          className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-5 shadow-xl shadow-blue-500/20 border border-blue-400/30"
+          className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-5  border border-blue-400/30"
           style={{ background: "linear-gradient(135deg, rgba(37, 99, 235, 0.25), rgba(59, 130, 246, 0.1))" }}
         >
           <ShieldCheck size={28} className="text-blue-400" />
@@ -88,7 +88,7 @@ export default function AuthGuardModal() {
                 onAuthenticated: authGuardModal.onAuthenticated
               });
             }}
-            className="w-full py-3 px-4 rounded-xl font-semibold text-sm text-white shadow-lg shadow-blue-500/25 transition-all hover:opacity-95 cursor-pointer"
+            className="w-full py-3 px-4 rounded-xl font-semibold text-sm text-white  transition-all hover:opacity-95 cursor-pointer"
             style={{ background: "linear-gradient(135deg, #2563EB, #3B82F6)" }}
           >
             {t.auth.logIn}

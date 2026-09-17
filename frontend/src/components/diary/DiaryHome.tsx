@@ -75,6 +75,7 @@ export default function DiaryHome({ onBackToMind }: DiaryHomeProps) {
   };
 
   const handleDeleteTopic = (topicId: string) => {
+    if (!window.confirm("Are you sure you want to delete this topic?")) return;
     deleteDiaryTopicItem(topicId);
     if (activeTopicId === topicId) {
       setActiveTopicId(null);

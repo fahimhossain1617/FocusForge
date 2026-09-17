@@ -121,8 +121,8 @@ export default function SettingsPage() {
       theme: {
         ...state.theme,
         mode,
-        preset: mode === "light" ? "Cloud Blue" : "Midnight Blue",
-        background: mode === "light" ? "#F5F8FC" : "#070A12",
+        preset: mode === "light" ? "Cloud Blue" : "Obsidian Kinetic",
+        background: mode === "light" ? "#F5F8FC" : "#08090C",
       },
     });
     showToast(mode === "light" ? t.settings.toasts.lightTheme : t.settings.toasts.darkTheme, "info");
@@ -275,7 +275,7 @@ export default function SettingsPage() {
                     borderRadius: "16px"
                   }}
                 >
-                  <div className="w-8 h-8 rounded-lg bg-[#070A12] border border-white/10 flex items-center justify-center mb-2">
+                  <div className="w-8 h-8 rounded-lg bg-[#08090C] border border-[#1E2638] flex items-center justify-center mb-2">
                     <Moon size={16} className={state.theme.mode === "dark" ? "text-blue-400" : "text-zinc-400"} />
                   </div>
                   <span className="text-xs font-bold" style={{ color: "var(--color-text-primary)" }}>
@@ -351,7 +351,7 @@ export default function SettingsPage() {
                   {notificationPermission !== 'denied' && (
                     <button 
                       onClick={requestNotificationPermission} 
-                      className="px-5 py-2.5 rounded-xl text-sm font-semibold bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-500/20 transition-all shrink-0 cursor-pointer"
+                      className="px-5 py-2.5 rounded-xl text-sm font-semibold bg-blue-600 hover:bg-blue-500 text-white  transition-all shrink-0 cursor-pointer"
                     >
                       {t.settings.enableNotifBtn || "Enable Notifications"}
                     </button>
@@ -523,7 +523,7 @@ export default function SettingsPage() {
                 </div>
                 <button 
                   onClick={() => setShowResetModal(true)} 
-                  className="px-5 py-2.5 rounded-xl text-sm font-bold bg-red-500 text-white shadow-lg shadow-red-500/20 hover:bg-red-600 transition-colors shrink-0"
+                  className="px-5 py-2.5 rounded-xl text-sm font-bold bg-red-500 text-white  hover:bg-red-600 transition-colors shrink-0"
                 >
                   {t.settings.resetAllData}
                 </button>
@@ -590,7 +590,7 @@ export default function SettingsPage() {
               <button 
                 onClick={executeReset}
                 disabled={resetInput !== "RESET"}
-                className={`w-full sm:w-1/2 px-4 py-3 rounded-xl text-sm font-bold transition-all ${resetInput === "RESET" ? "bg-red-500 text-white shadow-lg shadow-red-500/25 hover:bg-red-600 hover:-translate-y-0.5" : "bg-red-500/20 text-red-500/40 cursor-not-allowed"}`}
+                className={`w-full sm:w-1/2 px-4 py-3 rounded-xl text-sm font-bold transition-all ${resetInput === "RESET" ? "bg-red-500 text-white  hover:bg-red-600 hover:-translate-y-0.5" : "bg-red-500/20 text-red-500/40 cursor-not-allowed"}`}
               >
                 {t.settings.resetEverything}
               </button>

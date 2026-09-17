@@ -479,7 +479,7 @@ export default function FocusForgeDatePicker({
                         item.isDisabled
                           ? "opacity-20 cursor-not-allowed"
                           : isSelected
-                          ? "bg-blue-600 text-white font-bold shadow-[0_0_10px_rgba(37,99,235,0.45)] scale-105"
+                          ? "bg-blue-600 text-white font-bold  scale-105"
                           : isToday
                           ? "border border-blue-500/80 text-blue-400 font-bold hover:bg-blue-500/10"
                           : item.isCurrentMonth
@@ -521,7 +521,7 @@ export default function FocusForgeDatePicker({
                     }}
                     className={`py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
                       isSelected
-                        ? "bg-blue-600 text-white font-bold shadow-[0_0_8px_rgba(37,99,235,0.35)]"
+                        ? "bg-blue-600 text-white font-bold "
                         : "hover:bg-white/10 text-zinc-300 hover:text-white"
                     }`}
                   >
@@ -547,7 +547,7 @@ export default function FocusForgeDatePicker({
                     }}
                     className={`py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
                       isSelected
-                        ? "bg-blue-600 text-white font-bold shadow-[0_0_8px_rgba(37,99,235,0.35)]"
+                        ? "bg-blue-600 text-white font-bold "
                         : "hover:bg-white/10 text-zinc-300 hover:text-white"
                     }`}
                   >
@@ -586,7 +586,7 @@ export default function FocusForgeDatePicker({
               <button
                 type="button"
                 onClick={handleConfirm}
-                className="px-3.5 py-1.5 rounded-xl text-xs font-bold text-white bg-blue-600 hover:bg-blue-500 shadow-md shadow-blue-600/20 active:scale-95 transition-all cursor-pointer flex items-center gap-1"
+                className="px-3.5 py-1.5 rounded-xl text-xs font-bold text-white bg-blue-600 hover:bg-blue-500  active:scale-95 transition-all cursor-pointer flex items-center gap-1"
               >
                 <Check size={13} />
                 <span>OK</span>

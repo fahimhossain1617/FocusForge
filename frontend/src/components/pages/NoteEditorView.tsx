@@ -4,7 +4,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { 
   ArrowLeft, Check, CloudUpload, Download, MoreHorizontal, 
   Share2, Trash2, Image as ImageIcon, 
-  FileUp, X, Sparkles, ChevronDown
+  FileUp, X, ChevronDown
 } from "lucide-react";
 import BlockEditor from "../workspace/BlockEditor";
 import LinkInsertModal from "../workspace/LinkInsertModal";

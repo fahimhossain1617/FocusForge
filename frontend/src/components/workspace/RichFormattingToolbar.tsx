@@ -5,7 +5,7 @@ import {
   Heading1, Heading2, Heading3, Bold, Italic, Underline, 
   List, ListOrdered, CheckSquare2, Quote, Braces, Plus, 
   Image as ImageIcon, FileText, Link2, Paperclip, Type, 
-  ChevronDown, Sparkles
+  ChevronDown
 } from "lucide-react";
 import type { BlockType } from "../../types";
 
@@ -68,7 +68,7 @@ export default function RichFormattingToolbar({
             <button
               type="button"
               onClick={() => setAddMenuOpen(!addMenuOpen)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-white bg-blue-600 hover:bg-blue-500 shadow-md shadow-blue-500/20 transition-all cursor-pointer"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-white bg-blue-600 hover:bg-blue-500  transition-all cursor-pointer"
             >
               <Plus size={14} className="stroke-[2.5]" />
               <span className="hidden sm:inline">Add Content</span>

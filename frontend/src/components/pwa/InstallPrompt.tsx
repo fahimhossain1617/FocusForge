@@ -161,7 +161,7 @@ export default function InstallPrompt({ variant = "sidebar" }: InstallPromptProp
         <button
           type="button"
           onClick={handleInstallClick}
-          className="btn-accent-solid flex items-center gap-1 py-1 px-2.5 rounded-lg text-[11px] font-semibold text-white transition-all hover:opacity-95 shadow-sm shadow-blue-600/30 cursor-pointer shrink-0"
+          className="btn-accent-solid flex items-center gap-1 py-1 px-2.5 rounded-lg text-[11px] font-semibold text-white transition-all hover:opacity-95  cursor-pointer shrink-0"
           style={{ background: "linear-gradient(135deg, #2563EB, #3B82F6)", color: "#FFFFFF" }}
         >
           <Download size={11} style={{ color: "#FFFFFF" }} />

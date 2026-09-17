@@ -12,7 +12,7 @@ export async function syncTaskToBackend(task: Partial<Task>): Promise<Task | nul
     });
   } catch (err) {
     console.warn('[taskService] Failed to sync task to backend:', err);
-    return null;
+    throw err;
   }
 }
 
@@ -27,7 +27,7 @@ export async function updateTaskInBackend(id: number, updates: Partial<Task>): P
     });
   } catch (err) {
     console.warn('[taskService] Failed to update task in backend:', err);
-    return null;
+    throw err;
   }
 }
 
@@ -42,7 +42,7 @@ export async function deleteTaskFromBackend(id: number): Promise<boolean> {
     return true;
   } catch (err) {
     console.warn('[taskService] Failed to delete task in backend:', err);
-    return false;
+    throw err;
   }
 }
 
@@ -55,7 +55,7 @@ export async function fetchTasksFromBackend(date?: string): Promise<Task[]> {
     return await fetchBackend<Task[]>(url);
   } catch (err) {
     console.warn('[taskService] Failed to fetch tasks from backend:', err);
-    return [];
+    throw err;
   }
 }
 

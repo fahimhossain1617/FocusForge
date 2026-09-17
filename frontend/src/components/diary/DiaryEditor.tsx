@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { DiaryEntry, DiaryImage } from "../../types";
 import { useTranslation } from "../../hooks/useTranslation";
 import DiaryVoiceInput from "./DiaryVoiceInput";
-import { Check, Loader2, Sparkles, Eraser, ImagePlus, Trash2 } from "lucide-react";
+import { Check, Loader2, Eraser, ImagePlus, Trash2 } from "lucide-react";
 import { storageService } from "../../services/storageService";
 import { supabase } from "../../lib/supabaseClient";
 

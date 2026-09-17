@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Sparkles } from "lucide-react";
+import { FolderOpen } from "lucide-react";
 
 interface EmptyStateProps {
   icon?: React.ReactNode;
@@ -14,7 +14,7 @@ interface EmptyStateProps {
 }
 
 export default function EmptyState({
-  icon = <Sparkles className="w-8 h-8 text-indigo-400" />,
+  icon = <FolderOpen className="w-8 h-8 text-indigo-400" />,
   title,
   description,
   action,

@@ -68,7 +68,7 @@ export default function DiaryVoiceInput({ onInsertText, onError }: DiaryVoiceInp
         onClick={handleToggle}
         className={`w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center transition-all cursor-pointer ${
           isListening
-            ? "bg-red-500/20 text-red-400 border border-red-500/30 animate-pulse shadow-sm shadow-red-500/20"
+            ? "bg-red-500/20 text-red-400 border border-red-500/30 animate-pulse "
             : "bg-blue-500/10 text-blue-400 border border-blue-500/25 hover:bg-blue-500/20 hover:text-blue-300"
         }`}
         title={isListening ? t.myMind.stopListening : t.myMind.speakThought}

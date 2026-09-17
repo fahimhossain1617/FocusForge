@@ -1,7 +1,7 @@
 import React from "react";
 import SkeletonText from "./SkeletonText";
 import Skeleton from "./Skeleton";
-import { Sparkles } from "lucide-react";
+import { Bot } from "lucide-react";
 
 export interface AIContextualLoaderProps {
   label?: string;
@@ -22,11 +22,11 @@ export default function AIContextualLoader({
         borderColor: "rgba(59, 130, 246, 0.2)",
       }}
     >
-      {/* Header with pulsating AI sparkle icon and status label */}
+      {/* Header with pulsating AI bot icon and status label */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <div className="w-7 h-7 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400 animate-pulse">
-            <Sparkles size={14} />
+            <Bot size={14} />
           </div>
           <span className="text-xs font-semibold tracking-wide text-blue-400">
             {label}

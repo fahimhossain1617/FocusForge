@@ -114,7 +114,7 @@ export default function DiaryTopicView({
             <button
               type="button"
               onClick={() => setMode("edit")}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-500 text-white transition-all cursor-pointer shadow-sm shadow-blue-600/30"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-500 text-white transition-all cursor-pointer "
               title={t.diary?.edit || "Edit"}
             >
               <Edit3 size={14} />
@@ -280,7 +280,7 @@ export default function DiaryTopicView({
                   <button
                     type="button"
                     onClick={() => setMode("edit")}
-                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-500 text-white transition-all cursor-pointer shadow-sm shadow-blue-600/30"
+                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-500 text-white transition-all cursor-pointer "
                   >
                     <Edit3 size={14} />
                     <span>{t.diary?.startWriting || "Start Writing"}</span>

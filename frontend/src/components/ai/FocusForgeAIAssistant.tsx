@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo } from "react";
 import {
-  Sparkles,
+  Bot,
   Brain,
   ListPlus,
   Calendar,
@@ -263,7 +263,7 @@ export default function FocusForgeAIAssistant({
       <div className="p-5 border-b border-[var(--color-border-subtle)] flex items-center justify-between bg-gradient-to-r from-violet-500/10 via-indigo-500/5 to-transparent">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-violet-600/20 border border-violet-500/30 flex items-center justify-center text-violet-400 shadow-sm">
-            <Sparkles className="w-5 h-5" />
+            <Bot className="w-5 h-5" />
           </div>
           <div>
             <div className="flex items-center gap-2">
@@ -444,7 +444,7 @@ export default function FocusForgeAIAssistant({
                 <button
                   onClick={() => handleAskFocusForge()}
                   disabled={isLoading}
-                  className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-medium text-xs shadow-lg shadow-violet-600/25 transition disabled:opacity-50 shrink-0 cursor-pointer"
+                  className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-medium text-xs  transition disabled:opacity-50 shrink-0 cursor-pointer"
                 >
                   {isLoading && activeAction === "executeAgenticTask" ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
@@ -493,7 +493,7 @@ export default function FocusForgeAIAssistant({
               <div className="p-5 rounded-2xl bg-gradient-to-br from-violet-950/30 via-indigo-950/20 to-[var(--color-bg-base)] border border-violet-500/30 space-y-3 shadow-xl">
                 <div className="flex items-center gap-2">
                   <div className="w-6 h-6 rounded-lg bg-violet-500/20 text-violet-300 flex items-center justify-center text-xs font-bold">
-                    <Sparkles className="w-3.5 h-3.5" />
+                    <Bot className="w-3.5 h-3.5" />
                   </div>
                   <span className="text-xs font-bold uppercase tracking-wider text-violet-300">
                     FocusForge Intelligence
@@ -563,12 +563,12 @@ export default function FocusForgeAIAssistant({
                 <button
                   onClick={handleWhatShouldIDo}
                   disabled={isLoading}
-                  className="mt-4 sm:mt-0 flex items-center gap-2 px-4 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-medium text-xs shadow-lg shadow-violet-600/25 transition disabled:opacity-50 cursor-pointer"
+                  className="mt-4 sm:mt-0 flex items-center gap-2 px-4 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-medium text-xs  transition disabled:opacity-50 cursor-pointer"
                 >
                   {isLoading && activeAction === "whatShouldIDo" ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
                   ) : (
-                    <Sparkles className="w-4 h-4" />
+                    <Bot className="w-4 h-4" />
                   )}
                   Pick My Action
                 </button>
@@ -663,7 +663,7 @@ export default function FocusForgeAIAssistant({
                 <button
                   onClick={handleBreakdown}
                   disabled={isLoading}
-                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-medium text-xs shadow-lg shadow-violet-600/25 transition disabled:opacity-50 shrink-0 cursor-pointer"
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-medium text-xs  transition disabled:opacity-50 shrink-0 cursor-pointer"
                 >
                   {isLoading && activeAction === "taskBreakdown" ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
@@ -773,7 +773,7 @@ export default function FocusForgeAIAssistant({
                 <button
                   onClick={handleParse}
                   disabled={isLoading}
-                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-medium text-xs shadow-lg shadow-violet-600/25 transition disabled:opacity-50 shrink-0 cursor-pointer"
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-medium text-xs  transition disabled:opacity-50 shrink-0 cursor-pointer"
                 >
                   {isLoading && activeAction === "parseTask" ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
@@ -885,7 +885,7 @@ export default function FocusForgeAIAssistant({
               <button
                 onClick={handlePlanDay}
                 disabled={isLoading}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-medium text-xs shadow-lg shadow-violet-600/25 transition disabled:opacity-50 shrink-0 cursor-pointer"
+                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-medium text-xs  transition disabled:opacity-50 shrink-0 cursor-pointer"
               >
                 {isLoading && activeAction === "dailyPlanner" ? (
                   <Loader2 className="w-4 h-4 animate-spin" />

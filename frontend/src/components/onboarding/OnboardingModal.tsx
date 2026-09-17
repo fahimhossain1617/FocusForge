@@ -64,7 +64,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
       theme: {
         ...state.theme,
         mode,
-        background: mode === "light" ? "#F8FAFC" : "#070A12",
+        background: mode === "light" ? "#F8FAFC" : "#08090C",
       },
     });
     onboardingStorage.saveLocalState({ preferredTheme: mode });

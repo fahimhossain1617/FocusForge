@@ -418,7 +418,7 @@ export default function AuthModal() {
           <img 
             src="/logo.png" 
             alt="FocusForge" 
-            className="w-8 h-8 rounded-xl object-cover shadow-lg shadow-blue-500/20 border border-blue-500/30"
+            className="w-8 h-8 rounded-xl object-cover  border border-blue-500/30"
           />
           <span className="font-bold tracking-tight text-white text-base">FocusForge</span>
         </div>
@@ -476,7 +476,7 @@ export default function AuthModal() {
                   setErrorMessage(null);
                   setAuthView('login');
                 }}
-                className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-semibold text-sm text-white shadow-lg shadow-blue-500/25 transition-all hover:opacity-95"
+                className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-semibold text-sm text-white  transition-all hover:opacity-95"
                 style={{ background: "linear-gradient(135deg, #2563EB, #3B82F6)" }}
               >
                 <Mail size={16} />
@@ -540,12 +540,13 @@ export default function AuthModal() {
 
             {/* Email Address Input */}
             <div>
-              <label className="block text-xs font-semibold text-zinc-300 mb-1.5">
+              <label htmlFor="loginEmail" className="block text-xs font-semibold text-zinc-300 mb-1.5">
                 {t.auth.emailAddress}
               </label>
               <div className="relative">
                 <Mail size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none z-10" />
                 <input
+                  id="loginEmail"
                   type="email"
                   required
                   value={email}
@@ -560,7 +561,7 @@ export default function AuthModal() {
             {/* Password Input */}
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <label className="text-xs font-semibold text-zinc-300">
+                <label htmlFor="loginPassword" className="text-xs font-semibold text-zinc-300">
                   {t.auth.password}
                 </label>
                 <button
@@ -574,6 +575,7 @@ export default function AuthModal() {
               <div className="relative">
                 <Lock size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none z-10" />
                 <input
+                  id="loginPassword"
                   type={showPassword ? "text" : "password"}
                   required
                   value={password}
@@ -612,7 +614,7 @@ export default function AuthModal() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-semibold text-sm text-white shadow-lg shadow-blue-500/25 transition-all hover:opacity-95 disabled:opacity-50 cursor-pointer"
+              className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-semibold text-sm text-white  transition-all hover:opacity-95 disabled:opacity-50 cursor-pointer"
               style={{ background: "linear-gradient(135deg, #2563EB, #3B82F6)" }}
             >
               {isLoading && <Loader2 size={16} className="animate-spin" />}
@@ -675,12 +677,13 @@ export default function AuthModal() {
 
             {/* Email Address Input */}
             <div>
-              <label className="block text-xs font-semibold text-zinc-300 mb-1.5">
+              <label htmlFor="signupEmail" className="block text-xs font-semibold text-zinc-300 mb-1.5">
                 {t.auth.emailAddress}
               </label>
               <div className="relative">
                 <Mail size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none z-10" />
                 <input
+                  id="signupEmail"
                   type="email"
                   required
                   value={email}
@@ -695,7 +698,7 @@ export default function AuthModal() {
             {/* Continue Button */}
             <button
               type="submit"
-              className="w-full py-3 px-4 rounded-xl font-semibold text-sm text-white shadow-lg shadow-blue-500/25 transition-all hover:opacity-95 cursor-pointer"
+              className="w-full py-3 px-4 rounded-xl font-semibold text-sm text-white  transition-all hover:opacity-95 cursor-pointer"
               style={{ background: "linear-gradient(135deg, #2563EB, #3B82F6)" }}
             >
               {t.auth.continue}
@@ -745,12 +748,13 @@ export default function AuthModal() {
 
             {/* Password Input */}
             <div>
-              <label className="block text-xs font-semibold text-zinc-300 mb-1.5">
+              <label htmlFor="signupPassword" className="block text-xs font-semibold text-zinc-300 mb-1.5">
                 {t.auth.password}
               </label>
               <div className="relative">
                 <Lock size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none z-10" />
                 <input
+                  id="signupPassword"
                   type={showPassword ? "text" : "password"}
                   required
                   value={password}
@@ -820,7 +824,7 @@ export default function AuthModal() {
             <button
               type="submit"
               disabled={isLoading || password.length < 8}
-              className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-semibold text-sm text-white shadow-lg shadow-blue-500/25 transition-all hover:opacity-95 disabled:opacity-50 cursor-pointer"
+              className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-semibold text-sm text-white  transition-all hover:opacity-95 disabled:opacity-50 cursor-pointer"
               style={{ background: "linear-gradient(135deg, #2563EB, #3B82F6)" }}
             >
               {isLoading && <Loader2 size={16} className="animate-spin" />}
@@ -917,7 +921,7 @@ export default function AuthModal() {
             <button
               type="submit"
               disabled={isLoading || otpDigits.some(d => !d)}
-              className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-semibold text-sm text-white shadow-lg shadow-blue-500/25 transition-all hover:opacity-95 disabled:opacity-50 cursor-pointer"
+              className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-semibold text-sm text-white  transition-all hover:opacity-95 disabled:opacity-50 cursor-pointer"
               style={{ background: "linear-gradient(135deg, #2563EB, #3B82F6)" }}
             >
               {isLoading && <Loader2 size={16} className="animate-spin" />}
@@ -964,12 +968,13 @@ export default function AuthModal() {
 
             {/* Email input */}
             <div>
-              <label className="block text-xs font-semibold text-zinc-300 mb-1.5">
+              <label htmlFor="forgotEmail" className="block text-xs font-semibold text-zinc-300 mb-1.5">
                 {t.auth.emailAddress}
               </label>
               <div className="relative">
                 <Mail size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none z-10" />
                 <input
+                  id="forgotEmail"
                   type="email"
                   required
                   value={email}
@@ -984,7 +989,7 @@ export default function AuthModal() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-semibold text-sm text-white shadow-lg shadow-blue-500/25 transition-all hover:opacity-95 disabled:opacity-50 cursor-pointer"
+              className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-semibold text-sm text-white  transition-all hover:opacity-95 disabled:opacity-50 cursor-pointer"
               style={{ background: "linear-gradient(135deg, #2563EB, #3B82F6)" }}
             >
               {isLoading && <Loader2 size={16} className="animate-spin" />}
@@ -1048,7 +1053,7 @@ export default function AuthModal() {
             <button
               type="submit"
               disabled={isLoading || !password || password !== confirmPassword}
-              className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-semibold text-sm text-white shadow-lg shadow-blue-500/25 transition-all hover:opacity-95 disabled:opacity-50 cursor-pointer"
+              className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-semibold text-sm text-white  transition-all hover:opacity-95 disabled:opacity-50 cursor-pointer"
               style={{ background: "linear-gradient(135deg, #2563EB, #3B82F6)" }}
             >
               {isLoading && <Loader2 size={16} className="animate-spin" />}

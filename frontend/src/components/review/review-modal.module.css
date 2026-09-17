@@ -62,23 +62,27 @@
   position: absolute;
   top: 16px;
   right: 16px;
+  z-index: 10;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(15, 23, 42, 0.4);
   border: 1px solid rgba(255, 255, 255, 0.1);
   color: #94a3b8;
   cursor: pointer;
-  transition: all 0.18s ease;
+  transition: transform 0.12s ease-in-out;
 }
 
 .closeButton:hover {
-  background: rgba(255, 255, 255, 0.12);
+  background: rgba(30, 41, 59, 0.8);
   color: #f8fafc;
-  transform: scale(1.05);
+}
+
+.closeButton:active {
+  transform: scale(0.95);
 }
 
 :global([data-theme="light"]) .closeButton {
@@ -152,7 +156,7 @@
   cursor: pointer;
   padding: 6px;
   color: #475569;
-  transition: transform 0.15s ease, color 0.15s ease;
+  transition: transform 0.12s ease-in-out, color 0.12s ease-in-out;
   border-radius: 8px;
   display: flex;
   align-items: center;
@@ -160,11 +164,11 @@
 }
 
 .starButton:hover {
-  transform: scale(1.18);
+  background: rgba(255, 255, 255, 0.04);
 }
 
 .starButton:active {
-  transform: scale(0.95);
+  transform: scale(0.95) !important;
 }
 
 .starActive {
@@ -251,20 +255,24 @@
 }
 
 .skipButton {
-  padding: 10px 18px;
-  border-radius: 12px;
   background: transparent;
   border: 1px solid transparent;
   color: #94a3b8;
   font-size: 13.5px;
-  font-weight: 550;
+  font-weight: 500;
+  padding: 10px 16px;
+  border-radius: 10px;
   cursor: pointer;
-  transition: all 0.18s ease;
+  transition: transform 0.12s ease-in-out;
 }
 
 .skipButton:hover {
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.05);
   color: #f1f5f9;
+}
+
+.skipButton:active {
+  transform: scale(0.95);
 }
 
 :global([data-theme="light"]) .skipButton {
@@ -277,30 +285,28 @@
 }
 
 .submitButton {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 10px 22px;
-  border-radius: 12px;
-  background: linear-gradient(135deg, #2563eb, #3b82f6);
-  border: 1px solid rgba(96, 165, 250, 0.4);
+  background: #2563eb;
+  border: none;
+  border-radius: 10px;
   color: #ffffff;
-  font-size: 13.5px;
+  font-size: 14px;
   font-weight: 600;
+  padding: 12px 24px;
   cursor: pointer;
-  box-shadow: 0 4px 16px rgba(37, 99, 235, 0.35);
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: transform 0.12s ease-in-out;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: none !important;
 }
 
 .submitButton:hover:not(:disabled) {
-  background: linear-gradient(135deg, #1d4ed8, #2563eb);
-  box-shadow: 0 6px 20px rgba(37, 99, 235, 0.5);
-  transform: translateY(-1px);
+  background: #2563eb;
+  box-shadow: none !important;
 }
 
 .submitButton:active:not(:disabled) {
-  transform: scale(0.98);
+  transform: scale(0.95) !important;
 }
 
 .submitButton:disabled {

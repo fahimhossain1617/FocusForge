@@ -216,7 +216,7 @@ export default function FocusForgeSelect({
           disabled ? "opacity-50 cursor-not-allowed" : "hover:border-blue-500/50"
         } ${
           isOpen
-            ? "border-blue-500 ring-2 ring-blue-500/20 shadow-[0_0_12px_rgba(59,130,246,0.15)]"
+            ? "border-blue-500 ring-2 ring-blue-500/20 "
             : ""
         }`}
         style={{
@@ -277,7 +277,7 @@ export default function FocusForgeSelect({
                     option.disabled ? "opacity-40 cursor-not-allowed" : ""
                   } ${
                     isSelected
-                      ? "bg-blue-600/20 text-blue-400 shadow-[inset_0_0_8px_rgba(59,130,246,0.1)]"
+                      ? "bg-blue-600/20 text-blue-400 "
                       : isHighlighted
                       ? "bg-white/10 dark:bg-white/5 text-white"
                       : "text-zinc-300 dark:text-zinc-300 hover:text-white"

@@ -79,7 +79,7 @@ export default function DiaryPageNavigation({
         <button
           type="button"
           onClick={onNewPage}
-          className="btn-accent-solid flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-white bg-blue-600 hover:bg-blue-500 shadow-sm shadow-blue-600/25 transition-all cursor-pointer"
+          className="btn-accent-solid flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-white bg-blue-600 hover:bg-blue-500  transition-all cursor-pointer"
           style={{ color: "#FFFFFF" }}
           title={t.diary?.newPage || "+ New Page"}
         >

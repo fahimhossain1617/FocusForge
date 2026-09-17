@@ -153,7 +153,7 @@ export default function LinkInsertModal({ isOpen, onClose, onAddLink }: LinkInse
             </button>
             <button
               type="submit"
-              className="px-5 py-2 rounded-xl text-xs font-semibold text-white bg-blue-600 hover:bg-blue-500 shadow-lg shadow-blue-600/20 transition-all flex items-center gap-1.5 cursor-pointer"
+              className="px-5 py-2 rounded-xl text-xs font-semibold text-white bg-blue-600 hover:bg-blue-500  transition-all flex items-center gap-1.5 cursor-pointer"
             >
               <ExternalLink size={13} />
               Add Link

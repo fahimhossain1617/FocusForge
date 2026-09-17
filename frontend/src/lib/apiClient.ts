@@ -29,21 +29,43 @@ export async function fetchBackend<T>(endpoint: string, options: RequestInit = {
     ? endpoint 
     : `${backendBase}${endpoint.startsWith('/') ? '' : '/'}${endpoint}`;
 
-  const response = await fetch(url, {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+  const fetchOptions: RequestInit = {
     ...options,
     headers,
-  });
+    signal: options.signal || controller.signal,
+  };
 
-  if (!response.ok) {
-    let errorMsg = 'Backend API request failed';
-    try {
-      const errorData = await response.json();
-      errorMsg = errorData.error || errorMsg;
-    } catch {
-      // If not JSON, ignore
+  try {
+    const response = await fetch(url, fetchOptions);
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      if (response.status === 401) {
+        throw new Error('Your session has expired. Please log in again.');
+      }
+      
+      let errorMsg = 'Backend API request failed';
+      try {
+        const errorData = await response.json();
+        errorMsg = errorData.error || errorMsg;
+      } catch {
+        // If not JSON, ignore
+      }
+      throw new Error(errorMsg);
     }
-    throw new Error(errorMsg);
-  }
 
-  return response.json() as Promise<T>;
+    return response.json() as Promise<T>;
+  } catch (error: any) {
+    clearTimeout(timeoutId);
+    if (error.name === 'AbortError' && !options.signal) {
+      throw new Error('Request timed out. Please check your connection and try again.');
+    }
+    if (error.message === 'Failed to fetch' || error.message.includes('NetworkError')) {
+      throw new Error('Network error. Please check your internet connection.');
+    }
+    throw error;
+  }
 }

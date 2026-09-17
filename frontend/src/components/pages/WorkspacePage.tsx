@@ -105,7 +105,7 @@ export default function WorkspacePage() {
   }
 
   return (
-    <div className="notes-workspace motion-page w-full flex flex-col relative pb-16">
+    <div className="motion-page w-full flex flex-col relative pb-16">
       
       {/* Header section */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-6">
@@ -148,7 +148,7 @@ export default function WorkspacePage() {
           </div>
           <button
             onClick={openNewNote}
-            className="btn-primary notes-new-note px-5 py-2.5 font-semibold flex items-center gap-2 whitespace-nowrap shadow-lg shadow-blue-500/20 active:scale-95 transition-all cursor-pointer"
+            className="btn-primary notes-new-note px-5 py-2.5 font-semibold flex items-center gap-2 whitespace-nowrap  active:scale-95 transition-all cursor-pointer"
           >
             <Plus className="w-4 h-4" />
             <span>{isBn ? "নতুন নোট" : "New Note"}</span>
@@ -167,7 +167,7 @@ export default function WorkspacePage() {
               onClick={() => setSelectedCategory(cat)}
               className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
                 isSelected
-                  ? "bg-blue-600 text-white shadow-md shadow-blue-500/20"
+                  ? "bg-blue-600 text-white "
                   : "bg-white/5 text-zinc-400 hover:bg-white/10 hover:text-zinc-200 border border-white/5"
               }`}
             >

@@ -1,31 +1,63 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useMemo, useState } from "react";
+import {
+  CalendarDays,
+  Check,
+  Clock3,
+  MoreVertical,
+  Plus,
+  Target,
+  Layers,
+  TrendingUp,
+  Code2,
+  Terminal,
+  BookOpen,
+  Palette,
+  Globe,
+  ArrowUpRight,
+  ArrowDownRight,
+  Calendar,
+  Coffee,
+  AlertCircle,
+} from "lucide-react";
 import { useAppContext } from "../../context/AppContext";
+import { useAuth } from "../../context/AuthContext";
 import { useTranslation } from "../../hooks/useTranslation";
-import { ResponsiveContainer, ComposedChart, Bar, Line, XAxis, YAxis, Tooltip, Cell } from "recharts";
-import { Shield, Play, CalendarDays, Clock, ArrowRight, Check, Plus, Flame } from "lucide-react";
 import { getLocalDateString } from "../../services/taskService";
 
-// --- Helpers ---
-function getGreeting(t: any): string {
+type ProgressView = "weekly" | "monthly";
+
+interface TaskItem {
+  id: string;
+  taskId?: number;
+  blockId?: string;
+  name: string;
+  completed: boolean;
+  time?: string;
+}
+
+interface SkillDisplay {
+  id: string;
+  name: string;
+  progress: number;
+  icon: typeof Code2;
+  iconBg: string;
+}
+
+function greetingText(name: string) {
   const hour = new Date().getHours();
-  if (hour < 6) return t.dashboard.greeting.night;
-  if (hour < 12) return t.dashboard.greeting.morning;
-  if (hour < 17) return t.dashboard.greeting.afternoon;
-  if (hour < 21) return t.dashboard.greeting.evening;
-  return t.dashboard.greeting.night;
+  let timeGreeting = "Good Evening";
+  if (hour < 12) timeGreeting = "Good Morning";
+  else if (hour < 17) timeGreeting = "Good Afternoon";
+  else if (hour < 21) timeGreeting = "Good Evening";
+  else timeGreeting = "Good Night";
+
+  return `${timeGreeting}, ${name}`;
 }
 
-function formatDate(): string {
-  return new Date().toLocaleDateString("en-US", {
-    weekday: "long",
-    month: "long",
-    day: "numeric",
-  });
-}
-
-function formatHoursMins(totalMins: number): string {
+function formatMinutes(totalMins: number): string {
+  if (totalMins <= 0) return "0m";
   const h = Math.floor(totalMins / 60);
   const m = Math.round(totalMins % 60);
   if (h === 0) return `${m}m`;
@@ -33,741 +65,974 @@ function formatHoursMins(totalMins: number): string {
   return `${h}h ${m}m`;
 }
 
-function formatTime12hr(time24: string): string {
-  if (!time24) return "";
-  const [hourStr, minStr] = time24.split(":");
-  let hour = parseInt(hourStr, 10);
-  if (isNaN(hour)) return time24;
-  const ampm = hour >= 12 ? "PM" : "AM";
-  hour = hour % 12;
-  if (hour === 0) hour = 12;
-  return `${hour}:${minStr || "00"} ${ampm}`;
-}
-
-function getLast7Days() {
-  const dates = [];
-  for (let i = 6; i >= 0; i--) {
-    const d = new Date();
-    d.setDate(d.getDate() - i);
-    dates.push(d.toISOString().split("T")[0]);
-  }
-  return dates;
-}
-
-// Real dynamic monthly data starting from day one
-function getMonthlyData(actualWeeklyHours: number, completedTasksCount: number) {
-  return [
-    { name: "Week 1", hours: 0, tasks: 0 },
-    { name: "Week 2", hours: 0, tasks: 0 },
-    { name: "Week 3", hours: 0, tasks: 0 },
-    { name: "This Week", hours: actualWeeklyHours, tasks: completedTasksCount, isCurrent: true },
-  ];
-}
-
-interface DashboardPageProps {
-  onOpenSidebar?: () => void;
-}
-
-export default function DashboardPage({ onOpenSidebar }: DashboardPageProps) {
-  const { state, navigateTo, getDailyBig3, cycleTaskStatus, updateTask, updateTimeBlock } = useAppContext();
+export default function DashboardPage() {
+  const { state, navigateTo, updateTask, addTask, isLoaded } = useAppContext();
+  const { user } = useAuth();
   const { t } = useTranslation();
-  // Timezone-safe local date
   const today = getLocalDateString();
-  
-  const [activeTab, setActiveTab] = useState<"weekly" | "monthly">("weekly");
-  const [touchStart, setTouchStart] = useState<number | null>(null);
-  const [touchEnd, setTouchEnd] = useState<number | null>(null);
 
-  // --- Unified Today's Tasks connected with Planner ---
-  interface TodayTaskItem {
-    key: string;
-    type: 'task' | 'block';
-    id: number | string;
-    taskId?: number;
-    blockId?: string;
-    name: string;
-    completed: boolean;
-    time?: string;
-    endTime?: string;
-    category?: string;
-    priority?: string;
-  }
+  const [progressView, setProgressView] = useState<ProgressView>("weekly");
+  const [hoveredDay, setHoveredDay] = useState<string | null>(null);
+  const [selectedDate, setSelectedDate] = useState<string>(today);
 
-  const todayBlocks = (state.timeBlocks || []).filter((b) => b.date === today);
-  const scheduledTasks = (state.tasks || []).filter(
-    (t) => t.targetDate === today || t.date === today
-  );
+  // Dynamic 7-day Weekly Data (Ending Today)
+  const weeklyData = useMemo(() => {
+    const days = [];
+    const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
-  const todayUnifiedTasks: TodayTaskItem[] = [];
-  const processedBlockIds = new Set<string>();
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, "0");
+      const dayNum = String(d.getDate()).padStart(2, "0");
+      const fullDate = `${y}-${m}-${dayNum}`;
+      const dayName = dayNames[d.getDay()];
+      const dateLabel = `${d.getDate()} ${monthNames[d.getMonth()]}`;
 
-  // 1. Every scheduled task for today gets its own single, distinct entry
-  scheduledTasks.forEach((task) => {
-    // Find linked timeBlock strictly by matching taskId
-    const linkedBlock = todayBlocks.find(
-      (b) => b.taskId != null && String(b.taskId) === String(task.id)
+      // Calculate real focus minutes from focusSessions + activities for this day
+      const daySessions = (state.focusSessions || []).filter((s) => {
+        const sDate = s.startedAt ? s.startedAt.split("T")[0] : "";
+        return sDate === fullDate;
+      });
+      const sessionsMins = daySessions.reduce((acc, s) => acc + (s.durationMinutes || 0), 0);
+
+      const dayActivities = (state.activities || []).filter((a) => a.date === fullDate);
+      const activitiesMins = dayActivities.reduce((acc, a) => acc + (a.totalMinutes || (a.hours * 60 + a.minutes) || 0), 0);
+
+      const totalDayFocusMinutes = sessionsMins + activitiesMins;
+
+      // Calculate real tasks for this day
+      const dayTasks = (state.tasks || []).filter((t) => t.targetDate === fullDate || t.date === fullDate);
+      const tasksDone = dayTasks.filter((t) => t.completed || t.status === "completed").length;
+      const isPast = fullDate < today;
+      const tasksMissed = isPast ? dayTasks.filter((t) => !t.completed && t.status !== "completed").length : 0;
+
+      days.push({
+        day: dayName,
+        date: dateLabel,
+        fullDate,
+        focusTime: formatMinutes(totalDayFocusMinutes),
+        focusMinutes: totalDayFocusMinutes,
+        tasksDone,
+        tasksMissed,
+        totalTasks: dayTasks.length,
+      });
+    }
+    return days;
+  }, [state.focusSessions, state.activities, state.tasks, today]);
+
+  // Dynamic 4-Week Monthly Data
+  const monthlyWeeks = useMemo(() => {
+    const weeks = [];
+    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+    for (let w = 3; w >= 0; w--) {
+      const end = new Date();
+      end.setDate(end.getDate() - w * 7);
+      const start = new Date(end);
+      start.setDate(start.getDate() - 6);
+
+      const startLabel = `${monthNames[start.getMonth()]} ${start.getDate()}`;
+      const endLabel = `${monthNames[end.getMonth()]} ${end.getDate()}`;
+      const range = `${startLabel} – ${endLabel}`;
+
+      const startStr = getLocalDateString(start);
+      const endStr = getLocalDateString(end);
+
+      const weekSessions = (state.focusSessions || []).filter((s) => {
+        const sDate = s.startedAt ? s.startedAt.split("T")[0] : "";
+        return sDate >= startStr && sDate <= endStr;
+      });
+      const sessMins = weekSessions.reduce((acc, s) => acc + (s.durationMinutes || 0), 0);
+
+      const weekActivities = (state.activities || []).filter((a) => a.date >= startStr && a.date <= endStr);
+      const actMins = weekActivities.reduce((acc, a) => acc + (a.totalMinutes || (a.hours * 60 + a.minutes) || 0), 0);
+
+      const totalWeekFocusMins = sessMins + actMins;
+
+      const weekTasks = (state.tasks || []).filter((t) => {
+        const tDate = t.targetDate || t.date || "";
+        return tDate >= startStr && tDate <= endStr;
+      });
+      const doneCount = weekTasks.filter((t) => t.completed || t.status === "completed").length;
+      const totalCount = weekTasks.length;
+
+      const taskPercent = totalCount > 0 
+        ? Math.round((doneCount / totalCount) * 100) 
+        : (totalWeekFocusMins > 0 ? Math.min(100, Math.round((totalWeekFocusMins / 900) * 100)) : 0);
+
+      weeks.push({
+        week: `Week ${4 - w}`,
+        range,
+        startStr,
+        endStr,
+        percent: taskPercent,
+        focusTime: formatMinutes(totalWeekFocusMins),
+        focusMinutes: totalWeekFocusMins,
+        tasksDone: `${doneCount} / ${totalCount}`,
+        doneCount,
+        totalCount,
+        missedCount: Math.max(0, totalCount - doneCount),
+      });
+    }
+    return weeks;
+  }, [state.focusSessions, state.activities, state.tasks]);
+
+  // Derive display tasks for the selected date
+  const tasksList: TaskItem[] = useMemo(() => {
+    const realDayTasks = (state.tasks || []).filter(
+      (task) => task.targetDate === selectedDate || task.date === selectedDate
     );
-
-    if (linkedBlock) {
-      processedBlockIds.add(String(linkedBlock.id));
+    if (realDayTasks.length > 0) {
+      return realDayTasks.map((t) => ({
+        id: `task-${t.id}`,
+        taskId: t.id,
+        name: t.name || t.title || "Untitled Task",
+        completed: Boolean(t.completed || t.status === "completed"),
+        time: t.time || (t.reminderTime ? t.reminderTime : "10:00 AM"),
+      }));
     }
 
-    const isCompleted = Boolean(task.status === "completed" || task.completed === true);
+    const clickedWeek = monthlyWeeks.find((w) => w.week === selectedDate);
+    if (clickedWeek) {
+      const weekTasks = (state.tasks || []).filter((t) => {
+        const tDate = t.targetDate || t.date || "";
+        return tDate >= clickedWeek.startStr && tDate <= clickedWeek.endStr;
+      });
+      if (weekTasks.length > 0) {
+        return weekTasks.map((t) => ({
+          id: `task-${t.id}`,
+          taskId: t.id,
+          name: t.name || t.title || "Untitled Task",
+          completed: Boolean(t.completed || t.status === "completed"),
+          time: t.time || (t.reminderTime ? t.reminderTime : "10:00 AM"),
+        }));
+      }
+    }
+    
+    return [];
+  }, [state.tasks, selectedDate, monthlyWeeks]);
 
-    todayUnifiedTasks.push({
-      key: `task-${task.id}`,
-      type: 'task',
-      id: task.id,
-      taskId: task.id,
-      blockId: linkedBlock?.id,
-      name: task.name || task.title || "Untitled Task",
-      completed: isCompleted,
-      time: task.time || linkedBlock?.startTime,
-      endTime: linkedBlock?.endTime,
-      category: task.category || linkedBlock?.category,
-      priority: task.priority,
-    });
-  });
+  const completedCount = tasksList.filter((t) => t.completed).length;
+  const pendingCount = tasksList.length - completedCount;
 
-  // 2. Only orphaned timeBlocks (if any) that have NO linked task
-  todayBlocks.forEach((block) => {
-    const blockIdStr = String(block.id);
-    if (processedBlockIds.has(blockIdStr)) return;
-    if (block.taskId != null && scheduledTasks.some((t) => String(t.id) === String(block.taskId))) return;
-
-    todayUnifiedTasks.push({
-      key: `block-${block.id}`,
-      type: 'block',
-      id: block.id,
-      blockId: block.id,
-      name: block.label || "Untitled Event",
-      completed: Boolean(block.completed),
-      time: block.startTime,
-      endTime: block.endTime,
-      category: block.category,
-    });
-  });
-
-  // STABLE SORT: Sort ONLY by scheduled start time
-  todayUnifiedTasks.sort((a, b) => {
-    if (a.time && b.time) return a.time.localeCompare(b.time);
-    if (a.time) return -1;
-    if (b.time) return 1;
-    return 0;
-  });
-
-  const completedToday = todayUnifiedTasks.filter((t) => t.completed).length;
-  const totalTasksToday = todayUnifiedTasks.length;
-  const taskCompletionRate = totalTasksToday > 0 ? (completedToday / totalTasksToday) * 100 : 0;
-
-  const handleToggleTask = (item: TodayTaskItem) => {
-    const nextCompleted = !item.completed;
-
-    if (item.type === 'task' && item.taskId != null) {
+  // Toggle task completion
+  const handleToggleTask = (item: TaskItem) => {
+    if (item.taskId !== undefined) {
+      const nextCompleted = !item.completed;
       updateTask(item.taskId, {
         completed: nextCompleted,
         status: nextCompleted ? "completed" : "not_started",
       });
-      if (item.blockId) {
-        updateTimeBlock(item.blockId, {
-          completed: nextCompleted,
+    }
+  };
+
+  // Skills list with clean inline progress bars (100% dynamic from real user folders)
+  const skillsList: SkillDisplay[] = useMemo(() => {
+    if (state.learningFolders && state.learningFolders.length > 0) {
+      const iconPalette = [
+        { icon: Code2, bg: "text-amber-400 bg-amber-500/10 border-amber-500/20" },
+        { icon: Terminal, bg: "text-blue-400 bg-blue-500/10 border-blue-500/20" },
+        { icon: BookOpen, bg: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20" },
+        { icon: Palette, bg: "text-purple-400 bg-purple-500/10 border-purple-500/20" },
+        { icon: Globe, bg: "text-cyan-400 bg-cyan-500/10 border-cyan-500/20" },
+      ];
+
+      return state.learningFolders.slice(0, 5).map((folder, idx) => {
+        const pal = iconPalette[idx % iconPalette.length];
+        const logs = (state.learningLogs || []).filter((l) => l.folderId === folder.id);
+        const totalMinutes = logs.reduce((acc, l) => acc + l.watchMinutes + l.practiceMinutes, 0);
+        const progress = folder.completed ? 100 : Math.min(95, Math.round(totalMinutes / 12));
+
+        return {
+          id: folder.id,
+          name: folder.name,
+          progress: folder.completed ? 100 : progress,
+          icon: pal.icon,
+          iconBg: pal.bg,
+        };
+      });
+    }
+
+    return [];
+  }, [state.learningFolders, state.learningLogs]);
+
+  const isToday = selectedDate === today;
+  let tasksTitle = "Today's Tasks";
+  let focusTitle = "Today's Focus";
+  if (!isToday) {
+    const matchingDay = weeklyData.find((d) => d.fullDate === selectedDate);
+    const matchingWeek = monthlyWeeks.find((w) => w.week === selectedDate);
+    if (matchingDay) {
+      tasksTitle = `Tasks (${matchingDay.day}, ${matchingDay.date})`;
+      focusTitle = `Focus (${matchingDay.day}, ${matchingDay.date})`;
+    } else if (matchingWeek) {
+      tasksTitle = `Tasks (${matchingWeek.week})`;
+      focusTitle = `Focus (${matchingWeek.week})`;
+    } else {
+      tasksTitle = `Tasks (${selectedDate})`;
+      focusTitle = `Focus (${selectedDate})`;
+    }
+  }
+
+  // Focus stats for selectedDate / selectedWeek (Seamless contiguous proportional calculation)
+  const selectedFocusStats = useMemo(() => {
+    const clickedWeek = monthlyWeeks.find((w) => w.week === selectedDate);
+    if (clickedWeek) {
+      const focusMins = clickedWeek.focusMinutes;
+      const breakMins = Math.round(focusMins * 0.15);
+      const totalActive = focusMins + breakMins;
+      const C = 238.761;
+
+      const focusRatio = totalActive > 0 ? focusMins / totalActive : 0;
+      const breakRatio = totalActive > 0 ? breakMins / totalActive : 0;
+
+      return {
+        focusTime: clickedWeek.focusTime,
+        focusMinutes: focusMins,
+        breakTime: formatMinutes(breakMins),
+        breakMinutes: breakMins,
+        distractionCount: 0,
+        distractionMinutes: 0,
+        distractionSummary: "Calculated across weekly total",
+        totalActiveMinutes: totalActive,
+        focusLen: focusRatio * C,
+        breakLen: breakRatio * C,
+        distractionLen: 0,
+        focusOffset: 0,
+        breakOffset: -(focusRatio * C),
+        distractionOffset: -(focusRatio * C + breakRatio * C),
+      };
+    }
+
+    // Day calculations
+    const daySessions = (state.focusSessions || []).filter((s) => {
+      const sDate = s.startedAt ? s.startedAt.split("T")[0] : "";
+      return sDate === selectedDate;
+    });
+    const sessFocusMins = daySessions.reduce((acc, s) => acc + (s.durationMinutes || 0), 0);
+    const sessBreakMins = daySessions.reduce((acc, s) => acc + (s.breakMinutes || 0), 0);
+
+    const dayActivities = (state.activities || []).filter((a) => a.date === selectedDate);
+    const actFocusMins = dayActivities
+      .filter((a) => a.category !== 'Break')
+      .reduce((acc, a) => acc + (a.totalMinutes || (a.hours * 60 + a.minutes) || 0), 0);
+    const actBreakMins = dayActivities
+      .filter((a) => a.category === 'Break')
+      .reduce((acc, a) => acc + (a.totalMinutes || (a.hours * 60 + a.minutes) || 0), 0);
+
+    const totalFocusMins = sessFocusMins + actFocusMins;
+    const totalBreakMins = sessBreakMins + actBreakMins;
+
+    const distractionsList: string[] = [];
+    daySessions.forEach((s) => {
+      if (Array.isArray(s.distractions)) {
+        s.distractions.forEach((d) => {
+          if (d.content) distractionsList.push(d.content);
         });
       }
-    } else if (item.type === 'block' && item.blockId != null) {
-      updateTimeBlock(item.blockId, {
-        completed: nextCompleted,
-      });
-    }
-  };
-
-  const big3 = getDailyBig3();
-  const hasBig3 = big3.length > 0;
-  const pendingTasks = state.tasks.filter((t) => t.status !== "completed");
-  const nextFocus = hasBig3
-    ? big3.find((t) => t.status !== "completed")
-    : pendingTasks.sort((a, b) => {
-        const po = { urgent: 0, high: 1, medium: 2, low: 3 };
-        return (po[a.priority] || 3) - (po[b.priority] || 3);
-      })[0];
-
-  // --- Activity Data ---
-  const todayActivities = state.activities.filter((a) => a.date === today);
-  const totalMinutesToday = todayActivities.reduce((acc, a) => acc + a.totalMinutes, 0);
-
-  // Focus Sessions
-  const todaySessions = state.focusSessions.filter(
-    (s) => s.startedAt.split("T")[0] === today && s.completed
-  );
-  const focusMinutesToday = todaySessions.reduce((a, s) => a + s.durationMinutes, 0);
-  
-  // Total Productive Time
-  const totalProductiveMins = totalMinutesToday + focusMinutesToday;
-  const targetProductiveMins = 4 * 60; // 4 hours target
-  const productiveProgress = Math.min((totalProductiveMins / targetProductiveMins) * 100, 100);
-
-  // --- Streak & Consistency ---
-  const activeDates = new Set([
-    ...state.activities.map((a) => a.date),
-    ...state.focusSessions.filter((s) => s.completed).map((s) => s.startedAt.split("T")[0]),
-  ]);
-  let streakCount = 0;
-  const checkDate = new Date();
-  const todayStrDate = checkDate.toISOString().split("T")[0];
-  if (!activeDates.has(todayStrDate)) {
-    checkDate.setDate(checkDate.getDate() - 1);
-  }
-  while (activeDates.has(checkDate.toISOString().split("T")[0])) {
-    streakCount++;
-    checkDate.setDate(checkDate.getDate() - 1);
-  }
-  const currentStreak = streakCount;
-  const last7Days = getLast7Days();
-  const weeklyData = last7Days.map(date => {
-    const dayActivities = state.activities.filter(a => a.date === date);
-    const daySessions = state.focusSessions.filter(s => s.startedAt.split("T")[0] === date && s.completed);
-    
-    let totalMins = 0;
-    dayActivities.forEach(a => totalMins += a.totalMinutes);
-    daySessions.forEach(s => totalMins += s.durationMinutes);
-    
-    const dayName = new Date(date).toLocaleDateString("en-US", { weekday: "short" });
-    const isFuture = new Date(date) > new Date(today);
-    
-    return {
-      name: dayName,
-      hours: Number((totalMins / 60).toFixed(1)),
-      isToday: date === today,
-      isFuture: isFuture,
-      hasActivity: totalMins > 0
-    };
-  });
-
-  const actualWeeklyHours = Number(weeklyData.reduce((acc, curr) => acc + curr.hours, 0).toFixed(1));
-  const weeklyHours = actualWeeklyHours;
-  const displayWeeklyData = weeklyData;
-
-  const activeDaysThisWeek = weeklyData.filter((d) => d.hasActivity && !d.isFuture);
-  const bestDay = activeDaysThisWeek.length > 0 
-    ? activeDaysThisWeek.reduce((prev, current) => (prev.hours > current.hours) ? prev : current)
-    : { name: "-", hours: 0 };
-
-  const completedTasksThisWeek = state.tasks.filter((t) => t.status === "completed" && last7Days.includes(t.targetDate || "")).length;
-  const thisMonthPrefix = today.substring(0, 7);
-  const completedTasksThisMonth = state.tasks.filter((t) => t.status === "completed" && (t.targetDate || "").startsWith(thisMonthPrefix)).length;
-
-  const monthlyData = getMonthlyData(actualWeeklyHours, completedTasksThisWeek);
-  const monthlyHours = Number(monthlyData.reduce((acc, curr) => acc + curr.hours, 0).toFixed(1));
-
-  // --- Distractions ---
-  const todayDistractions: { id: string; content: string; time: string; category?: string }[] = [];
-  todaySessions.forEach((s) => {
-    s.distractions.forEach((d) => {
-      todayDistractions.push({
-        id: d.id,
-        content: d.content,
-        time: new Date(d.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-      });
     });
-  });
+    const dayLegacyDistractions = (state.distractions || []).filter((d) => d.date === selectedDate);
+    const distractionCount = distractionsList.length + dayLegacyDistractions.length;
+    // Distraction weight for visualization (2 mins per distraction log if no explicit duration)
+    const distractionMins = distractionCount > 0 ? distractionCount * 2 : 0;
 
-  const handleTabChange = (tab: "weekly" | "monthly") => {
-    setActiveTab(tab);
-  };
+    const totalActive = totalFocusMins + totalBreakMins + distractionMins;
+    const C = 238.761;
 
-  const onTouchStart = (e: React.TouchEvent) => {
-    setTouchEnd(null);
-    setTouchStart(e.targetTouches[0].clientX);
-  };
+    const focusRatio = totalActive > 0 ? totalFocusMins / totalActive : 0;
+    const breakRatio = totalActive > 0 ? totalBreakMins / totalActive : 0;
+    const distractionRatio = totalActive > 0 ? distractionMins / totalActive : 0;
 
-  const onTouchMove = (e: React.TouchEvent) => {
-    setTouchEnd(e.targetTouches[0].clientX);
-  };
+    const focusLen = focusRatio * C;
+    const breakLen = breakRatio * C;
+    const distractionLen = distractionRatio * C;
 
-  const onTouchEndHandler = () => {
-    if (!touchStart || !touchEnd) return;
-    const distance = touchStart - touchEnd;
-    const minSwipeDistance = 50;
-    
-    if (distance > minSwipeDistance && activeTab === "weekly") {
-      setActiveTab("monthly");
-    }
-    if (distance < -minSwipeDistance && activeTab === "monthly") {
-      setActiveTab("weekly");
-    }
-  };
+    return {
+      focusTime: formatMinutes(totalFocusMins),
+      focusMinutes: totalFocusMins,
+      breakTime: formatMinutes(totalBreakMins),
+      breakMinutes: totalBreakMins,
+      distractionCount,
+      distractionMinutes: distractionMins,
+      distractionSummary: distractionsList.length > 0 ? distractionsList.slice(0, 2).join(" · ") : (distractionCount > 0 ? `${distractionCount} distractions logged` : "None logged"),
+      totalActiveMinutes: totalActive,
+      focusLen,
+      breakLen,
+      distractionLen,
+      focusOffset: 0,
+      breakOffset: -focusLen,
+      distractionOffset: -(focusLen + breakLen),
+    };
+  }, [selectedDate, monthlyWeeks, state.focusSessions, state.activities, state.distractions]);
 
-  // Custom Tooltip for Composed Chart
-  const CustomTooltip = ({ active, payload, label }: any) => {
-    if (active && payload && payload.length) {
-      const data = payload[0].payload;
-      return (
-        <div className="p-3 shadow-xl" style={{ backgroundColor: "var(--color-bg-elevated)", border: "1px solid var(--color-border-subtle)", borderRadius: "8px" }}>
-          <p className="text-[10px] font-bold uppercase tracking-wider mb-1" style={{ color: "var(--color-text-muted)" }}>{label}</p>
-          <p className="text-sm font-semibold" style={{ color: "var(--color-text-primary)" }}>{data.hours}h Focused</p>
-        </div>
-      );
-    }
-    return null;
-  };
+  // Aggregated Weekly Totals
+  const weeklySummary = useMemo(() => {
+    const totalFocusMins = weeklyData.reduce((acc, d) => acc + d.focusMinutes, 0);
+    const totalDone = weeklyData.reduce((acc, d) => acc + d.tasksDone, 0);
+    const totalTasks = weeklyData.reduce((acc, d) => acc + d.totalTasks, 0);
+    const totalMissed = weeklyData.reduce((acc, d) => acc + d.tasksMissed, 0);
+    const completionPercent = totalTasks > 0 ? Math.round((totalDone / totalTasks) * 100) : (totalDone > 0 ? 100 : 0);
+
+    return {
+      focusTime: formatMinutes(totalFocusMins),
+      tasksDoneRatio: `${totalDone} / ${totalTasks}`,
+      totalMissed,
+      completionPercent,
+    };
+  }, [weeklyData]);
+
+  // Aggregated Monthly Totals
+  const monthlySummary = useMemo(() => {
+    const totalFocusMins = monthlyWeeks.reduce((acc, w) => acc + w.focusMinutes, 0);
+    const totalDone = monthlyWeeks.reduce((acc, w) => acc + w.doneCount, 0);
+    const totalTasks = monthlyWeeks.reduce((acc, w) => acc + w.totalCount, 0);
+    const totalMissed = monthlyWeeks.reduce((acc, w) => acc + w.missedCount, 0);
+    const completionPercent = totalTasks > 0 ? Math.round((totalDone / totalTasks) * 100) : (totalDone > 0 ? 100 : 0);
+
+    return {
+      focusTime: formatMinutes(totalFocusMins),
+      tasksDoneRatio: `${totalDone} / ${totalTasks}`,
+      totalMissed,
+      completionPercent,
+    };
+  }, [monthlyWeeks]);
+
+  const userName = user?.displayName || user?.fullName || "Fahim";
+
+  if (!isLoaded) {
+    return (
+      <div className="max-w-[1600px] mx-auto grid gap-6 animate-pulse">
+        <div className="h-16 rounded-2xl bg-white/[.04]" />
+        <div className="h-96 rounded-3xl bg-white/[.04]" />
+        <div className="h-96 rounded-3xl bg-white/[.04]" />
+      </div>
+    );
+  }
 
   return (
-    <div className="motion-page max-w-6xl mx-auto space-y-8 pb-12">
-      {/* Header */}
-      <div className="flex flex-row items-center justify-between gap-3">
-        <div className="flex items-center gap-3 min-w-0 flex-1">
-          <div className="min-w-0 flex-1">
-            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight truncate" style={{ color: "var(--color-text-primary)" }}>
-              {getGreeting(t)}
-            </h1>
-            <p className="text-xs sm:text-sm mt-0.5 font-medium truncate" style={{ color: "var(--color-text-secondary)" }}>
-              {formatDate()} &nbsp;·&nbsp; {t.dashboard.readyText}
-            </p>
-          </div>
+    <main className="w-full max-w-[1680px] mx-auto pb-16 space-y-6 text-slate-100 select-none">
+      {/* Top Header: Clean, dynamic greeting with NO emojis */}
+      <header className="pt-2 px-1 flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white">
+            {greetingText(userName)}
+          </h1>
+          <p className="mt-1 text-sm text-slate-400 font-medium">
+            Your focus today builds your future tomorrow.
+          </p>
         </div>
+        {!isToday && (
+          <button
+            onClick={() => setSelectedDate(today)}
+            className="px-3 py-1.5 rounded-lg bg-blue-600/20 text-blue-400 hover:bg-blue-600/30 border border-blue-500/30 text-sm font-medium transition-colors cursor-pointer shadow-sm flex items-center gap-2"
+          >
+            Back to Today
+          </button>
+        )}
+      </header>
 
-        <div className="flex items-center gap-2 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-full shadow-sm shrink-0" style={{ background: "var(--color-bg-card)", border: "1px solid var(--color-border-active)" }}>
-          <Flame className="w-5 h-5 text-amber-500 shrink-0" />
-          <div className="flex flex-col">
-            <span className="text-[9px] font-bold uppercase tracking-wider" style={{ color: "var(--color-text-muted)" }}>{t.dashboard.currentStreak}</span>
-            <span className="text-xs sm:text-sm font-semibold" style={{ color: "var(--color-text-primary)" }}>{currentStreak} {t.dashboard.days}</span>
-          </div>
-        </div>
-      </div>
-
-      {/* First Row - Key Metrics (2 Equal Balanced Cards) */}
-      <div className="motion-stagger grid grid-cols-1 md:grid-cols-2 gap-5">
+      {/* Top Section: 3 Balanced Cards (Today's Tasks, Today's Focus + Distractions, Current Skills) */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 items-stretch">
         
-        {/* Today's Focus */}
-        <div className="card p-5 flex flex-col justify-between">
-          <div className="flex justify-between items-start mb-6">
-            <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: "var(--color-text-muted)" }}>{t.dashboard.todaysFocus}</span>
-            <span className="text-xs font-medium" style={{ color: "var(--color-text-secondary)" }}>{Math.floor(targetProductiveMins/60)}h {t.dashboard.goal}</span>
-          </div>
+        {/* Card 1: Today's Tasks */}
+        <section
+          className="rounded-2xl p-5 flex flex-col justify-between"
+          style={{
+            background: "linear-gradient(145deg, rgba(16, 22, 36, 0.95), rgba(11, 15, 26, 0.98))",
+            border: "1px solid rgba(59, 130, 246, 0.12)",
+            boxShadow: "0 10px 30px rgba(0, 0, 0, 0.35)",
+          }}
+        >
           <div>
-            <div className="flex items-baseline gap-1 mb-4">
-              <span className="text-3xl font-bold tabular-nums" style={{ color: "var(--color-text-primary)" }}>
-                {Math.floor(totalProductiveMins / 60)}h {totalProductiveMins % 60}m
-              </span>
-            </div>
-            {/* THIN, SUBTLE PROGRESS BAR */}
-            <div className="h-0.5 w-full rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.04)" }}>
-              <div 
-                className="h-full rounded-full transition-all duration-1000" 
-                style={{ width: `${productiveProgress}%`, background: "var(--color-purple-primary)" }} 
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Today's Tasks Overview */}
-        <div className="card p-5 flex flex-col justify-between">
-          <div className="flex justify-between items-start mb-6">
-            <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: "var(--color-text-muted)" }}>{t.dashboard.todaysTasks}</span>
-            <span className="text-xs font-medium" style={{ color: "var(--color-text-secondary)" }}>{totalTasksToday - completedToday} {t.dashboard.remaining}</span>
-          </div>
-          <div>
-            <div className="flex items-baseline gap-2 mb-4">
-              <span className="text-3xl font-bold tabular-nums" style={{ color: "var(--color-text-primary)" }}>
-                {completedToday}
-              </span>
-              <span className="text-sm font-medium" style={{ color: "var(--color-text-muted)" }}>/ {totalTasksToday}</span>
-              <span className="text-xs ml-auto font-medium" style={{ color: "var(--color-success)" }}>{Math.round(taskCompletionRate)}%</span>
-            </div>
-            {/* THIN, SUBTLE PROGRESS BAR */}
-            <div className="h-0.5 w-full rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.04)" }}>
-              <div 
-                className="h-full rounded-full transition-all duration-1000" 
-                style={{ width: `${taskCompletionRate}%`, background: "var(--color-success)" }} 
-              />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Main Grid: Today's Tasks First, Then Your Progress */}
-      <div className="motion-stagger grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Planning Section - Single Today's Tasks connected with Planner */}
-        <div className="flex flex-col lg:order-1">
-          <div className="card p-6 flex flex-col h-full justify-between">
-            <div>
-              <div className="flex justify-between items-center mb-5 pb-3 border-b" style={{ borderColor: "var(--color-border-subtle)" }}>
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: "rgba(168, 85, 247, 0.12)", color: "var(--color-purple-bright)" }}>
-                    <CalendarDays className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-bold tracking-tight" style={{ color: "var(--color-text-primary)" }}>
-                      {t.dashboard.todaysTasks}
-                    </h3>
-                    <span className="text-[11px] font-medium" style={{ color: "var(--color-text-muted)" }}>
-                      {completedToday} / {totalTasksToday} {t.dashboard.tasksDone}
-                    </span>
-                  </div>
-                </div>
-                <button 
-                  onClick={() => navigateTo("planner")} 
-                  className="flex items-center gap-1 text-[11px] font-bold px-3 py-1.5 rounded-full transition-all hover:opacity-90 cursor-pointer"
-                  style={{ background: "rgba(255,255,255,0.06)", color: "var(--color-purple-bright)", border: "1px solid var(--color-border-subtle)" }}
-                >
-                  <span>{t.dashboard.viewPlanner}</span>
-                  <ArrowRight className="w-3 h-3" />
-                </button>
+            {/* Header: Title + Natural Subtitle + Plus (+) button to Planner */}
+            <div className="flex items-center justify-between gap-3 pb-3">
+              <div>
+                <h2 className="text-base font-semibold text-white tracking-tight">{tasksTitle}</h2>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  {tasksList.length} tasks · {completedCount} completed · {pendingCount} pending
+                </p>
               </div>
+              <button
+                onClick={() => navigateTo("planner")}
+                className="w-8 h-8 rounded-xl bg-blue-600/20 hover:bg-blue-600/35 border border-blue-500/30 text-blue-400 hover:text-blue-300 flex items-center justify-center transition-colors cursor-pointer shadow-sm"
+                title="Add task in Planner"
+                aria-label="Add task in Planner"
+              >
+                <Plus size={16} strokeWidth={2.5} />
+              </button>
+            </div>
 
-              {/* Task List */}
-              <div className="space-y-2.5 overflow-y-auto max-h-[380px] pr-1 motion-stagger-fast">
-                {todayUnifiedTasks.map((task) => (
-                  <div 
-                    key={task.key} 
-                    onClick={() => handleToggleTask(task)}
-                    className="p-3 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-3 group"
-                    style={{ 
-                      background: task.completed ? "rgba(255,255,255,0.01)" : "var(--color-bg-secondary)", 
-                      borderColor: task.completed ? "rgba(255,255,255,0.05)" : "var(--color-border-subtle)" 
-                    }}
+            {/* Task Items (Natural spacing, no harsh dividing lines) */}
+            <div className="mt-2 space-y-2">
+              {tasksList.length > 0 ? (
+                tasksList.slice(0, 5).map((item) => (
+                  <div
+                    key={item.id}
+                    onClick={() => handleToggleTask(item)}
+                    className="group flex items-center justify-between gap-2.5 py-2 px-2 rounded-xl hover:bg-white/[0.03] transition-colors cursor-pointer"
                   >
-                    <div className="flex items-center gap-3 min-w-0 flex-1">
-                      {/* Checkbox button */}
-                      <button 
-                        type="button"
+                    {/* Circular Check Button */}
+                    <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                      <div
+                        className={`shrink-0 w-5 h-5 rounded-full flex items-center justify-center transition-all duration-200 cursor-pointer ${
+                          item.completed
+                            ? "bg-emerald-500 border border-emerald-400 text-white "
+                            : "border-2 border-slate-600/80 hover:border-blue-400 bg-slate-900/40"
+                        }`}
+                        aria-label={`Mark task ${item.completed ? "pending" : "done"}`}
+                      >
+                        {item.completed && <Check size={11} strokeWidth={3.2} />}
+                      </div>
+                      <span
+                        className={`text-xs sm:text-[13px] truncate transition-colors ${
+                          item.completed ? "text-slate-500 line-through" : "text-slate-100 font-medium"
+                        }`}
+                      >
+                        {item.name}
+                      </span>
+                    </div>
+
+                    {/* Right side: Time & Action */}
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      {item.time && (
+                        <span className="text-[11px] text-slate-400 font-mono flex items-center gap-1">
+                          <Clock3 size={11} className="text-slate-500" />
+                          {item.time}
+                        </span>
+                      )}
+                      <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleToggleTask(task);
-                        }} 
-                        className="w-5 h-5 flex items-center justify-center rounded-md border transition-all flex-shrink-0 cursor-pointer"
-                        style={{ 
-                          borderColor: task.completed ? "var(--color-success)" : "var(--color-border-active)", 
-                          background: task.completed ? "var(--color-success)" : "rgba(255,255,255,0.03)" 
+                          navigateTo("planner");
                         }}
-                        aria-label="Toggle completed"
+                        className="text-slate-500 hover:text-slate-300 p-1 rounded transition-colors cursor-pointer"
+                        title="More options"
                       >
-                        {task.completed && (
-                          <Check className="w-3.5 h-3.5 text-white stroke-[3] motion-check" />
-                        )}
+                        <MoreVertical size={13} />
                       </button>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="py-8 text-center text-slate-400 text-sm flex flex-col items-center">
+                  <Check size={24} className="text-slate-600 mb-2" />
+                  No tasks recorded for this day
+                </div>
+              )}
+            </div>
+          </div>
+        </section>
 
-                      <div className="min-w-0 flex-1">
-                        <p 
-                          className={`text-sm font-medium truncate transition-all ${
-                            task.completed ? "line-through opacity-40" : "group-hover:opacity-90"
-                          }`}
-                          style={{ color: "var(--color-text-primary)" }}
-                        >
-                          {task.name}
-                        </p>
-                        
-                        {/* Scheduled Time & Category Metadata */}
-                        <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                          {task.time && (
-                            <span 
-                              className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded"
-                              style={{ background: "rgba(168, 85, 247, 0.1)", color: "var(--color-purple-bright)" }}
-                            >
-                              <Clock className="w-2.5 h-2.5" />
-                              {formatTime12hr(task.time)}
-                              {task.endTime ? ` - ${formatTime12hr(task.endTime)}` : ""}
-                            </span>
-                          )}
-                          {task.category && (
-                            <span 
-                              className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded"
-                              style={{ background: "rgba(255,255,255,0.04)", color: "var(--color-text-muted)" }}
-                            >
-                              {task.category}
-                            </span>
-                          )}
+        {/* Card 2: Today's Focus (Includes Focus Time, Break Time & Distractions summary) */}
+        <section
+          className="rounded-2xl p-5 flex flex-col justify-between"
+          style={{
+            background: "linear-gradient(145deg, rgba(16, 22, 36, 0.95), rgba(11, 15, 26, 0.98))",
+            border: "1px solid rgba(59, 130, 246, 0.12)",
+            boxShadow: "0 10px 30px rgba(0, 0, 0, 0.35)",
+          }}
+        >
+          <div>
+            {/* Header: Clean title without Live badge */}
+            <div className="flex items-center justify-between pb-3">
+              <div>
+                <h2 className="text-base font-semibold text-white tracking-tight">{focusTitle}</h2>
+                <p className="text-xs text-slate-400 mt-0.5">Focus time &amp; daily breakdown</p>
+              </div>
+            </div>
+
+            {/* Main Center Gauge and Breakdown */}
+            <div className="mt-2 flex items-center justify-between gap-5">
+              {/* Radial Donut Ring (Contiguous Proportional Segment Ring) */}
+              <div className="relative w-28 h-28 shrink-0">
+                <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90">
+                  {/* Background Track */}
+                  <circle
+                    cx="50"
+                    cy="50"
+                    r="38"
+                    fill="none"
+                    stroke="rgba(255,255,255,0.06)"
+                    strokeWidth="9"
+                  />
+
+                  {/* 1. Focus Time Segment (Blue) */}
+                  {selectedFocusStats.focusLen > 0 && (
+                    <circle
+                      cx="50"
+                      cy="50"
+                      r="38"
+                      fill="none"
+                      stroke="url(#focus-clean-blue)"
+                      strokeWidth="9"
+                      strokeDasharray={`${selectedFocusStats.focusLen} 238.761`}
+                      strokeDashoffset={selectedFocusStats.focusOffset}
+                      strokeLinecap="round"
+                    />
+                  )}
+
+                  {/* 2. Break Time Segment (Amber - seamlessly connects right after Focus) */}
+                  {selectedFocusStats.breakLen > 0 && (
+                    <circle
+                      cx="50"
+                      cy="50"
+                      r="38"
+                      fill="none"
+                      stroke="#f59e0b"
+                      strokeWidth="9"
+                      strokeDasharray={`${selectedFocusStats.breakLen} 238.761`}
+                      strokeDashoffset={selectedFocusStats.breakOffset}
+                      strokeLinecap="round"
+                    />
+                  )}
+
+                  {/* 3. Distraction Segment (Rose - seamlessly connects right after Break) */}
+                  {selectedFocusStats.distractionLen > 0 && (
+                    <circle
+                      cx="50"
+                      cy="50"
+                      r="38"
+                      fill="none"
+                      stroke="#f43f5e"
+                      strokeWidth="9"
+                      strokeDasharray={`${selectedFocusStats.distractionLen} 238.761`}
+                      strokeDashoffset={selectedFocusStats.distractionOffset}
+                      strokeLinecap="round"
+                    />
+                  )}
+
+                  <defs>
+                    <linearGradient id="focus-clean-blue" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stopColor="#38bdf8" />
+                      <stop offset="100%" stopColor="#2563eb" />
+                    </linearGradient>
+                  </defs>
+                </svg>
+                {/* Center text: Pure calculated focus time */}
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                  <span className="text-lg font-bold text-white tracking-tight">{selectedFocusStats.focusTime}</span>
+                </div>
+              </div>
+
+              {/* Focus Time & Break Time breakdown */}
+              <div className="flex-1 space-y-3">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="flex items-center gap-2 text-slate-200 font-medium">
+                    <span className="w-2.5 h-2.5 rounded-full bg-blue-500 " />
+                    Focus Time
+                  </span>
+                  <span className="font-bold text-white font-mono text-xs">{selectedFocusStats.focusTime}</span>
+                </div>
+                <div className="flex items-center justify-between text-xs">
+                  <span className="flex items-center gap-2 text-slate-200 font-medium">
+                    <span className="w-2.5 h-2.5 rounded-full bg-amber-500 " />
+                    Break Time
+                  </span>
+                  <span className="font-bold text-amber-400 font-mono text-xs">{selectedFocusStats.breakTime}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Integrated Compact Distractions Info */}
+          <div className="mt-4 pt-3 border-t border-white/[0.06] flex items-center justify-between text-xs">
+            <div className="flex items-center gap-1.5 text-slate-400">
+              <AlertCircle size={13} className="text-rose-400" />
+              <span>Daily Distractions:</span>
+              <span className="font-semibold text-rose-300 font-mono">
+                {selectedFocusStats.distractionCount > 0 ? `${selectedFocusStats.distractionCount}` : "0"}
+              </span>
+            </div>
+            <span className="text-[11px] text-slate-500 truncate max-w-[180px]">
+              {selectedFocusStats.distractionSummary}
+            </span>
+          </div>
+        </section>
+
+        {/* Card 3: Current Skills (Skill Builder with clean inline progress lines and (+) button) */}
+        <section
+          className="rounded-2xl p-5 flex flex-col justify-between"
+          style={{
+            background: "linear-gradient(145deg, rgba(16, 22, 36, 0.95), rgba(11, 15, 26, 0.98))",
+            border: "1px solid rgba(59, 130, 246, 0.12)",
+            boxShadow: "0 10px 30px rgba(0, 0, 0, 0.35)",
+          }}
+        >
+          <div>
+            {/* Header: Title + Plus (+) button to Skill Builder */}
+            <div className="flex items-center justify-between pb-3">
+              <div>
+                <h2 className="text-base font-semibold text-white tracking-tight">Current Skills</h2>
+                <p className="text-xs text-slate-400 mt-0.5">Skill Builder progress</p>
+              </div>
+              <button
+                onClick={() => navigateTo("learning")}
+                className="w-8 h-8 rounded-xl bg-purple-600/20 hover:bg-purple-600/35 border border-purple-500/30 text-purple-400 hover:text-purple-300 flex items-center justify-center transition-colors cursor-pointer shadow-sm"
+                title="Manage skills in Skill Builder"
+                aria-label="Manage skills in Skill Builder"
+              >
+                <Plus size={16} strokeWidth={2.5} />
+              </button>
+            </div>
+
+            {/* Skills List: Same-line layout with inline progress bar */}
+            <div className="mt-2 space-y-3">
+              {skillsList.length > 0 ? (
+                skillsList.map((skill) => {
+                  const IconComponent = skill.icon;
+                  return (
+                    <div
+                      key={skill.id}
+                      className="flex items-center gap-3 py-1.5 px-2 rounded-xl hover:bg-white/[0.02] transition-colors"
+                    >
+                      {/* Professional Standardized Icon */}
+                      <div
+                        className={`w-6 h-6 rounded-lg border flex items-center justify-center shrink-0 ${skill.iconBg}`}
+                      >
+                        <IconComponent size={12} />
+                      </div>
+
+                      {/* Skill Name */}
+                      <span className="text-xs sm:text-[13px] font-medium text-white w-28 truncate shrink-0">
+                        {skill.name}
+                      </span>
+
+                      {/* Inline Progress Bar on same line */}
+                      <div className="flex-1 h-2 rounded-full bg-white/[0.07] overflow-hidden">
+                        <div
+                          className="h-full rounded-full transition-all duration-500 bg-gradient-to-r from-blue-500 to-cyan-400"
+                          style={{ width: `${skill.progress}%` }}
+                        />
+                      </div>
+
+                      {/* Percentage on the right */}
+                      <span className="text-slate-400 font-mono text-xs font-semibold w-9 text-right shrink-0">
+                        {skill.progress}%
+                      </span>
+                    </div>
+                  );
+                })
+              ) : (
+                <div className="py-8 text-center text-slate-400 text-sm flex flex-col items-center">
+                  <BookOpen size={24} className="text-slate-600 mb-2" />
+                  <p className="font-medium text-slate-300">No skills added yet</p>
+                  <p className="text-xs text-slate-500 mt-1">Add a skill in Skill Builder to track your progress</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </section>
+
+      </div>
+
+      {/* Bottom Section: Focus & Productivity Progress (Full Width, Scaled Professional Bars) */}
+      <section
+        className="rounded-2xl p-5 sm:p-7"
+        style={{
+          background: "linear-gradient(145deg, rgba(16, 22, 36, 0.95), rgba(11, 15, 26, 0.98))",
+          border: "1px solid rgba(59, 130, 246, 0.12)",
+          boxShadow: "0 10px 30px rgba(0, 0, 0, 0.35)",
+        }}
+      >
+        {/* Header Bar */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-blue-500/15 border border-blue-500/25 flex items-center justify-center text-blue-400 shrink-0 ">
+              <TrendingUp size={18} />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-white tracking-tight">Focus &amp; Productivity Progress</h2>
+              <p className="text-xs text-slate-400 mt-0.5">
+                {progressView === "weekly"
+                  ? "Weekly Overview · Real-time 7-day focus & task performance"
+                  : "Monthly Overview · 4-Week breakdown and cumulative performance"}
+              </p>
+            </div>
+          </div>
+
+          {/* Toggle: [ Weekly ] [ Monthly ] */}
+          <div className="inline-flex rounded-xl p-1 bg-slate-900/90 border border-white/[0.08] shrink-0 self-start sm:self-auto">
+            <button
+              onClick={() => setProgressView("weekly")}
+              className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-all duration-150 cursor-pointer ${
+                progressView === "weekly"
+                  ? "bg-blue-600 text-white "
+                  : "text-slate-400 hover:text-white hover:bg-white/[0.04]"
+              }`}
+            >
+              Weekly
+            </button>
+            <button
+              onClick={() => setProgressView("monthly")}
+              className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-all duration-150 cursor-pointer ${
+                progressView === "monthly"
+                  ? "bg-blue-600 text-white "
+                  : "text-slate-400 hover:text-white hover:bg-white/[0.04]"
+              }`}
+            >
+              Monthly
+            </button>
+          </div>
+        </div>
+
+        {/* View Switch: Weekly Bar Chart vs Monthly Radial Week Cards */}
+        {progressView === "weekly" ? (
+          /* WEEKLY VIEW */
+          <div className="mt-4 space-y-6">
+            {/* Legend & Date Range */}
+            <div className="flex flex-wrap items-center justify-between gap-3 text-xs pt-1">
+              <div className="flex items-center gap-1.5 text-slate-300 font-medium">
+                <span className="text-sm font-semibold text-white">Weekly Overview</span>
+                <span className="text-slate-500">·</span>
+                <span className="text-slate-400 font-mono text-xs">
+                  {weeklyData.length > 0
+                    ? `${weeklyData[0].day}, ${weeklyData[0].date} – ${weeklyData[weeklyData.length - 1].day}, ${weeklyData[weeklyData.length - 1].date}`
+                    : "Current 7 Days"}
+                </span>
+              </div>
+
+              {/* 3 Indicators Legend */}
+              <div className="flex items-center gap-5 text-xs font-medium">
+                <span className="flex items-center gap-1.5 text-slate-200">
+                  <span className="w-2.5 h-2.5 rounded-sm bg-blue-500 " />
+                  Focus Time
+                </span>
+                <span className="flex items-center gap-1.5 text-slate-200">
+                  <span className="w-2.5 h-2.5 rounded-sm bg-emerald-500 " />
+                  Tasks Done
+                </span>
+                <span className="flex items-center gap-1.5 text-slate-200">
+                  <span className="w-2.5 h-2.5 rounded-sm bg-rose-500 " />
+                  Tasks Missed
+                </span>
+              </div>
+            </div>
+
+            {/* Professional Scaled Bar Chart */}
+            <div className="pt-6 pb-2 min-h-[250px] flex items-end justify-between gap-2 sm:gap-6 border-b border-white/[0.06] px-1 sm:px-4">
+              {weeklyData.map((d) => {
+                const isHovered = hoveredDay === d.day;
+                const isSelected = selectedDate === d.fullDate;
+                const maxMinutes = 240;
+                const focusHeightPercent = d.focusMinutes > 0 ? Math.min(100, Math.max(15, (d.focusMinutes / maxMinutes) * 100)) : 4;
+                const doneHeightPercent = d.tasksDone > 0 ? Math.min(85, Math.max(12, (d.tasksDone / 6) * 80)) : (d.totalTasks > 0 ? 4 : 0);
+                const missedHeightPercent = d.tasksMissed > 0 ? Math.min(50, Math.max(8, (d.tasksMissed / 6) * 60)) : 0;
+
+                return (
+                  <div
+                    key={d.fullDate}
+                    onClick={() => setSelectedDate(d.fullDate)}
+                    onMouseEnter={() => setHoveredDay(d.day)}
+                    onMouseLeave={() => setHoveredDay(null)}
+                    className={`group relative flex-1 flex flex-col items-center cursor-pointer transition-all duration-150 pt-3 pb-1 rounded-2xl ${
+                      isSelected ? "bg-white/[0.06] shadow-inner ring-1 ring-white/[0.1] scale-[1.02]" : "hover:bg-white/[0.03]"
+                    }`}
+                  >
+                    {/* Hover Tooltip */}
+                    {isHovered && (
+                      <div className="absolute -top-16 z-20 bg-slate-900/95 border border-blue-500/30 rounded-xl p-2.5 shadow-2xl text-xs whitespace-nowrap pointer-events-none">
+                        <p className="font-bold text-white">{d.day}, {d.date}</p>
+                        <p className="text-blue-400 font-medium">Focus: {d.focusTime}</p>
+                        <p className="text-emerald-400 font-medium">Tasks Done: {d.tasksDone}</p>
+                        <p className="text-rose-400 font-medium">Tasks Missed: {d.tasksMissed}</p>
+                      </div>
+                    )}
+
+                    {/* Top Focus Time Tag */}
+                    <span className="text-xs font-mono text-slate-300 mb-2.5 font-semibold">
+                      {d.focusTime}
+                    </span>
+
+                    {/* Clean scale bar columns */}
+                    <div className="flex items-end justify-center gap-1.5 h-36 w-full max-w-[62px]">
+                      {/* Focus Time Scale Bar */}
+                      <div
+                        className="w-4 sm:w-4.5 rounded-sm transition-all duration-300"
+                        style={{
+                          height: `${focusHeightPercent}%`,
+                          background: d.focusMinutes > 0 ? "linear-gradient(to top, #1d4ed8, #38bdf8)" : "rgba(255,255,255,0.06)",
+                        }}
+                      />
+
+                      {/* Tasks Done Scale Bar */}
+                      <div
+                        className="w-4 sm:w-4.5 rounded-sm transition-all duration-300"
+                        style={{
+                          height: `${doneHeightPercent}%`,
+                          background: d.tasksDone > 0 ? "linear-gradient(to top, #047857, #10b981)" : "rgba(255,255,255,0.04)",
+                        }}
+                      />
+
+                      {/* Tasks Missed Scale Bar */}
+                      {missedHeightPercent > 0 ? (
+                        <div
+                          className="w-4 sm:w-4.5 rounded-sm transition-all duration-300"
+                          style={{
+                            height: `${missedHeightPercent}%`,
+                            background: "linear-gradient(to top, #be123c, #f43f5e)",
+                          }}
+                        />
+                      ) : (
+                        <div className="w-4 sm:w-4.5 h-1 rounded-sm bg-white/[0.04]" />
+                      )}
+                    </div>
+
+                    {/* Day & Date Labels */}
+                    <div className="mt-3 text-center">
+                      <span className="block text-xs sm:text-sm font-bold text-slate-200">{d.day}</span>
+                      <span className="block text-[11px] text-slate-400 font-mono mt-0.5">{d.date}</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Bottom 3 Summary Metric Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
+              <div className="p-4 rounded-xl bg-slate-900/60 border border-white/[0.06] flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-slate-400 font-medium">Total Focus Time</p>
+                  <p className="mt-1 text-xl font-bold text-white tracking-tight">{weeklySummary.focusTime}</p>
+                </div>
+                <span className="inline-flex items-center text-xs font-semibold text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded-lg border border-emerald-500/20">
+                  <ArrowUpRight size={14} className="mr-0.5" /> {weeklySummary.completionPercent}%
+                </span>
+              </div>
+
+              <div className="p-4 rounded-xl bg-slate-900/60 border border-white/[0.06] flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-slate-400 font-medium">Tasks Completed</p>
+                  <p className="mt-1 text-xl font-bold text-white tracking-tight">{weeklySummary.tasksDoneRatio}</p>
+                </div>
+                <span className="inline-flex items-center text-xs font-semibold text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded-lg border border-emerald-500/20">
+                  <ArrowUpRight size={14} className="mr-0.5" /> {weeklySummary.completionPercent}%
+                </span>
+              </div>
+
+              <div className="p-4 rounded-xl bg-slate-900/60 border border-white/[0.06] flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-slate-400 font-medium">Missed Tasks</p>
+                  <p className="mt-1 text-xl font-bold text-white tracking-tight">{weeklySummary.totalMissed}</p>
+                </div>
+                <span className="inline-flex items-center text-xs font-semibold text-rose-400 bg-rose-500/10 px-2 py-1 rounded-lg border border-rose-500/20">
+                  <ArrowDownRight size={14} className="mr-0.5" /> {weeklySummary.totalMissed}
+                </span>
+              </div>
+            </div>
+          </div>
+        ) : (
+          /* MONTHLY VIEW */
+          <div className="mt-4 space-y-5 animate-in fade-in duration-300">
+            {/* Header info */}
+            <div className="flex items-center justify-between text-xs text-slate-400 pb-1">
+              <span className="flex items-center gap-1.5 font-medium text-slate-300">
+                <Calendar size={14} className="text-blue-400" />
+                Monthly Progress · 4-Week Overview
+              </span>
+              <span className="text-xs font-mono text-slate-400">Target: 60h focus / month</span>
+            </div>
+
+            {/* 4 Weekly Radial Progress Cards Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+              {monthlyWeeks.map((item) => {
+                const isSelected = selectedDate === item.week;
+                return (
+                  <div
+                    key={item.week}
+                    onClick={() => setSelectedDate(item.week)}
+                    className={`rounded-xl p-4 flex items-center justify-between gap-3 cursor-pointer transition-all duration-150 ${
+                      isSelected
+                        ? "bg-white/[0.06] shadow-inner ring-1 ring-white/[0.1] scale-[1.02]"
+                        : "bg-slate-900/70 border border-white/[0.07] hover:border-blue-500/30 hover:bg-white/[0.03]"
+                    }`}
+                  >
+                    <div className="space-y-1.5 min-w-0">
+                      <h3 className="text-xs font-bold text-white tracking-tight">{item.week}</h3>
+                      <p className="text-[10px] text-slate-400 font-mono">{item.range}</p>
+                      
+                      <div className="pt-2 space-y-1 text-xs">
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="text-slate-400">Focus Time</span>
+                          <span className="font-semibold text-white font-mono">{item.focusTime}</span>
+                        </div>
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="text-slate-400">Tasks Done</span>
+                          <span className="font-semibold text-emerald-400 font-mono">{item.tasksDone}</span>
                         </div>
                       </div>
                     </div>
-                  </div>
-                ))}
 
-                {todayUnifiedTasks.length === 0 && (
-                  <div className="h-full min-h-[220px] flex flex-col items-center justify-center text-center p-4 border border-dashed rounded-xl" style={{ borderColor: "var(--color-border-subtle)" }}>
-                    <div className="w-10 h-10 rounded-full flex items-center justify-center mb-3" style={{ background: "rgba(255,255,255,0.04)", color: "var(--color-text-muted)" }}>
-                      <CalendarDays className="w-5 h-5" />
-                    </div>
-                    <p className="text-xs font-semibold mb-1" style={{ color: "var(--color-text-primary)" }}>
-                      {t.dashboard.noPendingTasks}
-                    </p>
-                    <p className="text-[11px] mb-4 max-w-[220px]" style={{ color: "var(--color-text-muted)" }}>
-                      {t.dashboard.noScheduledBlocks}
-                    </p>
-                    <button 
-                      onClick={() => navigateTo("planner")} 
-                      className="flex items-center gap-1.5 text-xs font-bold px-4 py-2 rounded-full transition-all hover:opacity-90 cursor-pointer shadow-sm"
-                      style={{ background: "var(--color-purple-primary)", color: "white" }}
-                    >
-                      <Plus className="w-3.5 h-3.5" />
-                      <span>{t.planner.addNoteEvent}</span>
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Analytics Card - Your Progress */}
-        <div className="card lg:col-span-2 overflow-hidden flex flex-col lg:order-2">
-          {/* Card Header & Tabs */}
-          <div className="p-6 pb-0 flex flex-row items-center justify-between gap-4">
-            <h2 className="text-lg font-bold" style={{ color: "var(--color-text-primary)" }}>{t.dashboard.yourProgress}</h2>
-            <div className="relative inline-flex items-center p-0.5 rounded-full w-fit shrink-0 self-start sm:self-auto" style={{ background: "rgba(255,255,255,0.04)" }}>
-              {/* Sliding Active Background */}
-              <div 
-                className="absolute top-0.5 bottom-0.5 rounded-full transition-transform duration-300 ease-out"
-                style={{
-                  width: "calc(50% - 2px)",
-                  background: "rgba(255,255,255,0.1)",
-                  transform: activeTab === "weekly" ? "translateX(0)" : "translateX(100%)",
-                  left: "2px"
-                }}
-              />
-              <button 
-                onClick={() => handleTabChange("weekly")}
-                className="relative z-10 px-3 py-1 rounded-full text-[11px] font-bold transition-colors duration-300 w-[64px]"
-                style={{ 
-                  color: activeTab === "weekly" ? "var(--color-text-primary)" : "var(--color-text-muted)"
-                }}
-              >
-                {t.dashboard.weekly}
-              </button>
-              <button 
-                onClick={() => handleTabChange("monthly")}
-                className="relative z-10 px-3 py-1 rounded-full text-[11px] font-bold transition-colors duration-300 w-[64px]"
-                style={{ 
-                  color: activeTab === "monthly" ? "var(--color-text-primary)" : "var(--color-text-muted)"
-                }}
-              >
-                {t.dashboard.monthly}
-              </button>
-            </div>
-          </div>
-
-          {/* Swipable Area */}
-          <div className="relative w-full overflow-hidden flex-1">
-            <div 
-              className="flex w-[200%] h-full transition-transform duration-500 ease-in-out" 
-              style={{ transform: activeTab === "weekly" ? "translateX(0%)" : "translateX(-50%)" }}
-              onTouchStart={onTouchStart}
-              onTouchMove={onTouchMove}
-              onTouchEnd={onTouchEndHandler}
-            >
-              {/* Weekly View */}
-              <div className="w-1/2 flex-shrink-0 flex flex-col p-6">
-              <div className="flex items-baseline gap-2 mb-8">
-                <span className="text-3xl font-bold tabular-nums" style={{ color: "var(--color-text-primary)" }}>{weeklyHours}h</span>
-                {weeklyHours > 0 ? (
-                  <span className="text-xs font-medium px-2 py-1 rounded-md" style={{ background: "rgba(34, 197, 94, 0.1)", color: "var(--color-success)" }}>↑ {weeklyHours}h {t.dashboard.vsLastWeek}</span>
-                ) : (
-                  <span className="text-xs font-medium px-2 py-1 rounded-md" style={{ background: "rgba(255, 255, 255, 0.05)", color: "var(--color-text-muted)" }}>0% {t.dashboard.vsLastWeek}</span>
-                )}
-              </div>
-              <div className="flex-1 w-full h-[220px] mb-8">
-                <ResponsiveContainer width="100%" height="100%">
-                  {/* HYBRID VISUALIZATION: ComposedChart with Bar + Line */}
-                  <ComposedChart data={displayWeeklyData} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
-                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: "var(--color-text-muted)", fontSize: 11 }} dy={10} />
-                    <YAxis axisLine={false} tickLine={false} tick={{ fill: "var(--color-text-muted)", fontSize: 11 }} />
-                    <Tooltip content={<CustomTooltip />} cursor={{ fill: "rgba(255,255,255,0.02)" }} />
-                    <Bar dataKey="hours" barSize={16} radius={[4, 4, 0, 0]} isAnimationActive={true} animationDuration={1000}>
-                      {displayWeeklyData.map((entry, index) => (
-                        <Cell 
-                          key={`cell-${index}`} 
-                          fill={entry.isToday ? "var(--color-purple-primary)" : "var(--color-bg-elevated)"} 
-                          opacity={entry.isFuture ? 0.3 : (entry.isToday ? 1 : 0.7)}
+                    <div className="relative w-16 h-16 shrink-0">
+                      <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90">
+                        <circle
+                          cx="50"
+                          cy="50"
+                          r="38"
+                          fill="none"
+                          stroke="rgba(255,255,255,0.06)"
+                          strokeWidth="9"
                         />
-                      ))}
-                    </Bar>
-                    <Line 
-                      type="monotone" 
-                      dataKey="hours" 
-                      stroke="var(--color-purple-bright)" 
-                      strokeWidth={2} 
-                      dot={{ r: 3, fill: "var(--color-bg-base)", stroke: "var(--color-purple-bright)", strokeWidth: 2 }} 
-                      activeDot={{ r: 5, fill: "var(--color-purple-primary)", stroke: "var(--color-bg-base)", strokeWidth: 2 }} 
-                      isAnimationActive={true} 
-                      animationDuration={1500} 
-                    />
-                  </ComposedChart>
-                </ResponsiveContainer>
-              </div>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-6 border-t pt-6" style={{ borderColor: "var(--color-border-subtle)" }}>
-                <div>
-                  <p className="text-[10px] font-bold uppercase tracking-wider mb-1" style={{ color: "var(--color-text-muted)" }}>{t.dashboard.focusTime}</p>
-                  <p className="text-sm font-semibold" style={{ color: "var(--color-text-primary)" }}>{weeklyHours}h</p>
-                </div>
-                <div>
-                  <p className="text-[10px] font-bold uppercase tracking-wider mb-1" style={{ color: "var(--color-text-muted)" }}>{t.dashboard.tasksDone}</p>
-                  <p className="text-sm font-semibold" style={{ color: "var(--color-text-primary)" }}>{completedTasksThisWeek}</p>
-                </div>
-                <div>
-                  <p className="text-[10px] font-bold uppercase tracking-wider mb-1" style={{ color: "var(--color-text-muted)" }}>{t.dashboard.bestDay}</p>
-                  <p className="text-sm font-semibold" style={{ color: "var(--color-text-primary)" }}>{bestDay.name}</p>
-                </div>
-                <div>
-                  <p className="text-[10px] font-bold uppercase tracking-wider mb-1" style={{ color: "var(--color-text-muted)" }}>{t.dashboard.dailyAvg}</p>
-                  <p className="text-sm font-semibold" style={{ color: "var(--color-text-primary)" }}>{(weeklyHours / 7).toFixed(1)}h</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Monthly View */}
-            <div className="w-1/2 flex-shrink-0 flex flex-col p-6">
-              <div className="flex items-baseline gap-2 mb-8">
-                <span className="text-3xl font-bold tabular-nums" style={{ color: "var(--color-text-primary)" }}>{monthlyHours}h</span>
-                {monthlyHours > 0 ? (
-                  <span className="text-xs font-medium px-2 py-1 rounded-md" style={{ background: "rgba(34, 197, 94, 0.1)", color: "var(--color-success)" }}>↑ {monthlyHours}h {t.dashboard.vsLastMonth}</span>
-                ) : (
-                  <span className="text-xs font-medium px-2 py-1 rounded-md" style={{ background: "rgba(255, 255, 255, 0.05)", color: "var(--color-text-muted)" }}>0% {t.dashboard.vsLastMonth}</span>
-                )}
-              </div>
-              <div className="flex-1 w-full h-[220px] mb-8">
-                <ResponsiveContainer width="100%" height="100%">
-                  <ComposedChart data={monthlyData} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
-                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: "var(--color-text-muted)", fontSize: 11 }} dy={10} />
-                    <YAxis axisLine={false} tickLine={false} tick={{ fill: "var(--color-text-muted)", fontSize: 11 }} />
-                    <Tooltip content={<CustomTooltip />} cursor={{ fill: "rgba(255,255,255,0.02)" }} />
-                    <Bar dataKey="hours" barSize={16} radius={[4, 4, 0, 0]} isAnimationActive={true} animationDuration={1000}>
-                      {monthlyData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.isCurrent ? "var(--color-purple-primary)" : "var(--color-bg-elevated)"} opacity={0.7} />
-                      ))}
-                    </Bar>
-                    <Line 
-                      type="monotone" 
-                      dataKey="hours" 
-                      stroke="var(--color-purple-bright)" 
-                      strokeWidth={2} 
-                      dot={{ r: 3, fill: "var(--color-bg-base)", stroke: "var(--color-purple-bright)", strokeWidth: 2 }} 
-                      activeDot={{ r: 5, fill: "var(--color-purple-primary)", stroke: "var(--color-bg-base)", strokeWidth: 2 }} 
-                      isAnimationActive={true} 
-                      animationDuration={1500} 
-                    />
-                  </ComposedChart>
-                </ResponsiveContainer>
-              </div>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-6 border-t pt-6" style={{ borderColor: "var(--color-border-subtle)" }}>
-                <div>
-                  <p className="text-[10px] font-bold uppercase tracking-wider mb-1" style={{ color: "var(--color-text-muted)" }}>{t.dashboard.focusTime}</p>
-                  <p className="text-sm font-semibold" style={{ color: "var(--color-text-primary)" }}>{monthlyHours}h</p>
-                </div>
-                <div>
-                  <p className="text-[10px] font-bold uppercase tracking-wider mb-1" style={{ color: "var(--color-text-muted)" }}>{t.dashboard.tasksDone}</p>
-                  <p className="text-sm font-semibold" style={{ color: "var(--color-text-primary)" }}>{completedTasksThisMonth}</p>
-                </div>
-                <div>
-                  <p className="text-[10px] font-bold uppercase tracking-wider mb-1" style={{ color: "var(--color-text-muted)" }}>{t.dashboard.bestWeek}</p>
-                  <p className="text-sm font-semibold" style={{ color: "var(--color-text-primary)" }}>{monthlyHours > 0 ? "This Week" : "-"}</p>
-                </div>
-                <div>
-                  <p className="text-[10px] font-bold uppercase tracking-wider mb-1" style={{ color: "var(--color-text-muted)" }}>{t.dashboard.consistency}</p>
-                  <p className="text-sm font-semibold" style={{ color: "var(--color-text-primary)" }}>{currentStreak > 0 ? `${Math.min(Math.round((currentStreak / 7) * 100), 100)}%` : "0%"}</p>
-                </div>
-              </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Tertiary Row: Consistency & Distractions */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        
-        {/* Refined Consistency Tracker */}
-        <div className="card p-6 flex flex-col justify-between">
-          <div className="flex justify-between items-start mb-6">
-            <div>
-              <span className="text-[10px] font-bold uppercase tracking-wider block mb-1" style={{ color: "var(--color-text-muted)" }}>{t.dashboard.consistency}</span>
-              <h3 className="text-sm font-bold" style={{ color: "var(--color-text-primary)" }}>{t.dashboard.sevenDayActivity}</h3>
-            </div>
-            <span className="text-xs font-bold px-2 py-1 rounded-md" style={{ background: "rgba(255,255,255,0.04)", color: "var(--color-text-primary)" }}>
-              {currentStreak} {t.dashboard.dayStreak}
-            </span>
-          </div>
-          
-          {/* Connected Dots Visual */}
-          <div className="relative flex justify-between items-center w-full px-2 mt-4">
-            {displayWeeklyData.map((day, idx) => {
-              const isNextActive = idx < displayWeeklyData.length - 1 && displayWeeklyData[idx + 1].hasActivity;
-              const isCurrentActive = day.hasActivity;
-              
-              return (
-                <div key={idx} className="relative flex flex-col items-center flex-1">
-                  {/* Connecting Line (Right) */}
-                  {idx < displayWeeklyData.length - 1 && (
-                    <div 
-                      className="absolute top-[9px] left-[50%] w-full h-[2px] z-0 transition-colors duration-500"
-                      style={{
-                        background: isCurrentActive && isNextActive 
-                          ? "var(--color-purple-primary)" 
-                          : "rgba(255,255,255,0.06)",
-                        opacity: isCurrentActive && isNextActive ? 0.7 : 1
-                      }}
-                    />
-                  )}
-                  
-                  {/* Dot */}
-                  <div 
-                    className="w-[18px] h-[18px] rounded-full flex items-center justify-center z-10 relative transition-all duration-300"
-                    style={{ 
-                      background: day.hasActivity 
-                        ? "var(--color-purple-primary)" 
-                        : "var(--color-bg-base)",
-                      border: day.isToday 
-                        ? "2px solid var(--color-text-primary)" 
-                        : day.hasActivity 
-                          ? "2px solid var(--color-purple-primary)"
-                          : "2px solid rgba(255,255,255,0.1)",
-                      boxShadow: day.isToday && day.hasActivity ? "0 0 8px rgba(59, 130, 246, 0.4)" : "none",
-                      opacity: day.isFuture ? 0.3 : 1
-                    }}
-                  >
+                        {item.percent > 0 && (
+                          <circle
+                            cx="50"
+                            cy="50"
+                            r="38"
+                            fill="none"
+                            stroke="url(#month-blue-grad)"
+                            strokeWidth="9"
+                            strokeDasharray="238.76"
+                            strokeDashoffset={238.76 * (1 - item.percent / 100)}
+                            strokeLinecap="round"
+                          />
+                        )}
+                        <defs>
+                          <linearGradient id="month-blue-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" stopColor="#38bdf8" />
+                            <stop offset="100%" stopColor="#2563eb" />
+                          </linearGradient>
+                        </defs>
+                      </svg>
+                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                        <span className="text-xs font-bold text-white font-mono">{item.percent}%</span>
+                      </div>
+                    </div>
                   </div>
-                  
-                  {/* Label */}
-                  <span 
-                    className="text-[10px] font-bold uppercase mt-3" 
-                    style={{ 
-                      color: day.isToday ? "var(--color-text-primary)" : "var(--color-text-muted)",
-                      opacity: day.isFuture ? 0.5 : 1
-                    }}
-                  >
-                    {day.name.charAt(0)}
+                );
+              })}
+            </div>
+
+            {/* Monthly Summary Bar */}
+            <div className="p-4 rounded-xl bg-slate-900/50 border border-white/[0.06] flex flex-wrap items-center justify-between gap-4 text-xs">
+              <div className="flex items-center gap-6">
+                <div>
+                  <span className="text-slate-400 block text-[10px]">Monthly Total Focus</span>
+                  <span className="text-base font-bold text-white font-mono">{monthlySummary.focusTime}</span>
+                </div>
+                <div className="h-7 w-[1px] bg-white/[0.08]" />
+                <div>
+                  <span className="text-slate-400 block text-[10px]">Total Completed Tasks</span>
+                  <span className="text-base font-bold text-emerald-400 font-mono">
+                    {monthlySummary.tasksDoneRatio} ({monthlySummary.completionPercent}%)
                   </span>
                 </div>
-              );
-            })}
+                <div className="h-7 w-[1px] bg-white/[0.08]" />
+                <div>
+                  <span className="text-slate-400 block text-[10px]">Total Missed</span>
+                  <span className="text-base font-bold text-rose-400 font-mono">{monthlySummary.totalMissed} tasks</span>
+                </div>
+              </div>
+
+              <span className="text-xs text-emerald-400 font-medium flex items-center gap-1">
+                <ArrowUpRight size={14} /> {monthlySummary.completionPercent}% overall completion rate
+              </span>
+            </div>
           </div>
-        </div>
+        )}
 
-        {/* Distraction Tracker */}
-        <div className="card p-6 flex flex-col justify-center">
-          <span className="text-[10px] font-bold uppercase tracking-wider mb-4 block" style={{ color: "var(--color-text-muted)" }}>{t.dashboard.distractionTracker}</span>
-          {todayDistractions.length === 0 ? (
-            <div className="flex items-center gap-4">
-              <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: "rgba(34, 197, 94, 0.15)" }}>
-                <Shield size={20} color="#22C55E" />
-              </div>
-              <div>
-                <h3 className="text-base font-bold mb-0.5" style={{ color: "var(--color-text-primary)" }}>0 {t.dashboard.interruptions}</h3>
-                <p className="text-xs font-medium" style={{ color: "var(--color-success)" }}>{t.dashboard.perfectFocus}</p>
-              </div>
-            </div>
-          ) : (
-            <div className="flex items-center gap-4">
-               <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: "rgba(239, 68, 68, 0.15)" }}>
-                 <span className="text-lg font-bold text-red-500">{todayDistractions.length}</span>
-               </div>
-               <div>
-                 <h3 className="text-base font-bold mb-0.5" style={{ color: "var(--color-text-primary)" }}>{t.dashboard.interruptionsLogged}</h3>
-                 <p className="text-xs font-medium" style={{ color: "var(--color-text-secondary)" }}>{t.dashboard.stayMindful}</p>
-               </div>
-            </div>
-          )}
-        </div>
-
-      </div>
-    </div>
+      </section>
+    </main>
   );
 }

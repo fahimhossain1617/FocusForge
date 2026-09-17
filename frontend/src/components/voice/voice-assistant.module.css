@@ -71,19 +71,19 @@
   cursor: pointer;
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: none !important;
+  transition: transform 0.12s ease-in-out;
 }
 
 .closeButton:hover {
   background: rgba(30, 41, 59, 0.85);
   border-color: rgba(147, 197, 253, 0.35);
   color: #f8fafc;
-  transform: scale(1.05);
+  box-shadow: none !important;
 }
 
 .closeButton:active {
-  transform: scale(0.95);
+  transform: scale(0.95) !important;
 }
 
 /* Central Stage hosting the 3D Orb */
@@ -215,25 +215,25 @@
   gap: 7px;
   padding: 8px 18px;
   border-radius: 9999px;
-  background: linear-gradient(135deg, rgba(29, 78, 216, 0.88) 0%, rgba(37, 99, 235, 0.92) 100%);
+  background: rgba(37, 99, 235, 0.92);
   border: 1px solid rgba(147, 197, 253, 0.52);
-  box-shadow: 0 2px 14px rgba(37, 99, 235, 0.45), inset 0 1px 1.5px rgba(255, 255, 255, 0.35);
+  box-shadow: none !important;
   color: #ffffff;
   font-size: 13px;
   font-weight: 600;
   letter-spacing: -0.01em;
   cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: transform 0.12s ease-in-out;
 }
 
 .voiceActionButton:hover {
-  background: linear-gradient(135deg, rgba(37, 99, 235, 0.98) 0%, rgba(29, 78, 216, 1) 100%);
+  background: rgba(37, 99, 235, 0.98);
   border-color: rgba(191, 219, 254, 0.8);
-  box-shadow: 0 4px 20px rgba(37, 99, 235, 0.65);
+  box-shadow: none !important;
 }
 
 .voiceActionButton:active {
-  transform: scale(0.98);
+  transform: scale(0.95) !important;
 }
 
 .pausedButton {
@@ -271,19 +271,18 @@
   font-weight: 600;
   letter-spacing: -0.01em;
   cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: transform 0.12s ease-in-out;
 }
 
 .stopVoiceButton:hover {
   background: rgba(239, 68, 68, 0.28);
   border-color: rgba(248, 113, 113, 0.6);
   color: #ffffff;
-  box-shadow: 0 2px 14px rgba(239, 68, 68, 0.35);
-  transform: translateY(-0.5px);
+  box-shadow: none !important;
 }
 
 .stopVoiceButton:active {
-  transform: scale(0.97);
+  transform: scale(0.95) !important;
 }
 
 .stopIcon {
@@ -539,25 +538,24 @@
   gap: 6px;
   padding: 8px 16px;
   border-radius: 9999px;
-  background: linear-gradient(135deg, rgba(16, 185, 129, 0.9) 0%, rgba(5, 150, 105, 0.95) 100%);
+  background: rgba(16, 185, 129, 0.95);
   border: 1px solid rgba(110, 231, 183, 0.45);
   color: #ffffff;
   font-size: 12.5px;
   font-weight: 600;
   letter-spacing: -0.01em;
   cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-  box-shadow: 0 2px 12px rgba(16, 185, 129, 0.35);
+  transition: transform 0.12s ease-in-out;
+  box-shadow: none !important;
 }
 
 .applyTextButton:hover {
-  background: linear-gradient(135deg, rgba(5, 150, 105, 1) 0%, rgba(4, 120, 87, 1) 100%);
-  box-shadow: 0 4px 18px rgba(16, 185, 129, 0.55);
-  transform: translateY(-0.5px);
+  background: rgba(16, 185, 129, 0.95);
+  box-shadow: none !important;
 }
 
 .applyTextButton:active {
-  transform: scale(0.97);
+  transform: scale(0.95) !important;
 }
 
 /* The voice stage keeps its depth, but lets the transcript and controls lead. */
