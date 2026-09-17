@@ -486,7 +486,7 @@ export default function DashboardPage() {
         >
           <div>
             {/* Header: Title + Natural Subtitle + Plus (+) button to Planner */}
-            <div className="flex items-center justify-between gap-3 pb-3">
+            <div className="flex items-start justify-between gap-3 pb-3">
               <div>
                 <h2 className="text-base md:text-lg font-semibold text-foreground tracking-tight">{tasksTitle}</h2>
                 <p className="text-xs text-muted-foreground mt-0.5">
@@ -495,7 +495,7 @@ export default function DashboardPage() {
               </div>
               <button
                 onClick={() => navigateTo("planner")}
-                className="w-8 h-8 rounded-xl bg-blue-600/20 hover:bg-blue-600/35 border border-blue-500/30 text-blue-400 hover:text-blue-300 flex items-center justify-center transition-colors cursor-pointer shadow-sm"
+                className="w-8 h-8 rounded-xl bg-blue-600/20 hover:bg-blue-600/35 border border-blue-500/30 text-blue-400 hover:text-blue-300 flex items-center justify-center transition-colors cursor-pointer shadow-sm shrink-0 mt-0.5"
                 title="Add task in Planner"
                 aria-label="Add task in Planner"
               >
@@ -510,10 +510,10 @@ export default function DashboardPage() {
                   <div
                     key={item.id}
                     onClick={() => handleToggleTask(item)}
-                    className="group flex items-center justify-between gap-3 py-2.5 px-2.5 rounded-xl hover:bg-white/[0.04] transition-all cursor-pointer"
+                    className="group flex items-center justify-between gap-2 py-2 px-2 rounded-xl hover:bg-white/[0.04] transition-all cursor-pointer"
                   >
                     {/* Left: Checkbox + Task Name */}
-                    <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                    <div className="flex items-center gap-2.5 min-w-0 flex-1 mr-1">
                       <div
                         className={`shrink-0 w-5 h-5 rounded-full flex items-center justify-center transition-all duration-200 cursor-pointer ${
                           item.completed
@@ -525,7 +525,7 @@ export default function DashboardPage() {
                         {item.completed && <Check size={11} strokeWidth={3.2} />}
                       </div>
                       <span
-                        className={`text-xs sm:text-sm font-medium tracking-tight break-words transition-colors line-clamp-1 ${
+                        className={`text-xs sm:text-[13px] font-medium leading-snug break-words line-clamp-2 transition-colors ${
                           item.completed ? "text-muted-foreground line-through opacity-70" : "text-foreground"
                         }`}
                         title={item.name}
@@ -535,20 +535,19 @@ export default function DashboardPage() {
                     </div>
 
                     {/* Right side: Time & Action */}
-                    <div className="flex items-center gap-2 shrink-0">
+                    <div className="flex items-center gap-1 shrink-0">
                       {item.time && (
-                        <span className="text-[11px] text-muted-foreground font-mono flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-white/[0.03] border border-white/[0.06] whitespace-nowrap">
-                          <Clock3 size={11} className="text-blue-400 shrink-0" />
-                          <span>{item.time}</span>
+                        <span className="text-[10px] text-slate-400 font-mono px-1.5 py-0.5 rounded bg-white/[0.03] border border-white/[0.06] whitespace-nowrap">
+                          {item.time}
                         </span>
                       )}
                       <button
                         onClick={(e) => handleOpenTaskInPlanner(item, e)}
-                        className="text-slate-400 hover:text-white p-1 rounded-lg transition-colors cursor-pointer hover:bg-white/10 shrink-0"
+                        className="text-slate-400 hover:text-white w-6 h-6 flex items-center justify-center rounded-lg transition-colors cursor-pointer hover:bg-white/10 shrink-0"
                         title="Open in Planner"
                         aria-label="Open in Planner"
                       >
-                        <MoreVertical size={14} />
+                        <MoreVertical size={13} />
                       </button>
                     </div>
                   </div>
@@ -700,14 +699,14 @@ export default function DashboardPage() {
         >
           <div>
             {/* Header: Title + Plus (+) button to Skill Builder */}
-            <div className="flex items-center justify-between pb-3">
+            <div className="flex items-start justify-between pb-3">
               <div>
                 <h2 className="text-base md:text-lg font-semibold text-foreground tracking-tight">Current Skills</h2>
                 <p className="text-xs text-muted-foreground mt-0.5">Skill Builder progress</p>
               </div>
               <button
                 onClick={() => navigateTo("learning")}
-                className="w-8 h-8 rounded-xl bg-purple-600/20 hover:bg-purple-600/35 border border-purple-500/30 text-purple-400 hover:text-purple-300 flex items-center justify-center transition-colors cursor-pointer shadow-sm"
+                className="w-8 h-8 rounded-xl bg-purple-600/20 hover:bg-purple-600/35 border border-purple-500/30 text-purple-400 hover:text-purple-300 flex items-center justify-center transition-colors cursor-pointer shadow-sm shrink-0 mt-0.5"
                 title="Manage skills in Skill Builder"
                 aria-label="Manage skills in Skill Builder"
               >
