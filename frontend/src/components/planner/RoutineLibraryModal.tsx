@@ -18,10 +18,8 @@ import {
   ChevronUp,
   ChevronDown,
   Layers,
-  Sparkles,
   Calendar,
   AlertCircle,
-  Check,
 } from "lucide-react";
 
 interface RoutineLibraryModalProps {
@@ -294,6 +292,12 @@ export default function RoutineLibraryModal({
       if (typeof showToast === "function") showToast("Routine task added", "success");
     }
 
+    if (targetDateStr && typeof contextImportRoutineToDate === "function") {
+      setTimeout(() => {
+        contextImportRoutineToDate(activeWeekday, targetDateStr, { mode: "missing_only" });
+      }, 50);
+    }
+
     resetForm();
   };
 
@@ -319,13 +323,20 @@ export default function RoutineLibraryModal({
     );
   };
 
+  const handleClose = () => {
+    if (targetDateStr && typeof contextImportRoutineToDate === "function" && tasksList.length > 0) {
+      contextImportRoutineToDate(activeWeekday, targetDateStr, { mode: "missing_only" });
+    }
+    onClose();
+  };
+
   if (!shouldRender || !mounted) return null;
 
   return createPortal(
     <div
       className={`${isExiting ? "motion-exit-fade" : "motion-overlay"} fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-4 md:p-6 bg-black/75 backdrop-blur-md overflow-y-auto pointer-events-auto`}
       onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
+        if (e.target === e.currentTarget) handleClose();
       }}
     >
       <div
@@ -337,20 +348,28 @@ export default function RoutineLibraryModal({
         }}
       >
         {/* MODAL HEADER */}
-        <div className="flex items-center justify-between px-6 py-5 border-b border-white/[0.08] bg-white/[0.02]">
+        <div className="flex items-center justify-between px-5 py-3.5 border-b border-white/[0.08] bg-white/[0.02]">
           <div>
-            <h2 className="text-xl font-bold text-white tracking-tight">
+            <h2 className="text-lg sm:text-xl font-bold text-white tracking-tight">
               {t.planner.routineTemplates || "Your Routine"}
             </h2>
             <p className="text-xs text-slate-400 mt-0.5">
               {t.planner.routineSubtitle || "Create reusable weekly schedules once and import them into any date."}
             </p>
           </div>
+          <button
+            type="button"
+            onClick={handleClose}
+            className="p-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+            aria-label="Close"
+          >
+            <X className="w-5 h-5" />
+          </button>
         </div>
 
         {/* WEEKDAY SELECTOR TABS */}
-        <div className="px-6 pt-4 pb-3 border-b border-white/[0.06] bg-slate-950/40">
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+        <div className="px-5 py-2.5 border-b border-white/[0.06] bg-slate-950/40">
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 scrollbar-none">
             {ALL_WEEKDAYS.map((day) => {
               const isActive = activeWeekday === day.key;
               const dayTemplate = (state.routineTemplates || []).find((tpl) => tpl.weekday === day.key);
@@ -363,13 +382,13 @@ export default function RoutineLibraryModal({
                     setActiveWeekday(day.key);
                     resetForm();
                   }}
-                  className={`flex-1 min-w-[76px] sm:min-w-[90px] py-2.5 px-2 rounded-xl text-xs font-semibold flex flex-col items-center gap-1 transition-all cursor-pointer ${
+                  className={`flex-1 min-w-[64px] sm:min-w-[80px] py-1.5 px-1.5 rounded-xl text-xs font-semibold flex flex-col items-center gap-0.5 transition-all cursor-pointer ${
                     isActive
                       ? "bg-blue-600 text-white shadow-md shadow-blue-600/30 border border-blue-400/40"
                       : "bg-white/[0.03] text-slate-400 hover:text-slate-200 hover:bg-white/[0.06] border border-white/[0.06]"
                   }`}
                 >
-                  <span className="capitalize">{day.short}</span>
+                  <span className="capitalize text-xs">{day.short}</span>
                   <span
                     className={`text-[10px] px-1.5 py-0.2 rounded-full font-medium ${
                       isActive ? "bg-white/20 text-white" : count > 0 ? "bg-blue-500/20 text-blue-300" : "bg-white/5 text-slate-500"
@@ -384,22 +403,22 @@ export default function RoutineLibraryModal({
         </div>
 
         {/* MODAL BODY */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-5 scrollbar-thin scrollbar-thumb-white/10">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-3.5 scrollbar-thin scrollbar-thumb-white/10">
           {/* DAY SUMMARY BAR */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-2xl bg-white/[0.03] border border-white/[0.08]">
+          <div className="flex items-center justify-between gap-3 p-3 rounded-xl bg-white/[0.03] border border-white/[0.08]">
             <div className="flex items-center gap-2.5">
-              <div className="w-2.5 h-2.5 rounded-full bg-blue-500"></div>
+              <div className="w-2.5 h-2.5 rounded-full bg-blue-500 shrink-0"></div>
               <div>
-                <h3 className="text-sm font-bold text-white capitalize">
+                <h3 className="text-xs sm:text-sm font-bold text-white capitalize">
                   {activeWeekday} Routine
                 </h3>
                 {summary ? (
-                  <p className="text-xs text-slate-400 mt-0.5">
+                  <p className="text-[11px] sm:text-xs text-slate-400 mt-0.5">
                     {summary.count} {summary.count === 1 ? "task" : "tasks"} scheduled
                     {summary.timeRange ? ` · ${summary.timeRange}` : ""}
                   </p>
                 ) : (
-                  <p className="text-xs text-slate-400 mt-0.5">No tasks configured for this weekday</p>
+                  <p className="text-[11px] sm:text-xs text-slate-400 mt-0.5">No tasks configured for this weekday</p>
                 )}
               </div>
             </div>
@@ -407,11 +426,12 @@ export default function RoutineLibraryModal({
             {!isEditingTask && (
               <button
                 onClick={handleOpenAddForm}
-                className="w-9 h-9 rounded-xl bg-blue-600 hover:bg-blue-500 text-white flex items-center justify-center transition-all shadow-md shadow-blue-600/20 cursor-pointer shrink-0"
+                className="px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold flex items-center gap-1.5 transition-all shadow-md shadow-blue-600/20 cursor-pointer shrink-0"
                 title="Add Task to Routine"
                 aria-label="Add Task to Routine"
               >
-                <Plus className="w-5 h-5" />
+                <Plus className="w-4 h-4" />
+                <span>Add Task</span>
               </button>
             )}
           </div>
@@ -420,35 +440,42 @@ export default function RoutineLibraryModal({
           {isEditingTask && (
             <form
               onSubmit={handleSaveTask}
-              className="p-5 rounded-2xl border space-y-4 animate-fade-in"
+              className="p-3.5 rounded-2xl border space-y-2.5 animate-fade-in"
               style={{
-                background: "rgba(15, 23, 42, 0.9)",
-                borderColor: "rgba(59, 130, 246, 0.3)",
+                background: "rgba(15, 23, 42, 0.95)",
+                borderColor: "rgba(59, 130, 246, 0.25)",
               }}
             >
               <div className="flex items-center justify-between pb-2 border-b border-white/10">
-                <h4 className="text-sm font-bold text-white flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-blue-400" />
+                <h4 className="text-xs sm:text-sm font-bold text-white uppercase tracking-wide">
                   {editingTaskId ? "Edit Task" : "New Task for " + activeWeekday.toUpperCase()}
                 </h4>
-                <button
-                  type="button"
-                  onClick={resetForm}
-                  className="text-xs text-slate-400 hover:text-white transition-colors cursor-pointer"
-                >
-                  Cancel
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={resetForm}
+                    className="px-3 py-1 rounded-lg text-xs font-semibold text-slate-300 hover:text-white hover:bg-white/5 border border-slate-700/80 transition-colors cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-1 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition-all shadow-md shadow-blue-600/30 cursor-pointer"
+                  >
+                    Save
+                  </button>
+                </div>
               </div>
 
               {formError && (
-                <div className="flex items-center gap-2 p-3 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-300 text-xs">
+                <div className="flex items-center gap-2 p-2 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-300 text-xs">
                   <AlertCircle className="w-4 h-4 shrink-0" />
                   {formError}
                 </div>
               )}
 
               <div>
-                <label className="block text-xs font-semibold mb-2 text-slate-300">Task Title *</label>
+                <label className="block text-[11px] font-semibold mb-1 text-slate-300">Task Title *</label>
                 <input
                   type="text"
                   placeholder="e.g. Deep Work / Code Review / Workout"
@@ -457,15 +484,15 @@ export default function RoutineLibraryModal({
                     setFormTitle(e.target.value);
                     if (formError) setFormError(null);
                   }}
-                  className="w-full bg-slate-900/80 border border-slate-700/80 rounded-xl px-4 py-2.5 outline-none transition-colors text-sm text-white focus:border-blue-500"
+                  className="w-full bg-slate-900/90 border border-slate-700/80 rounded-xl px-3 py-1.5 outline-none transition-colors text-xs sm:text-sm text-white focus:border-blue-500 placeholder:text-slate-500"
                   required
                   autoFocus
                 />
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                 <div>
-                  <label className="block text-xs font-semibold mb-2 text-slate-300">Start Time</label>
+                  <label className="block text-[11px] font-semibold mb-1 text-slate-300">Start Time</label>
                   <FocusForgeTimePicker
                     value={formStartTime}
                     onChange={(e) => setFormStartTime(e.target.value)}
@@ -473,69 +500,52 @@ export default function RoutineLibraryModal({
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold mb-2 text-slate-300">End Time</label>
+                  <label className="block text-[11px] font-semibold mb-1 text-slate-300">End Time</label>
                   <FocusForgeTimePicker
                     value={formEndTime}
                     onChange={(e) => setFormEndTime(e.target.value)}
                     ariaLabel="End Time"
                   />
                 </div>
+                <div>
+                  <label className="block text-[11px] font-semibold mb-1 text-slate-300">Category</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Study, Health"
+                    value={formCategory}
+                    onChange={(e) => setFormCategory(e.target.value)}
+                    className="w-full bg-slate-900/90 border border-slate-700/80 rounded-xl px-3 py-1.5 outline-none transition-colors text-xs text-white focus:border-blue-500 placeholder:text-slate-500 h-[36px]"
+                  />
+                </div>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold mb-2 text-slate-300">Category</label>
-                <input
-                  type="text"
-                  placeholder="e.g. Programming, Study, Health"
-                  value={formCategory}
-                  onChange={(e) => setFormCategory(e.target.value)}
-                  className="w-full bg-slate-900/80 border border-slate-700/80 rounded-xl px-4 py-2.5 outline-none transition-colors text-sm text-white focus:border-blue-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold mb-2 text-slate-300">Notes / Objectives (Optional)</label>
+                <label className="block text-[11px] font-semibold mb-1 text-slate-300">Notes / Objectives (Optional)</label>
                 <textarea
                   rows={2}
                   placeholder="Additional instructions or checklists..."
                   value={formNotes}
                   onChange={(e) => setFormNotes(e.target.value)}
-                  className="w-full bg-slate-900/80 border border-slate-700/80 rounded-xl p-3 outline-none transition-colors text-xs text-white focus:border-blue-500 resize-none"
+                  className="w-full bg-slate-900/90 border border-slate-700/80 rounded-xl p-2 outline-none transition-colors text-xs text-white focus:border-blue-500 resize-none placeholder:text-slate-500"
                 />
-              </div>
-
-              <div className="flex items-center justify-end gap-2.5 pt-2">
-                <button
-                  type="button"
-                  onClick={resetForm}
-                  className="px-4 py-2 rounded-xl text-xs font-bold text-slate-300 hover:bg-white/5 border border-slate-700 transition-colors cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-6 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition-all shadow-md shadow-blue-600/30 cursor-pointer"
-                >
-                  Save
-                </button>
               </div>
             </form>
           )}
 
           {/* TASKS LIST */}
-          <div className="space-y-3">
+          <div className="space-y-2.5">
             {tasksList.length > 0 ? (
               tasksList.map((task, index) => {
                 return (
                   <div
                     key={task.id}
-                    className="group relative p-4 rounded-2xl border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:border-blue-500/30"
+                    className="group relative p-3 sm:p-3.5 rounded-xl border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 hover:border-blue-500/30"
                     style={{
                       background: "rgba(15, 23, 42, 0.65)",
                       borderColor: "rgba(59, 130, 246, 0.12)",
                     }}
                   >
-                    <div className="flex items-start gap-3 min-w-0 flex-1">
+                    <div className="flex items-start gap-2.5 min-w-0 flex-1">
                       {/* Reorder Buttons (Desktop + Mobile) */}
                       <div className="flex flex-col gap-0.5 shrink-0 pt-0.5">
                         <button
@@ -557,9 +567,9 @@ export default function RoutineLibraryModal({
                       </div>
 
                       {/* Task Info */}
-                      <div className="space-y-1.5 min-w-0 flex-1">
+                      <div className="space-y-1 min-w-0 flex-1">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <h4 className="font-bold text-sm text-white truncate">{task.title}</h4>
+                          <h4 className="font-bold text-xs sm:text-sm text-white truncate">{task.title}</h4>
                           {task.category && (
                             <span className="text-[10px] px-2 py-0.5 rounded-md bg-white/5 border border-white/10 text-slate-300 font-medium">
                               {task.category}
@@ -568,57 +578,57 @@ export default function RoutineLibraryModal({
                         </div>
 
                         <div className="flex items-center gap-3 text-xs text-slate-400 flex-wrap">
-                          <span className="flex items-center gap-1 font-mono">
-                            <Clock className="w-3.5 h-3.5 text-blue-400" />
+                          <span className="flex items-center gap-1 font-mono text-[11px]">
+                            <Clock className="w-3 h-3 text-blue-400" />
                             {formatTime12hr(task.startTime)} – {formatTime12hr(task.endTime)}
                           </span>
                         </div>
 
                         {task.notes && (
-                          <p className="text-xs text-slate-400 italic line-clamp-2 pt-0.5">{task.notes}</p>
+                          <p className="text-[11px] text-slate-400 italic line-clamp-2 pt-0.5">{task.notes}</p>
                         )}
                       </div>
                     </div>
 
                     {/* Actions */}
-                    <div className="flex items-center justify-end gap-1 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-white/5">
+                    <div className="flex items-center justify-end gap-1 shrink-0 pt-1.5 sm:pt-0 border-t sm:border-t-0 border-white/5">
                       <button
                         onClick={() => handleOpenEditForm(task)}
-                        className="p-2 rounded-xl text-slate-400 hover:text-blue-400 hover:bg-blue-500/10 transition-colors cursor-pointer"
+                        className="p-1.5 rounded-lg text-slate-400 hover:text-blue-400 hover:bg-blue-500/10 transition-colors cursor-pointer"
                         title="Edit task"
                       >
-                        <Edit2 className="w-4 h-4" />
+                        <Edit2 className="w-3.5 h-3.5" />
                       </button>
                       <button
                         onClick={() => handleDeleteTask(task.id)}
-                        className="p-2 rounded-xl text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer"
+                        className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer"
                         title="Delete task"
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     </div>
                   </div>
                 );
               })
             ) : (
-              <div className="py-12 px-4 rounded-2xl border border-dashed border-white/10 bg-white/[0.01] flex flex-col items-center justify-center text-center space-y-3">
-                <div className="w-12 h-12 rounded-2xl bg-blue-600/10 border border-blue-500/20 flex items-center justify-center text-blue-400">
-                  <Calendar className="w-6 h-6" />
+              <div className="py-8 px-4 rounded-xl border border-dashed border-white/10 bg-white/[0.01] flex flex-col items-center justify-center text-center space-y-2.5">
+                <div className="w-10 h-10 rounded-xl bg-blue-600/10 border border-blue-500/20 flex items-center justify-center text-blue-400">
+                  <Calendar className="w-5 h-5" />
                 </div>
                 <div>
-                  <h4 className="text-sm font-bold text-white">
+                  <h4 className="text-xs sm:text-sm font-bold text-white">
                     {t.planner.noRoutineForDay || "You haven't created a routine for this day yet."}
                   </h4>
-                  <p className="text-xs text-slate-400 mt-1 max-w-sm">
+                  <p className="text-[11px] text-slate-400 mt-0.5 max-w-sm">
                     Add standard recurring tasks like study sessions, workouts, lectures, or focus blocks.
                   </p>
                 </div>
                 {!isEditingTask && (
                   <button
                     onClick={handleOpenAddForm}
-                    className="mt-2 px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition-all shadow-md shadow-blue-600/20 flex items-center gap-2 cursor-pointer"
+                    className="mt-1 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition-all shadow-md shadow-blue-600/20 flex items-center gap-1.5 cursor-pointer"
                   >
-                    <Plus className="w-4 h-4" />
+                    <Plus className="w-3.5 h-3.5" />
                     {t.planner.addTask || "Add Task"}
                   </button>
                 )}
@@ -627,49 +637,14 @@ export default function RoutineLibraryModal({
           </div>
         </div>
 
-        {/* MODAL FOOTER */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-6 py-4 border-t border-white/[0.08] bg-slate-950/50">
-          <div className="text-xs text-slate-400 text-center sm:text-left">
-            {targetDateStr && (
-              <span className="text-slate-400">
-                Selected date: <span className="text-blue-400 font-bold font-mono">{targetDateStr}</span>
-              </span>
-            )}
+        {/* MODAL FOOTER - SELECTED DATE */}
+        {targetDateStr && (
+          <div className="flex items-center px-5 py-2.5 border-t border-white/[0.08] bg-slate-950/50 text-xs">
+            <span className="text-slate-400">
+              Selected date: <span className="text-blue-400 font-bold font-mono">{targetDateStr}</span>
+            </span>
           </div>
-          <div className="flex items-center gap-2.5 w-full sm:w-auto justify-end">
-            <button
-              onClick={onClose}
-              className="px-4 py-2.5 rounded-xl border border-white/10 hover:bg-white/5 text-slate-300 hover:text-white text-xs font-bold transition-colors cursor-pointer"
-            >
-              Cancel
-            </button>
-            {targetDateStr && tasksList.length > 0 && (
-              <button
-                onClick={() => {
-                  if (typeof contextImportRoutineToDate === "function") {
-                    contextImportRoutineToDate(activeWeekday, targetDateStr, { mode: "missing_only" });
-                  }
-                  onClose();
-                }}
-                className="px-5 py-2.5 rounded-xl bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/30 text-blue-300 hover:text-white text-xs font-bold transition-all shadow-sm cursor-pointer flex items-center gap-1.5"
-              >
-                <Check className="w-3.5 h-3.5 text-blue-400" />
-                Apply to Date
-              </button>
-            )}
-            <button
-              onClick={() => {
-                if (targetDateStr && typeof contextImportRoutineToDate === "function" && tasksList.length > 0) {
-                  contextImportRoutineToDate(activeWeekday, targetDateStr, { mode: "missing_only" });
-                }
-                onClose();
-              }}
-              className="px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition-all shadow-md shadow-blue-600/25 cursor-pointer"
-            >
-              Done
-            </button>
-          </div>
-        </div>
+        )}
       </div>
     </div>,
     document.body
