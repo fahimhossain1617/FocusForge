@@ -1,6 +1,5 @@
 "use client";
 
-import dynamic from "next/dynamic";
 import { Suspense, useEffect, useState } from "react";
 import { useAppContext } from "../context/AppContext";
 import { useAuth } from "../context/AuthContext";
@@ -30,34 +29,15 @@ import {
 import { useDailyPlan } from "../hooks/useDailyPlan";
 import { useReviewPrompt } from "../hooks/useReviewPrompt";
 
-// Dynamic page imports with exact matching skeleton fallbacks for optimal bundle splitting
-const DashboardPage = dynamic(() => import("../components/pages/DashboardPage"), {
-  loading: () => <DashboardSkeleton />,
-});
-const MyMindPage = dynamic(() => import("../components/pages/MyMindPage"), {
-  loading: () => <MyMindSkeleton />,
-});
-const WorkspacePage = dynamic(() => import("../components/pages/WorkspacePage"), {
-  loading: () => <WorkspaceSkeleton />,
-});
-const PlannerPage = dynamic(() => import("../components/pages/PlannerPage"), {
-  loading: () => <PlannerSkeleton />,
-});
-const FocusPage = dynamic(() => import("../components/pages/FocusPage"), {
-  loading: () => <FocusSkeleton />,
-});
-const LearningHubPage = dynamic(() => import("../components/pages/LearningHubPage"), {
-  loading: () => <LearningHubSkeleton />,
-});
-const ProfilePage = dynamic(() => import("../components/pages/ProfilePage"), {
-  loading: () => <ProfileSkeleton />,
-});
-const SettingsPage = dynamic(() => import("../components/pages/SettingsPage"), {
-  loading: () => <SettingsSkeleton />,
-});
-const AIAgentPage = dynamic(() => import("../components/ai-agent/AIAgentPage"), {
-  loading: () => <AIAgentSkeleton />,
-});
+import DashboardPage from "../components/pages/DashboardPage";
+import MyMindPage from "../components/pages/MyMindPage";
+import WorkspacePage from "../components/pages/WorkspacePage";
+import PlannerPage from "../components/pages/PlannerPage";
+import FocusPage from "../components/pages/FocusPage";
+import LearningHubPage from "../components/pages/LearningHubPage";
+import ProfilePage from "../components/pages/ProfilePage";
+import SettingsPage from "../components/pages/SettingsPage";
+import AIAgentPage from "../components/ai-agent/AIAgentPage";
 
 const pageComponents: Record<string, React.ComponentType<{ onOpenSidebar?: () => void }>> = {
   today: DashboardPage,

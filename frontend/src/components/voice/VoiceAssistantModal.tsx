@@ -108,8 +108,8 @@ export const VoiceAssistantModal: React.FC<VoiceAssistantModalProps> = ({
       if (!isOnline) {
         showToast(
           lang === "bn"
-            ? "আপনি বর্তমানে অফলাইনে আছেন। ভয়েস ফিচার শুধুমাত্র অনলাইনে কাজ করে।"
-            : "You are currently offline. Voice features require an active internet connection.",
+            ? "আপনি বর্তমানে অফলাইনে আছেন।"
+            : "You are currently offline.",
           "error"
         );
         onClose();

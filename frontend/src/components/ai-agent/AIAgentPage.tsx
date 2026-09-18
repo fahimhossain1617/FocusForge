@@ -283,8 +283,8 @@ export function AIAgentPage() {
     if (!isOnline) {
       showToast(
         isSystemBn
-          ? "আপনি বর্তমানে অফলাইনে আছেন। AI ফিচার ব্যবহার করতে ইন্টারনেট সংযোগ প্রয়োজন।"
-          : "You are currently offline. AI features require an active internet connection.",
+          ? "আপনি বর্তমানে অফলাইনে আছেন।"
+          : "You are currently offline.",
         "error"
       );
       return;
@@ -304,8 +304,8 @@ export function AIAgentPage() {
     if (!isOnline) {
       showToast(
         isSystemBn
-          ? "আপনি বর্তমানে অফলাইনে আছেন। ভয়েস ফিচার শুধুমাত্র অনলাইনে কাজ করে।"
-          : "You are currently offline. Voice features require an active internet connection.",
+          ? "আপনি বর্তমানে অফলাইনে আছেন।"
+          : "You are currently offline.",
         "error"
       );
       return;
@@ -678,30 +678,6 @@ export function AIAgentPage() {
       </div>
 
       <div className={styles.composerWrapper} ref={composerRef}>
-        {/* Offline Alert Banner right above composer */}
-        {!isOnline && (
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            padding: '10px 14px',
-            marginBottom: '10px',
-            borderRadius: '14px',
-            background: 'rgba(239, 68, 68, 0.12)',
-            border: '1px solid rgba(239, 68, 68, 0.25)',
-            color: '#fca5a5',
-            fontSize: '12px',
-            lineHeight: 1.4,
-          }}>
-            <AlertCircle size={16} className="shrink-0 text-red-400" />
-            <span>
-              {isSystemBn 
-                ? "আপনি বর্তমানে অফলাইনে আছেন। AI এজেন্ট রেসপন্স পেতে ইন্টারনেট সংযোগ প্রয়োজন। আপনার অন্যান্য ডাটা নিরাপদে লোকালি সেভ হচ্ছে।" 
-                : "You are currently offline. An internet connection is required to interact with the AI Agent. Your other data is safely stored locally."}
-            </span>
-          </div>
-        )}
-
         {/* Token Exhaustion Alert Banner right above composer */}
         {tokenStatus?.isExhausted && (
           <div className={styles.tokenLimitBanner}>
