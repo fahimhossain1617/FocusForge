@@ -309,10 +309,78 @@ export default function BlockEditor({
 /* ───────────── Command Menu ───────────── */
 
 function CommandMenu({ options: shown, selected, onChoose }: { options: MenuOption[]; selected: number; onChoose: (type: BlockType) => void; }) {
+  const menuRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
+  const [fixedStyle, setFixedStyle] = useState<React.CSSProperties | null>(null);
+
+  useEffect(() => {
+    const el = menuRef.current;
+    if (!el) return;
+    const parent = el.parentElement;
+    if (!parent) return;
+
+    const parentRect = parent.getBoundingClientRect();
+    const menuHeight = 290;
+    const menuWidth = 275;
+    const vh = window.innerHeight || document.documentElement.clientHeight;
+    const vw = window.innerWidth || document.documentElement.clientWidth;
+
+    const spaceBelow = vh - parentRect.bottom;
+
+    // When typing near the bottom of the page/screen:
+    if (spaceBelow < menuHeight + 35) {
+      const rightSpace = vw - parentRect.right;
+      const leftSpace = parentRect.left;
+
+      let top = Math.max(65, Math.min(parentRect.top - 80, vh - menuHeight - 16));
+      let left = parentRect.left;
+
+      if (vw >= 850 && rightSpace >= menuWidth + 20) {
+        // Place on the right side of the block
+        left = parentRect.right + 12;
+      } else if (vw >= 850 && leftSpace >= menuWidth + 20) {
+        // Place on the left side of the block
+        left = parentRect.left - menuWidth - 12;
+      } else if (vw >= 640) {
+        // Dock to the right side of the screen
+        left = Math.max(16, vw - menuWidth - 20);
+      } else {
+        // Mobile: place comfortably above the current block
+        top = Math.max(65, parentRect.top - menuHeight - 8);
+        left = Math.max(8, Math.min(parentRect.left, vw - menuWidth - 12));
+      }
+
+      setFixedStyle({
+        position: 'fixed',
+        top: `${top}px`,
+        left: `${left}px`,
+        bottom: 'auto',
+        right: 'auto',
+        width: `${menuWidth}px`,
+        zIndex: 99999,
+      });
+    } else {
+      setFixedStyle(null);
+    }
+  }, []);
+
+  // Auto scroll active item into view
+  useEffect(() => {
+    if (!listRef.current) return;
+    const activeBtn = listRef.current.querySelector('.is-selected') as HTMLElement | null;
+    if (activeBtn) {
+      activeBtn.scrollIntoView({ block: 'nearest' });
+    }
+  }, [selected]);
+
   return (
-    <div className="note-command-menu">
+    <div 
+      ref={menuRef} 
+      className="note-command-menu"
+      style={fixedStyle || undefined}
+    >
       <p>What do you want to add?</p>
-      <div>
+      <div ref={listRef}>
         {shown.map((option, index) => { 
           const Icon = option.icon; 
           return (

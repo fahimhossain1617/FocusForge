@@ -224,7 +224,7 @@ export default function Home() {
         {/* Page Content */}
         <div className={`w-full min-w-0 ${
           state.activePage === 'ai-agent'
-            ? 'flex-1 flex flex-col p-0 max-w-none h-full'
+            ? 'flex-1 flex flex-col p-0 max-w-none w-full h-[calc(100dvh-60px)] md:h-dvh overflow-hidden'
             : state.activePage === 'planner'
             ? 'flex-1 flex flex-col p-0 max-w-none'
             : state.activePage === 'today'

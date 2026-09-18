@@ -1,149 +1,12 @@
-.page {
-  position: relative;
-  isolation: isolate;
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-  height: 100dvh;
-  max-height: 100dvh;
-  margin: 0;
-  padding: 0;
-  color: var(--color-text-primary);
-  background: 
-    radial-gradient(ellipse 95% 55% at 50% 25%, rgba(37, 99, 235, 0.20), transparent 68%),
-    radial-gradient(ellipse 85% 45% at 50% 85%, rgba(37, 99, 235, 0.08), transparent 70%),
-    radial-gradient(circle at 6% 45%, rgba(56, 189, 248, 0.05), transparent 48%),
-    radial-gradient(circle at 94% 45%, rgba(129, 140, 248, 0.05), transparent 48%),
-    linear-gradient(180deg, #08090C 0%, #0D0F17 45%, #08090C 100%);
-  overflow: hidden;
-}
-
-/* 1. FIXED CELESTIAL HORIZON ARCS: Truly fixed across entire page, never moves or shifts with text or scroll */
-.fixedArcContainer {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  z-index: 0;
-  overflow: hidden;
-}
-
-.topHorizonArc {
-  position: absolute;
-  top: -460px;
-  left: -25%;
-  width: 150%;
-  height: 680px;
-  border-radius: 50%;
-  border: 1px solid rgba(110, 150, 210, 0.05);
-  border-bottom: 1.2px solid rgba(147, 197, 253, 0.32);
-  background: radial-gradient(ellipse at 50% 100%, rgba(30, 64, 175, 0.12) 0%, rgba(15, 23, 42, 0.02) 45%, transparent 72%);
-  box-shadow: 
-    0 8px 30px rgba(56, 120, 200, 0.12),
-    0 0 55px rgba(37, 99, 235, 0.10),
-    inset 0 -3px 20px rgba(147, 203, 255, 0.06);
-  filter: blur(1.8px);
-  -webkit-mask-image: radial-gradient(ellipse 85% 100% at 50% 100%, black 55%, transparent 95%);
-  mask-image: radial-gradient(ellipse 85% 100% at 50% 100%, black 55%, transparent 95%);
-}
-
-.bottomHorizonArc {
-  position: absolute;
-  bottom: -460px;
-  left: -25%;
-  width: 150%;
-  height: 680px;
-  border-radius: 50%;
-  border: 1px solid rgba(105, 145, 205, 0.05);
-  border-top: 1.2px solid rgba(147, 197, 253, 0.28);
-  background: radial-gradient(ellipse at 50% 0%, rgba(30, 64, 175, 0.11) 0%, rgba(15, 23, 42, 0.02) 45%, transparent 72%);
-  box-shadow: 
-    0 -8px 30px rgba(56, 120, 200, 0.11),
-    0 0 55px rgba(37, 99, 235, 0.09),
-    inset 0 3px 20px rgba(147, 203, 255, 0.05);
-  filter: blur(1.8px);
-  -webkit-mask-image: radial-gradient(ellipse 85% 100% at 50% 0%, black 55%, transparent 95%);
-  mask-image: radial-gradient(ellipse 85% 100% at 50% 0%, black 55%, transparent 95%);
-}
-
-/* Header */
-.header {
-  position: relative;
-  z-index: 50;
-  flex-shrink: 0;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 14px 28px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
-  background: rgba(1, 2, 7, 0.4);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-}
-
-@media (max-width: 768px) {
-  .header {
-    padding: 10px 16px;
-  }
-}
-
-.title {
-  display: flex;
-  align-items: center;
-  gap: 11px;
-}
-
-.title p {
-  font-weight: 750;
-  font-size: 18px;
-  letter-spacing: -0.02em;
-}
-
-.title span, .ready {
-  font-size: 12px;
-  color: var(--color-text-secondary);
-}
-
-.headerActions {
-  position: relative;
-  z-index: 60;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.tokenPill {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 5px 12px;
-  border-radius: 999px;
-  background: rgba(99, 102, 241, 0.1);
-  border: 1px solid rgba(99, 102, 241, 0.28);
-  color: #a5b4fc;
-  font-size: 12px;
-  font-weight: 550;
-  letter-spacing: -0.01em;
-  user-select: none;
-  transition: all 0.2s ease;
-}
-
-.tokenPill:hover {
-  background: rgba(99, 102, 241, 0.18);
-  border-color: rgba(99, 102, 241, 0.45);
-  color: #c7d2fe;
-}
-
-.tokenIcon {
-  color: #818cf8;
-}
+/* AIAgent Styles - FocusForge Theme */
 
 .iconButton {
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.12);
   color: var(--color-text-secondary);
-  border-radius: 10px;
-  width: 36px;
-  height: 36px;
+  border-radius: 12px;
+  width: 38px;
+  height: 38px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -152,11 +15,12 @@
 }
 
 .iconButton:hover {
-  background: rgba(255, 255, 255, 0.12);
-  color: var(--color-text-primary);
-  border-color: rgba(99, 102, 241, 0.4);
+  background: rgba(59, 130, 246, 0.15);
+  color: #ffffff;
+  border-color: rgba(59, 130, 246, 0.4);
 }
 
+/* Header History Dropdown */
 .historyDropdown {
   position: absolute;
   top: 44px;
@@ -166,8 +30,8 @@
   background: rgba(13, 17, 28, 0.95);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
-  border: 1px solid rgba(99, 102, 241, 0.25);
-  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.5), 0 0 24px rgba(99, 102, 241, 0.15);
+  border: 1px solid rgba(59, 130, 246, 0.25);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.5), 0 0 24px rgba(59, 130, 246, 0.12);
   border-radius: 14px;
   z-index: 50;
   display: flex;
@@ -364,13 +228,13 @@
 
 .quickActionsHero button,
 .quickActionsInline button {
-  padding: 6px 13px;
+  padding: 5px 11px;
   border: 1px solid var(--color-border-subtle);
-  border-radius: 999px;
+  border-radius: 8px;
   background: rgba(15, 23, 42, 0.55);
   color: var(--color-text-secondary);
-  font-size: 11.5px;
-  font-weight: 550;
+  font-size: 11px;
+  font-weight: 500;
   letter-spacing: -0.01em;
   transition: all 0.2s ease;
   white-space: nowrap;
@@ -630,10 +494,120 @@
 
 .proposalActions .exploreBtn:hover {
   transform: translateY(-1px);
-  background: linear-gradient(135deg, #1d4ed8, #4f46e5);
-  box-shadow: 0 6px 20px rgba(99, 102, 241, 0.5);
-  border-color: rgba(191, 219, 254, 0.6);
+  text-transform: uppercase;
 }
+
+.message p {
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.thinking {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  border-radius: 12px;
+  background: rgba(99, 102, 241, 0.08);
+  border: 1px solid rgba(99, 102, 241, 0.22);
+  box-shadow: 0 0 20px rgba(99, 102, 241, 0.12), inset 0 0 10px rgba(99, 102, 241, 0.04);
+  margin-top: 4px;
+  animation: thinkingPulse 2.4s ease-in-out infinite;
+}
+
+@keyframes thinkingPulse {
+  0%, 100% {
+    border-color: rgba(99, 102, 241, 0.22);
+    box-shadow: 0 0 16px rgba(99, 102, 241, 0.08), inset 0 0 8px rgba(99, 102, 241, 0.03);
+  }
+  50% {
+    border-color: rgba(168, 85, 247, 0.45);
+    box-shadow: 0 0 26px rgba(168, 85, 247, 0.22), inset 0 0 14px rgba(168, 85, 247, 0.08);
+  }
+}
+
+.thinkingIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sparkleSpin {
+  animation: sparkleGlow 2.2s ease-in-out infinite;
+}
+
+@keyframes sparkleGlow {
+  0%, 100% {
+    transform: scale(0.9) rotate(0deg);
+    color: #818cf8;
+    filter: drop-shadow(0 0 4px rgba(129, 140, 248, 0.5));
+  }
+  50% {
+    transform: scale(1.18) rotate(180deg);
+    color: #c084fc;
+    filter: drop-shadow(0 0 8px rgba(192, 132, 252, 0.85));
+  }
+}
+
+.thinkingDots {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.thinkingDots span {
+  display: block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #6366f1, #a855f7);
+  box-shadow: 0 0 8px rgba(99, 102, 241, 0.6);
+  animation: dotWave 1.4s ease-in-out infinite;
+}
+
+.thinkingDots span:nth-child(1) {
+  animation-delay: 0s;
+}
+
+.thinkingDots span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.thinkingDots span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes dotWave {
+  0%, 100% {
+    transform: translateY(0);
+    opacity: 0.45;
+  }
+  50% {
+    transform: translateY(-5px);
+    opacity: 1;
+    background: linear-gradient(135deg, #a855f7, #ec4899);
+    box-shadow: 0 0 12px rgba(236, 72, 153, 0.85);
+  }
+}
+
+.thinkingText {
+  font-size: 13px;
+  font-weight: 550;
+  letter-spacing: 0.01em;
+  background: linear-gradient(90deg, #a5b4fc 0%, #ffffff 50%, #c084fc 100%);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: textShimmer 2.5s linear infinite;
+}
+
+@keyframes textShimmer {
+  to {
+    background-position: 200% center;
+  }
+}
+
+
 
 /* Pinned Bottom Composer Section */
 .composerWrapper {
@@ -652,51 +626,123 @@
   }
 }
 
+/* Aurora Waves directly above Composer */
+.auroraContainer {
+  position: relative;
+  width: 100%;
+  height: clamp(88px, 13.5vh, 126px);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 5;
+  margin-bottom: 6px;
+  transition: opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1), transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), max-height 0.4s ease, margin-bottom 0.4s ease;
+  overflow: hidden;
+  max-height: 135px;
+}
+
+.auroraVisible {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  max-height: 135px;
+  margin-bottom: 6px;
+}
+
+.auroraHidden {
+  opacity: 0;
+  transform: translateY(10px) scale(0.96);
+  max-height: 0px;
+  margin-bottom: 0px;
+  pointer-events: none;
+}
+
 .composer {
-  padding: 10px 14px;
-  border: 1px solid rgba(148, 163, 184, 0.22);
-  border-radius: 18px;
-  background: linear-gradient(145deg, rgba(14, 28, 54, 0.88), rgba(4, 8, 18, 0.94));
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.08);
+  position: relative;
+  background: rgba(10, 14, 26, 0.55);
+  border-radius: 16px;
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: 0 0 24px rgba(90, 130, 230, 0.25),
+              0 8px 32px rgba(0, 0, 0, 0.45);
+  padding: 12px 16px 10px;
+  transition: box-shadow 0.3s ease, background 0.2s ease;
   overflow: visible;
+  z-index: 0;
+}
+
+.composer::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 16px;
+  padding: 1.5px;
+  background: linear-gradient(
+    120deg,
+    rgba(70, 120, 240, 0.9),
+    rgba(140, 90, 230, 0.7),
+    rgba(70, 170, 240, 0.9),
+    rgba(70, 120, 240, 0.9)
+  );
+  background-size: 300% 300%;
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  animation: borderFlow 12s ease-in-out infinite;
+  z-index: -1;
+  pointer-events: none;
+}
+
+@keyframes borderFlow {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@supports not (backdrop-filter: blur(18px)) {
+  .composer {
+    background: rgba(12, 18, 36, 0.85);
+  }
 }
 
 .composer:focus-within {
-  border-color: rgba(96, 165, 250, 0.65);
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.16), 0 16px 40px rgba(0, 0, 0, 0.5);
+  background: rgba(10, 14, 26, 0.65);
+  box-shadow: 0 0 32px rgba(90, 130, 230, 0.40),
+              0 8px 36px rgba(0, 0, 0, 0.55);
 }
 
 .composer textarea {
   width: 100%;
   box-sizing: border-box !important;
   resize: none !important;
-  background: rgba(10, 16, 32, 0.65) !important;
-  border: 1px solid rgba(147, 197, 253, 0.22) !important;
-  border-radius: 12px !important;
-  color: var(--color-text-primary) !important;
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+  color: #f8fafc !important;
   font-size: 14px !important;
   line-height: 1.55 !important;
-  padding: 10px 14px !important;
-  min-height: 44px;
+  padding: 6px 8px 8px !important;
+  min-height: 40px;
   max-height: 200px;
   overflow-y: hidden;
   overflow-x: hidden;
   word-break: break-word !important;
   overflow-wrap: anywhere !important;
   white-space: pre-wrap !important;
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.25) !important;
-  transition: height 0.08s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: none !important;
+  transition: height 0.08s ease;
   scrollbar-width: thin;
-  scrollbar-color: rgba(59, 130, 246, 0.4) transparent;
+  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+}
+
+.composer textarea::placeholder {
+  color: rgba(230, 235, 250, 0.55) !important;
 }
 
 .composer textarea:focus,
 .composer textarea:focus-visible {
-  border-color: rgba(96, 165, 250, 0.7) !important;
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2), inset 0 1px 2px rgba(0, 0, 0, 0.2) !important;
+  border: none !important;
+  box-shadow: none !important;
   outline: none !important;
 }
 
@@ -709,21 +755,21 @@
 }
 
 .composer textarea::-webkit-scrollbar-thumb {
-  background: rgba(59, 130, 246, 0.35);
+  background: rgba(255, 255, 255, 0.2);
   border-radius: 999px;
 }
 
 .composer textarea::-webkit-scrollbar-thumb:hover {
-  background: rgba(59, 130, 246, 0.65);
+  background: rgba(255, 255, 255, 0.4);
 }
 
 .controls {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding-top: 8px;
-  margin-top: 2px;
-  border-top: 1px solid rgba(148, 163, 184, 0.14);
+  padding-top: 2px;
+  margin-top: 0px;
+  border-top: none;
   gap: 8px;
   flex-shrink: 0;
 }
@@ -739,49 +785,62 @@
   place-items: center;
   width: 35px;
   height: 35px;
-  border-radius: 11px;
+  border-radius: 50%;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .voiceButton {
-  border: 1px solid rgba(148, 163, 184, 0.18);
-  background: rgba(148, 163, 184, 0.1);
+  border: 1px solid rgba(120, 150, 240, 0.3);
+  background: rgba(255, 255, 255, 0.05);
   color: #cbd5e1;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 
 .voiceButton:hover {
-  background: rgba(59, 130, 246, 0.18);
-  border-color: rgba(96, 165, 250, 0.4);
+  background: rgba(70, 110, 220, 0.22);
+  border-color: rgba(120, 150, 240, 0.5);
   color: #ffffff;
 }
 
 .voiceButton.listening {
-  background: #2563eb;
+  background: rgba(37, 99, 235, 0.85);
+  border-color: rgba(96, 165, 250, 0.6);
   color: white;
   animation: pulse 1.4s infinite;
 }
 
 .sendButton {
-  background: linear-gradient(135deg, #4f46e5, #2563eb);
-  color: white;
-  box-shadow: 0 5px 16px rgba(37, 99, 235, 0.32);
+  background: rgba(70, 110, 220, 0.25);
+  border: 1px solid rgba(120, 150, 240, 0.4);
+  border-radius: 50%;
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 
 .sendButton:hover:not(:disabled) {
+  background: rgba(70, 110, 220, 0.42);
+  border-color: rgba(140, 175, 255, 0.65);
   transform: translateY(-1px);
-  box-shadow: 0 6px 20px rgba(37, 99, 235, 0.45);
+  box-shadow: 0 6px 16px rgba(70, 110, 220, 0.35);
 }
 
 .sendButton:disabled {
-  opacity: 0.45;
+  opacity: 0.38;
   cursor: not-allowed;
+  background: rgba(70, 110, 220, 0.12);
+  border-color: rgba(120, 150, 240, 0.2);
 }
 
 .stopButton {
-  background: linear-gradient(135deg, #ef4444, #dc2626) !important;
+  background: rgba(239, 68, 68, 0.85) !important;
+  border: 1px solid rgba(254, 202, 202, 0.4) !important;
+  border-radius: 50% !important;
   color: #ffffff !important;
-  box-shadow: 0 4px 16px rgba(239, 68, 68, 0.45), 0 0 0 1px rgba(248, 113, 113, 0.3) !important;
+  box-shadow: 0 4px 16px rgba(239, 68, 68, 0.45) !important;
   cursor: pointer !important;
   opacity: 1 !important;
   animation: stopButtonGlow 1.8s ease-in-out infinite;
@@ -789,7 +848,7 @@
 
 .stopButton:hover {
   transform: scale(1.05) translateY(-1px) !important;
-  background: linear-gradient(135deg, #f87171, #ef4444) !important;
+  background: rgba(239, 68, 68, 0.95) !important;
   box-shadow: 0 6px 22px rgba(239, 68, 68, 0.65), 0 0 0 2px rgba(254, 202, 202, 0.4) !important;
 }
 
@@ -839,7 +898,7 @@
 }
 
 .customSelectLabel {
-  color: var(--color-text-muted);
+  color: rgba(255, 255, 255, 0.55);
   font-size: 10px;
   font-weight: 600;
   letter-spacing: 0.03em;
@@ -852,45 +911,47 @@
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  background: rgba(15, 23, 42, 0.65);
-  border: 1px solid rgba(148, 163, 184, 0.22);
-  border-radius: 9px;
-  padding: 6px 10px;
-  color: #cbd5e1;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(100, 140, 230, 0.4);
+  border-radius: 20px;
+  padding: 5px 12px;
+  color: #f1f5f9;
   font-size: 12px;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s ease;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   width: auto;
   min-width: 105px;
   white-space: nowrap;
 }
 
 .customSelectButton:hover {
-  background: rgba(30, 41, 59, 0.85);
-  border-color: rgba(147, 197, 253, 0.4);
-  color: #f8fafc;
+  background: rgba(255, 255, 255, 0.10);
+  border-color: rgba(120, 160, 255, 0.6);
+  color: #ffffff;
 }
 
 .customSelectButtonActive {
-  background: rgba(30, 41, 59, 0.9);
-  border-color: rgba(96, 165, 250, 0.6);
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.18);
-  color: #f8fafc;
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(140, 180, 255, 0.7);
+  box-shadow: 0 0 0 2px rgba(100, 140, 230, 0.25);
+  color: #ffffff;
 }
 
 .dropdownChevron {
   position: static !important;
   display: inline-block !important;
   flex-shrink: 0;
-  color: #94a3b8;
+  color: rgba(255, 255, 255, 0.6);
   transition: transform 0.2s ease;
   pointer-events: none;
 }
 
 .chevronOpen {
   transform: rotate(180deg);
-  color: #60a5fa;
+  color: #ffffff;
 }
 
 .customDropdownMenu {
@@ -899,12 +960,13 @@
   left: 0;
   z-index: 60;
   min-width: 155px;
-  background: #0d152a;
-  border: 1px solid rgba(147, 197, 253, 0.28);
+  background: rgba(13, 21, 42, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.18);
   border-radius: 12px;
   padding: 5px;
   box-shadow: 0 14px 35px rgba(0, 0, 0, 0.65), 0 0 20px rgba(59, 130, 246, 0.18);
   backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   animation: dropdownPop 0.16s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -926,13 +988,13 @@
 }
 
 .customDropdownItem:hover {
-  background: rgba(59, 130, 246, 0.18);
+  background: rgba(255, 255, 255, 0.12);
   color: #ffffff;
 }
 
 .customDropdownItemActive {
-  background: rgba(37, 99, 235, 0.24);
-  color: #60a5fa !important;
+  background: rgba(255, 255, 255, 0.18);
+  color: #ffffff !important;
   font-weight: 600;
 }
 
@@ -1135,276 +1197,6 @@
   box-shadow: 0 8px 24px rgba(15, 23, 42, 0.05) !important;
 }
 
-:global([data-theme="light"]) .assistant .messageLabel,
-.page[data-theme="light"] .assistant .messageLabel {
-  color: #2563eb !important;
-}
-
-:global([data-theme="light"]) .quickActionsHero button,
-:global([data-theme="light"]) .quickActionsInline button,
-.page[data-theme="light"] .quickActionsHero button,
-.page[data-theme="light"] .quickActionsInline button {
-  background: rgba(255, 255, 255, 0.78) !important;
-  border-color: rgba(30, 64, 116, 0.12) !important;
-  color: #475569 !important;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.035) !important;
-}
-:global([data-theme="light"]) .quickActionsHero button:hover,
-:global([data-theme="light"]) .quickActionsInline button:hover,
-.page[data-theme="light"] .quickActionsHero button:hover,
-.page[data-theme="light"] .quickActionsInline button:hover {
-  background: rgba(239, 246, 255, 0.92) !important;
-  border-color: rgba(59, 130, 246, 0.40) !important;
-  color: #1D4ED8 !important;
-}
-
-:global([data-theme="light"]) .user,
-.page[data-theme="light"] .user {
-  background: linear-gradient(135deg, #2563eb, #1d4ed8) !important;
-  border-color: rgba(37, 99, 235, 0.5) !important;
-  color: #ffffff !important;
-}
-
-:global([data-theme="light"]) .user .messageLabel,
-.page[data-theme="light"] .user .messageLabel {
-  color: rgba(255, 255, 255, 0.9) !important;
-}
-
-:global([data-theme="light"]) .proposal,
-.page[data-theme="light"] .proposal {
-  border-top: 1px solid rgba(226, 232, 240, 0.85) !important;
-  color: #2563eb !important;
-}
-
-:global([data-theme="light"]) .proposal strong,
-.page[data-theme="light"] .proposal strong {
-  color: #0f172a !important;
-}
-
-:global([data-theme="light"]) .proposal span,
-.page[data-theme="light"] .proposal span {
-  color: #64748b !important;
-}
-
-:global([data-theme="light"]) .thinking,
-.page[data-theme="light"] .thinking {
-  background: rgba(99, 102, 241, 0.12) !important;
-  border-color: rgba(99, 102, 241, 0.35) !important;
-  color: #3730a3 !important;
-}
-
-:global([data-theme="light"]) .thinking span,
-.page[data-theme="light"] .thinking span {
-  color: #3730a3 !important;
-  font-weight: 600 !important;
-}
-
-:global([data-theme="light"]) .sparkleSpin,
-.page[data-theme="light"] .sparkleSpin {
-  color: #4f46e5 !important;
-}
-
-:global([data-theme="light"]) .thinkingDots span,
-.page[data-theme="light"] .thinkingDots span {
-  background: linear-gradient(135deg, #4f46e5, #9333ea) !important;
-  box-shadow: 0 0 6px rgba(79, 70, 229, 0.4) !important;
-}
-
-:global([data-theme="light"]) .thinkingText,
-.page[data-theme="light"] .thinkingText {
-  background: linear-gradient(90deg, #3730a3 0%, #4f46e5 50%, #7e22ce 100%) !important;
-  background-size: 200% auto !important;
-  -webkit-background-clip: text !important;
-  -webkit-text-fill-color: transparent !important;
-  font-weight: 700 !important;
-}
-
-/* History Dropdown Light Theme Override */
-:global([data-theme="light"]) .historyDropdown,
-.page[data-theme="light"] .historyDropdown {
-  background: rgba(255, 255, 255, 0.98) !important;
-  border: 1px solid rgba(99, 102, 241, 0.25) !important;
-  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.12), 0 0 24px rgba(99, 102, 241, 0.08) !important;
-  color: #0f172a !important;
-}
-
-:global([data-theme="light"]) .historyHeader,
-.page[data-theme="light"] .historyHeader {
-  color: #0f172a !important;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.08) !important;
-}
-
-:global([data-theme="light"]) .historyHeader span,
-.page[data-theme="light"] .historyHeader span {
-  color: #0f172a !important;
-  font-weight: 700 !important;
-}
-
-:global([data-theme="light"]) .historyItemBtn,
-.page[data-theme="light"] .historyItemBtn {
-  color: #1e293b !important;
-  font-weight: 550 !important;
-}
-
-:global([data-theme="light"]) .historyItem:hover,
-.page[data-theme="light"] .historyItem:hover {
-  background: rgba(99, 102, 241, 0.08) !important;
-}
-
-:global([data-theme="light"]) .activeHistoryItem,
-.page[data-theme="light"] .activeHistoryItem {
-  background: rgba(99, 102, 241, 0.15) !important;
-  border-left: 3px solid #4f46e5 !important;
-}
-
-:global([data-theme="light"]) .historyEmpty,
-.page[data-theme="light"] .historyEmpty {
-  color: #64748b !important;
-}
-
-
-/* Refined atmospheric treatment: the arcs frame the conversation rather than
-   behaving as foreground objects, and the composer remains the visual anchor. */
-.page {
-  background:
-    radial-gradient(ellipse 88% 48% at 50% 24%, rgba(37, 99, 235, 0.18), transparent 69%),
-    radial-gradient(ellipse 78% 40% at 50% 88%, rgba(37, 99, 235, 0.07), transparent 72%),
-    linear-gradient(180deg, #08090C 0%, #0D0F17 52%, #08090C 100%);
-}
-.topHorizonArc, .bottomHorizonArc {
-  opacity: 0.76;
-  filter: blur(2.4px);
-}
-.topHorizonArc {
-  border-bottom-color: rgba(147, 197, 253, 0.20);
-  background: radial-gradient(ellipse at 50% 100%, rgba(37, 99, 235, 0.075), transparent 68%);
-  box-shadow: 0 5px 22px rgba(37, 99, 235, 0.07), inset 0 -2px 14px rgba(147, 203, 255, 0.035);
-}
-.bottomHorizonArc {
-  border-top-color: rgba(147, 197, 253, 0.18);
-  background: radial-gradient(ellipse at 50% 0%, rgba(37, 99, 235, 0.065), transparent 68%);
-  box-shadow: 0 -5px 22px rgba(37, 99, 235, 0.06), inset 0 2px 14px rgba(147, 203, 255, 0.03);
-}
-.composer {
-  border-color: rgba(148, 163, 184, 0.18);
-  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.34), inset 0 1px 0 rgba(255,255,255,0.06);
-}
-.composer:focus-within { box-shadow: 0 0 0 3px rgba(59,130,246,0.13), 0 14px 34px rgba(0,0,0,0.34); }
-.sendButton { box-shadow: 0 5px 14px rgba(37, 99, 235, 0.24); }
-.sendButton:hover:not(:disabled) { box-shadow: 0 7px 18px rgba(37, 99, 235, 0.30); }
-.historyDropdown, .customDropdownMenu { box-shadow: 0 16px 36px rgba(0,0,0,0.38); }
-
-:global([data-theme="light"]) .page, .page[data-theme="light"] {
-  background: radial-gradient(ellipse 88% 48% at 50% 23%, rgba(59,130,246,0.055), transparent 68%), linear-gradient(180deg, #FFFFFF 0%, #F3F7FD 55%, #F9FBFF 100%) !important;
-}
-:global([data-theme="light"]) .topHorizonArc, :global([data-theme="light"]) .bottomHorizonArc,
-.page[data-theme="light"] .topHorizonArc, .page[data-theme="light"] .bottomHorizonArc { opacity: 0.62; filter: blur(2.4px) !important; }
-
-/* Mobile Responsiveness for Composer & Controls */
-@media (max-width: 768px) {
-  .page {
-    height: calc(100dvh - 57px);
-    max-height: calc(100dvh - 57px);
-    margin: 0;
-    padding: 0;
-  }
-
-  .composerWrapper {
-    padding-bottom: 24px; /* Lifted up slightly for mobile keyboards and bottom home bar */
-  }
-
-  .composer {
-    padding: 8px 10px;
-    border-radius: 16px;
-  }
-
-  .composer textarea {
-    font-size: 13.5px;
-    min-height: 32px;
-  }
-
-  .customSelectLabel {
-    display: none; /* Hide label on mobile to save vertical space and keep controls fully visible */
-  }
-
-  .customSelectButton {
-    min-width: 0;
-    padding: 4px 7px;
-    font-size: 11px;
-    gap: 4px;
-    border-radius: 7px;
-  }
-
-  .voiceButton, .sendButton {
-    width: 32px;
-    height: 32px;
-    border-radius: 8px;
-  }
-
-  .selectGroup {
-    gap: 5px;
-  }
-
-  .composeActions {
-    gap: 6px;
-  }
-}
-
-.historyDropdownExit {
-  animation: fadeOutUp 0.15s cubic-bezier(0.4, 0, 1, 1) forwards;
-}
-
-@keyframes fadeOutUp {
-  from {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-  to {
-    opacity: 0;
-    transform: translateY(-8px) scale(0.97);
-  }
-}
-
-.customDropdownMenuExit {
-  animation: dropdownPopExit 0.14s cubic-bezier(0.4, 0, 1, 1) forwards;
-}
-
-@keyframes dropdownPopExit {
-  from { opacity: 1; transform: translateY(0) scale(1); }
-  to { opacity: 0; transform: translateY(4px) scale(0.96); }
-}
-
-.tokenLimitBanner {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin: 0 16px 8px 16px;
-  padding: 8px 14px;
-  border-radius: 12px;
-  background: rgba(245, 158, 11, 0.09);
-  border: 1px solid rgba(245, 158, 11, 0.28);
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
-  animation: fadeInDown 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-}
-
-.tokenLimitIcon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #f59e0b;
-  flex-shrink: 0;
-}
-
-.tokenLimitText {
-  flex: 1;
-  font-size: 12px;
-  line-height: 1.4;
-  color: #fde68a;
-  font-weight: 500;
-}
-
 .tokenLimitLoginBtn {
   display: inline-flex;
   align-items: center;
@@ -1426,6 +1218,64 @@
   transform: translateY(-1px);
 }
 
+/* Interface-level ambient movement. This is intentionally independent from the
+   composer so it can span the full agent surface without moving any content. */
+.agentShell {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: radial-gradient(ellipse 130% 90% at 50% 100%, rgba(29, 78, 216, 0.16) 0%, rgba(15, 23, 42, 0.08) 50%, #03050c 100%), #03050c;
+}
+
+.contentLayer {
+  position: relative;
+  z-index: 2;
+}
+
+.interfaceWave {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  overflow: hidden;
+  transition: opacity 500ms cubic-bezier(0.16, 1, 0.3, 1), transform 500ms cubic-bezier(0.16, 1, 0.3, 1);
+  -webkit-mask-image: linear-gradient(to top, rgba(0, 0, 0, 1) 0%, rgba(0, 0, 0, 0.9) 35%, rgba(0, 0, 0, 0.4) 65%, rgba(0, 0, 0, 0) 92%);
+  mask-image: linear-gradient(to top, rgba(0, 0, 0, 1) 0%, rgba(0, 0, 0, 0.9) 35%, rgba(0, 0, 0, 0.4) 65%, rgba(0, 0, 0, 0) 92%);
+}
+
+.interfaceWaveVisible { 
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.interfaceWaveHidden { 
+  opacity: 0;
+  transform: translateY(16px);
+}
+
+/* Ensure the pinned controls keep their premium glass surface above the fluid field. */
+.composerWrapper {
+  position: relative;
+  z-index: 5;
+}
+
+:global([data-theme="light"]) .agentShell,
+.agentShell[data-theme="light"] {
+  background: linear-gradient(180deg, #f8fafc 0%, #edf2f7 50%, #f1f5f9 100%);
+}
+
+@media (max-width: 768px) {
+  .interfaceWave {
+    height: 100%;
+  }
+}
+
 @keyframes fadeInDown {
   from {
     opacity: 0;
@@ -1437,4 +1287,134 @@
   }
 }
 
+/* =========================================================
+   AURORA BARS ANIMATED GRADIENT EFFECT (Pure CSS)
+   Rich Deep Blue Swatch Gradient & Balanced Wave Motion
+   ========================================================= */
+.auroraBarsContainer {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  filter: blur(28px);
+  -webkit-filter: blur(28px);
+  transform: translate3d(0, 0, 0);
+  pointer-events: none;
+  isolation: isolate;
+}
 
+.auroraHorizonGlow {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  height: 65%;
+  background: linear-gradient(0deg, rgba(9, 27, 60, 0.65) 0%, rgba(14, 42, 92, 0.35) 45%, rgba(20, 60, 130, 0.12) 75%, transparent 100%);
+  pointer-events: none;
+}
+
+:global([data-theme="light"]) .auroraHorizonGlow {
+  background: linear-gradient(0deg, rgba(14, 42, 92, 0.28) 0%, rgba(20, 60, 130, 0.12) 50%, transparent 100%);
+}
+
+.auroraPillar {
+  position: absolute;
+  bottom: -10%;
+  border-radius: 999px;
+  pointer-events: none;
+  will-change: transform, opacity;
+  transform-origin: bottom center;
+  mix-blend-mode: screen;
+}
+
+:global([data-theme="light"]) .auroraPillar {
+  mix-blend-mode: multiply;
+  opacity: 0.60 !important;
+}
+
+/* Pillar 1: Far Left */
+.pillar1 {
+  left: -4%;
+  width: 26%;
+  height: 85%;
+  background: linear-gradient(to top, rgba(9, 27, 60, 0.88) 0%, rgba(14, 42, 92, 0.62) 40%, rgba(22, 66, 142, 0.35) 72%, transparent 100%);
+  animation: auroraSineWave 5.0s cubic-bezier(0.4, 0, 0.2, 1) infinite alternate;
+  animation-delay: 0.0s;
+}
+
+/* Pillar 2: Mid-Left */
+.pillar2 {
+  left: 11%;
+  width: 25%;
+  height: 90%;
+  background: linear-gradient(to top, rgba(10, 31, 68, 0.90) 0%, rgba(16, 48, 104, 0.65) 42%, rgba(24, 74, 158, 0.38) 74%, transparent 100%);
+  animation: auroraSineWave 5.2s cubic-bezier(0.4, 0, 0.2, 1) infinite alternate;
+  animation-delay: 0.35s;
+}
+
+/* Pillar 3: Center-Left */
+.pillar3 {
+  left: 27%;
+  width: 27%;
+  height: 94%;
+  background: linear-gradient(to top, rgba(11, 35, 78, 0.92) 0%, rgba(18, 55, 118, 0.68) 44%, rgba(28, 85, 180, 0.42) 76%, transparent 100%);
+  animation: auroraSineWave 5.4s cubic-bezier(0.4, 0, 0.2, 1) infinite alternate;
+  animation-delay: 0.70s;
+}
+
+/* Pillar 4: Center Peak */
+.pillar4 {
+  left: 41%;
+  width: 28%;
+  height: 96%;
+  background: linear-gradient(to top, rgba(12, 38, 84, 0.94) 0%, rgba(20, 60, 130, 0.70) 45%, rgba(30, 92, 192, 0.45) 78%, transparent 100%);
+  animation: auroraSineWave 5.0s cubic-bezier(0.4, 0, 0.2, 1) infinite alternate;
+  animation-delay: 1.05s;
+}
+
+/* Pillar 5: Center-Right */
+.pillar5 {
+  left: 56%;
+  width: 27%;
+  height: 94%;
+  background: linear-gradient(to top, rgba(11, 35, 78, 0.92) 0%, rgba(18, 55, 118, 0.68) 44%, rgba(28, 85, 180, 0.42) 76%, transparent 100%);
+  animation: auroraSineWave 5.4s cubic-bezier(0.4, 0, 0.2, 1) infinite alternate;
+  animation-delay: 1.40s;
+}
+
+/* Pillar 6: Mid-Right */
+.pillar6 {
+  left: 70%;
+  width: 25%;
+  height: 88%;
+  background: linear-gradient(to top, rgba(10, 31, 68, 0.88) 0%, rgba(16, 48, 104, 0.64) 42%, rgba(24, 74, 158, 0.36) 74%, transparent 100%);
+  animation: auroraSineWave 5.2s cubic-bezier(0.4, 0, 0.2, 1) infinite alternate;
+  animation-delay: 1.75s;
+}
+
+/* Pillar 7: Far Right */
+.pillar7 {
+  right: -4%;
+  width: 26%;
+  height: 85%;
+  background: linear-gradient(to top, rgba(9, 27, 60, 0.86) 0%, rgba(14, 42, 92, 0.60) 40%, rgba(22, 66, 142, 0.32) 72%, transparent 100%);
+  animation: auroraSineWave 5.0s cubic-bezier(0.4, 0, 0.2, 1) infinite alternate;
+  animation-delay: 2.10s;
+}
+
+/* Sine Wave Flow Animation: 20-25% balanced vertical amplitude & subtle drift */
+@keyframes auroraSineWave {
+  0% {
+    transform: translate3d(-3%, 4%, 0) scaleY(0.84) scaleX(0.96) skewX(-2deg);
+    opacity: 0.75;
+  }
+  50% {
+    transform: translate3d(2%, -22%, 0) scaleY(1.22) scaleX(1.10) skewX(3deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translate3d(5%, -4%, 0) scaleY(0.92) scaleX(1.02) skewX(1deg);
+    opacity: 0.82;
+  }
+}

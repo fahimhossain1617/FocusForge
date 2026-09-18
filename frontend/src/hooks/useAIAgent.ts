@@ -6,6 +6,7 @@ import {
   getChatSessions, 
   getChatMessages, 
   deleteChatSession,
+  clearAllChatSessions,
   getAITokenStatus,
   TokenStatus
 } from "@/services/aiAgentService";
@@ -90,17 +91,21 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
     });
   }, [initialLang]);
   
-  // Persist current active messages & activeSessionId to memory / session
+  const loadedSessionRef = useRef<string | null>(activeSessionId);
+
+  // Persist current active messages & activeSessionId to memory / session safely
   useEffect(() => {
     if (typeof window !== "undefined") {
       memoryMessages = messages;
       memoryActiveSessionId = activeSessionId;
       memoryGuestCount = guestCount;
       try {
-        if ((isGuest || !user) && activeSessionId) {
-          sessionStorage.setItem(`focusforge_guest_msg_${activeSessionId}`, JSON.stringify(messages));
-        } else if (user && activeSessionId) {
-          localStorage.setItem(`focusforge_auth_msg_${activeSessionId}`, JSON.stringify(messages));
+        if (activeSessionId && loadedSessionRef.current === activeSessionId && messages.length > 0) {
+          if (isGuest || !user) {
+            sessionStorage.setItem(`focusforge_guest_msg_${activeSessionId}`, JSON.stringify(messages));
+          } else {
+            localStorage.setItem(`focusforge_auth_msg_${activeSessionId}`, JSON.stringify(messages));
+          }
         }
       } catch {}
     }
@@ -134,11 +139,13 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
           if (targetSessionId) {
             const msgs = await getChatMessages(targetSessionId);
             if (Array.isArray(msgs) && msgs.length > 0) {
-              setMessages(msgs.map((m: any) => ({
+              const normalized = msgs.map((m: any) => ({
                 ...m,
                 createdAt: new Date(m.created_at || m.createdAt || Date.now()),
                 payload: m.payload || m.payload_json,
-              })));
+              }));
+              setMessages(normalized);
+              loadedSessionRef.current = targetSessionId;
             }
           }
         } else if (typeof window !== "undefined") {
@@ -165,6 +172,7 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
                         ...m,
                         createdAt: new Date(m.createdAt || m.created_at || Date.now())
                       })));
+                      loadedSessionRef.current = targetSessionId;
                     }
                   }
                 }
@@ -184,6 +192,7 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
   }, [initialLang, isGuest, user]);
 
   const createNewSession = useCallback(() => {
+    loadedSessionRef.current = null;
     setActiveSessionId(null);
     setMessages([]);
     setGuestCount(0);
@@ -191,75 +200,135 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
   }, []);
 
   const selectSession = useCallback(async (sessionId: string) => {
-    setActiveSessionId(sessionId);
+    if (!sessionId) return;
     setError(null);
-    if (!sessionId) {
-      return;
+    loadedSessionRef.current = sessionId;
+    setActiveSessionId(sessionId);
+
+    // 1. Try instant load from local/session storage cache
+    let foundInCache = false;
+    if (typeof window !== "undefined") {
+      try {
+        const isAuth = !!user && !isGuest;
+        const savedMsgs = isAuth 
+          ? (localStorage.getItem(`focusforge_auth_msg_${sessionId}`) || localStorage.getItem(`focusforge_chat_msg_${sessionId}`))
+          : (sessionStorage.getItem(`focusforge_guest_msg_${sessionId}`) || localStorage.getItem(`focusforge_chat_msg_${sessionId}`));
+        
+        if (savedMsgs) {
+          const parsed = JSON.parse(savedMsgs);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setMessages(parsed.map((m: any) => ({
+              ...m,
+              createdAt: new Date(m.createdAt || m.created_at || Date.now()),
+              payload: m.payload || m.payload_json
+            })));
+            foundInCache = true;
+          }
+        }
+      } catch {}
     }
-    
-    setIsThinking(true);
+
+    if (!foundInCache) {
+      setIsThinking(true);
+    }
+
+    // 2. Fetch latest synced history from backend database
     try {
       const data = await getChatMessages(sessionId);
       if (Array.isArray(data) && data.length > 0) {
-        setMessages(data.map((m: any) => ({
+        const normalized = data.map((m: any) => ({
           ...m,
           createdAt: new Date(m.created_at || m.createdAt || Date.now()),
           payload: m.payload || m.payload_json,
-        })));
-      } else if (typeof window !== "undefined") {
-        const isAuth = !!user && !isGuest;
-        const savedMsgs = isAuth 
-          ? localStorage.getItem(`focusforge_auth_msg_${sessionId}`)
-          : sessionStorage.getItem(`focusforge_guest_msg_${sessionId}`);
-        if (savedMsgs) {
-          const parsed = JSON.parse(savedMsgs);
-          if (Array.isArray(parsed)) {
-            setMessages(parsed.map((m: any) => ({
-              ...m,
-              createdAt: new Date(m.createdAt || m.created_at || Date.now())
-            })));
-          }
-        } else {
-          setMessages([]);
+        }));
+        setMessages(normalized);
+        if (typeof window !== "undefined") {
+          try {
+            const isAuth = !!user && !isGuest;
+            const key = isAuth ? `focusforge_auth_msg_${sessionId}` : `focusforge_guest_msg_${sessionId}`;
+            localStorage.setItem(key, JSON.stringify(normalized));
+            localStorage.setItem(`focusforge_chat_msg_${sessionId}`, JSON.stringify(normalized));
+          } catch {}
         }
+      } else if (!foundInCache) {
+        setMessages([]);
       }
     } catch (err) {
       console.error("Failed to load messages", err);
-      setError("Failed to load conversation history.");
+      if (!foundInCache) {
+        setError("Failed to load conversation history.");
+      }
     } finally {
       setIsThinking(false);
     }
   }, [isGuest, user]);
 
   const removeSession = useCallback(async (sessionId: string) => {
-    try {
-      await deleteChatSession(sessionId);
+    if (!sessionId) return;
+
+    // 1. Immediately update UI state (optimistic)
+    setSessions((prev) => {
+      const updated = prev.filter((s) => s.id !== sessionId);
       if (typeof window !== "undefined") {
+        try {
+          localStorage.setItem("focusforge_active_sessions_cache", JSON.stringify(updated));
+          sessionStorage.setItem("focusforge_guest_sessions_list", JSON.stringify(updated));
+        } catch {}
+      }
+      return updated;
+    });
+
+    if (activeSessionId === sessionId) {
+      createNewSession();
+    }
+
+    // 2. Clean browser storage
+    if (typeof window !== "undefined") {
+      try {
         sessionStorage.removeItem(`focusforge_guest_msg_${sessionId}`);
         localStorage.removeItem(`focusforge_auth_msg_${sessionId}`);
-      }
-      
-      setSessions((prev) => {
-        const updated = prev.filter((s) => s.id !== sessionId);
-        if (typeof window !== "undefined") {
-          try {
-            if (user && !isGuest) {
-              localStorage.setItem("focusforge_active_sessions_cache", JSON.stringify(updated));
-            } else {
-              sessionStorage.setItem("focusforge_guest_sessions_list", JSON.stringify(updated));
-            }
-          } catch {}
-        }
-        return updated;
-      });
-
-      if (activeSessionId === sessionId) {
-        createNewSession();
-      }
-    } catch (err) {
-      console.error("Failed to delete session", err);
+        localStorage.removeItem(`focusforge_chat_msg_${sessionId}`);
+      } catch {}
     }
-  }, [activeSessionId, createNewSession, isGuest, user]);
+
+    // 3. Delete from backend/database asynchronously
+    try {
+      await deleteChatSession(sessionId);
+    } catch (err) {
+      console.warn("Failed to delete session on backend:", err);
+    }
+  }, [activeSessionId, createNewSession]);
+
+  const clearAllSessions = useCallback(async () => {
+    // 1. Immediately clear UI
+    setSessions([]);
+    createNewSession();
+
+    // 2. Clear browser storage
+    if (typeof window !== "undefined") {
+      try {
+        sessionStorage.removeItem("focusforge_guest_sessions_list");
+        localStorage.removeItem("focusforge_active_sessions_cache");
+        Object.keys(localStorage).forEach((k) => {
+          if (k.startsWith("focusforge_auth_msg_") || k.startsWith("focusforge_chat_msg_")) {
+            localStorage.removeItem(k);
+          }
+        });
+        Object.keys(sessionStorage).forEach((k) => {
+          if (k.startsWith("focusforge_guest_msg_")) {
+            sessionStorage.removeItem(k);
+          }
+        });
+      } catch {}
+    }
+
+    // 3. Clear from backend/database asynchronously
+    try {
+      await clearAllChatSessions();
+    } catch (err) {
+      console.warn("Failed to clear all sessions on backend:", err);
+    }
+  }, [createNewSession]);
 
   const send = useCallback(async (
     content: string, 
@@ -461,6 +530,7 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
     createNewSession,
     selectSession,
     removeSession,
+    clearAllSessions,
     guestCount,
     guestLimitExceeded
   };

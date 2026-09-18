@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { requireAuth } from '../middleware/auth';
 import { executeAIAction, transcribeAudio } from '../services/aiService';
-import { getChatSessions, getChatMessages, createChatSession, updateChatSessionTitle, addChatMessage, deleteChatSession } from '../services/aiChatService';
+import { getChatSessions, getChatMessages, createChatSession, updateChatSessionTitle, addChatMessage, deleteChatSession, clearAllChatSessions } from '../services/aiChatService';
 import { getUserTokenStatus, consumeUserTokens, estimateTokenUsage } from '../services/aiTokenService';
 
 const router = Router();
@@ -197,11 +197,21 @@ router.post('/agent/sessions', async (req, res) => {
   }
 });
 
+router.delete('/agent/sessions', async (req, res) => {
+  try {
+    const user = (req as any).user;
+    await clearAllChatSessions(user?.isGuest ? undefined : user?.id);
+    res.json({ success: true });
+  } catch (error: any) {
+    console.error('Clear sessions error:', error);
+    res.status(500).json({ error: error.message || 'Failed to clear sessions' });
+  }
+});
+
 router.delete('/agent/sessions/:id', async (req, res) => {
   try {
     const user = (req as any).user;
-    if (!user || user.isGuest) return res.json({ success: true });
-    await deleteChatSession(req.params.id, user.id);
+    await deleteChatSession(req.params.id, user?.isGuest ? undefined : user?.id);
     res.json({ success: true });
   } catch (error: any) {
     console.error('Delete session error:', error);

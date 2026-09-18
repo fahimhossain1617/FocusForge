@@ -193,12 +193,21 @@ router.post('/agent/sessions', async (req, res) => {
         res.status(500).json({ error: error.message || 'Failed to create session' });
     }
 });
+router.delete('/agent/sessions', async (req, res) => {
+    try {
+        const user = req.user;
+        await (0, aiChatService_1.clearAllChatSessions)(user?.isGuest ? undefined : user?.id);
+        res.json({ success: true });
+    }
+    catch (error) {
+        console.error('Clear sessions error:', error);
+        res.status(500).json({ error: error.message || 'Failed to clear sessions' });
+    }
+});
 router.delete('/agent/sessions/:id', async (req, res) => {
     try {
         const user = req.user;
-        if (!user || user.isGuest)
-            return res.json({ success: true });
-        await (0, aiChatService_1.deleteChatSession)(req.params.id, user.id);
+        await (0, aiChatService_1.deleteChatSession)(req.params.id, user?.isGuest ? undefined : user?.id);
         res.json({ success: true });
     }
     catch (error) {

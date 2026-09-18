@@ -1,35 +1,94 @@
 import { Task, RoutineTemplate } from "../types";
 import { fetchBackend } from "../lib/apiClient";
+import { supabase } from "../lib/supabaseClient";
 
 /**
- * Fetch all routine templates from backend /api/tasks/templates
+ * Fetch all routine templates from backend /api/tasks/templates with direct Supabase fallback
  */
 export async function fetchRoutineTemplatesFromBackend(): Promise<RoutineTemplate[]> {
   try {
-    return await fetchBackend<RoutineTemplate[]>('/api/tasks/templates');
+    const res = await fetchBackend<RoutineTemplate[]>('/api/tasks/templates');
+    if (Array.isArray(res)) return res;
   } catch (err) {
-    console.warn('[taskService] Failed to fetch routine templates from backend:', err);
-    return [];
+    console.warn('[taskService] Failed to fetch routine templates from backend, trying direct Supabase:', err);
   }
+
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      const { data, error } = await supabase
+        .from('routine_templates')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: true });
+      if (!error && Array.isArray(data)) {
+        return data.map((r) => ({
+          id: r.id,
+          weekday: r.weekday,
+          title: r.title || '',
+          tasks: Array.isArray(r.tasks) ? r.tasks : [],
+          createdAt: r.created_at,
+          updatedAt: r.updated_at,
+        }));
+      }
+    }
+  } catch (sbErr) {
+    console.warn('[taskService] Supabase direct routine templates fetch notice:', sbErr);
+  }
+
+  return [];
 }
 
 /**
- * Save or update a routine template in backend /api/tasks/templates
+ * Save or update a routine template in backend /api/tasks/templates with direct Supabase fallback
  */
 export async function saveRoutineTemplateToBackend(template: Partial<RoutineTemplate>): Promise<RoutineTemplate | null> {
   try {
-    return await fetchBackend<RoutineTemplate>('/api/tasks/templates', {
+    const res = await fetchBackend<RoutineTemplate>('/api/tasks/templates', {
       method: 'POST',
       body: JSON.stringify(template),
     });
+    if (res && res.weekday) return res;
   } catch (err) {
-    console.warn('[taskService] Failed to save routine template to backend:', err);
-    return null;
+    console.warn('[taskService] Failed to save routine template via API, trying direct Supabase:', err);
   }
+
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user && template.weekday) {
+      const payload = {
+        id: template.id || `tpl_${template.weekday}_${Date.now()}`,
+        user_id: user.id,
+        weekday: template.weekday.toLowerCase(),
+        title: (template.title || '').trim(),
+        tasks: Array.isArray(template.tasks) ? template.tasks : [],
+        updated_at: new Date().toISOString(),
+      };
+      const { data, error } = await supabase
+        .from('routine_templates')
+        .upsert(payload, { onConflict: 'user_id,weekday' })
+        .select()
+        .single();
+      if (!error && data) {
+        return {
+          id: data.id,
+          weekday: data.weekday,
+          title: data.title || '',
+          tasks: Array.isArray(data.tasks) ? data.tasks : [],
+          createdAt: data.created_at,
+          updatedAt: data.updated_at,
+        };
+      }
+    }
+  } catch (sbErr) {
+    console.warn('[taskService] Supabase direct routine template save notice:', sbErr);
+  }
+
+  return null;
 }
 
 /**
- * Delete a routine template from backend /api/tasks/templates/:id
+ * Delete a routine template from backend /api/tasks/templates/:id with direct Supabase fallback
  */
 export async function deleteRoutineTemplateFromBackend(id: string): Promise<boolean> {
   try {
@@ -38,24 +97,75 @@ export async function deleteRoutineTemplateFromBackend(id: string): Promise<bool
     });
     return true;
   } catch (err) {
-    console.warn('[taskService] Failed to delete routine template from backend:', err);
-    return false;
+    console.warn('[taskService] Failed to delete routine template via API, trying direct Supabase:', err);
   }
+
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      await supabase.from('routine_templates').delete().eq('id', id).eq('user_id', user.id);
+      return true;
+    }
+  } catch (sbErr) {
+    console.warn('[taskService] Supabase direct routine template delete notice:', sbErr);
+  }
+
+  return false;
 }
 
 /**
- * Synchronize task creation or upsert to backend /api/tasks
+ * Synchronize task creation or upsert to backend /api/tasks with direct Supabase fallback
  */
 export async function syncTaskToBackend(task: Partial<Task>): Promise<Task | null> {
   try {
-    return await fetchBackend<Task>('/api/tasks', {
+    const res = await fetchBackend<Task>('/api/tasks', {
       method: 'POST',
       body: JSON.stringify(task),
     });
+    if (res && (res.title || res.name)) return res;
   } catch (err) {
-    console.warn('[taskService] Network offline / sync warning (saved locally):', err);
-    return null;
+    console.warn('[taskService] Network offline / sync warning (trying direct Supabase):', err);
   }
+
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      const taskTitle = (task.title || task.name || '').trim();
+      if (taskTitle) {
+        const payload: Record<string, any> = {
+          user_id: user.id,
+          name: taskTitle,
+          title: taskTitle,
+          description: task.description || task.notes || null,
+          target_date: task.targetDate || task.date || null,
+          time: task.time || null,
+          end_time: task.endTime || null,
+          priority: task.priority || 'medium',
+          est_hours: Number(task.estHours) || 0,
+          est_minutes: Number(task.estMinutes) || 0,
+          status: task.status || 'not_started',
+          completed: Boolean(task.completed),
+          reminder_enabled: Boolean(task.reminderEnabled),
+          reminder_time: task.reminderTime || null,
+          category: task.category || null,
+          notes: task.notes || null,
+          tier: task.tier || 'now',
+          source_type: task.sourceType || 'custom',
+          source_routine_id: task.sourceRoutineId || null,
+          source_routine_task_id: task.sourceRoutineTaskId || null,
+          imported_at: task.importedAt || null,
+          updated_at: new Date().toISOString(),
+        };
+        if (task.id && typeof task.id === 'number') payload.id = task.id;
+        const { data, error } = await supabase.from('tasks').upsert(payload).select().single();
+        if (!error && data) return data as any;
+      }
+    }
+  } catch (sbErr) {
+    console.warn('[taskService] Supabase direct task save notice:', sbErr);
+  }
+
+  return null;
 }
 
 /**
@@ -63,14 +173,38 @@ export async function syncTaskToBackend(task: Partial<Task>): Promise<Task | nul
  */
 export async function updateTaskInBackend(id: number, updates: Partial<Task>): Promise<Task | null> {
   try {
-    return await fetchBackend<Task>(`/api/tasks/${id}`, {
+    const res = await fetchBackend<Task>(`/api/tasks/${id}`, {
       method: 'PATCH',
       body: JSON.stringify(updates),
     });
+    if (res) return res;
   } catch (err) {
-    console.warn('[taskService] Network offline / update warning (saved locally):', err);
-    return null;
+    console.warn('[taskService] Network offline / update warning (trying direct Supabase):', err);
   }
+
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      const dbUpdates: Record<string, any> = { updated_at: new Date().toISOString() };
+      if (updates.title !== undefined) dbUpdates.title = updates.title;
+      if (updates.name !== undefined) dbUpdates.name = updates.name;
+      if (updates.description !== undefined) dbUpdates.description = updates.description;
+      if (updates.targetDate !== undefined) dbUpdates.target_date = updates.targetDate;
+      else if (updates.date !== undefined) dbUpdates.target_date = updates.date;
+      if (updates.time !== undefined) dbUpdates.time = updates.time;
+      if (updates.endTime !== undefined) dbUpdates.end_time = updates.endTime;
+      if (updates.status !== undefined) dbUpdates.status = updates.status;
+      if (updates.completed !== undefined) dbUpdates.completed = updates.completed;
+      if (updates.category !== undefined) dbUpdates.category = updates.category;
+      if (updates.notes !== undefined) dbUpdates.notes = updates.notes;
+      const { data, error } = await supabase.from('tasks').update(dbUpdates).eq('id', id).eq('user_id', user.id).select().single();
+      if (!error && data) return data as any;
+    }
+  } catch (sbErr) {
+    console.warn('[taskService] Supabase direct task update notice:', sbErr);
+  }
+
+  return null;
 }
 
 /**
@@ -83,9 +217,20 @@ export async function deleteTaskFromBackend(id: number): Promise<boolean> {
     });
     return true;
   } catch (err) {
-    console.warn('[taskService] Failed to delete task in backend:', err);
-    throw err;
+    console.warn('[taskService] Failed to delete task via API, trying direct Supabase:', err);
   }
+
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      await supabase.from('tasks').delete().eq('id', id).eq('user_id', user.id);
+      return true;
+    }
+  } catch (sbErr) {
+    console.warn('[taskService] Supabase direct task delete notice:', sbErr);
+  }
+
+  return false;
 }
 
 /**
@@ -94,11 +239,53 @@ export async function deleteTaskFromBackend(id: number): Promise<boolean> {
 export async function fetchTasksFromBackend(date?: string): Promise<Task[]> {
   try {
     const url = date ? `/api/tasks?date=${encodeURIComponent(date)}` : '/api/tasks';
-    return await fetchBackend<Task[]>(url);
+    const tasks = await fetchBackend<Task[]>(url);
+    if (Array.isArray(tasks)) return tasks;
   } catch (err) {
-    console.warn('[taskService] Failed to fetch tasks from backend:', err);
-    throw err;
+    console.warn('[taskService] Failed to fetch tasks from API, trying direct Supabase:', err);
   }
+
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      const { data, error } = await supabase.from('tasks').select('*').eq('user_id', user.id).order('created_at', { ascending: false });
+      if (!error && Array.isArray(data)) {
+        return data.map((row: any) => {
+          const targetDateStr = row.target_date ? (row.target_date.includes('T') ? row.target_date.split('T')[0] : row.target_date) : '';
+          return {
+            id: row.id,
+            name: row.name || row.title || '',
+            title: row.title || row.name || '',
+            description: row.description || '',
+            targetDate: targetDateStr,
+            date: targetDateStr,
+            time: row.time || '',
+            endTime: row.end_time || '',
+            priority: row.priority || 'medium',
+            estHours: row.est_hours || 0,
+            estMinutes: row.est_minutes || 0,
+            status: row.status || 'not_started',
+            completed: row.completed ?? (row.status === 'completed'),
+            reminderEnabled: row.reminder_enabled ?? false,
+            reminderTime: row.reminder_time || '',
+            category: row.category || '',
+            notes: row.notes || '',
+            tier: row.tier || 'now',
+            sourceType: row.source_type || 'custom',
+            sourceRoutineId: row.source_routine_id || undefined,
+            sourceRoutineTaskId: row.source_routine_task_id || undefined,
+            importedAt: row.imported_at || undefined,
+            createdAt: row.created_at,
+            updatedAt: row.updated_at,
+          };
+        });
+      }
+    }
+  } catch (sbErr) {
+    console.warn('[taskService] Supabase direct tasks fetch notice:', sbErr);
+  }
+
+  return [];
 }
 
 /**
