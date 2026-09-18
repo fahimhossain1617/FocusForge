@@ -118,6 +118,17 @@ export default function NoteEditorView({
       })
       .join("\n"); 
 
+    if (!isOnline) {
+      showToast(
+        state.lang === 'bn'
+          ? "আপনি বর্তমানে অফলাইনে আছেন।"
+          : "You are currently offline.",
+        'error'
+      );
+      setMoreOpen(false);
+      return;
+    }
+
     try { 
       if (navigator.share) {
         await navigator.share({ title: title || "Untitled note", text }); 
@@ -136,8 +147,8 @@ export default function NoteEditorView({
     if (!isOnline) {
       showToast(
         state.lang === 'bn'
-          ? "আপনি বর্তমানে অফলাইনে আছেন। ছবি যুক্ত করার ফিচারটি শুধুমাত্র অনলাইনে কাজ করে।"
-          : "You are currently offline. Adding images is only available online.",
+          ? "আপনি বর্তমানে অফলাইনে আছেন।"
+          : "You are currently offline.",
         'error'
       );
       return;
@@ -151,8 +162,8 @@ export default function NoteEditorView({
     if (!isOnline) {
       showToast(
         state.lang === 'bn'
-          ? "আপনি বর্তমানে অফলাইনে আছেন। ছবি পরিবর্তনের ফিচারটি শুধুমাত্র অনলাইনে কাজ করে।"
-          : "You are currently offline. Changing images is only available online.",
+          ? "আপনি বর্তমানে অফলাইনে আছেন।"
+          : "You are currently offline.",
         'error'
       );
       return;
@@ -252,8 +263,8 @@ export default function NoteEditorView({
     if (!isOnline) {
       showToast(
         state.lang === 'bn'
-          ? "আপনি বর্তমানে অফলাইনে আছেন। পিডিএফ বা ফাইল যুক্ত করার ফিচারটি শুধুমাত্র অনলাইনে কাজ করে।"
-          : "You are currently offline. Adding PDF or files is only available online.",
+          ? "আপনি বর্তমানে অফলাইনে আছেন।"
+          : "You are currently offline.",
         'error'
       );
       return;
@@ -328,8 +339,8 @@ export default function NoteEditorView({
     if (!isOnline) {
       showToast(
         state.lang === 'bn'
-          ? "আপনি বর্তমানে অফলাইনে আছেন। ফাইল বা ছবি যুক্ত করতে ইন্টারনেট সংযোগ প্রয়োজন।"
-          : "You are currently offline. An internet connection is required to attach files or images.",
+          ? "আপনি বর্তমানে অফলাইনে আছেন।"
+          : "You are currently offline.",
         'error'
       );
       return;
@@ -473,8 +484,8 @@ export default function NoteEditorView({
                     if (!isOnline) {
                       showToast(
                         state.lang === 'bn'
-                          ? "আপনি বর্তমানে অফলাইনে আছেন। পিডিএফ তৈরি ও ডাউনলোড করার ফিচারটি শুধুমাত্র অনলাইনে কাজ করে।"
-                          : "You are currently offline. PDF generation and download is only available online.",
+                          ? "আপনি বর্তমানে অফলাইনে আছেন।"
+                          : "You are currently offline.",
                         'error'
                       );
                       setMoreOpen(false);

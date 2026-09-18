@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, useCallback, type ChangeEvent, type ComponentType, type KeyboardEvent } from "react";
 import type { BlockType, NoteBlock } from "../../types";
+import { useAppContext } from "../../context/AppContext";
 import { 
   Braces, CheckSquare2, Copy, Heading1, Heading2, Heading3, StickyNote, Sigma, Text, 
   Trash2, Palette, Highlighter, Square, RotateCcw, X, PenTool, MousePointer2, Eraser,
@@ -91,6 +92,7 @@ export default function BlockEditor({
   onReplaceImage,
   onPreviewImage
 }: BlockEditorProps) {
+  const { isOnline, showToast, state } = useAppContext();
   const [menu, setMenu] = useState({ visible: false, index: -1, query: "", selected: 0 });
   const [colorToolbar, setColorToolbar] = useState<{ visible: boolean; index: number }>({ visible: false, index: -1 });
 
@@ -124,13 +126,38 @@ export default function BlockEditor({
 
   const update = (index: number, patch: Partial<NoteBlock>) => { onDirty(); onChange(blocks.map((b, i) => i === index ? { ...b, ...patch } : b)); };
   const focus = (id: string) => window.setTimeout(() => document.getElementById(`block-${id}`)?.focus(), 0);
-  const insertAfter = (index: number, type: BlockType) => { const next = newBlock(type); onDirty(); onChange([...blocks.slice(0, index + 1), next, ...blocks.slice(index + 1)]); focus(next.id); };
+  const insertAfter = (index: number, type: BlockType) => { 
+    const effectiveType = (!isOnline && type !== "paragraph" && type !== "h1" && type !== "h2" && type !== "h3") ? "paragraph" : type;
+    const next = newBlock(effectiveType); 
+    onDirty(); 
+    onChange([...blocks.slice(0, index + 1), next, ...blocks.slice(index + 1)]); 
+    focus(next.id); 
+  };
   const remove = (index: number) => { if (blocks.length === 1) { update(0, { type: "paragraph", content: "" }); return; } const prev = blocks[index - 1]; onDirty(); onChange(blocks.filter((_, i) => i !== index)); if (prev) focus(prev.id); };
-  const duplicate = (index: number) => { const copy = { ...blocks[index], id: newId() }; onDirty(); onChange([...blocks.slice(0, index + 1), copy, ...blocks.slice(index + 1)]); };
+  const duplicate = (index: number) => { 
+    if (!isOnline && blocks[index].type !== "paragraph" && blocks[index].type !== "h1" && blocks[index].type !== "h2" && blocks[index].type !== "h3") {
+      showToast(state.lang === 'bn' ? "আপনি বর্তমানে অফলাইনে আছেন।" : "You are currently offline.", 'error');
+      return;
+    }
+    const copy = { ...blocks[index], id: newId() }; 
+    onDirty(); 
+    onChange([...blocks.slice(0, index + 1), copy, ...blocks.slice(index + 1)]); 
+  };
 
   const choose = (type: BlockType) => {
     if (menu.index < 0) return;
     const targetBlockId = blocks[menu.index]?.id;
+
+    if (!isOnline && type !== "paragraph" && type !== "h1" && type !== "h2" && type !== "h3") {
+      showToast(
+        state.lang === 'bn'
+          ? "আপনি বর্তমানে অফলাইনে আছেন।"
+          : "You are currently offline.",
+        'error'
+      );
+      setMenu((c) => ({ ...c, visible: false }));
+      return;
+    }
 
     if (type === "image") {
       update(menu.index, { content: "" });
@@ -162,16 +189,28 @@ export default function BlockEditor({
     // Quick markdown shortcuts for numbered list and other list types
     if (blocks[index].type === "paragraph") {
       if (value === "1. " || value.startsWith("1. ")) {
+        if (!isOnline) {
+          showToast(state.lang === 'bn' ? "আপনি বর্তমানে অফলাইনে আছেন।" : "You are currently offline.", 'error');
+          return;
+        }
         update(index, { type: "numbered", content: value.slice(3) });
         setMenu((c) => ({ ...c, visible: false }));
         return;
       }
       if (value === "- " || value === "* ") {
+        if (!isOnline) {
+          showToast(state.lang === 'bn' ? "আপনি বর্তমানে অফলাইনে আছেন।" : "You are currently offline.", 'error');
+          return;
+        }
         update(index, { type: "bullet", content: "" });
         setMenu((c) => ({ ...c, visible: false }));
         return;
       }
       if (value === "[] ") {
+        if (!isOnline) {
+          showToast(state.lang === 'bn' ? "আপনি বর্তমানে অফলাইনে আছেন।" : "You are currently offline.", 'error');
+          return;
+        }
         update(index, { type: "todo", content: "", isCompleted: false });
         setMenu((c) => ({ ...c, visible: false }));
         return;

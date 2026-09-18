@@ -49,8 +49,8 @@ export default function DiaryVoiceInput({ onInsertText, onError }: DiaryVoiceInp
       if (!isOnline) {
         showToast(
           state.lang === "bn"
-            ? "আপনি বর্তমানে অফলাইনে আছেন। ভয়েস ইনপুট শুধুমাত্র অনলাইনে কাজ করে।"
-            : "You are currently offline. Voice input is only available online.",
+            ? "আপনি বর্তমানে অফলাইনে আছেন।"
+            : "You are currently offline.",
           "error"
         );
         return;

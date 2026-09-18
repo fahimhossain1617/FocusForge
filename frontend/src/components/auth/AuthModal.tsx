@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { useAuth } from "../../context/AuthContext";
+import { useAppContext } from "../../context/AppContext";
 import { useTranslation } from "../../hooks/useTranslation";
 import { authService } from "../../services/authService";
 import { User } from "../../types";
@@ -31,6 +32,7 @@ export default function AuthModal() {
     loginWithGoogle, 
     onAuthSuccess 
   } = useAuth();
+  const { isOnline, state } = useAppContext();
   const { t } = useTranslation();
 
   // Auto-close modal when user becomes authenticated (e.g. from OAuth redirect or email confirmation)
@@ -141,10 +143,19 @@ export default function AuthModal() {
     }
   };
 
+  const offlineAuthMsg = state.lang === 'bn' 
+    ? "আপনি বর্তমানে অফলাইনে আছেন। সাইন ইন করতে ইন্টারনেট সংযোগ প্রয়োজন।" 
+    : "You are currently offline. An internet connection is required to sign in.";
+
   // Action: Proceed from Signup Step 1 to Step 2
   const handleProceedToPassword = (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
+
+    if (!isOnline) {
+      setErrorMessage(offlineAuthMsg);
+      return;
+    }
 
     const clean = email.trim().toLowerCase();
     if (!clean) {
@@ -163,6 +174,10 @@ export default function AuthModal() {
   // Action: Handle Google Sign-in with local error state
   const handleGoogleLogin = async () => {
     setErrorMessage(null);
+    if (!isOnline) {
+      setErrorMessage(offlineAuthMsg);
+      return;
+    }
     setIsLoading(true);
     const success = await loginWithGoogle();
     setIsLoading(false);
@@ -175,6 +190,11 @@ export default function AuthModal() {
   const handleSubmitPasswordAndSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
+
+    if (!isOnline) {
+      setErrorMessage(offlineAuthMsg);
+      return;
+    }
 
     if (password.length < 8) {
       setErrorMessage("Password must be at least 8 characters long.");
@@ -219,6 +239,10 @@ export default function AuthModal() {
 
   // Action: Check if user confirmed via email link and log them in directly
   const handleCheckConfirmedAndLogin = async () => {
+    if (!isOnline) {
+      setErrorMessage(offlineAuthMsg);
+      return;
+    }
     setIsLoading(true);
     setErrorMessage(null);
     const cleanEmail = email.trim().toLowerCase();
@@ -235,6 +259,12 @@ export default function AuthModal() {
   const handleVerifyOtp = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     setErrorMessage(null);
+
+    if (!isOnline) {
+      setErrorMessage(offlineAuthMsg);
+      return;
+    }
+
     const code = otpDigits.join("");
 
     if (code.length < 6) {
@@ -287,6 +317,10 @@ export default function AuthModal() {
   const handleResendOtp = async () => {
     if (!canResend) return;
     setErrorMessage(null);
+    if (!isOnline) {
+      setErrorMessage(offlineAuthMsg);
+      return;
+    }
     setIsOtpExpired(false);
     setIsLoading(true);
     const cleanEmail = email.trim().toLowerCase();
@@ -306,6 +340,11 @@ export default function AuthModal() {
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
+
+    if (!isOnline) {
+      setErrorMessage(offlineAuthMsg);
+      return;
+    }
 
     const cleanEmail = email.trim().toLowerCase();
     if (!cleanEmail) {
@@ -334,6 +373,12 @@ export default function AuthModal() {
   const handleForgotRequest = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
+
+    if (!isOnline) {
+      setErrorMessage(offlineAuthMsg);
+      return;
+    }
+
     const cleanEmail = email.trim().toLowerCase();
     if (!cleanEmail) {
       setErrorMessage("Please enter your email address.");
@@ -358,6 +403,11 @@ export default function AuthModal() {
   const handleResetPasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
+
+    if (!isOnline) {
+      setErrorMessage(offlineAuthMsg);
+      return;
+    }
 
     if (password.length < 8) {
       setErrorMessage("Password must be at least 8 characters long.");
