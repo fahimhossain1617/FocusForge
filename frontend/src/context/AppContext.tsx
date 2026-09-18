@@ -198,8 +198,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return true;
   });
   const [toasts, setToasts] = useState<{ id: string; message: string; type: string }[]>([]);
+  const stateRef = useRef<AppState>(state);
 
-  // Load state: Cloud for logged-in users; fresh clean state (or tab temporary state) for guests
+  useEffect(() => {
+    stateRef.current = state;
+  }, [state]);
+
+  // Load state: Cloud for logged-in users; instant local / guest state for 0ms first paint
   useEffect(() => {
     let isMounted = true;
 
@@ -231,32 +236,45 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         }
         const initialActivePage = sessionActivePage || 'today';
 
-        if (cachedState && isMounted) {
+        // 3. Guest session storage check if no persistent user cache
+        let guestData: AppState | null = null;
+        if (!cachedState && typeof window !== 'undefined') {
+          try {
+            const sessionRaw = sessionStorage.getItem('focusforge_guest_temp_data');
+            if (sessionRaw) {
+              guestData = JSON.parse(sessionRaw);
+            }
+          } catch { }
+        }
+
+        // Instant First Paint on ALL devices (Mobile, Tablet, PC, Guest, Offline)
+        const initialData = cachedState || guestData || defaultState;
+        if (isMounted) {
           setState({
             ...defaultState,
-            ...cachedState,
+            ...initialData,
             activePage: initialActivePage,
-            notifPreferences: { ...defaultState.notifPreferences, ...(cachedState.notifPreferences || {}) },
-            calendarPreferences: { ...defaultState.calendarPreferences, ...(cachedState.calendarPreferences || {}) },
-            theme: { ...defaultState.theme, ...cachedState.theme }
+            notifPreferences: { ...defaultState.notifPreferences, ...(initialData.notifPreferences || {}) },
+            calendarPreferences: { ...defaultState.calendarPreferences, ...(initialData.calendarPreferences || {}) },
+            theme: { ...defaultState.theme, ...(initialData.theme || {}) }
           });
           setIsLoaded(true);
         }
 
-        const { data: { session } } = await supabase.auth.getSession();
+        // If offline, do not attempt remote backend calls
+        if (typeof navigator !== 'undefined' && !navigator.onLine) {
+          return;
+        }
 
-        if (session?.user) {
-          // Parallelized fetching: Fetch all independent tables simultaneously with Promise.allSettled
-          const [
-            cloudStateResult,
-            notesResult,
-            mindResult,
-            diaryResult,
-            focusResult,
-            learningResult,
-            tasksResult,
-            templatesResult
-          ] = await Promise.allSettled([
+        // 4. Background cloud sync for authenticated users (non-blocking)
+        const sessionPromise = supabase.auth.getSession();
+        const sessionTimeout = new Promise<{ data: { session: null } }>((resolve) =>
+          setTimeout(() => resolve({ data: { session: null } }), 2500)
+        );
+        const { data: { session } } = await Promise.race([sessionPromise, sessionTimeout]);
+
+        if (session?.user && isMounted) {
+          const fetchPromise = Promise.allSettled([
             supabase.from('user_cloud_state').select('state').eq('id', session.user.id).maybeSingle(),
             noteService.fetchNotes(session.user.id),
             mindService.fetchMindItems(session.user.id),
@@ -266,6 +284,21 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             fetchTasksFromBackend(),
             fetchRoutineTemplatesFromBackend()
           ]);
+          const fetchTimeout = new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error('Cloud sync timeout')), 4000)
+          );
+
+          const results = await Promise.race([fetchPromise, fetchTimeout]);
+          const [
+            cloudStateResult,
+            notesResult,
+            mindResult,
+            diaryResult,
+            focusResult,
+            learningResult,
+            tasksResult,
+            templatesResult
+          ] = results;
 
           let loadedData: AppState = cachedState ? { ...cachedState } : { ...defaultState };
 
@@ -275,7 +308,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             if (!error && cloudData?.state) {
               loadedData = { ...loadedData, ...(cloudData.state as AppState) };
             } else if (!cachedState) {
-              // Initialize empty state in cloud for new user
               try {
                 await supabase.from('user_cloud_state').upsert({
                   id: session.user.id,
@@ -361,43 +393,23 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
               });
             }
 
-            setState({
+            setState((prev) => ({
               ...defaultState,
               ...parsed,
-              activePage: initialActivePage,
+              activePage: prev.activePage || initialActivePage,
               notifPreferences: { ...defaultState.notifPreferences, ...(parsed.notifPreferences || {}) },
               calendarPreferences: { ...defaultState.calendarPreferences, ...(parsed.calendarPreferences || {}) },
               theme: { ...defaultState.theme, ...parsed.theme }
-            });
+            }));
 
-            // Cache freshly fetched data to IndexedDB
+            // Cache freshly fetched data to IndexedDB and LocalStorage
             saveStateToIndexedDB(parsed);
-          }
-        } else {
-          // Guest Mode:
-          let guestData: AppState | null = null;
-          if (typeof window !== 'undefined') {
-            const sessionRaw = sessionStorage.getItem('focusforge_guest_temp_data');
-            if (sessionRaw) {
-              try {
-                guestData = JSON.parse(sessionRaw);
-              } catch { }
-            }
-          }
-          if (!guestData) {
-            guestData = { ...defaultState };
-          }
-
-          if (isMounted) {
-            setState({
-              ...defaultState,
-              ...guestData,
-              activePage: initialActivePage,
-            });
+            safeSaveToLocalStorage(STORAGE_KEY, parsed);
           }
         }
       } catch (e) {
         console.warn('State load warning:', e);
+      } finally {
         if (isMounted) setIsLoaded(true);
       }
     }
@@ -411,12 +423,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (!isLoaded) return;
 
     let cloudTimer: ReturnType<typeof setTimeout> | null = null;
+    const isCurrentlyOnline = typeof navigator === 'undefined' || navigator.onLine;
 
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
-        // Authenticated: save to IndexedDB & localStorage cache
+        // Authenticated: save to IndexedDB & localStorage cache immediately
         saveStateToIndexedDB(state);
         safeSaveToLocalStorage(STORAGE_KEY, state);
+
+        if (!isCurrentlyOnline) return;
 
         // Debounced cloud sync to Supabase
         cloudTimer = setTimeout(async () => {
@@ -432,7 +447,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         }, 2500);
       } else {
         // Guest mode: ONLY keep in sessionStorage as temporary in-memory data
-        // ZERO data is sent to Supabase or permanent disk storage!
         if (typeof window !== 'undefined') {
           try {
             sessionStorage.setItem('focusforge_guest_temp_data', JSON.stringify(state));
@@ -441,6 +455,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           }
         }
       }
+    }).catch(() => {
+      saveStateToIndexedDB(state);
+      safeSaveToLocalStorage(STORAGE_KEY, state);
     });
 
     return () => {
@@ -623,8 +640,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     const handleOnline = async () => {
       setIsOnline(true);
+      const currentState = stateRef.current;
       showToast(
-        state.lang === 'bn'
+        currentState.lang === 'bn'
           ? "ইন্টারনেট সংযোগ চালু হয়েছে। সকল ডাটা ক্লাউডে সফলভাবে সিঙ্ক হচ্ছে..."
           : "Back online. Synchronizing all data with cloud...",
         'info'
@@ -636,7 +654,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         if (session?.user) {
           await supabase.from('user_cloud_state').upsert({
             id: session.user.id,
-            state: state,
+            state: currentState,
             updated_at: new Date().toISOString()
           });
 
@@ -654,7 +672,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const handleOffline = () => {
       setIsOnline(false);
       showToast(
-        state.lang === 'bn'
+        stateRef.current.lang === 'bn'
           ? "আপনি অফলাইনে আছেন। আপনার সকল পরিবর্তন নিরাপদে লোকালি সেভ হচ্ছে।"
           : "You are offline. All changes are being saved locally.",
         'info'
@@ -668,7 +686,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       window.removeEventListener("online", handleOnline);
       window.removeEventListener("offline", handleOffline);
     };
-  }, [state, showToast]);
+  }, [showToast]);
 
 
   // ==================== Mind Items ====================

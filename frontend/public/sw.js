@@ -96,12 +96,39 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 4. HTML Navigation: Network-first with offline fallback
+  // 4. HTML Navigation: Instant offline fallback or fast network race
   if (request.mode === 'navigate') {
     event.respondWith(
-      fetch(request).catch(() => {
-        return caches.match('/') || caches.match(request);
-      })
+      (async () => {
+        // If device is offline, immediately serve cached app shell
+        if (typeof self.navigator !== 'undefined' && self.navigator.onLine === false) {
+          const cachedOffline = (await caches.match('/')) || (await caches.match(request));
+          if (cachedOffline) return cachedOffline;
+        }
+
+        try {
+          // Race network request with 2.5s timeout so sluggish mobile cellular networks don't hang
+          const networkPromise = fetch(request);
+          const timeoutPromise = new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('Navigation timeout')), 2500)
+          );
+          const networkResponse = await Promise.race([networkPromise, timeoutPromise]);
+
+          if (networkResponse && networkResponse.status === 200) {
+            const responseClone = networkResponse.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put('/', responseClone));
+            return networkResponse;
+          }
+        } catch {
+          // Network failed or timed out: fall back to cached shell immediately
+        }
+
+        const cached = (await caches.match('/')) || (await caches.match(request));
+        if (cached) return cached;
+
+        // Ultimate fallback: retry fetch if not cached yet
+        return fetch(request);
+      })()
     );
     return;
   }
