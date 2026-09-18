@@ -30,6 +30,9 @@ export const userService = {
    */
   async fetchUserProfile(userId: string): Promise<User | null> {
     try {
+      if (typeof navigator !== "undefined" && !navigator.onLine) {
+        return null;
+      }
       const data = await fetchBackend<ProfileRow>("/api/user/profile").catch(() => null);
 
       if (data && data.id) {
@@ -148,6 +151,9 @@ export const userService = {
     productTourCompleted: boolean;
   } | null> {
     try {
+      if (typeof navigator !== "undefined" && !navigator.onLine) {
+        return null;
+      }
       const data = await fetchBackend<any>("/api/user/onboarding").catch(() => null);
 
       if (data && Object.keys(data).length > 0) {

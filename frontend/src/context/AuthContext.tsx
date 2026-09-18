@@ -80,17 +80,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     async function initAuth() {
       try {
-        const session = await authService.getSession();
-        if (session && session.user) {
-          // Fetch complete profile from Supabase PostgreSQL profiles table
-          const profile = await userService.fetchUserProfile(session.user.id);
-          const activeUser = profile || session.user;
-          setUser(activeUser);
+        const sessionPromise = authService.getSession();
+        const timeoutPromise = new Promise<{ user: null; rememberMe: false }>((resolve) =>
+          setTimeout(() => resolve({ user: null, rememberMe: false }), 2500)
+        );
+        const session = await Promise.race([sessionPromise, timeoutPromise]);
 
-          // Realtime subscription to profiles table
-          unsubscribeProfile = userService.subscribeToProfile(activeUser.id, (updatedProfile) => {
-            setUser(updatedProfile);
-          });
+        if (session && session.user) {
+          const isCurrentlyOnline = typeof navigator === 'undefined' || navigator.onLine;
+          let activeUser = session.user;
+
+          if (isCurrentlyOnline) {
+            try {
+              const profilePromise = userService.fetchUserProfile(session.user.id);
+              const profileTimeout = new Promise<null>((resolve) =>
+                setTimeout(() => resolve(null), 2500)
+              );
+              const profile = await Promise.race([profilePromise, profileTimeout]);
+              if (profile) activeUser = profile;
+
+              unsubscribeProfile = userService.subscribeToProfile(activeUser.id, (updatedProfile) => {
+                setUser(updatedProfile);
+              });
+            } catch { }
+          }
+
+          setUser(activeUser);
         }
       } catch (err) {
         console.warn("[AuthContext] Session init error:", err);
