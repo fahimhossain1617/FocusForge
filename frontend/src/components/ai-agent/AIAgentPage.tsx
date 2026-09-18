@@ -5,15 +5,17 @@ import { Check, ChevronDown, Mic, Send, Square, MoreVertical, Trash2, Calendar, 
 import { useAppContext } from "@/context/AppContext";
 import { useAuth } from "@/context/AuthContext";
 import { useAIAgent } from "@/hooks/useAIAgent";
-import type { AIAgentLanguage, AIAgentModel, ProposedAction } from "@/types/aiAgent";
+import type { AIAgentLanguage, AIAgentModel } from "@/types/aiAgent";
 import { VoiceAssistantModal } from "@/components/voice";
 import { useAnimateExit } from "@/hooks/useAnimateExit";
+import { AuroraBars } from "./AuroraBars";
 import styles from "./ai-agent.module.css";
 
 function toBnNum(num: number): string {
   const bnNums = ['০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯'];
   return num.toLocaleString('en-US').split('').map(d => bnNums[parseInt(d, 10)] ?? d).join('');
 }
+
 const quickActionsBn = [
   "আজকের স্টাডি প্ল্যান তৈরি করো",
   "আমি একটি সমস্যায় পড়েছি",
@@ -31,30 +33,24 @@ const quickActionsEn = [
   "Start 25m Focus Session",
   "Learn a New Skill"
 ];
+
 const modelOptionsBn: { value: AIAgentModel; label: string }[] = [
-  { value: "smart", label: "FocusForge Smart" },
   { value: "fast", label: "Fast Response (দ্রুত)" },
-  { value: "planning", label: "Deep Planning (গভীর)" },
+  { value: "smart", label: "FocusForge Smart (স্মার্ট)" },
+  { value: "planning", label: "Deep Planning (গভীর পরিকল্পনা)" },
 ];
 
 const modelOptionsEn: { value: AIAgentModel; label: string }[] = [
-  { value: "smart", label: "FocusForge Smart" },
   { value: "fast", label: "Fast Response" },
+  { value: "smart", label: "FocusForge Smart" },
   { value: "planning", label: "Deep Planning" },
 ];
 
-const languageOptions: { value: AIAgentLanguage; label: string }[] = [
-  { value: "bn", label: "বাংলা" },
-  { value: "en", label: "English" },
-];
-
 function CustomSelect<T extends string>({
-  label,
   value,
   options,
   onChange,
 }: {
-  label: string;
   value: T;
   options: { value: T; label: string }[];
   onChange: (val: T) => void;
@@ -85,7 +81,6 @@ function CustomSelect<T extends string>({
 
   return (
     <div className={styles.customSelectWrapper} ref={ref}>
-      <span className={styles.customSelectLabel}>{label}</span>
       <button
         type="button"
         className={`${styles.customSelectButton} ${open ? styles.customSelectButtonActive : ""}`}
@@ -125,15 +120,17 @@ function CustomSelect<T extends string>({
 }
 
 export function AIAgentPage() {
-  const { state, showToast, navigateTo, addTask, addTimeBlock, addMindItem, addNote, startFocusSession, isOnline, trackMeaningfulAction } = useAppContext();
+  const { state, showToast, navigateTo, addTask, addTimeBlock, addMindItem, addNote, isOnline, trackMeaningfulAction } = useAppContext();
   const { user, openAuth } = useAuth();
   const isLight = state.theme?.mode === "light";
   const isSystemBn = state.lang === "bn";
 
-  const [model, setModel] = useState<AIAgentModel>("smart");
+  const [model, setModel] = useState<AIAgentModel>("fast");
   const [language, setLanguage] = useState<AIAgentLanguage>(isSystemBn ? "bn" : "en");
   const [input, setInput] = useState("");
   const [voiceOpen, setVoiceOpen] = useState(false);
+  const [, setIsFocused] = useState(false);
+  const [greetingIndex, setGreetingIndex] = useState(0);
 
   const baseInputRef = useRef<string>("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -148,11 +145,55 @@ export function AIAgentPage() {
     }
   }, [state?.lang]);
 
-  const context = useMemo(() => ({ tasks: state.tasks, notesCount: state.notes.length, timeBlocksCount: state.timeBlocks.length, productivityScore: state.productivityScore }), [state.tasks, state.notes.length, state.timeBlocks.length, state.productivityScore]);
-  const { messages, sessions, activeSessionId, tokenStatus, isThinking, stopGeneration, error, send, setMessages, createNewSession, selectSession, removeSession, guestLimitExceeded } = useAIAgent(context, isSystemBn ? "bn" : "en");
-  const name = user?.fullName || user?.displayName || "there";
+  const context = useMemo(() => ({
+    tasks: state.tasks,
+    notesCount: state.notes.length,
+    timeBlocksCount: state.timeBlocks.length,
+    productivityScore: state.productivityScore
+  }), [state.tasks, state.notes.length, state.timeBlocks.length, state.productivityScore]);
+
+  const {
+    messages,
+    sessions,
+    activeSessionId,
+    tokenStatus,
+    isThinking,
+    stopGeneration,
+    error,
+    send,
+    createNewSession,
+    selectSession,
+    removeSession,
+    clearAllSessions,
+    guestLimitExceeded
+  } = useAIAgent(context, isSystemBn ? "bn" : "en");
+
+  const name = user?.fullName || user?.displayName || (isSystemBn ? "বন্ধু" : "there");
   const quickActions = isSystemBn ? quickActionsBn : quickActionsEn;
   
+  // Keep Aurora animation active during typing in initial empty state; smoothly hide once messages are sent/thinking
+  const showAurora = messages.length === 0 && !isThinking;
+
+  const handleNewChat = useCallback(() => {
+    createNewSession();
+    setInput("");
+    setGreetingIndex((prev) => (prev + 1) % 4);
+  }, [createNewSession]);
+
+  const greetings = isSystemBn ? [
+    { title: `স্বাগতম, ${name}` },
+    { title: "আজকে নতুন কিছু শুরু করতে চান?" },
+    { title: "আজকে কি নিয়ে ফোকাস করবেন?" },
+    { title: "চলুন দিনটিকে আরও প্রোডাক্টিভ করি" },
+  ] : [
+    { title: `Welcome back, ${name}` },
+    { title: "Ready to start something new today?" },
+    { title: "What would you like to focus on?" },
+    { title: "Let's make today productive" },
+  ];
+
+  const currentGreeting = greetings[greetingIndex % greetings.length] || greetings[0];
+
   const [showHistory, setShowHistory] = useState(false);
   const historyAnim = useAnimateExit({ isOpen: showHistory, durationMs: 150 });
   const historyMenuRef = useRef<HTMLDivElement>(null);
@@ -363,99 +404,136 @@ export function AIAgentPage() {
   };
 
   return (
-    <section className={styles.page} data-theme={isLight ? "light" : "dark"} aria-label="FocusForge AI Agent">
-      <div className={styles.fixedArcContainer} aria-hidden="true">
-        <div className={styles.topHorizonArc} />
-        <div className={styles.bottomHorizonArc} />
+    <section className={`w-full flex-1 flex flex-col h-full min-h-0 text-foreground ${styles.agentShell}`} aria-label="FocusForge AI">
+      {/* Ultra-realistic full-interface ambient wave layer starting from the very bottom */}
+      <div
+        className={`${styles.interfaceWave} ${showAurora ? styles.interfaceWaveVisible : styles.interfaceWaveHidden}`}
+        aria-hidden="true"
+      >
+        <AuroraBars active={showAurora} />
       </div>
 
-      <header className={styles.header}>
-        <div className={styles.title} style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <h1 className="text-base md:text-lg font-semibold text-foreground tracking-tight m-0">
-            {isSystemBn ? 'ফোকাস ফোর্স AI এজেন্ট' : 'FocusForge AI Agent'}
-          </h1>
-          {!isOnline && (
-            <div style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              padding: '3px 9px',
-              borderRadius: '999px',
-              background: 'rgba(239, 68, 68, 0.15)',
-              border: '1px solid rgba(239, 68, 68, 0.3)',
-              color: '#f87171',
-              fontSize: '11px',
-              fontWeight: 500,
-            }}>
-              <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#ef4444' }} />
-              <span>{isSystemBn ? 'অফলাইন' : 'Offline'}</span>
-            </div>
-          )}
+      {/* Clean Compact Header */}
+      <header className="px-4 sm:px-6 py-3 flex items-center justify-between border-b border-white/[0.06] bg-black/40 backdrop-blur-xl relative z-[99999] shrink-0">
+        <div className="flex items-center">
+          <h3 className="text-sm sm:text-base font-semibold tracking-tight text-foreground/90 leading-none">
+            FocusForge AI
+          </h3>
         </div>
-        <div className={styles.headerActions}>
-          <div ref={historyMenuRef} style={{ position: 'relative' }}>
-            <button 
-              className={styles.iconButton} 
-              onClick={() => setShowHistory(!showHistory)}
-              aria-label="Chat History"
-              aria-expanded={showHistory}
+
+        <div className="flex items-center gap-2">
+          {/* New Chat Button */}
+          <button
+            type="button"
+            onClick={handleNewChat}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-white/5 hover:bg-white/10 text-zinc-300 hover:text-white border border-white/10 transition-colors cursor-pointer"
+            title={isSystemBn ? "নতুন চ্যাট" : "New Chat"}
+          >
+            <MessageSquarePlus size={14} />
+            <span className="hidden sm:inline">{isSystemBn ? "নতুন চ্যাট" : "New Chat"}</span>
+          </button>
+
+          {/* History Dropdown */}
+          <div className="relative z-[99999]" ref={historyMenuRef}>
+            <button
+              type="button"
+              onClick={() => setShowHistory((prev) => !prev)}
+              className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-zinc-300 hover:text-white border border-white/10 transition-colors cursor-pointer"
+              title={isSystemBn ? "চ্যাট হিস্ট্রি" : "Chat History"}
             >
-              <MoreVertical size={20} />
+              <MoreVertical size={16} />
             </button>
-          
-          {historyAnim.shouldRender && (
-            <div className={`${styles.historyDropdown} ${historyAnim.isExiting ? styles.historyDropdownExit : ''}`}>
-              <div className={styles.historyHeader}>
-                <span>{isSystemBn ? 'চ্যাট হিস্ট্রি' : 'Chat History'}</span>
-                <button 
-                  className={styles.newChatBtn}
-                  onClick={() => { createNewSession(); setShowHistory(false); }}
-                >
-                  {isSystemBn ? '+ নতুন চ্যাট' : '+ New Chat'}
-                </button>
-              </div>
-              <div className={styles.historyList}>
+
+            {historyAnim.shouldRender && (
+              <div
+                className={`absolute right-0 top-full mt-2 w-72 max-h-96 overflow-y-auto rounded-xl bg-[#0c101d] border border-blue-500/30 shadow-[0_30px_90px_rgba(0,0,0,0.95)] p-2 z-[100000] transition-all opacity-100 ${
+                  historyAnim.isExiting ? "scale-95 opacity-0" : "scale-100 opacity-100"
+                }`}
+              >
+                <div className="flex items-center justify-between px-2.5 py-1.5 mb-1 border-b border-white/[0.08]">
+                  <span className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider">
+                    {isSystemBn ? "পূর্ববর্তী চ্যাটসমূহ" : "Previous Chats"}
+                  </span>
+                  {sessions.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        e.preventDefault();
+                        clearAllSessions();
+                        showToast(isSystemBn ? 'সকল চ্যাট হিস্ট্রি মুছে ফেলা হয়েছে' : 'All chat history cleared', 'info');
+                      }}
+                      className="text-[11px] text-zinc-400 hover:text-red-400 transition-colors flex items-center gap-1 cursor-pointer"
+                      title={isSystemBn ? "সব মুছুন" : "Clear all"}
+                    >
+                      <Trash2 size={11} />
+                      <span>{isSystemBn ? "সব মুছুন" : "Clear all"}</span>
+                    </button>
+                  )}
+                </div>
                 {sessions.length === 0 ? (
-                  <div className={styles.historyEmpty}>
-                    {isSystemBn ? 'কোনো পূর্ববর্তী চ্যাট নেই' : 'No past sessions'}
+                  <div className="text-xs text-zinc-500 px-2 py-3 text-center">
+                    {isSystemBn ? "কোনো চ্যাট হিস্ট্রি নেই" : "No chat history"}
                   </div>
                 ) : (
-                  sessions.map((session) => (
-                    <div 
-                      key={session.id} 
-                      className={`${styles.historyItem} ${session.id === activeSessionId ? styles.activeHistoryItem : ''}`}
-                      onClick={() => { selectSession(session.id); setShowHistory(false); }}
+                  sessions.map((s) => (
+                    <div
+                      key={s.id}
+                      className={`group flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs transition-colors ${
+                        s.id === activeSessionId
+                          ? "bg-blue-600/20 text-blue-300 font-medium"
+                          : "text-zinc-300 hover:bg-white/5 hover:text-white"
+                      }`}
                     >
-                      <span className={styles.historyItemBtn}>{session.title || (isSystemBn ? 'নতুন চ্যাট' : 'New Chat')}</span>
-                      <button 
-                        className={styles.historyDeleteBtn}
-                        onClick={(e) => { e.stopPropagation(); removeSession(session.id); }}
-                        aria-label="Delete session"
+                      <button
+                        type="button"
+                        className="truncate flex-1 text-left bg-transparent border-none p-0 text-inherit cursor-pointer text-xs"
+                        onClick={() => {
+                          selectSession(s.id);
+                          setShowHistory(false);
+                        }}
                       >
-                        <Trash2 size={14} />
+                        {s.title || (isSystemBn ? "নতুন আলাপ" : "New Chat")}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          e.preventDefault();
+                          removeSession(s.id);
+                          showToast(isSystemBn ? 'চ্যাটটি মুছে ফেলা হয়েছে' : 'Chat deleted', 'info');
+                        }}
+                        className="text-zinc-400 hover:text-red-400 hover:bg-red-500/20 p-1.5 rounded transition-colors shrink-0 ml-1 cursor-pointer z-10"
+                        title={isSystemBn ? "মুছে ফেলুন" : "Delete"}
+                        aria-label={isSystemBn ? "মুছে ফেলুন" : "Delete chat"}
+                      >
+                        <Trash2 size={13} />
                       </button>
                     </div>
                   ))
                 )}
               </div>
-            </div>
-          )}
+            )}
           </div>
         </div>
       </header>
 
-      <div className={styles.chatArea} ref={chatAreaRef}>
+      <div className={`${styles.chatArea} ${styles.contentLayer}`} ref={chatAreaRef}>
         {messages.length === 0 ? (
-          <div className={styles.heroWrapper}>
-            <div className={styles.hero}>
-              <div className={styles.heroContent}>
-                <h1>Welcome back, {name}</h1>
-                <p>Let’s turn your plans into progress.</p>
-              </div>
-            </div>
-            <div className={styles.quickActionsHero}>
+          <div className="flex-1 flex flex-col items-center justify-center py-8 px-4 my-auto text-center">
+            <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
+              {currentGreeting.title}
+            </h2>
+
+            <div className="flex flex-wrap items-center justify-center gap-1.5 sm:gap-2 mt-5 max-w-lg">
               {quickActions.map((action) => (
-                <button key={action} onClick={() => submit(action)} disabled={isThinking || guestLimitExceeded}>
+                <button
+                  key={action}
+                  type="button"
+                  onClick={() => submit(action)}
+                  disabled={isThinking || guestLimitExceeded}
+                  className="px-2.5 sm:px-3 py-1.5 rounded-lg text-[11px] font-medium bg-white/[0.04] hover:bg-blue-600/20 text-zinc-300 hover:text-white border border-white/[0.08] hover:border-blue-500/35 backdrop-blur-sm shadow-sm transition-all duration-150 cursor-pointer disabled:opacity-50 active:scale-95 leading-normal"
+                >
                   {action}
                 </button>
               ))}
@@ -732,6 +810,7 @@ export function AIAgentPage() {
               requestAnimationFrame(adjustTextareaHeight);
             }}
             onFocus={() => {
+              setIsFocused(true);
               setTimeout(() => {
                 if (chatAreaRef.current) {
                   chatAreaRef.current.scrollTo({
@@ -740,6 +819,9 @@ export function AIAgentPage() {
                   });
                 }
               }, 120);
+            }}
+            onBlur={() => {
+              setIsFocused(false);
             }}
             onKeyDown={(event) => {
               if (event.key === "Enter" && !event.shiftKey) {
@@ -759,7 +841,7 @@ export function AIAgentPage() {
           />
           <div className={styles.controls}>
             <div className={styles.selectGroup}>
-              <CustomSelect label={isSystemBn ? "এআই মডেল" : "AI model"} value={model} options={isSystemBn ? modelOptionsBn : modelOptionsEn} onChange={setModel} />
+              <CustomSelect value={model} options={isSystemBn ? modelOptionsBn : modelOptionsEn} onChange={setModel} />
             </div>
             <div className={styles.composeActions}>
               <button

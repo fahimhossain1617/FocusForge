@@ -130,10 +130,12 @@ export async function consumeUserTokens(
 export function estimateTokenUsage(
   promptText: string = '', 
   responseText: string = '',
-  modelMode: string = 'smart',
+  modelMode: string = 'fast',
   geminiUsage?: { totalTokenCount?: number }
 ): number {
   if (geminiUsage?.totalTokenCount && geminiUsage.totalTokenCount > 0) {
+    if (modelMode === 'fast') return Math.max(5, Math.round(geminiUsage.totalTokenCount * 0.5));
+    if (modelMode === 'planning') return Math.max(30, Math.round(geminiUsage.totalTokenCount * 2.0));
     return geminiUsage.totalTokenCount;
   }
 
@@ -144,10 +146,10 @@ export function estimateTokenUsage(
   const baseTokens = Math.max(10, promptTokens + responseTokens);
 
   if (modelMode === 'fast') {
-    return Math.max(8, Math.round(baseTokens * 0.75));
+    return Math.max(5, Math.round(baseTokens * 0.5));
   } else if (modelMode === 'planning') {
-    return Math.max(25, Math.round(baseTokens * 1.4));
+    return Math.max(30, Math.round(baseTokens * 2.0));
   }
 
-  return baseTokens;
+  return Math.max(15, baseTokens);
 }

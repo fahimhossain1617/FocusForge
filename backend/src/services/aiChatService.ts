@@ -98,11 +98,32 @@ export async function addChatMessage(
   return res.rows[0];
 }
 
-export async function deleteChatSession(sessionId: string, userId: string) {
-  await pool.query(
-    'DELETE FROM ai_chat_sessions WHERE id = $1 AND user_id = $2',
-    [sessionId, userId]
-  );
+export async function deleteChatSession(sessionId: string, userId?: string) {
+  await pool.query('DELETE FROM ai_chat_messages WHERE session_id = $1', [sessionId]);
+  if (userId) {
+    await pool.query(
+      'DELETE FROM ai_chat_sessions WHERE id = $1 AND (user_id = $2 OR user_id IS NULL)',
+      [sessionId, userId]
+    );
+  } else {
+    await pool.query('DELETE FROM ai_chat_sessions WHERE id = $1', [sessionId]);
+  }
+  return { success: true };
+}
+
+export async function clearAllChatSessions(userId?: string) {
+  if (userId) {
+    await pool.query(
+      'DELETE FROM ai_chat_messages WHERE session_id IN (SELECT id FROM ai_chat_sessions WHERE user_id = $1)',
+      [userId]
+    );
+    await pool.query('DELETE FROM ai_chat_sessions WHERE user_id = $1', [userId]);
+  } else {
+    await pool.query(
+      'DELETE FROM ai_chat_messages WHERE session_id IN (SELECT id FROM ai_chat_sessions WHERE user_id IS NULL)'
+    );
+    await pool.query('DELETE FROM ai_chat_sessions WHERE user_id IS NULL');
+  }
   return { success: true };
 }
 

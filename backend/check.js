@@ -5,29 +5,49 @@ const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 
 async function check() {
   try {
-    const res = await pool.query(`
-      SELECT
-        tc.table_schema, 
-        tc.constraint_name, 
-        tc.table_name, 
-        kcu.column_name, 
-        ccu.table_schema AS foreign_table_schema,
-        ccu.table_name AS foreign_table_name,
-        ccu.column_name AS foreign_column_name,
-        rc.delete_rule
-      FROM 
-        information_schema.table_constraints AS tc 
-        JOIN information_schema.key_column_usage AS kcu
-          ON tc.constraint_name = kcu.constraint_name
-          AND tc.table_schema = kcu.table_schema
-        JOIN information_schema.constraint_column_usage AS ccu
-          ON ccu.constraint_name = tc.constraint_name
-          AND ccu.table_schema = tc.table_schema
-        JOIN information_schema.referential_constraints rc
-          ON rc.constraint_name = tc.constraint_name
-      WHERE tc.constraint_type = 'FOREIGN KEY' AND tc.table_name='ai_chat_messages';
-    `);
-    console.log("Foreign keys:", res.rows);
+    // 1. Test Task with all new columns
+    const testTask = await pool.query(`
+      INSERT INTO tasks (user_id, name, title, status, completed, time, end_time, reminder_enabled, reminder_time, priority, tier, target_date)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+      RETURNING *;
+    `, [
+      '6f977ef4-c341-4312-a897-ea22b9a80d5e',
+      'Test Task Backend',
+      'Test Task Backend',
+      'not_started',
+      false,
+      '10:00',
+      '11:30',
+      true,
+      '09:45',
+      'high',
+      'now',
+      '2026-09-18'
+    ]);
+    console.log("Successfully inserted task with new fields:", testTask.rows[0].id, testTask.rows[0].time, testTask.rows[0].end_time);
+
+    await pool.query('DELETE FROM tasks WHERE id = $1', [testTask.rows[0].id]);
+    console.log("Successfully deleted test task!");
+
+    // 2. Test AI Chat Session & Messages
+    const testSessionId = require('crypto').randomUUID();
+    await pool.query(`
+      INSERT INTO ai_chat_sessions (id, user_id, title)
+      VALUES ($1, $2, $3)
+    `, [testSessionId, '6f977ef4-c341-4312-a897-ea22b9a80d5e', 'Test AI Session']);
+
+    await pool.query(`
+      INSERT INTO ai_chat_messages (session_id, role, content)
+      VALUES ($1, $2, $3)
+    `, [testSessionId, 'user', 'Hello AI!']);
+
+    console.log("Successfully inserted session & message");
+
+    // Cascading delete
+    await pool.query('DELETE FROM ai_chat_messages WHERE session_id = $1', [testSessionId]);
+    await pool.query('DELETE FROM ai_chat_sessions WHERE id = $1', [testSessionId]);
+    console.log("Successfully deleted session and its messages!");
+
   } catch (e) {
     console.error(e);
   } finally {

@@ -44,7 +44,8 @@ function getGuestId(): string {
 import { getBackendUrl } from "../lib/backendUrl";
 
 function getApiUrl(): string {
-  return `${getBackendUrl()}/api`;
+  const base = getBackendUrl();
+  return base ? `${base}/api` : "/api";
 }
 
 export async function getAITokenStatus(lang: string = "bn"): Promise<TokenStatus> {
@@ -90,7 +91,7 @@ export async function getAITokenStatus(lang: string = "bn"): Promise<TokenStatus
 export function estimateClientTokenUsage(
   promptText: string = '', 
   responseText: string = '',
-  modelMode: AIAgentModel = 'smart'
+  modelMode: AIAgentModel = 'fast'
 ): number {
   const promptChars = promptText?.length || 0;
   const responseChars = responseText?.length || 0;
@@ -99,22 +100,45 @@ export function estimateClientTokenUsage(
   const baseTokens = Math.max(10, promptTokens + responseTokens);
 
   if (modelMode === 'fast') {
-    return Math.max(8, Math.round(baseTokens * 0.75));
+    return Math.max(5, Math.round(baseTokens * 0.5));
   } else if (modelMode === 'planning') {
-    return Math.max(25, Math.round(baseTokens * 1.4));
+    return Math.max(30, Math.round(baseTokens * 2.0));
   }
 
-  return baseTokens;
+  return Math.max(15, baseTokens);
 }
 
 /**
- * Fetch chat sessions directly from Supabase with session/cache fallback
+ * Fetch chat sessions directly from API / Supabase with session/cache fallback
  */
 export async function getChatSessions(): Promise<ChatSession[]> {
+  const token = await getToken();
+  const guestId = getGuestId();
+
+  // 1. Try server endpoint first
+  try {
+    const res = await fetch(`${getApiUrl()}/ai/agent/sessions`, {
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        'x-guest-id': guestId,
+      },
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data) && data.length > 0) {
+        if (typeof window !== 'undefined' && token) {
+          try { localStorage.setItem('focusforge_active_sessions_cache', JSON.stringify(data)); } catch {}
+        }
+        return data;
+      }
+    }
+  } catch (err) {
+    console.warn('[aiAgentService] Server sessions fetch error, trying direct Supabase:', err);
+  }
+
+  // 2. Direct Supabase fallback
   try {
     const { data: { user } } = await supabase.auth.getUser();
-    
-    // For logged-in users, fetch from Supabase
     if (user?.id) {
       const { data, error } = await supabase
         .from('ai_chat_sessions')
@@ -159,6 +183,25 @@ export async function getChatSessions(): Promise<ChatSession[]> {
  */
 export async function createChatSession(title: string): Promise<ChatSession> {
   const newId = crypto.randomUUID();
+  const token = await getToken();
+
+  // Try API first
+  try {
+    const res = await fetch(`${getApiUrl()}/ai/agent/sessions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify({ title }),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.id) return data;
+    }
+  } catch {}
+
+  // Direct Supabase fallback
   try {
     const { data: { user } } = await supabase.auth.getUser();
     if (user?.id) {
@@ -178,22 +221,93 @@ export async function createChatSession(title: string): Promise<ChatSession> {
 }
 
 /**
- * Delete a session and its messages
+ * Delete a session and its messages from both backend API and Supabase
  */
 export async function deleteChatSession(sessionId: string): Promise<{ success: boolean }> {
+  const token = await getToken();
+
+  // 1. Delete via backend API endpoint (triggers cascading delete in database)
   try {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user?.id) {
-      await supabase.from('ai_chat_messages').delete().eq('session_id', sessionId);
-      await supabase.from('ai_chat_sessions').delete().eq('id', sessionId);
-    }
+    await fetch(`${getApiUrl()}/ai/agent/sessions/${encodeURIComponent(sessionId)}`, {
+      method: 'DELETE',
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+    });
+  } catch (err) {
+    console.warn('[aiAgentService] Backend delete session notice:', err);
+  }
+
+  // 2. Direct Supabase delete fallback
+  try {
+    await supabase.from('ai_chat_messages').delete().eq('session_id', sessionId);
+    await supabase.from('ai_chat_sessions').delete().eq('id', sessionId);
   } catch (err) {
     console.warn("[aiAgentService] Supabase direct delete error:", err);
   }
 
+  // 3. Clean local & session storage
   if (typeof window !== "undefined") {
     sessionStorage.removeItem(`focusforge_guest_msg_${sessionId}`);
     localStorage.removeItem(`focusforge_auth_msg_${sessionId}`);
+    localStorage.removeItem(`focusforge_chat_msg_${sessionId}`);
+  }
+
+  return { success: true };
+}
+
+/**
+ * Clear all chat sessions and messages
+ */
+export async function clearAllChatSessions(): Promise<{ success: boolean }> {
+  const token = await getToken();
+
+  // 1. Clear via backend API endpoint
+  try {
+    await fetch(`${getApiUrl()}/ai/agent/sessions`, {
+      method: 'DELETE',
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+    });
+  } catch (err) {
+    console.warn('[aiAgentService] Backend clear all sessions notice:', err);
+  }
+
+  // 2. Direct Supabase delete fallback
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user?.id) {
+      const { data: userSessions } = await supabase
+        .from('ai_chat_sessions')
+        .select('id')
+        .eq('user_id', user.id);
+      
+      if (Array.isArray(userSessions) && userSessions.length > 0) {
+        const sessionIds = userSessions.map((s) => s.id);
+        await supabase.from('ai_chat_messages').delete().in('session_id', sessionIds);
+      }
+      await supabase.from('ai_chat_sessions').delete().eq('user_id', user.id);
+    }
+  } catch (err) {
+    console.warn("[aiAgentService] Supabase clearAllChatSessions error:", err);
+  }
+
+  if (typeof window !== "undefined") {
+    try {
+      sessionStorage.removeItem("focusforge_guest_sessions_list");
+      localStorage.removeItem("focusforge_active_sessions_cache");
+      Object.keys(localStorage).forEach((k) => {
+        if (k.startsWith("focusforge_auth_msg_") || k.startsWith("focusforge_chat_msg_")) {
+          localStorage.removeItem(k);
+        }
+      });
+      Object.keys(sessionStorage).forEach((k) => {
+        if (k.startsWith("focusforge_guest_msg_")) {
+          sessionStorage.removeItem(k);
+        }
+      });
+    } catch {}
   }
 
   return { success: true };
@@ -203,6 +317,33 @@ export async function deleteChatSession(sessionId: string): Promise<{ success: b
  * Fetch messages for a specific session
  */
 export async function getChatMessages(sessionId: string): Promise<AgentMessage[]> {
+  const token = await getToken();
+
+  // 1. Try server API route first
+  try {
+    const res = await fetch(`${getApiUrl()}/ai/agent/sessions/${encodeURIComponent(sessionId)}/messages`, {
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data) && data.length > 0) {
+        return data.map((row: any) => ({
+          id: row.id,
+          role: row.role as 'user' | 'assistant',
+          content: row.content,
+          intent: row.intent,
+          payload: typeof row.payload_json === 'string' ? JSON.parse(row.payload_json) : (row.payload || row.payload_json),
+          createdAt: new Date(row.created_at || Date.now()),
+        }));
+      }
+    }
+  } catch (err) {
+    console.warn('[aiAgentService] Server getChatMessages error, trying direct Supabase:', err);
+  }
+
+  // 2. Direct Supabase fallback
   try {
     const { data: { user } } = await supabase.auth.getUser();
     if (user?.id) {
@@ -222,24 +363,27 @@ export async function getChatMessages(sessionId: string): Promise<AgentMessage[]
           createdAt: new Date(row.created_at || Date.now()),
         }));
       }
-    } else {
-      // Guest mode: read ONLY from sessionStorage
-      if (typeof window !== "undefined") {
-        const cached = sessionStorage.getItem(`focusforge_guest_msg_${sessionId}`);
-        if (cached) {
-          const parsed = JSON.parse(cached);
-          if (Array.isArray(parsed)) {
-            return parsed.map((m: any) => ({
-              ...m,
-              createdAt: new Date(m.createdAt || m.created_at || Date.now()),
-            }));
-          }
-        }
-      }
-      return [];
     }
   } catch (sbErr) {
-    console.warn("[aiAgentService] Supabase direct messages fetch error:", sbErr);
+    console.warn("[aiAgentService] Supabase getChatMessages error:", sbErr);
+  }
+
+  // Fallback to local / session storage
+  if (typeof window !== "undefined") {
+    try {
+      const cached = localStorage.getItem(`focusforge_chat_msg_${sessionId}`) ||
+                     localStorage.getItem(`focusforge_auth_msg_${sessionId}`) ||
+                     sessionStorage.getItem(`focusforge_guest_msg_${sessionId}`);
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed.map((m: any) => ({
+            ...m,
+            createdAt: new Date(m.createdAt || m.created_at || Date.now()),
+          }));
+        }
+      }
+    } catch {}
   }
 
   return [];

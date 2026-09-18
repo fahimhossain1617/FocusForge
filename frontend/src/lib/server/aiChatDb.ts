@@ -81,13 +81,20 @@ export async function getChatSessions(userId: string | null): Promise<ChatSessio
   }
 }
 
+export function isValidUuid(str: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(str);
+}
+
 export async function getChatMessages(sessionId: string): Promise<ChatMessageRow[]> {
   try {
+    if (!sessionId) {
+      return [];
+    }
     const res = await pool.query(
       `
       SELECT id, session_id, role, content, intent, payload_json, created_at
       FROM ai_chat_messages
-      WHERE session_id = $1
+      WHERE session_id::text = $1
       ORDER BY created_at ASC
       `,
       [sessionId]
@@ -141,11 +148,12 @@ export async function createChatSession(userId: string | null, title: string = '
 
 export async function updateChatSessionTitle(sessionId: string, title: string): Promise<ChatSessionRow | null> {
   try {
+    if (!sessionId) return null;
     const res = await pool.query(
       `
       UPDATE ai_chat_sessions
       SET title = $1, updated_at = NOW()
-      WHERE id = $2
+      WHERE id::text = $2
       RETURNING id, user_id, title, created_at, updated_at
       `,
       [title, sessionId]
@@ -174,12 +182,15 @@ export async function addChatMessage(
   payload_json?: any
 ): Promise<ChatMessageRow> {
   try {
+    if (!sessionId) {
+      throw new Error(`Missing sessionId: ${sessionId}`);
+    }
     const payloadStr = payload_json ? (typeof payload_json === 'object' ? JSON.stringify(payload_json) : String(payload_json)) : null;
 
     const res = await pool.query(
       `
       INSERT INTO ai_chat_messages (id, session_id, role, content, intent, payload_json, created_at)
-      VALUES (gen_random_uuid(), $1, $2, $3, $4, $5::jsonb, NOW())
+      VALUES (gen_random_uuid(), $1::uuid, $2, $3, $4, $5::jsonb, NOW())
       RETURNING id, session_id, role, content, intent, payload_json, created_at
       `,
       [sessionId, role, content, intent || null, payloadStr]
@@ -188,7 +199,7 @@ export async function addChatMessage(
     const row = res.rows[0];
 
     // Keep session updated_at current
-    await pool.query('UPDATE ai_chat_sessions SET updated_at = NOW() WHERE id = $1', [sessionId]).catch(() => {});
+    await pool.query('UPDATE ai_chat_sessions SET updated_at = NOW() WHERE id::text = $1', [sessionId]).catch(() => {});
 
     return {
       id: row.id,
@@ -207,9 +218,12 @@ export async function addChatMessage(
 
 export async function deleteChatSession(sessionId: string): Promise<boolean> {
   try {
-    // Delete messages first, then session
-    await pool.query('DELETE FROM ai_chat_messages WHERE session_id = $1', [sessionId]);
-    await pool.query('DELETE FROM ai_chat_sessions WHERE id = $1', [sessionId]);
+    if (!sessionId) {
+      return true;
+    }
+    // Delete messages first, then session permanently from database
+    await pool.query('DELETE FROM ai_chat_messages WHERE session_id::text = $1', [sessionId]);
+    await pool.query('DELETE FROM ai_chat_sessions WHERE id::text = $1', [sessionId]);
     return true;
   } catch (err) {
     console.error('[aiChatDb] deleteChatSession exception:', err);
