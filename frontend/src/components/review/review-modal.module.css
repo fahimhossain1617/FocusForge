@@ -51,10 +51,10 @@
 /* Light theme overrides */
 :global([data-theme="light"]) .modal,
 .modal[data-theme="light"] {
-  background: linear-gradient(145deg, #ffffff, #f8fafc);
-  border: 1px solid rgba(203, 213, 225, 0.85);
-  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.04);
-  color: #0f172a;
+  background: #FFFFFF;
+  border: 1px solid #DCE5F0;
+  box-shadow: 0 20px 50px rgba(34, 58, 94, 0.14), 0 0 0 1px #DCE5F0;
+  color: #111827;
 }
 
 /* Close Button */
@@ -86,14 +86,14 @@
 }
 
 :global([data-theme="light"]) .closeButton {
-  background: rgba(0, 0, 0, 0.04);
-  border-color: rgba(0, 0, 0, 0.08);
-  color: #64748b;
+  background: #F7FAFE;
+  border-color: #DCE5F0;
+  color: #52627A;
 }
 
 :global([data-theme="light"]) .closeButton:hover {
-  background: rgba(0, 0, 0, 0.08);
-  color: #0f172a;
+  background: #E7F0FF;
+  color: #111827;
 }
 
 /* Header Section */
@@ -133,7 +133,7 @@
 }
 
 :global([data-theme="light"]) .subtitle {
-  color: #64748b;
+  color: #52627A;
 }
 
 /* Star Rating Section */
@@ -177,12 +177,12 @@
 }
 
 :global([data-theme="light"]) .starButton {
-  color: #cbd5e1;
+  color: #DCE5F0;
 }
 
 :global([data-theme="light"]) .starActive {
-  color: #f59e0b !important;
-  filter: drop-shadow(0 2px 6px rgba(245, 158, 11, 0.35));
+  color: #D99A32 !important;
+  filter: drop-shadow(0 2px 6px rgba(217, 154, 50, 0.35));
 }
 
 .ratingLabel {
@@ -195,7 +195,7 @@
 }
 
 :global([data-theme="light"]) .ratingLabel {
-  color: #d97706;
+  color: #D99A32;
 }
 
 /* Comment Box Section */
@@ -232,18 +232,18 @@
 }
 
 :global([data-theme="light"]) .textarea {
-  background: #f8fafc;
-  border: 1px solid rgba(203, 213, 225, 0.9);
-  color: #0f172a;
+  background: #FFFFFF;
+  border: 1px solid #DCE5F0;
+  color: #111827;
 }
 
 :global([data-theme="light"]) .textarea:focus {
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.14);
+  border-color: #5B8DEF;
+  box-shadow: 0 0 0 3px rgba(91, 141, 239, 0.22);
 }
 
 :global([data-theme="light"]) .textarea::placeholder {
-  color: #94a3b8;
+  color: #8290A5;
 }
 
 /* Actions Section */
@@ -276,21 +276,23 @@
 }
 
 :global([data-theme="light"]) .skipButton {
-  color: #64748b;
+  color: #223A5E !important;
+  font-weight: 700 !important;
+  border-radius: 12px !important;
 }
 
 :global([data-theme="light"]) .skipButton:hover {
-  background: rgba(0, 0, 0, 0.05);
-  color: #0f172a;
+  background: #E7F0FF !important;
+  color: #223A5E !important;
 }
 
 .submitButton {
   background: #2563eb;
-  border: none;
-  border-radius: 10px;
+  border: 1px solid #2563eb;
+  border-radius: 12px;
   color: #ffffff;
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 700;
   padding: 12px 24px;
   cursor: pointer;
   transition: transform 0.12s ease-in-out;
@@ -301,19 +303,45 @@
 }
 
 .submitButton:hover:not(:disabled) {
-  background: #2563eb;
+  background: #1d4ed8;
+  border-color: #1d4ed8;
   box-shadow: none !important;
 }
 
 .submitButton:active:not(:disabled) {
-  transform: scale(0.95) !important;
+  transform: scale(0.985) !important;
 }
 
 .submitButton:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-  box-shadow: none;
-  transform: none;
+  background-color: #E5EDF7 !important;
+  color: #8290A5 !important;
+  border: 1px solid transparent !important;
+  cursor: not-allowed !important;
+  box-shadow: none !important;
+  transform: none !important;
+  opacity: 1 !important;
+}
+
+:global([data-theme="light"]) .submitButton {
+  background: #223A5E !important;
+  border-color: #223A5E !important;
+  color: #FFFFFF !important;
+  font-weight: 700 !important;
+  box-shadow: none !important;
+}
+
+:global([data-theme="light"]) .submitButton:hover:not(:disabled) {
+  background: #2E4E7B !important;
+  border-color: #2E4E7B !important;
+  color: #FFFFFF !important;
+}
+
+:global([data-theme="light"]) .submitButton:disabled {
+  background-color: #E5EDF7 !important;
+  color: #8290A5 !important;
+  border: 1px solid transparent !important;
+  cursor: not-allowed !important;
+  opacity: 1 !important;
 }
 
 /* Mobile Responsiveness */

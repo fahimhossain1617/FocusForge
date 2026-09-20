@@ -212,28 +212,26 @@ export default function FocusForgeSelect({
         aria-controls={`${selectId}-menu`}
         aria-label={ariaLabel || placeholder}
         aria-required={required}
-        className={`group flex items-center justify-between w-full px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 outline-none cursor-pointer ${
+        className={`group flex items-center justify-between w-full px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 outline-none cursor-pointer border bg-[#F7FAFE] dark:bg-[#0f172a]/90 border-[#DCE5F0] dark:border-white/10 ${
+          selectedOption
+            ? "text-[#111827] dark:text-[#F8FAFC]"
+            : "text-[#52627A] dark:text-zinc-400"
+        } ${
           disabled ? "opacity-50 cursor-not-allowed" : "hover:border-blue-500/50"
         } ${
           isOpen
-            ? "border-blue-500 ring-2 ring-blue-500/20 "
+            ? "border-blue-500 ring-2 ring-blue-500/20"
             : ""
         }`}
-        style={{
-          background: "var(--picker-surface, rgba(15, 23, 42, 0.65))",
-          borderColor: isOpen ? "var(--picker-border-focus, #3B82F6)" : "var(--picker-border, rgba(255, 255, 255, 0.12))",
-          color: selectedOption ? "var(--picker-text-primary, #F8FAFC)" : "var(--picker-text-muted, #64748B)",
-          borderWidth: "1px",
-        }}
       >
-        <span className="truncate">
+        <span className="truncate font-medium">
           {selectedOption ? selectedOption.label : placeholder}
         </span>
 
         <ChevronDown
           size={16}
           className={`shrink-0 ml-2 transition-transform duration-200 ${
-            isOpen ? "rotate-180 text-blue-400" : "text-zinc-400 group-hover:text-zinc-200"
+            isOpen ? "rotate-180 text-blue-500 dark:text-blue-400" : "text-[#52627A] dark:text-zinc-400 group-hover:text-[#111827] dark:group-hover:text-zinc-200"
           }`}
         />
       </button>
@@ -245,18 +243,12 @@ export default function FocusForgeSelect({
           id={`${selectId}-menu`}
           role="listbox"
           aria-label={ariaLabel || placeholder}
-          className="fixed z-[99999] overflow-hidden rounded-2xl shadow-2xl animate-fade-in"
+          className="fixed z-[99999] overflow-hidden rounded-2xl shadow-2xl animate-fade-in bg-white dark:bg-[#0C1222] border border-[#DCE5F0] dark:border-white/10"
           style={{
             top: `${dropdownPos.top}px`,
             left: `${dropdownPos.left}px`,
             width: `${dropdownPos.width}px`,
-            background: "var(--picker-bg, #0C1222)",
-            borderColor: "var(--picker-border, rgba(255, 255, 255, 0.14))",
-            borderWidth: "1px",
-            borderStyle: "solid",
-            backdropFilter: "blur(20px)",
-            WebkitBackdropFilter: "blur(20px)",
-            boxShadow: "0 16px 40px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.05)",
+            boxShadow: "0 16px 40px rgba(0, 0, 0, 0.16), 0 0 0 1px rgba(0, 0, 0, 0.04)",
           }}
         >
           <div className="max-h-64 overflow-y-auto p-1.5 space-y-0.5 custom-scrollbar">
@@ -273,28 +265,21 @@ export default function FocusForgeSelect({
                   disabled={option.disabled}
                   onClick={() => handleSelect(option.value)}
                   onMouseEnter={() => setHighlightedIndex(idx)}
-                  className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs sm:text-sm font-medium text-left transition-all duration-100 cursor-pointer ${
+                  className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-left transition-all duration-100 cursor-pointer ${
                     option.disabled ? "opacity-40 cursor-not-allowed" : ""
                   } ${
                     isSelected
-                      ? "bg-blue-600/20 text-blue-400 "
+                      ? "bg-blue-50 dark:bg-blue-600/20 text-blue-600 dark:text-blue-400 font-bold"
                       : isHighlighted
-                      ? "bg-white/10 dark:bg-white/5 text-white"
-                      : "text-zinc-300 dark:text-zinc-300 hover:text-white"
+                      ? "bg-[#F3F7FC] dark:bg-white/10 text-[#111827] dark:text-white"
+                      : "text-[#334155] dark:text-zinc-300 hover:text-[#111827] dark:hover:text-white hover:bg-[#F3F7FC] dark:hover:bg-white/5"
                   }`}
-                  style={{
-                    color: isSelected 
-                      ? "var(--picker-border-focus, #3B82F6)" 
-                      : isHighlighted 
-                      ? "var(--picker-text-primary, #F8FAFC)" 
-                      : "var(--picker-text-secondary, #94A3B8)",
-                  }}
                 >
                   <span className="truncate pr-2">{option.label}</span>
                   {isSelected && (
                     <Check
                       size={15}
-                      className="shrink-0 text-blue-500 stroke-[2.5]"
+                      className="shrink-0 text-blue-600 dark:text-blue-400 stroke-[2.5]"
                     />
                   )}
                 </button>

@@ -103,8 +103,8 @@ export default function CalendarWidget({ currentDate, selectedDateStr, onDateSel
           }}
           className={`py-3 px-2 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
             i === month 
-              ? 'bg-gradient-to-br from-blue-500 to-blue-700 text-white shadow-md shadow-blue-500/30' 
-              : 'text-slate-300 hover:bg-slate-800/80 hover:text-white'
+              ? 'bg-blue-600 text-white shadow-md shadow-blue-500/30' 
+              : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/80 hover:text-blue-600 dark:hover:text-white'
           }`}
         >
           {m}
@@ -116,7 +116,7 @@ export default function CalendarWidget({ currentDate, selectedDateStr, onDateSel
   const renderYearPicker = () => {
     const startYear = year - 5;
     return (
-      <div className="grid grid-cols-3 gap-2 p-2 h-[180px] overflow-y-auto scrollbar-thin scrollbar-thumb-white/10">
+      <div className="grid grid-cols-3 gap-2 p-2 h-[180px] overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-white/10">
         {Array.from({ length: 15 }).map((_, i) => {
           const y = startYear + i;
           return (
@@ -128,8 +128,8 @@ export default function CalendarWidget({ currentDate, selectedDateStr, onDateSel
               }}
               className={`py-3 px-2 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
                 y === year 
-                  ? 'bg-gradient-to-br from-blue-500 to-blue-700 text-white shadow-md shadow-blue-500/30' 
-                  : 'text-slate-300 hover:bg-slate-800/80 hover:text-white'
+                  ? 'bg-blue-600 text-white shadow-md shadow-blue-500/30' 
+                  : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/80 hover:text-blue-600 dark:hover:text-white'
               }`}
             >
               {y}
@@ -168,8 +168,8 @@ export default function CalendarWidget({ currentDate, selectedDateStr, onDateSel
               isSelected 
                 ? 'bg-blue-600 text-white font-bold shadow-md shadow-blue-500/40 ring-2 ring-blue-400/40' 
                 : isToday 
-                  ? 'border border-blue-500/50 text-blue-400 bg-blue-500/15' 
-                  : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                  ? 'border border-blue-500/50 text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/15 font-bold' 
+                  : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-blue-600 dark:hover:text-white'
             }`}
           >
             {i}
@@ -203,8 +203,8 @@ export default function CalendarWidget({ currentDate, selectedDateStr, onDateSel
               isSelected 
                 ? 'bg-blue-600 text-white font-bold shadow-md shadow-blue-500/40 ring-2 ring-blue-400/40' 
                 : isToday 
-                  ? 'border border-blue-500/50 text-blue-400 bg-blue-500/15' 
-                  : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                  ? 'border border-blue-500/50 text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/15 font-bold' 
+                  : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-blue-600 dark:hover:text-white'
             }`}
           >
             <span className="text-[10px] opacity-60 mb-0.5">{daysOfWeek[i]}</span>
@@ -220,7 +220,7 @@ export default function CalendarWidget({ currentDate, selectedDateStr, onDateSel
         {viewMode === 'Monthly' && (
           <div className="grid grid-cols-7 mb-2">
             {daysOfWeek.map((d, i) => (
-              <div key={i} className="text-center text-[10px] font-bold text-slate-400">{d}</div>
+              <div key={i} className="text-center text-[10px] font-bold text-slate-500 dark:text-slate-400">{d}</div>
             ))}
           </div>
         )}
@@ -243,7 +243,7 @@ export default function CalendarWidget({ currentDate, selectedDateStr, onDateSel
       {/* Trigger Button */}
       <button 
         onClick={handleToggle}
-        className="calendar-trigger w-9 h-9 rounded-full flex items-center justify-center transition-all cursor-pointer text-slate-400 hover:text-blue-400 hover:bg-white/10"
+        className="calendar-trigger w-9 h-9 rounded-full flex items-center justify-center transition-all cursor-pointer text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-100 dark:hover:bg-white/10"
         aria-label="Open Calendar"
       >
         <CalendarIcon className="w-4 h-4" />
@@ -252,20 +252,11 @@ export default function CalendarWidget({ currentDate, selectedDateStr, onDateSel
       {/* Popover */}
       {isOpen && (
         <div 
-          className="calendar-popover absolute right-0 top-[110%] mt-2 w-[310px] z-50 overflow-hidden fade-in origin-top-right rounded-2xl"
-          style={{
-            background: "#0c1424",
-            border: "1px solid rgba(59, 130, 246, 0.25)",
-            boxShadow: "0 25px 60px rgba(0, 0, 0, 0.95), 0 10px 25px rgba(0, 0, 0, 0.80), inset 1px 1px 1px rgba(255, 255, 255, 0.12)"
-          }}
+          className="calendar-popover absolute right-0 top-[110%] mt-2 w-[310px] z-50 overflow-hidden fade-in origin-top-right rounded-2xl bg-white dark:bg-[#0c1424] border border-[#DCE5F0] dark:border-[rgba(59,130,246,0.25)] shadow-xl dark:shadow-[0_25px_60px_rgba(0,0,0,0.95)]"
         >
           {/* Tabs */}
           <div 
-            className="flex items-center justify-between p-1.5 m-2 rounded-xl"
-            style={{
-              background: "#070c16",
-              boxShadow: "inset 0 2px 5px rgba(0, 0, 0, 0.65), inset 0 -1px 1px rgba(255, 255, 255, 0.05)"
-            }}
+            className="flex items-center justify-between p-1.5 m-2 rounded-xl bg-slate-100 dark:bg-[#070c16] border border-slate-200 dark:border-transparent"
           >
             {['Weekly', 'Monthly', 'Yearly'].map((tab) => (
               <button
@@ -276,8 +267,8 @@ export default function CalendarWidget({ currentDate, selectedDateStr, onDateSel
                 }}
                 className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
                   viewMode === tab 
-                    ? 'bg-gradient-to-br from-blue-500 to-blue-700 text-white font-bold shadow-md shadow-blue-500/30' 
-                    : 'text-slate-400 hover:text-white hover:bg-white/[0.04]'
+                    ? 'bg-blue-600 text-white font-bold shadow-md shadow-blue-500/30' 
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white/60 dark:hover:bg-white/[0.04]'
                 }`}
               >
                 {tab}
@@ -287,34 +278,34 @@ export default function CalendarWidget({ currentDate, selectedDateStr, onDateSel
 
           {/* Header Controls */}
           {subView === 'Calendar' && viewMode !== 'Yearly' && (
-            <div className="flex items-center justify-between px-4 py-2 border-b border-white/[0.05]">
-              <button onClick={() => changeMonth(-1)} className="p-1.5 hover:bg-white/10 rounded-lg text-slate-400 hover:text-white transition-colors cursor-pointer">
+            <div className="flex items-center justify-between px-4 py-2 border-b border-slate-100 dark:border-white/[0.05]">
+              <button onClick={() => changeMonth(-1)} className="p-1.5 hover:bg-slate-100 dark:hover:bg-white/10 rounded-lg text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer">
                 <ChevronLeft className="w-4 h-4" />
               </button>
               
               <div className="flex items-center gap-1.5">
                 <button 
                   onClick={() => setSubView('MonthPicker')}
-                  className="text-sm font-bold text-white hover:text-blue-400 transition-colors cursor-pointer px-2 py-1 rounded-lg hover:bg-white/5"
+                  className="text-sm font-bold text-slate-800 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer px-2 py-1 rounded-lg hover:bg-slate-100 dark:hover:bg-white/5"
                 >
                   {monthNames[month]}
                 </button>
                 <button 
                   onClick={() => setSubView('YearPicker')}
-                  className="text-sm font-bold text-white hover:text-blue-400 transition-colors cursor-pointer px-2 py-1 rounded-lg hover:bg-white/5"
+                  className="text-sm font-bold text-slate-800 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer px-2 py-1 rounded-lg hover:bg-slate-100 dark:hover:bg-white/5"
                 >
                   {year}
                 </button>
               </div>
 
-              <button onClick={() => changeMonth(1)} className="p-1.5 hover:bg-white/10 rounded-lg text-slate-400 hover:text-white transition-colors cursor-pointer">
+              <button onClick={() => changeMonth(1)} className="p-1.5 hover:bg-slate-100 dark:hover:bg-white/10 rounded-lg text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer">
                 <ChevronRight className="w-4 h-4" />
               </button>
             </div>
           )}
 
           {/* Main Body */}
-          <div className="p-3 min-h-[200px] bg-[#0c1424]">
+          <div className="p-3 min-h-[200px] bg-white dark:bg-[#0c1424]">
             {subView === 'MonthPicker' ? renderMonthPicker() 
              : subView === 'YearPicker' || viewMode === 'Yearly' ? renderYearPicker() 
              : renderCalendarGrid()}
@@ -322,18 +313,14 @@ export default function CalendarWidget({ currentDate, selectedDateStr, onDateSel
 
           {/* Action Bar */}
           <div 
-            className="flex items-center justify-between p-3 border-t border-white/[0.06]"
-            style={{ background: "#080e1a" }}
+            className="flex items-center justify-end p-3 border-t border-slate-100 dark:border-white/[0.06] bg-slate-50 dark:bg-[#080e1a]"
           >
-            <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-white hover:bg-white/5 transition-colors cursor-pointer">
-              <Bell className="w-3.5 h-3.5 text-blue-400" /> Reminder
-            </button>
             <button 
               onClick={() => {
                 setIsOpen(false);
                 onAddEvent();
               }}
-              className="flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-xs font-bold text-white transition-all cursor-pointer shadow-md bg-gradient-to-br from-blue-500 to-blue-700 hover:from-blue-600 hover:to-blue-800 shadow-blue-500/30"
+              className="w-full flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-white transition-all cursor-pointer shadow-md bg-blue-600 hover:bg-blue-700 shadow-blue-500/30"
             >
               <Plus className="w-3.5 h-3.5" /> New Event
             </button>

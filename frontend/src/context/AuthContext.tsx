@@ -1,6 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { User, AuthModalView } from "../types";
 import { authService } from "../services/authService";
 import { userService } from "../services/userService";
@@ -147,19 +148,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
 
+  const router = useRouter();
+
   const openAuth = useCallback((
     view: AuthModalView = 'login',
     options?: { targetPage?: string; onAuthenticated?: () => void; initialIdentifier?: string }
   ) => {
     setAuthGuardModal({ isOpen: false });
-    setAuthModal({
-      isOpen: true,
-      view,
-      targetPage: options?.targetPage,
-      onAuthenticated: options?.onAuthenticated,
-      initialIdentifier: options?.initialIdentifier,
-    });
-  }, []);
+    if ((view as string) === 'signup') {
+      router.push('/signup');
+      return;
+    }
+    if ((view as string) === 'verify') {
+      router.push('/verify');
+      return;
+    }
+    router.push('/login');
+  }, [router]);
 
   const closeAuth = useCallback(() => {
     setAuthModal(prev => ({ ...prev, isOpen: false }));
@@ -214,6 +219,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         accountMode: "authenticated",
         productTourCompleted: guestOnboarding.productTourCompleted,
       });
+    }
+
+    // Safely migrate any local guest tasks, notes, and mind items to backend database
+    if (typeof window !== "undefined") {
+      try {
+        const rawLocal = localStorage.getItem("focusforge_data");
+        if (rawLocal) {
+          const parsed = JSON.parse(rawLocal);
+          if (parsed.tasks?.length || parsed.notes?.length || parsed.brainDump?.length) {
+            userService.migrateGuestData({
+              tasks: parsed.tasks || [],
+              notes: parsed.notes || [],
+              mindItems: parsed.brainDump || [],
+              habits: parsed.habits || [],
+            });
+          }
+        }
+      } catch {}
     }
 
     if (callback) {

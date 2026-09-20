@@ -685,19 +685,20 @@ async function generateClientGeminiResponse(
 
     if (modelMode === "fast") {
       candidateModels = FAST_GEMINI_MODELS;
-      modelTemperature = 0.2;
-      maxTokens = 1200;
-      modeInstruction = `EXECUTION MODE: FAST RESPONSE (Ultra-Fast & Direct)
-- Provide a super-fast, crisp, high-speed answer.
-- Zero unnecessary fluff, direct solutions, immediately structured response with low latency.`;
+      modelTemperature = 0.15;
+      maxTokens = 1000;
+      modeInstruction = `EXECUTION MODE: FAST RESPONSE (Ultra-Fast, Low Token, Instant Solution)
+- Optimize for maximum speed and instant direct answers with minimal latency (~0.4s).
+- Keep responses crisp, directly actionable, and consume fewer tokens.
+- Instantly create schedules, notes, or solutions without unnecessary pleasantries or filler.`;
     } else if (modelMode === "planning") {
       candidateModels = PLANNING_GEMINI_MODELS;
-      modelTemperature = 0.7;
+      modelTemperature = 0.65;
       maxTokens = 3500;
-      modeInstruction = `EXECUTION MODE: DEEP PLANNING (Comprehensive, Strategic & Thorough)
-- Think deeply and strategically about the user's situation and long-term academic/work goals.
-- Provide comprehensive step-by-step breakdown, prioritized tasks with optimal duration and buffer times, and root-cause solutions.
-- Give rich, thoughtful, in-depth advice while maintaining crystal-clear structure.`;
+      modeInstruction = `EXECUTION MODE: DEEP REASONING & PLANNING (Comprehensive, Strategic & In-Depth)
+- Perform deep thinking, comprehensive breakdown, and strategic long-term planning.
+- Organize extensive study routines, multi-step problem solving, in-depth note summaries, and milestone roadmaps.
+- Provide rich, structured, thoughtful guidance with buffer times and prioritized steps.`;
     } else {
       candidateModels = SMART_GEMINI_MODELS;
       modelTemperature = 0.5;

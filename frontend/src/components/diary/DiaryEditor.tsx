@@ -189,9 +189,9 @@ export default function DiaryEditor({ entry, onSave, lang }: DiaryEditorProps) {
   return (
     <div className="w-full flex flex-col">
       {/* Editor Toolbar */}
-      <div className="flex flex-wrap items-center justify-between gap-3 px-4 sm:px-6 py-2.5 border-b border-black/5 dark:border-white/5 bg-black/[0.015] dark:bg-white/[0.015]">
+      <div className="flex flex-wrap items-center justify-between gap-2 sm:gap-3 px-3 sm:px-6 py-2 sm:py-2.5 border-b border-black/5 dark:border-white/5 bg-black/[0.015] dark:bg-white/[0.015]">
         {/* Left: Voice Input, Image Upload & Style Selector */}
-        <div className="flex items-center gap-2 sm:gap-3">
+        <div className="flex items-center gap-1.5 sm:gap-2.5 flex-wrap">
           <DiaryVoiceInput onInsertText={handleSpeechInsert} />
 
           {/* Add Image Button */}
@@ -199,18 +199,14 @@ export default function DiaryEditor({ entry, onSave, lang }: DiaryEditorProps) {
             type="button"
             onClick={() => fileInputRef.current?.click()}
             disabled={isUploadingImage}
-            className="flex items-center justify-center w-8 h-8 rounded-xl border transition-all text-zinc-400 hover:text-blue-500 hover:border-blue-500/30 hover:bg-blue-500/5 cursor-pointer disabled:opacity-50 shadow-xs"
-            style={{
-              borderColor: "var(--color-border-subtle)",
-              background: "var(--color-bg-card)",
-            }}
+            className="flex items-center justify-center w-8 h-8 rounded-xl border border-[#D0E1FD] dark:border-blue-500/30 bg-[#EBF3FE] dark:bg-blue-500/20 text-[#1D4ED8] dark:text-blue-300 hover:bg-[#DBEAFE] dark:hover:bg-blue-500/30 hover:border-[#5B8DEF] transition-all cursor-pointer disabled:opacity-50 shadow-xs shrink-0"
             title={t.diary?.addImage || "Add Image"}
             aria-label="Add Image"
           >
             {isUploadingImage ? (
-              <Loader2 size={16} className="animate-spin text-blue-500" />
+              <Loader2 size={15} className="animate-spin text-[#5B8DEF]" />
             ) : (
-              <ImagePlus size={16} />
+              <ImagePlus size={15} />
             )}
           </button>
           <input
@@ -221,8 +217,8 @@ export default function DiaryEditor({ entry, onSave, lang }: DiaryEditorProps) {
             className="hidden"
           />
 
-          {/* Typography Style Pills */}
-          <div className="hidden sm:flex items-center gap-1 p-0.5 rounded-xl bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5 text-xs">
+          {/* Typography Style Pills - Fully visible on mobile, tablet & desktop */}
+          <div className="flex items-center gap-0.5 sm:gap-1 p-0.5 rounded-xl bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5 text-[11px] sm:text-xs">
             <button
               type="button"
               onClick={() => setWritingStyle("clean")}
@@ -260,22 +256,22 @@ export default function DiaryEditor({ entry, onSave, lang }: DiaryEditorProps) {
         </div>
 
         {/* Right: Autosave Status & Word Counter */}
-        <div className="flex items-center gap-3 text-xs">
+        <div className="flex items-center gap-2 sm:gap-3 text-xs ml-auto sm:ml-0">
           {/* Smart Trim Button if user accidentally pressed Enter many times */}
           {hasExcessiveBlankLines && (
             <button
               type="button"
               onClick={handleTrimExcessiveLines}
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-amber-500/10 text-amber-500 hover:bg-amber-500/20 border border-amber-500/20 transition-all cursor-pointer shadow-xs"
+              className="flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-semibold bg-amber-500/10 text-amber-500 hover:bg-amber-500/20 border border-amber-500/20 transition-all cursor-pointer shadow-xs"
               title={t.diary?.trimExtraLines || "Trim empty lines"}
             >
-              <Eraser size={13} />
-              <span>{t.diary?.trimExtraLines || "Trim empty lines"}</span>
+              <Eraser size={12} />
+              <span className="hidden xs:inline">{t.diary?.trimExtraLines || "Trim empty lines"}</span>
             </button>
           )}
 
           {/* Status Indicator */}
-          <div className="flex items-center gap-1.5 font-medium transition-colors select-none">
+          <div className="flex items-center gap-1 font-medium transition-colors select-none text-[11px] sm:text-xs">
             {saveStatus === "saving" ? (
               <span className="flex items-center gap-1 text-amber-500 dark:text-amber-400">
                 <Loader2 size={12} className="animate-spin" />
@@ -292,20 +288,16 @@ export default function DiaryEditor({ entry, onSave, lang }: DiaryEditorProps) {
           <div className="h-3 w-px bg-black/10 dark:bg-white/10" />
 
           {/* Counts */}
-          <div className="text-zinc-400 dark:text-zinc-500 text-[11px] font-mono hidden xs:inline">
+          <div className="text-zinc-400 dark:text-zinc-500 text-[11px] font-mono inline">
             <span>
               {wordCount} {t.diary?.words || "words"}
-            </span>
-            <span className="mx-1">•</span>
-            <span>
-              {charCount} {t.diary?.characters || "chars"}
             </span>
           </div>
         </div>
       </div>
 
       {/* Main Ruled Writing Page */}
-      <div className="relative px-5 sm:px-14 pt-6 pb-10">
+      <div className="relative px-3 xs:px-5 sm:px-10 md:px-14 pt-4 sm:pt-6 pb-10">
         {/* Decorative spine binding on the left edge */}
         <div className="diary-spine-binding" />
 
@@ -316,7 +308,7 @@ export default function DiaryEditor({ entry, onSave, lang }: DiaryEditorProps) {
             value={title}
             onChange={handleTitleChange}
             placeholder={t.diary?.entryTitlePlaceholder || "Page Title (optional)"}
-            className={`w-full bg-transparent border-b border-black/5 dark:border-white/5 pb-2 text-lg sm:text-xl font-bold tracking-tight text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-zinc-600 focus:outline-none focus:border-blue-500/50 transition-colors ${
+            className={`w-full bg-transparent border-b border-black/5 dark:border-white/5 pb-2 text-base sm:text-xl font-bold tracking-tight text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-zinc-600 focus:outline-none focus:border-blue-500/50 transition-colors ${
               writingStyle === "classic"
                 ? "font-serif"
                 : writingStyle === "handwritten"

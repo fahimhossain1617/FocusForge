@@ -94,30 +94,25 @@ export default function QuickCapture() {
         }
       }}
     >
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
+      {/* Overlay: Navy #223A5E at 38% opacity, light blur */}
+      <div className="absolute inset-0 bg-[#223A5E]/38 backdrop-blur-sm" />
       <div className={`relative w-full max-w-lg mx-4 ${isExiting ? "motion-exit-reveal" : "motion-reveal"}`}>
         <div
-          className="app-capture-modal rounded-2xl p-1 border shadow-2xl"
-          style={{
-            background: "var(--color-bg-elevated)",
-            borderColor: "var(--color-border-active)",
-            boxShadow: "0 20px 60px rgba(0,0,0,0.5), 0 0 40px rgba(37,99,235,0.25)",
-          }}
+          className="app-capture-modal rounded-[18px] p-1 bg-white dark:bg-[#111827] border border-[#5B8DEF] shadow-[0_8px_28px_rgba(0,0,0,0.08)] dark:shadow-2xl"
         >
           <div className="flex items-start gap-3 p-4">
-            <Brain className="w-5 h-5 text-indigo-400 shrink-0 mt-1" />
+            <Brain className="w-5 h-5 text-[#5B8DEF] shrink-0 mt-1" />
             <textarea
               ref={textareaRef}
               value={value + (interim ? (value ? " " : "") + interim : "")}
               onChange={handleChange}
               onKeyDown={handleKeyDown}
               placeholder="What's on your mind? (Speak in বাংলা or English...)"
-              className="flex-1 py-1 text-base font-medium bg-transparent !border-none !shadow-none focus:!shadow-none resize-none"
+              className="flex-1 py-1 text-base font-medium bg-transparent !border-none !shadow-none focus:!shadow-none resize-none text-[#111827] dark:text-foreground placeholder:text-[#8290A5]"
               style={{
                 background: "transparent",
                 border: "none",
                 boxShadow: "none",
-                color: "var(--color-text-primary)",
                 minHeight: "44px",
                 maxHeight: "250px",
               }}
@@ -127,7 +122,7 @@ export default function QuickCapture() {
             <div className="flex items-center gap-2">
               <VoiceInput onResult={handleVoiceResult} onInterimResult={setInterim} />
               {interim && (
-                <span className="text-xs text-blue-400 animate-pulse font-medium">
+                <span className="text-xs text-[#5B8DEF] animate-pulse font-medium">
                   Listening...
                 </span>
               )}
@@ -135,22 +130,14 @@ export default function QuickCapture() {
             <button
               onClick={handleSubmit}
               disabled={!value.trim() && !interim.trim()}
-              className="px-4 py-1.5 rounded-lg text-sm font-medium transition-colors cursor-pointer"
-              style={{
-                background: value.trim() || interim.trim()
-                  ? "var(--color-purple-primary)"
-                  : "var(--color-bg-secondary)",
-                color: value.trim() || interim.trim()
-                  ? "white"
-                  : "var(--color-text-muted)",
-              }}
+              className="px-5 py-2 rounded-xl text-xs font-bold transition-all duration-150 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed bg-[#223A5E] hover:bg-[#2E4E7B] text-white shadow-sm"
             >
               Save
             </button>
           </div>
         </div>
-        <p className="text-center mt-3 text-xs" style={{ color: "var(--color-text-muted)" }}>
-          Press <kbd className="font-mono bg-black/30 px-1 rounded">Enter</kbd> to save · <kbd className="font-mono bg-black/30 px-1 rounded">Shift + Enter</kbd> for new line · <kbd className="font-mono bg-black/30 px-1 rounded">Esc</kbd> to dismiss
+        <p className="text-center mt-3 text-xs text-[#8290A5]">
+          Press <kbd className="font-mono bg-black/10 dark:bg-black/30 px-1 rounded">Enter</kbd> to save · <kbd className="font-mono bg-black/10 dark:bg-black/30 px-1 rounded">Shift + Enter</kbd> for new line · <kbd className="font-mono bg-black/10 dark:bg-black/30 px-1 rounded">Esc</kbd> to dismiss
         </p>
       </div>
     </div>

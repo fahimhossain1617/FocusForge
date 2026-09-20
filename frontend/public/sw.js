@@ -1,5 +1,5 @@
 // FocusForge Progressive Web App Service Worker
-const CACHE_NAME = 'focusforge-v4';
+const CACHE_NAME = 'focusforge-v5';
 
 const STATIC_ASSETS = [
   '/',
@@ -48,7 +48,7 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Fetch: Safe caching strategy designed for future backend compatibility
+// Fetch: Safe caching strategy
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
@@ -63,17 +63,20 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 3. Static Assets (Icons, images, static JS/CSS, fonts): Cache-first with background revalidation
+  // 3. In dev or for Next.js internal dynamic bundles, bypass cache to avoid chunk mismatch
+  if (url.pathname.startsWith('/_next/') || url.hostname === 'localhost' || url.hostname === '127.0.0.1') {
+    return;
+  }
+
+  // 4. Static Assets (Icons, images, fonts)
   const isStaticAsset = 
     url.pathname.startsWith('/icons/') || 
-    url.pathname.startsWith('/_next/static/') ||
     url.pathname.match(/\.(png|jpg|jpeg|svg|webp|ico|woff2?|ttf|eot)$/i);
 
   if (isStaticAsset) {
     event.respondWith(
       caches.match(request).then((cachedResponse) => {
         if (cachedResponse) {
-          // Revalidate in background to keep fresh
           fetch(request).then((networkResponse) => {
             if (networkResponse && networkResponse.status === 200) {
               const responseClone = networkResponse.clone();
@@ -96,18 +99,16 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 4. HTML Navigation: Instant offline fallback or fast network race
+  // 5. HTML Navigation: Instant offline fallback or fast network race
   if (request.mode === 'navigate') {
     event.respondWith(
       (async () => {
-        // If device is offline, immediately serve cached app shell
         if (typeof self.navigator !== 'undefined' && self.navigator.onLine === false) {
           const cachedOffline = (await caches.match('/')) || (await caches.match(request));
           if (cachedOffline) return cachedOffline;
         }
 
         try {
-          // Race network request with 2.5s timeout so sluggish mobile cellular networks don't hang
           const networkPromise = fetch(request);
           const timeoutPromise = new Promise((_, reject) =>
             setTimeout(() => reject(new Error('Navigation timeout')), 2500)
@@ -120,13 +121,12 @@ self.addEventListener('fetch', (event) => {
             return networkResponse;
           }
         } catch {
-          // Network failed or timed out: fall back to cached shell immediately
+          // Network failed or timed out: fall back to cached shell
         }
 
         const cached = (await caches.match('/')) || (await caches.match(request));
         if (cached) return cached;
 
-        // Ultimate fallback: retry fetch if not cached yet
         return fetch(request);
       })()
     );
@@ -141,7 +141,6 @@ self.addEventListener('fetch', (event) => {
 
 // ==================== Notification & Push Listeners ====================
 
-// Notification Click: Focus existing app window or open a new one
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
 
@@ -159,7 +158,6 @@ self.addEventListener('notificationclick', (event) => {
   );
 });
 
-// Future Push Notification Handler (FCM / WebPush)
 self.addEventListener('push', (event) => {
   let data = {};
   if (event.data) {

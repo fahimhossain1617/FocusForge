@@ -475,27 +475,22 @@ export default function DashboardPage() {
       {/* Top Section: 3 Balanced Cards (Today's Tasks, Today's Focus + Distractions, Current Skills) */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 items-stretch">
         
-        {/* Card 1: Today's Tasks */}
+        {/* Card 1: Today's Tasks (Main Card: #FFFFFF, #DCE5F0 border, radius 18, shadow 0 8px 28px) */}
         <section
-          className="rounded-2xl p-5 flex flex-col justify-between"
-          style={{
-            background: "linear-gradient(145deg, rgba(16, 22, 36, 0.95), rgba(11, 15, 26, 0.98))",
-            border: "1px solid rgba(59, 130, 246, 0.12)",
-            boxShadow: "0 10px 30px rgba(0, 0, 0, 0.35)",
-          }}
+          className="dashboard-card card rounded-[18px] p-5 sm:p-6 bg-white dark:bg-card border border-[#DCE5F0] dark:border-border shadow-[0_8px_28px_rgba(0,0,0,0.06)] dark:shadow-none flex flex-col justify-between"
         >
           <div>
-            {/* Header: Title + Natural Subtitle + Plus (+) button to Planner */}
+            {/* Header: Title + Subtitle + Icon Badge '+' button */}
             <div className="flex items-start justify-between gap-3 pb-3">
               <div>
-                <h2 className="text-base md:text-lg font-semibold text-foreground tracking-tight">{tasksTitle}</h2>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  {tasksList.length} tasks · {completedCount} completed · {pendingCount} pending
+                <h2 className="text-base md:text-lg font-bold text-[#111827] dark:text-foreground tracking-tight">{tasksTitle}</h2>
+                <p className="text-xs text-[#52627A] dark:text-muted-foreground mt-0.5 font-normal">
+                  {tasksList.length} tasks | {completedCount} completed | {pendingCount} pending
                 </p>
               </div>
               <button
                 onClick={() => navigateTo("planner")}
-                className="w-8 h-8 rounded-xl bg-blue-600/20 hover:bg-blue-600/35 border border-blue-500/30 text-blue-400 hover:text-blue-300 flex items-center justify-center transition-colors cursor-pointer shadow-sm shrink-0 mt-0.5"
+                className="w-8 h-8 rounded-xl bg-[#EBF3FE] hover:bg-[#DBEAFE] dark:bg-blue-500/20 dark:hover:bg-blue-500/30 text-[#1D4ED8] dark:text-blue-300 border border-[#D0E1FD] dark:border-blue-500/30 flex items-center justify-center transition-all cursor-pointer shrink-0 mt-0.5 shadow-xs"
                 title="Add task in Planner"
                 aria-label="Add task in Planner"
               >
@@ -503,30 +498,30 @@ export default function DashboardPage() {
               </button>
             </div>
 
-            {/* Task Items (Natural spacing, no harsh dividing lines) */}
+            {/* Task Items (Inner box: #F7FAFE, #DCE5F0 border, radius 12, no shadow) */}
             <div className="mt-2 space-y-2">
               {tasksList.length > 0 ? (
                 tasksList.slice(0, 5).map((item) => (
                   <div
                     key={item.id}
                     onClick={() => handleToggleTask(item)}
-                    className="group flex items-center justify-between gap-2 py-2 px-2 rounded-xl hover:bg-white/[0.04] transition-all cursor-pointer"
+                    className="group flex items-center justify-between gap-2.5 py-2.5 px-3 rounded-xl bg-[#F7FAFE] dark:bg-white/[0.02] border border-[#DCE5F0] dark:border-white/[0.06] transition-all cursor-pointer hover:border-[#5B8DEF]/40"
                   >
-                    {/* Left: Checkbox + Task Name */}
+                    {/* Left: Checkbox (Check circle only #2E9B73) + Task Name */}
                     <div className="flex items-center gap-2.5 min-w-0 flex-1 mr-1">
                       <div
-                        className={`shrink-0 w-5 h-5 rounded-full flex items-center justify-center transition-all duration-200 cursor-pointer ${
+                        className={`shrink-0 w-5 h-5 rounded-full flex items-center justify-center transition-all duration-150 cursor-pointer ${
                           item.completed
-                            ? "bg-emerald-500 border border-emerald-400 text-white shadow-sm shadow-emerald-500/30"
-                            : "border-2 border-slate-600/80 hover:border-blue-400 bg-slate-900/50"
+                            ? "bg-[#2E9B73] border-2 border-[#2E9B73] text-white"
+                            : "border-2 border-[#DCE5F0] dark:border-slate-600 hover:border-[#5B8DEF] bg-white dark:bg-slate-900/50"
                         }`}
                         aria-label={`Mark task ${item.completed ? "pending" : "done"}`}
                       >
-                        {item.completed && <Check size={11} strokeWidth={3.2} />}
+                        {item.completed && <Check size={11} strokeWidth={3.5} />}
                       </div>
                       <span
                         className={`text-xs sm:text-[13px] font-medium leading-snug break-words line-clamp-2 transition-colors ${
-                          item.completed ? "text-muted-foreground line-through opacity-70" : "text-foreground"
+                          item.completed ? "text-[#8290A5] line-through opacity-75" : "text-[#111827] dark:text-foreground"
                         }`}
                         title={item.name}
                       >
@@ -534,16 +529,16 @@ export default function DashboardPage() {
                       </span>
                     </div>
 
-                    {/* Right side: Time & Action */}
-                    <div className="flex items-center gap-1 shrink-0">
+                    {/* Right side: Time Chip & Action */}
+                    <div className="flex items-center gap-1.5 shrink-0">
                       {item.time && (
-                        <span className="text-[10px] text-slate-400 font-mono px-1.5 py-0.5 rounded bg-white/[0.03] border border-white/[0.06] whitespace-nowrap">
+                        <span className="text-[11px] text-[#52627A] dark:text-slate-400 font-mono px-2 py-0.5 rounded-lg bg-white dark:bg-white/[0.04] border border-[#DCE5F0] dark:border-white/[0.06] whitespace-nowrap shadow-none">
                           {item.time}
                         </span>
                       )}
                       <button
                         onClick={(e) => handleOpenTaskInPlanner(item, e)}
-                        className="text-slate-400 hover:text-white w-6 h-6 flex items-center justify-center rounded-lg transition-colors cursor-pointer hover:bg-white/10 shrink-0"
+                        className="text-[#8290A5] hover:text-[#111827] dark:hover:text-white w-6 h-6 flex items-center justify-center rounded-lg transition-colors cursor-pointer hover:bg-slate-200/50 dark:hover:bg-white/10 shrink-0"
                         title="Open in Planner"
                         aria-label="Open in Planner"
                       >
@@ -553,8 +548,8 @@ export default function DashboardPage() {
                   </div>
                 ))
               ) : (
-                <div className="py-8 text-center text-slate-400 text-sm flex flex-col items-center">
-                  <Check size={24} className="text-slate-600 mb-2" />
+                <div className="py-8 text-center text-[#8290A5] text-sm flex flex-col items-center">
+                  <Check size={24} className="text-[#8290A5] mb-2" />
                   No tasks recorded for this day
                 </div>
               )}
@@ -562,47 +557,42 @@ export default function DashboardPage() {
           </div>
         </section>
 
-        {/* Card 2: Today's Focus (Includes Focus Time, Break Time & Distractions summary) */}
+        {/* Card 2: Today's Focus (Focus Time #5B8DEF, Break Time #D99A32, Distractions #D95C68) */}
         <section
-          className="rounded-2xl p-5 flex flex-col justify-between"
-          style={{
-            background: "linear-gradient(145deg, rgba(16, 22, 36, 0.95), rgba(11, 15, 26, 0.98))",
-            border: "1px solid rgba(59, 130, 246, 0.12)",
-            boxShadow: "0 10px 30px rgba(0, 0, 0, 0.35)",
-          }}
+          className="dashboard-card card rounded-[18px] p-5 sm:p-6 bg-white dark:bg-card border border-[#DCE5F0] dark:border-border shadow-[0_8px_28px_rgba(0,0,0,0.06)] dark:shadow-none flex flex-col justify-between"
         >
           <div>
-            {/* Header: Clean title without Live badge */}
+            {/* Header: Title + Subtitle */}
             <div className="flex items-center justify-between pb-3">
               <div>
-                <h2 className="text-base md:text-lg font-semibold text-foreground tracking-tight">{focusTitle}</h2>
-                <p className="text-xs text-muted-foreground mt-0.5">Focus time &amp; daily breakdown</p>
+                <h2 className="text-base md:text-lg font-bold text-[#111827] dark:text-foreground tracking-tight">{focusTitle}</h2>
+                <p className="text-xs text-[#52627A] dark:text-muted-foreground mt-0.5 font-normal">Focus time &amp; daily breakdown</p>
               </div>
             </div>
 
             {/* Main Center Gauge and Breakdown */}
             <div className="mt-2 flex items-center justify-between gap-5">
-              {/* Radial Donut Ring (Contiguous Proportional Segment Ring) */}
+              {/* Radial Donut Ring */}
               <div className="relative w-28 h-28 shrink-0">
                 <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90">
-                  {/* Background Track */}
+                  {/* Background Track #E5EDF7 */}
                   <circle
                     cx="50"
                     cy="50"
                     r="38"
                     fill="none"
-                    stroke="rgba(255,255,255,0.06)"
                     strokeWidth="9"
+                    className="stroke-[#E5EDF7] dark:stroke-white/[0.06]"
                   />
 
-                  {/* 1. Focus Time Segment (Blue) */}
+                  {/* 1. Focus Time Segment (#5B8DEF) */}
                   {selectedFocusStats.focusLen > 0 && (
                     <circle
                       cx="50"
                       cy="50"
                       r="38"
                       fill="none"
-                      stroke="url(#focus-clean-blue)"
+                      stroke="#5B8DEF"
                       strokeWidth="9"
                       strokeDasharray={`${selectedFocusStats.focusLen} 238.761`}
                       strokeDashoffset={selectedFocusStats.focusOffset}
@@ -610,14 +600,14 @@ export default function DashboardPage() {
                     />
                   )}
 
-                  {/* 2. Break Time Segment (Amber - seamlessly connects right after Focus) */}
+                  {/* 2. Break Time Segment (#D99A32) */}
                   {selectedFocusStats.breakLen > 0 && (
                     <circle
                       cx="50"
                       cy="50"
                       r="38"
                       fill="none"
-                      stroke="#f59e0b"
+                      stroke="#D99A32"
                       strokeWidth="9"
                       strokeDasharray={`${selectedFocusStats.breakLen} 238.761`}
                       strokeDashoffset={selectedFocusStats.breakOffset}
@@ -625,64 +615,57 @@ export default function DashboardPage() {
                     />
                   )}
 
-                  {/* 3. Distraction Segment (Rose - seamlessly connects right after Break) */}
+                  {/* 3. Distraction Segment (#D95C68) */}
                   {selectedFocusStats.distractionLen > 0 && (
                     <circle
                       cx="50"
                       cy="50"
                       r="38"
                       fill="none"
-                      stroke="#f43f5e"
+                      stroke="#D95C68"
                       strokeWidth="9"
                       strokeDasharray={`${selectedFocusStats.distractionLen} 238.761`}
                       strokeDashoffset={selectedFocusStats.distractionOffset}
                       strokeLinecap="round"
                     />
                   )}
-
-                  <defs>
-                    <linearGradient id="focus-clean-blue" x1="0%" y1="0%" x2="100%" y2="100%">
-                      <stop offset="0%" stopColor="#38bdf8" />
-                      <stop offset="100%" stopColor="#2563eb" />
-                    </linearGradient>
-                  </defs>
                 </svg>
                 {/* Center text: Pure calculated focus time */}
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                  <span className="text-lg font-bold text-foreground tracking-tight">{selectedFocusStats.focusTime}</span>
+                  <span className="text-lg font-bold text-[#111827] dark:text-foreground tracking-tight">{selectedFocusStats.focusTime}</span>
                 </div>
               </div>
 
-              {/* Focus Time & Break Time breakdown */}
+              {/* Focus Time & Break Time breakdown with exact legend dots */}
               <div className="flex-1 space-y-3">
                 <div className="flex items-center justify-between text-xs">
-                  <span className="flex items-center gap-2 text-foreground font-medium">
-                    <span className="w-2.5 h-2.5 rounded-full bg-blue-500 " />
+                  <span className="flex items-center gap-2 text-[#52627A] dark:text-foreground font-medium">
+                    <span className="w-2.5 h-2.5 rounded-full bg-[#5B8DEF] shrink-0" />
                     Focus Time
                   </span>
-                  <span className="font-bold text-foreground font-mono text-xs">{selectedFocusStats.focusTime}</span>
+                  <span className="font-bold text-[#111827] dark:text-foreground font-mono text-xs">{selectedFocusStats.focusTime}</span>
                 </div>
                 <div className="flex items-center justify-between text-xs">
-                  <span className="flex items-center gap-2 text-foreground font-medium">
-                    <span className="w-2.5 h-2.5 rounded-full bg-amber-500 " />
+                  <span className="flex items-center gap-2 text-[#52627A] dark:text-foreground font-medium">
+                    <span className="w-2.5 h-2.5 rounded-full bg-[#D99A32] shrink-0" />
                     Break Time
                   </span>
-                  <span className="font-bold text-amber-400 font-mono text-xs">{selectedFocusStats.breakTime}</span>
+                  <span className="font-bold text-[#D99A32] dark:text-amber-400 font-mono text-xs">{selectedFocusStats.breakTime}</span>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Integrated Compact Distractions Info */}
-          <div className="mt-4 pt-3 border-t border-white/[0.06] flex items-center justify-between text-xs">
-            <div className="flex items-center gap-1.5 text-muted-foreground">
-              <AlertCircle size={13} className="text-rose-400" />
+          {/* Integrated Compact Distractions Info (#D95C68) */}
+          <div className="mt-4 pt-3 border-t border-[#DCE5F0] dark:border-white/[0.06] flex items-center justify-between text-xs">
+            <div className="flex items-center gap-1.5 text-[#52627A] dark:text-muted-foreground">
+              <span className="w-2 h-2 rounded-full bg-[#D95C68] shrink-0" />
               <span>Daily Distractions:</span>
-              <span className="font-semibold text-rose-300 font-mono">
+              <span className="font-bold text-[#D95C68] font-mono">
                 {selectedFocusStats.distractionCount > 0 ? `${selectedFocusStats.distractionCount}` : "0"}
               </span>
             </div>
-            <span className="text-[11px] text-muted-foreground truncate max-w-[180px]">
+            <span className="text-[11px] text-[#8290A5] dark:text-muted-foreground truncate max-w-[180px]">
               {selectedFocusStats.distractionSummary}
             </span>
           </div>
@@ -690,23 +673,18 @@ export default function DashboardPage() {
 
         {/* Card 3: Current Skills (Skill Builder with clean inline progress lines and (+) button) */}
         <section
-          className="rounded-2xl p-5 flex flex-col justify-between"
-          style={{
-            background: "linear-gradient(145deg, rgba(16, 22, 36, 0.95), rgba(11, 15, 26, 0.98))",
-            border: "1px solid rgba(59, 130, 246, 0.12)",
-            boxShadow: "0 10px 30px rgba(0, 0, 0, 0.35)",
-          }}
+          className="dashboard-card card rounded-[18px] p-5 sm:p-6 bg-white dark:bg-card border border-[#DCE5F0] dark:border-border shadow-[0_8px_28px_rgba(0,0,0,0.06)] dark:shadow-none flex flex-col justify-between"
         >
           <div>
             {/* Header: Title + Plus (+) button to Skill Builder */}
             <div className="flex items-start justify-between pb-3">
               <div>
-                <h2 className="text-base md:text-lg font-semibold text-foreground tracking-tight">Current Skills</h2>
-                <p className="text-xs text-muted-foreground mt-0.5">Skill Builder progress</p>
+                <h2 className="text-base md:text-lg font-bold text-[#111827] dark:text-foreground tracking-tight">Current Skills</h2>
+                <p className="text-xs text-[#52627A] dark:text-muted-foreground mt-0.5 font-normal">Skill Builder progress</p>
               </div>
               <button
                 onClick={() => navigateTo("learning")}
-                className="w-8 h-8 rounded-xl bg-purple-600/20 hover:bg-purple-600/35 border border-purple-500/30 text-purple-400 hover:text-purple-300 flex items-center justify-center transition-colors cursor-pointer shadow-sm shrink-0 mt-0.5"
+                className="w-8 h-8 rounded-xl bg-[#EBF3FE] hover:bg-[#DBEAFE] dark:bg-blue-500/20 dark:hover:bg-blue-500/30 text-[#1D4ED8] dark:text-blue-300 border border-[#D0E1FD] dark:border-blue-500/30 flex items-center justify-center transition-all cursor-pointer shrink-0 mt-0.5 shadow-xs"
                 title="Manage skills in Skill Builder"
                 aria-label="Manage skills in Skill Builder"
               >
@@ -714,77 +692,70 @@ export default function DashboardPage() {
               </button>
             </div>
 
-            {/* Skills List: Same-line layout with inline progress bar */}
-            <div className="mt-2 space-y-3">
+            {/* Skills List: Same-line layout with track #E5EDF7 and Navy #223A5E fill */}
+            <div className="mt-2 space-y-2.5">
               {skillsList.length > 0 ? (
                 skillsList.map((skill) => {
                   const IconComponent = skill.icon;
                   return (
                     <div
                       key={skill.id}
-                      className="flex items-center gap-3 py-1.5 px-2 rounded-xl hover:bg-white/[0.02] transition-colors"
+                      className="flex items-center gap-3 py-2 px-2.5 rounded-xl bg-[#F7FAFE] dark:bg-white/[0.02] border border-[#DCE5F0] dark:border-white/[0.06] transition-colors"
                     >
-                      {/* Professional Standardized Icon */}
+                      {/* Icon Badge: Bright #EBF3FE with vivid #1D4ED8 icon */}
                       <div
-                        className={`w-6 h-6 rounded-lg border flex items-center justify-center shrink-0 ${skill.iconBg}`}
+                        className="w-7 h-7 rounded-xl bg-[#EBF3FE] dark:bg-blue-500/20 text-[#1D4ED8] dark:text-blue-300 border border-[#D0E1FD]/80 dark:border-blue-500/30 flex items-center justify-center shrink-0"
                       >
-                        <IconComponent size={12} />
+                        <IconComponent size={13} />
                       </div>
 
                       {/* Skill Name */}
                       <span 
-                        className="text-xs sm:text-[13px] font-medium text-foreground min-w-[70px] max-w-[130px] truncate shrink-0"
+                        className="text-xs sm:text-[13px] font-semibold text-[#111827] dark:text-foreground min-w-[70px] max-w-[130px] truncate shrink-0"
                         title={skill.name}
                       >
                         {skill.name}
                       </span>
 
-                      {/* Inline Progress Bar on same line */}
-                      <div className="flex-1 h-2 rounded-full bg-white/[0.07] overflow-hidden">
+                      {/* Inline Progress Bar (Track #E5EDF7, Fill #223A5E) */}
+                      <div className="flex-1 h-2 rounded-full bg-[#E5EDF7] dark:bg-white/[0.07] overflow-hidden">
                         <div
-                          className="h-full rounded-full transition-all duration-500 bg-gradient-to-r from-blue-500 to-cyan-400"
+                          className="h-full rounded-full transition-all duration-500 bg-[#223A5E] dark:bg-blue-400"
                           style={{ width: `${skill.progress}%` }}
                         />
                       </div>
 
                       {/* Percentage on the right */}
-                      <span className="text-muted-foreground font-mono text-xs font-semibold w-9 text-right shrink-0">
+                      <span className="text-[#111827] dark:text-foreground font-mono text-xs font-bold w-9 text-right shrink-0">
                         {skill.progress}%
                       </span>
                     </div>
                   );
                 })
               ) : (
-                <div className="py-8 text-center text-slate-400 text-sm flex flex-col items-center">
-                  <BookOpen size={24} className="text-slate-600 mb-2" />
-                  <p className="font-medium text-foreground">No skills added yet</p>
-                  <p className="text-xs text-muted-foreground mt-1">Add a skill in Skill Builder to track your progress</p>
+                <div className="py-8 text-center text-[#8290A5] text-sm flex flex-col items-center">
+                  <BookOpen size={24} className="text-[#8290A5] mb-2" />
+                  <p className="font-semibold text-[#111827] dark:text-foreground">No skills added yet</p>
+                  <p className="text-xs text-[#52627A] dark:text-muted-foreground mt-1">Add a skill in Skill Builder to track your progress</p>
                 </div>
               )}
             </div>
           </div>
         </section>
 
-      </div>
-
-      {/* Bottom Section: Focus & Productivity Progress (Full Width, Scaled Professional Bars) */}
+      </div>        {/* Bottom Section: Focus & Productivity Progress (Main Card: #FFFFFF, #DCE5F0 border, radius 18, shadow 0 8px 28px) */}
       <section
-        className="rounded-2xl p-5 sm:p-7"
-        style={{
-          background: "linear-gradient(145deg, rgba(16, 22, 36, 0.95), rgba(11, 15, 26, 0.98))",
-          border: "1px solid rgba(59, 130, 246, 0.12)",
-          boxShadow: "0 10px 30px rgba(0, 0, 0, 0.35)",
-        }}
+        className="dashboard-card card rounded-[18px] p-5 sm:p-7 bg-white dark:bg-card border border-[#DCE5F0] dark:border-border shadow-[0_8px_28px_rgba(0,0,0,0.06)] dark:shadow-none"
       >
         {/* Header Bar */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-blue-500/15 border border-blue-500/25 flex items-center justify-center text-blue-400 shrink-0 ">
+            <div className="w-9 h-9 rounded-xl bg-[#EBF3FE] dark:bg-blue-500/20 text-[#1D4ED8] dark:text-blue-300 border border-[#D0E1FD]/80 dark:border-blue-500/30 flex items-center justify-center shrink-0">
               <TrendingUp size={18} />
             </div>
             <div>
-              <h2 className="text-base md:text-lg font-semibold text-foreground tracking-tight">Focus &amp; Productivity Progress</h2>
-              <p className="text-xs text-muted-foreground mt-0.5">
+              <h2 className="text-base md:text-lg font-bold text-[#111827] dark:text-foreground tracking-tight">Focus &amp; Productivity Progress</h2>
+              <p className="text-xs text-[#52627A] dark:text-muted-foreground mt-0.5 font-normal">
                 {progressView === "weekly"
                   ? "Weekly Overview · Real-time 7-day focus & task performance"
                   : "Monthly Overview · 4-Week breakdown and cumulative performance"}
@@ -793,23 +764,23 @@ export default function DashboardPage() {
           </div>
 
           {/* Toggle: [ Weekly ] [ Monthly ] */}
-          <div className="inline-flex rounded-xl p-1 bg-slate-900/90 border border-white/[0.08] shrink-0 self-start sm:self-auto">
+          <div className="dashboard-period-toggle inline-flex rounded-xl p-1 bg-[#F7FAFE] dark:bg-slate-900/90 border border-[#DCE5F0] dark:border-white/[0.08] shrink-0 self-start sm:self-auto shadow-none">
             <button
               onClick={() => setProgressView("weekly")}
-              className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-all duration-150 cursor-pointer ${
+              className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all duration-150 cursor-pointer ${
                 progressView === "weekly"
-                  ? "bg-accent text-white "
-                  : "text-muted-foreground hover:text-foreground hover:bg-white/[0.04]"
+                  ? "bg-[#223A5E] text-white shadow-none dark:bg-blue-600 dark:text-white"
+                  : "text-[#52627A] dark:text-muted-foreground hover:text-[#111827] dark:hover:text-foreground hover:bg-[#E7F0FF]/60 dark:hover:bg-white/[0.04]"
               }`}
             >
               Weekly
             </button>
             <button
               onClick={() => setProgressView("monthly")}
-              className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-all duration-150 cursor-pointer ${
+              className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all duration-150 cursor-pointer ${
                 progressView === "monthly"
-                  ? "bg-accent text-white "
-                  : "text-muted-foreground hover:text-foreground hover:bg-white/[0.04]"
+                  ? "bg-[#223A5E] text-white shadow-none dark:bg-blue-600 dark:text-white"
+                  : "text-[#52627A] dark:text-muted-foreground hover:text-[#111827] dark:hover:text-foreground hover:bg-[#E7F0FF]/60 dark:hover:bg-white/[0.04]"
               }`}
             >
               Monthly
@@ -823,35 +794,35 @@ export default function DashboardPage() {
           <div className="mt-4 space-y-6">
             {/* Legend & Date Range */}
             <div className="flex flex-wrap items-center justify-between gap-3 text-xs pt-1">
-              <div className="flex items-center gap-1.5 text-slate-300 font-medium">
-                <span className="text-sm font-semibold text-white">Weekly Overview</span>
-                <span className="text-slate-500">·</span>
-                <span className="text-slate-400 font-mono text-xs">
+              <div className="flex items-center gap-1.5 text-[#52627A] dark:text-slate-300 font-medium">
+                <span className="text-sm font-bold text-[#111827] dark:text-white">Weekly Overview</span>
+                <span className="text-[#8290A5]">·</span>
+                <span className="text-[#52627A] dark:text-slate-400 font-mono text-xs">
                   {weeklyData.length > 0
                     ? `${weeklyData[0].day}, ${weeklyData[0].date} – ${weeklyData[weeklyData.length - 1].day}, ${weeklyData[weeklyData.length - 1].date}`
                     : "Current 7 Days"}
                 </span>
               </div>
 
-              {/* 3 Indicators Legend */}
-              <div className="flex items-center gap-5 text-xs font-medium">
-                <span className="flex items-center gap-1.5 text-slate-200">
-                  <span className="w-2.5 h-2.5 rounded-sm bg-blue-500 " />
+              {/* 3 Indicators Legend: Focus #5B8DEF, Done #2E9B73, Missed #D95C68 */}
+              <div className="flex flex-wrap items-center gap-2.5 sm:gap-5 text-xs font-medium">
+                <span className="flex items-center gap-1.5 text-[#52627A] dark:text-slate-200">
+                  <span className="w-2.5 h-2.5 rounded-sm bg-[#5B8DEF] shrink-0" />
                   Focus Time
                 </span>
-                <span className="flex items-center gap-1.5 text-slate-200">
-                  <span className="w-2.5 h-2.5 rounded-sm bg-emerald-500 " />
+                <span className="flex items-center gap-1.5 text-[#52627A] dark:text-slate-200">
+                  <span className="w-2.5 h-2.5 rounded-sm bg-[#2E9B73] shrink-0" />
                   Tasks Done
                 </span>
-                <span className="flex items-center gap-1.5 text-slate-200">
-                  <span className="w-2.5 h-2.5 rounded-sm bg-rose-500 " />
+                <span className="flex items-center gap-1.5 text-[#52627A] dark:text-slate-200">
+                  <span className="w-2.5 h-2.5 rounded-sm bg-[#D95C68] shrink-0" />
                   Tasks Missed
                 </span>
               </div>
             </div>
 
             {/* Professional Scaled Bar Chart */}
-            <div className="pt-6 pb-2 min-h-[250px] flex items-end justify-between gap-2 sm:gap-6 border-b border-white/[0.06] px-1 sm:px-4">
+            <div className="pt-6 pb-2 min-h-[250px] flex items-end justify-between gap-1 sm:gap-4 md:gap-6 border-b border-[#DCE5F0] dark:border-white/[0.06] px-0.5 sm:px-4">
               {weeklyData.map((d) => {
                 const isHovered = hoveredDay === d.day;
                 const isSelected = selectedDate === d.fullDate;
@@ -867,94 +838,94 @@ export default function DashboardPage() {
                     onMouseEnter={() => setHoveredDay(d.day)}
                     onMouseLeave={() => setHoveredDay(null)}
                     className={`group relative flex-1 flex flex-col items-center cursor-pointer transition-all duration-150 pt-3 pb-1 rounded-2xl ${
-                      isSelected ? "bg-white/[0.06] shadow-inner ring-1 ring-white/[0.1] scale-[1.02]" : "hover:bg-white/[0.03]"
+                      isSelected ? "bg-[#E7F0FF]/80 dark:bg-white/[0.06] ring-1 ring-[#5B8DEF] dark:ring-white/[0.1] scale-[1.02]" : "hover:bg-[#F7FAFE] dark:hover:bg-white/[0.03]"
                     }`}
                   >
                     {/* Hover Tooltip */}
                     {isHovered && (
-                      <div className="absolute -top-16 z-20 bg-slate-900/95 border border-blue-500/30 rounded-xl p-2.5 shadow-2xl text-xs whitespace-nowrap pointer-events-none">
-                        <p className="font-bold text-white">{d.day}, {d.date}</p>
-                        <p className="text-blue-400 font-medium">Focus: {d.focusTime}</p>
-                        <p className="text-emerald-400 font-medium">Tasks Done: {d.tasksDone}</p>
-                        <p className="text-rose-400 font-medium">Tasks Missed: {d.tasksMissed}</p>
+                      <div className="absolute -top-16 z-20 bg-white dark:bg-slate-900/95 border border-[#DCE5F0] dark:border-blue-500/30 rounded-xl p-2.5 shadow-xl text-xs whitespace-nowrap pointer-events-none">
+                        <p className="font-bold text-[#111827] dark:text-white">{d.day}, {d.date}</p>
+                        <p className="text-[#5B8DEF] font-medium">Focus: {d.focusTime}</p>
+                        <p className="text-[#2E9B73] font-medium">Tasks Done: {d.tasksDone}</p>
+                        <p className="text-[#D95C68] font-medium">Tasks Missed: {d.tasksMissed}</p>
                       </div>
                     )}
 
                     {/* Top Focus Time Tag */}
-                    <span className="text-xs font-mono text-slate-300 mb-2.5 font-semibold">
+                    <span className="text-[11px] sm:text-xs font-mono text-[#52627A] dark:text-slate-300 mb-2.5 font-semibold">
                       {d.focusTime}
                     </span>
 
                     {/* Clean scale bar columns */}
-                    <div className="flex items-end justify-center gap-1.5 h-36 w-full max-w-[62px]">
-                      {/* Focus Time Scale Bar */}
+                    <div className="flex items-end justify-center gap-1 sm:gap-1.5 h-36 w-full max-w-[62px]">
+                      {/* Focus Time Scale Bar (#5B8DEF) */}
                       <div
-                        className="w-4 sm:w-4.5 rounded-sm transition-all duration-300"
+                        className="w-2.5 xs:w-3.5 sm:w-4.5 rounded-sm transition-all duration-300"
                         style={{
                           height: `${focusHeightPercent}%`,
-                          background: d.focusMinutes > 0 ? "linear-gradient(to top, #1d4ed8, #38bdf8)" : "rgba(255,255,255,0.06)",
+                          background: d.focusMinutes > 0 ? "#5B8DEF" : "#E5EDF7",
                         }}
                       />
 
-                      {/* Tasks Done Scale Bar */}
+                      {/* Tasks Done Scale Bar (#2E9B73) */}
                       <div
-                        className="w-4 sm:w-4.5 rounded-sm transition-all duration-300"
+                        className="w-2.5 xs:w-3.5 sm:w-4.5 rounded-sm transition-all duration-300"
                         style={{
                           height: `${doneHeightPercent}%`,
-                          background: d.tasksDone > 0 ? "linear-gradient(to top, #047857, #10b981)" : "rgba(255,255,255,0.04)",
+                          background: d.tasksDone > 0 ? "#2E9B73" : "#E5EDF7",
                         }}
                       />
 
-                      {/* Tasks Missed Scale Bar */}
+                      {/* Tasks Missed Scale Bar (#D95C68) */}
                       {missedHeightPercent > 0 ? (
                         <div
-                          className="w-4 sm:w-4.5 rounded-sm transition-all duration-300"
+                          className="w-2.5 xs:w-3.5 sm:w-4.5 rounded-sm transition-all duration-300"
                           style={{
                             height: `${missedHeightPercent}%`,
-                            background: "linear-gradient(to top, #be123c, #f43f5e)",
+                            background: "#D95C68",
                           }}
                         />
                       ) : (
-                        <div className="w-4 sm:w-4.5 h-1 rounded-sm bg-white/[0.04]" />
+                        <div className="w-2.5 xs:w-3.5 sm:w-4.5 h-1 rounded-sm bg-[#E5EDF7] dark:bg-white/[0.04]" />
                       )}
                     </div>
 
                     {/* Day & Date Labels */}
                     <div className="mt-3 text-center">
-                      <span className="block text-xs sm:text-sm font-bold text-foreground">{d.day}</span>
-                      <span className="block text-[11px] text-muted-foreground font-mono mt-0.5">{d.date}</span>
+                      <span className="block text-xs sm:text-sm font-bold text-[#111827] dark:text-foreground">{d.day}</span>
+                      <span className="block text-[11px] text-[#8290A5] dark:text-muted-foreground font-mono mt-0.5">{d.date}</span>
                     </div>
                   </div>
                 );
               })}
             </div>
 
-            {/* Bottom 3 Summary Metric Cards */}
+            {/* Bottom 3 Summary Metric Cards (Inner Box: #F7FAFE, border #DCE5F0, radius 12) */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
-              <div className="p-4 rounded-xl bg-slate-900/60 border border-white/[0.06]">
+              <div className="p-4 rounded-xl bg-[#F7FAFE] dark:bg-slate-900/60 border border-[#DCE5F0] dark:border-white/[0.06] shadow-none">
                 <div>
-                  <p className="text-xs text-muted-foreground font-medium">
+                  <p className="text-xs text-[#52627A] dark:text-muted-foreground font-medium">
                     {state.lang === 'bn' ? "সাপ্তাহিক মোট ফোকাস টাইম" : "Total Weekly Focus Time"}
                   </p>
-                  <p className="mt-1 text-xl font-bold text-foreground tracking-tight">{weeklySummary.focusTime}</p>
+                  <p className="mt-1 text-xl font-bold text-[#111827] dark:text-foreground tracking-tight">{weeklySummary.focusTime}</p>
                 </div>
               </div>
 
-              <div className="p-4 rounded-xl bg-slate-900/60 border border-white/[0.06]">
+              <div className="p-4 rounded-xl bg-[#F7FAFE] dark:bg-slate-900/60 border border-[#DCE5F0] dark:border-white/[0.06] shadow-none">
                 <div>
-                  <p className="text-xs text-muted-foreground font-medium">
+                  <p className="text-xs text-[#52627A] dark:text-muted-foreground font-medium">
                     {state.lang === 'bn' ? "সাপ্তাহিক সম্পন্ন টাস্ক" : "Weekly Tasks Completed"}
                   </p>
-                  <p className="mt-1 text-xl font-bold text-foreground tracking-tight">{weeklySummary.tasksDoneRatio}</p>
+                  <p className="mt-1 text-xl font-bold text-[#111827] dark:text-foreground tracking-tight">{weeklySummary.tasksDoneRatio}</p>
                 </div>
               </div>
 
-              <div className="p-4 rounded-xl bg-slate-900/60 border border-white/[0.06]">
+              <div className="p-4 rounded-xl bg-[#F7FAFE] dark:bg-slate-900/60 border border-[#DCE5F0] dark:border-white/[0.06] shadow-none">
                 <div>
-                  <p className="text-xs text-muted-foreground font-medium">
+                  <p className="text-xs text-[#52627A] dark:text-muted-foreground font-medium">
                     {state.lang === 'bn' ? "সাপ্তাহিক মিস হওয়া টাস্ক" : "Weekly Missed Tasks"}
                   </p>
-                  <p className="mt-1 text-xl font-bold text-foreground tracking-tight">{weeklySummary.totalMissed}</p>
+                  <p className="mt-1 text-xl font-bold text-[#111827] dark:text-foreground tracking-tight">{weeklySummary.totalMissed}</p>
                 </div>
               </div>
             </div>
@@ -963,12 +934,12 @@ export default function DashboardPage() {
           /* MONTHLY VIEW */
           <div className="mt-4 space-y-5 animate-in fade-in duration-300">
             {/* Header info */}
-            <div className="flex items-center justify-between text-xs text-slate-400 pb-1">
-              <span className="flex items-center gap-1.5 font-medium text-slate-300">
-                <Calendar size={14} className="text-blue-400" />
+            <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 pb-1">
+              <span className="flex items-center gap-1.5 font-medium text-slate-700 dark:text-slate-300">
+                <Calendar size={14} className="text-blue-500 dark:text-blue-400" />
                 Monthly Progress · 4-Week Overview
               </span>
-              <span className="text-xs font-mono text-slate-400">Target: 60h focus / month</span>
+              <span className="text-xs font-mono text-slate-500 dark:text-slate-400">Target: 60h focus / month</span>
             </div>
 
             {/* 4 Weekly Radial Progress Cards Grid */}
@@ -981,22 +952,22 @@ export default function DashboardPage() {
                     onClick={() => setSelectedDate(item.week)}
                     className={`rounded-xl p-4 flex items-center justify-between gap-3 cursor-pointer transition-all duration-150 ${
                       isSelected
-                        ? "bg-white/[0.06] shadow-inner ring-1 ring-white/[0.1] scale-[1.02]"
-                        : "bg-slate-900/70 border border-white/[0.07] hover:border-blue-500/30 hover:bg-white/[0.03]"
+                        ? "bg-blue-50/80 dark:bg-white/[0.06] shadow-inner ring-1 ring-blue-300 dark:ring-white/[0.1] scale-[1.02]"
+                        : "bg-white dark:bg-slate-900/70 border border-[#DCE5F0] dark:border-white/[0.07] hover:border-blue-400 hover:bg-slate-50 dark:hover:bg-white/[0.03] shadow-xs"
                     }`}
                   >
                     <div className="space-y-1.5 min-w-0">
-                      <h3 className="text-xs font-bold text-white tracking-tight">{item.week}</h3>
-                      <p className="text-[10px] text-slate-400 font-mono">{item.range}</p>
+                      <h3 className="text-xs font-bold text-[#111827] dark:text-white tracking-tight">{item.week}</h3>
+                      <p className="text-[10px] text-slate-500 dark:text-slate-400 font-mono">{item.range}</p>
                       
                       <div className="pt-2 space-y-1 text-xs">
                         <div className="flex items-center justify-between gap-3">
-                          <span className="text-slate-400">Focus Time</span>
-                          <span className="font-semibold text-white font-mono">{item.focusTime}</span>
+                          <span className="text-slate-500 dark:text-slate-400">Focus Time</span>
+                          <span className="font-semibold text-[#111827] dark:text-white font-mono">{item.focusTime}</span>
                         </div>
                         <div className="flex items-center justify-between gap-3">
-                          <span className="text-slate-400">Tasks Done</span>
-                          <span className="font-semibold text-emerald-400 font-mono">{item.tasksDone}</span>
+                          <span className="text-slate-500 dark:text-slate-400">Tasks Done</span>
+                          <span className="font-semibold text-emerald-600 dark:text-emerald-400 font-mono">{item.tasksDone}</span>
                         </div>
                       </div>
                     </div>
@@ -1008,8 +979,8 @@ export default function DashboardPage() {
                           cy="50"
                           r="38"
                           fill="none"
-                          stroke="rgba(255,255,255,0.06)"
                           strokeWidth="9"
+                          className="stroke-[#E5EDF7] dark:stroke-white/[0.06]"
                         />
                         {item.percent > 0 && (
                           <circle
@@ -1026,13 +997,13 @@ export default function DashboardPage() {
                         )}
                         <defs>
                           <linearGradient id="month-blue-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-                            <stop offset="0%" stopColor="#38bdf8" />
-                            <stop offset="100%" stopColor="#2563eb" />
+                            <stop offset="0%" stopColor="#5B8DEF" />
+                            <stop offset="100%" stopColor="#223A5E" />
                           </linearGradient>
                         </defs>
                       </svg>
                       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                        <span className="text-xs font-bold text-white font-mono">{item.percent}%</span>
+                        <span className="text-xs font-bold text-[#111827] dark:text-white font-mono">{item.percent}%</span>
                       </div>
                     </div>
                   </div>
@@ -1042,32 +1013,32 @@ export default function DashboardPage() {
 
             {/* Monthly Bottom 3 Summary Metric Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
-              <div className="p-4 rounded-xl bg-slate-900/60 border border-white/[0.06]">
+              <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-[#DCE5F0] dark:border-white/[0.06] shadow-xs">
                 <div>
-                  <p className="text-xs text-muted-foreground font-medium">
+                  <p className="text-xs text-slate-500 dark:text-muted-foreground font-medium">
                     {state.lang === 'bn' ? "মাসিক মোট ফোকাস টাইম" : "Total Monthly Focus Time"}
                   </p>
-                  <p className="mt-1 text-xl font-bold text-foreground tracking-tight">{monthlySummary.focusTime}</p>
+                  <p className="mt-1 text-xl font-bold text-[#111827] dark:text-foreground tracking-tight">{monthlySummary.focusTime}</p>
                 </div>
               </div>
 
-              <div className="p-4 rounded-xl bg-slate-900/60 border border-white/[0.06]">
+              <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-[#DCE5F0] dark:border-white/[0.06] shadow-xs">
                 <div>
-                  <p className="text-xs text-muted-foreground font-medium">
+                  <p className="text-xs text-slate-500 dark:text-muted-foreground font-medium">
                     {state.lang === 'bn' ? "মাসিক সম্পন্ন টাস্ক" : "Monthly Tasks Completed"}
                   </p>
-                  <p className="mt-1 text-xl font-bold text-foreground tracking-tight">
-                    {monthlySummary.tasksDoneRatio} <span className="text-sm font-normal text-muted-foreground">({monthlySummary.completionPercent}%)</span>
+                  <p className="mt-1 text-xl font-bold text-[#111827] dark:text-foreground tracking-tight">
+                    {monthlySummary.tasksDoneRatio} <span className="text-sm font-normal text-slate-500 dark:text-muted-foreground">({monthlySummary.completionPercent}%)</span>
                   </p>
                 </div>
               </div>
 
-              <div className="p-4 rounded-xl bg-slate-900/60 border border-white/[0.06]">
+              <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-[#DCE5F0] dark:border-white/[0.06] shadow-xs">
                 <div>
-                  <p className="text-xs text-muted-foreground font-medium">
+                  <p className="text-xs text-slate-500 dark:text-muted-foreground font-medium">
                     {state.lang === 'bn' ? "মাসিক মিস হওয়া টাস্ক" : "Monthly Missed Tasks"}
                   </p>
-                  <p className="mt-1 text-xl font-bold text-foreground tracking-tight">
+                  <p className="mt-1 text-xl font-bold text-[#111827] dark:text-foreground tracking-tight">
                     {monthlySummary.totalMissed} {state.lang === 'bn' ? "টাস্ক" : "tasks"}
                   </p>
                 </div>
@@ -1075,7 +1046,6 @@ export default function DashboardPage() {
             </div>
           </div>
         )}
-
       </section>
     </main>
   );

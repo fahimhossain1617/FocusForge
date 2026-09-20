@@ -49,7 +49,7 @@ export interface ThemePreferences {
   accent: string;
   background: string;
   preset: string;
-  mode: 'dark' | 'light';
+  mode: 'dark' | 'light' | 'system';
 }
 
 export interface Note {
@@ -269,6 +269,7 @@ export interface NotificationPreferences {
   taskReminderTime: number; // minutes before
   dailyMorningPlan: boolean;
   dailyMorningPlanTime: string; // "07:00"
+  dailyProgressReminders?: boolean;
   motivationalNotifications: boolean;
   dailyTaskReminder: boolean;
   dailyTaskReminderTime: string; // "09:00"

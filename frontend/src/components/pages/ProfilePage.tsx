@@ -218,13 +218,7 @@ export default function ProfilePage() {
       {/* 1. PROFILE HEADER SECTION                                 */}
       {/* ======================================================== */}
       <div 
-        className="relative rounded-3xl border shadow-xl p-6 sm:p-8 overflow-hidden"
-        style={{
-          background: "linear-gradient(135deg, rgba(13, 20, 38, 0.9), rgba(10, 14, 26, 0.95))",
-          borderColor: "rgba(59, 130, 246, 0.22)",
-          boxShadow: "0 20px 40px rgba(0, 0, 0, 0.5), 0 0 30px rgba(59, 130, 246, 0.08)",
-          backdropFilter: "blur(20px)",
-        }}
+        className="relative rounded-3xl border border-[#DCE5F0] dark:border-blue-500/20 bg-white dark:bg-[#0D1426] p-6 sm:p-8 overflow-hidden shadow-sm dark:shadow-xl"
       >
         {/* Ambient Top Glow */}
         <div className="absolute top-0 left-1/4 w-96 h-32 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
@@ -233,8 +227,7 @@ export default function ProfilePage() {
           {/* Avatar Container */}
           <div className="relative group shrink-0">
             <div 
-              className="w-24 h-24 sm:w-28 sm:h-28 rounded-full overflow-hidden border border-blue-500/30 flex items-center justify-center cursor-pointer transition-colors hover:border-blue-400"
-              style={{ background: "linear-gradient(135deg, #090e1a, #131d36)" }}
+              className="w-24 h-24 sm:w-28 sm:h-28 rounded-full overflow-hidden border border-[#D0E1FD] dark:border-blue-900/40 flex items-center justify-center cursor-pointer transition-all hover:border-[#5B8DEF] bg-[#E8F1FC] dark:bg-blue-950/60 shadow-xs"
               onClick={() => fileInputRef.current?.click()}
               title="Change Profile Photo"
             >
@@ -245,19 +238,19 @@ export default function ProfilePage() {
                   className="w-full h-full object-cover" 
                 />
               ) : (
-                <div className="w-full h-full flex items-center justify-center" style={{ background: "linear-gradient(135deg, #090e1a, #131d36)" }}>
-                  {formData.fullName && /^[A-Za-z\u0980-\u09FF]/.test(formData.fullName.trim()) ? (
-                    <span className="text-2xl font-bold text-blue-300/90 uppercase">
+                <div className="w-full h-full flex items-center justify-center bg-[#E8F1FC] dark:bg-blue-950/60">
+                  {formData.fullName && !isGuest && /^[A-Za-z\u0980-\u09FF]/.test(formData.fullName.trim()) ? (
+                    <span className="text-2xl sm:text-3xl font-bold text-[#0F172A] dark:text-blue-200 uppercase">
                       {formData.fullName.trim()[0]}
                     </span>
                   ) : (
-                    <UserIcon size={38} className="text-blue-400/70" />
+                    <UserIcon size={38} strokeWidth={2.2} className="text-[#0F172A] dark:text-blue-300" />
                   )}
                 </div>
               )}
 
               {/* Hover Overlay Icon */}
-              <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-full">
+              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-full">
                 <Camera size={22} className="text-white" />
               </div>
             </div>
@@ -266,44 +259,63 @@ export default function ProfilePage() {
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="absolute bottom-0.5 right-0.5 p-2 rounded-full border border-blue-500/30 text-blue-300 hover:text-white transition-all cursor-pointer"
-              style={{ background: "#131d36" }}
+              className="absolute bottom-0 right-0 p-2 sm:p-2.5 rounded-full bg-[#223A5E] dark:bg-[#2563EB] text-white hover:bg-[#1A2E4C] dark:hover:bg-[#1D4ED8] ring-[2.5px] ring-white dark:ring-[#0D1426] shadow-sm transition-all cursor-pointer"
               title="Change Photo"
               aria-label="Change Photo"
             >
               <Camera size={13} />
             </button>
+
+            {/* Remove Photo Action if avatar exists */}
+            {formData.avatarUrl && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleRemovePhoto();
+                }}
+                className="absolute top-0 right-0 p-1.5 rounded-full bg-red-600 hover:bg-red-700 text-white ring-2 ring-white dark:ring-[#0D1426] shadow-xs transition-all cursor-pointer"
+                title="Remove Photo"
+                aria-label="Remove Photo"
+              >
+                <Trash2 size={12} />
+              </button>
+            )}
           </div>
 
           {/* User Details & Status */}
-          <div className="flex-1 text-center sm:text-left">
+          <div className="flex-1 text-center sm:text-left min-w-0 w-full">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div>
-                <div className="flex items-center justify-center sm:justify-start gap-2.5 mb-1">
-                  <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground tracking-tight break-words leading-tight">
-                    {formData.fullName || sanitizePhone(user?.displayName) || "Guest User"}
+              <div className="min-w-0 w-full">
+                <div className="flex items-center justify-center sm:justify-start gap-2.5 mb-1 w-full">
+                  <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-[#0F172A] dark:text-foreground tracking-tight break-words leading-tight w-full">
+                    {isGuest || !user 
+                      ? (state.lang === 'bn' ? "গেস্ট মোড" : "Guest Mode") 
+                      : (formData.fullName || sanitizePhone(user?.displayName) || "User")}
                   </h1>
                 </div>
 
-                <p className="text-xs sm:text-sm text-muted-foreground break-all">
-                  {sanitizePhone(user?.identifier || formData.email || "Guest Mode")}
+                <p className="text-xs sm:text-sm text-[#52627A] dark:text-muted-foreground break-all">
+                  {isGuest || !user 
+                    ? (state.lang === 'bn' ? "গেস্ট সেশন (অনিবন্ধিত)" : "Guest Session (Preview Mode)") 
+                    : sanitizePhone(user?.identifier || formData.email || "")}
                 </p>
 
                 {(formData.city || formData.country) && (
-                  <p className="text-xs text-zinc-500 flex items-center justify-center sm:justify-start gap-1.5 mt-2">
-                    <MapPin size={13} className="text-blue-400" />
+                  <p className="text-xs text-[#52627A] dark:text-zinc-400 flex items-center justify-center sm:justify-start gap-1.5 mt-2">
+                    <MapPin size={13} className="text-blue-500 dark:text-blue-400" />
                     <span>{[formData.city, formData.country].filter(Boolean).join(", ")}</span>
                   </p>
                 )}
               </div>
 
               {/* Edit / Cancel Toggle Button */}
-              <div>
+              <div className="shrink-0 flex justify-center sm:justify-end">
                 {isEditing ? (
                   <button
                     type="button"
                     onClick={() => setIsEditing(false)}
-                    className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold text-zinc-300 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 transition-all cursor-pointer"
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold text-[#52627A] dark:text-zinc-300 hover:text-[#0F172A] dark:hover:text-white bg-[#F1F5F9] dark:bg-white/5 hover:bg-[#E2E8F0] dark:hover:bg-white/10 border border-[#DCE5F0] dark:border-white/10 transition-all cursor-pointer"
                   >
                     <X size={14} />
                     <span>{t.auth.cancel}</span>
@@ -311,12 +323,18 @@ export default function ProfilePage() {
                 ) : (
                   <button
                     type="button"
-                    onClick={() => setIsEditing(true)}
-                    className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold text-white  hover:opacity-95 border border-blue-500/30 transition-all cursor-pointer"
+                    onClick={() => {
+                      if (isGuest || !user) {
+                        openAuth('login');
+                      } else {
+                        setIsEditing(true);
+                      }
+                    }}
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold text-white hover:opacity-95 border border-transparent shadow-xs transition-all cursor-pointer"
                     style={{ background: "linear-gradient(135deg, #2563EB, #3B82F6)" }}
                   >
                     <Edit3 size={14} />
-                    <span>Edit Profile</span>
+                    <span>{isGuest || !user ? (state.lang === 'bn' ? "লগইন করুন" : "Sign In to Save") : (state.lang === 'bn' ? "প্রোফাইল এডিট" : "Edit Profile")}</span>
                   </button>
                 )}
               </div>
@@ -332,23 +350,18 @@ export default function ProfilePage() {
         {/* LEFT 2 COLUMNS: Personal Information Form / View */}
         <div className="lg:col-span-2 space-y-6">
           <div 
-            className="rounded-3xl border shadow-xl p-6 sm:p-7"
-            style={{
-              background: "rgba(13, 20, 38, 0.8)",
-              borderColor: "rgba(59, 130, 246, 0.2)",
-              backdropFilter: "blur(20px)",
-            }}
+            className="rounded-3xl border border-[#DCE5F0] dark:border-blue-500/20 bg-white dark:bg-[#0D1426] shadow-sm dark:shadow-xl p-6 sm:p-7"
           >
-            <div className="flex items-center justify-between pb-4 border-b border-white/5 mb-6">
+            <div className="flex items-center justify-between pb-4 border-b border-[#E2E8F0] dark:border-white/5 mb-6">
               <div>
-                <h2 className="text-lg font-bold text-white tracking-tight">Personal Information</h2>
-                <p className="text-xs text-zinc-400 mt-0.5">Manage your personal details and public profile info.</p>
+                <h2 className="text-lg font-bold text-[#0F172A] dark:text-white tracking-tight">Personal Information</h2>
+                <p className="text-xs text-[#52627A] dark:text-zinc-400 mt-0.5">Manage your personal details and profile info.</p>
               </div>
               {!isEditing && (
                 <button
                   type="button"
                   onClick={() => setIsEditing(true)}
-                  className="text-xs text-blue-400 hover:text-blue-300 font-medium cursor-pointer"
+                  className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium cursor-pointer"
                 >
                   Edit
                 </button>
@@ -359,8 +372,8 @@ export default function ProfilePage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {/* Full Name */}
                 <div>
-                  <label className="block text-xs font-semibold text-zinc-300 mb-1.5">
-                    Full Name <span className="text-blue-400">*</span>
+                  <label className="block text-xs font-semibold text-[#334155] dark:text-zinc-300 mb-1.5">
+                    Full Name <span className="text-blue-500">*</span>
                   </label>
                   {isEditing ? (
                     <input
@@ -369,10 +382,10 @@ export default function ProfilePage() {
                       value={formData.fullName}
                       onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
                       placeholder="e.g. Fahim Hossain"
-                      className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-white/[0.04] border border-white/10 text-white focus:border-blue-500 focus:outline-none transition-colors"
+                      className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-[#F8FAFC] dark:bg-white/[0.04] border border-[#DCE5F0] dark:border-white/10 text-[#0F172A] dark:text-white placeholder:text-[#94A3B8] dark:placeholder:text-zinc-500 focus:border-blue-500 focus:outline-none transition-colors"
                     />
                   ) : (
-                    <p className="text-sm font-medium text-white px-3.5 py-2.5 rounded-xl bg-white/[0.02] border border-white/5">
+                    <p className="text-sm font-medium text-[#0F172A] dark:text-white px-3.5 py-2.5 rounded-xl bg-[#F8FAFC] dark:bg-white/[0.02] border border-[#E2E8F0] dark:border-white/5 break-words">
                       {formData.fullName || "Not provided"}
                     </p>
                   )}
@@ -380,8 +393,8 @@ export default function ProfilePage() {
 
                 {/* Display Name / Username */}
                 <div>
-                  <label className="block text-xs font-semibold text-zinc-300 mb-1.5">
-                    Display Name / Username <span className="text-zinc-500 font-normal">(Optional)</span>
+                  <label className="block text-xs font-semibold text-[#334155] dark:text-zinc-300 mb-1.5">
+                    Display Name / Username <span className="text-[#64748B] dark:text-zinc-500 font-normal">(Optional)</span>
                   </label>
                   {isEditing ? (
                     <input
@@ -389,10 +402,10 @@ export default function ProfilePage() {
                       value={formData.displayName}
                       onChange={(e) => setFormData({ ...formData, displayName: e.target.value })}
                       placeholder="e.g. Fahim"
-                      className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-white/[0.04] border border-white/10 text-white focus:border-blue-500 focus:outline-none transition-colors"
+                      className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-[#F8FAFC] dark:bg-white/[0.04] border border-[#DCE5F0] dark:border-white/10 text-[#0F172A] dark:text-white placeholder:text-[#94A3B8] dark:placeholder:text-zinc-500 focus:border-blue-500 focus:outline-none transition-colors"
                     />
                   ) : (
-                    <p className="text-sm font-medium text-white px-3.5 py-2.5 rounded-xl bg-white/[0.02] border border-white/5">
+                    <p className="text-sm font-medium text-[#0F172A] dark:text-white px-3.5 py-2.5 rounded-xl bg-[#F8FAFC] dark:bg-white/[0.02] border border-[#E2E8F0] dark:border-white/5 break-words">
                       {formData.displayName || formData.fullName || "Not provided"}
                     </p>
                   )}
@@ -404,11 +417,11 @@ export default function ProfilePage() {
                 {/* Email Address */}
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
-                    <label className="text-xs font-semibold text-zinc-300">
+                    <label className="text-xs font-semibold text-[#334155] dark:text-zinc-300">
                       Email Address
                     </label>
                     {user?.authMethod === 'email' && (
-                      <span className="text-[10px] text-emerald-400 font-medium flex items-center gap-1">
+                      <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium flex items-center gap-1">
                         <CheckCircle2 size={11} /> Verified
                       </span>
                     )}
@@ -419,11 +432,11 @@ export default function ProfilePage() {
                       value={formData.email}
                       onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                       placeholder="you@example.com"
-                      className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-white/[0.04] border border-white/10 text-white focus:border-blue-500 focus:outline-none transition-colors"
+                      className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-[#F8FAFC] dark:bg-white/[0.04] border border-[#DCE5F0] dark:border-white/10 text-[#0F172A] dark:text-white placeholder:text-[#94A3B8] dark:placeholder:text-zinc-500 focus:border-blue-500 focus:outline-none transition-colors"
                     />
                   ) : (
-                    <p className="text-sm font-medium text-white px-3.5 py-2.5 rounded-xl bg-white/[0.02] border border-white/5 flex items-center gap-2">
-                      <Mail size={14} className="text-zinc-400" />
+                    <p className="text-sm font-medium text-[#0F172A] dark:text-white px-3.5 py-2.5 rounded-xl bg-[#F8FAFC] dark:bg-white/[0.02] border border-[#E2E8F0] dark:border-white/5 flex items-center gap-2 break-all">
+                      <Mail size={14} className="text-[#64748B] dark:text-zinc-400 shrink-0" />
                       <span>{formData.email || user?.identifier || "Not provided"}</span>
                     </p>
                   )}
@@ -432,11 +445,11 @@ export default function ProfilePage() {
                 {/* Phone Number */}
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
-                    <label className="text-xs font-semibold text-zinc-300">
+                    <label className="text-xs font-semibold text-[#334155] dark:text-zinc-300">
                       Phone Number
                     </label>
                     {user?.authMethod === 'phone' && (
-                      <span className="text-[10px] text-emerald-400 font-medium flex items-center gap-1">
+                      <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium flex items-center gap-1">
                         <CheckCircle2 size={11} /> Verified
                       </span>
                     )}
@@ -447,11 +460,11 @@ export default function ProfilePage() {
                       value={formData.phone}
                       onChange={(e) => setFormData({ ...formData, phone: sanitizePhone(e.target.value) })}
                       placeholder="+880 1712345678"
-                      className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-white/[0.04] border border-white/10 text-white focus:border-blue-500 focus:outline-none transition-colors"
+                      className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-[#F8FAFC] dark:bg-white/[0.04] border border-[#DCE5F0] dark:border-white/10 text-[#0F172A] dark:text-white placeholder:text-[#94A3B8] dark:placeholder:text-zinc-500 focus:border-blue-500 focus:outline-none transition-colors"
                     />
                   ) : (
-                    <p className="text-sm font-medium text-white px-3.5 py-2.5 rounded-xl bg-white/[0.02] border border-white/5 flex items-center gap-2">
-                      <Phone size={14} className="text-zinc-400" />
+                    <p className="text-sm font-medium text-[#0F172A] dark:text-white px-3.5 py-2.5 rounded-xl bg-[#F8FAFC] dark:bg-white/[0.02] border border-[#E2E8F0] dark:border-white/5 flex items-center gap-2 break-all">
+                      <Phone size={14} className="text-[#64748B] dark:text-zinc-400 shrink-0" />
                       <span>{sanitizePhone(formData.phone) || sanitizePhone(user?.phone) || sanitizePhone(user?.identifier) || "Not provided"}</span>
                     </p>
                   )}
@@ -462,8 +475,8 @@ export default function ProfilePage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {/* Date of Birth */}
                 <div>
-                  <label className="block text-xs font-semibold text-zinc-300 mb-1.5">
-                    Date of Birth <span className="text-zinc-500 font-normal">(Optional)</span>
+                  <label className="block text-xs font-semibold text-[#334155] dark:text-zinc-300 mb-1.5">
+                    Date of Birth <span className="text-[#64748B] dark:text-zinc-500 font-normal">(Optional)</span>
                   </label>
                   {isEditing ? (
                     <FocusForgeDatePicker
@@ -474,8 +487,8 @@ export default function ProfilePage() {
                       ariaLabel="Date of Birth"
                     />
                   ) : (
-                    <p className="text-sm font-medium text-white px-3.5 py-2.5 rounded-xl bg-white/[0.02] border border-white/5 flex items-center gap-2">
-                      <Calendar size={14} className="text-zinc-400" />
+                    <p className="text-sm font-medium text-[#0F172A] dark:text-white px-3.5 py-2.5 rounded-xl bg-[#F8FAFC] dark:bg-white/[0.02] border border-[#E2E8F0] dark:border-white/5 flex items-center gap-2">
+                      <Calendar size={14} className="text-[#64748B] dark:text-zinc-400 shrink-0" />
                       <span>{formData.dob || "Not specified"}</span>
                     </p>
                   )}
@@ -483,8 +496,8 @@ export default function ProfilePage() {
 
                 {/* Gender */}
                 <div>
-                  <label className="block text-xs font-semibold text-zinc-300 mb-1.5">
-                    Gender <span className="text-zinc-500 font-normal">(Optional)</span>
+                  <label className="block text-xs font-semibold text-[#334155] dark:text-zinc-300 mb-1.5">
+                    Gender <span className="text-[#64748B] dark:text-zinc-500 font-normal">(Optional)</span>
                   </label>
                   {isEditing ? (
                     <FocusForgeSelect
@@ -501,7 +514,7 @@ export default function ProfilePage() {
                       ariaLabel="Gender"
                     />
                   ) : (
-                    <p className="text-sm font-medium text-white px-3.5 py-2.5 rounded-xl bg-white/[0.02] border border-white/5">
+                    <p className="text-sm font-medium text-[#0F172A] dark:text-white px-3.5 py-2.5 rounded-xl bg-[#F8FAFC] dark:bg-white/[0.02] border border-[#E2E8F0] dark:border-white/5">
                       {formData.gender || "Not specified"}
                     </p>
                   )}
@@ -511,8 +524,8 @@ export default function ProfilePage() {
               {/* Location: Country and City */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-zinc-300 mb-1.5">
-                    Country / Region <span className="text-zinc-500 font-normal">(Optional)</span>
+                  <label className="block text-xs font-semibold text-[#334155] dark:text-zinc-300 mb-1.5">
+                    Country / Region <span className="text-[#64748B] dark:text-zinc-500 font-normal">(Optional)</span>
                   </label>
                   {isEditing ? (
                     <input
@@ -520,19 +533,19 @@ export default function ProfilePage() {
                       value={formData.country}
                       onChange={(e) => setFormData({ ...formData, country: e.target.value })}
                       placeholder="e.g. Bangladesh"
-                      className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-white/[0.04] border border-white/10 text-white focus:border-blue-500 focus:outline-none transition-colors"
+                      className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-[#F8FAFC] dark:bg-white/[0.04] border border-[#DCE5F0] dark:border-white/10 text-[#0F172A] dark:text-white placeholder:text-[#94A3B8] dark:placeholder:text-zinc-500 focus:border-blue-500 focus:outline-none transition-colors"
                     />
                   ) : (
-                    <p className="text-sm font-medium text-white px-3.5 py-2.5 rounded-xl bg-white/[0.02] border border-white/5 flex items-center gap-2">
-                      <Globe size={14} className="text-zinc-400" />
+                    <p className="text-sm font-medium text-[#0F172A] dark:text-white px-3.5 py-2.5 rounded-xl bg-[#F8FAFC] dark:bg-white/[0.02] border border-[#E2E8F0] dark:border-white/5 flex items-center gap-2">
+                      <Globe size={14} className="text-[#64748B] dark:text-zinc-400 shrink-0" />
                       <span>{formData.country || "Not specified"}</span>
                     </p>
                   )}
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-zinc-300 mb-1.5">
-                    City <span className="text-zinc-500 font-normal">(Optional)</span>
+                  <label className="block text-xs font-semibold text-[#334155] dark:text-zinc-300 mb-1.5">
+                    City <span className="text-[#64748B] dark:text-zinc-500 font-normal">(Optional)</span>
                   </label>
                   {isEditing ? (
                     <input
@@ -540,11 +553,11 @@ export default function ProfilePage() {
                       value={formData.city}
                       onChange={(e) => setFormData({ ...formData, city: e.target.value })}
                       placeholder="e.g. Dhaka"
-                      className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-white/[0.04] border border-white/10 text-white focus:border-blue-500 focus:outline-none transition-colors"
+                      className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-[#F8FAFC] dark:bg-white/[0.04] border border-[#DCE5F0] dark:border-white/10 text-[#0F172A] dark:text-white placeholder:text-[#94A3B8] dark:placeholder:text-zinc-500 focus:border-blue-500 focus:outline-none transition-colors"
                     />
                   ) : (
-                    <p className="text-sm font-medium text-white px-3.5 py-2.5 rounded-xl bg-white/[0.02] border border-white/5 flex items-center gap-2">
-                      <MapPin size={14} className="text-zinc-400" />
+                    <p className="text-sm font-medium text-[#0F172A] dark:text-white px-3.5 py-2.5 rounded-xl bg-[#F8FAFC] dark:bg-white/[0.02] border border-[#E2E8F0] dark:border-white/5 flex items-center gap-2">
+                      <MapPin size={14} className="text-[#64748B] dark:text-zinc-400 shrink-0" />
                       <span>{formData.city || "Not specified"}</span>
                     </p>
                   )}
@@ -553,8 +566,8 @@ export default function ProfilePage() {
 
               {/* About Me / Bio */}
               <div>
-                <label className="block text-xs font-semibold text-zinc-300 mb-1.5">
-                  About Me / Short Bio <span className="text-zinc-500 font-normal">(Optional)</span>
+                <label className="block text-xs font-semibold text-[#334155] dark:text-zinc-300 mb-1.5">
+                  About Me / Short Bio <span className="text-[#64748B] dark:text-zinc-500 font-normal">(Optional)</span>
                 </label>
                 {isEditing ? (
                   <textarea
@@ -562,10 +575,10 @@ export default function ProfilePage() {
                     value={formData.bio}
                     onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
                     placeholder="Tell us a little about yourself, your goals, or your focus interests..."
-                    className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-white/[0.04] border border-white/10 text-white focus:border-blue-500 focus:outline-none transition-colors resize-none"
+                    className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-[#F8FAFC] dark:bg-white/[0.04] border border-[#DCE5F0] dark:border-white/10 text-[#0F172A] dark:text-white placeholder:text-[#94A3B8] dark:placeholder:text-zinc-500 focus:border-blue-500 focus:outline-none transition-colors resize-none"
                   />
                 ) : (
-                  <p className="text-sm text-zinc-300 px-3.5 py-3 rounded-xl bg-white/[0.02] border border-white/5 whitespace-pre-wrap leading-relaxed">
+                  <p className="text-sm text-[#334155] dark:text-zinc-300 px-3.5 py-3 rounded-xl bg-[#F8FAFC] dark:bg-white/[0.02] border border-[#E2E8F0] dark:border-white/5 whitespace-pre-wrap leading-relaxed">
                     {formData.bio || "No bio added yet. Click Edit to share a short summary about yourself."}
                   </p>
                 )}
@@ -573,18 +586,18 @@ export default function ProfilePage() {
 
               {/* Form Action Buttons (Save / Cancel) */}
               {isEditing && (
-                <div className="flex items-center justify-end gap-3 pt-4 border-t border-white/5">
+                <div className="flex items-center justify-end gap-3 pt-4 border-t border-[#E2E8F0] dark:border-white/5">
                   <button
                     type="button"
                     onClick={() => setIsEditing(false)}
-                    className="px-4 py-2.5 rounded-xl text-xs font-semibold text-zinc-300 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 transition-all cursor-pointer"
+                    className="px-4 py-2.5 rounded-xl text-xs font-semibold text-[#52627A] dark:text-zinc-300 hover:text-[#0F172A] dark:hover:text-white bg-[#F1F5F9] dark:bg-white/5 hover:bg-[#E2E8F0] dark:hover:bg-white/10 border border-[#DCE5F0] dark:border-white/10 transition-all cursor-pointer"
                   >
                     {t.auth.cancel}
                   </button>
                   <button
                     type="submit"
                     disabled={isSaving}
-                    className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-semibold text-white  hover:opacity-95 border border-blue-500/30 transition-all cursor-pointer disabled:opacity-50"
+                    className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-semibold text-white hover:opacity-95 border border-transparent shadow-xs transition-all cursor-pointer disabled:opacity-50"
                     style={{ background: "linear-gradient(135deg, #2563EB, #3B82F6)" }}
                   >
                     <Save size={14} />
@@ -600,20 +613,15 @@ export default function ProfilePage() {
         <div className="space-y-6">
           {/* Profile Completion Card */}
           <div 
-            className="rounded-3xl border shadow-xl p-6"
-            style={{
-              background: "rgba(13, 20, 38, 0.8)",
-              borderColor: "rgba(59, 130, 246, 0.2)",
-              backdropFilter: "blur(20px)",
-            }}
+            className="rounded-3xl border border-[#DCE5F0] dark:border-blue-500/20 bg-white dark:bg-[#0D1426] shadow-sm dark:shadow-xl p-6"
           >
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-bold text-white">Profile Completion</h3>
-              <span className="text-xs font-bold text-blue-400">{completionPercent}%</span>
+              <h3 className="text-sm font-bold text-[#0F172A] dark:text-white">Profile Completion</h3>
+              <span className="text-xs font-bold text-blue-600 dark:text-blue-400">{completionPercent}%</span>
             </div>
 
             {/* Progress Bar */}
-            <div className="h-2 w-full bg-white/10 rounded-full overflow-hidden mb-4">
+            <div className="h-2 w-full bg-[#E2E8F0] dark:bg-white/10 rounded-full overflow-hidden mb-4">
               <div 
                 className="h-full rounded-full transition-all duration-500"
                 style={{
@@ -630,15 +638,15 @@ export default function ProfilePage() {
                 <div key={item.key} className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     {item.complete ? (
-                      <CheckCircle2 size={14} className="text-emerald-400" />
+                      <CheckCircle2 size={14} className="text-emerald-500 dark:text-emerald-400" />
                     ) : (
-                      <div className="w-3.5 h-3.5 rounded-full border border-zinc-600" />
+                      <div className="w-3.5 h-3.5 rounded-full border border-[#94A3B8] dark:border-zinc-600" />
                     )}
-                    <span className={item.complete ? "text-zinc-200" : "text-zinc-500"}>
+                    <span className={item.complete ? "text-[#0F172A] dark:text-zinc-200 font-medium" : "text-[#64748B] dark:text-zinc-500"}>
                       {item.label}
                     </span>
                   </div>
-                  <span className={`text-[10px] ${item.complete ? "text-emerald-400 font-semibold" : "text-zinc-500"}`}>
+                  <span className={`text-[10px] ${item.complete ? "text-emerald-600 dark:text-emerald-400 font-semibold" : "text-[#94A3B8] dark:text-zinc-500"}`}>
                     {item.complete ? "Complete" : "Optional"}
                   </span>
                 </div>
@@ -648,44 +656,39 @@ export default function ProfilePage() {
 
           {/* Account Overview Card (Read-only) */}
           <div 
-            className="rounded-3xl border shadow-xl p-6"
-            style={{
-              background: "rgba(13, 20, 38, 0.8)",
-              borderColor: "rgba(59, 130, 246, 0.2)",
-              backdropFilter: "blur(20px)",
-            }}
+            className="rounded-3xl border border-[#DCE5F0] dark:border-blue-500/20 bg-white dark:bg-[#0D1426] shadow-sm dark:shadow-xl p-6"
           >
-            <div className="flex items-center gap-2 mb-4 pb-3 border-b border-white/5">
-              <ShieldCheck size={16} className="text-blue-400" />
-              <h3 className="text-sm font-bold text-white">Account Information</h3>
+            <div className="flex items-center gap-2 mb-4 pb-3 border-b border-[#E2E8F0] dark:border-white/5">
+              <ShieldCheck size={16} className="text-blue-600 dark:text-blue-400" />
+              <h3 className="text-sm font-bold text-[#0F172A] dark:text-white">Account Information</h3>
             </div>
 
             <div className="space-y-3.5 text-xs">
               <div>
-                <span className="block text-zinc-500 text-[11px] mb-0.5">Account Status</span>
-                <div className="flex items-center gap-1.5 font-semibold text-emerald-400">
+                <span className="block text-[#64748B] dark:text-zinc-500 text-[11px] mb-0.5">Account Status</span>
+                <div className="flex items-center gap-1.5 font-semibold text-emerald-600 dark:text-emerald-400">
                   <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                   <span>Active</span>
                 </div>
               </div>
 
               <div>
-                <span className="block text-zinc-500 text-[11px] mb-0.5">Authentication Method</span>
-                <span className="font-semibold text-zinc-200 capitalize">
+                <span className="block text-[#64748B] dark:text-zinc-500 text-[11px] mb-0.5">Authentication Method</span>
+                <span className="font-semibold text-[#0F172A] dark:text-zinc-200 capitalize">
                   {user?.authMethod === 'google' ? "Google Account" : user?.authMethod ? `${user.authMethod} Authentication` : "Guest Session (Preview)"}
                 </span>
               </div>
 
               <div>
-                <span className="block text-zinc-500 text-[11px] mb-0.5">Member Since</span>
-                <span className="font-semibold text-zinc-200">
+                <span className="block text-[#64748B] dark:text-zinc-500 text-[11px] mb-0.5">Member Since</span>
+                <span className="font-semibold text-[#0F172A] dark:text-zinc-200">
                   {user?.createdAt ? formatDate(user.createdAt) : "Today (Guest Mode)"}
                 </span>
               </div>
 
               <div>
-                <span className="block text-zinc-500 text-[11px] mb-0.5">Verification Status</span>
-                <div className="flex items-center gap-1.5 text-emerald-400 font-semibold">
+                <span className="block text-[#64748B] dark:text-zinc-500 text-[11px] mb-0.5">Verification Status</span>
+                <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-semibold">
                   <UserCheck size={14} />
                   <span>{user ? "Verified Account" : "Guest Mode (Unregistered)"}</span>
                 </div>

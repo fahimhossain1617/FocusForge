@@ -75,9 +75,9 @@
 /* Adapt to light theme when user chooses Light */
 :global([data-theme="light"]) .onboardingCard {
   background: linear-gradient(145deg, rgba(255, 255, 255, 0.95), rgba(241, 245, 249, 0.95));
-  border-color: rgba(203, 213, 225, 0.9);
-  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.12), 0 0 35px rgba(59, 130, 246, 0.15);
-  color: #0f172a;
+  border-color: #DCE5F0;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.08), 0 0 35px rgba(91, 141, 239, 0.12);
+  color: #111827;
 }
 
 @keyframes cardSlideUp {
@@ -138,7 +138,7 @@
 }
 
 :global([data-theme="light"]) .cardSubtitle {
-  color: #64748b;
+  color: #52627A;
 }
 
 /* 4. Selection Grid (Language & Theme & Account Mode) */
@@ -234,7 +234,7 @@
 }
 
 :global([data-theme="light"]) .optionDesc {
-  color: #64748b;
+  color: #52627A;
 }
 
 /* 5. Philosophy / Motivational Screen */
@@ -255,7 +255,7 @@
 }
 
 :global([data-theme="light"]) .philosophyIntro {
-  color: #0f172a;
+  color: #111827;
 }
 
 .philosophySub {
@@ -266,7 +266,7 @@
 }
 
 :global([data-theme="light"]) .philosophySub {
-  color: #475569;
+  color: #52627A;
 }
 
 .philosophyGoodNews {
@@ -297,7 +297,7 @@
 }
 
 :global([data-theme="light"]) .philosophyItem {
-  color: #1e293b;
+  color: #111827;
 }
 
 .bulletDot {
@@ -339,7 +339,7 @@
 }
 
 :global([data-theme="light"]) .philosophyQuote {
-  color: #334155;
+  color: #52627A;
 }
 
 /* 6. Action Button (Primary CTA) */
@@ -368,7 +368,22 @@
 }
 
 .primaryButton:active {
-  transform: scale(0.95) !important;
+  transform: scale(0.985) !important;
+}
+
+:global([data-theme="light"]) .primaryButton {
+  background: #223A5E !important;
+  color: #FFFFFF !important;
+  border: 1px solid #223A5E !important;
+  border-radius: 12px !important;
+  font-weight: 700 !important;
+  box-shadow: none !important;
+}
+
+:global([data-theme="light"]) .primaryButton:hover {
+  background: #2E4E7B !important;
+  border-color: #2E4E7B !important;
+  color: #FFFFFF !important;
 }
 
 /* 7. Step Indicators (Subtle dots) */
@@ -450,9 +465,9 @@
 
 :global([data-theme="light"]) .tourCard {
   background: linear-gradient(145deg, rgba(255, 255, 255, 0.96), rgba(241, 245, 249, 0.96));
-  border-color: rgba(203, 213, 225, 0.95);
-  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.15), 0 0 25px rgba(59, 130, 246, 0.18);
-  color: #0f172a;
+  border-color: #DCE5F0;
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.1), 0 0 25px rgba(91, 141, 239, 0.15);
+  color: #111827;
 }
 
 .tourStepBadge {
@@ -483,7 +498,7 @@
 }
 
 :global([data-theme="light"]) .tourDesc {
-  color: #475569;
+  color: #52627A;
 }
 
 .tourActions {
@@ -510,7 +525,7 @@
 }
 
 :global([data-theme="light"]) .tourSkipBtn:hover {
-  color: #0f172a;
+  color: #111827;
 }
 
 .tourNextBtn {
@@ -536,7 +551,22 @@
 }
 
 .tourNextBtn:active {
-  transform: scale(0.97);
+  transform: scale(0.985);
+}
+
+:global([data-theme="light"]) .tourNextBtn {
+  background: #223A5E !important;
+  color: #FFFFFF !important;
+  border: 1px solid #223A5E !important;
+  border-radius: 12px !important;
+  font-weight: 700 !important;
+  box-shadow: none !important;
+}
+
+:global([data-theme="light"]) .tourNextBtn:hover {
+  background: #2E4E7B !important;
+  border-color: #2E4E7B !important;
+  color: #FFFFFF !important;
 }
 
 /* Install Guide Step within Product Tour */
@@ -614,7 +644,7 @@
 }
 
 :global([data-theme="light"]) .installStepHeading {
-  color: #0f172a;
+  color: #111827;
 }
 
 .installStepSub {
@@ -625,7 +655,7 @@
 }
 
 :global([data-theme="light"]) .installStepSub {
-  color: #64748b;
+  color: #52627A;
 }
 
 .installPromptDirectBtn {
@@ -678,13 +708,13 @@
 
 :global([data-theme="light"]) .tourSecondaryBtn {
   background: rgba(241, 245, 249, 0.9);
-  border-color: rgba(203, 213, 225, 0.9);
-  color: #475569;
+  border-color: #DCE5F0;
+  color: #52627A;
 }
 
 :global([data-theme="light"]) .tourSecondaryBtn:hover {
   background: rgba(226, 232, 240, 0.95);
-  color: #0f172a;
+  color: #111827;
 }
 
 /* Back Button & Action Button Row */
@@ -720,13 +750,13 @@
 
 :global([data-theme="light"]) .backButton {
   background: rgba(241, 245, 249, 0.9);
-  border-color: rgba(203, 213, 225, 0.8);
-  color: #475569;
+  border-color: #DCE5F0;
+  color: #52627A;
 }
 
 :global([data-theme="light"]) .backButton:hover {
   background: rgba(226, 232, 240, 1);
-  color: #0f172a;
+  color: #111827;
 }
 
 /* 8. Mobile Responsiveness */
