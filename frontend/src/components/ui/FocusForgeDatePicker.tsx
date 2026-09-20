@@ -339,21 +339,16 @@ export default function FocusForgeDatePicker({
         aria-label={ariaLabel || placeholder}
         aria-required={required}
         aria-expanded={isOpen}
-        className={`group flex items-center justify-between w-full px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 outline-none cursor-pointer border ${
+        className={`group flex items-center justify-between w-full px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 outline-none cursor-pointer border bg-[#F7FAFE] dark:bg-[#0f172a]/90 border-[#DCE5F0] dark:border-white/10 text-[#111827] dark:text-[#F8FAFC] ${
           disabled ? "opacity-50 cursor-not-allowed" : "hover:border-blue-500/50"
-        } ${isOpen ? "ring-2 ring-blue-500/20" : ""}`}
-        style={{
-          background: "var(--picker-surface, rgba(15, 23, 42, 0.65))",
-          borderColor: isOpen ? "var(--picker-border-focus, #3B82F6)" : "var(--picker-border, rgba(255, 255, 255, 0.12))",
-          color: value ? "var(--picker-text-primary, #F8FAFC)" : "var(--picker-text-muted, #64748B)",
-        }}
+        } ${isOpen ? "ring-2 ring-blue-500/20 border-blue-500" : ""}`}
       >
         <div className="flex items-center gap-2.5 truncate">
           <CalendarIcon
             size={16}
-            className="shrink-0 text-blue-400 group-hover:text-blue-300 transition-colors"
+            className="shrink-0 text-blue-500 dark:text-blue-400"
           />
-          <span className="truncate">
+          <span className="truncate font-medium">
             {value ? formatDisplayDate(value) : placeholder}
           </span>
         </div>
@@ -361,7 +356,7 @@ export default function FocusForgeDatePicker({
         <ChevronDown
           size={15}
           className={`shrink-0 ml-2 transition-transform duration-200 ${
-            isOpen ? "rotate-180 text-blue-400" : "text-zinc-400 group-hover:text-zinc-200"
+            isOpen ? "rotate-180 text-blue-500 dark:text-blue-400" : "text-[#52627A] dark:text-zinc-400"
           }`}
         />
       </button>
@@ -373,50 +368,38 @@ export default function FocusForgeDatePicker({
           role="dialog"
           aria-modal="false"
           aria-label="Select date"
-          className="fixed z-[99999] overflow-hidden rounded-2xl shadow-2xl animate-fade-in"
+          className="fixed z-[99999] overflow-hidden rounded-2xl shadow-2xl animate-fade-in bg-white dark:bg-[#0C1222] border border-[#DCE5F0] dark:border-white/10"
           style={{
             top: `${panelPos.top}px`,
             left: `${panelPos.left}px`,
             width: `${panelPos.width}px`,
-            background: "var(--picker-bg, #0C1222)",
-            borderColor: "var(--picker-border, rgba(255, 255, 255, 0.14))",
-            borderWidth: "1px",
-            borderStyle: "solid",
-            backdropFilter: "blur(20px)",
-            WebkitBackdropFilter: "blur(20px)",
-            boxShadow: "0 16px 40px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.05)",
+            boxShadow: "0 16px 40px rgba(0, 0, 0, 0.18), 0 0 0 1px rgba(0, 0, 0, 0.04)",
           }}
         >
           {/* Header: Selected Date Preview */}
           <div 
-            className="p-3.5 border-b flex flex-col gap-0.5"
-            style={{
-              borderColor: "var(--picker-border, rgba(255, 255, 255, 0.08))",
-              background: "rgba(59, 130, 246, 0.06)",
-            }}
+            className="p-3.5 border-b border-[#DCE5F0] dark:border-white/10 flex flex-col gap-0.5 bg-[#F7FAFE] dark:bg-blue-600/10"
           >
-            <span className="text-[10px] font-semibold uppercase tracking-wider text-blue-400">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400">
               Select Date
             </span>
             <span 
-              className="text-base font-bold tracking-tight"
-              style={{ color: "var(--picker-text-primary, #F8FAFC)" }}
+              className="text-base font-bold tracking-tight text-[#111827] dark:text-white"
             >
               {formatHeaderDate(tempDate)}
             </span>
           </div>
 
           {/* Navigation & Month/Year selector toggle */}
-          <div className="flex items-center justify-between px-3 py-2 border-b" style={{ borderColor: "var(--picker-border, rgba(255, 255, 255, 0.06))" }}>
+          <div className="flex items-center justify-between px-3 py-2 border-b border-[#DCE5F0] dark:border-white/10 bg-white dark:bg-transparent">
             <button
               type="button"
               onClick={() => setViewMode((m) => (m === "year" ? "calendar" : "year"))}
-              className="flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs font-bold hover:bg-white/10 dark:hover:bg-white/5 transition-colors cursor-pointer"
-              style={{ color: "var(--picker-text-primary, #F8FAFC)" }}
+              className="flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs font-bold text-[#111827] dark:text-white hover:bg-[#E8F1FC] dark:hover:bg-white/5 transition-colors cursor-pointer"
               title="Click to jump to a year"
             >
               <span>{MONTH_NAMES[activeMonth]} {activeYear}</span>
-              <ChevronDown size={14} className={`text-blue-400 transition-transform ${viewMode === "year" ? "rotate-180" : ""}`} />
+              <ChevronDown size={14} className={`text-blue-500 dark:text-blue-400 transition-transform ${viewMode === "year" ? "rotate-180" : ""}`} />
             </button>
 
             {viewMode === "calendar" && (
@@ -425,7 +408,7 @@ export default function FocusForgeDatePicker({
                   type="button"
                   onClick={prevMonth}
                   aria-label="Previous month"
-                  className="p-1 rounded-lg hover:bg-white/10 dark:hover:bg-white/5 transition-colors text-zinc-400 hover:text-white cursor-pointer"
+                  className="p-1 rounded-lg hover:bg-[#E8F1FC] dark:hover:bg-white/5 transition-colors text-[#52627A] hover:text-[#111827] dark:text-zinc-400 dark:hover:text-white cursor-pointer"
                 >
                   <ChevronLeft size={16} />
                 </button>
@@ -449,8 +432,7 @@ export default function FocusForgeDatePicker({
                 {WEEKDAY_NAMES.map((d, i) => (
                   <span
                     key={i}
-                    className="text-[10px] font-semibold py-1"
-                    style={{ color: "var(--picker-text-muted, #64748B)" }}
+                    className="text-[11px] font-bold py-1 text-[#52627A] dark:text-zinc-400"
                   >
                     {d}
                   </span>
@@ -475,24 +457,17 @@ export default function FocusForgeDatePicker({
                           setActiveYear(item.date.getFullYear());
                         }
                       }}
-                      className={`h-8 w-8 mx-auto flex items-center justify-center rounded-xl text-xs font-semibold transition-all duration-100 cursor-pointer ${
+                      className={`h-8 w-8 mx-auto flex items-center justify-center rounded-xl text-xs font-bold transition-all duration-100 cursor-pointer ${
                         item.isDisabled
-                          ? "opacity-20 cursor-not-allowed"
+                          ? "opacity-20 cursor-not-allowed text-slate-400 dark:text-zinc-600"
                           : isSelected
-                          ? "bg-blue-600 text-white font-bold  scale-105"
+                          ? "bg-blue-600 text-white font-bold shadow-xs scale-105"
                           : isToday
-                          ? "border border-blue-500/80 text-blue-400 font-bold hover:bg-blue-500/10"
+                          ? "border border-blue-500 text-blue-600 dark:text-blue-400 bg-blue-50/50 dark:bg-blue-500/10 font-bold hover:bg-blue-100/60 dark:hover:bg-blue-500/20"
                           : item.isCurrentMonth
-                          ? "hover:bg-white/10 dark:hover:bg-white/5"
-                          : "opacity-35 hover:opacity-70"
+                          ? "text-[#111827] dark:text-[#F8FAFC] hover:bg-[#E8F1FC] dark:hover:bg-white/10"
+                          : "text-[#8290A5] dark:text-zinc-500 opacity-60 hover:opacity-100 hover:bg-[#E8F1FC]/50 dark:hover:bg-white/5"
                       }`}
-                      style={{
-                        color: isSelected
-                          ? "#FFFFFF"
-                          : isToday
-                          ? "var(--picker-border-focus, #3B82F6)"
-                          : "var(--picker-text-primary, #F8FAFC)",
-                      }}
                     >
                       {item.date.getDate()}
                     </button>
@@ -519,10 +494,10 @@ export default function FocusForgeDatePicker({
                       setActiveYear(y);
                       setViewMode("month");
                     }}
-                    className={`py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                    className={`py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                       isSelected
-                        ? "bg-blue-600 text-white font-bold "
-                        : "hover:bg-white/10 text-zinc-300 hover:text-white"
+                        ? "bg-blue-600 text-white shadow-xs"
+                        : "text-[#111827] dark:text-zinc-300 hover:bg-[#E8F1FC] dark:hover:bg-white/10"
                     }`}
                   >
                     {y}
@@ -545,10 +520,10 @@ export default function FocusForgeDatePicker({
                       setActiveMonth(idx);
                       setViewMode("calendar");
                     }}
-                    className={`py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                    className={`py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                       isSelected
-                        ? "bg-blue-600 text-white font-bold "
-                        : "hover:bg-white/10 text-zinc-300 hover:text-white"
+                        ? "bg-blue-600 text-white shadow-xs"
+                        : "text-[#111827] dark:text-zinc-300 hover:bg-[#E8F1FC] dark:hover:bg-white/10"
                     }`}
                   >
                     {m}
@@ -560,15 +535,14 @@ export default function FocusForgeDatePicker({
 
           {/* Bottom Actions Bar */}
           <div 
-            className="flex items-center justify-between px-3 py-2 border-t gap-2"
-            style={{ borderColor: "var(--picker-border, rgba(255, 255, 255, 0.08))" }}
+            className="flex items-center justify-between px-3 py-2.5 border-t border-[#DCE5F0] dark:border-white/10 bg-[#F7FAFE] dark:bg-transparent gap-2"
           >
             <div>
               {clearable && (
                 <button
                   type="button"
                   onClick={handleClear}
-                  className="px-2 py-1 rounded-lg text-xs font-semibold text-zinc-400 hover:text-zinc-200 transition-colors cursor-pointer"
+                  className="px-2 py-1 rounded-lg text-xs font-semibold text-[#52627A] dark:text-zinc-400 hover:text-[#111827] dark:hover:text-zinc-200 cursor-pointer"
                 >
                   Clear
                 </button>
@@ -579,14 +553,14 @@ export default function FocusForgeDatePicker({
               <button
                 type="button"
                 onClick={handleClose}
-                className="px-2.5 py-1 rounded-xl text-xs font-semibold text-zinc-400 hover:text-zinc-200 hover:bg-white/5 transition-colors cursor-pointer"
+                className="px-2.5 py-1 rounded-xl text-xs font-semibold text-[#52627A] dark:text-zinc-400 hover:text-[#111827] dark:hover:text-zinc-200 hover:bg-[#E8F1FC] dark:hover:bg-white/5 transition-colors cursor-pointer"
               >
                 Cancel
               </button>
               <button
                 type="button"
                 onClick={handleConfirm}
-                className="px-3.5 py-1.5 rounded-xl text-xs font-bold text-white bg-blue-600 hover:bg-blue-500  active:scale-95 transition-all cursor-pointer flex items-center gap-1"
+                className="px-3.5 py-1.5 rounded-xl text-xs font-bold text-white bg-blue-600 hover:bg-blue-500 shadow-xs active:scale-95 transition-all cursor-pointer flex items-center gap-1"
               >
                 <Check size={13} />
                 <span>OK</span>

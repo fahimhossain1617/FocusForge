@@ -25,7 +25,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
 
   const [step, setStep] = useState<OnboardingStep>("WELCOME");
   const [selectedLang, setSelectedLang] = useState<"en" | "bn">(state.lang === "bn" ? "bn" : "en");
-  const [selectedTheme, setSelectedTheme] = useState<"dark" | "light">(state.theme.mode === "light" ? "light" : "dark");
+  const [selectedTheme, setSelectedTheme] = useState<"dark" | "light" | "system">(state.theme.mode || "dark");
 
   // Keep local choices in sync with current state
   useEffect(() => {
@@ -58,7 +58,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
   };
 
   // Theme selection handler - immediately updates live UI
-  const handleSelectTheme = (mode: "dark" | "light") => {
+  const handleSelectTheme = (mode: "dark" | "light" | "system") => {
     setSelectedTheme(mode);
     updateState({
       theme: {

@@ -119,14 +119,14 @@ export default function UserMenu({ variant = "sidebar" }: UserMenuProps) {
               )}
               <div className="flex-1 min-w-0">
                 <p 
-                  className="text-xs font-semibold truncate leading-tight transition-colors"
+                  className="text-xs font-semibold break-words leading-tight transition-colors"
                   style={{ color: "var(--color-text-primary)" }}
                   title={user?.displayName || "FocusForge User"}
                 >
                   {user?.displayName || "FocusForge User"}
                 </p>
                 <p 
-                  className="text-[10px] truncate mt-0.5 transition-colors"
+                  className="text-[10px] break-all mt-0.5 transition-colors"
                   style={{ color: "var(--color-text-secondary)" }}
                   title={user?.identifier}
                 >
@@ -150,22 +150,22 @@ export default function UserMenu({ variant = "sidebar" }: UserMenuProps) {
                 <img 
                   src={user.avatarUrl} 
                   alt={user.displayName} 
-                  className="w-5 h-5 rounded-full object-cover border border-blue-500/30" 
+                  className="w-5 h-5 rounded-full object-cover border border-blue-500/30 shrink-0" 
                 />
               ) : (
                 <div 
-                  className="badge-accent-solid w-5 h-5 rounded-full bg-blue-600 flex items-center justify-center text-[10px] font-bold text-white uppercase shadow-sm"
+                  className="badge-accent-solid w-5 h-5 rounded-full bg-blue-600 flex items-center justify-center text-[10px] font-bold text-white uppercase shadow-sm shrink-0"
                   style={{ color: "#FFFFFF" }}
                 >
                   {user?.displayName ? user.displayName[0] : "U"}
                 </div>
               )}
-              <span className="max-w-[110px] truncate font-medium" style={{ color: "var(--color-text-primary)" }}>
+              <span className="font-medium whitespace-nowrap" style={{ color: "var(--color-text-primary)" }}>
                 {user?.displayName || user?.identifier}
               </span>
               <ChevronDown 
                 size={13} 
-                className={`transition-transform duration-200 ${dropdownOpen ? "rotate-180 text-blue-500" : ""}`} 
+                className={`transition-transform duration-200 shrink-0 ${dropdownOpen ? "rotate-180 text-blue-500" : ""}`} 
                 style={{ color: dropdownOpen ? undefined : "var(--color-text-secondary)" }}
               />
             </button>

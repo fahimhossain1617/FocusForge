@@ -23,10 +23,10 @@ export default function DashboardSkeleton() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 items-stretch">
         {/* Card 1: Today's Tasks */}
         <div
-          className="rounded-2xl p-5 flex flex-col justify-between border"
+          className="dashboard-card card rounded-2xl p-5 flex flex-col justify-between border"
           style={{
-            background: "linear-gradient(145deg, rgba(16, 22, 36, 0.95), rgba(11, 15, 26, 0.98))",
-            borderColor: "rgba(59, 130, 246, 0.12)",
+            background: "var(--dashboard-card-bg, linear-gradient(145deg, rgba(16, 22, 36, 0.95), rgba(11, 15, 26, 0.98)))",
+            borderColor: "var(--dashboard-card-border, rgba(59, 130, 246, 0.12))",
           }}
         >
           <div>
@@ -59,10 +59,10 @@ export default function DashboardSkeleton() {
 
         {/* Card 2: Today's Focus (Radial Donut Gauge + Breakdown + Distractions) */}
         <div
-          className="rounded-2xl p-5 flex flex-col justify-between border"
+          className="dashboard-card card rounded-2xl p-5 flex flex-col justify-between border"
           style={{
-            background: "linear-gradient(145deg, rgba(16, 22, 36, 0.95), rgba(11, 15, 26, 0.98))",
-            borderColor: "rgba(59, 130, 246, 0.12)",
+            background: "var(--dashboard-card-bg, linear-gradient(145deg, rgba(16, 22, 36, 0.95), rgba(11, 15, 26, 0.98)))",
+            borderColor: "var(--dashboard-card-border, rgba(59, 130, 246, 0.12))",
           }}
         >
           <div>
@@ -113,10 +113,10 @@ export default function DashboardSkeleton() {
 
         {/* Card 3: Current Skills (Inline Progress Bars) */}
         <div
-          className="rounded-2xl p-5 flex flex-col justify-between border"
+          className="dashboard-card card rounded-2xl p-5 flex flex-col justify-between border"
           style={{
-            background: "linear-gradient(145deg, rgba(16, 22, 36, 0.95), rgba(11, 15, 26, 0.98))",
-            borderColor: "rgba(59, 130, 246, 0.12)",
+            background: "var(--dashboard-card-bg, linear-gradient(145deg, rgba(16, 22, 36, 0.95), rgba(11, 15, 26, 0.98)))",
+            borderColor: "var(--dashboard-card-border, rgba(59, 130, 246, 0.12))",
           }}
         >
           <div>
@@ -146,10 +146,10 @@ export default function DashboardSkeleton() {
 
       {/* 3. Bottom Section: Focus & Productivity Progress (Weekly Bar Chart) */}
       <div
-        className="rounded-2xl p-5 sm:p-7 border space-y-6"
+        className="dashboard-card card rounded-2xl p-5 sm:p-7 border space-y-6"
         style={{
-          background: "linear-gradient(145deg, rgba(16, 22, 36, 0.95), rgba(11, 15, 26, 0.98))",
-          borderColor: "rgba(59, 130, 246, 0.12)",
+          background: "var(--dashboard-card-bg, linear-gradient(145deg, rgba(16, 22, 36, 0.95), rgba(11, 15, 26, 0.98)))",
+          borderColor: "var(--dashboard-card-border, rgba(59, 130, 246, 0.12))",
         }}
       >
         {/* Header Bar: Icon + Title + Toggle */}

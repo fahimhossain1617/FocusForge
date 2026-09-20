@@ -198,7 +198,7 @@ export default function LearningHubPage() {
     <div className="motion-page max-w-6xl flex flex-col md:flex-row gap-6">
 
       {/* LEFT PANE: Folders List */}
-      <div className="w-full md:w-1/3 flex flex-col gap-4">
+      <div className={`w-full md:w-1/3 flex-col gap-4 ${selectedFolderId ? "hidden md:flex" : "flex"}`}>
         <div className="mb-2">
           <h1 className="text-base md:text-lg font-semibold tracking-tight text-foreground">{t.learningHub.title}</h1>
           <p className="text-xs sm:text-sm mt-0.5 text-muted-foreground font-normal">{t.learningHub.subtitle}</p>
@@ -211,7 +211,7 @@ export default function LearningHubPage() {
             value={newFolderName}
             onChange={(e) => setNewFolderName(e.target.value)}
             placeholder={t.learningHub.newFolderPlaceholder}
-            className="input-field flex-1 text-sm py-2 px-3 transition-colors focus:border-purple-500"
+            className="input-field flex-1 text-sm py-2 px-3 transition-colors focus:border-blue-500 rounded-xl"
           />
           <button
             type={newFolderName.trim() ? "submit" : "button"}
@@ -221,9 +221,9 @@ export default function LearningHubPage() {
               }
             }}
             title={newFolderName.trim() ? t.learningHub.saveFolder : t.learningHub.createFolder}
-            className={`p-2 rounded-xl flex items-center justify-center transition-all duration-200 cursor-pointer ${
+            className={`p-2 rounded-xl flex items-center justify-center transition-all duration-200 cursor-pointer shadow-sm ${
               newFolderName.trim()
-                ? "bg-emerald-600 hover:bg-emerald-500 text-white  scale-105"
+                ? "bg-emerald-600 hover:bg-emerald-500 text-white scale-105"
                 : "btn-primary"
             }`}
           >
@@ -237,22 +237,22 @@ export default function LearningHubPage() {
 
         <div className="motion-stagger-fast flex flex-col gap-2 mt-4">
           {state.learningFolders.length === 0 ? (
-            <p className="text-sm text-center py-6" style={{ color: "var(--color-text-muted)" }}>{t.learningHub.noFolders}</p>
+            <p className="text-sm text-center py-6 text-slate-500 dark:text-zinc-500">{t.learningHub.noFolders}</p>
           ) : (
             state.learningFolders.map(folder => (
               <button
                 key={folder.id}
                 onClick={() => setSelectedFolderId(folder.id)}
                 className={`flex items-center gap-3 p-3 rounded-xl transition-all text-left w-full border ${selectedFolderId === folder.id
-                    ? "bg-[rgba(124,58,237,0.1)] border-[var(--color-purple-primary)]"
-                    : "bg-[var(--color-bg-secondary)] border-transparent hover:border-[var(--color-border-subtle)]"
+                    ? "bg-blue-50 dark:bg-blue-900/20 border-blue-500 shadow-xs"
+                    : "bg-white dark:bg-slate-900/60 border-slate-200 dark:border-transparent hover:border-slate-300 dark:hover:border-white/10"
                   }`}
               >
-                <Folder className={`w-5 h-5 ${folder.completed ? "text-green-500" : "text-[var(--color-purple-primary)]"}`} />
-                <span className={`flex-1 text-sm font-medium ${folder.completed ? "line-through opacity-60" : ""}`} style={{ color: "var(--color-text-primary)" }}>
+                <Folder className={`w-5 h-5 ${folder.completed ? "text-emerald-500" : "text-blue-600 dark:text-blue-400"}`} />
+                <span className={`flex-1 text-sm font-medium ${folder.completed ? "line-through opacity-60 text-slate-500" : "text-foreground"}`}>
                   {folder.name}
                 </span>
-                {folder.completed && <CheckCircle className="w-4 h-4 text-green-500" />}
+                {folder.completed && <CheckCircle className="w-4 h-4 text-emerald-500" />}
               </button>
             ))
           )}
@@ -260,7 +260,7 @@ export default function LearningHubPage() {
       </div>
 
       {/* RIGHT PANE: Workspace */}
-      <div className="w-full md:w-2/3">
+      <div className={`w-full md:w-2/3 ${!selectedFolderId ? "hidden md:block" : "block"}`}>
         {!activeFolder ? (
           <div className="card h-full min-h-[400px] flex items-center justify-center">
             <EmptyState
@@ -336,27 +336,27 @@ export default function LearningHubPage() {
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               {/* Time Split */}
               <div className="card p-4 flex flex-col justify-center">
-                <p className="text-xs font-medium uppercase tracking-wider mb-2" style={{ color: "var(--color-text-muted)" }}>{t.learningHub.timeSpent}</p>
+                <p className="text-xs font-medium uppercase tracking-wider mb-2 text-slate-500 dark:text-zinc-400">{t.learningHub.timeSpent}</p>
                 <div className="flex items-end gap-2 mb-2">
-                  <span className="text-2xl font-bold" style={{ color: "var(--color-text-primary)" }}>{formatHoursMins(totalMins)}</span>
+                  <span className="text-2xl font-bold text-foreground">{formatHoursMins(totalMins)}</span>
                 </div>
                 {totalMins > 0 && (
-                  <div className="flex h-2 rounded-full overflow-hidden mt-1">
+                  <div className="flex h-2 rounded-full overflow-hidden mt-1 bg-slate-100 dark:bg-slate-800">
                     <div style={{ width: `${(totalPracticeMins / totalMins) * 100}%`, background: "var(--color-purple-primary)" }} title="Practice" />
-                    <div style={{ width: `${(totalWatchMins / totalMins) * 100}%`, background: "var(--color-bg-secondary)" }} title="Watch" />
+                    <div style={{ width: `${(totalWatchMins / totalMins) * 100}%`, background: "#E5EDF7" }} title="Watch" />
                   </div>
                 )}
-                <div className="flex gap-4 mt-2 text-[10px]" style={{ color: "var(--color-text-muted)" }}>
-                  <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-full" style={{ background: "var(--color-purple-primary)" }}></div> {t.learningHub.selfLearning} ({formatHoursMins(totalPracticeMins)})</div>
-                  <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-full" style={{ background: "var(--color-bg-secondary)" }}></div> {t.learningHub.tuition} ({formatHoursMins(totalWatchMins)})</div>
+                <div className="flex gap-4 mt-2 text-[10px] text-slate-500 dark:text-zinc-400">
+                  <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-blue-600"></div> {t.learningHub.selfLearning} ({formatHoursMins(totalPracticeMins)})</div>
+                  <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-blue-300"></div> {t.learningHub.tuition} ({formatHoursMins(totalWatchMins)})</div>
                 </div>
               </div>
 
               {/* Streak */}
               <div className="card p-4 flex flex-col items-center justify-center text-center">
-                <CalendarDays className="w-6 h-6 mb-2" style={{ color: "var(--color-purple-soft)" }} />
-                <p className="text-xs font-medium uppercase tracking-wider mb-1" style={{ color: "var(--color-text-muted)" }}>{t.learningHub.currentStreak}</p>
-                <span className="text-2xl font-bold" style={{ color: "var(--color-purple-bright)" }}>{streak} <span className="text-sm font-medium text-zinc-500">{t.learningHub.days}</span></span>
+                <CalendarDays className="w-6 h-6 mb-2 text-blue-500 dark:text-blue-400" />
+                <p className="text-xs font-medium uppercase tracking-wider mb-1 text-slate-500 dark:text-zinc-400">{t.learningHub.currentStreak}</p>
+                <span className="text-2xl font-bold text-blue-600 dark:text-blue-400">{streak} <span className="text-sm font-medium text-slate-400 dark:text-zinc-500">{t.learningHub.days}</span></span>
               </div>
 
               {/* Gap Indicator */}
@@ -364,22 +364,22 @@ export default function LearningHubPage() {
                 {gapDays >= 2 ? (
                   <>
                     <AlertTriangle className="w-6 h-6 mb-2 text-red-500" />
-                    <p className="text-xs font-medium uppercase tracking-wider mb-1 text-red-400">{t.learningHub.inactivityGap}</p>
+                    <p className="text-xs font-medium uppercase tracking-wider mb-1 text-red-500">{t.learningHub.inactivityGap}</p>
                     <span className="text-lg font-bold text-red-500">{gapDays} {t.learningHub.days}</span>
                   </>
                 ) : (
                   <>
-                    <Clock className="w-6 h-6 mb-2" style={{ color: "var(--color-success)" }} />
-                    <p className="text-xs font-medium uppercase tracking-wider mb-1" style={{ color: "var(--color-text-muted)" }}>{t.learningHub.status}</p>
-                    <span className="text-sm font-medium" style={{ color: "var(--color-success)" }}>{t.learningHub.active}</span>
+                    <Clock className="w-6 h-6 mb-2 text-emerald-500" />
+                    <p className="text-xs font-medium uppercase tracking-wider mb-1 text-slate-500 dark:text-zinc-400">{t.learningHub.status}</p>
+                    <span className="text-sm font-semibold text-emerald-600 dark:text-emerald-400">{t.learningHub.active}</span>
                   </>
                 )}
               </div>
             </div>
 
             {/* Daily Log Form */}
-            <div className="card p-5 border border-[var(--color-purple-primary)]/20">
-              <h3 className="text-sm font-semibold mb-4 flex items-center gap-2" style={{ color: "var(--color-purple-bright)" }}>
+            <div className="card p-5 border border-blue-500/20">
+              <h3 className="text-sm font-semibold mb-4 flex items-center gap-2 text-blue-600 dark:text-blue-400">
                 <Plus className="w-4 h-4" /> {t.learningHub.addDailyLog}
               </h3>
               <form onSubmit={handleAddLog} className="flex flex-col gap-4">
@@ -498,7 +498,7 @@ export default function LearningHubPage() {
           <div className="absolute inset-0" onClick={() => setCompletedModalData(null)} />
 
           <div 
-            className={`completion-modal relative w-full max-w-sm rounded-2xl border border-white/10 p-5 shadow-2xl overflow-hidden flex flex-col items-center text-center bg-[#111319]/95 backdrop-blur-md -translate-y-6 sm:-translate-y-8 ${completionModalAnim.isExiting ? "motion-exit-reveal" : "motion-reveal"}`}
+            className={`completion-modal app-modal-panel relative w-full max-w-sm rounded-2xl border border-white/10 p-5 shadow-2xl overflow-hidden flex flex-col items-center text-center bg-[#111319]/95 backdrop-blur-md -translate-y-6 sm:-translate-y-8 ${completionModalAnim.isExiting ? "motion-exit-reveal" : "motion-reveal"}`}
           >
             {/* Close button */}
             <button

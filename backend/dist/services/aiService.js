@@ -156,12 +156,38 @@ function generateRuleBasedAgentResponse(payload) {
             payload: null
         };
     }
+    function getTimeBasedAgentGreeting(isBn) {
+        const hour = new Date().getHours();
+        if (hour >= 5 && hour < 12) {
+            return isBn
+                ? "শুভ সকাল! FocusForge AI-তে আপনাকে স্বাগতম। আজ আপনার পড়াশোনা ও কাজের পরিকল্পনা সাজাতে কীভাবে সহায়তা করতে পারি?"
+                : "Good morning! Welcome to FocusForge AI. How can I assist you with your study schedule and goals today?";
+        }
+        else if (hour >= 12 && hour < 15) {
+            return isBn
+                ? "শুভ দুপুর! FocusForge AI-তে স্বাগতম। দুপুরের কাজের গতি ধরে রাখতে কোন বিষয়ে সহায়তা প্রয়োজন?"
+                : "Good noon! Welcome to FocusForge AI. How can I help boost your productivity this afternoon?";
+        }
+        else if (hour >= 15 && hour < 18) {
+            return isBn
+                ? "শুভ বিকাল! FocusForge AI-তে স্বাগতম। আজকের গুরুত্বপূর্ণ লক্ষ্যগুলো শেষ করতে কী নিয়ে প্ল্যান করব?"
+                : "Good afternoon! Welcome to FocusForge AI. Ready to wrap up your top priorities for today?";
+        }
+        else if (hour >= 18 && hour < 21) {
+            return isBn
+                ? "শুভ সন্ধ্যা! FocusForge AI-তে স্বাগতম। সারাদিনের কাজের অগ্রগতি পর্যালোচনা বা আগামীকালের পরিকল্পনা সাজিয়ে নিই?"
+                : "Good evening! Welcome to FocusForge AI. Would you like to review today's achievements or prepare for tomorrow?";
+        }
+        else {
+            return isBn
+                ? "হে নাইট আউল! FocusForge AI-তে স্বাগতম। গভীর রাতের পড়াশোনা ও ফোকাস কাজে কোনো সাহায্য প্রয়োজন?"
+                : "Hey night owl! Welcome to FocusForge AI. Working on late-night study or planning ahead?";
+        }
+    }
     if (/^(hi|hello|hey|হাই|হ্যালো|আসসালামু আলাইকুম|আসসালামু|কেমন আছেন|হায়|হায়)$/i.test(query.trim()) || query.includes("কেমন আছেন") || query.includes("আসসালামু")) {
         return {
             intent: "GREETING_OR_GENERAL",
-            message: isBn
-                ? "হ্যালো! আসসালামু আলাইকুম। FocusForge AI-তে আপনাকে স্বাগতম! আজ আপনার পড়াশোনা বা কাজের পরিকল্পনা কীভাবে সাজাতে সাহায্য করতে পারি? আপনার প্রধান লক্ষ্য বা বিষয়গুলো আমাকে জানান!"
-                : "Hello! Welcome to FocusForge AI. How can I help you organize your tasks, study schedule, or focus sessions today? Let me know your main goals!",
+            message: getTimeBasedAgentGreeting(isBn),
             payload: null
         };
     }

@@ -404,21 +404,21 @@
 :global([data-theme="light"]) .closeButton,
 .voiceOverlay[data-theme="light"] .closeButton {
   background: rgba(255, 255, 255, 0.85) !important;
-  border: 1px solid rgba(203, 213, 225, 0.8) !important;
-  color: #475569 !important;
-  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.08) !important;
+  border: 1px solid #DCE5F0 !important;
+  color: #52627A !important;
+  box-shadow: 0 4px 16px rgba(34, 58, 94, 0.08) !important;
 }
 
 :global([data-theme="light"]) .closeButton:hover,
 .voiceOverlay[data-theme="light"] .closeButton:hover {
   background: #ffffff !important;
-  border-color: rgba(59, 130, 246, 0.5) !important;
-  color: #0f172a !important;
+  border-color: #5B8DEF !important;
+  color: #111827 !important;
 }
 
 :global([data-theme="light"]) .liveTranscript,
 .voiceOverlay[data-theme="light"] .liveTranscript {
-  color: #0f172a !important;
+  color: #111827 !important;
   font-weight: 500 !important;
   text-shadow: 0 1px 3px rgba(255, 255, 255, 0.8) !important;
 }
@@ -426,22 +426,22 @@
 :global([data-theme="light"]) .voiceControlBox,
 .voiceOverlay[data-theme="light"] .voiceControlBox {
   background: rgba(255, 255, 255, 0.88) !important;
-  border: 1px solid rgba(147, 197, 253, 0.55) !important;
-  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.09), 0 0 24px rgba(37, 99, 235, 0.12), inset 0 1px 1px #ffffff !important;
+  border: 1px solid #DCE5F0 !important;
+  box-shadow: 0 12px 32px rgba(34, 58, 94, 0.09), 0 0 24px rgba(91, 141, 239, 0.12), inset 0 1px 1px #ffffff !important;
 }
 
 :global([data-theme="light"]) .voiceActionButton,
 .voiceOverlay[data-theme="light"] .voiceActionButton {
-  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%) !important;
+  background: linear-gradient(135deg, #223A5E 0%, #2E4E7B 100%) !important;
   color: #ffffff !important;
-  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35) !important;
+  box-shadow: 0 4px 14px rgba(34, 58, 94, 0.25) !important;
 }
 
 :global([data-theme="light"]) .pausedButton,
 .voiceOverlay[data-theme="light"] .pausedButton {
-  background: rgba(241, 245, 249, 0.95) !important;
-  border-color: rgba(203, 213, 225, 0.9) !important;
-  color: #475569 !important;
+  background: #F7FAFE !important;
+  border-color: #DCE5F0 !important;
+  color: #52627A !important;
   box-shadow: none !important;
 }
 

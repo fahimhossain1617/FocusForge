@@ -47,8 +47,8 @@ function format12Display(timeStr?: string): string {
   return `${String(hour12).padStart(2, "0")}:${String(minute).padStart(2, "0")} ${period}`;
 }
 
-const DIAL = 180;
-const R = 68;
+const DIAL = 150;
+const R = 54;
 
 export default function FocusForgeTimePicker({
   value, onChange, placeholder = "Select time", disabled = false,
@@ -78,9 +78,9 @@ export default function FocusForgeTimePicker({
     const rect = triggerRef.current.getBoundingClientRect();
     const vw = window.innerWidth;
     const vh = window.innerHeight;
-    const pad = 12;
-    const panelH = 340;
-    const panelW = Math.min(260, vw - pad * 2);
+    const pad = 8;
+    const panelH = 265;
+    const panelW = Math.min(230, vw - pad * 2);
 
     const spaceAbove = rect.top;
     const spaceBelow = vh - rect.bottom;
@@ -91,8 +91,8 @@ export default function FocusForgeTimePicker({
     if (left < pad) left = pad;
 
     const top = placement === "above" 
-      ? rect.top - panelH - 6 
-      : rect.bottom + 6;
+      ? rect.top - panelH - 4 
+      : rect.bottom + 4;
 
     setPos({ top: Math.max(pad, top), left, width: panelW, placement });
   }, []);
@@ -214,14 +214,20 @@ export default function FocusForgeTimePicker({
       return (
         <span
           key={n}
-          className={`absolute flex items-center justify-center rounded-full select-none pointer-events-none transition-all duration-100 ${
+          className={`absolute flex items-center justify-center rounded-full select-none pointer-events-none ${
             isSelected
-              ? "bg-blue-600 text-white font-bold "
-              : "text-zinc-400"
+              ? "!text-white font-extrabold shadow-sm scale-110"
+              : "!text-slate-900 font-bold"
           }`}
           style={{
-            width: 28, height: 28, fontSize: 11, fontWeight: isSelected ? 700 : 600,
-            left: x - 14, top: y - 14,
+            width: 24,
+            height: 24,
+            fontSize: 10,
+            fontWeight: isSelected ? 800 : 700,
+            left: x - 12,
+            top: y - 12,
+            color: isSelected ? "#FFFFFF" : "#0F172A",
+            backgroundColor: isSelected ? "#223A5E" : "transparent",
           }}
         >
           {label}
@@ -232,7 +238,7 @@ export default function FocusForgeTimePicker({
 
   return (
     <div className={`relative inline-block w-full text-left select-none ${className}`}>
-      {/* Trigger */}
+      {/* Trigger Button */}
       <button
         ref={triggerRef}
         id={id}
@@ -242,29 +248,24 @@ export default function FocusForgeTimePicker({
         aria-label={ariaLabel || placeholder}
         aria-required={required}
         aria-expanded={isOpen}
-        className={`group flex items-center justify-between w-full px-3 py-2 rounded-xl text-sm font-medium transition-all outline-none cursor-pointer border ${
-          disabled ? "opacity-50 cursor-not-allowed" : "hover:border-blue-500/40"
-        }`}
-        style={{
-          background: "var(--picker-surface, rgba(15,23,42,0.65))",
-          borderColor: isOpen ? "var(--picker-border-focus, #3B82F6)" : "var(--picker-border, rgba(255,255,255,0.12))",
-          color: value ? "var(--picker-text-primary, #F8FAFC)" : "var(--picker-text-muted, #64748B)",
-        }}
+        className={`group flex items-center justify-between w-full px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-colors outline-none cursor-pointer border bg-slate-50 border-slate-200 hover:border-[#223A5E] text-slate-900 shadow-xs ${
+          disabled ? "opacity-50 cursor-not-allowed" : ""
+        } ${isOpen ? "ring-2 ring-[#223A5E]/20 border-[#223A5E]" : ""}`}
       >
-        <div className="flex items-center gap-2 truncate">
-          <Clock size={14} className="shrink-0 text-blue-400" />
-          <span className="truncate">{value ? format12Display(value) : placeholder}</span>
+        <div className="flex items-center gap-2.5 truncate">
+          <Clock size={15} className="shrink-0 text-[#223A5E]" />
+          <span className="truncate font-semibold text-slate-900">{value ? format12Display(value) : placeholder}</span>
         </div>
       </button>
 
-      {/* Dropdown Panel — positioned directly below/above trigger */}
+      {/* Dropdown Panel — Compact Pure Light UI matching #223A5E */}
       {mounted && isOpen && pos && createPortal(
         <div
           ref={panelRef}
           role="dialog"
           aria-modal="false"
           aria-label="Select time"
-          className="fixed z-[99999] animate-fade-in"
+          className="fixed z-[99999]"
           style={{
             top: `${pos.top}px`,
             left: `${pos.left}px`,
@@ -272,47 +273,64 @@ export default function FocusForgeTimePicker({
           }}
         >
           <div
-            className="rounded-2xl overflow-hidden shadow-2xl"
+            className="rounded-2xl overflow-hidden shadow-xl bg-white border border-slate-200"
             style={{
-              background: "var(--picker-bg, #0C1222)",
-              border: "1px solid var(--picker-border, rgba(255,255,255,0.10))",
-              boxShadow: "0 16px 48px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.04)",
+              boxShadow: "0 12px 36px rgba(34, 58, 94, 0.14), 0 0 0 1px rgba(34, 58, 94, 0.04)",
             }}
           >
             {/* Header: HH:MM + AM/PM */}
-            <div className="px-3 pt-3 pb-2 flex items-center justify-between"
-              style={{ borderBottom: "1px solid var(--picker-border, rgba(255,255,255,0.08))" }}
-            >
+            <div className="px-3 pt-2.5 pb-2 flex items-center justify-between border-b border-slate-200 bg-slate-50">
               <div className="flex items-center gap-0.5 font-bold">
-                <button type="button" onClick={() => setActiveUnit("hour")}
-                  className={`text-xl w-10 h-8 flex items-center justify-center rounded-lg transition-all cursor-pointer font-mono ${
+                <button
+                  type="button"
+                  onClick={() => setActiveUnit("hour")}
+                  className={`text-base w-9 h-7 flex items-center justify-center rounded-lg cursor-pointer font-mono font-bold ${
                     activeUnit === "hour"
-                      ? "bg-blue-600/20 text-blue-400 border border-blue-500/35"
-                      : "text-zinc-300 hover:bg-white/5"
+                      ? "!text-white shadow-xs"
+                      : "text-slate-800 hover:bg-slate-200/70"
                   }`}
+                  style={{
+                    color: activeUnit === "hour" ? "#FFFFFF" : "#1E293B",
+                    backgroundColor: activeUnit === "hour" ? "#223A5E" : "transparent",
+                    borderColor: activeUnit === "hour" ? "#223A5E" : "transparent",
+                  }}
                 >
                   {String(hour12).padStart(2, "0")}
                 </button>
-                <span className="text-lg text-zinc-500 px-0.5">:</span>
-                <button type="button" onClick={() => setActiveUnit("minute")}
-                  className={`text-xl w-10 h-8 flex items-center justify-center rounded-lg transition-all cursor-pointer font-mono ${
+                <span className="text-base text-slate-700 font-bold px-0.5">:</span>
+                <button
+                  type="button"
+                  onClick={() => setActiveUnit("minute")}
+                  className={`text-base w-9 h-7 flex items-center justify-center rounded-lg cursor-pointer font-mono font-bold ${
                     activeUnit === "minute"
-                      ? "bg-blue-600/20 text-blue-400 border border-blue-500/35"
-                      : "text-zinc-300 hover:bg-white/5"
+                      ? "!text-white shadow-xs"
+                      : "text-slate-800 hover:bg-slate-200/70"
                   }`}
+                  style={{
+                    color: activeUnit === "minute" ? "#FFFFFF" : "#1E293B",
+                    backgroundColor: activeUnit === "minute" ? "#223A5E" : "transparent",
+                    borderColor: activeUnit === "minute" ? "#223A5E" : "transparent",
+                  }}
                 >
                   {String(minute).padStart(2, "0")}
                 </button>
               </div>
 
-              <div className="flex rounded-lg overflow-hidden border"
-                style={{ background: "rgba(0,0,0,0.25)", borderColor: "var(--picker-border, rgba(255,255,255,0.08))" }}
-              >
+              <div className="flex rounded-lg overflow-hidden border border-slate-200 bg-slate-100 p-0.5 gap-0.5">
                 {(["AM", "PM"] as const).map((p) => (
-                  <button key={p} type="button" onClick={() => setPeriod(p)}
-                    className={`px-2 py-1 text-[10px] font-bold transition-all cursor-pointer ${
-                      period === p ? "bg-blue-600 text-white" : "text-zinc-400 hover:text-zinc-200"
+                  <button
+                    key={p}
+                    type="button"
+                    onClick={() => setPeriod(p)}
+                    className={`px-2 py-0.5 text-[11px] font-bold rounded-md cursor-pointer ${
+                      period === p
+                        ? "!text-white shadow-xs"
+                        : "text-slate-600 hover:text-slate-900"
                     }`}
+                    style={{
+                      color: period === p ? "#FFFFFF" : "#475569",
+                      backgroundColor: period === p ? "#223A5E" : "transparent",
+                    }}
                   >
                     {p}
                   </button>
@@ -320,86 +338,100 @@ export default function FocusForgeTimePicker({
               </div>
             </div>
 
-            {/* Dial */}
+            {/* Dial Area */}
             {inputMode === "dial" ? (
-              <div className="flex items-center justify-center py-3 px-2">
+              <div className="flex items-center justify-center py-2.5 px-2 bg-white">
                 <div
                   ref={dialRef}
                   onPointerDown={onPointerDown}
                   onPointerMove={onPointerMove}
                   onPointerUp={onPointerUp}
-                  className="relative touch-none cursor-pointer select-none rounded-full"
+                  className="relative touch-none cursor-pointer select-none rounded-full bg-slate-50 border border-slate-200"
                   style={{
-                    width: DIAL, height: DIAL,
-                    background: "rgba(255,255,255,0.025)",
-                    border: "1px solid var(--picker-border, rgba(255,255,255,0.07))",
+                    width: DIAL,
+                    height: DIAL,
                   }}
                 >
                   {renderNumbers()}
 
                   {/* Hand */}
-                  <div className="absolute pointer-events-none"
+                  <div
+                    className="absolute pointer-events-none"
                     style={{
-                      width: 2, height: R - 10,
-                      left: center - 1, top: center - (R - 10),
-                      transformOrigin: `1px ${R - 10}px`,
+                      width: 2,
+                      height: R - 8,
+                      left: center - 1,
+                      top: center - (R - 8),
+                      transformOrigin: `1px ${R - 8}px`,
                       transform: `rotate(${handAngle}deg)`,
-                      background: "linear-gradient(to top, rgba(37,99,235,0.5), #3B82F6)",
-                      borderRadius: 2, transition: "transform 0.08s ease",
+                      background: "#223A5E",
+                      borderRadius: 2,
                     }}
                   />
 
                   {/* Center dot */}
-                  <div className="absolute rounded-full bg-blue-500"
-                    style={{ width: 8, height: 8, left: center - 4, top: center - 4 }}
+                  <div
+                    className="absolute rounded-full bg-[#223A5E]"
+                    style={{ width: 6, height: 6, left: center - 3, top: center - 3 }}
                   />
                 </div>
               </div>
             ) : (
-              <div className="flex items-center justify-center gap-2 py-4 px-4">
+              <div className="flex items-center justify-center gap-2 py-3 px-3 bg-white">
                 <div className="flex flex-col items-center gap-0.5">
-                  <input type="number" min={1} max={12} value={typedHour}
+                  <input
+                    type="number"
+                    min={1}
+                    max={12}
+                    value={typedHour}
                     onChange={(e) => setTypedHour(e.target.value)}
-                    className="w-12 h-10 text-lg text-center font-bold rounded-xl border bg-white/5 focus:outline-none focus:border-blue-500"
-                    style={{ borderColor: "var(--picker-border)", color: "var(--picker-text-primary, #F8FAFC)" }}
+                    className="w-10 h-8 text-sm text-center font-bold rounded-lg border border-slate-200 bg-slate-50 text-slate-900 focus:outline-none focus:border-[#223A5E]"
                   />
-                  <span className="text-[9px] text-zinc-500">Hour</span>
+                  <span className="text-[9px] text-slate-500 font-semibold">Hour</span>
                 </div>
-                <span className="text-lg text-zinc-500 font-bold mb-3">:</span>
+                <span className="text-base text-slate-700 font-bold mb-2.5">:</span>
                 <div className="flex flex-col items-center gap-0.5">
-                  <input type="number" min={0} max={59} value={typedMinute}
+                  <input
+                    type="number"
+                    min={0}
+                    max={59}
+                    value={typedMinute}
                     onChange={(e) => setTypedMinute(e.target.value)}
-                    className="w-12 h-10 text-lg text-center font-bold rounded-xl border bg-white/5 focus:outline-none focus:border-blue-500"
-                    style={{ borderColor: "var(--picker-border)", color: "var(--picker-text-primary, #F8FAFC)" }}
+                    className="w-10 h-8 text-sm text-center font-bold rounded-lg border border-slate-200 bg-slate-50 text-slate-900 focus:outline-none focus:border-[#223A5E]"
                   />
-                  <span className="text-[9px] text-zinc-500">Min</span>
+                  <span className="text-[9px] text-slate-500 font-semibold">Min</span>
                 </div>
               </div>
             )}
 
             {/* Footer */}
-            <div className="flex items-center justify-between px-3 py-2"
-              style={{ borderTop: "1px solid var(--picker-border, rgba(255,255,255,0.08))" }}
-            >
-              <button type="button"
+            <div className="flex items-center justify-between px-3 py-2 border-t border-slate-200 bg-slate-50">
+              <button
+                type="button"
                 onClick={() => setInputMode((m) => m === "dial" ? "keyboard" : "dial")}
-                className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+                className="p-1 rounded-md text-slate-600 hover:text-slate-900 hover:bg-slate-200/70 transition-colors cursor-pointer"
+                title={inputMode === "dial" ? "Switch to keyboard input" : "Switch to clock dial"}
               >
-                {inputMode === "dial" ? <Keyboard size={14} /> : <Clock size={14} />}
+                {inputMode === "dial" ? <Keyboard size={13} /> : <Clock size={13} />}
               </button>
-              <div className="flex items-center gap-1">
-                {clearable && (
-                  <button type="button" onClick={handleClear}
-                    className="px-2 py-1 rounded-lg text-[11px] font-semibold text-zinc-400 hover:text-zinc-200 cursor-pointer"
-                  >Clear</button>
-                )}
-                <button type="button" onClick={handleClose}
-                  className="px-2 py-1 rounded-lg text-[11px] font-semibold text-zinc-400 hover:text-zinc-200 cursor-pointer"
-                >Cancel</button>
-                <button type="button" onClick={handleConfirm}
-                  className="flex items-center gap-1 px-3 py-1 rounded-lg text-[11px] font-bold text-white bg-blue-600 hover:bg-blue-500 shadow-sm active:scale-95 transition-all cursor-pointer"
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={handleClose}
+                  className="px-2.5 py-1 rounded-md text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-200/60 cursor-pointer"
                 >
-                  <Check size={12} /> Set
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleConfirm}
+                  className="flex items-center gap-1 px-3 py-1 rounded-lg text-xs font-bold !text-white shadow-xs cursor-pointer hover:opacity-90"
+                  style={{
+                    color: "#FFFFFF",
+                    backgroundColor: "#223A5E",
+                  }}
+                >
+                  <Check size={11} /> Set
                 </button>
               </div>
             </div>

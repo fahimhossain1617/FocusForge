@@ -107,9 +107,6 @@ export default function DiaryTableOfContents({
 
       {/* Book Title Banner */}
       <div className="text-center my-6 sm:my-10">
-        <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-blue-500/10 border border-blue-500/20 text-blue-500 mb-3 shadow-sm">
-          <BookOpen size={24} />
-        </div>
         <h1
           className="text-2xl md:text-3xl lg:text-4xl font-bold tracking-tight text-foreground"
         >
@@ -124,11 +121,10 @@ export default function DiaryTableOfContents({
 
       {/* Index Book Card */}
       <div
-        className="rounded-3xl border shadow-xl overflow-hidden"
+        className="rounded-3xl border overflow-hidden"
         style={{
           background: "var(--color-bg-elevated)",
           borderColor: "var(--color-border-subtle)",
-          boxShadow: "0 18px 40px -8px rgba(0, 0, 0, 0.35)",
         }}
       >
         {/* Table of Contents Header Ribbon */}
@@ -177,6 +173,7 @@ export default function DiaryTableOfContents({
         ) : (
           <div className="divide-y divide-black/5 dark:divide-white/5 motion-stagger-fast">
             {topics.map((topic) => {
+              const isRecentSaved = Date.now() - new Date(topic.updatedAt).getTime() < 3000;
               const wordCount = topic.entries.reduce(
                 (acc, e) => acc + (e.content ? e.content.trim().split(/\s+/).filter(Boolean).length : 0),
                 0
@@ -185,29 +182,38 @@ export default function DiaryTableOfContents({
                 <div
                   key={topic.id}
                   onClick={() => onOpenTopic(topic.id)}
-                  className="diary-toc-row motion-grid-item card-interactive flex items-center justify-between gap-4 px-6 py-4 cursor-pointer group"
+                  className={`diary-toc-row flex items-center justify-between gap-4 px-6 py-4 cursor-pointer group transition-colors duration-150 hover:bg-[#F3F7FC]/70 dark:hover:bg-white/[0.03] ${
+                    isRecentSaved ? "bg-[#E7F0FF] dark:bg-blue-950/40" : ""
+                  }`}
                 >
                   {/* Left: Number & Title Info */}
                   <div className="flex items-center gap-3.5 min-w-0 flex-1">
-                    <span className="diary-number-badge text-sm sm:text-base font-bold text-blue-500 shrink-0">
+                    <span className="diary-number-badge text-sm sm:text-base font-bold text-[#5B8DEF] shrink-0">
                       {formatTopicNumber(topic.order)}.
                     </span>
 
                     <div className="min-w-0 flex-1">
-                      <h3
-                        className="text-sm sm:text-base font-semibold break-words group-hover:text-blue-500 transition-colors"
-                        style={{ color: "var(--color-text-primary)" }}
-                      >
-                        {topic.title}
-                      </h3>
+                      <div className="flex items-center gap-2">
+                        <h3
+                          className="text-sm sm:text-base font-semibold break-words text-[#111827] dark:text-foreground group-hover:text-[#5B8DEF] transition-colors"
+                        >
+                          {topic.title}
+                        </h3>
+                        {isRecentSaved && (
+                          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-[#E7F0FF] text-[#2E9B73] font-semibold text-[11px] border border-[#2E9B73]/30 animate-pulse">
+                            <span className="w-1.5 h-1.5 rounded-full bg-[#2E9B73]" />
+                            Saved
+                          </span>
+                        )}
+                      </div>
 
                       {topic.description ? (
-                        <p className="text-xs text-muted-foreground break-words mt-0.5">
+                        <p className="text-xs text-[#52627A] dark:text-muted-foreground break-words mt-0.5">
                           {topic.description}
                         </p>
                       ) : null}
 
-                      <div className="flex items-center gap-3 mt-1 text-[11px] text-zinc-400 dark:text-zinc-500 font-mono">
+                      <div className="flex items-center gap-3 mt-1 text-[11px] text-[#8290A5] font-mono">
                         <span className="flex items-center gap-1">
                           <Clock size={11} />
                           {formatDiaryDateTime(topic.updatedAt, lang)}
@@ -218,7 +224,7 @@ export default function DiaryTableOfContents({
 
                   {/* Right: Words count & Hover Actions */}
                   <div className="flex items-center gap-3 shrink-0">
-                    <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-blue-500/10 text-blue-500 font-mono">
+                    <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-[#EBF3FE] text-[#1D4ED8] dark:bg-blue-950/60 dark:text-blue-300 border border-[#D0E1FD]/70 dark:border-blue-900/40 font-mono select-none">
                       {wordCount > 0 ? `${wordCount} ${t.diary?.words || "words"}` : "0 " + (t.diary?.words || "words")}
                     </span>
 

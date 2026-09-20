@@ -180,6 +180,12 @@ interface AppContextType {
   deleteRoutineTask: (weekday: Weekday, taskId: string) => void;
   reorderRoutineTasks: (weekday: Weekday, taskIds: string[]) => void;
   importRoutineToDate: (weekday: Weekday, dateStr: string, options?: { mode: 'all' | 'missing_only' }) => { importedCount: number; skippedCount: number };
+  copyTasksToDate: (params: {
+    taskIds: (number | string)[];
+    sourceDateStr: string;
+    destinationDateStr: string;
+    skipDuplicates?: boolean;
+  }) => { copiedCount: number; skippedCount: number };
 
   // Review System Meaningful Action Tracking
   trackMeaningfulAction: (actionType: string) => void;
@@ -212,8 +218,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       try {
         // 1. Instant Synchronous Cache Hydration (0ms first paint)
         let cachedState: AppState | null = null;
+        let cachedThemeMode: "dark" | "light" | "system" | null = null;
         if (typeof window !== 'undefined') {
           try {
+            const rawTheme = localStorage.getItem('focusforge_theme');
+            if (rawTheme === 'dark' || rawTheme === 'light' || rawTheme === 'system') {
+              cachedThemeMode = rawTheme;
+            }
             const syncLocal = localStorage.getItem(STORAGE_KEY);
             if (syncLocal) {
               cachedState = JSON.parse(syncLocal);
@@ -249,6 +260,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
         // Instant First Paint on ALL devices (Mobile, Tablet, PC, Guest, Offline)
         const initialData = cachedState || guestData || defaultState;
+        const resolvedThemeMode = cachedThemeMode || initialData.theme?.mode || defaultState.theme.mode;
+
         if (isMounted) {
           setState({
             ...defaultState,
@@ -256,7 +269,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             activePage: initialActivePage,
             notifPreferences: { ...defaultState.notifPreferences, ...(initialData.notifPreferences || {}) },
             calendarPreferences: { ...defaultState.calendarPreferences, ...(initialData.calendarPreferences || {}) },
-            theme: { ...defaultState.theme, ...(initialData.theme || {}) }
+            theme: { ...defaultState.theme, ...(initialData.theme || {}), mode: resolvedThemeMode }
           });
           setIsLoaded(true);
         }
@@ -548,6 +561,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (updates.activePage && typeof window !== 'undefined') {
       try {
         sessionStorage.setItem('focusforge_active_page', updates.activePage);
+      } catch { }
+    }
+    if (updates.theme?.mode && typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('focusforge_theme', updates.theme.mode);
       } catch { }
     }
     setState((prev) => ({ ...prev, ...updates }));
@@ -1187,6 +1205,124 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return { importedCount, skippedCount };
   }, [showToast, trackMeaningfulAction]);
 
+  const copyTasksToDate = useCallback((params: {
+    taskIds: (number | string)[];
+    sourceDateStr: string;
+    destinationDateStr: string;
+    skipDuplicates?: boolean;
+  }): { copiedCount: number; skippedCount: number } => {
+    const { taskIds, sourceDateStr, destinationDateStr, skipDuplicates = true } = params;
+    let copiedCount = 0;
+    let skippedCount = 0;
+
+    if (!taskIds || taskIds.length === 0 || !destinationDateStr) {
+      return { copiedCount: 0, skippedCount: 0 };
+    }
+
+    setState((prev) => {
+      // Find source tasks or timeblocks
+      const sourceTasks = (prev.tasks || []).filter((t) => taskIds.some((id) => String(id) === String(t.id)));
+      const sourceBlocks = (prev.timeBlocks || []).filter((b) => b.date === sourceDateStr);
+      
+      const destinationExistingTasks = (prev.tasks || []).filter((t) => t.targetDate === destinationDateStr || t.date === destinationDateStr);
+      const destinationExistingBlocks = (prev.timeBlocks || []).filter((b) => b.date === destinationDateStr);
+
+      const newTasksToCreate: Task[] = [];
+      const newBlocksToCreate: TimeBlock[] = [];
+
+      taskIds.forEach((id, index) => {
+        const srcTask = sourceTasks.find((t) => String(t.id) === String(id));
+        const srcBlock = sourceBlocks.find((b) => String(b.taskId) === String(id) || String(b.id) === String(id));
+
+        const taskTitle = (srcTask?.title || srcTask?.name || srcBlock?.label || 'Untitled Task').trim();
+        const startTime = srcTask?.time || srcBlock?.startTime || '10:00';
+        const endTime = srcTask?.endTime || srcBlock?.endTime || '11:00';
+        const category = srcTask?.category || srcBlock?.category || '';
+        const priority = srcTask?.priority || 'medium';
+        const notes = srcTask?.notes || srcTask?.description || '';
+        const reminderEnabled = Boolean(srcTask?.reminderEnabled);
+        const reminderTime = srcTask?.reminderTime;
+        const isBreak = Boolean(srcBlock?.isBreak);
+
+        // Check for duplicate on destination date
+        const isDuplicate = destinationExistingTasks.some((ext) => {
+          const sameTitle = (ext.title || ext.name || '').trim().toLowerCase() === taskTitle.toLowerCase();
+          const sameTime = ext.time === startTime;
+          return sameTitle && sameTime;
+        }) || destinationExistingBlocks.some((exb) => {
+          const sameTitle = (exb.label || '').trim().toLowerCase() === taskTitle.toLowerCase();
+          const sameTime = exb.startTime === startTime;
+          return sameTitle && sameTime;
+        });
+
+        if (isDuplicate && skipDuplicates) {
+          skippedCount++;
+          return;
+        }
+
+        const newTaskId = Date.now() + Math.floor(Math.random() * 100000) + index;
+        const newTask: Task = {
+          id: newTaskId,
+          name: taskTitle,
+          title: taskTitle,
+          description: notes,
+          notes: notes,
+          targetDate: destinationDateStr,
+          date: destinationDateStr,
+          time: startTime,
+          endTime: endTime,
+          priority: priority,
+          estHours: srcTask?.estHours ?? 1,
+          estMinutes: srcTask?.estMinutes ?? 60,
+          status: 'not_started',
+          completed: false,
+          reminderEnabled: reminderEnabled,
+          reminderTime: reminderEnabled ? (reminderTime || startTime) : undefined,
+          category: category,
+          tier: priority === 'urgent' || priority === 'high' ? 'now' : 'next',
+          sourceType: 'custom',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+
+        const newBlock: TimeBlock = {
+          id: generateId(),
+          date: destinationDateStr,
+          startTime: startTime,
+          endTime: endTime,
+          label: taskTitle,
+          category: category,
+          isBreak: isBreak,
+          taskId: newTaskId,
+          sourceType: 'custom',
+        };
+
+        newTasksToCreate.push(newTask);
+        newBlocksToCreate.push(newBlock);
+        copiedCount++;
+      });
+
+      if (newTasksToCreate.length > 0) {
+        // Sync asynchronously to backend
+        newTasksToCreate.forEach((t) => {
+          syncTaskToBackend(t).catch((err) => console.warn('[AppContext] Failed to sync copied task:', err));
+        });
+
+        trackMeaningfulAction('copy_tasks');
+
+        return {
+          ...prev,
+          tasks: [...prev.tasks, ...newTasksToCreate],
+          timeBlocks: [...prev.timeBlocks, ...newBlocksToCreate],
+        };
+      }
+
+      return prev;
+    });
+
+    return { copiedCount, skippedCount };
+  }, [showToast, trackMeaningfulAction]);
+
   // ==================== Focus Sessions ====================
 
   const startFocusSession = useCallback((taskName: string, category: string, taskId?: number, targetMinutes: number = 25): string => {
@@ -1578,6 +1714,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         deleteRoutineTask,
         reorderRoutineTasks,
         importRoutineToDate,
+        copyTasksToDate,
         trackMeaningfulAction,
         isLoaded,
         isPageLoading,

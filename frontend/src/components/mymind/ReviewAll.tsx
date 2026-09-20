@@ -91,7 +91,7 @@ export default function ReviewAll({ navigate, setActiveThoughtId }: ReviewAllPro
               <div
                 key={item.id}
                 onClick={() => openDetail(item.id)}
-                className="motion-grid-item card-interactive group flex flex-col md:flex-row md:items-center justify-between p-4 rounded-xl border cursor-pointer transition-colors hover:bg-black/5 dark:hover:bg-white/5 relative"
+                className="group flex flex-col md:flex-row md:items-center justify-between p-4 rounded-xl border cursor-pointer transition-colors hover:bg-black/[0.02] dark:hover:bg-white/[0.02] relative"
                 style={{ 
                   background: "var(--color-bg-card)", 
                   borderColor: "var(--color-border-subtle)" 

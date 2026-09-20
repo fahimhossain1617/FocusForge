@@ -81,7 +81,7 @@ export default function WorkspacePage() {
     if (!mounted || typeof document === 'undefined') return null;
     return createPortal(
       <div 
-        className="notes-workspace fixed inset-0 md:left-60 z-35 flex flex-col overflow-hidden h-screen bg-[var(--bg-card)]"
+        className="notes-workspace fixed inset-0 md:left-64 z-35 flex flex-col overflow-hidden h-screen bg-[var(--bg-card)]"
         style={{ height: "100vh", top: 0, bottom: 0, right: 0 }}
       >
         <NoteEditorView 
@@ -127,20 +127,20 @@ export default function WorkspacePage() {
 
         <div className="flex items-center gap-3 w-full md:w-auto">
           <div className="relative flex-1 md:w-72">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-zinc-500" />
             <input 
               type="text" 
               placeholder={isBn ? "নোট অথবা ফাইল খুঁজুন..." : "Search notes or files..."} 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               style={{ paddingLeft: '2.5rem', paddingRight: searchQuery ? '2.5rem' : '1rem' }}
-              className="notes-search w-full py-2.5 text-sm rounded-xl border border-white/10 bg-black/20 text-white placeholder-zinc-500 focus:outline-none focus:border-blue-500/50 transition-colors"
+              className="notes-search w-full py-2.5 text-sm rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-black/20 text-foreground placeholder-slate-400 dark:placeholder-zinc-500 focus:outline-none focus:border-blue-500/60 shadow-xs transition-colors"
             />
             {searchQuery && (
               <button
                 type="button"
                 onClick={() => setSearchQuery("")}
-                className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 rounded-md hover:bg-white/10 text-zinc-400 hover:text-white transition-colors cursor-pointer"
+                className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 rounded-md hover:bg-slate-100 dark:hover:bg-white/10 text-slate-400 dark:text-zinc-400 hover:text-slate-700 dark:hover:text-white transition-colors cursor-pointer"
               >
                 <X size={14} />
               </button>
@@ -148,7 +148,7 @@ export default function WorkspacePage() {
           </div>
           <button
             onClick={openNewNote}
-            className="btn-primary notes-new-note px-5 py-2.5 font-semibold flex items-center gap-2 whitespace-nowrap  active:scale-95 transition-all cursor-pointer"
+            className="btn-primary notes-new-note px-5 py-2.5 font-semibold flex items-center gap-2 whitespace-nowrap active:scale-95 transition-all cursor-pointer shadow-sm"
           >
             <Plus className="w-4 h-4" />
             <span>{isBn ? "নতুন নোট" : "New Note"}</span>
@@ -165,10 +165,10 @@ export default function WorkspacePage() {
               key={cat}
               type="button"
               onClick={() => setSelectedCategory(cat)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
                 isSelected
-                  ? "bg-blue-600 text-white "
-                  : "bg-white/5 text-zinc-400 hover:bg-white/10 hover:text-zinc-200 border border-white/5"
+                  ? "bg-[#223A5E] text-white shadow-none"
+                  : "bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-zinc-400 hover:bg-slate-200 dark:hover:bg-white/10 hover:text-[#223A5E] dark:hover:text-zinc-200 border border-slate-200 dark:border-white/5"
               }`}
             >
               {cat === "All" ? (isBn ? "সবগুলো" : "All") : cat}
@@ -193,7 +193,7 @@ export default function WorkspacePage() {
             }}
           />
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 motion-stagger">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 motion-stagger">
             {filteredNotes.map((note) => (
               <NoteCard
                 key={note.id}

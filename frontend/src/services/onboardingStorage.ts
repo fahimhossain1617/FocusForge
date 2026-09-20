@@ -7,7 +7,7 @@ export interface OnboardingState {
   onboardingCompleted: boolean;
   onboardingCompletedAt?: string | null;
   preferredLanguage: "en" | "bn";
-  preferredTheme: "dark" | "light";
+  preferredTheme: "dark" | "light" | "system";
   accountMode: "guest" | "authenticated";
   productTourCompleted: boolean;
 }

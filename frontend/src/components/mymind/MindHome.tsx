@@ -91,14 +91,23 @@ export default function MindHome({ navigate, setActiveThoughtId }: MindHomeProps
         </p>
       </div>
 
-      <div className="flex flex-wrap justify-center gap-2 mb-8">
-        <button onClick={() => navigate('problem_solver')} className="px-4 py-2 text-xs font-medium rounded-xl border transition-colors hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer" style={{ borderColor: "var(--color-border-subtle)", color: "var(--color-text-primary)" }}>
+      <div className="flex flex-wrap justify-center gap-2.5 mb-8">
+        <button 
+          onClick={() => navigate('problem_solver')} 
+          className="px-4 py-2 text-xs font-semibold rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 text-slate-700 dark:text-slate-300 hover:border-blue-500/40 hover:text-blue-600 dark:hover:text-white hover:bg-blue-50 dark:hover:bg-white/10 transition-all shadow-xs cursor-pointer"
+        >
           {t.myMind.problemSolver}
         </button>
-        <button onClick={() => navigate('idea_capture')} className="px-4 py-2 text-xs font-medium rounded-xl border transition-colors hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer" style={{ borderColor: "var(--color-border-subtle)", color: "var(--color-text-primary)" }}>
+        <button 
+          onClick={() => navigate('idea_capture')} 
+          className="px-4 py-2 text-xs font-semibold rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 text-slate-700 dark:text-slate-300 hover:border-blue-500/40 hover:text-blue-600 dark:hover:text-white hover:bg-blue-50 dark:hover:bg-white/10 transition-all shadow-xs cursor-pointer"
+        >
           {t.myMind.captureAnIdea}
         </button>
-        <button onClick={() => navigate('diary')} className="px-4 py-2 text-xs font-medium rounded-xl border transition-colors hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer" style={{ borderColor: "var(--color-border-subtle)", color: "var(--color-text-primary)" }}>
+        <button 
+          onClick={() => navigate('diary')} 
+          className="px-4 py-2 text-xs font-semibold rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 text-slate-700 dark:text-slate-300 hover:border-blue-500/40 hover:text-blue-600 dark:hover:text-white hover:bg-blue-50 dark:hover:bg-white/10 transition-all shadow-xs cursor-pointer"
+        >
           {t.myMind.myDiary || "My Diary"}
         </button>
       </div>
@@ -177,7 +186,7 @@ export default function MindHome({ navigate, setActiveThoughtId }: MindHomeProps
               <div
                 key={item.id}
                 onClick={() => openDetail(item.id)}
-                className="motion-grid-item card-interactive rounded-2xl p-4 border transition-colors cursor-pointer group hover:bg-black/5 dark:hover:bg-white/5"
+                className="rounded-2xl p-4 border transition-colors cursor-pointer group hover:bg-black/[0.02] dark:hover:bg-white/[0.02]"
                 style={{ background: "var(--color-bg-card)", borderColor: "var(--color-border-subtle)" }}
               >
                 <div className="flex flex-wrap items-center gap-2 mb-2">

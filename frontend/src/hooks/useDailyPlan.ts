@@ -34,8 +34,9 @@ export function useDailyPlan() {
    * 1. Evaluates and delivers the Daily Morning Plan notification.
    */
   const checkDailyMorningPlan = useCallback(async () => {
-    const prefs = state.notifPreferences;
-    if (!prefs?.enabled || !prefs?.dailyMorningPlan) return;
+    const prefs = state.notifPreferences as any;
+    const isProgressEnabled = prefs?.dailyProgressReminders ?? prefs?.dailyMorningPlan ?? true;
+    if (!prefs?.enabled || !isProgressEnabled) return;
     if (notificationService.getPermission() !== "granted") return;
 
     const todayStr = getLocalDateString();

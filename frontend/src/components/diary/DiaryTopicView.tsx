@@ -92,29 +92,30 @@ export default function DiaryTopicView({
   return (
     <div className="w-full max-w-4xl mx-auto px-2 sm:px-4 pt-3 pb-8 animate-fade-in">
       {/* Top Header Controls */}
-      <div className="flex flex-wrap items-center justify-between gap-3 mb-4 sm:mb-6">
+      <div className="flex items-center justify-between gap-2 mb-4 sm:mb-6">
         {/* Back Button */}
         <button
           type="button"
           onClick={onBackToTOC}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer shadow-xs"
+          className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer shadow-xs shrink-0"
           style={{
             borderColor: "var(--color-border-subtle)",
             color: "var(--color-text-primary)",
           }}
         >
           <ChevronLeft size={16} />
-          <span>{t.diary?.backToTOC || "Table of Contents"}</span>
+          <span className="hidden xs:inline">{t.diary?.backToTOC || "Table of Contents"}</span>
+          <span className="xs:hidden">{lang === "bn" ? "সূচিপত্র" : "TOC"}</span>
         </button>
 
         {/* Right Actions: Mode Toggle, Privacy Badge & Tools */}
-        <div className="flex items-center gap-2 sm:gap-3">
+        <div className="flex items-center gap-1.5 sm:gap-2.5 flex-wrap justify-end">
           {/* Mode Switcher: Read vs Edit */}
           {mode === "read" ? (
             <button
               type="button"
               onClick={() => setMode("edit")}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-500 text-white transition-all cursor-pointer "
+              className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-500 text-white transition-all cursor-pointer shrink-0 shadow-xs"
               title={t.diary?.edit || "Edit"}
             >
               <Edit3 size={14} />
@@ -124,7 +125,7 @@ export default function DiaryTopicView({
             <button
               type="button"
               onClick={() => setMode("read")}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer shadow-xs"
+              className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer shadow-xs shrink-0"
               style={{
                 borderColor: "var(--color-border-subtle)",
                 color: "var(--color-text-primary)",
@@ -138,7 +139,7 @@ export default function DiaryTopicView({
 
           {/* Subtle Privacy Indicator */}
           <div
-            className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium border select-none"
+            className="hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium border select-none"
             style={{
               borderColor: "var(--color-border-subtle)",
               color: "var(--color-text-secondary)",
@@ -154,8 +155,9 @@ export default function DiaryTopicView({
           <button
             type="button"
             onClick={onOpenSearch}
-            className="p-2 rounded-xl text-zinc-400 hover:text-blue-500 hover:bg-black/5 dark:hover:bg-white/5 border border-transparent hover:border-black/10 dark:hover:border-white/10 transition-colors cursor-pointer"
+            className="p-1.5 sm:p-2 rounded-xl text-zinc-400 hover:text-blue-500 hover:bg-black/5 dark:hover:bg-white/5 border border-transparent hover:border-black/10 dark:hover:border-white/10 transition-colors cursor-pointer shrink-0"
             title={t.diary?.searchResults || "Search Diary"}
+            aria-label="Search Diary"
           >
             <Search size={15} />
           </button>
@@ -164,8 +166,9 @@ export default function DiaryTopicView({
           <button
             type="button"
             onClick={() => setIsEditModalOpen(true)}
-            className="p-2 rounded-xl text-zinc-400 hover:text-blue-500 hover:bg-black/5 dark:hover:bg-white/5 border border-transparent hover:border-black/10 dark:hover:border-white/10 transition-colors cursor-pointer"
+            className="p-1.5 sm:p-2 rounded-xl text-zinc-400 hover:text-blue-500 hover:bg-black/5 dark:hover:bg-white/5 border border-transparent hover:border-black/10 dark:hover:border-white/10 transition-colors cursor-pointer shrink-0"
             title={t.diary?.editTopic || "Edit Topic Settings"}
+            aria-label="Edit Topic Settings"
           >
             <Settings2 size={15} />
           </button>
@@ -174,8 +177,9 @@ export default function DiaryTopicView({
           <button
             type="button"
             onClick={handleDeleteEntireTopic}
-            className="p-2 rounded-xl text-zinc-400 hover:text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer"
+            className="p-1.5 sm:p-2 rounded-xl text-zinc-400 hover:text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer shrink-0"
             title={t.diary?.delete || "Delete Topic"}
+            aria-label="Delete Topic"
           >
             <Trash2 size={15} />
           </button>
@@ -201,10 +205,16 @@ export default function DiaryTopicView({
           </p>
         )}
 
-        {/* Entry Human Timestamp */}
-        <div className="flex items-center gap-2 mt-2 text-xs font-medium text-muted-foreground">
-          <Calendar size={13} className="text-blue-500/80" />
-          <span>{formatDiaryDate(continuousEntry.createdAt, lang)}</span>
+        {/* Entry Human Timestamp & Word Count Badge */}
+        <div className="flex items-center gap-2.5 mt-2 text-xs font-medium text-muted-foreground flex-wrap">
+          <div className="flex items-center gap-1.5">
+            <Calendar size={13} className="text-blue-500/80" />
+            <span>{formatDiaryDate(continuousEntry.createdAt, lang)}</span>
+          </div>
+          <span className="text-zinc-300 dark:text-zinc-600 select-none">•</span>
+          <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-[#EBF3FE] text-[#1D4ED8] dark:bg-blue-950/60 dark:text-blue-300 border border-[#D0E1FD]/70 dark:border-blue-900/40 select-none">
+            {wordCount} {t.diary?.words || "words"}
+          </span>
         </div>
       </div>
 
@@ -286,21 +296,6 @@ export default function DiaryTopicView({
                 </div>
               )
             )}
-
-            {/* Bottom Info Bar in Read Mode */}
-            <div className="mt-8 pt-4 border-t border-black/5 dark:border-white/5 flex items-center justify-between text-xs text-zinc-400">
-              <span>
-                {wordCount} {t.diary?.words || "words"}
-              </span>
-              <button
-                type="button"
-                onClick={() => setMode("edit")}
-                className="flex items-center gap-1 text-blue-500 hover:text-blue-400 font-semibold cursor-pointer"
-              >
-                <Edit3 size={13} />
-                <span>{t.diary?.edit || "Edit"}</span>
-              </button>
-            </div>
           </div>
         )}
       </div>

@@ -1,6 +1,7 @@
 import { Router, Response } from 'express';
 import { requireAuth, AuthenticatedRequest } from '../middleware/auth';
 import { createClient } from '@supabase/supabase-js';
+import { dbDeleteUserAccount, dbSaveSupportSubmission } from '../services/db';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -269,4 +270,101 @@ router.post('/onboarding', async (req: AuthenticatedRequest, res: Response) => {
   }
 });
 
+/**
+ * DELETE /api/user/account
+ * Completely deletes all user profile, task, note, diary, focus, learning, AI, and state data.
+ */
+router.delete('/account', async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId || req.user?.isGuest) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    await dbDeleteUserAccount(userId);
+
+    res.json({ success: true, message: 'Account and all associated data permanently deleted.' });
+  } catch (err: any) {
+    console.error('[DELETE /api/user/account] Error:', err);
+    res.status(500).json({ error: err.message || 'Failed to delete user account' });
+  }
+});
+
+/**
+ * POST /api/user/support/report
+ * Store problem report
+ */
+router.post('/support/report', async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user?.id || null;
+    const { category, title, description, screenshot } = req.body;
+
+    if (!title || !description) {
+      return res.status(400).json({ error: 'Title and description are required' });
+    }
+
+    const submission = await dbSaveSupportSubmission(userId, 'report', {
+      category: category || 'Bug',
+      title,
+      description,
+      screenshot: screenshot ? (screenshot.length > 200 ? screenshot.substring(0, 100) + '...[attached]' : screenshot) : null,
+    });
+
+    res.json({ success: true, submissionId: submission.id });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to submit problem report' });
+  }
+});
+
+/**
+ * POST /api/user/support/contact
+ * Store contact support message
+ */
+router.post('/support/contact', async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user?.id || null;
+    const { name, email, subject, message } = req.body;
+
+    if (!email || !subject || !message) {
+      return res.status(400).json({ error: 'Email, subject and message are required' });
+    }
+
+    const submission = await dbSaveSupportSubmission(userId, 'contact', {
+      name: name || 'Anonymous',
+      email,
+      subject,
+      message,
+    });
+
+    res.json({ success: true, submissionId: submission.id });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to send message' });
+  }
+});
+
+/**
+ * POST /api/user/support/feedback
+ * Store feedback and suggestions
+ */
+router.post('/support/feedback', async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user?.id || null;
+    const { type, message } = req.body;
+
+    if (!message) {
+      return res.status(400).json({ error: 'Message is required' });
+    }
+
+    const submission = await dbSaveSupportSubmission(userId, 'feedback', {
+      type: type || 'General feedback',
+      message,
+    });
+
+    res.json({ success: true, submissionId: submission.id });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to submit feedback' });
+  }
+});
+
 export default router;
+

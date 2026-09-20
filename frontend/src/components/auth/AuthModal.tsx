@@ -444,11 +444,11 @@ export default function AuthModal() {
 
       {/* Main Glass Card */}
       <div 
-        className={`relative w-full max-w-[420px] my-auto rounded-3xl border shadow-2xl p-6 sm:p-8 overflow-hidden ${isExiting ? "motion-exit-reveal" : "motion-scale-in"}`}
+        className={`app-modal-panel relative w-full max-w-[420px] my-auto rounded-3xl border shadow-2xl p-6 sm:p-8 overflow-hidden ${isExiting ? "motion-exit-reveal" : "motion-scale-in"}`}
         style={{
-          background: "rgba(13, 20, 38, 0.84)",
-          borderColor: "rgba(59, 130, 246, 0.22)",
-          boxShadow: "0 24px 60px rgba(0, 0, 0, 0.7), 0 0 35px rgba(59, 130, 246, 0.08)",
+          background: "var(--ff-modal-bg, rgba(13, 20, 38, 0.84))",
+          borderColor: "var(--ff-modal-border, rgba(59, 130, 246, 0.22))",
+          boxShadow: "var(--ff-modal-shadow, 0 24px 60px rgba(0, 0, 0, 0.7), 0 0 35px rgba(59, 130, 246, 0.08))",
           backdropFilter: "blur(24px)",
           WebkitBackdropFilter: "blur(24px)"
         }}

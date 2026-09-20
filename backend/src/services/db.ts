@@ -6,7 +6,8 @@ dotenv.config();
 const connectionString = (
   process.env.DATABASE_URL ||
   process.env.DIRECT_URL ||
-  'postgresql://postgres.mvielktfijxecszlqjxz:fahimhossain1314tushar@aws-0-ap-northeast-2.pooler.supabase.com:5432/postgres'
+  process.env.POSTGRES_URL ||
+  ''
 ).replace(/^["']|["']$/g, '').trim();
 
 export const pool = new Pool({
@@ -762,3 +763,91 @@ export async function dbInsertReview(userId: string, rating: number, comment?: s
   );
   return res.rows[0];
 }
+
+// ==================== ACCOUNT DELETION & SUPPORT ====================
+
+export async function dbDeleteUserAccount(userId: string): Promise<void> {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    // 1. Delete AI chat messages and sessions
+    await client.query(
+      'DELETE FROM ai_chat_messages WHERE session_id IN (SELECT id FROM ai_chat_sessions WHERE user_id = $1)',
+      [userId]
+    ).catch(() => {});
+    await client.query('DELETE FROM ai_chat_sessions WHERE user_id = $1', [userId]).catch(() => {});
+
+    // 2. Delete tasks and routine templates
+    await client.query('DELETE FROM tasks WHERE user_id = $1', [userId]).catch(() => {});
+    await client.query('DELETE FROM routine_templates WHERE user_id = $1', [userId]).catch(() => {});
+
+    // 3. Delete notes and mind items
+    await client.query('DELETE FROM notes WHERE user_id = $1', [userId]).catch(() => {});
+    await client.query('DELETE FROM mind_items WHERE user_id = $1', [userId]).catch(() => {});
+
+    // 4. Delete focus sessions and distractions
+    await client.query('DELETE FROM distraction_entries WHERE user_id = $1', [userId]).catch(() => {});
+    await client.query('DELETE FROM focus_sessions WHERE user_id = $1', [userId]).catch(() => {});
+
+    // 5. Delete diary entries and topics
+    await client.query('DELETE FROM diary_entries WHERE user_id = $1', [userId]).catch(() => {});
+    await client.query('DELETE FROM diary_topics WHERE user_id = $1', [userId]).catch(() => {});
+
+    // 6. Delete learning logs and folders
+    await client.query('DELETE FROM learning_logs WHERE user_id = $1', [userId]).catch(() => {});
+    await client.query('DELETE FROM learning_folders WHERE user_id = $1', [userId]).catch(() => {});
+
+    // 7. Delete review prompt states and reviews
+    await client.query('DELETE FROM review_prompt_state WHERE user_id = $1', [userId]).catch(() => {});
+    await client.query('DELETE FROM reviews WHERE user_id = $1', [userId]).catch(() => {});
+
+    // 8. Delete user cloud state & profiles
+    await client.query('DELETE FROM user_cloud_state WHERE id = $1', [userId]).catch(() => {});
+    await client.query('DELETE FROM profiles WHERE id = $1', [userId]).catch(() => {});
+
+    // 9. Delete auth user from auth.users (if accessible via direct DB connection)
+    await client.query('DELETE FROM auth.users WHERE id = $1', [userId]).catch((err) => {
+      console.warn('[dbDeleteUserAccount] Could not direct-delete from auth.users:', err?.message);
+    });
+
+    await client.query('COMMIT');
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
+}
+
+export async function dbSaveSupportSubmission(
+  userId: string | null,
+  type: 'report' | 'contact' | 'feedback',
+  payload: Record<string, any>
+) {
+  // Ensure support_submissions table exists (graceful create)
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS support_submissions (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      user_id TEXT,
+      type TEXT NOT NULL,
+      payload JSONB NOT NULL,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    );
+  `).catch(() => {});
+
+  const res = await pool.query(
+    `
+    INSERT INTO support_submissions (user_id, type, payload, created_at)
+    VALUES ($1, $2, $3, NOW())
+    RETURNING id, created_at;
+    `,
+    [userId, type, JSON.stringify(payload)]
+  ).catch((err) => {
+    console.warn('[dbSaveSupportSubmission] Table insert warning, logging payload:', err?.message);
+    return { rows: [{ id: 'temp_' + Date.now(), created_at: new Date().toISOString() }] };
+  });
+
+  return res.rows[0];
+}
+

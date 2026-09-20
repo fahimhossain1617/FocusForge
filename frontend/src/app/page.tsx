@@ -72,9 +72,28 @@ export default function Home() {
 
   useEffect(() => {
     const root = document.documentElement;
-    const isLight = state.theme.mode === "light";
-    root.dataset.theme = isLight ? "light" : "dark";
-    root.classList.toggle("dark", !isLight);
+    const mode = state.theme.mode;
+
+    const applyTheme = (isLight: boolean) => {
+      root.dataset.theme = isLight ? "light" : "dark";
+      root.classList.toggle("dark", !isLight);
+      root.classList.toggle("light", isLight);
+      root.style.colorScheme = isLight ? "light" : "dark";
+    };
+
+    if (mode === "system") {
+      const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+      applyTheme(!mediaQuery.matches);
+
+      const handleChange = (e: MediaQueryListEvent) => {
+        applyTheme(!e.matches);
+      };
+      mediaQuery.addEventListener("change", handleChange);
+      return () => mediaQuery.removeEventListener("change", handleChange);
+    } else {
+      const isLight = mode === "light";
+      applyTheme(isLight);
+    }
   }, [state.theme]);
 
   // First-time onboarding & interactive tour check
@@ -167,7 +186,7 @@ export default function Home() {
   const isLight = state.theme?.mode === "light";
 
   return (
-    <div className={`flex min-h-screen ${state.activePage === 'ai-agent' ? 'h-dvh max-h-dvh overflow-hidden' : ''} ${state.lang === 'bn' ? 'font-bengali' : ''} overflow-x-hidden`}>
+    <div className={`flex min-h-screen ${state.activePage === 'ai-agent' ? 'h-dvh max-h-dvh overflow-hidden' : ''} ${state.lang === 'bn' ? 'font-bengali' : ''} overflow-x-hidden ${isLight ? 'bg-[#F3F7FC]' : 'bg-[#0A0E1A]'}`}>
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} isTourActive={showTour} />
 
       {/* Main Content */}
@@ -178,8 +197,8 @@ export default function Home() {
         <header 
           className="md:hidden sticky top-0 z-30 flex items-center justify-between px-4 py-3 border-b backdrop-blur-xl transition-colors shrink-0"
           style={{
-            backgroundColor: isLight ? "rgba(241, 245, 249, 0.88)" : "rgba(10, 14, 26, 0.85)",
-            borderColor: "var(--color-border-subtle)",
+            backgroundColor: isLight ? "rgba(243, 247, 252, 0.94)" : "rgba(10, 14, 26, 0.85)",
+            borderColor: isLight ? "#DCE5F0" : "var(--color-border-subtle)",
           }}
         >
           <div className="flex items-center gap-3 min-w-0">

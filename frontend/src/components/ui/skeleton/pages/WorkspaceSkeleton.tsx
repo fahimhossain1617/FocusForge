@@ -30,10 +30,10 @@ export default function WorkspaceSkeleton() {
         ))}
       </div>
 
-      {/* 3. Note Cards Grid (3-column responsive) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-        {[1, 2, 3, 4, 5, 6].map((idx) => (
-          <SkeletonCard key={idx} className="h-56 flex flex-col justify-between p-5 relative overflow-hidden">
+      {/* 3. Note Cards Grid (4-column responsive) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        {[1, 2, 3, 4, 5, 6, 7, 8].map((idx) => (
+          <SkeletonCard key={idx} className="h-44 flex flex-col justify-between p-4 relative overflow-hidden">
             {/* Top row: Category badge + action */}
             <div className="flex items-center justify-between">
               <Skeleton variant="rounded" className="h-4 w-20 rounded-md" />

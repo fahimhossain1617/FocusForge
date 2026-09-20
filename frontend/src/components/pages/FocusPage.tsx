@@ -9,7 +9,6 @@ import confetti from "canvas-confetti";
 import { 
   Smartphone, 
   Globe, 
-  PartyPopper, 
   MessageCircle, 
   Video, 
   MessageSquare, 
@@ -484,10 +483,9 @@ export default function FocusPage() {
     return (
       <div
         key={distraction.id}
-        className="text-xs px-3 py-2 rounded-lg flex items-center gap-2 border border-white/5"
-        style={{ color: "var(--color-text-muted)", background: "var(--color-bg-secondary)" }}
+        className="text-xs px-3 py-2 rounded-lg flex items-center gap-2 border border-[#DCE5F0] dark:border-white/10 bg-[#F7FAFE] dark:bg-white/5 text-[#111827] dark:text-zinc-300"
       >
-        <Icon className="w-3.5 h-3.5" style={{ color: "var(--color-purple-primary)" }} />
+        <Icon className="w-3.5 h-3.5 text-[#5B8DEF] dark:text-blue-400" />
         <span>{distraction.content}</span>
       </div>
     );
@@ -564,17 +562,17 @@ export default function FocusPage() {
               <button
                 type="button"
                 onClick={() => setShowDistraction((prev) => !prev)}
-                className={`h-12 px-4 rounded-full border transition-all flex items-center gap-2 text-xs font-semibold cursor-pointer active:scale-95 shadow-md ${
+                className={`h-12 px-4 rounded-full border transition-all flex items-center gap-2 text-xs font-semibold cursor-pointer active:scale-95 shadow-xs ${
                   showDistraction
-                    ? "bg-blue-600 text-white border-blue-500 shadow-blue-500/25"
-                    : "bg-white/5 hover:bg-white/10 text-zinc-300 hover:text-white border-white/10"
+                    ? "bg-[#223A5E] dark:bg-blue-600 text-white border-[#223A5E] dark:border-blue-500 shadow-sm"
+                    : "bg-[#F7FAFE] dark:bg-white/5 hover:bg-[#F0F5FD] dark:hover:bg-white/10 text-[#52627A] dark:text-zinc-300 hover:text-[#111827] dark:hover:text-white border-[#DCE5F0] dark:border-white/10"
                 }`}
                 title={t.focus.distracted}
               >
-                <MessageSquare className={`w-4 h-4 ${showDistraction ? "text-white" : "text-blue-400"}`} />
+                <MessageSquare className={`w-4 h-4 ${showDistraction ? "text-white" : "text-[#5B8DEF] dark:text-blue-400"}`} />
                 <span>{t.focus.distracted}</span>
                 {sessionDistractions.length > 0 && (
-                  <span className="ml-0.5 px-1.5 py-0.5 rounded-full bg-blue-500/25 text-blue-300 text-[10px] font-bold">
+                  <span className="ml-0.5 px-1.5 py-0.5 rounded-full bg-[#EAF1FB] dark:bg-blue-500/25 text-[#223A5E] dark:text-blue-300 text-[10px] font-bold">
                     {sessionDistractions.length}
                   </span>
                 )}
@@ -583,14 +581,14 @@ export default function FocusPage() {
 
             {/* Distraction capture inline popover in Deep Focus */}
             {showDistraction && (
-              <div className="mt-4 w-full p-4 rounded-2xl border border-blue-500/30 bg-[#0c1222]/95 backdrop-blur-xl shadow-2xl text-left">
+              <div className="mt-4 w-full p-4 rounded-2xl border border-[#DCE5F0] dark:border-blue-500/30 bg-white dark:bg-[#0c1222]/95 shadow-xl dark:shadow-2xl text-left">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-semibold text-white flex items-center gap-1.5">
-                    <MessageSquare className="w-3.5 h-3.5 text-blue-400" />
+                  <span className="text-xs font-semibold text-[#111827] dark:text-white flex items-center gap-1.5">
+                    <MessageSquare className="w-3.5 h-3.5 text-[#5B8DEF] dark:text-blue-400" />
                     {t.focus.whatDistracted}
                   </span>
                   {sessionDistractions.length > 0 && (
-                    <span className="text-[11px] text-zinc-400">
+                    <span className="text-[11px] text-[#52627A] dark:text-zinc-400">
                       {sessionDistractions.length} {t.focus.logged}
                     </span>
                   )}
@@ -602,7 +600,7 @@ export default function FocusPage() {
                   onChange={(e) => setDistractionText(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && handleLogDistraction()}
                   placeholder={t.focus.whatDistracted}
-                  className="w-full text-xs py-2.5 px-3 rounded-xl bg-black/40 border border-white/10 text-white placeholder:text-zinc-500 focus:outline-none focus:border-blue-500 mb-3"
+                  className="w-full text-xs py-2.5 px-3 rounded-xl bg-[#F7FAFE] dark:bg-black/40 border border-[#DCE5F0] dark:border-white/10 text-[#111827] dark:text-white placeholder:text-[#8290A5] dark:placeholder:text-zinc-500 focus:outline-none focus:border-[#5B8DEF] dark:focus:border-blue-500 mb-3 transition-colors"
                   autoFocus
                 />
 
@@ -611,7 +609,7 @@ export default function FocusPage() {
                     type="button"
                     onClick={handleLogDistraction}
                     disabled={!distractionText.trim()}
-                    className="flex-1 py-2 px-3 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white text-xs font-semibold transition-all shadow-md shadow-blue-600/30 cursor-pointer"
+                    className="flex-1 py-2 px-3 rounded-xl bg-[#223A5E] hover:bg-[#2E4E7B] dark:bg-blue-600 dark:hover:bg-blue-500 disabled:opacity-40 text-white text-xs font-semibold transition-all shadow-sm active:scale-98 cursor-pointer"
                   >
                     {t.focus.saveReturn}
                   </button>
@@ -621,14 +619,14 @@ export default function FocusPage() {
                       setShowDistraction(false);
                       setDistractionText("");
                     }}
-                    className="py-2 px-3 rounded-xl bg-white/5 hover:bg-white/10 text-zinc-300 text-xs font-medium border border-white/10 transition-colors cursor-pointer"
+                    className="py-2 px-3 rounded-xl bg-[#F3F7FC] hover:bg-[#EAF1FB] dark:bg-white/5 dark:hover:bg-white/10 text-[#52627A] hover:text-[#111827] dark:text-zinc-300 dark:hover:text-white text-xs font-medium border border-[#DCE5F0] dark:border-white/10 transition-colors cursor-pointer"
                   >
                     {t.focus.cancel}
                   </button>
                 </div>
 
                 {sessionDistractions.length > 0 && (
-                  <div className="mt-3 pt-2.5 border-t border-white/10 flex flex-col gap-1.5">
+                  <div className="mt-3 pt-2.5 border-t border-[#DCE5F0] dark:border-white/10 flex flex-col gap-1.5">
                     {sessionDistractions.map(renderDistractionTag)}
                   </div>
                 )}
@@ -952,17 +950,17 @@ export default function FocusPage() {
                   <button
                     type="button"
                     onClick={() => setShowDistraction((prev) => !prev)}
-                    className={`h-12 px-4 rounded-full border transition-all flex items-center gap-2 text-xs font-semibold cursor-pointer active:scale-95 shadow-md ${
+                    className={`h-12 px-4 rounded-full border transition-all flex items-center gap-2 text-xs font-semibold cursor-pointer active:scale-95 shadow-xs ${
                       showDistraction
-                        ? "bg-blue-600 text-white border-blue-500 shadow-blue-500/25"
-                        : "bg-white/5 hover:bg-white/10 text-zinc-300 hover:text-white border-white/10"
+                        ? "bg-[#223A5E] dark:bg-blue-600 text-white border-[#223A5E] dark:border-blue-500 shadow-sm"
+                        : "bg-[#F7FAFE] dark:bg-white/5 hover:bg-[#F0F5FD] dark:hover:bg-white/10 text-[#52627A] dark:text-zinc-300 hover:text-[#111827] dark:hover:text-white border-[#DCE5F0] dark:border-white/10"
                     }`}
                     title={t.focus.distracted}
                   >
-                    <MessageSquare className={`w-4 h-4 ${showDistraction ? "text-white" : "text-blue-400"}`} />
+                    <MessageSquare className={`w-4 h-4 ${showDistraction ? "text-white" : "text-[#5B8DEF] dark:text-blue-400"}`} />
                     <span>{t.focus.distracted}</span>
                     {sessionDistractions.length > 0 && (
-                      <span className="ml-0.5 px-1.5 py-0.5 rounded-full bg-blue-500/25 text-blue-300 text-[10px] font-bold">
+                      <span className="ml-0.5 px-1.5 py-0.5 rounded-full bg-[#EAF1FB] dark:bg-blue-500/25 text-[#223A5E] dark:text-blue-300 text-[10px] font-bold">
                         {sessionDistractions.length}
                       </span>
                     )}
@@ -971,14 +969,14 @@ export default function FocusPage() {
 
                 {/* Inline Distraction Input Box (Expands inline below controls) */}
                 {showDistraction && (
-                  <div className="mt-4 w-full p-4 rounded-2xl border border-blue-500/30 bg-[#0c1222]/95 backdrop-blur-xl shadow-2xl text-left">
+                  <div className="mt-4 w-full p-4 rounded-2xl border border-[#DCE5F0] dark:border-blue-500/30 bg-white dark:bg-[#0c1222]/95 shadow-xl dark:shadow-2xl text-left">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs font-semibold text-white flex items-center gap-1.5">
-                        <MessageSquare className="w-3.5 h-3.5 text-blue-400" />
+                      <span className="text-xs font-semibold text-[#111827] dark:text-white flex items-center gap-1.5">
+                        <MessageSquare className="w-3.5 h-3.5 text-[#5B8DEF] dark:text-blue-400" />
                         {t.focus.whatDistracted}
                       </span>
                       {sessionDistractions.length > 0 && (
-                        <span className="text-[11px] text-zinc-400">
+                        <span className="text-[11px] text-[#52627A] dark:text-zinc-400">
                           {sessionDistractions.length} {t.focus.logged}
                         </span>
                       )}
@@ -990,7 +988,7 @@ export default function FocusPage() {
                       onChange={(e) => setDistractionText(e.target.value)}
                       onKeyDown={(e) => e.key === "Enter" && handleLogDistraction()}
                       placeholder={t.focus.whatDistracted}
-                      className="w-full text-xs py-2.5 px-3 rounded-xl bg-black/40 border border-white/10 text-white placeholder:text-zinc-500 focus:outline-none focus:border-blue-500 mb-3"
+                      className="w-full text-xs py-2.5 px-3 rounded-xl bg-[#F7FAFE] dark:bg-black/40 border border-[#DCE5F0] dark:border-white/10 text-[#111827] dark:text-white placeholder:text-[#8290A5] dark:placeholder:text-zinc-500 focus:outline-none focus:border-[#5B8DEF] dark:focus:border-blue-500 mb-3 transition-colors"
                       autoFocus
                     />
 
@@ -999,7 +997,7 @@ export default function FocusPage() {
                         type="button"
                         onClick={handleLogDistraction}
                         disabled={!distractionText.trim()}
-                        className="flex-1 py-2 px-3 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white text-xs font-semibold transition-all shadow-md shadow-blue-600/30 cursor-pointer"
+                        className="flex-1 py-2 px-3 rounded-xl bg-[#223A5E] hover:bg-[#2E4E7B] dark:bg-blue-600 dark:hover:bg-blue-500 disabled:opacity-40 text-white text-xs font-semibold transition-all shadow-sm active:scale-98 cursor-pointer"
                       >
                         {t.focus.saveReturn}
                       </button>
@@ -1009,14 +1007,14 @@ export default function FocusPage() {
                           setShowDistraction(false);
                           setDistractionText("");
                         }}
-                        className="py-2 px-3 rounded-xl bg-white/5 hover:bg-white/10 text-zinc-300 text-xs font-medium border border-white/10 transition-colors cursor-pointer"
+                        className="py-2 px-3 rounded-xl bg-[#F3F7FC] hover:bg-[#EAF1FB] dark:bg-white/5 dark:hover:bg-white/10 text-[#52627A] hover:text-[#111827] dark:text-zinc-300 dark:hover:text-white text-xs font-medium border border-[#DCE5F0] dark:border-white/10 transition-colors cursor-pointer"
                       >
                         {t.focus.cancel}
                       </button>
                     </div>
 
                     {sessionDistractions.length > 0 && (
-                      <div className="mt-3 pt-2.5 border-t border-white/10 flex flex-col gap-1.5">
+                      <div className="mt-3 pt-2.5 border-t border-[#DCE5F0] dark:border-white/10 flex flex-col gap-1.5">
                         {sessionDistractions.map(renderDistractionTag)}
                       </div>
                     )}
@@ -1033,60 +1031,52 @@ export default function FocusPage() {
       {/* ============================================================ */}
       {sessionPhase === "break_selection" && (
         <div className="max-w-2xl mx-auto">
-          <div
-            className="card p-8 text-center relative overflow-hidden border border-purple-500/30 shadow-2xl motion-reveal"
-            style={{
-              background: "linear-gradient(180deg, rgba(24, 20, 38, 0.95) 0%, rgba(13, 13, 20, 0.98) 100%)",
-            }}
-          >
-            {/* Confetti celebration icon */}
-            <div className="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-tr from-purple-600/30 to-blue-500/20 border border-purple-500/30 flex items-center justify-center mb-5 shadow-lg shadow-purple-500/10">
-              <PartyPopper className="w-8 h-8 text-purple-400 animate-bounce" />
-            </div>
-
-            <h2 className="text-base md:text-lg font-semibold text-foreground mb-2">
+          <div className="card p-8 text-center relative overflow-hidden border border-[#DCE5F0] dark:border-purple-500/30 bg-white dark:bg-[#0c1424] shadow-xl dark:shadow-2xl motion-reveal">
+            <h2 className="text-base md:text-lg font-semibold text-[#111827] dark:text-white mb-2">
               {t.focus.breakSelectionTitle}
             </h2>
 
-            <p className="text-sm text-muted-foreground mb-2 max-w-md mx-auto leading-relaxed">
+            <p className="text-sm text-[#52627A] dark:text-zinc-400 mb-5 max-w-md mx-auto leading-relaxed">
               {t.focus.breakSelectionSubtitle}
             </p>
 
             {/* Session Summary Tag */}
             {completedSessionData && (
-              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs text-zinc-300 mb-7">
-                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                <span className="font-semibold text-white">{completedSessionData.name}</span>
-                <span className="opacity-60">•</span>
-                <span className="text-purple-300 font-medium">{completedSessionData.minutes}m focused</span>
+              <div className="inline-flex items-center gap-2.5 px-4 py-2 rounded-full bg-[#F0F5FD] dark:bg-white/5 border border-[#DCE5F0] dark:border-white/10 text-xs shadow-2xs mb-7">
+                <CheckCircle2 className="w-4 h-4 text-emerald-500 dark:text-emerald-400 shrink-0" />
+                <span className="font-semibold text-[#111827] dark:text-white">{completedSessionData.name}</span>
+                <span className="text-[#8290A5] dark:text-zinc-500">•</span>
+                <span className="font-medium text-[#223A5E] dark:text-blue-300">
+                  {completedSessionData.minutes}m focused
+                </span>
               </div>
             )}
 
             {/* Break Options Card */}
-            <div className="p-6 rounded-2xl bg-white/[0.03] border border-white/10 mb-6 text-left">
+            <div className="p-6 rounded-2xl bg-[#F7FAFE] dark:bg-white/[0.03] border border-[#DCE5F0] dark:border-white/10 mb-6 text-left">
               <div className="flex items-center justify-between mb-4">
-                <span className="text-xs font-bold uppercase tracking-wider text-purple-400 flex items-center gap-1.5">
-                  <Coffee className="w-4 h-4" />
+                <span className="text-xs font-bold uppercase tracking-wider text-[#223A5E] dark:text-purple-400 flex items-center gap-1.5">
+                  <Coffee className="w-4 h-4 text-[#5B8DEF] dark:text-purple-400" />
                   {t.focus.takeShortBreak}
                 </span>
-                <span className="text-xs text-zinc-400">
+                <span className="text-xs text-[#52627A] dark:text-zinc-400">
                   {state.lang === "bn" ? "পরবর্তী কাজের জন্য রিচার্জ করুন" : "Recharge your mind"}
                 </span>
               </div>
 
               {/* Break Duration Grid: 2m, 5m, 10m, 20m, 30m */}
-              <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5 mb-2">
+              <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 xs:gap-2.5 mb-2">
                 {[2, 5, 10, 20, 30].map((mins) => (
                   <button
                     key={mins}
                     onClick={() => handleSelectBreak(mins)}
-                    className="group relative p-3 rounded-xl border border-white/10 hover:border-purple-500/50 bg-black/30 hover:bg-purple-950/20 text-center transition-all hover:scale-[1.03] active:scale-[0.98] focus:outline-none"
+                    className="group relative p-3 rounded-xl border border-[#DCE5F0] dark:border-white/10 hover:border-[#5B8DEF] dark:hover:border-purple-500/50 bg-white dark:bg-black/30 hover:bg-[#F0F5FD] dark:hover:bg-purple-950/20 text-center transition-all hover:scale-[1.03] active:scale-[0.98] focus:outline-none cursor-pointer shadow-2xs"
                   >
-                    <div className="text-lg font-bold text-foreground group-hover:text-purple-300 transition-colors">
+                    <div className="text-lg font-bold text-[#111827] dark:text-foreground group-hover:text-[#223A5E] dark:group-hover:text-purple-300 transition-colors">
                       {mins}
-                      <span className="text-xs font-normal text-muted-foreground ml-0.5">m</span>
+                      <span className="text-xs font-normal text-[#52627A] dark:text-muted-foreground ml-0.5">m</span>
                     </div>
-                    <div className="text-[10px] text-zinc-400 group-hover:text-zinc-300 mt-0.5">
+                    <div className="text-[10px] text-[#52627A] dark:text-zinc-400 group-hover:text-[#111827] dark:group-hover:text-zinc-300 mt-0.5">
                       {mins <= 5
                         ? state.lang === "bn" ? "দ্রুত" : "Quick"
                         : mins <= 10
@@ -1102,9 +1092,9 @@ export default function FocusPage() {
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
               <button
                 onClick={handleSkipBreak}
-                className="w-full sm:w-auto px-6 py-3 rounded-xl font-semibold text-sm text-zinc-300 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 transition-colors flex items-center justify-center gap-2"
+                className="w-full sm:w-auto px-6 py-2.5 rounded-xl font-semibold text-sm text-[#52627A] hover:text-[#111827] dark:text-zinc-300 dark:hover:text-white bg-[#F3F7FC] hover:bg-[#EAF1FB] dark:bg-white/5 dark:hover:bg-white/10 border border-[#DCE5F0] dark:border-white/10 transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-2xs"
               >
-                <FastForward className="w-4 h-4" />
+                <FastForward className="w-4 h-4 text-[#5B8DEF] dark:text-current" />
                 {t.focus.skipBreak}
               </button>
             </div>
@@ -1390,10 +1380,10 @@ export default function FocusPage() {
               <div className="flex items-center gap-3">
                 <button
                   onClick={handleSecondaryModalAction}
-                  className={`flex-1 py-2.5 px-3 rounded-xl text-xs sm:text-sm font-medium transition-all text-center border ${
+                  className={`flex-1 py-2.5 px-3 rounded-xl text-xs sm:text-sm font-bold transition-all text-center border ${
                     isExitUnlocked
-                      ? "text-red-400 hover:text-white bg-red-500/10 hover:bg-red-500/20 border-red-500/30"
-                      : "text-zinc-400 hover:text-zinc-200 bg-white/5 hover:bg-white/10 border-white/10"
+                      ? "btn-danger"
+                      : "btn-outline"
                   }`}
                 >
                   {modalSecondaryText}
@@ -1401,7 +1391,7 @@ export default function FocusPage() {
 
                 <button
                   onClick={handleKeepFocusing}
-                  className="flex-1 py-2.5 px-3 rounded-xl text-xs sm:text-sm font-semibold text-white transition-all hover:scale-[1.02] text-center flex items-center justify-center gap-1.5 btn-primary"
+                  className="btn-primary flex-1 py-2.5 px-3 rounded-xl text-xs sm:text-sm font-bold text-white transition-all text-center flex items-center justify-center gap-1.5 shadow-none"
                 >
                   {modalPrimaryText}
                 </button>

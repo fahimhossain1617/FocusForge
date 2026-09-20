@@ -6,6 +6,29 @@ export default function ServiceWorkerRegister() {
   useEffect(() => {
     if (typeof window === "undefined" || !("serviceWorker" in navigator)) return;
 
+    const isLocalhost = Boolean(
+      window.location.hostname === "localhost" ||
+      window.location.hostname === "[::1]" ||
+      window.location.hostname.match(/^127(?:\.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)){3}$/)
+    );
+
+    // In local development, unregister any stale service workers to prevent Turbopack/HMR chunk caching errors
+    if (process.env.NODE_ENV === "development" || isLocalhost) {
+      navigator.serviceWorker.getRegistrations().then((registrations) => {
+        for (const registration of registrations) {
+          registration.unregister();
+        }
+      }).catch(() => {});
+      if ("caches" in window) {
+        caches.keys().then((keys) => {
+          for (const key of keys) {
+            caches.delete(key);
+          }
+        }).catch(() => {});
+      }
+      return;
+    }
+
     let refreshing = false;
     const hadController = Boolean(navigator.serviceWorker.controller);
 

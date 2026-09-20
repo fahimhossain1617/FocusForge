@@ -126,10 +126,10 @@ export default function NoteAttachmentsSection({
             <button
               type="button"
               onClick={onTriggerFileUpload}
-              className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium text-zinc-300 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 transition-colors cursor-pointer"
+              className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-[#EBF3FE] dark:bg-blue-500/20 text-[#1D4ED8] dark:text-blue-300 border border-[#D0E1FD] dark:border-blue-500/30 hover:bg-[#DBEAFE] dark:hover:bg-blue-500/30 transition-all cursor-pointer shadow-xs"
               title="Attach File"
             >
-              <Plus size={12} />
+              <Plus size={12} strokeWidth={2.5} />
               <span>File</span>
             </button>
           )}
@@ -137,10 +137,10 @@ export default function NoteAttachmentsSection({
             <button
               type="button"
               onClick={onTriggerImageUpload}
-              className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium text-zinc-300 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 transition-colors cursor-pointer"
+              className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-[#EBF3FE] dark:bg-blue-500/20 text-[#1D4ED8] dark:text-blue-300 border border-[#D0E1FD] dark:border-blue-500/30 hover:bg-[#DBEAFE] dark:hover:bg-blue-500/30 transition-all cursor-pointer shadow-xs"
               title="Add Image"
             >
-              <Plus size={12} />
+              <Plus size={12} strokeWidth={2.5} />
               <span>Image</span>
             </button>
           )}
@@ -148,10 +148,10 @@ export default function NoteAttachmentsSection({
             <button
               type="button"
               onClick={onTriggerLinkModal}
-              className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium text-zinc-300 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 transition-colors cursor-pointer"
+              className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-[#EBF3FE] dark:bg-blue-500/20 text-[#1D4ED8] dark:text-blue-300 border border-[#D0E1FD] dark:border-blue-500/30 hover:bg-[#DBEAFE] dark:hover:bg-blue-500/30 transition-all cursor-pointer shadow-xs"
               title="Add Link"
             >
-              <Plus size={12} />
+              <Plus size={12} strokeWidth={2.5} />
               <span>Link</span>
             </button>
           )}

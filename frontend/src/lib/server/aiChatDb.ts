@@ -4,7 +4,8 @@ import { executeAIAction } from './aiService';
 const connectionString = (
   process.env.DATABASE_URL ||
   process.env.DIRECT_URL ||
-  'postgresql://postgres.mvielktfijxecszlqjxz:fahimhossain1314tushar@aws-0-ap-northeast-2.pooler.supabase.com:5432/postgres'
+  process.env.POSTGRES_URL ||
+  ''
 ).replace(/^["']|["']$/g, '').trim();
 
 // Global connection pool instance

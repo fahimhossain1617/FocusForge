@@ -48,8 +48,43 @@ import {
   dbUpsertReviewPromptState,
   dbInsertReview,
   dbClearAllChatSessions,
+  dbGetUserProfile,
+  dbUpdateUserProfile,
+  dbCheckUsernameAvailable,
+  dbGetNotificationSettings,
+  dbUpsertNotificationSettings,
+  dbSavePushSubscription,
+  dbRemovePushSubscription,
+  dbCreateSupportTicket,
+  dbGetSupportTickets,
+  dbGetSupportTicketById,
+  dbUpdateSupportTicket,
+  dbAddTicketReply,
+  dbGetTicketReplies,
+  dbCheckUserRole,
+  dbLogSupervisorAction,
+  dbGetSupervisorAuditLogs,
+  dbDeleteUserAccountCompletely,
   pool,
 } from '@/lib/server/db';
+import {
+  ERROR_CODES,
+  validateFullName,
+  validateDisplayName,
+  validatePhone,
+  validateDateOfBirth,
+  validateBio,
+  validateGender,
+  validatePassword,
+} from '@/lib/server/validation';
+import { checkRateLimit } from '@/lib/server/rateLimiter';
+import {
+  sendSupportNotificationToOwner,
+  sendSupportConfirmationToUser,
+  sendSupervisorReplyToUser,
+  sendPasswordChangedEmail,
+  sendAccountDeletedEmail,
+} from '@/lib/server/emailService';
 import { supabase } from '@/lib/supabaseClient';
 
 async function extractAuth(request: NextRequest) {
@@ -58,9 +93,12 @@ async function extractAuth(request: NextRequest) {
   const guestId = request.headers.get('x-guest-id') || 'guest';
   const authHeader = request.headers.get('authorization') || '';
   const token = authHeader.replace(/^Bearer\s+/i, '').trim();
+  const clientIp = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || '127.0.0.1';
 
   let userId: string | null = null;
   let isGuest = true;
+  let userEmail: string | null = null;
+  let authProvider: string = 'email';
 
   if (token && token !== 'guest') {
     try {
@@ -68,13 +106,15 @@ async function extractAuth(request: NextRequest) {
       if (user) {
         userId = user.id;
         isGuest = false;
+        userEmail = user.email || null;
+        authProvider = user.app_metadata?.provider || (user.email ? 'email' : 'phone');
       }
     } catch (err) {
       console.warn('[route auth] Token verification fallback:', err);
     }
   }
 
-  return { userId, isGuest, guestId, lang, token };
+  return { userId, isGuest, guestId, lang, token, clientIp, userEmail, authProvider };
 }
 
 // =========================================================================
@@ -85,7 +125,7 @@ export async function GET(request: NextRequest, context: { params: Promise<{ pat
   const pathStr = path.join('/');
   const searchParams = request.nextUrl.searchParams;
 
-  const { userId, isGuest, guestId, lang } = await extractAuth(request);
+  const { userId, isGuest, guestId, lang, clientIp } = await extractAuth(request);
 
   // 1. Token status
   if (pathStr === 'ai/tokens') {
@@ -93,17 +133,156 @@ export async function GET(request: NextRequest, context: { params: Promise<{ pat
     return NextResponse.json(status);
   }
 
-  // 2. Notifications API
-  if (pathStr === 'notifications/reminders') {
-    const isBengali = lang === 'bn';
-    return NextResponse.json({
-      success: true,
-      message: isBengali ? 'রিমাইন্ডার তালিকা সক্রিয়' : 'Reminder queue active',
-      timestamp: new Date().toISOString(),
-    });
+  // 2. User Profile: GET /api/user/profile
+  if (pathStr === 'user/profile') {
+    if (!userId || isGuest) {
+      return NextResponse.json({
+        id: 'guest',
+        identifier: 'guest',
+        authMethod: 'email',
+        displayName: 'Guest User',
+        fullName: 'Guest User',
+        avatarUrl: null,
+      });
+    }
+
+    try {
+      let profile = await dbGetUserProfile(userId);
+      if (!profile) {
+        const { data: authData } = await supabase.auth.getUser();
+        const u = authData?.user;
+        profile = await dbUpdateUserProfile(userId, {
+          email: u?.email || 'user',
+          fullName: u?.user_metadata?.full_name || '',
+          displayName: '',
+        });
+      }
+      return NextResponse.json(profile);
+    } catch (err: any) {
+      return NextResponse.json({ error: err?.message || 'Failed to fetch profile', code: ERROR_CODES.SERVER_ERROR }, { status: 500 });
+    }
   }
 
-  // 3. AI Agent Sessions & Messages
+  // 3. Username Availability Check: GET /api/user/check-username?username=...
+  if (pathStr === 'user/check-username') {
+    const username = searchParams.get('username') || '';
+    const rateCheck = checkRateLimit(`check_user:${clientIp}`, 30, 60000);
+    if (!rateCheck.allowed) {
+      return NextResponse.json({ error: 'Too many requests', code: ERROR_CODES.TOO_MANY_ATTEMPTS }, { status: 429 });
+    }
+
+    const val = validateDisplayName(username);
+    if (!val.valid) {
+      return NextResponse.json({ available: false, valid: false, message: val.message, code: val.code });
+    }
+
+    try {
+      const available = await dbCheckUsernameAvailable(username, userId || undefined);
+      return NextResponse.json({ available, valid: true });
+    } catch (err: any) {
+      return NextResponse.json({ error: err?.message || 'Database check failed', code: ERROR_CODES.SERVER_ERROR }, { status: 500 });
+    }
+  }
+
+  // 4. Notification Settings: GET /api/notifications/settings
+  if (pathStr === 'notifications/settings') {
+    if (!userId || isGuest) {
+      return NextResponse.json({
+        pushEnabled: true,
+        taskReminders: true,
+        focusReminders: true,
+        dailyProgressReminders: true,
+        dailyReminderTime: '20:00',
+        timezone: 'UTC',
+      });
+    }
+
+    try {
+      const settings = await dbGetNotificationSettings(userId);
+      return NextResponse.json(settings);
+    } catch (err: any) {
+      return NextResponse.json({ error: err?.message || 'Failed to fetch notification settings' }, { status: 500 });
+    }
+  }
+
+  // 5. Supervisor API - Check Role: GET /api/supervisor/role
+  if (pathStr === 'supervisor/role') {
+    if (!userId || isGuest) {
+      return NextResponse.json({ isSupervisor: false, roles: [] });
+    }
+    const roles = await dbCheckUserRole(userId);
+    const isSupervisor = roles.includes('supervisor') || roles.includes('admin');
+    return NextResponse.json({ isSupervisor, roles });
+  }
+
+  // 6. Supervisor API - List Tickets: GET /api/supervisor/tickets
+  if (pathStr === 'supervisor/tickets') {
+    if (!userId || isGuest) {
+      return NextResponse.json({ error: 'Unauthorized', code: ERROR_CODES.UNAUTHORIZED }, { status: 401 });
+    }
+    const roles = await dbCheckUserRole(userId);
+    if (!roles.includes('supervisor') && !roles.includes('admin')) {
+      return NextResponse.json({ error: 'Supervisor access required', code: ERROR_CODES.FORBIDDEN }, { status: 403 });
+    }
+
+    try {
+      const type = searchParams.get('type') || undefined;
+      const status = searchParams.get('status') || undefined;
+      const priority = searchParams.get('priority') || undefined;
+      const unreadOnly = searchParams.get('unread') === 'true';
+      const search = searchParams.get('search') || undefined;
+      const limit = parseInt(searchParams.get('limit') || '50', 10);
+      const offset = parseInt(searchParams.get('offset') || '0', 10);
+
+      const tickets = await dbGetSupportTickets({ type, status, priority, unreadOnly, search, limit, offset });
+      return NextResponse.json(tickets);
+    } catch (err: any) {
+      return NextResponse.json({ error: err?.message || 'Failed to fetch tickets' }, { status: 500 });
+    }
+  }
+
+  // 7. Supervisor API - Single Ticket & Thread: GET /api/supervisor/tickets/:id
+  if (pathStr.startsWith('supervisor/tickets/')) {
+    if (!userId || isGuest) {
+      return NextResponse.json({ error: 'Unauthorized', code: ERROR_CODES.UNAUTHORIZED }, { status: 401 });
+    }
+    const roles = await dbCheckUserRole(userId);
+    if (!roles.includes('supervisor') && !roles.includes('admin')) {
+      return NextResponse.json({ error: 'Supervisor access required', code: ERROR_CODES.FORBIDDEN }, { status: 403 });
+    }
+
+    const ticketId = pathStr.split('/')[2];
+    try {
+      const ticket = await dbGetSupportTicketById(ticketId);
+      if (!ticket) {
+        return NextResponse.json({ error: 'Ticket not found', code: ERROR_CODES.NOT_FOUND }, { status: 404 });
+      }
+      const replies = await dbGetTicketReplies(ticket.id);
+      return NextResponse.json({ ticket, replies });
+    } catch (err: any) {
+      return NextResponse.json({ error: err?.message || 'Failed to load ticket' }, { status: 500 });
+    }
+  }
+
+  // 8. Supervisor API - Audit Logs: GET /api/supervisor/audit-logs
+  if (pathStr === 'supervisor/audit-logs') {
+    if (!userId || isGuest) {
+      return NextResponse.json({ error: 'Unauthorized', code: ERROR_CODES.UNAUTHORIZED }, { status: 401 });
+    }
+    const roles = await dbCheckUserRole(userId);
+    if (!roles.includes('admin')) {
+      return NextResponse.json({ error: 'Admin access required', code: ERROR_CODES.FORBIDDEN }, { status: 403 });
+    }
+
+    try {
+      const logs = await dbGetSupervisorAuditLogs(100);
+      return NextResponse.json(logs);
+    } catch (err: any) {
+      return NextResponse.json({ error: err?.message || 'Failed to fetch audit logs' }, { status: 500 });
+    }
+  }
+
+  // 9. AI Agent Sessions & Messages
   if (pathStr === 'ai/agent/sessions' || pathStr === 'ai/sessions') {
     try {
       const sessions = await getChatSessions(userId);
@@ -124,7 +303,7 @@ export async function GET(request: NextRequest, context: { params: Promise<{ pat
     return NextResponse.json(messages);
   }
 
-  // 4. Tasks & Routine Templates
+  // 10. Tasks & Routine Templates
   if (pathStr === 'tasks/templates') {
     try {
       const templates = await dbGetRoutineTemplates(userId);
@@ -145,7 +324,7 @@ export async function GET(request: NextRequest, context: { params: Promise<{ pat
     }
   }
 
-  // 5. Notes
+  // 11. Notes
   if (pathStr === 'notes') {
     try {
       const notes = await dbGetNotes(userId);
@@ -155,7 +334,7 @@ export async function GET(request: NextRequest, context: { params: Promise<{ pat
     }
   }
 
-  // 6. Mind Items
+  // 12. Mind Items
   if (pathStr === 'mind') {
     try {
       const items = await dbGetMindItems(userId);
@@ -165,7 +344,7 @@ export async function GET(request: NextRequest, context: { params: Promise<{ pat
     }
   }
 
-  // 7. Focus Sessions
+  // 13. Focus Sessions
   if (pathStr === 'focus/sessions') {
     try {
       const sessions = await dbGetFocusSessions(userId);
@@ -175,7 +354,7 @@ export async function GET(request: NextRequest, context: { params: Promise<{ pat
     }
   }
 
-  // 8. Diary Topics & Entries
+  // 14. Diary Topics & Entries
   if (pathStr === 'diary/topics') {
     try {
       const topics = await dbGetDiaryTopics(userId);
@@ -185,7 +364,7 @@ export async function GET(request: NextRequest, context: { params: Promise<{ pat
     }
   }
 
-  // 9. Learning Hub Data
+  // 15. Learning Hub Data
   if (pathStr === 'learning/data') {
     try {
       const data = await dbGetLearningData(userId);
@@ -195,7 +374,7 @@ export async function GET(request: NextRequest, context: { params: Promise<{ pat
     }
   }
 
-  // 10. Reviews Prompt State
+  // 16. Reviews Prompt State
   if (pathStr === 'reviews/prompt-state') {
     try {
       const state = await dbGetReviewPromptState(userId);
@@ -205,7 +384,7 @@ export async function GET(request: NextRequest, context: { params: Promise<{ pat
     }
   }
 
-  // 11. Health Check
+  // 17. Health Check
   if (pathStr === 'health') {
     return NextResponse.json({ status: 'ok', timestamp: new Date().toISOString() });
   }
@@ -220,25 +399,327 @@ export async function POST(request: NextRequest, context: { params: Promise<{ pa
   const { path } = await context.params;
   const pathStr = path.join('/');
 
-  const { userId, isGuest, guestId, lang } = await extractAuth(request);
+  const { userId, isGuest, guestId, lang, clientIp, userEmail, authProvider, token } = await extractAuth(request);
 
   let body: any = {};
   try {
     body = await request.json();
   } catch {}
 
-  // Explicit Create Session endpoint
-  if (pathStr === 'ai/agent/sessions' || pathStr === 'ai/sessions') {
+  // 1. Password Change: POST /api/user/change-password
+  if (pathStr === 'user/change-password') {
+    if (!userId || isGuest) {
+      return NextResponse.json({ error: 'Authentication required', code: ERROR_CODES.UNAUTHORIZED }, { status: 401 });
+    }
+
+    // Rate limit password change attempts
+    const rateCheck = checkRateLimit(`pwd_change:${userId}`, 5, 900000); // 5 attempts per 15 min
+    if (!rateCheck.allowed) {
+      return NextResponse.json({
+        error: 'Too many failed attempts. Please try again later.',
+        code: ERROR_CODES.TOO_MANY_ATTEMPTS,
+        retryAfterSeconds: rateCheck.retryAfterSeconds,
+      }, { status: 429 });
+    }
+
+    if (authProvider === 'google') {
+      return NextResponse.json({
+        error: 'Password is managed by your Google account.',
+        code: ERROR_CODES.PASSWORD_MANAGED_BY_PROVIDER,
+      }, { status: 400 });
+    }
+
+    const { currentPassword, newPassword } = body;
+    if (!currentPassword || !newPassword) {
+      return NextResponse.json({ error: 'Current password and new password are required.', code: ERROR_CODES.INVALID_INPUT }, { status: 400 });
+    }
+
+    if (currentPassword === newPassword) {
+      return NextResponse.json({ error: 'New password cannot be identical to current password.', code: ERROR_CODES.INVALID_PASSWORD }, { status: 400 });
+    }
+
+    const passVal = validatePassword(newPassword);
+    if (!passVal.valid) {
+      return NextResponse.json({ error: passVal.message, code: passVal.code }, { status: 400 });
+    }
+
     try {
-      const title = body.title || (lang === 'bn' ? 'নতুন চ্যাট' : 'New Conversation');
-      const session = await createChatSession(userId, title);
-      return NextResponse.json(session);
+      // 1. Re-authenticate current user with current password
+      if (userEmail) {
+        const { error: signInError } = await supabase.auth.signInWithPassword({
+          email: userEmail,
+          password: currentPassword,
+        });
+        if (signInError) {
+          return NextResponse.json({ error: 'Current password is incorrect.', code: ERROR_CODES.INVALID_CREDENTIALS }, { status: 400 });
+        }
+      }
+
+      // 2. Update to new password
+      const { error: updateError } = await supabase.auth.updateUser({
+        password: newPassword,
+      });
+
+      if (updateError) {
+        return NextResponse.json({ error: updateError.message, code: ERROR_CODES.SERVER_ERROR }, { status: 500 });
+      }
+
+      // 3. Send security alert email
+      if (userEmail) {
+        sendPasswordChangedEmail(userEmail);
+      }
+
+      return NextResponse.json({ success: true, message: 'Password updated successfully.' });
     } catch (err: any) {
-      return NextResponse.json({ error: err.message || 'Failed to create session' }, { status: 500 });
+      return NextResponse.json({ error: err?.message || 'Password update failed', code: ERROR_CODES.SERVER_ERROR }, { status: 500 });
     }
   }
 
-  // 1. AI Agent Chat
+  // 2. Avatar Upload: POST /api/user/avatar
+  if (pathStr === 'user/avatar') {
+    if (!userId || isGuest) {
+      return NextResponse.json({ error: 'Authentication required', code: ERROR_CODES.UNAUTHORIZED }, { status: 401 });
+    }
+
+    const { avatarBase64, mimeType } = body;
+    if (!avatarBase64) {
+      return NextResponse.json({ error: 'Avatar image data required', code: ERROR_CODES.INVALID_INPUT }, { status: 400 });
+    }
+
+    const allowedMimes = ['image/jpeg', 'image/png', 'image/webp'];
+    if (mimeType && !allowedMimes.includes(mimeType)) {
+      return NextResponse.json({ error: 'Only JPG, PNG, and WebP formats are allowed.', code: ERROR_CODES.INVALID_FILE_TYPE }, { status: 400 });
+    }
+
+    try {
+      // Save avatar URL in profile
+      const avatarUrl = avatarBase64.startsWith('data:') ? avatarBase64 : `data:${mimeType || 'image/png'};base64,${avatarBase64}`;
+      const profile = await dbUpdateUserProfile(userId, { avatarUrl });
+      return NextResponse.json({ success: true, profile });
+    } catch (err: any) {
+      return NextResponse.json({ error: err?.message || 'Avatar upload failed', code: ERROR_CODES.SERVER_ERROR }, { status: 500 });
+    }
+  }
+
+  // 3. Notification Settings: POST /api/notifications/settings
+  if (pathStr === 'notifications/settings') {
+    if (!userId || isGuest) {
+      return NextResponse.json({ success: true, guest: true });
+    }
+    try {
+      const updated = await dbUpsertNotificationSettings(userId, body);
+      return NextResponse.json(updated);
+    } catch (err: any) {
+      return NextResponse.json({ error: err?.message || 'Failed to save settings' }, { status: 500 });
+    }
+  }
+
+  // 4. Push Subscriptions: POST /api/notifications/subscribe & unsubscribe
+  if (pathStr === 'notifications/subscribe') {
+    if (!userId || isGuest) {
+      return NextResponse.json({ success: true, guest: true });
+    }
+    try {
+      const userAgent = request.headers.get('user-agent') || '';
+      await dbSavePushSubscription(userId, body.subscription, userAgent);
+      return NextResponse.json({ success: true });
+    } catch (err: any) {
+      return NextResponse.json({ error: err?.message || 'Subscription failed' }, { status: 500 });
+    }
+  }
+
+  if (pathStr === 'notifications/unsubscribe') {
+    if (!userId || isGuest) {
+      return NextResponse.json({ success: true });
+    }
+    try {
+      await dbRemovePushSubscription(userId, body.endpoint);
+      return NextResponse.json({ success: true });
+    } catch (err: any) {
+      return NextResponse.json({ error: err?.message || 'Unsubscribe failed' }, { status: 500 });
+    }
+  }
+
+  // 5. Support Pipeline Submissions: Report, Contact, Feedback
+  if (pathStr === 'user/support/report' || pathStr === 'user/support/contact' || pathStr === 'user/support/feedback') {
+    const rateKey = userId ? `support:${userId}` : `support_ip:${clientIp}`;
+    const rateCheck = checkRateLimit(rateKey, 10, 3600000); // 10 submissions per hour
+    if (!rateCheck.allowed) {
+      return NextResponse.json({ error: 'Too many submissions. Please wait before sending another message.', code: ERROR_CODES.TOO_MANY_ATTEMPTS }, { status: 429 });
+    }
+
+    const type = pathStr.includes('report') ? 'report' : pathStr.includes('contact') ? 'contact' : 'feedback';
+    const senderName = body.name || (userId ? 'FocusForge User' : 'Guest User');
+    const senderEmail = body.email || userEmail || '';
+    const subject = body.subject || body.title || `${type.toUpperCase()} Submission`;
+    const message = body.message || body.description || '';
+    const category = body.category || body.type || 'General';
+    const attachments = body.screenshot ? [body.screenshot] : body.attachments || [];
+    const appVersion = body.appVersion || '1.0.0';
+    const browserInfo = body.browserInfo || request.headers.get('user-agent') || undefined;
+
+    if (!message.trim()) {
+      return NextResponse.json({ error: 'Message content cannot be empty.', code: ERROR_CODES.INVALID_INPUT }, { status: 400 });
+    }
+
+    if (type === 'contact' && !senderEmail) {
+      return NextResponse.json({ error: 'Email is required for contact support.', code: ERROR_CODES.INVALID_INPUT }, { status: 400 });
+    }
+
+    try {
+      // 1. SAVE TICKET FIRST IN DATABASE
+      const ticket = await dbCreateSupportTicket({
+        type,
+        category,
+        subject,
+        message,
+        attachments,
+        userId: userId || null,
+        name: senderName,
+        email: senderEmail,
+        isGuest: isGuest || !userId,
+        appVersion,
+        browserInfo,
+        language: lang,
+      });
+
+      if (!ticket) {
+        throw new Error('Ticket creation failed');
+      }
+
+      // 2. DISPATCH EMAILS IN BACKGROUND (Automatic Delivery)
+      // A: Email to Owner (Reply-To = senderEmail)
+      sendSupportNotificationToOwner({
+        ticketNumber: ticket.ticketNumber,
+        type: ticket.type,
+        senderName: ticket.name || 'Anonymous',
+        senderEmail: ticket.email || 'noreply@focusforge.app',
+        subject: ticket.subject,
+        message: ticket.message,
+        appVersion: ticket.appVersion || '1.0.0',
+        browserInfo: ticket.browserInfo || undefined,
+        isGuest: ticket.isGuest,
+        attachments: ticket.attachments,
+      });
+
+      // B: Confirmation Email to User
+      if (ticket.email) {
+        sendSupportConfirmationToUser({
+          ticketNumber: ticket.ticketNumber,
+          senderName: ticket.name || 'there',
+          senderEmail: ticket.email,
+          subject: ticket.subject,
+        });
+      }
+
+      return NextResponse.json({
+        success: true,
+        ticketNumber: ticket.ticketNumber,
+        ticketId: ticket.id,
+        message: 'Your message has been received. Ticket created.',
+      });
+    } catch (err: any) {
+      console.error('[Support Submission Error]:', err);
+      return NextResponse.json({ error: err?.message || 'Failed to submit ticket', code: ERROR_CODES.SERVER_ERROR }, { status: 500 });
+    }
+  }
+
+  // 6. Supervisor API - Update Ticket & Reply
+  if (pathStr.startsWith('supervisor/tickets/') && pathStr.endsWith('/reply')) {
+    if (!userId || isGuest) {
+      return NextResponse.json({ error: 'Unauthorized', code: ERROR_CODES.UNAUTHORIZED }, { status: 401 });
+    }
+    const roles = await dbCheckUserRole(userId);
+    if (!roles.includes('supervisor') && !roles.includes('admin')) {
+      return NextResponse.json({ error: 'Supervisor access required', code: ERROR_CODES.FORBIDDEN }, { status: 403 });
+    }
+
+    const ticketId = pathStr.split('/')[2];
+    const { message: replyMessage, supervisorName = 'Supervisor' } = body;
+
+    if (!replyMessage || !replyMessage.trim()) {
+      return NextResponse.json({ error: 'Reply message cannot be empty', code: ERROR_CODES.INVALID_INPUT }, { status: 400 });
+    }
+
+    try {
+      const ticket = await dbGetSupportTicketById(ticketId);
+      if (!ticket) {
+        return NextResponse.json({ error: 'Ticket not found', code: ERROR_CODES.NOT_FOUND }, { status: 404 });
+      }
+
+      // Add reply to database
+      const reply = await dbAddTicketReply({
+        ticketId: ticket.id,
+        senderRole: 'supervisor',
+        senderId: userId,
+        senderName: supervisorName,
+        message: replyMessage,
+      });
+
+      // Log supervisor action
+      await dbLogSupervisorAction(userId, 'REPLY_TICKET', 'support_tickets', ticket.id, { ticketNumber: ticket.ticketNumber }, clientIp);
+
+      // Send email to user if email available
+      if (ticket.email) {
+        sendSupervisorReplyToUser({
+          ticketNumber: ticket.ticketNumber,
+          recipientName: ticket.name || 'there',
+          recipientEmail: ticket.email,
+          subject: ticket.subject,
+          supervisorName,
+          replyMessage,
+        });
+      }
+
+      return NextResponse.json({ success: true, reply });
+    } catch (err: any) {
+      return NextResponse.json({ error: err?.message || 'Failed to post reply' }, { status: 500 });
+    }
+  }
+
+  // 7. Guest Data Migration: POST /api/user/migrate-guest-data
+  if (pathStr === 'user/migrate-guest-data') {
+    if (!userId || isGuest) {
+      return NextResponse.json({ error: 'Authentication required to merge data', code: ERROR_CODES.UNAUTHORIZED }, { status: 401 });
+    }
+
+    try {
+      const { tasks = [], notes = [], mindItems = [], habits = [] } = body;
+      let tasksMigrated = 0;
+      let notesMigrated = 0;
+      let mindMigrated = 0;
+
+      for (const t of tasks) {
+        try {
+          await dbUpsertTask(userId, { ...t, id: undefined });
+          tasksMigrated++;
+        } catch {}
+      }
+
+      for (const n of notes) {
+        try {
+          await dbUpsertNote(userId, { ...n, id: undefined });
+          notesMigrated++;
+        } catch {}
+      }
+
+      for (const m of mindItems) {
+        try {
+          await dbUpsertMindItem(userId, { ...m, id: undefined });
+          mindMigrated++;
+        } catch {}
+      }
+
+      return NextResponse.json({
+        success: true,
+        migrated: { tasks: tasksMigrated, notes: notesMigrated, mindItems: mindMigrated },
+      });
+    } catch (err: any) {
+      return NextResponse.json({ error: err?.message || 'Migration failed', code: ERROR_CODES.SERVER_ERROR }, { status: 500 });
+    }
+  }
+
+  // 8. AI Agent Chat
   if (pathStr === 'ai/agent/chat') {
     const { sessionId: requestedSessionId, message: userMsg, context: wsContext, history, model: selectedModel } = body;
     const tokenStatus = await getUserTokenStatus(userId, isGuest, guestId, lang);
@@ -269,7 +750,6 @@ export async function POST(request: NextRequest, context: { params: Promise<{ pa
       });
     }
     
-    // Fetch prior messages from database if not provided
     let recentHistory = history || [];
     if ((!recentHistory || recentHistory.length === 0) && requestedSessionId && requestedSessionId !== 'guest-session') {
       try {
@@ -354,14 +834,14 @@ export async function POST(request: NextRequest, context: { params: Promise<{ pa
     });
   }
 
-  // 2. Audio Voice Transcription
+  // 9. Audio Voice Transcription
   if (pathStr === 'ai/transcribe') {
     const { audio, mimeType, language } = body;
     const text = await transcribeAudio(audio, mimeType || 'audio/webm', language || lang);
     return NextResponse.json({ text });
   }
 
-  // 3. Specific AI Actions (what-should-i-do, breakdown, parse-task, etc.)
+  // 10. Specific AI Actions
   if (pathStr.startsWith('ai/')) {
     const actionName = pathStr.replace(/^ai\//, '');
     let actionKey = actionName;
@@ -379,9 +859,9 @@ export async function POST(request: NextRequest, context: { params: Promise<{ pa
     }
   }
 
-  // 4. Tasks & Routine Templates
+  // 11. Tasks & Routine Templates
   if (pathStr === 'tasks/templates') {
-    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!userId) return NextResponse.json({ error: 'Unauthorized', code: ERROR_CODES.UNAUTHORIZED }, { status: 401 });
     try {
       const saved = await dbUpsertRoutineTemplate(userId, body);
       return NextResponse.json(saved);
@@ -391,7 +871,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ pa
   }
 
   if (pathStr === 'tasks') {
-    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!userId) return NextResponse.json({ error: 'Unauthorized', code: ERROR_CODES.UNAUTHORIZED }, { status: 401 });
     try {
       const saved = await dbUpsertTask(userId, body);
       return NextResponse.json(saved);
@@ -400,9 +880,9 @@ export async function POST(request: NextRequest, context: { params: Promise<{ pa
     }
   }
 
-  // 5. Notes
+  // 12. Notes
   if (pathStr === 'notes') {
-    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!userId) return NextResponse.json({ error: 'Unauthorized', code: ERROR_CODES.UNAUTHORIZED }, { status: 401 });
     try {
       const saved = await dbUpsertNote(userId, body);
       return NextResponse.json(saved);
@@ -411,9 +891,9 @@ export async function POST(request: NextRequest, context: { params: Promise<{ pa
     }
   }
 
-  // 6. Mind Items
+  // 13. Mind Items
   if (pathStr === 'mind') {
-    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!userId) return NextResponse.json({ error: 'Unauthorized', code: ERROR_CODES.UNAUTHORIZED }, { status: 401 });
     try {
       const saved = await dbUpsertMindItem(userId, body);
       return NextResponse.json(saved);
@@ -422,9 +902,9 @@ export async function POST(request: NextRequest, context: { params: Promise<{ pa
     }
   }
 
-  // 7. Focus Sessions & Distractions
+  // 14. Focus Sessions & Distractions
   if (pathStr === 'focus/sessions') {
-    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!userId) return NextResponse.json({ error: 'Unauthorized', code: ERROR_CODES.UNAUTHORIZED }, { status: 401 });
     try {
       const saved = await dbUpsertFocusSession(userId, body);
       return NextResponse.json(saved);
@@ -434,7 +914,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ pa
   }
 
   if (pathStr.startsWith('focus/sessions/') && pathStr.endsWith('/distractions')) {
-    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!userId) return NextResponse.json({ error: 'Unauthorized', code: ERROR_CODES.UNAUTHORIZED }, { status: 401 });
     const sessionId = pathStr.split('/')[2];
     try {
       const saved = await dbAddDistraction(userId, sessionId, body);
@@ -444,9 +924,9 @@ export async function POST(request: NextRequest, context: { params: Promise<{ pa
     }
   }
 
-  // 8. Diary Topics & Entries
+  // 15. Diary Topics & Entries
   if (pathStr === 'diary/topics') {
-    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!userId) return NextResponse.json({ error: 'Unauthorized', code: ERROR_CODES.UNAUTHORIZED }, { status: 401 });
     try {
       const saved = await dbUpsertDiaryTopic(userId, body);
       return NextResponse.json(saved);
@@ -456,7 +936,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ pa
   }
 
   if (pathStr === 'diary/entries') {
-    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!userId) return NextResponse.json({ error: 'Unauthorized', code: ERROR_CODES.UNAUTHORIZED }, { status: 401 });
     try {
       const saved = await dbUpsertDiaryEntry(userId, body);
       return NextResponse.json(saved);
@@ -465,9 +945,9 @@ export async function POST(request: NextRequest, context: { params: Promise<{ pa
     }
   }
 
-  // 9. Learning Hub Folders & Logs
+  // 16. Learning Hub Folders & Logs
   if (pathStr === 'learning/folders') {
-    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!userId) return NextResponse.json({ error: 'Unauthorized', code: ERROR_CODES.UNAUTHORIZED }, { status: 401 });
     try {
       const saved = await dbUpsertLearningFolder(userId, body);
       return NextResponse.json(saved);
@@ -477,7 +957,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ pa
   }
 
   if (pathStr === 'learning/logs') {
-    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!userId) return NextResponse.json({ error: 'Unauthorized', code: ERROR_CODES.UNAUTHORIZED }, { status: 401 });
     try {
       const saved = await dbUpsertLearningLog(userId, body);
       return NextResponse.json(saved);
@@ -486,9 +966,9 @@ export async function POST(request: NextRequest, context: { params: Promise<{ pa
     }
   }
 
-  // 10. Reviews & Prompt State
+  // 17. Reviews & Prompt State
   if (pathStr === 'reviews/prompt-state') {
-    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!userId) return NextResponse.json({ error: 'Unauthorized', code: ERROR_CODES.UNAUTHORIZED }, { status: 401 });
     try {
       const saved = await dbUpsertReviewPromptState(userId, body);
       return NextResponse.json(saved);
@@ -498,7 +978,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ pa
   }
 
   if (pathStr === 'reviews') {
-    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!userId) return NextResponse.json({ error: 'Unauthorized', code: ERROR_CODES.UNAUTHORIZED }, { status: 401 });
     try {
       const saved = await dbInsertReview(userId, body.rating, body.comment);
       return NextResponse.json(saved);
@@ -507,7 +987,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ pa
     }
   }
 
-  // 11. User Cloud State
+  // 18. User Cloud State
   if (pathStr === 'user/cloud-state') {
     if (userId) {
       try {
@@ -536,15 +1016,77 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ p
   const { path } = await context.params;
   const pathStr = path.join('/');
 
-  const { userId } = await extractAuth(request);
-  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const { userId, isGuest, clientIp } = await extractAuth(request);
+  if (!userId || isGuest) return NextResponse.json({ error: 'Unauthorized', code: ERROR_CODES.UNAUTHORIZED }, { status: 401 });
 
   let body: any = {};
   try {
     body = await request.json();
   } catch {}
 
-  // 1. Tasks: PATCH /api/tasks/:id
+  // 1. User Profile Update: PATCH /api/user/profile
+  if (pathStr === 'user/profile') {
+    // Server-side validation
+    if (body.fullName !== undefined) {
+      const v = validateFullName(body.fullName);
+      if (!v.valid) return NextResponse.json({ error: v.message, code: v.code }, { status: 400 });
+    }
+
+    if (body.displayName !== undefined && body.displayName.trim() !== '') {
+      const v = validateDisplayName(body.displayName);
+      if (!v.valid) return NextResponse.json({ error: v.message, code: v.code }, { status: 400 });
+      const available = await dbCheckUsernameAvailable(body.displayName, userId);
+      if (!available) {
+        return NextResponse.json({ error: 'Username is already taken.', code: ERROR_CODES.USERNAME_TAKEN }, { status: 409 });
+      }
+    }
+
+    if (body.phone !== undefined) {
+      const v = validatePhone(body.phone);
+      if (!v.valid) return NextResponse.json({ error: v.message, code: v.code }, { status: 400 });
+    }
+
+    if (body.dateOfBirth !== undefined) {
+      const v = validateDateOfBirth(body.dateOfBirth);
+      if (!v.valid) return NextResponse.json({ error: v.message, code: v.code }, { status: 400 });
+    }
+
+    if (body.bio !== undefined) {
+      const v = validateBio(body.bio);
+      if (!v.valid) return NextResponse.json({ error: v.message, code: v.code }, { status: 400 });
+    }
+
+    if (body.gender !== undefined) {
+      const v = validateGender(body.gender);
+      if (!v.valid) return NextResponse.json({ error: v.message, code: v.code }, { status: 400 });
+    }
+
+    try {
+      const updated = await dbUpdateUserProfile(userId, body);
+      return NextResponse.json(updated);
+    } catch (err: any) {
+      return NextResponse.json({ error: err?.message || 'Profile update failed', code: ERROR_CODES.SERVER_ERROR }, { status: 500 });
+    }
+  }
+
+  // 2. Supervisor API - Update Ticket: PATCH /api/supervisor/tickets/:id
+  if (pathStr.startsWith('supervisor/tickets/')) {
+    const roles = await dbCheckUserRole(userId);
+    if (!roles.includes('supervisor') && !roles.includes('admin')) {
+      return NextResponse.json({ error: 'Supervisor access required', code: ERROR_CODES.FORBIDDEN }, { status: 403 });
+    }
+
+    const ticketId = pathStr.split('/')[2];
+    try {
+      const updated = await dbUpdateSupportTicket(ticketId, body);
+      await dbLogSupervisorAction(userId, 'UPDATE_TICKET', 'support_tickets', ticketId, body, clientIp);
+      return NextResponse.json(updated);
+    } catch (err: any) {
+      return NextResponse.json({ error: err?.message || 'Failed to update ticket' }, { status: 500 });
+    }
+  }
+
+  // 3. Tasks: PATCH /api/tasks/:id
   if (pathStr.startsWith('tasks/')) {
     const taskId = parseInt(pathStr.split('/')[1], 10);
     if (!isNaN(taskId)) {
@@ -557,7 +1099,7 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ p
     }
   }
 
-  // 2. Notes: PATCH /api/notes/:id
+  // 4. Notes: PATCH /api/notes/:id
   if (pathStr.startsWith('notes/')) {
     const noteId = parseInt(pathStr.split('/')[1], 10);
     if (!isNaN(noteId)) {
@@ -570,7 +1112,7 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ p
     }
   }
 
-  // 3. Focus: PATCH /api/focus/sessions/:id/end
+  // 5. Focus: PATCH /api/focus/sessions/:id/end
   if (pathStr.startsWith('focus/sessions/') && pathStr.endsWith('/end')) {
     const sessionId = pathStr.split('/')[2];
     try {
@@ -587,7 +1129,7 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ p
     }
   }
 
-  // 4. Learning: PATCH /api/learning/folders/:id
+  // 6. Learning: PATCH /api/learning/folders/:id
   if (pathStr.startsWith('learning/folders/')) {
     const folderId = pathStr.split('/')[2];
     try {
@@ -608,11 +1150,10 @@ export async function DELETE(request: NextRequest, context: { params: Promise<{ 
   const { path } = await context.params;
   const pathStr = path.join('/');
 
-  const { userId } = await extractAuth(request);
+  const { userId, isGuest, userEmail, authProvider } = await extractAuth(request);
 
   // 1. AI Agent Sessions
   if (pathStr === 'ai/agent/sessions' || pathStr === 'ai/sessions') {
-    // Bulk clear all sessions
     await dbClearAllChatSessions(userId);
     return NextResponse.json({ success: true });
   }
@@ -626,9 +1167,71 @@ export async function DELETE(request: NextRequest, context: { params: Promise<{ 
     return NextResponse.json({ success: true });
   }
 
-  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!userId || isGuest) return NextResponse.json({ error: 'Unauthorized', code: ERROR_CODES.UNAUTHORIZED }, { status: 401 });
 
-  // 2. Tasks & Templates
+  // 2. Avatar Removal: DELETE /api/user/avatar
+  if (pathStr === 'user/avatar') {
+    try {
+      const profile = await dbUpdateUserProfile(userId, { avatarUrl: null });
+      return NextResponse.json({ success: true, profile });
+    } catch (err: any) {
+      return NextResponse.json({ error: err?.message || 'Failed to remove avatar' }, { status: 500 });
+    }
+  }
+
+  // 3. Delete Account: DELETE /api/user/account
+  if (pathStr === 'user/account') {
+    let body: any = {};
+    try {
+      body = await request.json();
+    } catch {}
+
+    const confirmation = (body.confirmation || body.phrase || '').trim();
+    if (confirmation !== 'DELETE') {
+      return NextResponse.json({
+        error: 'Please type DELETE to confirm account deletion.',
+        code: ERROR_CODES.INVALID_CONFIRMATION,
+      }, { status: 400 });
+    }
+
+    // If password account, re-authenticate
+    if (authProvider === 'email' && body.password && userEmail) {
+      const { error: authErr } = await supabase.auth.signInWithPassword({
+        email: userEmail,
+        password: body.password,
+      });
+      if (authErr) {
+        return NextResponse.json({
+          error: 'Password confirmation failed.',
+          code: ERROR_CODES.INVALID_CREDENTIALS,
+        }, { status: 400 });
+      }
+    }
+
+    try {
+      // 1. Safe idempotent database cleanup
+      await dbDeleteUserAccountCompletely(userId);
+
+      // 2. Send confirmation email
+      if (userEmail) {
+        sendAccountDeletedEmail(userEmail);
+      }
+
+      // 3. Delete auth account in Supabase
+      try {
+        const adminClient = supabase;
+        // In client context, signing out completes the session purge
+        await adminClient.auth.signOut();
+      } catch {}
+
+      return NextResponse.json({ success: true, message: 'Account permanently deleted.' });
+    } catch (err: any) {
+      console.error('[Delete Account Error]:', err);
+      return NextResponse.json({ error: err?.message || 'Account deletion failed', code: ERROR_CODES.SERVER_ERROR }, { status: 500 });
+    }
+  }
+
+  // 4. Tasks & Templates
   if (pathStr.startsWith('tasks/templates/')) {
     const templateId = decodeURIComponent(pathStr.split('/')[2]);
     try {
@@ -651,7 +1254,7 @@ export async function DELETE(request: NextRequest, context: { params: Promise<{ 
     }
   }
 
-  // 3. Notes
+  // 5. Notes
   if (pathStr.startsWith('notes/')) {
     const noteId = parseInt(pathStr.split('/')[1], 10);
     if (!isNaN(noteId)) {
@@ -664,7 +1267,7 @@ export async function DELETE(request: NextRequest, context: { params: Promise<{ 
     }
   }
 
-  // 4. Mind Items
+  // 6. Mind Items
   if (pathStr === 'mind') {
     try {
       await dbDeleteAllMindItems(userId);
@@ -684,7 +1287,7 @@ export async function DELETE(request: NextRequest, context: { params: Promise<{ 
     }
   }
 
-  // 5. Diary
+  // 7. Diary
   if (pathStr.startsWith('diary/topics/')) {
     const topicId = pathStr.split('/')[2];
     try {
@@ -705,7 +1308,7 @@ export async function DELETE(request: NextRequest, context: { params: Promise<{ 
     }
   }
 
-  // 6. Learning Hub
+  // 8. Learning Hub
   if (pathStr.startsWith('learning/folders/')) {
     const folderId = pathStr.split('/')[2];
     try {
