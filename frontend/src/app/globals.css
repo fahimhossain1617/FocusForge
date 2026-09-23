@@ -679,14 +679,18 @@ html.light textarea::placeholder,
 /* ==================== Responsive ==================== */
 
 @media (max-width: 768px) {
-  .sidebar {
+  .sidebar:not(.open):not(.translate-x-0) {
     transform: translateX(-100%);
     position: fixed !important;
     z-index: 50;
   }
-  .sidebar.open {
-    transform: translateX(0);
+  .sidebar.open,
+  .sidebar.translate-x-0,
+  .sidebar.\!translate-x-0 {
+    transform: translateX(0) !important;
     box-shadow: 10px 0 40px rgba(0, 0, 0, 0.25) !important;
+    position: fixed !important;
+    z-index: 50;
   }
   :root[data-theme="light"] .sidebar {
     background: #FFFFFF !important;

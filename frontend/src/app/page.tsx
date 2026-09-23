@@ -55,9 +55,30 @@ export default function Home() {
   const { state, isLoaded, isPageLoading, navigateTo } = useAppContext();
   const { user, isLoading: isAuthLoading } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showTour, setShowTour] = useState(false);
   const [onboardingChecked, setOnboardingChecked] = useState(false);
+
+  // Restore persisted sidebar collapsed state
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("focusforge_sidebar_collapsed");
+      if (saved !== null) {
+        setSidebarCollapsed(saved === "true");
+      }
+    } catch {}
+  }, []);
+
+  const handleToggleSidebarCollapse = () => {
+    setSidebarCollapsed((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem("focusforge_sidebar_collapsed", String(next));
+      } catch {}
+      return next;
+    });
+  };
 
   // Activate daily plan and task reminder scheduler
   useDailyPlan();
@@ -187,10 +208,16 @@ export default function Home() {
 
   return (
     <div className={`flex min-h-screen ${state.activePage === 'ai-agent' ? 'h-dvh max-h-dvh overflow-hidden' : ''} ${state.lang === 'bn' ? 'font-bengali' : ''} overflow-x-hidden ${isLight ? 'bg-[#F3F7FC]' : 'bg-[#0A0E1A]'}`}>
-      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} isTourActive={showTour} />
+      <Sidebar 
+        isOpen={sidebarOpen} 
+        onClose={() => setSidebarOpen(false)} 
+        isTourActive={showTour} 
+        isCollapsed={sidebarCollapsed}
+        onToggleCollapse={handleToggleSidebarCollapse}
+      />
 
       {/* Main Content */}
-      <main className={`flex-1 md:ml-64 w-full min-w-0 flex flex-col ${
+      <main className={`flex-1 ${sidebarCollapsed ? 'md:ml-[76px]' : 'md:ml-[260px]'} w-full min-w-0 flex flex-col transition-[margin] duration-200 ease-in-out ${
         state.activePage === 'ai-agent' ? 'h-dvh max-h-dvh overflow-hidden' : 'min-h-screen overflow-x-hidden'
       }`}>
         {/* Universal Mobile Header with persistent 3-line Hamburger Menu */}
@@ -243,7 +270,7 @@ export default function Home() {
         {/* Page Content */}
         <div className={`w-full min-w-0 ${
           state.activePage === 'ai-agent'
-            ? 'flex-1 flex flex-col p-0 max-w-none w-full h-[calc(100dvh-60px)] md:h-dvh overflow-hidden'
+            ? 'flex-1 flex flex-col p-0 min-h-0 max-w-none w-full h-full overflow-hidden'
             : state.activePage === 'planner'
             ? 'flex-1 flex flex-col p-0 max-w-none'
             : state.activePage === 'today'

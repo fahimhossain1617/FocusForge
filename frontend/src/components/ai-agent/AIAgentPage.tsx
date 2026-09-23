@@ -26,6 +26,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useAIAgent } from "@/hooks/useAIAgent";
 import type { AIAgentLanguage, AIAgentModel } from "@/types/aiAgent";
 import { VoiceAssistantModal } from "@/components/voice";
+import BorderBeam from "@/components/ui/BorderBeam";
 import styles from "./ai-agent.module.css";
 
 const quickMessagesEn = [
@@ -702,6 +703,7 @@ export function AIAgentPage() {
 
             {/* Main Input Box */}
             <div className={styles.composerBox}>
+              <BorderBeam borderWidth={3.2} duration={13} borderRadius={20} beamLength={360} />
               <textarea
                 ref={textareaRef}
                 value={input}
