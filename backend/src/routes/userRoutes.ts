@@ -27,6 +27,7 @@ router.get('/profile', async (req: AuthenticatedRequest, res: Response) => {
         identifier: 'guest',
         authMethod: 'email',
         displayName: 'Guest User',
+        fullName: 'Guest User',
         avatarUrl: null,
       });
     }
@@ -47,8 +48,18 @@ router.get('/profile', async (req: AuthenticatedRequest, res: Response) => {
         identifier: data.identifier,
         authMethod: data.auth_method || 'email',
         displayName: data.display_name || 'User',
+        fullName: data.full_name || '',
+        phone: data.phone || '',
+        dateOfBirth: data.date_of_birth || '',
+        gender: data.gender || '',
+        country: data.country || '',
+        city: data.city || '',
+        bio: data.bio || '',
         avatarUrl: data.avatar_url,
+        preferredTheme: data.preferred_theme || 'dark',
+        preferredLanguage: data.preferred_language || 'en',
         createdAt: data.created_at,
+        updatedAt: data.updated_at,
       });
     }
 
@@ -58,6 +69,7 @@ router.get('/profile', async (req: AuthenticatedRequest, res: Response) => {
       identifier: req.user.email || req.user.phone || 'User',
       authMethod: req.user.app_metadata?.provider || 'email',
       displayName: req.user.user_metadata?.display_name || 'User',
+      fullName: req.user.user_metadata?.full_name || '',
       avatarUrl: req.user.user_metadata?.avatar_url || null,
       createdAt: req.user.created_at || new Date().toISOString(),
     });
@@ -77,15 +89,37 @@ router.patch('/profile', async (req: AuthenticatedRequest, res: Response) => {
       return res.status(401).json({ error: 'Authentication required' });
     }
 
-    const { displayName, avatarUrl, identifier } = req.body;
+    const { 
+      displayName, 
+      fullName, 
+      avatarUrl, 
+      identifier,
+      phone,
+      dateOfBirth,
+      gender,
+      country,
+      city,
+      bio,
+      preferredTheme,
+      preferredLanguage,
+    } = req.body;
 
     const updates: Record<string, any> = {
       updated_at: new Date().toISOString(),
     };
 
     if (displayName !== undefined) updates.display_name = displayName;
+    if (fullName !== undefined) updates.full_name = fullName;
     if (avatarUrl !== undefined) updates.avatar_url = avatarUrl;
     if (identifier !== undefined) updates.identifier = identifier;
+    if (phone !== undefined) updates.phone = phone;
+    if (dateOfBirth !== undefined) updates.date_of_birth = dateOfBirth;
+    if (gender !== undefined) updates.gender = gender;
+    if (country !== undefined) updates.country = country;
+    if (city !== undefined) updates.city = city;
+    if (bio !== undefined) updates.bio = bio;
+    if (preferredTheme !== undefined) updates.preferred_theme = preferredTheme;
+    if (preferredLanguage !== undefined) updates.preferred_language = preferredLanguage;
 
     const { data, error } = await supabase
       .from('profiles')
