@@ -3,8 +3,19 @@ import type { Task } from "@/types";
 export type AIAgentLanguage = "auto" | "bn" | "en";
 export type AIAgentModel = "smart" | "fast" | "planning";
 export type AIAgentIntent =
-  | "PROBLEM_SOLVER" | "IDEA_CAPTURE" | "NOTES_FILES" | "PLANNER_CREATE" 
-  | "FOCUS_SESSION" | "LEARNING_HUB" | "GREETING_OR_GENERAL" | "REQUIRE_LOGIN" | "LIMIT_EXHAUSTED" | "FAILED_TO_SEND";
+  | "PROBLEM_SOLVER" 
+  | "IDEA_CAPTURE" 
+  | "NOTES_FILES" 
+  | "PLANNER_CREATE" 
+  | "FOCUS_SESSION" 
+  | "LEARNING_HUB" 
+  | "SKILL_BUILDER" 
+  | "MY_DIARY" 
+  | "DIARY_ENTRY" 
+  | "GREETING_OR_GENERAL" 
+  | "REQUIRE_LOGIN" 
+  | "LIMIT_EXHAUSTED" 
+  | "FAILED_TO_SEND";
 
 export interface WorkspaceContext {
   tasks: Task[];

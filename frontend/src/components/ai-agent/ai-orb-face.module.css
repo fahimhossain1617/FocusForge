@@ -1,0 +1,762 @@
+/* ── FocusForge AI Agent — AI Orb Face Styles ── */
+
+.orbContainer {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  user-select: none;
+  touch-action: manipulation;
+  margin: 0 auto;
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  --bubble-bg: rgba(8, 20, 52, 0.9);
+  --bubble-border: rgba(59, 130, 246, 0.72);
+  --bubble-text: #ffffff;
+}
+
+:global([data-theme="light"]) .orbContainer,
+.orbContainer[data-theme="light"] {
+  --bubble-bg: rgba(255, 255, 255, 0.94);
+  --bubble-border: rgba(59, 130, 246, 0.5);
+  --bubble-text: #0f172a;
+}
+
+.orbContainerSideLeft {
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+@media (max-width: 640px) {
+  .orbContainerSideLeft {
+    flex-direction: column;
+    gap: 6px;
+  }
+}
+
+/* Head and facial feature animation styles */
+.orbMotionWrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  will-change: transform;
+}
+
+.headGroup {
+  transform-origin: 140px 126px;
+  will-change: transform;
+}
+
+.faceFeaturesGroup {
+  transition: opacity 0.35s ease, stroke 0.35s ease, fill 0.35s ease;
+}
+
+.moodPropGroup {
+  transition: opacity 0.4s ease, transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Floating Speech Bubble (Centered closer above Orb with Downward Tail) */
+.speechBubbleWrapper {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: 92vw;
+  width: max-content;
+  z-index: 10;
+  margin-bottom: -12px;
+  animation: bubbleFloat 4.2s ease-in-out infinite alternate;
+}
+
+@keyframes bubbleFloat {
+  0% {
+    transform: translateY(0px);
+  }
+  100% {
+    transform: translateY(-4px);
+  }
+}
+
+/* Left-positioned Speech Bubble (Beside Orb with Right-pointing Tail) */
+.speechBubbleLeftWrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  max-width: 480px;
+  width: max-content;
+  z-index: 15;
+  margin-right: -10px;
+  animation: bubbleLeftFloat 3.8s ease-in-out infinite alternate;
+}
+
+@keyframes bubbleLeftFloat {
+  0% {
+    transform: translateY(0px) scale(1);
+  }
+  100% {
+    transform: translateY(-3px) scale(1.005);
+  }
+}
+
+.speechBubble {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bubble-bg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1.5px solid var(--bubble-border);
+  border-radius: 20px;
+  padding: 11px 24px;
+  color: var(--bubble-text);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.45;
+  letter-spacing: -0.01em;
+  text-align: left;
+  max-width: 540px;
+  box-shadow: 
+    0 10px 30px rgba(0, 0, 0, 0.45),
+    0 0 24px rgba(37, 99, 235, 0.42),
+    inset 0 1px 1px rgba(255, 255, 255, 0.15);
+  transition: all 0.25s ease;
+  word-break: break-word;
+}
+
+:global([data-theme="light"]) .speechBubble,
+.orbContainer[data-theme="light"] .speechBubble {
+  box-shadow: 
+    0 10px 28px rgba(37, 99, 235, 0.14),
+    0 0 18px rgba(59, 130, 246, 0.24),
+    inset 0 1px 1px rgba(255, 255, 255, 0.8);
+}
+
+.speechBubbleText {
+  display: inline-block;
+  line-height: 1.45;
+}
+
+/* Downward speech tail pointing towards the orb */
+.speechTail {
+  position: absolute;
+  bottom: -14px;
+  left: calc(50% - 10px);
+  width: 24px;
+  height: 16px;
+  pointer-events: none;
+  overflow: visible;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.25));
+}
+
+/* Right-pointing speech tail pointing right towards the orb */
+.speechTailRight {
+  position: absolute;
+  right: -14px;
+  top: calc(50% - 10px);
+  width: 16px;
+  height: 20px;
+  pointer-events: none;
+  overflow: visible;
+  filter: drop-shadow(2px 0 4px rgba(0, 0, 0, 0.25));
+}
+
+/* 💭 Thought Cloud for Thinking State (Image 2 style) */
+.thoughtCloudWrapper {
+  position: absolute;
+  top: -24px;
+  right: -28px;
+  z-index: 25;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: none;
+  animation: cloudBob 3s ease-in-out infinite alternate;
+}
+
+@keyframes cloudBob {
+  0% {
+    transform: translateY(0) rotate(0deg);
+  }
+  100% {
+    transform: translateY(-5px) rotate(1.5deg);
+  }
+}
+
+.thoughtCloud {
+  position: relative;
+  background: rgba(11, 25, 59, 0.92);
+  border: 1.5px solid rgba(56, 189, 248, 0.75);
+  border-radius: 20px;
+  padding: 6px 14px;
+  color: #e0f2fe;
+  font-size: 12.5px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  box-shadow: 
+    0 8px 24px rgba(0, 0, 0, 0.5),
+    0 0 16px rgba(56, 189, 248, 0.45);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  white-space: nowrap;
+}
+
+.dotPulse1, .dotPulse2, .dotPulse3 {
+  display: inline-block;
+  font-weight: bold;
+  font-size: 14px;
+}
+
+.dotPulse1 {
+  animation: dotPulseAnim 1.2s infinite ease-in-out 0s;
+}
+.dotPulse2 {
+  animation: dotPulseAnim 1.2s infinite ease-in-out 0.2s;
+}
+.dotPulse3 {
+  animation: dotPulseAnim 1.2s infinite ease-in-out 0.4s;
+}
+
+@keyframes dotPulseAnim {
+  0%, 100% {
+    opacity: 0.2;
+    transform: translateY(0);
+  }
+  50% {
+    opacity: 1;
+    transform: translateY(-2.5px);
+  }
+}
+
+.cloudTrail1 {
+  position: absolute;
+  bottom: -9px;
+  left: 12px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: rgba(11, 25, 59, 0.92);
+  border: 1.5px solid rgba(56, 189, 248, 0.75);
+}
+
+.cloudTrail2 {
+  position: absolute;
+  bottom: -18px;
+  left: 3px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(11, 25, 59, 0.92);
+  border: 1.2px solid rgba(56, 189, 248, 0.75);
+}
+
+/* Typing Cursor */
+.typewriterCursor {
+  display: inline-block;
+  width: 2px;
+  height: 1.1em;
+  background-color: #38bdf8;
+  vertical-align: middle;
+  margin-left: 2px;
+  animation: cursorBlink 0.7s infinite;
+  box-shadow: 0 0 6px #38bdf8;
+}
+
+@keyframes cursorBlink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+@media (max-width: 640px) {
+  .orbContainer {
+    gap: 12px;
+  }
+  .speechBubble {
+    font-size: 13px;
+    padding: 10px 18px;
+    max-width: 90vw;
+    gap: 8px;
+    border-radius: 18px;
+  }
+  .thoughtCloudWrapper {
+    top: -18px;
+    right: -10px;
+  }
+  .thoughtCloud {
+    font-size: 11px;
+    padding: 4px 10px;
+  }
+}
+
+/* Orb Canvas & SVG Stage */
+.orbStage {
+  position: relative;
+  width: 195px;
+  height: 185px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+  perspective: 750px;
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+
+@media (max-width: 640px) {
+  .orbStage {
+    width: 145px;
+    height: 140px;
+  }
+  .thoughtCloud {
+    font-size: 12.5px;
+    padding: 8px 14px;
+    max-width: 320px;
+  }
+}
+
+.orbSvg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  filter: drop-shadow(0 14px 28px rgba(0, 0, 0, 0.4));
+  will-change: transform;
+}
+
+:global([data-theme="light"]) .orbSvg,
+.orbContainer[data-theme="light"] .orbSvg {
+  filter: drop-shadow(0 12px 24px rgba(37, 99, 235, 0.18));
+}
+
+/* Idle gentle breathing hover */
+.orbFloating {
+  animation: orbHover 4.5s ease-in-out infinite alternate;
+}
+
+@keyframes orbHover {
+  0% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-6px) rotate(0.8deg);
+  }
+  100% {
+    transform: translateY(2px) rotate(-0.8deg);
+  }
+}
+
+/* Funny Giggle / Tickle Wobble animation on touch / phone tap (কাতুকুতু) */
+.orbGiggling {
+  animation: tickleWobble 0.65s cubic-bezier(0.36, 0.07, 0.19, 0.97) infinite;
+}
+
+@keyframes tickleWobble {
+  0%, 100% {
+    transform: translateY(0) scale(1, 1) rotate(0deg);
+  }
+  15% {
+    transform: translateY(-9px) scale(1.1, 0.9) rotate(-7deg);
+  }
+  30% {
+    transform: translateY(3px) scale(0.92, 1.08) rotate(6deg);
+  }
+  45% {
+    transform: translateY(-11px) scale(1.12, 0.88) rotate(-6deg);
+  }
+  60% {
+    transform: translateY(2px) scale(0.95, 1.05) rotate(5deg);
+  }
+  75% {
+    transform: translateY(-6px) scale(1.06, 0.94) rotate(-3deg);
+  }
+  90% {
+    transform: translateY(1px) scale(0.98, 1.02) rotate(2deg);
+  }
+}
+
+/* Joyful Laugh & Happy Enjoyment Bounce on Mouse / Cursor click (ইঞ্জয় ফিল করে হেসে উঠবে) */
+.orbEnjoying {
+  animation: happyEnjoyBounce 0.75s cubic-bezier(0.34, 1.56, 0.64, 1) infinite;
+}
+
+@keyframes happyEnjoyBounce {
+  0%, 100% {
+    transform: translateY(0) scale(1, 1) rotate(0deg);
+  }
+  25% {
+    transform: translateY(-16px) scale(1.09, 0.91) rotate(-3deg);
+  }
+  50% {
+    transform: translateY(3px) scale(0.94, 1.06) rotate(2.5deg);
+  }
+  75% {
+    transform: translateY(-8px) scale(1.04, 0.96) rotate(-1.5deg);
+  }
+}
+
+/* Thinking tilt */
+.orbThinking {
+  animation: thinkingSway 3.2s ease-in-out infinite alternate;
+}
+
+@keyframes thinkingSway {
+  0% {
+    transform: translateY(0px) rotate(2deg);
+  }
+  100% {
+    transform: translateY(-5px) rotate(5deg);
+  }
+}
+
+/* Typing rapid micro-motion */
+.orbTyping {
+  animation: typingJitter 0.3s ease-in-out infinite alternate;
+}
+
+@keyframes typingJitter {
+  0% {
+    transform: translateY(0px) scale(1);
+  }
+  100% {
+    transform: translateY(-1.5px) scale(1.01);
+  }
+}
+
+/* Sleepy gentle breathing motion */
+.orbSleepy {
+  animation: sleepyBreathing 4.2s ease-in-out infinite alternate;
+}
+
+@keyframes sleepyBreathing {
+  0% {
+    transform: translateY(0px) scale(1, 1);
+  }
+  50% {
+    transform: translateY(2px) scale(0.99, 1.01);
+  }
+  100% {
+    transform: translateY(3.5px) scale(1.01, 0.99);
+  }
+}
+
+/* Miniature Laptop typing paws */
+.pawLeft {
+  transform-origin: 110px 175px;
+  animation: pawTapL 0.24s ease-in-out infinite alternate;
+}
+
+.pawRight {
+  transform-origin: 170px 175px;
+  animation: pawTapR 0.24s ease-in-out infinite alternate 0.12s;
+}
+
+@keyframes pawTapL {
+  0% {
+    transform: translateY(0) rotate(0deg);
+  }
+  100% {
+    transform: translateY(-4px) rotate(-4deg);
+  }
+}
+
+@keyframes pawTapR {
+  0% {
+    transform: translateY(0) rotate(0deg);
+  }
+  100% {
+    transform: translateY(-4px) rotate(4deg);
+  }
+}
+
+/* Typing wave dots (...) */
+.typingDot1 {
+  animation: dotWave 1.2s infinite ease-in-out 0s;
+}
+.typingDot2 {
+  animation: dotWave 1.2s infinite ease-in-out 0.2s;
+}
+.typingDot3 {
+  animation: dotWave 1.2s infinite ease-in-out 0.4s;
+}
+
+@keyframes dotWave {
+  0%, 60%, 100% {
+    transform: translateY(0);
+    opacity: 0.4;
+  }
+  30% {
+    transform: translateY(-5px);
+    opacity: 1;
+  }
+}
+
+/* Processing orbital rings */
+.orbitRing1 {
+  transform-origin: 140px 130px;
+  animation: spinOrbit1 3.5s linear infinite;
+}
+
+.orbitRing2 {
+  transform-origin: 140px 130px;
+  animation: spinOrbit2 5s linear infinite reverse;
+}
+
+@keyframes spinOrbit1 {
+  0% {
+    transform: rotate(25deg);
+  }
+  100% {
+    transform: rotate(385deg);
+  }
+}
+
+@keyframes spinOrbit2 {
+  0% {
+    transform: rotate(-35deg);
+  }
+  100% {
+    transform: rotate(325deg);
+  }
+}
+
+/* Sleepy floating Zzz */
+.sleepyZ1 {
+  animation: floatZ 2.4s ease-out infinite 0s;
+}
+.sleepyZ2 {
+  animation: floatZ 2.4s ease-out infinite 0.8s;
+}
+.sleepyZ3 {
+  animation: floatZ 2.4s ease-out infinite 1.6s;
+}
+
+@keyframes floatZ {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0) scale(0.6);
+  }
+  40% {
+    opacity: 0.9;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(14px, -24px) scale(1.1);
+  }
+}
+
+/* Heart animations for Caring */
+.pulsingHeart {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: heartThrob 1.8s ease-in-out infinite alternate;
+}
+
+@keyframes heartThrob {
+  0% {
+    transform: scale(0.93);
+  }
+  100% {
+    transform: scale(1.08);
+  }
+}
+
+.floatingHeart1 {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: floatHeartOne 2.6s ease-in-out infinite alternate;
+}
+
+@keyframes floatHeartOne {
+  0% {
+    transform: translateY(0) rotate(12deg) scale(0.9);
+    opacity: 0.85;
+  }
+  100% {
+    transform: translateY(-8px) rotate(18deg) scale(1.05);
+    opacity: 1;
+  }
+}
+
+.floatingHeart2 {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: floatHeartTwo 2.8s ease-in-out infinite 0.5s alternate;
+}
+
+@keyframes floatHeartTwo {
+  0% {
+    transform: translateY(0) rotate(20deg) scale(0.85);
+    opacity: 0.75;
+  }
+  100% {
+    transform: translateY(-6px) rotate(14deg) scale(1);
+    opacity: 0.95;
+  }
+}
+
+/* Golden Stars for Proud */
+.proudStar1 {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: twinkleStarOne 2.2s ease-in-out infinite alternate;
+}
+
+@keyframes twinkleStarOne {
+  0% {
+    transform: scale(0.85) rotate(0deg);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(1.18) rotate(14deg);
+    opacity: 1;
+  }
+}
+
+.proudStar2 {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: twinkleStarTwo 2s ease-in-out infinite 0.4s alternate;
+}
+
+@keyframes twinkleStarTwo {
+  0% {
+    transform: scale(0.8) rotate(0deg);
+    opacity: 0.75;
+  }
+  100% {
+    transform: scale(1.15) rotate(-12deg);
+    opacity: 1;
+  }
+}
+
+/* Playful radiating energy slashes */
+.playfulSlashes {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: slashPulse 1.4s ease-in-out infinite alternate;
+}
+
+@keyframes slashPulse {
+  0% {
+    opacity: 0.7;
+    transform: scale(0.92);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1.08);
+  }
+}
+
+/* Eye Blinking */
+.eyeLidClosed {
+  transform: scaleY(0.06);
+  transform-origin: center;
+  transition: transform 0.08s ease-in;
+}
+
+.eyeLidOpen {
+  transform: scaleY(1);
+  transform-origin: center;
+  transition: transform 0.12s ease-out;
+}
+
+/* Subtitle status badge beneath the Orb */
+.statusBadge {
+  margin-top: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: rgba(17, 26, 51, 0.6);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  color: #94a3b8;
+  font-size: 11.5px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  transition: all 0.2s ease;
+}
+
+:global([data-theme="light"]) .statusBadge,
+.orbContainer[data-theme="light"] .statusBadge {
+  background: rgba(241, 245, 249, 0.7);
+  border-color: rgba(59, 130, 246, 0.2);
+  color: #64748b;
+}
+
+.statusIndicatorDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #10b981;
+  box-shadow: 0 0 6px #10b981;
+  animation: pulseDot 2s infinite ease-in-out;
+}
+
+@keyframes pulseDot {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(0.85);
+  }
+}
+
+/* Sad Mood: Animated Glistening Teardrops & Droplets */
+.sadTeardropLeft {
+  transform-box: fill-box;
+  transform-origin: top center;
+  animation: teardropDrip 2.4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+.sadTeardropRight {
+  transform-box: fill-box;
+  transform-origin: top center;
+  animation: teardropDrip 2.4s cubic-bezier(0.4, 0, 0.2, 1) infinite 0.8s;
+}
+
+@keyframes teardropDrip {
+  0% {
+    opacity: 0;
+    transform: translateY(-3px) scale(0.6);
+  }
+  30% {
+    opacity: 0.95;
+    transform: translateY(0px) scale(1);
+  }
+  75% {
+    opacity: 0.85;
+    transform: translateY(7px) scale(0.95);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(14px) scale(0.35);
+  }
+}
+
+.sadSweatdrop {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: sweatdropFloat 2.5s ease-in-out infinite alternate;
+}
+
+@keyframes sweatdropFloat {
+  0% {
+    transform: translateY(0) scale(0.92);
+    opacity: 0.75;
+  }
+  100% {
+    transform: translateY(-3px) scale(1.08);
+    opacity: 1;
+  }
+}

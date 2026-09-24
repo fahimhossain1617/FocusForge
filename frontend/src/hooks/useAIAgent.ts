@@ -60,8 +60,11 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
 
   const [tokenStatus, setTokenStatus] = useState<TokenStatus | null>(null);
   const [isThinking, setIsThinking] = useState(false);
+  const [isTyping, setIsTyping] = useState(false);
+  const [streamingText, setStreamingText] = useState("");
   const [error, setError] = useState<string | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const typingIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const stopGeneration = useCallback((customLang?: string) => {
     if (abortControllerRef.current) {
@@ -70,25 +73,17 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
       } catch {}
       abortControllerRef.current = null;
     }
+    if (typingIntervalRef.current) {
+      clearInterval(typingIntervalRef.current);
+      typingIntervalRef.current = null;
+    }
     setIsThinking(false);
+    setIsTyping(false);
+    setStreamingText("");
+
     const isBn = (customLang || initialLang) === "bn";
     const failedText = isBn ? "ফেইল্ড টু সেন্ড" : "Failed to send";
     setError(failedText);
-
-    setMessages((prev) => {
-      const last = prev[prev.length - 1];
-      if (last && last.role === "user") {
-        const stopMsg: AgentMessage = {
-          id: "failed_" + Date.now(),
-          role: "assistant",
-          intent: "FAILED_TO_SEND",
-          content: failedText,
-          createdAt: new Date()
-        };
-        return [...prev, stopMsg];
-      }
-      return prev;
-    });
   }, [initialLang]);
   
   const loadedSessionRef = useRef<string | null>(activeSessionId);
@@ -353,8 +348,8 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
           role: 'assistant',
           intent: 'REQUIRE_LOGIN',
           content: language === 'bn'
-            ? "আপনার গেস্ট লিমিট শেষ হয়ে গেছে। আনলিমিটেড ব্যবহার ও ক্লাউড ব্যাকআপ পেতে এখনই লগইন করুন।"
-            : "Your guest limit has been reached. Please log in to unlock full access and cloud backup.",
+            ? "আমি তোমাকে সাহায্য করতে খুব পছন্দ করি! 🥰 কিন্তু তুমি তো এখনও লগইন করোনি আর তোমার গেস্ট লিমিট শেষ হয়ে গেছে। একটু লগইন করে নাও না? তখন আমি আবার জেগে উঠে তোমাকে প্রাণখুলে সাহায্য করব! ততক্ষণ আমি একটু ঘুমিয়ে নিই... 😴💤"
+            : "I really love helping you! 🥰 But you haven't logged in yet and your guest limit is reached. Please log in! Once you log in, I'll wake up and help you with all my heart. Until then, let me take a quick nap... 😴💤",
           payload: { requireLogin: true },
           createdAt: new Date()
         };
@@ -368,8 +363,8 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
           role: 'assistant',
           intent: 'LIMIT_EXHAUSTED',
           content: language === "bn"
-            ? `আপনার আজকের লিমিট শেষ হয়ে গেছে।\n\n• লিমিট রিসেট হওয়ার তারিখ: ${resetDateStr}\n• অবশিষ্ট সময়: ${remTimeStr}\n\nঅনুগ্রহ করে রিসেট হওয়া পর্যন্ত অপেক্ষা করুন। লিমিট রিসেট হওয়ার পর FocusForge AI Agent পুনরায় আপনাকে সাহায্য করতে সম্পূর্ণ প্রস্তুত থাকবে!`
-            : `Your daily limit has been reached.\n\n• Resets on: ${resetDateStr}\n• Remaining time: ${remTimeStr}\n\nPlease wait until the reset time. Once refreshed, FocusForge AI Agent will be fully ready to assist you!`,
+            ? `আমি তোমাকে সাহায্য করতে চাই! কিন্তু আজকের জন্য তোমার ফ্রি লিমিট শেষ হয়ে গেছে।\n\n• লিমিট রিসেট হবে: ${resetDateStr}\n• বাকি সময়: ${remTimeStr}\n\nপ্লিজ একটু অপেক্ষা করো। লিমিট রিসেট হলে আমি আবার জেগে তোমাকে সাহায্য করব! ততক্ষণ আমি একটু ঘুমিয়ে নিই... 😴💤`
+            : `I really want to help you! But your daily limit for today has been reached.\n\n• Resets on: ${resetDateStr}\n• Remaining time: ${remTimeStr}\n\nPlease wait a little bit. Once it resets, I'll wake right up to help you! Until then, let me take a quick nap... 😴💤`,
           payload: { resetDate: resetDateStr, remainingTime: remTimeStr },
           createdAt: new Date()
         };
@@ -388,7 +383,7 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
 
     try { 
       const history = messages.slice(-8).map((m) => ({ role: m.role, content: m.content }));
-      const banglishRegex = /\b(ami|amar|tumi|tomar|apni|apnar|korbo|korchi|korte|chai|dorkar|shikhbo|hobe|kemon|achho|achen|bhalo|parbo|ki|kibhabe|kothay|kokhon|porbo|porte|porashona|ajke|aajke|ekhon|shuru|routine)\b/i;
+      const banglishRegex = /\b(ami|amar|amake|amader|tumi|tomar|tomake|apni|apnar|apnake|korbo|korchi|korte|koro|korun|chai|dorkar|shikhbo|sikhbo|shekha|sikhte|shikhte|hobe|kemon|achho|achen|bhalo|parbo|parchi|parbona|ki|kibhabe|kivabe|kothay|kokhon|keno|kar|porbo|porte|porashona|ajke|aajke|ekhon|shuru|routine|plan|schedule|somossa|somosya|somosha|kothin|mon|kharap|bhabna|chinta|idea|notun|diary|journal|onubhuti|dhyan|monojog|focus|pomodoro|timer|note|notes|file|likhe|rakho|rakhbo|help|lagbe|ache|achhe|nai|nei)\b/i;
       const isContentBengali = /[\u0980-\u09FF]/.test(content) || banglishRegex.test(content);
       const isContentPureEnglish = /^[a-zA-Z0-9\s.,!?'"()-]+$/.test(content.trim()) && !banglishRegex.test(content);
       const langParam = isContentBengali ? "bn" : (isContentPureEnglish ? "en" : (language === "en" ? "en" : "bn"));
@@ -445,6 +440,39 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
         createdAt: new Date((result.aiMessage as any).created_at || result.aiMessage.createdAt || Date.now())
       };
 
+      // 1. End thinking state immediately
+      setIsThinking(false);
+
+      // 2. Animate typing on mini laptop with live text stream (ultra-fast & smooth)
+      const fullText = normalizedAiMessage.content || "";
+      if (fullText.length > 0) {
+        setIsTyping(true);
+        setStreamingText("");
+
+        await new Promise<void>((resolve) => {
+          let charIndex = 0;
+          const step = Math.max(6, Math.ceil(fullText.length / 16));
+          typingIntervalRef.current = setInterval(() => {
+            charIndex += step;
+            if (charIndex >= fullText.length) {
+              if (typingIntervalRef.current) {
+                clearInterval(typingIntervalRef.current);
+                typingIntervalRef.current = null;
+              }
+              setStreamingText(fullText);
+              setTimeout(() => {
+                setIsTyping(false);
+                setStreamingText("");
+                resolve();
+              }, 80);
+            } else {
+              setStreamingText(fullText.substring(0, charIndex));
+            }
+          }, 12);
+        });
+      }
+
+      // 3. Smoothly commit message to chat history stream
       setMessages((items) => {
         const updated = [...items, normalizedAiMessage];
         // If guest token is now exhausted after this turn, append login requirement card
@@ -454,8 +482,8 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
             role: 'assistant',
             intent: 'REQUIRE_LOGIN',
             content: language === 'bn'
-              ? "আপনার গেস্ট লিমিট শেষ হয়ে গেছে। আনলিমিটেড ব্যবহার ও ক্লাউড সেভ সুবিধা পেতে লগইন করুন।"
-              : "Your guest limit has been reached. Please log in to unlock full access and save your history.",
+              ? "আমি তোমাকে সাহায্য করতে খুব পছন্দ করি! 🥰 কিন্তু তুমি তো এখনও লগইন করোনি আর তোমার গেস্ট লিমিট শেষ হয়ে গেছে। একটু লগইন করে নাও না? তখন আমি আবার জেগে উঠে তোমাকে প্রাণখুলে সাহায্য করব! ততক্ষণ আমি একটু ঘুমিয়ে নিই... 😴💤"
+              : "I really love helping you! 🥰 But you haven't logged in yet and your guest limit is reached. Please log in! Once you log in, I'll wake up and help you with all my heart. Until then, let me take a quick nap... 😴💤",
             payload: { requireLogin: true },
             createdAt: new Date()
           };
@@ -485,8 +513,8 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
           role: "assistant",
           intent: 'REQUIRE_LOGIN',
           content: language === "bn"
-            ? "আপনার গেস্ট লিমিট শেষ হয়ে গেছে। আনলিমিটেড ব্যবহার ও ক্লাউড ব্যাকআপ পেতে এখনই লগইন করুন।"
-            : "Your guest limit has been reached. Please log in to unlock full access and save your history.",
+            ? "আমি তোমাকে সাহায্য করতে খুব পছন্দ করি! 🥰 কিন্তু তুমি তো এখনও লগইন করোনি আর তোমার গেস্ট লিমিট শেষ হয়ে গেছে। একটু লগইন করে নাও না? তখন আমি আবার জেগে উঠে তোমাকে প্রাণখুলে সাহায্য করব! ততক্ষণ আমি একটু ঘুমিয়ে নিই... 😴💤"
+            : "I really love helping you! 🥰 But you haven't logged in yet and your guest limit is reached. Please log in! Once you log in, I'll wake up and help you with all my heart. Until then, let me take a quick nap... 😴💤",
           payload: { requireLogin: true },
           createdAt: new Date()
         };
@@ -522,7 +550,9 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
     activeSessionId,
     tokenStatus,
     refreshTokenStatus,
-    isThinking, 
+    isThinking,
+    isTyping,
+    streamingText,
     stopGeneration,
     error, 
     send, 
