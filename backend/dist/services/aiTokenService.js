@@ -7,21 +7,26 @@ exports.formatResetTime = formatResetTime;
 exports.getUserTokenStatus = getUserTokenStatus;
 exports.consumeUserTokens = consumeUserTokens;
 exports.estimateTokenUsage = estimateTokenUsage;
-const pg_1 = require("pg");
+const db_1 = require("./db");
 const dotenv_1 = __importDefault(require("dotenv"));
 dotenv_1.default.config();
 const DEFAULT_AUTH_TOKENS = 5000;
 const DEFAULT_GUEST_TOKENS = 1000;
 const RESET_DURATION_MS = 24 * 60 * 60 * 1000; // 24 hours rolling reset
-let pool = null;
-if (process.env.DATABASE_URL) {
+let columnsChecked = false;
+async function ensureTokenColumns() {
+    if (columnsChecked)
+        return;
     try {
-        pool = new pg_1.Pool({
-            connectionString: process.env.DATABASE_URL,
-        });
+        await db_1.pool.query(`
+      ALTER TABLE profiles ADD COLUMN IF NOT EXISTS ai_tokens_total INT DEFAULT 5000;
+      ALTER TABLE profiles ADD COLUMN IF NOT EXISTS ai_tokens_used INT DEFAULT 0;
+      ALTER TABLE profiles ADD COLUMN IF NOT EXISTS ai_tokens_reset_at TIMESTAMPTZ DEFAULT NOW() + INTERVAL '24 hours';
+    `);
+        columnsChecked = true;
     }
     catch (err) {
-        console.warn('[AI Token Service] Could not initialize Postgres pool:', err);
+        console.warn('[aiTokenService] Token columns check notice:', err);
     }
 }
 // In-memory fallback cache for guest users or when DB is not configured
@@ -72,9 +77,10 @@ async function getUserTokenStatus(userId, isGuest = false, guestId, lang = 'bn')
     const quota = isGuest ? DEFAULT_GUEST_TOKENS : DEFAULT_AUTH_TOKENS;
     const now = new Date();
     // 1. Authenticated User with Database connection
-    if (!isGuest && userId && userId !== 'guest' && pool) {
+    if (!isGuest && userId && userId !== 'guest' && db_1.pool) {
         try {
-            const res = await pool.query('SELECT ai_tokens_total, ai_tokens_used, ai_tokens_reset_at FROM profiles WHERE id = $1', [userId]);
+            await ensureTokenColumns();
+            const res = await db_1.pool.query('SELECT ai_tokens_total, ai_tokens_used, ai_tokens_reset_at FROM profiles WHERE id = $1', [userId]);
             if (res.rows.length > 0) {
                 let total = res.rows[0].ai_tokens_total ?? DEFAULT_AUTH_TOKENS;
                 let used = res.rows[0].ai_tokens_used ?? 0;
@@ -83,7 +89,7 @@ async function getUserTokenStatus(userId, isGuest = false, guestId, lang = 'bn')
                 if (now >= resetAt) {
                     used = 0;
                     resetAt = getNextResetDate();
-                    await pool.query('UPDATE profiles SET ai_tokens_used = $1, ai_tokens_reset_at = $2 WHERE id = $3', [used, resetAt.toISOString(), userId]);
+                    await db_1.pool.query('UPDATE profiles SET ai_tokens_used = $1, ai_tokens_reset_at = $2 WHERE id = $3', [used, resetAt.toISOString(), userId]);
                 }
                 const remaining = Math.max(0, total - used);
                 const { formattedDate, formattedTimeRemaining } = formatResetTime(resetAt, lang);
@@ -138,9 +144,9 @@ async function consumeUserTokens(userId, isGuest = false, guestId, tokensToConsu
     const newUsed = Math.min(status.total, status.used + tokensToConsume);
     const newRemaining = Math.max(0, status.total - newUsed);
     // Update in DB if authenticated
-    if (!isGuest && userId && userId !== 'guest' && pool) {
+    if (!isGuest && userId && userId !== 'guest' && db_1.pool) {
         try {
-            await pool.query('UPDATE profiles SET ai_tokens_used = $1 WHERE id = $2', [newUsed, userId]);
+            await db_1.pool.query('UPDATE profiles SET ai_tokens_used = $1 WHERE id = $2', [newUsed, userId]);
         }
         catch (err) {
             console.warn('[AI Token Service] DB update error, falling back to memory store:', err);

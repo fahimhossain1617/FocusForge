@@ -129,12 +129,12 @@ function parseJson(text: string): JsonObject | JsonObject[] {
 
 function getCandidateModelsForMode(modelMode: string = 'fast'): string[] {
   if (modelMode === 'planning') {
-    return ['gemini-2.5-pro', 'gemini-1.5-pro', 'gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash'];
+    return ['gemini-2.0-flash', 'gemini-1.5-pro', 'gemini-1.5-flash'];
   } else if (modelMode === 'smart') {
-    return ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash'];
+    return ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-2.5-flash'];
   } else {
-    // Fast response mode
-    return ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-flash-latest'];
+    // Fast response mode - lowest latency
+    return ['gemini-2.0-flash', 'gemini-1.5-flash'];
   }
 }
 
@@ -149,7 +149,9 @@ export async function executeAIAction(action: string, payload: unknown): Promise
 
     if (action === 'agentChat') {
       const q = ((payload as any)?.userQuery || '').trim().toLowerCase();
-      if (/^(hi|hello|hey|হাই|হ্যালো|আসসালামু আলাইকুম|আসসালামু|কেমন আছেন|হায়|হায়)$/i.test(q)) {
+      // Ultra-fast instant conversational response for normal chat queries (< 0.1s)
+      const conversationalRegex = /^(hi|hello|hey|h|হাই|হ্যালো|হায়|আসসালামু আলাইকুম|আসসালামু|সালাম|কেমন আছেন|কেমন আছো|how are you|কী খবর|কি খবর|কি অবস্থা|কী অবস্থা|who are you|তুমি কে|কে তুমি|তোমার নাম কি|তোমার নাম কী|what is your name|কী করছো|কি করছো|what are you doing|ধন্যবাদ|thank you|thanks|thx|অনেক ধন্যবাদ|দারুণ|বাহ|great|awesome|good|nice|ভালো|ok|okay|ঠিক আছে|হুম|হু|বলো|bolo|shuru|help|সাহায্য|কী করতে পারো|কি করতে পারো|what can you do)$/i;
+      if (conversationalRegex.test(q) || q.length <= 2) {
         return generateRuleBasedAgentResponse(payload);
       }
     }
@@ -169,9 +171,9 @@ export async function executeAIAction(action: string, payload: unknown): Promise
     const client = getGeminiClient();
     const candidateModels = getCandidateModelsForMode(modelMode);
 
-    // Dynamic config according to model tier
-    const timeoutMs = modelMode === 'fast' ? 7000 : (modelMode === 'planning' ? 26000 : 16000);
-    const temperature = modelMode === 'fast' ? 0.2 : (modelMode === 'planning' ? 0.5 : 0.35);
+    // Dynamic config according to model tier (Fast response 4.5s max)
+    const timeoutMs = modelMode === 'fast' ? 4500 : (modelMode === 'planning' ? 8000 : 5500);
+    const temperature = modelMode === 'fast' ? 0.15 : (modelMode === 'planning' ? 0.5 : 0.3);
 
     for (const model of candidateModels) {
       try {
@@ -236,12 +238,58 @@ function getTimeBasedAgentGreeting(isBn: boolean): string {
 }
 
 function generateRuleBasedAgentResponse(payload: any): JsonObject {
-  const query = (payload?.userQuery || '').toLowerCase();
+  const query = (payload?.userQuery || '').toLowerCase().trim();
   const currentDate = payload?.currentDate || new Date().toISOString().split('T')[0];
 
-  const isBn = !/[a-zA-Z]/.test(query) || /[\u0980-\u09FF]/.test(query);
+  const banglishRegex = /\b(ami|amar|tumi|tomar|apni|apnar|korbo|korchi|korte|chai|dorkar|shikhbo|hobe|kemon|achho|achen|bhalo|parbo|ki|kibhabe|kothay|kokhon|porbo|porte|porashona|ajke|aajke|ekhon|shuru|routine)\b/i;
+  const isBn = !/^[a-zA-Z0-9\s.,!?'"()-]+$/.test(query) || /[\u0980-\u09FF]/.test(query) || banglishRegex.test(query);
 
-  if (/^(hi|hello|hey|হাই|হ্যালো|আসসালামু আলাইকুম|আসসালামু|কেমন আছেন|হায়|হায়)$/i.test(query.trim()) || query.includes("কেমন আছেন") || query.includes("আসসালামু")) {
+  // 1. Gratitude & compliments (Instant < 0.1s)
+  if (/^(ধন্যবাদ|থ্যাঙ্ক ইউ|অনেক ধন্যবাদ|thanks|thank you|thx|great|awesome|দারুণ|বাহ|ভালো|very good|good job)$/i.test(query)) {
+    return {
+      intent: "GREETING_OR_GENERAL",
+      message: isBn
+        ? "আপনাকে অনেক ধন্যবাদ! 😊 আপনার পড়াশোনা ও ফোকাস ধরে রাখতে আমি সবসময় পাশে আছি। আর কী নিয়ে কাজ করব বলুন!"
+        : "You're very welcome! 😊 I'm always here to boost your study & focus. What should we work on next?",
+      payload: null
+    };
+  }
+
+  // 2. Small talk: "কেমন আছো", "how are you", "কী খবর", "কি অবস্থা"
+  if (/(কেমন আছো|কেমন আছেন|how are you|কী খবর|কি খবর|কি অবস্থা|কী অবস্থা|how do you do)/i.test(query)) {
+    return {
+      intent: "GREETING_OR_GENERAL",
+      message: isBn
+        ? "আমি দারুণ আছি! আপনার পড়াশোনা ও লক্ষ্য বাস্তবায়নে সাহায্য করতে সম্পূর্ণ প্রস্তুত। আজ কী পড়তে বা প্ল্যান করতে চান?"
+        : "I'm doing great and fully energized! Ready to help you focus and achieve your goals today. What's on your agenda?",
+      payload: null
+    };
+  }
+
+  // 3. Identity: "তুমি কে", "তোমার নাম কী", "who are you"
+  if (/(তুমি কে|কে তুমি|who are you|what is your name|তোমার নাম কি|তোমার নাম কী)/i.test(query)) {
+    return {
+      intent: "GREETING_OR_GENERAL",
+      message: isBn
+        ? "আমি FocusForge AI এজেন্ট! আপনার ব্যক্তিগত স্টাডি রুটিন প্ল্যানার, ফোকাস কোচ ও মাইন্ড প্রবলেম সলভার। আমি আপনাকে স্টাডি প্ল্যান তৈরি, ফোকাস সেশন, নোটস ও স্কিল ট্র্যাকিংয়ে সাহায্য করি।"
+        : "I am FocusForge AI Agent! Your personal study planner, focus assistant, and productivity companion inside FocusForge.",
+      payload: null
+    };
+  }
+
+  // 4. Capabilities: "কী করতে পারো", "what can you do", "help"
+  if (/(কী করতে পারো|কি করতে পারো|what can you do|help|সাহায্য|কীভাবে সাহায্য করবে)/i.test(query)) {
+    return {
+      intent: "GREETING_OR_GENERAL",
+      message: isBn
+        ? "আমি আপনাকে ৫টি গুরুত্বপূর্ণ কাজে সাহায্য করতে পারি:\n\n১. 📅 **স্টাডি প্ল্যানার**: বিষয় ও সময় অনুযায়ী পড়ার রুটিন তৈরি।\n২. ⏱️ **ফোকাস সেশন**: পোমোডোরো ও ডিপ ওয়ার্ক টাইমার পরিচালনা।\n৩. 📝 **নোটস ও ফাইলস**: পড়ার সারসংক্ষেপ ও গুরুত্বপূর্ণ নোট সংরক্ষণ।\n৪. 💡 **মাইন্ড প্রবলেম সলভার**: পড়ার অনীহা, দ্বিধা ও কঠিন সমস্যার সমাধান।\n৫. 🎯 **লার্নিং হাব**: নতুন স্কিল ও রোডম্যাপ ট্র্যাকিং।\n\nকোন কাজটি দিয়ে শুরু করতে চান বলুন!"
+        : "I can assist you across 5 key areas:\n\n1. 📅 **Study Planner**: Scheduling structured study routines.\n2. ⏱️ **Focus Sessions**: Running deep work & Pomodoro timers.\n3. 📝 **Notes & Files**: Organizing study notes and summaries.\n4. 💡 **Problem Solver**: Tackling study fatigue and mental blocks.\n5. 🎯 **Learning Hub**: Tracking skills and learning roadmaps.\n\nWhat would you like to start with?",
+      payload: null
+    };
+  }
+
+  // 5. Short Greetings & Hey: "hi", "hello", "h", "হাই", "হ্যালো", "সালাম"
+  if (/^(hi|hello|hey|h|হাই|হ্যালো|হায়|আসসালামু আলাইকুম|আসসালামু|সালাম|বলো|bolo|shuru|start)$/i.test(query) || query.length <= 2) {
     return {
       intent: "GREETING_OR_GENERAL",
       message: getTimeBasedAgentGreeting(isBn),

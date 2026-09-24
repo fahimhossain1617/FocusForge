@@ -1,4 +1,4 @@
-import { Pool } from 'pg';
+import { pool } from './db';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -7,14 +7,18 @@ const DEFAULT_AUTH_TOKENS = 5000;
 const DEFAULT_GUEST_TOKENS = 1000;
 const RESET_DURATION_MS = 24 * 60 * 60 * 1000; // 24 hours rolling reset
 
-let pool: Pool | null = null;
-if (process.env.DATABASE_URL) {
+let columnsChecked = false;
+async function ensureTokenColumns() {
+  if (columnsChecked) return;
   try {
-    pool = new Pool({
-      connectionString: process.env.DATABASE_URL,
-    });
+    await pool.query(`
+      ALTER TABLE profiles ADD COLUMN IF NOT EXISTS ai_tokens_total INT DEFAULT 5000;
+      ALTER TABLE profiles ADD COLUMN IF NOT EXISTS ai_tokens_used INT DEFAULT 0;
+      ALTER TABLE profiles ADD COLUMN IF NOT EXISTS ai_tokens_reset_at TIMESTAMPTZ DEFAULT NOW() + INTERVAL '24 hours';
+    `);
+    columnsChecked = true;
   } catch (err) {
-    console.warn('[AI Token Service] Could not initialize Postgres pool:', err);
+    console.warn('[aiTokenService] Token columns check notice:', err);
   }
 }
 
@@ -93,6 +97,7 @@ export async function getUserTokenStatus(
   // 1. Authenticated User with Database connection
   if (!isGuest && userId && userId !== 'guest' && pool) {
     try {
+      await ensureTokenColumns();
       const res = await pool.query(
         'SELECT ai_tokens_total, ai_tokens_used, ai_tokens_reset_at FROM profiles WHERE id = $1',
         [userId]

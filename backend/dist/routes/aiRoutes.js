@@ -23,11 +23,11 @@ async function checkTokensOrReject(req, res) {
     if (status.isExhausted || status.remaining <= 0) {
         const message = isGuest
             ? (lang === 'bn'
-                ? `আপনার গেস্ট লিমিট শেষ হয়ে গেছে। আনলিমিটেড ব্যবহার ও ক্লাউড সেভ সুবিধা পেতে অনুগ্রহ করে লগইন করুন।`
-                : `Your guest limit has been reached. Please log in to unlock full access and cloud sync.`)
+                ? `আমি তোমাকে সাহায্য করতে খুব পছন্দ করি! 🥰 কিন্তু তুমি তো এখনও লগইন করোনি আর তোমার গেস্ট লিমিট শেষ হয়ে গেছে। একটু লগইন করে নাও না? তখন আমি আবার জেগে উঠে তোমাকে প্রাণখুলে সাহায্য করব! ততক্ষণ আমি একটু ঘুমিয়ে নিই... 😴💤`
+                : `I really love helping you! 🥰 But you haven't logged in yet and your guest limit is reached. Please log in! Once you log in, I'll wake up and help you with all my heart. Until then, let me take a quick nap... 😴💤`)
             : (lang === 'bn'
-                ? `আপনার আজকের লিমিট শেষ হয়ে গেছে। লিমিট রিসেট হওয়ার তারিখ: ${status.formattedResetDate} (বাকি: ${status.formattedRemainingTime})। নির্ধারিত সময় পর আবার চেষ্টা করুন, FocusForge AI আপনাকে সাহায্য করার জন্য প্রস্তুত থাকবে!`
-                : `Your daily limit has been reached. Resets on: ${status.formattedResetDate} (${status.formattedRemainingTime} remaining). Please try again after reset!`);
+                ? `আমি তোমাকে সাহায্য করতে চাই! কিন্তু আজকের জন্য তোমার ফ্রি লিমিট শেষ হয়ে গেছে।\n\n• লিমিট রিসেট হবে: ${status.formattedResetDate}\n• বাকি সময়: ${status.formattedRemainingTime}\n\nপ্লিজ একটু অপেক্ষা করো। লিমিট রিসেট হলে আমি আবার জেগে তোমাকে সাহায্য করব! ততক্ষণ আমি একটু ঘুমিয়ে নিই... 😴💤`
+                : `I really want to help you! But your daily limit for today has been reached.\n\n• Resets on: ${status.formattedResetDate}\n• Remaining time: ${status.formattedRemainingTime}\n\nPlease wait a little bit. Once it resets, I'll wake right up to help you! Until then, let me take a quick nap... 😴💤`);
         res.status(429).json({
             error: 'AI_TOKENS_EXHAUSTED',
             code: 'TOKENS_EXHAUSTED',

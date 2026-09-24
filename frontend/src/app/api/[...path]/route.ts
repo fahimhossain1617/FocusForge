@@ -726,11 +726,11 @@ export async function POST(request: NextRequest, context: { params: Promise<{ pa
     if (tokenStatus.isExhausted || tokenStatus.remaining <= 0) {
       const message = isGuest
         ? (lang === 'bn'
-            ? `আপনার গেস্ট লিমিট শেষ হয়ে গেছে। আনলিমিটেড ব্যবহার ও ক্লাউড সেভ সুবিধা পেতে অনুগ্রহ করে লগইন করুন।`
-            : `Your guest limit has been reached. Please log in to unlock full access and cloud sync.`)
+            ? `আমি তোমাকে সাহায্য করতে খুব পছন্দ করি! 🥰 কিন্তু তুমি তো এখনও লগইন করোনি আর তোমার গেস্ট লিমিট শেষ হয়ে গেছে। একটু লগইন করে নাও না? তখন আমি আবার জেগে উঠে তোমাকে প্রাণখুলে সাহায্য করব! ততক্ষণ আমি একটু ঘুমিয়ে নিই... 😴💤`
+            : `I really love helping you! 🥰 But you haven't logged in yet and your guest limit is reached. Please log in! Once you log in, I'll wake up and help you with all my heart. Until then, let me take a quick nap... 😴💤`)
         : (lang === 'bn'
-            ? `আপনার আজকের লিমিট শেষ হয়ে গেছে।\n\n• লিমিট রিসেট হওয়ার তারিখ: ${tokenStatus.formattedResetDate}\n• অবশিষ্ট সময়: ${tokenStatus.formattedRemainingTime}\n\nঅনুগ্রহ করে রিসেট হওয়া পর্যন্ত অপেক্ষা করুন। লিমিট রিসেট হওয়ার পর FocusForge AI Agent পুনরায় আপনাকে সাহায্য করতে সম্পূর্ণ প্রস্তুত থাকবে!`
-            : `Your daily limit has been reached.\n\n• Resets on: ${tokenStatus.formattedResetDate}\n• Remaining time: ${tokenStatus.formattedRemainingTime}\n\nPlease wait until the reset time. Once refreshed, FocusForge AI Agent will be fully ready to assist you!`);
+            ? `আমি তোমাকে সাহায্য করতে চাই! কিন্তু আজকের জন্য তোমার ফ্রি লিমিট শেষ হয়ে গেছে।\n\n• লিমিট রিসেট হবে: ${tokenStatus.formattedResetDate}\n• বাকি সময়: ${tokenStatus.formattedRemainingTime}\n\nপ্লিজ একটু অপেক্ষা করো। লিমিট রিসেট হলে আমি আবার জেগে তোমাকে সাহায্য করব! ততক্ষণ আমি একটু ঘুমিয়ে নিই... 😴💤`
+            : `I really want to help you! But your daily limit for today has been reached.\n\n• Resets on: ${tokenStatus.formattedResetDate}\n• Remaining time: ${tokenStatus.formattedRemainingTime}\n\nPlease wait a little bit. Once it resets, I'll wake right up to help you! Until then, let me take a quick nap... 😴💤`);
 
       const exhaustedAiMsg = {
         id: 'msg_exhausted_' + Date.now(),

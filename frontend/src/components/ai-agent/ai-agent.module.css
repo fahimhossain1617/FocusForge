@@ -112,6 +112,45 @@
 .topBarLeft {
   display: flex;
   align-items: center;
+  gap: 8px;
+}
+
+.headerOnlineBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5.5px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.28);
+  font-size: 11px;
+  font-weight: 500;
+  color: #10b981;
+  user-select: none;
+}
+
+.headerOnlineDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #10b981;
+  box-shadow: 0 0 6px #10b981;
+  animation: headerDotPulse 2s infinite ease-in-out;
+}
+
+@keyframes headerDotPulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(0.85);
+  }
+}
+
+.headerOnlineText {
+  line-height: 1;
 }
 
 .brandTitle {
@@ -367,6 +406,118 @@
   margin: 0;
 }
 
+/* Mood Menu Wrapper & Popover */
+.moodMenuWrapper {
+  position: relative;
+  display: inline-flex;
+}
+
+.moodPopover {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 290px;
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  border-radius: 16px;
+  padding: 12px;
+  box-shadow: var(--dropdown-shadow);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  z-index: 100;
+  animation: menuFadeIn 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.moodPopoverHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 2px 4px 6px 4px;
+  border-bottom: 1px solid var(--line);
+}
+
+.moodPopoverTitle {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.moodPopoverGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px;
+}
+
+.moodPopoverItem {
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 7px 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 500;
+  transition: all 0.14s ease;
+  user-select: none;
+}
+
+.moodPopoverItem:hover {
+  background: var(--line);
+  border-color: var(--accent);
+  transform: translateY(-1px);
+}
+
+.moodPopoverItemActive {
+  background: rgba(59, 130, 246, 0.15);
+  border-color: var(--accent);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.moodDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  box-shadow: 0 0 8px currentColor;
+}
+
+.moodName {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: left;
+}
+
+/* Bottom Interactive AI Orb Stage during Conversation */
+.bottomOrbStageWrapper {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px 0 8px 0;
+  margin-top: auto;
+  position: relative;
+  z-index: 5;
+}
+
+.bottomOrbInner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  max-width: 680px;
+}
+
 /* Main Content Area */
 .chatArea {
   flex: 1;
@@ -403,11 +554,74 @@
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  padding: 8px 0 16px 0;
+  padding: 4px 0 14px 0;
   text-align: center;
   max-width: 680px;
   width: 100%;
   margin: 0 auto;
+}
+
+.orbHeroWrapper {
+  margin-bottom: 16px;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+@media (max-width: 640px) {
+  .orbHeroWrapper {
+    margin-bottom: 12px;
+  }
+}
+
+.moodTesterRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  margin-top: 14px;
+  max-width: 620px;
+  padding: 4px 6px;
+}
+
+.moodTesterLabel {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-right: 2px;
+}
+
+.moodTesterBtn {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 11.5px;
+  font-weight: 500;
+  padding: 3px 9px;
+  border-radius: 999px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.moodTesterBtn:hover {
+  color: var(--text);
+  border-color: var(--accent);
+  background: var(--surface-2);
+}
+
+.moodTesterBtnActive {
+  background: var(--surface-2);
+  border-color: var(--accent);
+  color: var(--accent);
+  font-weight: 600;
 }
 
 .greetingH1 {
@@ -558,7 +772,15 @@
   }
 }
 
-/* Thinking Indicator */
+/* Thinking Indicator & In-Stream Typing Orb */
+.typingOrbRow {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 6px 0;
+  width: 100%;
+}
+
 .thinkingText {
   font-size: 14px;
   color: var(--muted);
