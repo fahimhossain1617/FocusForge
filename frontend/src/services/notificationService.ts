@@ -8,6 +8,8 @@
  * 4. Prepared abstraction layer for future Web Push / Firebase Cloud Messaging (FCM).
  */
 
+import { notificationCenterService } from "./notificationCenterService";
+
 const SENT_LOG_KEY = "focusforge_notif_sent_log";
 
 export interface NotificationPayload {
@@ -17,6 +19,8 @@ export interface NotificationPayload {
   icon?: string;
   badge?: string;
   tag?: string;
+  actionRoute?: string;
+  type?: string;
   data?: Record<string, unknown>;
   requireInteraction?: boolean;
 }
@@ -172,8 +176,21 @@ class NotificationService {
 
   /**
    * Deliver a notification with duplicate protection and sound.
+   * Also automatically records to the in-app Notification Center.
    */
   public async send(payload: NotificationPayload): Promise<boolean> {
+    // 0. Always record into the in-app Notification Center so it is never missed
+    try {
+      notificationCenterService.addNotification({
+        id: payload.id,
+        title: payload.title,
+        message: payload.body,
+        type: payload.type || (payload.data?.type as string) || payload.tag || "system",
+        actionRoute: payload.actionRoute || (payload.data?.actionRoute as string) || (payload.data?.route as string),
+        metadata: payload.data,
+      });
+    } catch {}
+
     if (!this.isSupported()) return false;
     if (this.getPermission() !== "granted") return false;
 
@@ -230,6 +247,13 @@ class NotificationService {
       console.warn("[NotificationService] Send failed:", err);
       return false;
     }
+  }
+
+  /**
+   * Helper to push an in-app notification and optionally trigger device alert.
+   */
+  public async notify(payload: NotificationPayload): Promise<boolean> {
+    return this.send(payload);
   }
 
   // ==================== Future Push Notification Layer ====================

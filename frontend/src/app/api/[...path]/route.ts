@@ -778,8 +778,8 @@ export async function POST(request: NextRequest, context: { params: Promise<{ pa
       result = {
         intent: 'GREETING_OR_GENERAL',
         message: lang === 'bn'
-          ? 'দুঃখিত, এআই সার্ভার সাময়িক ব্যস্ত ছিল। আপনার পড়াশোনা বা কাজের বিষয়ে অন্য কোনো সাহায্য লাগলে বলতে পারেন!'
-          : 'FocusForge AI is temporarily busy. Please let me know if you need help with anything else!',
+          ? 'দুঃখিত, এআই সার্ভার সাময়িক একটু ব্যস্ত ছিল। তোমার পড়াশোনা, কাজ বা যেকোনো বিষয়ে কিছু জানার থাকলে বলো, আমি শুনছি!'
+          : "FocusForge AI is temporarily busy. Please let me know if you need help with anything else, I'm here!",
         payload: null
       };
     }

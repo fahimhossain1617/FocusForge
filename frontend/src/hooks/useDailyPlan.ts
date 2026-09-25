@@ -71,6 +71,8 @@ export function useDailyPlan() {
         title: summary.title,
         body: summary.body,
         tag: "daily-morning-plan",
+        type: "planner",
+        actionRoute: "planner",
         requireInteraction: true,
       });
 
@@ -131,6 +133,8 @@ export function useDailyPlan() {
           title,
           body,
           tag: `task-reminder-${task.id}`,
+          type: "task",
+          actionRoute: "tasks",
           requireInteraction: true,
           data: { taskId: task.id },
         });
@@ -174,6 +178,8 @@ export function useDailyPlan() {
             title,
             body,
             tag: `block-reminder-${blockId}`,
+            type: "planner",
+            actionRoute: "planner",
             requireInteraction: true,
             data: { blockId },
           });
@@ -214,6 +220,8 @@ export function useDailyPlan() {
           title,
           body,
           tag: "focus-session-nudge",
+          type: "focus",
+          actionRoute: "focus",
           requireInteraction: false,
         });
 

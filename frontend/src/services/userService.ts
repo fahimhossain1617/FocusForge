@@ -254,8 +254,16 @@ export const userService = {
    * Subscribes to real-time changes on the current user's profile row.
    */
   subscribeToProfile(userId: string, onUpdate: (user: User) => void): () => void {
+    const channelName = `profile-${userId}`;
+    const existingChannels = supabase.getChannels();
+    for (const ch of existingChannels) {
+      if (ch.topic === `realtime:${channelName}` || ch.topic === channelName) {
+        supabase.removeChannel(ch);
+      }
+    }
+
     const channel = supabase
-      .channel(`profile-${userId}`)
+      .channel(channelName)
       .on(
         "postgres_changes",
         {

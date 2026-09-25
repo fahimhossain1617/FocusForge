@@ -38,6 +38,8 @@ import LearningHubPage from "../components/pages/LearningHubPage";
 import ProfilePage from "../components/pages/ProfilePage";
 import SettingsPage from "../components/pages/SettingsPage";
 import AIAgentPage from "../components/ai-agent/AIAgentPage";
+import BottomNav from "../components/navigation/BottomNav";
+import MobileHeader from "../components/navigation/MobileHeader";
 
 const pageComponents: Record<string, React.ComponentType<{ onOpenSidebar?: () => void }>> = {
   today: DashboardPage,
@@ -220,62 +222,18 @@ export default function Home() {
       <main className={`flex-1 ${sidebarCollapsed ? 'md:ml-[76px]' : 'md:ml-[260px]'} w-full min-w-0 flex flex-col transition-[margin] duration-200 ease-in-out ${
         state.activePage === 'ai-agent' ? 'h-dvh max-h-dvh overflow-hidden' : 'min-h-screen overflow-x-hidden'
       }`}>
-        {/* Universal Mobile Header with persistent 3-line Hamburger Menu */}
-        <header 
-          className="md:hidden sticky top-0 z-30 flex items-center justify-between px-4 py-3 border-b backdrop-blur-xl transition-colors shrink-0"
-          style={{
-            backgroundColor: isLight ? "rgba(243, 247, 252, 0.94)" : "rgba(10, 14, 26, 0.85)",
-            borderColor: isLight ? "#DCE5F0" : "var(--color-border-subtle)",
-          }}
-        >
-          <div className="flex items-center gap-3 min-w-0">
-            <button
-              type="button"
-              onClick={() => setSidebarOpen(true)}
-              className="p-2 rounded-xl border transition-all active:scale-95 cursor-pointer flex items-center justify-center shrink-0 shadow-sm"
-              style={{
-                backgroundColor: "var(--color-bg-card)",
-                borderColor: "var(--color-border-subtle)",
-                color: "var(--color-text-primary)",
-              }}
-              aria-label="Open navigation menu"
-              title={state.lang === 'bn' ? "মেনু খুলুন" : "Open Menu"}
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M4 6h16M4 12h16M4 18h16" />
-              </svg>
-            </button>
-            <span className={`text-sm sm:text-base font-medium sm:font-semibold tracking-normal whitespace-nowrap ${isLight ? 'text-slate-900' : 'text-foreground'}`}>
-              {state.activePage === 'ai-agent'
-                ? (state.lang === 'bn' ? 'ফোকাস ফোর্স AI এজেন্ট' : 'FocusForge AI Agent')
-                : state.activePage === 'tasks'
-                ? (state.lang === 'bn' ? 'নোটস ও ফাইলস' : 'Notes & Files')
-                : state.activePage === 'planner'
-                ? (state.lang === 'bn' ? 'প্ল্যানার' : 'Planner')
-                : state.activePage === 'mind'
-                ? (state.lang === 'bn' ? 'ক্যাপচার' : 'Capture')
-                : state.activePage === 'learning'
-                ? (state.lang === 'bn' ? 'স্কিল বিল্ডার' : 'Skill Builder')
-                : state.activePage === 'focus'
-                ? (state.lang === 'bn' ? 'ফোকাস' : 'Focus')
-                : state.activePage === 'settings'
-                ? (state.lang === 'bn' ? 'সেটিংস' : 'Settings')
-                : state.activePage === 'profile'
-                ? (state.lang === 'bn' ? 'আমার প্রোফাইল' : 'Profile')
-                : 'FocusForge'}
-            </span>
-          </div>
-        </header>
+        {/* Mobile / Compact Header: [ App Icon ] FocusForge ... [ Bell ] */}
+        <MobileHeader />
 
         {/* Page Content */}
         <div className={`w-full min-w-0 ${
           state.activePage === 'ai-agent'
             ? 'flex-1 flex flex-col p-0 min-h-0 max-w-none w-full h-full overflow-hidden'
             : state.activePage === 'planner'
-            ? 'flex-1 flex flex-col p-0 max-w-none'
+            ? 'flex-1 flex flex-col p-0 max-w-none pb-24 md:pb-0'
             : state.activePage === 'today'
-            ? 'flex-1 p-3.5 sm:p-5 md:p-6 lg:p-8 max-w-[1700px] mx-auto'
-            : 'flex-1 p-3.5 sm:p-5 md:p-8 lg:p-10 max-w-7xl mx-auto'
+            ? 'flex-1 p-3.5 sm:p-5 md:p-6 lg:p-8 max-w-[1700px] mx-auto pb-24 md:pb-8'
+            : 'flex-1 p-3.5 sm:p-5 md:p-8 lg:p-10 max-w-7xl mx-auto pb-24 md:pb-10'
         }`}>
           <Suspense fallback={<PageSkeleton page={state.activePage} />}>
             {isPageLoading ? (
@@ -290,6 +248,9 @@ export default function Home() {
           </Suspense>
         </div>
       </main>
+
+      {/* Responsive Mobile Bottom Navigation */}
+      <BottomNav />
 
       {/* Global Components */}
       <QuickCapture />

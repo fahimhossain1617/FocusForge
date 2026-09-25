@@ -103,8 +103,16 @@ export const noteService = {
    * Subscribes to Supabase Realtime changes on user's notes.
    */
   subscribeToNotes(userId: string, onRemoteChange: () => void): () => void {
+    const channelName = `notes-changes-${userId}`;
+    const existingChannels = supabase.getChannels();
+    for (const ch of existingChannels) {
+      if (ch.topic === `realtime:${channelName}` || ch.topic === channelName) {
+        supabase.removeChannel(ch);
+      }
+    }
+
     const channel = supabase
-      .channel(`notes-changes-${userId}`)
+      .channel(channelName)
       .on(
         "postgres_changes",
         {

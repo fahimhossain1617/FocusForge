@@ -122,16 +122,30 @@ export async function getChatMessages(sessionId: string): Promise<ChatMessageRow
   }
 }
 
-export async function createChatSession(userId: string | null, title: string = 'New Conversation'): Promise<ChatSessionRow> {
+export async function createChatSession(userId: string | null, title: string = 'New Conversation', customId?: string): Promise<ChatSessionRow> {
   try {
-    const res = await pool.query(
-      `
-      INSERT INTO ai_chat_sessions (id, user_id, title, created_at, updated_at)
-      VALUES (gen_random_uuid(), $1, $2, NOW(), NOW())
-      RETURNING id, user_id, title, created_at, updated_at
-      `,
-      [userId || null, title]
-    );
+    const isCustomUuid = customId && isValidUuid(customId);
+    let res;
+    if (isCustomUuid) {
+      res = await pool.query(
+        `
+        INSERT INTO ai_chat_sessions (id, user_id, title, created_at, updated_at)
+        VALUES ($1::uuid, $2, $3, NOW(), NOW())
+        ON CONFLICT (id) DO UPDATE SET title = EXCLUDED.title, updated_at = NOW()
+        RETURNING id, user_id, title, created_at, updated_at
+        `,
+        [customId, userId || null, title]
+      );
+    } else {
+      res = await pool.query(
+        `
+        INSERT INTO ai_chat_sessions (id, user_id, title, created_at, updated_at)
+        VALUES (gen_random_uuid(), $1, $2, NOW(), NOW())
+        RETURNING id, user_id, title, created_at, updated_at
+        `,
+        [userId || null, title]
+      );
+    }
 
     const row = res.rows[0];
     return {
@@ -183,10 +197,19 @@ export async function addChatMessage(
   payload_json?: any
 ): Promise<ChatMessageRow> {
   try {
-    if (!sessionId) {
-      throw new Error(`Missing sessionId: ${sessionId}`);
+    // Ensure parent session exists to avoid foreign key violation
+    if (isValidUuid(sessionId)) {
+      await pool.query(
+        `
+        INSERT INTO ai_chat_sessions (id, user_id, title, created_at, updated_at)
+        VALUES ($1::uuid, NULL, 'New Conversation', NOW(), NOW())
+        ON CONFLICT (id) DO NOTHING
+        `,
+        [sessionId]
+      ).catch(() => {});
     }
-    const payloadStr = payload_json ? (typeof payload_json === 'object' ? JSON.stringify(payload_json) : String(payload_json)) : null;
+
+    const payloadStr = payload_json ? (typeof payload_json === 'string' ? payload_json : JSON.stringify(payload_json)) : null;
 
     const res = await pool.query(
       `

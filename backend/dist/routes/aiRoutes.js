@@ -253,10 +253,10 @@ router.post('/agent/chat', async (req, res) => {
         if (initialTokenStatus.isExhausted || initialTokenStatus.remaining <= 0) {
             const exhaustedMessage = isGuest
                 ? (lang === 'bn'
-                    ? `আপনার গেস্ট লিমিট শেষ হয়ে গেছে। আনলিমিটেড ব্যবহার ও ক্লাউড সেভ সুবিধা পেতে অনুগ্রহ করে লগইন করুন।`
+                    ? `তোমার গেস্ট লিমিট শেষ হয়ে গেছে। আনলিমিটেড ব্যবহার ও ক্লাউড সেভ সুবিধা পেতে প্লিজ একটু লগইন করে নাও না? 🥰`
                     : `Your guest limit has been reached. Please log in to unlock full access and cloud sync.`)
                 : (lang === 'bn'
-                    ? `আপনার আজকের লিমিট শেষ হয়ে গেছে।\n\n• লিমিট রিসেট হওয়ার তারিখ: ${initialTokenStatus.formattedResetDate}\n• অবশিষ্ট সময়: ${initialTokenStatus.formattedRemainingTime}\n\nঅনুগ্রহ করে রিসেট হওয়া পর্যন্ত অপেক্ষা করুন। লিমিট রিসেট হওয়ার পর FocusForge AI Agent পুনরায় আপনাকে সাহায্য করতে সম্পূর্ণ প্রস্তুত থাকবে!`
+                    ? `তোমার আজকের ফ্রি লিমিট শেষ হয়ে গেছে।\n\n• লিমিট রিসেট হওয়ার তারিখ: ${initialTokenStatus.formattedResetDate}\n• অবশিষ্ট সময়: ${initialTokenStatus.formattedRemainingTime}\n\nঅনুগ্রহ করে রিসেট হওয়া পর্যন্ত একটু অপেক্ষা করো। লিমিট রিসেট হওয়ার পর FocusForge AI Agent আবার জেগে তোমাকে সাহায্য করতে প্রস্তুত থাকবে! 😴💤`
                     : `Your daily limit has been reached.\n\n• Resets on: ${initialTokenStatus.formattedResetDate}\n• Remaining time: ${initialTokenStatus.formattedRemainingTime}\n\nPlease wait until the reset time. Once refreshed, FocusForge AI Agent will be fully ready to assist you!`);
             return res.json({
                 sessionId: sessionId || (isGuest ? 'guest-session' : `session_${Date.now()}`),
@@ -316,8 +316,8 @@ router.post('/agent/chat', async (req, res) => {
             result = {
                 intent: "GREETING_OR_GENERAL",
                 message: isBn
-                    ? "দুঃখিত, এআই সার্ভার সাময়িক ব্যস্ত ছিল। আপনার পড়াশোনা বা কাজের বিষয়ে অন্য কোনো সাহায্য লাগলে বলতে পারেন!"
-                    : "FocusForge AI is temporarily busy. Please let me know if you need help with anything else!",
+                    ? "দুঃখিত, এআই সার্ভার সাময়িক একটু ব্যস্ত ছিল। তোমার পড়াশোনা, কাজ বা অন্য যেকোনো বিষয়ে কিছু জানার থাকলে বলো, আমি শুনছি!"
+                    : "FocusForge AI is temporarily busy. Please let me know if you need help with anything else, I'm here!",
                 payload: null
             };
         }
@@ -347,7 +347,7 @@ router.post('/agent/chat', async (req, res) => {
                 }
             });
         }
-        // 4. Authenticated: Create session in DB if none provided
+        // 4. Authenticated: Create session in DB if none provided or if not yet in DB
         if (!sessionId || sessionId === 'guest-session') {
             sessionTitle = await generateSmartTitle(message);
             const session = await (0, aiChatService_1.createChatSession)(userId, sessionTitle);
@@ -364,6 +364,11 @@ router.post('/agent/chat', async (req, res) => {
                 }
                 else if (currentSession) {
                     sessionTitle = currentSession.title;
+                }
+                else {
+                    sessionTitle = await generateSmartTitle(message);
+                    const newSession = await (0, aiChatService_1.createChatSession)(userId, sessionTitle, sessionId);
+                    sessionId = newSession.id;
                 }
             }
             catch (err) {
