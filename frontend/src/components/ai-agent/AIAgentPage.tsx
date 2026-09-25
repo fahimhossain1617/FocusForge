@@ -146,27 +146,27 @@ export function AIAgentPage() {
     if (hour >= 5 && hour < 12) {
       // 05:00 - 11:59 (Morning / সকাল)
       return isSystemBn
-        ? `শুভ সকাল${nameSuffix}। আজকের দিনটি সফল ও সুন্দর করতে কী নিয়ে কাজ শুরু করবেন?`
+        ? `শুভ সকাল${nameSuffix}। আজকের দিনটি সুন্দর করতে কী নিয়ে কাজ শুরু করতে চাও?`
         : `Good morning${nameSuffix}. What shall we focus on today?`;
     } else if (hour >= 12 && hour < 15) {
       // 12:00 - 14:59 (Noon / দুপুর)
       return isSystemBn
-        ? `শুভ দুপুর${nameSuffix}। দুপুরের কাজের গতি ধরে রাখুন এবং সামনে এগিয়ে যান।`
+        ? `শুভ দুপুর${nameSuffix}। দুপুরের কাজের গতি ধরে রাখো, আমি পাশে আছি।`
         : `Good noon${nameSuffix}. Keep your momentum strong and focus sharp.`;
     } else if (hour >= 15 && hour < 18) {
       // 15:00 - 17:59 (Afternoon / বিকাল)
       return isSystemBn
-        ? `শুভ বিকাল${nameSuffix}। আজকের গুরুত্বপূর্ণ কাজগুলো গুছিয়ে শেষ করার চমৎকার সময়।`
+        ? `শুভ বিকাল${nameSuffix}। আজকের গুরুত্বপূর্ণ কাজগুলো গুছিয়ে শেষ করার চমৎকার সময়!`
         : `Good afternoon${nameSuffix}. Time to wrap up today's top priorities.`;
     } else if (hour >= 18 && hour < 21) {
       // 18:00 - 20:59 (Evening / সন্ধ্যা)
       return isSystemBn
-        ? `শুভ সন্ধ্যা${nameSuffix}। আজকের অর্জনগুলো পর্যালোচনা করুন ও আগামীকালের প্রস্তুতি নিন।`
+        ? `শুভ সন্ধ্যা${nameSuffix}। আজকের কাজগুলো গুছিয়ে নাও আর আগামীকালের প্রস্তুতি নাও।`
         : `Good evening${nameSuffix}. Time to review today's achievements and organize ahead.`;
     } else {
       // 21:00 - 04:59 (Night & Late Night / রাত ও গভীর রাত)
       return isSystemBn
-        ? `হে নাইট আউল${nameSuffix}। গভীর রাতের পড়াশোনা ও কাজে কোনো সহায়তা লাগবে?`
+        ? `হে নাইট আউল${nameSuffix}। গভীর রাতের পড়াশোনা বা কাজে কোনো সাহায্য লাগবে?`
         : `Hey night owl${nameSuffix}. Working late or planning for tomorrow?`;
     }
   }, [isSystemBn, cleanName]);
@@ -339,7 +339,7 @@ export function AIAgentPage() {
   const submit = async (value = input) => {
     if (!value.trim() || guestLimitExceeded) return;
     if (!isOnline) {
-      showToast(isSystemBn ? "আপনি বর্তমানে অফলাইনে আছেন।" : "You are currently offline.", "error");
+      showToast(isSystemBn ? "তুমি বর্তমানে অফলাইনে আছো।" : "You are currently offline.", "error");
       return;
     }
     setInput("");
@@ -358,7 +358,7 @@ export function AIAgentPage() {
   const startVoice = () => {
     if (guestLimitExceeded) return;
     if (!isOnline) {
-      showToast(isSystemBn ? "আপনি বর্তমানে অফলাইনে আছেন।" : "You are currently offline.", "error");
+      showToast(isSystemBn ? "তুমি বর্তমানে অফলাইনে আছো।" : "You are currently offline.", "error");
       return;
     }
     baseInputRef.current = input.trim();
@@ -518,7 +518,7 @@ export function AIAgentPage() {
                       {isSystemBn ? "কোনো চ্যাট হিস্ট্রি নেই" : "No chats yet"}
                     </p>
                     <p className={styles.menuDropdownEmptyMuted}>
-                      {isSystemBn ? "আপনার নতুন আলাপ এখানে সংরক্ষিত হবে" : "Conversations you start will appear here"}
+                      {isSystemBn ? "তোমার নতুন আলাপ এখানে সংরক্ষিত হবে" : "Conversations you start will appear here"}
                     </p>
                   </div>
                 ) : (

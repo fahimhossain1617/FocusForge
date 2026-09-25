@@ -278,6 +278,28 @@ export interface NotificationPreferences {
   focusSessionReminder: boolean;
 }
 
+export type NotificationType = 
+  | 'task' 
+  | 'planner' 
+  | 'focus' 
+  | 'diary' 
+  | 'learning' 
+  | 'ai' 
+  | 'system' 
+  | string;
+
+export interface AppNotification {
+  id: string;
+  type: NotificationType;
+  title: string;
+  message: string;
+  timestamp: string; // ISO string
+  read: boolean;
+  actionRoute?: string;
+  metadata?: Record<string, unknown>;
+  expiresAt?: string;
+}
+
 export interface CalendarPreferences {
   defaultTaskReminder: number;
   weekStartsOn: 'saturday' | 'sunday' | 'monday';
