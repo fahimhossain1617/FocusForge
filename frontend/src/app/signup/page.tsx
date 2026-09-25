@@ -7,9 +7,13 @@ import AuthLayout from "../../components/auth/AuthLayout";
 import { AuthIcons } from "../../components/auth/AuthIcons";
 import LegalModal from "../../components/auth/LegalModal";
 import { authService } from "../../services/authService";
+import { useAuth } from "../../context/AuthContext";
+import { useAppContext } from "../../context/AppContext";
 
 export default function SignupPage() {
   const router = useRouter();
+  const { onAuthSuccess } = useAuth();
+  const { showToast } = useAppContext();
 
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
@@ -86,7 +90,15 @@ export default function SignupPage() {
         return;
       }
 
-      // Store pending email in sessionStorage for verification screen
+      // If user session is returned or user is active, log in and open dashboard directly
+      if (res.user) {
+        onAuthSuccess(res.user, true);
+        showToast("Account created successfully! Welcome to FocusForge.", "success");
+        router.push("/");
+        return;
+      }
+
+      // Store pending email in sessionStorage for verification screen fallback
       if (typeof window !== "undefined") {
         sessionStorage.setItem("focusforge_pending_email", email.trim().toLowerCase());
         sessionStorage.setItem("focusforge_pending_name", fullName.trim());
