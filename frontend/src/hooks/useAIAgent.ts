@@ -16,11 +16,13 @@ import { useAuth } from "@/context/AuthContext";
 let memoryMessages: AgentMessage[] | null = null;
 let memoryActiveSessionId: string | null = null;
 let memoryGuestCount: number = 0;
+let memoryUserId: string | null = null;
 
 export function clearAIGlobals() {
   memoryMessages = null;
   memoryActiveSessionId = null;
   memoryGuestCount = 0;
+  memoryUserId = null;
 }
 
 export interface ChatSession {
@@ -29,12 +31,27 @@ export interface ChatSession {
   updated_at: string;
 }
 
+function getSessionsCacheKey(userId?: string | null): string {
+  return userId ? `focusforge_ai_sessions_${userId}` : "focusforge_guest_sessions_list";
+}
+
+function getMsgCacheKey(userId: string | null | undefined, sessionId: string): string {
+  return userId ? `focusforge_ai_msg_${userId}_${sessionId}` : `focusforge_guest_msg_${sessionId}`;
+}
+
 export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn") {
   const { isGuest, user } = useAuth();
+  const currentUserId = user?.id || null;
+
+  // Reset in-memory cache if user changed
+  if (memoryUserId !== currentUserId) {
+    clearAIGlobals();
+    memoryUserId = currentUserId;
+  }
 
   const [messages, setMessages] = useState<AgentMessage[]>(() => {
     if (typeof window === "undefined") return [];
-    if (memoryMessages) return memoryMessages;
+    if (memoryMessages && memoryUserId === currentUserId) return memoryMessages;
     return [];
   });
 
@@ -46,7 +63,8 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
   const [sessions, setSessions] = useState<ChatSession[]>(() => {
     if (typeof window === "undefined") return [];
     try {
-      const storedCache = localStorage.getItem("focusforge_active_sessions_cache") || localStorage.getItem("focusforge_guest_sessions_list");
+      const key = getSessionsCacheKey(currentUserId);
+      const storedCache = localStorage.getItem(key) || (currentUserId ? null : sessionStorage.getItem("focusforge_guest_sessions_list"));
       return storedCache ? JSON.parse(storedCache) : [];
     } catch {
       return [];
@@ -55,7 +73,7 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
 
   const [activeSessionId, setActiveSessionId] = useState<string | null>(() => {
     if (typeof window === "undefined") return null;
-    return memoryActiveSessionId;
+    return memoryUserId === currentUserId ? memoryActiveSessionId : null;
   });
 
   const [tokenStatus, setTokenStatus] = useState<TokenStatus | null>(null);
@@ -88,23 +106,26 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
   
   const loadedSessionRef = useRef<string | null>(activeSessionId);
 
-  // Persist current active messages & activeSessionId to memory / session safely
+  // Persist current active messages & activeSessionId to memory / session safely scoped by user ID
   useEffect(() => {
     if (typeof window !== "undefined") {
       memoryMessages = messages;
       memoryActiveSessionId = activeSessionId;
       memoryGuestCount = guestCount;
+      memoryUserId = currentUserId;
+
       try {
         if (activeSessionId && loadedSessionRef.current === activeSessionId && messages.length > 0) {
+          const msgKey = getMsgCacheKey(currentUserId, activeSessionId);
           if (isGuest || !user) {
-            sessionStorage.setItem(`focusforge_guest_msg_${activeSessionId}`, JSON.stringify(messages));
+            sessionStorage.setItem(msgKey, JSON.stringify(messages));
           } else {
-            localStorage.setItem(`focusforge_auth_msg_${activeSessionId}`, JSON.stringify(messages));
+            localStorage.setItem(msgKey, JSON.stringify(messages));
           }
         }
       } catch {}
     }
-  }, [messages, activeSessionId, guestCount, isGuest, user]);
+  }, [messages, activeSessionId, guestCount, isGuest, user, currentUserId]);
 
   // Refresh token status
   const refreshTokenStatus = useCallback(async (lang: string = initialLang) => {
@@ -116,75 +137,64 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
     }
   }, [initialLang]);
 
-  // Load sessions and initial conversation on mount
+  // Load sessions and initial conversation on mount / user change
   useEffect(() => {
+    let isCancelled = false;
+
     const fetchInitialData = async () => {
       try {
+        // Reset state on user switch
+        setMessages([]);
+        setActiveSessionId(null);
+        loadedSessionRef.current = null;
+
         const [sessionsData, tokensData] = await Promise.all([
           getChatSessions(),
           getAITokenStatus(initialLang)
         ]);
 
+        if (isCancelled) return;
+
         if (Array.isArray(sessionsData) && sessionsData.length > 0) {
           setSessions(sessionsData);
-
-          // Only load messages if an activeSessionId exists for this tab session
-          let targetSessionId = activeSessionId;
-
-          if (targetSessionId) {
-            const msgs = await getChatMessages(targetSessionId);
-            if (Array.isArray(msgs) && msgs.length > 0) {
-              const normalized = msgs.map((m: any) => ({
-                ...m,
-                createdAt: new Date(m.created_at || m.createdAt || Date.now()),
-                payload: m.payload || m.payload_json,
-              }));
-              setMessages(normalized);
-              loadedSessionRef.current = targetSessionId;
-            }
+          if (typeof window !== "undefined") {
+            try {
+              const key = getSessionsCacheKey(currentUserId);
+              localStorage.setItem(key, JSON.stringify(sessionsData));
+            } catch {}
           }
         } else if (typeof window !== "undefined") {
-          // Local / session cache fallback
+          // Local scoped cache fallback
           try {
-            const isAuth = !!user && !isGuest;
-            const sessionsRaw = isAuth 
-              ? localStorage.getItem("focusforge_active_sessions_cache")
-              : sessionStorage.getItem("focusforge_guest_sessions_list");
-
+            const key = getSessionsCacheKey(currentUserId);
+            const sessionsRaw = localStorage.getItem(key) || (currentUserId ? null : sessionStorage.getItem("focusforge_guest_sessions_list"));
             if (sessionsRaw) {
               const parsedSessions = JSON.parse(sessionsRaw);
-              if (Array.isArray(parsedSessions) && parsedSessions.length > 0) {
+              if (Array.isArray(parsedSessions)) {
                 setSessions(parsedSessions);
-                let targetSessionId = activeSessionId;
-                if (targetSessionId) {
-                  const savedMsgs = isAuth 
-                    ? localStorage.getItem(`focusforge_auth_msg_${targetSessionId}`)
-                    : sessionStorage.getItem(`focusforge_guest_msg_${targetSessionId}`);
-                  if (savedMsgs) {
-                    const parsedMsgs = JSON.parse(savedMsgs);
-                    if (Array.isArray(parsedMsgs)) {
-                      setMessages(parsedMsgs.map((m: any) => ({
-                        ...m,
-                        createdAt: new Date(m.createdAt || m.created_at || Date.now())
-                      })));
-                      loadedSessionRef.current = targetSessionId;
-                    }
-                  }
-                }
               }
+            } else {
+              setSessions([]);
             }
-          } catch {}
+          } catch {
+            setSessions([]);
+          }
         }
 
-        if (tokensData) {
+        if (tokensData && !isCancelled) {
           setTokenStatus(tokensData);
         }
       } catch (err) {
         console.error("Failed to load initial AI agent data", err);
       }
     };
+
     fetchInitialData();
-  }, [initialLang, isGuest, user]);
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [initialLang, currentUserId]);
 
   const createNewSession = useCallback(() => {
     loadedSessionRef.current = null;
@@ -200,14 +210,14 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
     loadedSessionRef.current = sessionId;
     setActiveSessionId(sessionId);
 
-    // 1. Try instant load from local/session storage cache
+    // 1. Try instant load from user-scoped storage cache
     let foundInCache = false;
     if (typeof window !== "undefined") {
       try {
-        const isAuth = !!user && !isGuest;
-        const savedMsgs = isAuth 
-          ? (localStorage.getItem(`focusforge_auth_msg_${sessionId}`) || localStorage.getItem(`focusforge_chat_msg_${sessionId}`))
-          : (sessionStorage.getItem(`focusforge_guest_msg_${sessionId}`) || localStorage.getItem(`focusforge_chat_msg_${sessionId}`));
+        const msgKey = getMsgCacheKey(currentUserId, sessionId);
+        const savedMsgs = (isGuest || !user)
+          ? sessionStorage.getItem(msgKey)
+          : localStorage.getItem(msgKey);
         
         if (savedMsgs) {
           const parsed = JSON.parse(savedMsgs);
@@ -239,10 +249,12 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
         setMessages(normalized);
         if (typeof window !== "undefined") {
           try {
-            const isAuth = !!user && !isGuest;
-            const key = isAuth ? `focusforge_auth_msg_${sessionId}` : `focusforge_guest_msg_${sessionId}`;
-            localStorage.setItem(key, JSON.stringify(normalized));
-            localStorage.setItem(`focusforge_chat_msg_${sessionId}`, JSON.stringify(normalized));
+            const msgKey = getMsgCacheKey(currentUserId, sessionId);
+            if (isGuest || !user) {
+              sessionStorage.setItem(msgKey, JSON.stringify(normalized));
+            } else {
+              localStorage.setItem(msgKey, JSON.stringify(normalized));
+            }
           } catch {}
         }
       } else if (!foundInCache) {
@@ -256,7 +268,7 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
     } finally {
       setIsThinking(false);
     }
-  }, [isGuest, user]);
+  }, [isGuest, user, currentUserId]);
 
   const removeSession = useCallback(async (sessionId: string) => {
     if (!sessionId) return;
@@ -266,8 +278,8 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
       const updated = prev.filter((s) => s.id !== sessionId);
       if (typeof window !== "undefined") {
         try {
-          localStorage.setItem("focusforge_active_sessions_cache", JSON.stringify(updated));
-          sessionStorage.setItem("focusforge_guest_sessions_list", JSON.stringify(updated));
+          const key = getSessionsCacheKey(currentUserId);
+          localStorage.setItem(key, JSON.stringify(updated));
         } catch {}
       }
       return updated;
@@ -280,9 +292,9 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
     // 2. Clean browser storage
     if (typeof window !== "undefined") {
       try {
-        sessionStorage.removeItem(`focusforge_guest_msg_${sessionId}`);
-        localStorage.removeItem(`focusforge_auth_msg_${sessionId}`);
-        localStorage.removeItem(`focusforge_chat_msg_${sessionId}`);
+        const msgKey = getMsgCacheKey(currentUserId, sessionId);
+        sessionStorage.removeItem(msgKey);
+        localStorage.removeItem(msgKey);
       } catch {}
     }
 
@@ -292,25 +304,28 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
     } catch (err) {
       console.warn("Failed to delete session on backend:", err);
     }
-  }, [activeSessionId, createNewSession]);
+  }, [activeSessionId, createNewSession, currentUserId]);
 
   const clearAllSessions = useCallback(async () => {
     // 1. Immediately clear UI
     setSessions([]);
     createNewSession();
 
-    // 2. Clear browser storage
+    // 2. Clear browser storage for this user
     if (typeof window !== "undefined") {
       try {
-        sessionStorage.removeItem("focusforge_guest_sessions_list");
-        localStorage.removeItem("focusforge_active_sessions_cache");
+        const key = getSessionsCacheKey(currentUserId);
+        localStorage.removeItem(key);
+        sessionStorage.removeItem(key);
+
+        const prefix = currentUserId ? `focusforge_ai_msg_${currentUserId}_` : "focusforge_guest_msg_";
         Object.keys(localStorage).forEach((k) => {
-          if (k.startsWith("focusforge_auth_msg_") || k.startsWith("focusforge_chat_msg_")) {
+          if (k.startsWith(prefix)) {
             localStorage.removeItem(k);
           }
         });
         Object.keys(sessionStorage).forEach((k) => {
-          if (k.startsWith("focusforge_guest_msg_")) {
+          if (k.startsWith(prefix)) {
             sessionStorage.removeItem(k);
           }
         });
@@ -323,7 +338,7 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
     } catch (err) {
       console.warn("Failed to clear all sessions on backend:", err);
     }
-  }, [createNewSession]);
+  }, [createNewSession, currentUserId]);
 
   const send = useCallback(async (
     content: string, 
@@ -420,11 +435,8 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
 
           if (typeof window !== "undefined") {
             try {
-              if (user && !isGuest) {
-                localStorage.setItem("focusforge_active_sessions_cache", JSON.stringify(updated));
-              } else {
-                sessionStorage.setItem("focusforge_guest_sessions_list", JSON.stringify(updated));
-              }
+              const key = getSessionsCacheKey(currentUserId);
+              localStorage.setItem(key, JSON.stringify(updated));
             } catch {}
           }
           return updated;
@@ -495,7 +507,6 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
     }
     catch (err: any) { 
       if (err?.name === 'AbortError' || abortController.signal.aborted) {
-        // User aborted/stopped generation: exit cleanly without printing error banner
         return;
       }
 
@@ -540,7 +551,7 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
       setIsThinking(false); 
       abortControllerRef.current = null;
     }
-  }, [context, activeSessionId, messages, tokenStatus, isGuest, user]);
+  }, [context, activeSessionId, messages, tokenStatus, isGuest, user, currentUserId]);
 
   const guestLimitExceeded = Boolean((isGuest || !user) && (tokenStatus?.isExhausted || (tokenStatus && tokenStatus.remaining <= 0)));
 

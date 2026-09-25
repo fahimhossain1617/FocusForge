@@ -24,11 +24,44 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "FocusForge",
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://focusforge.app"),
+  title: {
+    default: "FocusForge — Personal External Brain & Deep Productivity",
+    template: "%s | FocusForge",
+  },
   description:
     "A personal external brain. Capture thoughts, organize tasks, plan your day, focus deeply, and track where your time goes.",
   manifest: "/manifest.json",
   applicationName: "FocusForge",
+  alternates: {
+    canonical: "/",
+  },
+  openGraph: {
+    title: "FocusForge — Personal External Brain & Deep Productivity",
+    description:
+      "Capture thoughts, organize tasks, plan your day, focus deeply, and master your time.",
+    url: "https://focusforge.app",
+    siteName: "FocusForge",
+    locale: "en_US",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "FocusForge — Personal External Brain",
+    description:
+      "A personal external brain. Capture thoughts, organize tasks, plan your day, and focus deeply.",
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",

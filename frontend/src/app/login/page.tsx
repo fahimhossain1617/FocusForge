@@ -1,18 +1,28 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import AuthLayout from "../../components/auth/AuthLayout";
 import { AuthIcons } from "../../components/auth/AuthIcons";
 import ForgotPasswordModal from "../../components/auth/ForgotPasswordModal";
-import { authService } from "../../services/authService";
 import { useAuth } from "../../context/AuthContext";
 import { useAppContext } from "../../context/AppContext";
+import { User, Users, Trash2, ArrowRight } from "lucide-react";
+import { RememberedAccount } from "../../services/accountManager";
 
-export default function LoginPage() {
+function LoginContent() {
   const router = useRouter();
-  const { user, isLoading: isAuthLoading, onAuthSuccess } = useAuth();
+  const searchParams = useSearchParams();
+  const {
+    user,
+    isLoading: isAuthLoading,
+    isGuestModeDisabled,
+    rememberedAccounts,
+    removeRememberedAccount,
+    loginWithCredentials,
+    loginWithGoogle,
+  } = useAuth();
   const { showToast, navigateTo } = useAppContext();
 
   const [email, setEmail] = useState("");
@@ -22,8 +32,18 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [forgotModalOpen, setForgotModalOpen] = useState(false);
+  const [showAccountList, setShowAccountList] = useState(true);
 
-  // If already authenticated, redirect to dashboard immediately
+  // Pre-fill email from query parameters if passed from switcher or verification
+  useEffect(() => {
+    const emailParam = searchParams.get("email");
+    if (emailParam) {
+      setEmail(emailParam);
+      setShowAccountList(false);
+    }
+  }, [searchParams]);
+
+  // If already authenticated and stable, redirect to home
   useEffect(() => {
     if (!isAuthLoading && user) {
       router.replace("/");
@@ -41,10 +61,9 @@ export default function LoginPage() {
     setError(null);
 
     try {
-      const res = await authService.validateCredentials(email, password);
-      
+      const res = await loginWithCredentials(email, password, rememberMe);
+
       if (res.isUnconfirmed) {
-        // Redirect to verify page if unverified
         showToast("Please verify your email address to log in.", "info");
         router.push(`/verify?email=${encodeURIComponent(email.trim())}`);
         return;
@@ -52,16 +71,13 @@ export default function LoginPage() {
 
       if (!res.success) {
         setError(res.error || "Invalid email or password.");
-        setLoading(false);
         return;
       }
 
-      if (res.user) {
-        onAuthSuccess(res.user, false);
-        router.push("/");
-      }
+      router.replace("/");
     } catch (err: any) {
       setError(err?.message || "An unexpected error occurred during login.");
+    } finally {
       setLoading(false);
     }
   };
@@ -70,9 +86,8 @@ export default function LoginPage() {
     setLoading(true);
     setError(null);
     try {
-      const res = await authService.loginWithGoogle();
-      if (!res.success) {
-        setError(res.error || "Google sign-in could not be initiated.");
+      const success = await loginWithGoogle();
+      if (!success) {
         setLoading(false);
       }
     } catch (err: any) {
@@ -83,8 +98,17 @@ export default function LoginPage() {
 
   const handleContinueAsGuest = (e: React.MouseEvent) => {
     e.preventDefault();
+    if (isGuestModeDisabled) {
+      showToast("Guest mode is no longer available on this browser profile.", "info");
+      return;
+    }
     navigateTo("today");
     router.push("/");
+  };
+
+  const handleSelectRememberedAccount = (account: RememberedAccount) => {
+    setEmail(account.email);
+    setShowAccountList(false);
   };
 
   return (
@@ -93,6 +117,74 @@ export default function LoginPage() {
       <p className="auth-lead">Log in to continue where you left off.</p>
 
       {error && <div className="auth-error-banner">{error}</div>}
+
+      {/* Quick Remembered Accounts List */}
+      {showAccountList && rememberedAccounts.length > 0 && (
+        <div className="mb-4 p-3.5 rounded-2xl bg-blue-50/50 dark:bg-white/[0.02] border border-blue-200/60 dark:border-white/10 text-left">
+          <div className="flex items-center justify-between mb-2.5">
+            <span className="text-xs font-bold text-[#0F172A] dark:text-foreground flex items-center gap-1.5">
+              <Users size={14} className="text-blue-500" />
+              Saved Accounts ({rememberedAccounts.length})
+            </span>
+            <button
+              type="button"
+              onClick={() => setShowAccountList(false)}
+              className="text-[11px] text-blue-500 hover:underline"
+            >
+              Use another account
+            </button>
+          </div>
+
+          <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+            {rememberedAccounts.map((account) => (
+              <div
+                key={account.id}
+                className="flex items-center justify-between gap-2 p-2 rounded-xl bg-white dark:bg-[#151922] border border-slate-200/80 dark:border-white/[0.05] hover:border-blue-400 transition-all"
+              >
+                <button
+                  type="button"
+                  onClick={() => handleSelectRememberedAccount(account)}
+                  className="flex items-center gap-2.5 min-w-0 flex-1 text-left cursor-pointer"
+                >
+                  {account.avatarUrl ? (
+                    <img
+                      src={account.avatarUrl}
+                      alt={account.displayName}
+                      className="w-7 h-7 rounded-full object-cover shrink-0"
+                    />
+                  ) : (
+                    <div className="w-7 h-7 rounded-full bg-blue-600 text-white flex items-center justify-center text-[10px] font-bold uppercase shrink-0">
+                      {account.displayName ? account.displayName[0] : <User size={12} />}
+                    </div>
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs font-semibold text-[#0F172A] dark:text-foreground truncate leading-tight">
+                      {account.displayName}
+                    </p>
+                    <p className="text-[10px] text-[#52627A] dark:text-muted-foreground truncate">
+                      {account.email}
+                    </p>
+                  </div>
+                  <ArrowRight size={13} className="text-blue-500 shrink-0 mr-1" />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    removeRememberedAccount(account.id);
+                  }}
+                  className="p-1 rounded-md text-slate-400 hover:text-red-500 hover:bg-red-500/10 transition-colors"
+                  title="Remove from saved accounts"
+                  aria-label="Remove account"
+                >
+                  <Trash2 size={12} />
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <button
         type="button"
@@ -185,13 +277,15 @@ export default function LoginPage() {
           Don’t have an account? <Link href="/signup">Create account</Link>
         </div>
 
-        <button
-          type="button"
-          onClick={handleContinueAsGuest}
-          className="auth-guest"
-        >
-          or <u>continue as a guest</u>
-        </button>
+        {!isGuestModeDisabled && (
+          <button
+            type="button"
+            onClick={handleContinueAsGuest}
+            className="auth-guest"
+          >
+            or <u>continue as a guest</u>
+          </button>
+        )}
       </form>
 
       <ForgotPasswordModal
@@ -200,5 +294,13 @@ export default function LoginPage() {
         initialEmail={email}
       />
     </AuthLayout>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="auth-frame flex items-center justify-center min-h-screen text-white">Loading...</div>}>
+      <LoginContent />
+    </Suspense>
   );
 }

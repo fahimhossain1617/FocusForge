@@ -5,7 +5,7 @@ import { useAuth } from "../../context/AuthContext";
 import { useAppContext } from "../../context/AppContext";
 import { useTranslation } from "../../hooks/useTranslation";
 import { 
-  User as UserIcon, ChevronDown, LogOut, ShieldAlert, LogIn
+  User as UserIcon, ChevronDown, LogOut, ShieldAlert, LogIn, Users
 } from "lucide-react";
 import { useAnimateExit } from "../../hooks/useAnimateExit";
 
@@ -18,6 +18,7 @@ export default function UserMenu({ variant = "sidebar" }: UserMenuProps) {
     user, 
     isGuest, 
     openAuth, 
+    openAccountSwitcher,
     promptLogout, 
     logoutConfirmOpen, 
     confirmLogout, 
@@ -206,6 +207,19 @@ export default function UserMenu({ variant = "sidebar" }: UserMenuProps) {
               >
                 <UserIcon size={14} className="text-blue-500" />
                 <span>{t.sidebar.myProfile || t.auth.profile}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setDropdownOpen(false);
+                  openAccountSwitcher();
+                }}
+                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium hover:bg-blue-500/10 transition-colors text-left cursor-pointer"
+                style={{ color: "var(--color-text-primary)" }}
+              >
+                <Users size={14} className="text-blue-500" />
+                <span>Switch Account</span>
               </button>
             </div>
 

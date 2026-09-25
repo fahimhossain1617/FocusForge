@@ -13,6 +13,7 @@ import noteRoutes from './routes/noteRoutes';
 import userRoutes from './routes/userRoutes';
 import notificationRoutes from './routes/notificationRoutes';
 import reviewRoutes from './routes/reviewRoutes';
+import supervisorRoutes from './routes/supervisorRoutes';
 
 // Load environment variables
 dotenv.config();
@@ -41,6 +42,7 @@ app.use('/api/notes', noteRoutes);
 app.use('/api/user', userRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/reviews', reviewRoutes);
+app.use('/api/supervisor', supervisorRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {

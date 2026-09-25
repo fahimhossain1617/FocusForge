@@ -34,9 +34,9 @@ export function calculateNextPromptDate(newSkipCount: number): Date {
 }
 
 /**
- * GET /api/reviews/state
+ * GET /api/reviews/state and GET /api/reviews/prompt-state
  */
-router.get('/state', async (req: AuthenticatedRequest, res: Response) => {
+router.get(['/state', '/prompt-state'], async (req: AuthenticatedRequest, res: Response) => {
   try {
     const userId = req.user?.id;
     if (!userId || req.user?.isGuest) {
@@ -138,9 +138,9 @@ router.post('/skip', async (req: AuthenticatedRequest, res: Response) => {
 });
 
 /**
- * POST /api/reviews/submit
+ * POST /api/reviews/submit and POST /api/reviews
  */
-router.post('/submit', async (req: AuthenticatedRequest, res: Response) => {
+router.post(['/submit', '/'], async (req: AuthenticatedRequest, res: Response) => {
   try {
     const userId = req.user?.id;
     const isGuestUser = !userId || req.user?.isGuest || userId === 'guest';
@@ -169,6 +169,24 @@ router.post('/submit', async (req: AuthenticatedRequest, res: Response) => {
   } catch (err: any) {
     console.error('[reviewRoutes] Error in POST /submit:', err);
     res.status(500).json({ error: err.message || 'Failed to submit review' });
+  }
+});
+
+/**
+ * POST /api/reviews/prompt-state
+ */
+router.post('/prompt-state', async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId || req.user?.isGuest) {
+      return res.json({ success: true });
+    }
+
+    const saved = await dbUpsertReviewPromptState(userId, req.body);
+    res.json(saved);
+  } catch (err: any) {
+    console.error('[reviewRoutes] Error in POST /prompt-state:', err);
+    res.status(500).json({ error: err.message || 'Failed to update prompt state' });
   }
 });
 

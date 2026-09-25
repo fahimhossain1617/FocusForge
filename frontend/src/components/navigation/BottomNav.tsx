@@ -195,7 +195,7 @@ export default function BottomNav() {
         }}
       >
         <LayoutGroup id="bottom-nav-sliding-group">
-          <div className="relative flex items-center justify-around h-16 max-w-lg mx-auto px-2">
+          <div className="relative flex items-center justify-between h-16 w-full max-w-lg mx-auto px-1 sm:px-2">
             {/* 1. HOME TAB */}
             <NavTabButton
               id="today"
@@ -221,13 +221,13 @@ export default function BottomNav() {
             />
 
             {/* 3. CENTER ACTION (+) BUTTON - In-line with other icons & sleek dark tone */}
-            <div className="relative flex items-center justify-center flex-1 h-full">
+            <div className="relative flex items-center justify-center flex-1 min-w-0 h-full">
               <button
                 type="button"
                 onClick={toggleActions}
                 aria-expanded={isActionsOpen}
                 aria-label={isActionsOpen ? "Close extra navigation features" : "Open extra navigation features"}
-                className={`relative flex items-center justify-center w-11 h-11 rounded-full cursor-pointer shadow-md outline-none focus-visible:ring-2 focus-visible:ring-blue-500 border active:scale-92 transition-all ${
+                className={`relative flex items-center justify-center w-11 h-11 min-w-[44px] min-h-[44px] rounded-full cursor-pointer shadow-md outline-none focus-visible:ring-2 focus-visible:ring-blue-500 border active:scale-92 transition-all ${
                   isActionsOpen
                     ? isLight
                       ? "bg-[#1E293B] text-white border-[#334155] shadow-sm"
@@ -299,13 +299,13 @@ function NavTabButton({
   onClick,
 }: NavTabButtonProps) {
   return (
-    <div className="relative flex-1 flex items-center justify-center h-full">
+    <div className="relative flex-1 min-w-0 flex items-center justify-center h-full">
       <button
         type="button"
         onClick={onClick}
         aria-label={label}
         aria-current={isActive ? "page" : undefined}
-        className={`relative flex flex-col items-center justify-center w-full h-12 py-1 rounded-2xl cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-blue-500 transition-colors duration-200 ${
+        className={`relative flex flex-col items-center justify-center w-full min-h-[48px] py-1 px-0.5 rounded-2xl cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-blue-500 transition-colors duration-200 ${
           isActive
             ? isLight
               ? "text-[#223A5E]"
@@ -353,16 +353,16 @@ function NavTabButton({
               : "text-slate-400"
           }`}
         >
-          <Icon size={20} strokeWidth={isActive ? 2.4 : 1.9} />
+          <Icon size={22} strokeWidth={isActive ? 2.3 : 1.85} />
         </motion.div>
 
         {/* Tab Label */}
         <span
-          className={`relative z-10 text-[10px] font-medium mt-0.5 transition-colors duration-250 leading-none ${
+          className={`relative z-10 text-[11px] font-medium mt-0.5 transition-colors duration-250 leading-tight truncate max-w-full text-center px-0.5 ${
             isActive
               ? isLight
-                ? "text-[#223A5E] font-bold"
-                : "text-blue-300 font-bold"
+                ? "text-[#223A5E] font-semibold"
+                : "text-blue-300 font-semibold"
               : isLight
               ? "text-slate-500"
               : "text-slate-400"

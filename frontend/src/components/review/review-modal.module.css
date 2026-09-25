@@ -222,8 +222,9 @@
 }
 
 .textarea:focus {
-  border-color: rgba(96, 165, 250, 0.7);
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.18);
+  border-color: rgba(148, 163, 184, 0.28);
+  box-shadow: none !important;
+  outline: none !important;
 }
 
 .textarea::placeholder {
@@ -238,8 +239,9 @@
 }
 
 :global([data-theme="light"]) .textarea:focus {
-  border-color: #5B8DEF;
-  box-shadow: 0 0 0 3px rgba(91, 141, 239, 0.22);
+  border-color: #CBD5E1;
+  box-shadow: none !important;
+  outline: none !important;
 }
 
 :global([data-theme="light"]) .textarea::placeholder {

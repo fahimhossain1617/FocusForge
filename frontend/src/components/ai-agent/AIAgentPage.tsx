@@ -20,30 +20,33 @@ import {
   Compass,
   CheckCircle2,
   Clock,
-  Smile
+  Smile,
+  ChevronDown,
+  Check
 } from "lucide-react";
 import { useAppContext } from "@/context/AppContext";
 import { useAuth } from "@/context/AuthContext";
 import { useAIAgent } from "@/hooks/useAIAgent";
 import type { AIAgentLanguage, AIAgentModel } from "@/types/aiAgent";
 import { VoiceAssistantModal } from "@/components/voice";
-import BorderBeam from "@/components/ui/BorderBeam";
 import { AIOrbFace } from "./AIOrbFace";
 import { useOrbMood, type OrbMood } from "./useOrbMood";
 import styles from "./ai-agent.module.css";
 
-const moodList: { id: OrbMood; color: string; labelBn: string; labelEn: string }[] = [
-  { id: "happy", color: "#38bdf8", labelBn: "খুশি", labelEn: "Happy" },
-  { id: "proud", color: "#facc15", labelBn: "প্রাউড", labelEn: "Proud" },
-  { id: "playful", color: "#ec4899", labelBn: "প্লেফুল", labelEn: "Playful" },
-  { id: "typing", color: "#3b82f6", labelBn: "টাইপিং", labelEn: "Typing" },
-  { id: "caring", color: "#f43f5e", labelBn: "কেয়ারিং", labelEn: "Caring" },
-  { id: "curious", color: "#8b5cf6", labelBn: "কৌতূহলী", labelEn: "Curious" },
-  { id: "sulky", color: "#64748b", labelBn: "অভিমানী", labelEn: "Sulky" },
-  { id: "angry", color: "#ef4444", labelBn: "রাগী", labelEn: "Playful Pout" },
-  { id: "sad", color: "#0ea5e9", labelBn: "স্যাড", labelEn: "Sad" },
-  { id: "sleepy", color: "#a855f7", labelBn: "ঘুমঘুম", labelEn: "Sleepy" },
-  { id: "thinking", color: "#06b6d4", labelBn: "চিন্তাশীল", labelEn: "Thinking" },
+const moodList: { id: OrbMood; labelBn: string; labelEn: string }[] = [
+  { id: "happy", labelBn: "হ্যাপি", labelEn: "Happy" },
+  { id: "attentive", labelBn: "মনোযোগী", labelEn: "Attentive" },
+  { id: "thinking", labelBn: "চিন্তাশীল", labelEn: "Thinking" },
+  { id: "focused", labelBn: "ফোকাসড", labelEn: "Focused" },
+  { id: "excited", labelBn: "উচ্ছ্বসিত", labelEn: "Excited" },
+  { id: "playful", labelBn: "প্লেফুল", labelEn: "Playful" },
+  { id: "proud", labelBn: "প্রাউড", labelEn: "Proud" },
+  { id: "caring", labelBn: "কেয়ারিং", labelEn: "Caring" },
+  { id: "curious", labelBn: "কৌতূহলী", labelEn: "Curious" },
+  { id: "sulky", labelBn: "অভিমানী", labelEn: "Sulky" },
+  { id: "angry", labelBn: "প্লেফুল পাউট", labelEn: "Playful Pout" },
+  { id: "sad", labelBn: "স্যাড", labelEn: "Sad" },
+  { id: "sleepy", labelBn: "ঘুমন্ত", labelEn: "Sleepy" },
 ];
 
 export function AIAgentPage() {
@@ -66,6 +69,7 @@ export function AIAgentPage() {
   // Model & Language State
   const [modelMode, setModelMode] = useState<"fast" | "deep">("fast");
   const aiModel: AIAgentModel = modelMode === "deep" ? "planning" : "fast";
+  const [modelMenuOpen, setModelMenuOpen] = useState(false);
   const [language, setLanguage] = useState<AIAgentLanguage>(isSystemBn ? "bn" : "en");
   const [input, setInput] = useState("");
   const [voiceOpen, setVoiceOpen] = useState(false);
@@ -77,6 +81,7 @@ export function AIAgentPage() {
   const chatAreaRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const moodMenuRef = useRef<HTMLDivElement>(null);
+  const modelMenuRef = useRef<HTMLDivElement>(null);
 
   // Close dropdowns when clicking outside
   useEffect(() => {
@@ -87,11 +92,15 @@ export function AIAgentPage() {
       if (moodMenuRef.current && !moodMenuRef.current.contains(e.target as Node)) {
         setMoodMenuOpen(false);
       }
+      if (modelMenuRef.current && !modelMenuRef.current.contains(e.target as Node)) {
+        setModelMenuOpen(false);
+      }
     };
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         setMenuOpen(false);
         setMoodMenuOpen(false);
+        setModelMenuOpen(false);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
@@ -198,6 +207,30 @@ export function AIAgentPage() {
   const isLimitExhausted = Boolean(tokenStatus?.isExhausted || (tokenStatus && tokenStatus.remaining <= 0));
   const isGuestLimit = Boolean(guestLimitExceeded || (isLimitExhausted && (isGuest || !user)));
 
+  // Measure visual viewport for mobile keyboard awareness
+  const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const vv = window.visualViewport;
+    if (!vv) return;
+
+    const handleResize = () => {
+      const windowH = window.innerHeight;
+      const vvH = vv.height;
+      // On mobile devices, virtual keyboard decreases visual viewport height by > 140px
+      const isKb = windowH - vvH > 140;
+      setIsKeyboardOpen(isKb);
+    };
+
+    vv.addEventListener("resize", handleResize);
+    vv.addEventListener("scroll", handleResize);
+    return () => {
+      vv.removeEventListener("resize", handleResize);
+      vv.removeEventListener("scroll", handleResize);
+    };
+  }, []);
+
   const {
     mood,
     thoughtText,
@@ -218,7 +251,9 @@ export function AIAgentPage() {
     language,
     greetingText,
     isLimitExhausted,
-    isGuestLimit
+    isGuestLimit,
+    messagesCount: messages.length,
+    isOnline
   });
 
   const handleNewChat = useCallback(() => {
@@ -369,17 +404,20 @@ export function AIAgentPage() {
     setVoiceOpen(false);
   };
 
-  // Dynamically auto-growing textarea (max 140px)
+  // Dynamically auto-growing textarea: starts compact at 24px cursor line, extends up to 180px/220px
   const adjustTextareaHeight = useCallback(() => {
     const el = textareaRef.current;
     if (!el) return;
     el.style.height = "auto";
-    const maxHeight = 140;
-    if (el.scrollHeight >= maxHeight) {
+    const singleLineHeight = 24;
+    const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
+    const maxHeight = isMobile ? 180 : 220;
+    const nextHeight = Math.max(singleLineHeight, el.scrollHeight);
+    if (nextHeight >= maxHeight) {
       el.style.height = `${maxHeight}px`;
       el.style.overflowY = "auto";
     } else {
-      el.style.height = `${Math.max(24, el.scrollHeight)}px`;
+      el.style.height = `${nextHeight}px`;
       el.style.overflowY = "hidden";
     }
   }, []);
@@ -413,45 +451,6 @@ export function AIAgentPage() {
         </div>
 
         <div className={styles.topBarRight} ref={menuRef}>
-          {/* Mood Selector Button & Popover */}
-          <div className={styles.moodMenuWrapper} ref={moodMenuRef}>
-            <button
-              type="button"
-              className={`${styles.iconButton} ${moodMenuOpen ? styles.iconButtonActive : ""}`}
-              onClick={() => setMoodMenuOpen((prev) => !prev)}
-              aria-label={isSystemBn ? "মুড নির্বাচন" : "Select Orb Mood"}
-              title={isSystemBn ? "মুড নির্বাচন" : "Select Orb Mood"}
-            >
-              <Smile size={19} strokeWidth={1.8} />
-            </button>
-
-            {moodMenuOpen && (
-              <div className={styles.moodPopover} role="dialog" aria-label="Orb Moods">
-                <div className={styles.moodPopoverHeader}>
-                  <span className={styles.moodPopoverTitle}>
-                    {isSystemBn ? "AI ওআরবি মুড" : "AI Orb Moods"}
-                  </span>
-                </div>
-                <div className={styles.moodPopoverGrid}>
-                  {moodList.map((m) => (
-                    <button
-                      key={m.id}
-                      type="button"
-                      className={`${styles.moodPopoverItem} ${mood === m.id ? styles.moodPopoverItemActive : ""}`}
-                      onClick={() => {
-                        setManualMood(m.id, 6000);
-                        setMoodMenuOpen(false);
-                      }}
-                    >
-                      <span className={styles.moodDot} style={{ backgroundColor: m.color }} />
-                      <span className={styles.moodName}>{isSystemBn ? m.labelBn : m.labelEn}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-
           {/* New Chat Button */}
           <button
             type="button"
@@ -560,11 +559,12 @@ export function AIAgentPage() {
       </header>
 
       {/* CENTERED LAYOUT CONTAINER */}
+      {/* CENTERED LAYOUT CONTAINER */}
       <div className={styles.layoutContainer}>
         {/* MAIN CONTENT / CHAT AREA */}
-        <div className={styles.chatArea} ref={chatAreaRef}>
+        <div className={`${styles.chatArea} ${isKeyboardOpen ? styles.chatAreaKeyboardOpen : ""}`} ref={chatAreaRef}>
           {messages.length === 0 && !isThinking && !isTyping ? (
-            /* HOME (EMPTY STATE): Centerpiece AI ORB Face with Top Greeting Bubble (Image 4 Style) */
+            /* HOME (EMPTY STATE): Centerpiece AI ORB Face with Top Greeting Bubble */
             <div className={styles.homeContainer}>
               <div className={styles.orbHeroWrapper}>
                 <AIOrbFace
@@ -603,240 +603,240 @@ export function AIAgentPage() {
                         <div className={isUser ? styles.userBubble : styles.assistantBubble}>
                           {message.content}
 
-                        {/* Proposals / Action cards */}
-                        {message.payload && message.intent === "PLANNER_CREATE" && (
-                          <div className={styles.proposalCard}>
-                            <div className={styles.proposalBadge}>
-                              <CheckCircle2 size={13} />
-                              <span>{isSystemBn ? "প্ল্যানারে যুক্ত হয়েছে" : "Added to Planner"}</span>
+                          {/* Proposals / Action cards */}
+                          {message.payload && message.intent === "PLANNER_CREATE" && (
+                            <div className={styles.proposalCard}>
+                              <div className={styles.proposalBadge}>
+                                <CheckCircle2 size={13} />
+                                <span>{isSystemBn ? "প্ল্যানারে যুক্ত হয়েছে" : "Added to Planner"}</span>
+                              </div>
+                              <div className={styles.proposalTitle}>
+                                {isSystemBn ? "স্টাডি / টাস্ক প্ল্যান" : "Planner Schedule"}
+                              </div>
+                              <div className={styles.proposalDesc}>
+                                {Array.isArray(message.payload.tasks)
+                                  ? `${message.payload.tasks.length} ${isSystemBn ? "টি টাস্ক শিডিউল করা হয়েছে" : "tasks scheduled"}`
+                                  : message.payload.title || "Study Task"}
+                              </div>
+                              <div className={styles.proposalActions}>
+                                <button
+                                  type="button"
+                                  className={styles.proposalBtn}
+                                  onClick={() => {
+                                    applyPayloadToApp(message.id, message.intent, message.payload);
+                                    navigateTo("planner");
+                                  }}
+                                >
+                                  <Compass size={14} />
+                                  <span>{isSystemBn ? "প্ল্যানার দেখুন" : "View Planner"}</span>
+                                </button>
+                              </div>
                             </div>
-                            <div className={styles.proposalTitle}>
-                              {isSystemBn ? "স্টাডি / টাস্ক প্ল্যান" : "Planner Schedule"}
-                            </div>
-                            <div className={styles.proposalDesc}>
-                              {Array.isArray(message.payload.tasks)
-                                ? `${message.payload.tasks.length} ${isSystemBn ? "টি টাস্ক শিডিউল করা হয়েছে" : "tasks scheduled"}`
-                                : message.payload.title || "Study Task"}
-                            </div>
-                            <div className={styles.proposalActions}>
-                              <button
-                                type="button"
-                                className={styles.proposalBtn}
-                                onClick={() => {
-                                  applyPayloadToApp(message.id, message.intent, message.payload);
-                                  navigateTo("planner");
-                                }}
-                              >
-                                <Compass size={14} />
-                                <span>{isSystemBn ? "প্ল্যানার দেখুন" : "View Planner"}</span>
-                              </button>
-                            </div>
-                          </div>
-                        )}
+                          )}
 
-                        {message.payload && message.intent === "PROBLEM_SOLVER" && (
-                          <div className={styles.proposalCard}>
-                            <div className={styles.proposalBadge}>
-                              <CheckCircle2 size={13} />
-                              <span>{isSystemBn ? "মাইন্ড ট্র্যাকার সেভ হয়েছে" : "Saved to Mind"}</span>
+                          {message.payload && message.intent === "PROBLEM_SOLVER" && (
+                            <div className={styles.proposalCard}>
+                              <div className={styles.proposalBadge}>
+                                <CheckCircle2 size={13} />
+                                <span>{isSystemBn ? "মাইন্ড ট্র্যাকার সেভ হয়েছে" : "Saved to Mind"}</span>
+                              </div>
+                              <div className={styles.proposalTitle}>
+                                {isSystemBn ? "সমস্যা সমাধান" : "Problem Solver"}
+                              </div>
+                              <div className={styles.proposalDesc}>
+                                {message.payload.problem || "Action plan ready"}
+                              </div>
+                              <div className={styles.proposalActions}>
+                                <button
+                                  type="button"
+                                  className={styles.proposalBtn}
+                                  onClick={() => {
+                                    applyPayloadToApp(message.id, message.intent, message.payload);
+                                    navigateTo("mind");
+                                  }}
+                                >
+                                  <Compass size={14} />
+                                  <span>{isSystemBn ? "মাইন্ড হাব খুলুন" : "Open Mind Hub"}</span>
+                                </button>
+                              </div>
                             </div>
-                            <div className={styles.proposalTitle}>
-                              {isSystemBn ? "সমস্যা সমাধান" : "Problem Solver"}
-                            </div>
-                            <div className={styles.proposalDesc}>
-                              {message.payload.problem || "Action plan ready"}
-                            </div>
-                            <div className={styles.proposalActions}>
-                              <button
-                                type="button"
-                                className={styles.proposalBtn}
-                                onClick={() => {
-                                  applyPayloadToApp(message.id, message.intent, message.payload);
-                                  navigateTo("mind");
-                                }}
-                              >
-                                <Compass size={14} />
-                                <span>{isSystemBn ? "মাইন্ড হাব খুলুন" : "Open Mind Hub"}</span>
-                              </button>
-                            </div>
-                          </div>
-                        )}
+                          )}
 
-                        {message.payload && message.intent === "IDEA_CAPTURE" && (
-                          <div className={styles.proposalCard}>
-                            <div className={styles.proposalBadge}>
-                              <CheckCircle2 size={13} />
-                              <span>{isSystemBn ? "আইডিয়া সংরক্ষিত" : "Idea Captured"}</span>
+                          {message.payload && message.intent === "IDEA_CAPTURE" && (
+                            <div className={styles.proposalCard}>
+                              <div className={styles.proposalBadge}>
+                                <CheckCircle2 size={13} />
+                                <span>{isSystemBn ? "আইডিয়া সংরক্ষিত" : "Idea Captured"}</span>
+                              </div>
+                              <div className={styles.proposalTitle}>
+                                {isSystemBn ? "আইডিয়া বক্স" : "Idea Capture"}
+                              </div>
+                              <div className={styles.proposalDesc}>
+                                {message.payload.idea || "Captured note"}
+                              </div>
+                              <div className={styles.proposalActions}>
+                                <button
+                                  type="button"
+                                  className={styles.proposalBtn}
+                                  onClick={() => {
+                                    applyPayloadToApp(message.id, message.intent, message.payload);
+                                    navigateTo("mind");
+                                  }}
+                                >
+                                  <Compass size={14} />
+                                  <span>{isSystemBn ? "আইডিয়া দেখুন" : "View Ideas"}</span>
+                                </button>
+                              </div>
                             </div>
-                            <div className={styles.proposalTitle}>
-                              {isSystemBn ? "আইডিয়া বক্স" : "Idea Capture"}
-                            </div>
-                            <div className={styles.proposalDesc}>
-                              {message.payload.idea || "Captured note"}
-                            </div>
-                            <div className={styles.proposalActions}>
-                              <button
-                                type="button"
-                                className={styles.proposalBtn}
-                                onClick={() => {
-                                  applyPayloadToApp(message.id, message.intent, message.payload);
-                                  navigateTo("mind");
-                                }}
-                              >
-                                <Compass size={14} />
-                                <span>{isSystemBn ? "আইডিয়া দেখুন" : "View Ideas"}</span>
-                              </button>
-                            </div>
-                          </div>
-                        )}
+                          )}
 
-                        {message.payload && (message.intent === "LEARNING_HUB" || message.intent === "SKILL_BUILDER") && (
-                          <div className={styles.proposalCard}>
-                            <div className={styles.proposalBadge}>
-                              <CheckCircle2 size={13} />
-                              <span>{isSystemBn ? "স্কিল বিল্ডারে যুক্ত হয়েছে" : "Added to Skill Builder"}</span>
+                          {message.payload && (message.intent === "LEARNING_HUB" || message.intent === "SKILL_BUILDER") && (
+                            <div className={styles.proposalCard}>
+                              <div className={styles.proposalBadge}>
+                                <CheckCircle2 size={13} />
+                                <span>{isSystemBn ? "স্কিল বিল্ডারে যুক্ত হয়েছে" : "Added to Skill Builder"}</span>
+                              </div>
+                              <div className={styles.proposalTitle}>
+                                {message.payload.folderName || message.payload.skillName || (isSystemBn ? "নতুন স্কিল রোডম্যাপ" : "New Skill Roadmap")}
+                              </div>
+                              <div className={styles.proposalDesc}>
+                                {message.payload.targetHours ? `${message.payload.targetHours}h Target • ` : ""}
+                                {Array.isArray(message.payload.roadmapSteps) ? `${message.payload.roadmapSteps.length} ${isSystemBn ? "টি মাইলস্টোন ধাপ" : "milestone steps"}` : (isSystemBn ? "রোডম্যাপ প্রস্তুত" : "Roadmap Ready")}
+                              </div>
+                              <div className={styles.proposalActions}>
+                                <button
+                                  type="button"
+                                  className={styles.proposalBtn}
+                                  onClick={() => {
+                                    applyPayloadToApp(message.id, message.intent, message.payload);
+                                    navigateTo("learning");
+                                  }}
+                                >
+                                  <Compass size={14} />
+                                  <span>{isSystemBn ? "স্কিল বিল্ডার খুলুন" : "Open Skill Builder"}</span>
+                                </button>
+                              </div>
                             </div>
-                            <div className={styles.proposalTitle}>
-                              {message.payload.folderName || message.payload.skillName || (isSystemBn ? "নতুন স্কিল রোডম্যাপ" : "New Skill Roadmap")}
-                            </div>
-                            <div className={styles.proposalDesc}>
-                              {message.payload.targetHours ? `${message.payload.targetHours}h Target • ` : ""}
-                              {Array.isArray(message.payload.roadmapSteps) ? `${message.payload.roadmapSteps.length} ${isSystemBn ? "টি মাইলস্টোন ধাপ" : "milestone steps"}` : (isSystemBn ? "রোডম্যাপ প্রস্তুত" : "Roadmap Ready")}
-                            </div>
-                            <div className={styles.proposalActions}>
-                              <button
-                                type="button"
-                                className={styles.proposalBtn}
-                                onClick={() => {
-                                  applyPayloadToApp(message.id, message.intent, message.payload);
-                                  navigateTo("learning");
-                                }}
-                              >
-                                <Compass size={14} />
-                                <span>{isSystemBn ? "স্কিল বিল্ডার খুলুন" : "Open Skill Builder"}</span>
-                              </button>
-                            </div>
-                          </div>
-                        )}
+                          )}
 
-                        {message.payload && (message.intent === "MY_DIARY" || message.intent === "DIARY_ENTRY") && (
-                          <div className={styles.proposalCard}>
-                            <div className={styles.proposalBadge}>
-                              <CheckCircle2 size={13} />
-                              <span>{isSystemBn ? "ডায়েরিতে সেভ হয়েছে" : "Saved to My Diary"}</span>
+                          {message.payload && (message.intent === "MY_DIARY" || message.intent === "DIARY_ENTRY") && (
+                            <div className={styles.proposalCard}>
+                              <div className={styles.proposalBadge}>
+                                <CheckCircle2 size={13} />
+                                <span>{isSystemBn ? "ডায়েরিতে সেভ হয়েছে" : "Saved to My Diary"}</span>
+                              </div>
+                              <div className={styles.proposalTitle}>
+                                {message.payload.title || (isSystemBn ? "আজকের ডায়েরি" : "Today's Diary")}
+                              </div>
+                              <div className={styles.proposalDesc}>
+                                {message.payload.topicTitle || (isSystemBn ? "ব্যক্তিগত অনুভূতি ও স্মৃতি" : "Personal Reflections")}
+                              </div>
+                              <div className={styles.proposalActions}>
+                                <button
+                                  type="button"
+                                  className={styles.proposalBtn}
+                                  onClick={() => {
+                                    applyPayloadToApp(message.id, message.intent, message.payload);
+                                    navigateTo("mind");
+                                  }}
+                                >
+                                  <Compass size={14} />
+                                  <span>{isSystemBn ? "মাই ডায়েরি খুলুন" : "Open My Diary"}</span>
+                                </button>
+                              </div>
                             </div>
-                            <div className={styles.proposalTitle}>
-                              {message.payload.title || (isSystemBn ? "আজকের ডায়েরি" : "Today's Diary")}
-                            </div>
-                            <div className={styles.proposalDesc}>
-                              {message.payload.topicTitle || (isSystemBn ? "ব্যক্তিগত অনুভূতি ও স্মৃতি" : "Personal Reflections")}
-                            </div>
-                            <div className={styles.proposalActions}>
-                              <button
-                                type="button"
-                                className={styles.proposalBtn}
-                                onClick={() => {
-                                  applyPayloadToApp(message.id, message.intent, message.payload);
-                                  navigateTo("mind");
-                                }}
-                              >
-                                <Compass size={14} />
-                                <span>{isSystemBn ? "মাই ডায়েরি খুলুন" : "Open My Diary"}</span>
-                              </button>
-                            </div>
-                          </div>
-                        )}
+                          )}
 
-                        {message.payload && message.intent === "NOTES_FILES" && (
-                          <div className={styles.proposalCard}>
-                            <div className={styles.proposalBadge}>
-                              <CheckCircle2 size={13} />
-                              <span>{isSystemBn ? "নোট সেভ হয়েছে" : "Saved to Notes"}</span>
+                          {message.payload && message.intent === "NOTES_FILES" && (
+                            <div className={styles.proposalCard}>
+                              <div className={styles.proposalBadge}>
+                                <CheckCircle2 size={13} />
+                                <span>{isSystemBn ? "নোট সেভ হয়েছে" : "Saved to Notes"}</span>
+                              </div>
+                              <div className={styles.proposalTitle}>
+                                {message.payload.title || "New Note"}
+                              </div>
+                              <div className={styles.proposalActions}>
+                                <button
+                                  type="button"
+                                  className={styles.proposalBtn}
+                                  onClick={() => {
+                                    applyPayloadToApp(message.id, message.intent, message.payload);
+                                    navigateTo("tasks");
+                                  }}
+                                >
+                                  <Compass size={14} />
+                                  <span>{isSystemBn ? "নোটস খুলুন" : "Open Notes"}</span>
+                                </button>
+                              </div>
                             </div>
-                            <div className={styles.proposalTitle}>
-                              {message.payload.title || "New Note"}
-                            </div>
-                            <div className={styles.proposalActions}>
-                              <button
-                                type="button"
-                                className={styles.proposalBtn}
-                                onClick={() => {
-                                  applyPayloadToApp(message.id, message.intent, message.payload);
-                                  navigateTo("tasks");
-                                }}
-                              >
-                                <Compass size={14} />
-                                <span>{isSystemBn ? "নোটস খুলুন" : "Open Notes"}</span>
-                              </button>
-                            </div>
-                          </div>
-                        )}
+                          )}
 
-                        {message.payload && message.intent === "FOCUS_SESSION" && (
-                          <div className={styles.proposalCard}>
-                            <div className={styles.proposalBadge}>
-                              <CheckCircle2 size={13} />
-                              <span>{isSystemBn ? "ফোকাস সেশন প্রস্তুত" : "Focus Session Ready"}</span>
+                          {message.payload && message.intent === "FOCUS_SESSION" && (
+                            <div className={styles.proposalCard}>
+                              <div className={styles.proposalBadge}>
+                                <CheckCircle2 size={13} />
+                                <span>{isSystemBn ? "ফোকাস সেশন প্রস্তুত" : "Focus Session Ready"}</span>
+                              </div>
+                              <div className={styles.proposalTitle}>
+                                {message.payload.durationMinutes || 25} min • {message.payload.goal || "Deep Work"}
+                              </div>
+                              <div className={styles.proposalActions}>
+                                <button
+                                  type="button"
+                                  className={styles.proposalPrimaryBtn}
+                                  onClick={() => {
+                                    const mins = message.payload.durationMinutes || 25;
+                                    const taskName = message.payload.goal || (isSystemBn ? "ডিপ ওয়ার্ক সেশন" : "Deep Work Session");
+                                    localStorage.setItem(
+                                      "focusforge_pending_focus_launch",
+                                      JSON.stringify({
+                                        taskName,
+                                        category: "Study",
+                                        durationMinutes: mins,
+                                        autoStart: true,
+                                        timestamp: Date.now()
+                                      })
+                                    );
+                                    navigateTo("focus");
+                                  }}
+                                >
+                                  <Compass size={14} />
+                                  <span>{isSystemBn ? "সেশন শুরু করুন" : "Start Focus"}</span>
+                                </button>
+                              </div>
                             </div>
-                            <div className={styles.proposalTitle}>
-                              {message.payload.durationMinutes || 25} min • {message.payload.goal || "Deep Work"}
-                            </div>
-                            <div className={styles.proposalActions}>
-                              <button
-                                type="button"
-                                className={styles.proposalPrimaryBtn}
-                                onClick={() => {
-                                  const mins = message.payload.durationMinutes || 25;
-                                  const taskName = message.payload.goal || (isSystemBn ? "ডিপ ওয়ার্ক সেশন" : "Deep Work Session");
-                                  localStorage.setItem(
-                                    "focusforge_pending_focus_launch",
-                                    JSON.stringify({
-                                      taskName,
-                                      category: "Study",
-                                      durationMinutes: mins,
-                                      autoStart: true,
-                                      timestamp: Date.now()
-                                    })
-                                  );
-                                  navigateTo("focus");
-                                }}
-                              >
-                                <Compass size={14} />
-                                <span>{isSystemBn ? "সেশন শুরু করুন" : "Start Focus"}</span>
-                              </button>
-                            </div>
-                          </div>
-                        )}
+                          )}
 
-                        {(message.intent === "REQUIRE_LOGIN" || message.payload?.requireLogin) && (
-                          <div className={styles.proposalCard}>
-                            <div className={styles.proposalTitle}>
-                              {isSystemBn ? "লগইন প্রয়োজন" : "Login Required"}
+                          {(message.intent === "REQUIRE_LOGIN" || message.payload?.requireLogin) && (
+                            <div className={styles.proposalCard}>
+                              <div className={styles.proposalTitle}>
+                                {isSystemBn ? "লগইন প্রয়োজন" : "Login Required"}
+                              </div>
+                              <div className={styles.proposalDesc}>
+                                {isSystemBn
+                                  ? "লগইন করলে AI জেগে উঠবে এবং আনলিমিটেড ব্যবহার ও ক্লাউড সেভ সুবিধা পাবেন।"
+                                  : "Log in to wake up AI and enjoy full conversations and cloud sync."}
+                              </div>
+                              <div className={styles.proposalActions}>
+                                <button
+                                  type="button"
+                                  className={styles.proposalPrimaryBtn}
+                                  onClick={() => openAuth("initial")}
+                                >
+                                  <LogIn size={14} />
+                                  <span>{isSystemBn ? "লগইন করুন" : "Log In"}</span>
+                                </button>
+                              </div>
                             </div>
-                            <div className={styles.proposalDesc}>
-                              {isSystemBn
-                                ? "লগইন করলে AI জেগে উঠবে এবং আনলিমিটেড ব্যবহার ও ক্লাউড সেভ সুবিধা পাবেন।"
-                                : "Log in to wake up AI and enjoy full conversations and cloud sync."}
-                            </div>
-                            <div className={styles.proposalActions}>
-                              <button
-                                type="button"
-                                className={styles.proposalPrimaryBtn}
-                                onClick={() => openAuth("initial")}
-                              >
-                                <LogIn size={14} />
-                                <span>{isSystemBn ? "লগইন করুন" : "Log In"}</span>
-                              </button>
-                            </div>
-                          </div>
-                        )}
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
               </div>
 
-              {/* BOTTOM INTERACTIVE ORB: Displays Thinking Reaction (hand on chin + thought cloud) or Typing (mini laptop + left speech bubble with live typewriter) */}
+              {/* BOTTOM INTERACTIVE ORB: Displays Thinking Reaction (hand on chin + thought cloud) or Typing (mini laptop + live typewriter) */}
               <div className={styles.bottomOrbStageWrapper}>
                 <div className={styles.bottomOrbInner}>
                   <AIOrbFace
@@ -859,7 +859,7 @@ export function AIAgentPage() {
         </div>
 
         {/* COMPOSER (Fixed at the bottom) */}
-        <div className={styles.composerWrapper}>
+        <div className={`${styles.composerWrapper} ${isKeyboardOpen ? styles.composerWrapperKeyboardOpen : ""}`}>
           <div className={styles.composerContainer}>
             {/* Token Exhaustion Alert */}
             {tokenStatus?.isExhausted && (
@@ -888,9 +888,65 @@ export function AIAgentPage() {
               </div>
             )}
 
-            {/* Main Input Box */}
-            <div className={styles.composerBox}>
-              <BorderBeam borderWidth={3.2} duration={13} borderRadius={20} beamLength={360} />
+            {/* Main Compact Pill Input Box (Gemini style single unified capsule pill) */}
+            <div
+              className={`${styles.composerPillBox} composer-pill-box`}
+              onClick={(e) => {
+                if ((e.target as HTMLElement).tagName !== "BUTTON" && !(e.target as HTMLElement).closest("button")) {
+                  textareaRef.current?.focus();
+                }
+              }}
+            >
+              {/* Left Companion Emoji / Mood Button */}
+              <div className={styles.moodMenuWrapper} ref={moodMenuRef}>
+                <button
+                  type="button"
+                  className={`${styles.pillMoodBtn} ${moodMenuOpen ? styles.pillMoodBtnActive : ""}`}
+                  onClick={() => setMoodMenuOpen((prev) => !prev)}
+                  aria-label="Companion mood"
+                  aria-haspopup="true"
+                  aria-expanded={moodMenuOpen}
+                  title={isSystemBn ? "কম্প্যানিয়ন মুড" : "Companion Mood"}
+                >
+                  <Smile size={18} strokeWidth={1.8} />
+                </button>
+
+                {moodMenuOpen && (
+                  <div className={styles.moodPopoverBottom} role="dialog" aria-label="Companion moods">
+                    <div className={styles.moodGrid}>
+                      <button
+                        type="button"
+                        className={`${styles.moodItem} ${mood === "idle" ? styles.moodItemActive : ""}`}
+                        onClick={() => {
+                          setManualMood(null);
+                          setMoodMenuOpen(false);
+                        }}
+                      >
+                        <span className={styles.moodLabel}>
+                          {isSystemBn ? "অটো" : "Auto"}
+                        </span>
+                      </button>
+                      {moodList.map((opt) => (
+                        <button
+                          key={opt.id}
+                          type="button"
+                          className={`${styles.moodItem} ${mood === opt.id ? styles.moodItemActive : ""}`}
+                          onClick={() => {
+                            setManualMood(opt.id);
+                            setMoodMenuOpen(false);
+                          }}
+                        >
+                          <span className={styles.moodLabel}>
+                            {isSystemBn ? opt.labelBn : opt.labelEn}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Center Input Textarea */}
               <textarea
                 ref={textareaRef}
                 value={input}
@@ -909,73 +965,124 @@ export function AIAgentPage() {
                 }}
                 placeholder="Ask about your tasks, routine or goals"
                 rows={1}
-                className={styles.textarea}
+                className={`${styles.pillTextarea} composer-pill-textarea`}
                 aria-label="Message FocusForge AI"
               />
 
-              {/* Tools row under the textarea */}
-              <div className={styles.toolsRow}>
-                {/* Model Selector (Fast / Deep clean text pill) */}
-                <div className={styles.modelSelectorContainer} role="radiogroup" aria-label="AI Model Selection">
+              {/* Right Controls: Model Switcher + Mic + Send/Stop */}
+              <div className={styles.pillControlsRight}>
+                {/* Model Selector Pill with choose menu */}
+                <div className={styles.modelMenuWrapper} ref={modelMenuRef}>
                   <button
                     type="button"
-                    role="radio"
-                    aria-checked={modelMode === "fast"}
-                    className={`${styles.modelOption} ${modelMode === "fast" ? styles.modelOptionActive : ""}`}
-                    onClick={() => setModelMode("fast")}
-                    title={isSystemBn ? "Fast মোড: ০.৪ সেকেন্ডে অতি দ্রুত উত্তর ও কম টোকেন খরচ" : "Fast Mode: Ultra-fast 0.4s response & low token usage"}
+                    className={`${styles.pillModelBtn} ${modelMenuOpen ? styles.pillModelBtnActive : ""}`}
+                    onClick={() => setModelMenuOpen((prev) => !prev)}
+                    aria-label="Select AI Model"
+                    aria-haspopup="true"
+                    aria-expanded={modelMenuOpen}
+                    title={
+                      modelMode === "fast"
+                        ? isSystemBn ? "মডেল নির্বাচন করুন (বর্তমান: Fast)" : "Select AI model (Current: Fast)"
+                        : isSystemBn ? "মডেল নির্বাচন করুন (বর্তমান: Deep)" : "Select AI model (Current: Deep)"
+                    }
                   >
-                    <span>Fast</span>
-                  </button>
-                  <button
-                    type="button"
-                    role="radio"
-                    aria-checked={modelMode === "deep"}
-                    className={`${styles.modelOption} ${modelMode === "deep" ? styles.modelOptionActive : ""}`}
-                    onClick={() => setModelMode("deep")}
-                    title={isSystemBn ? "Deep মোড: গভীর চিন্তা, বড় নোট ও দীর্ঘমেয়াদী প্ল্যান" : "Deep Mode: Deep reasoning, large note organization & strategic planning"}
-                  >
-                    <span>Deep</span>
-                  </button>
-                </div>
-
-                <div className={styles.toolsRight}>
-                  {/* Mic icon button */}
-                  <button
-                    type="button"
-                    className={`${styles.micButton} ${voiceOpen ? styles.micButtonActive : ""}`}
-                    onClick={voiceOpen ? stopVoice : startVoice}
-                    disabled={isThinking || tokenStatus?.isExhausted}
-                    aria-label={voiceOpen ? "Stop voice input" : "Start voice input"}
-                    title="Voice input"
-                  >
-                    <Mic size={18} strokeWidth={1.7} />
+                    <span>{modelMode === "fast" ? "Fast" : "Deep"}</span>
+                    <ChevronDown size={13} className={`${styles.modelChevron} ${modelMenuOpen ? styles.modelChevronOpen : ""}`} />
                   </button>
 
-                  {/* Send button */}
-                  {isThinking ? (
-                    <button
-                      type="button"
-                      className={styles.sendButton}
-                      onClick={() => stopGeneration(isSystemBn ? "bn" : "en")}
-                      aria-label="Stop generation"
-                      title="Stop"
-                    >
-                      <Square size={13} fill="currentColor" />
-                    </button>
-                  ) : (
-                    <button
-                      type="button"
-                      className={styles.sendButton}
-                      onClick={() => submit()}
-                      disabled={!input.trim()}
-                      aria-label="Send message"
-                      title="Send"
-                    >
-                      <ArrowUp size={18} strokeWidth={2.2} />
-                    </button>
+                  {modelMenuOpen && (
+                    <div className={styles.modelPopover} role="menu" aria-label="AI Model Selection">
+                      <div className={styles.modelPopoverHeader}>
+                        <span>{isSystemBn ? "এআই মডেল নির্বাচন" : "Select AI Model"}</span>
+                      </div>
+
+                      <button
+                        type="button"
+                        role="menuitem"
+                        className={`${styles.modelMenuItem} ${modelMode === "fast" ? styles.modelMenuItemActive : ""}`}
+                        onClick={() => {
+                          setModelMode("fast");
+                          setModelMenuOpen(false);
+                        }}
+                      >
+                        <div className={styles.modelMenuInfo}>
+                          <div className={styles.modelMenuTitleRow}>
+                            <span className={styles.modelMenuName}>Fast</span>
+                            <span className={styles.modelMenuBadge}>0.4s</span>
+                          </div>
+                          <span className={styles.modelMenuDesc}>
+                            {isSystemBn ? "দ্রুত প্রতিক্রিয়া ও সহজ কাজ" : "Quick response & general tasks"}
+                          </span>
+                        </div>
+                        {modelMode === "fast" && (
+                          <div className={styles.modelCheckIcon}>
+                            <Check size={14} />
+                          </div>
+                        )}
+                      </button>
+
+                      <button
+                        type="button"
+                        role="menuitem"
+                        className={`${styles.modelMenuItem} ${modelMode === "deep" ? styles.modelMenuItemActive : ""}`}
+                        onClick={() => {
+                          setModelMode("deep");
+                          setModelMenuOpen(false);
+                        }}
+                      >
+                        <div className={styles.modelMenuInfo}>
+                          <div className={styles.modelMenuTitleRow}>
+                            <span className={styles.modelMenuName}>Deep</span>
+                            <span className={styles.modelMenuBadgeDeep}>Planning</span>
+                          </div>
+                          <span className={styles.modelMenuDesc}>
+                            {isSystemBn ? "গভীর চিন্তা ও বিস্তারিত পরিকল্পনা" : "Deep reasoning & task planning"}
+                          </span>
+                        </div>
+                        {modelMode === "deep" && (
+                          <div className={styles.modelCheckIcon}>
+                            <Check size={14} />
+                          </div>
+                        )}
+                      </button>
+                    </div>
                   )}
                 </div>
+
+                {/* Mic Icon Button */}
+                <button
+                  type="button"
+                  className={`${styles.pillIconBtn} ${voiceOpen ? styles.pillIconBtnActive : ""}`}
+                  onClick={voiceOpen ? stopVoice : startVoice}
+                  disabled={isThinking || tokenStatus?.isExhausted}
+                  aria-label={voiceOpen ? "Stop voice input" : "Start voice input"}
+                  title="Voice input"
+                >
+                  <Mic size={18} strokeWidth={1.8} />
+                </button>
+
+                {/* Send / Stop Action Button */}
+                {isThinking ? (
+                  <button
+                    type="button"
+                    className={styles.pillSendBtn}
+                    onClick={() => stopGeneration(isSystemBn ? "bn" : "en")}
+                    aria-label="Stop generation"
+                    title="Stop"
+                  >
+                    <Square size={13} fill="currentColor" />
+                  </button>
+                ) : input.trim() ? (
+                  <button
+                    type="button"
+                    className={styles.pillSendBtn}
+                    onClick={() => submit()}
+                    aria-label="Send message"
+                    title="Send"
+                  >
+                    <ArrowUp size={18} strokeWidth={2.2} />
+                  </button>
+                ) : null}
               </div>
             </div>
 

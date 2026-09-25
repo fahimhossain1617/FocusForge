@@ -118,6 +118,7 @@ export function sendSupportNotificationToOwner(ticket: {
   appVersion: string;
   browserInfo?: string;
   isGuest: boolean;
+  attachments?: string[];
 }) {
   const supervisorTicketUrl = `${APP_URL}/supervisor?ticket=${ticket.ticketNumber}`;
   const html = `

@@ -13,7 +13,8 @@ import {
 import {
   loadStateFromIndexedDB,
   saveStateToIndexedDB,
-  safeSaveToLocalStorage
+  safeSaveToLocalStorage,
+  getUserStorageKey
 } from '../services/indexedDBStorage';
 import { supabase } from '../lib/supabaseClient';
 import { noteService } from '../services/noteService';
@@ -210,352 +211,336 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     stateRef.current = state;
   }, [state]);
 
-  // Load state: Cloud for logged-in users; instant local / guest state for 0ms first paint
-  useEffect(() => {
-    let isMounted = true;
+  // Track active user identity and request generation to prevent async request races
+  const activeUserIdRef = useRef<string | null>(null);
+  const requestGenRef = useRef<number>(0);
+  const cloudTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-    async function initStorage() {
-      try {
-        // 1. Instant Synchronous Cache Hydration (0ms first paint)
-        let cachedState: AppState | null = null;
-        let cachedThemeMode: "dark" | "light" | "system" | null = null;
-        if (typeof window !== 'undefined') {
-          try {
-            const rawTheme = localStorage.getItem('focusforge_theme');
-            if (rawTheme === 'dark' || rawTheme === 'light' || rawTheme === 'system') {
-              cachedThemeMode = rawTheme;
-            }
-            const syncLocal = localStorage.getItem(STORAGE_KEY);
-            if (syncLocal) {
-              cachedState = JSON.parse(syncLocal);
-            }
-          } catch { }
-        }
+  // Scoped user data loader
+  const loadUserData = useCallback(async (userId: string | null, generation: number) => {
+    try {
+      let cachedState: AppState | null = null;
+      let cachedThemeMode: "dark" | "light" | "system" | null = null;
 
-        // 2. Asynchronous IndexedDB check (handles media/large datasets)
-        if (!cachedState) {
-          try {
-            cachedState = await loadStateFromIndexedDB();
-          } catch { }
-        }
-
-        let sessionActivePage: string | null = null;
-        if (typeof window !== 'undefined') {
-          try {
-            sessionActivePage = sessionStorage.getItem('focusforge_active_page');
-          } catch { }
-        }
-        const initialActivePage = sessionActivePage || 'today';
-
-        // 3. Guest session storage check if no persistent user cache
-        let guestData: AppState | null = null;
-        if (!cachedState && typeof window !== 'undefined') {
-          try {
-            const sessionRaw = sessionStorage.getItem('focusforge_guest_temp_data');
-            if (sessionRaw) {
-              guestData = JSON.parse(sessionRaw);
-            }
-          } catch { }
-        }
-
-        // Instant First Paint on ALL devices (Mobile, Tablet, PC, Guest, Offline)
-        const initialData = cachedState || guestData || defaultState;
-        const resolvedThemeMode = cachedThemeMode || initialData.theme?.mode || defaultState.theme.mode;
-
-        if (isMounted) {
-          setState({
-            ...defaultState,
-            ...initialData,
-            activePage: initialActivePage,
-            notifPreferences: { ...defaultState.notifPreferences, ...(initialData.notifPreferences || {}) },
-            calendarPreferences: { ...defaultState.calendarPreferences, ...(initialData.calendarPreferences || {}) },
-            theme: { ...defaultState.theme, ...(initialData.theme || {}), mode: resolvedThemeMode }
-          });
-          setIsLoaded(true);
-        }
-
-        // If offline, do not attempt remote backend calls
-        if (typeof navigator !== 'undefined' && !navigator.onLine) {
-          return;
-        }
-
-        // 4. Background cloud sync for authenticated users (non-blocking)
-        const sessionPromise = supabase.auth.getSession();
-        const sessionTimeout = new Promise<{ data: { session: null } }>((resolve) =>
-          setTimeout(() => resolve({ data: { session: null } }), 2500)
-        );
-        const { data: { session } } = await Promise.race([sessionPromise, sessionTimeout]);
-
-        if (session?.user && isMounted) {
-          const fetchPromise = Promise.allSettled([
-            supabase.from('user_cloud_state').select('state').eq('id', session.user.id).maybeSingle(),
-            noteService.fetchNotes(session.user.id),
-            mindService.fetchMindItems(session.user.id),
-            diaryDbService.fetchDiaryTopics(session.user.id),
-            focusDbService.fetchFocusSessions(session.user.id),
-            learningDbService.fetchLearningData(session.user.id),
-            fetchTasksFromBackend(),
-            fetchRoutineTemplatesFromBackend()
-          ]);
-          const fetchTimeout = new Promise<never>((_, reject) =>
-            setTimeout(() => reject(new Error('Cloud sync timeout')), 4000)
-          );
-
-          const results = await Promise.race([fetchPromise, fetchTimeout]);
-          const [
-            cloudStateResult,
-            notesResult,
-            mindResult,
-            diaryResult,
-            focusResult,
-            learningResult,
-            tasksResult,
-            templatesResult
-          ] = results;
-
-          let loadedData: AppState = cachedState ? { ...cachedState } : { ...defaultState };
-
-          // 1. User Cloud State
-          if (cloudStateResult.status === 'fulfilled') {
-            const { data: cloudData, error } = cloudStateResult.value;
-            if (!error && cloudData?.state) {
-              loadedData = { ...loadedData, ...(cloudData.state as AppState) };
-            } else if (!cachedState) {
-              try {
-                await supabase.from('user_cloud_state').upsert({
-                  id: session.user.id,
-                  state: defaultState,
-                  updated_at: new Date().toISOString()
-                });
-              } catch { }
-            }
+      if (typeof window !== 'undefined') {
+        try {
+          const rawTheme = localStorage.getItem('focusforge_theme');
+          if (rawTheme === 'dark' || rawTheme === 'light' || rawTheme === 'system') {
+            cachedThemeMode = rawTheme;
           }
-
-          // 2. Structured Notes
-          if (notesResult.status === 'fulfilled' && notesResult.value && notesResult.value.length > 0) {
-            loadedData.notes = notesResult.value;
+          const storageKey = getUserStorageKey(userId);
+          const syncLocal = localStorage.getItem(storageKey);
+          if (syncLocal) {
+            cachedState = JSON.parse(syncLocal);
           }
-
-          // 3. Structured Mind Items
-          if (mindResult.status === 'fulfilled' && mindResult.value && mindResult.value.length > 0) {
-            loadedData.mindItems = mindResult.value;
-          }
-
-          // 4. Diary Topics
-          if (diaryResult.status === 'fulfilled' && diaryResult.value && diaryResult.value.length > 0) {
-            loadedData.diaryTopics = diaryResult.value;
-          }
-
-          // 5. Focus Sessions
-          if (focusResult.status === 'fulfilled' && focusResult.value && focusResult.value.length > 0) {
-            loadedData.focusSessions = focusResult.value;
-          }
-
-          // 6. Learning Hub Folders & Logs
-          if (learningResult.status === 'fulfilled' && learningResult.value) {
-            if (learningResult.value.folders && learningResult.value.folders.length > 0) {
-              loadedData.learningFolders = learningResult.value.folders;
-            }
-            if (learningResult.value.logs && learningResult.value.logs.length > 0) {
-              loadedData.learningLogs = learningResult.value.logs;
-            }
-          }
-
-          // 7. Structured Tasks
-          if (tasksResult.status === 'fulfilled' && tasksResult.value && tasksResult.value.length > 0) {
-            const dbTasks = tasksResult.value;
-            const existingIds = new Set(dbTasks.map((t: Task) => t.id));
-            const localOnlyTasks = (loadedData.tasks || []).filter((t: any) => !existingIds.has(t.id));
-            loadedData.tasks = [...dbTasks, ...localOnlyTasks];
-          }
-
-          // 8. Routine Templates
-          if (templatesResult.status === 'fulfilled' && templatesResult.value && templatesResult.value.length > 0) {
-            loadedData.routineTemplates = templatesResult.value;
-          }
-
-          if (isMounted) {
-            const parsed = loadedData;
-            if (parsed.tasks) {
-              const seenIds = new Set<number>();
-              parsed.tasks = parsed.tasks.map((t: any, index: number) => {
-                let taskId = t.id ? Number(t.id) : (Date.now() + index);
-                while (seenIds.has(taskId)) {
-                  taskId = taskId + 1 + Math.floor(Math.random() * 10000);
-                }
-                seenIds.add(taskId);
-                return {
-                  ...t,
-                  id: taskId,
-                  status: t.status === 'pending' ? 'not_started' : t.status,
-                  category: t.category || '',
-                  notes: t.notes || '',
-                  tier: t.tier || (t.priority === 'high' || t.priority === 'urgent' ? 'now' : t.priority === 'medium' ? 'next' : 'later'),
-                  estMinutes: t.estMinutes || (t.estHours ? t.estHours * 60 : 60),
-                };
-              });
-            }
-            if (parsed.notes) {
-              parsed.notes = parsed.notes.map((n: any) => {
-                if (n.content !== undefined) {
-                  const migratedBlocks = [{ id: Math.random().toString(36).substr(2, 9), type: 'paragraph', content: n.content }];
-                  const { content, ...rest } = n;
-                  return { ...rest, blocks: migratedBlocks };
-                }
-                return n;
-              });
-            }
-
-            setState((prev) => ({
-              ...defaultState,
-              ...parsed,
-              activePage: prev.activePage || initialActivePage,
-              notifPreferences: { ...defaultState.notifPreferences, ...(parsed.notifPreferences || {}) },
-              calendarPreferences: { ...defaultState.calendarPreferences, ...(parsed.calendarPreferences || {}) },
-              theme: { ...defaultState.theme, ...parsed.theme }
-            }));
-
-            // Cache freshly fetched data to IndexedDB and LocalStorage
-            saveStateToIndexedDB(parsed);
-            safeSaveToLocalStorage(STORAGE_KEY, parsed);
-          }
-        }
-      } catch (e) {
-        console.warn('State load warning:', e);
-      } finally {
-        if (isMounted) setIsLoaded(true);
+        } catch {}
       }
-    }
 
-    initStorage();
-    return () => { isMounted = false; };
+      // IndexedDB user-scoped load
+      if (!cachedState) {
+        try {
+          cachedState = await loadStateFromIndexedDB(userId);
+        } catch {}
+      }
+
+      let sessionActivePage: string | null = null;
+      if (typeof window !== 'undefined') {
+        try {
+          sessionActivePage = sessionStorage.getItem('focusforge_active_page');
+        } catch {}
+      }
+      const initialActivePage = sessionActivePage || 'today';
+
+      // Guest session check
+      let guestData: AppState | null = null;
+      if (!userId && !cachedState && typeof window !== 'undefined') {
+        try {
+          const sessionRaw = sessionStorage.getItem('focusforge_guest_temp_data');
+          if (sessionRaw) {
+            guestData = JSON.parse(sessionRaw);
+          }
+        } catch {}
+      }
+
+      if (requestGenRef.current !== generation) return;
+
+      const initialData = cachedState || guestData || defaultState;
+      const resolvedThemeMode = cachedThemeMode || initialData.theme?.mode || defaultState.theme.mode;
+
+      setState({
+        ...defaultState,
+        ...initialData,
+        activePage: initialActivePage,
+        notifPreferences: { ...defaultState.notifPreferences, ...(initialData.notifPreferences || {}) },
+        calendarPreferences: { ...defaultState.calendarPreferences, ...(initialData.calendarPreferences || {}) },
+        theme: { ...defaultState.theme, ...(initialData.theme || {}), mode: resolvedThemeMode }
+      });
+      setIsLoaded(true);
+
+      // If offline or no authenticated user, stop here
+      if (!userId || (typeof navigator !== 'undefined' && !navigator.onLine)) {
+        return;
+      }
+
+      // Background cloud sync for this specific user
+      const fetchPromise = Promise.allSettled([
+        supabase.from('user_cloud_state').select('state').eq('id', userId).maybeSingle(),
+        noteService.fetchNotes(userId),
+        mindService.fetchMindItems(userId),
+        diaryDbService.fetchDiaryTopics(userId),
+        focusDbService.fetchFocusSessions(userId),
+        learningDbService.fetchLearningData(userId),
+        fetchTasksFromBackend(),
+        fetchRoutineTemplatesFromBackend()
+      ]);
+
+      const fetchTimeout = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('Cloud sync timeout')), 4000)
+      );
+
+      const results = await Promise.race([fetchPromise, fetchTimeout]);
+
+      // Check request generation before applying response
+      if (requestGenRef.current !== generation || activeUserIdRef.current !== userId) {
+        return;
+      }
+
+      const [
+        cloudStateResult,
+        notesResult,
+        mindResult,
+        diaryResult,
+        focusResult,
+        learningResult,
+        tasksResult,
+        templatesResult
+      ] = results;
+
+      let loadedData: AppState = cachedState ? { ...cachedState } : { ...defaultState };
+
+      // 1. User Cloud State
+      if (cloudStateResult.status === 'fulfilled') {
+        const { data: cloudData, error } = cloudStateResult.value;
+        if (!error && cloudData?.state) {
+          loadedData = { ...loadedData, ...(cloudData.state as AppState) };
+        } else if (!cachedState) {
+          try {
+            await supabase.from('user_cloud_state').upsert({
+              id: userId,
+              state: defaultState,
+              updated_at: new Date().toISOString()
+            });
+          } catch {}
+        }
+      }
+
+      // 2. Structured Notes
+      if (notesResult.status === 'fulfilled' && notesResult.value && notesResult.value.length > 0) {
+        loadedData.notes = notesResult.value;
+      }
+
+      // 3. Structured Mind Items
+      if (mindResult.status === 'fulfilled' && mindResult.value && mindResult.value.length > 0) {
+        loadedData.mindItems = mindResult.value;
+      }
+
+      // 4. Diary Topics
+      if (diaryResult.status === 'fulfilled' && diaryResult.value && diaryResult.value.length > 0) {
+        loadedData.diaryTopics = diaryResult.value;
+      }
+
+      // 5. Focus Sessions
+      if (focusResult.status === 'fulfilled' && focusResult.value && focusResult.value.length > 0) {
+        loadedData.focusSessions = focusResult.value;
+      }
+
+      // 6. Learning Hub Folders & Logs
+      if (learningResult.status === 'fulfilled' && learningResult.value) {
+        if (learningResult.value.folders && learningResult.value.folders.length > 0) {
+          loadedData.learningFolders = learningResult.value.folders;
+        }
+        if (learningResult.value.logs && learningResult.value.logs.length > 0) {
+          loadedData.learningLogs = learningResult.value.logs;
+        }
+      }
+
+      // 7. Structured Tasks
+      if (tasksResult.status === 'fulfilled' && tasksResult.value && tasksResult.value.length > 0) {
+        const dbTasks = tasksResult.value;
+        const existingIds = new Set(dbTasks.map((t: Task) => t.id));
+        const localOnlyTasks = (loadedData.tasks || []).filter((t: any) => !existingIds.has(t.id));
+        loadedData.tasks = [...dbTasks, ...localOnlyTasks];
+      }
+
+      // 8. Routine Templates
+      if (templatesResult.status === 'fulfilled' && templatesResult.value && templatesResult.value.length > 0) {
+        loadedData.routineTemplates = templatesResult.value;
+      }
+
+      if (requestGenRef.current === generation && activeUserIdRef.current === userId) {
+        const parsed = loadedData;
+        if (parsed.tasks) {
+          const seenIds = new Set<number>();
+          parsed.tasks = parsed.tasks.map((t: any, index: number) => {
+            let taskId = t.id ? Number(t.id) : (Date.now() + index);
+            while (seenIds.has(taskId)) {
+              taskId = taskId + 1 + Math.floor(Math.random() * 10000);
+            }
+            seenIds.add(taskId);
+            return {
+              ...t,
+              id: taskId,
+              status: t.status === 'pending' ? 'not_started' : t.status,
+              category: t.category || '',
+              notes: t.notes || '',
+              tier: t.tier || (t.priority === 'high' || t.priority === 'urgent' ? 'now' : t.priority === 'medium' ? 'next' : 'later'),
+              estMinutes: t.estMinutes || (t.estHours ? t.estHours * 60 : 60),
+            };
+          });
+        }
+        if (parsed.notes) {
+          parsed.notes = parsed.notes.map((n: any) => {
+            if (n.content !== undefined) {
+              const migratedBlocks = [{ id: Math.random().toString(36).substr(2, 9), type: 'paragraph', content: n.content }];
+              const { content, ...rest } = n;
+              return { ...rest, blocks: migratedBlocks };
+            }
+            return n;
+          });
+        }
+
+        setState((prev) => ({
+          ...defaultState,
+          ...parsed,
+          activePage: prev.activePage || initialActivePage,
+          notifPreferences: { ...defaultState.notifPreferences, ...(parsed.notifPreferences || {}) },
+          calendarPreferences: { ...defaultState.calendarPreferences, ...(parsed.calendarPreferences || {}) },
+          theme: { ...defaultState.theme, ...parsed.theme }
+        }));
+
+        saveStateToIndexedDB(parsed, userId);
+        safeSaveToLocalStorage(getUserStorageKey(userId), parsed);
+      }
+    } catch (e) {
+      console.warn('State load warning:', e);
+    } finally {
+      setIsLoaded(true);
+    }
   }, []);
+
+  // Initial mount load
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      const currentUserId = session?.user?.id || null;
+      activeUserIdRef.current = currentUserId;
+      requestGenRef.current += 1;
+      loadUserData(currentUserId, requestGenRef.current);
+    }).catch(() => {
+      activeUserIdRef.current = null;
+      requestGenRef.current += 1;
+      loadUserData(null, requestGenRef.current);
+    });
+  }, [loadUserData]);
 
   // Save state: Cloud + local persistence for logged-in users; temporary sessionStorage ONLY for guests
   useEffect(() => {
     if (!isLoaded) return;
 
-    let cloudTimer: ReturnType<typeof setTimeout> | null = null;
+    const currentUserId = activeUserIdRef.current;
     const isCurrentlyOnline = typeof navigator === 'undefined' || navigator.onLine;
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
-        // Authenticated: save to IndexedDB & localStorage cache immediately
-        saveStateToIndexedDB(state);
-        safeSaveToLocalStorage(STORAGE_KEY, state);
+    if (currentUserId) {
+      // Authenticated: save to user-scoped IndexedDB & localStorage cache immediately
+      saveStateToIndexedDB(state, currentUserId);
+      safeSaveToLocalStorage(getUserStorageKey(currentUserId), state);
 
-        if (!isCurrentlyOnline) return;
+      if (!isCurrentlyOnline) return;
 
-        // Debounced cloud sync to Supabase
-        cloudTimer = setTimeout(async () => {
-          try {
+      // Clear any pending debounced timer
+      if (cloudTimerRef.current) {
+        clearTimeout(cloudTimerRef.current);
+      }
+
+      // Debounced cloud sync to Supabase verifying identity
+      cloudTimerRef.current = setTimeout(async () => {
+        try {
+          if (activeUserIdRef.current === currentUserId) {
             await supabase.from('user_cloud_state').upsert({
-              id: session.user.id,
+              id: currentUserId,
               state: state,
               updated_at: new Date().toISOString()
             });
-          } catch (cloudErr) {
-            console.warn("[AppContext] Cloud sync error:", cloudErr);
           }
-        }, 2500);
-      } else {
-        // Guest mode: ONLY keep in sessionStorage as temporary in-memory data
-        if (typeof window !== 'undefined') {
-          try {
-            sessionStorage.setItem('focusforge_guest_temp_data', JSON.stringify(state));
-          } catch (err) {
-            console.warn("Guest sessionStorage warning:", err);
-          }
+        } catch (cloudErr) {
+          console.warn("[AppContext] Cloud sync error:", cloudErr);
+        }
+      }, 2500);
+    } else {
+      // Guest mode: ONLY keep in sessionStorage as temporary data
+      if (typeof window !== 'undefined') {
+        try {
+          sessionStorage.setItem('focusforge_guest_temp_data', JSON.stringify(state));
+        } catch (err) {
+          console.warn("Guest sessionStorage warning:", err);
         }
       }
-    }).catch(() => {
-      saveStateToIndexedDB(state);
-      safeSaveToLocalStorage(STORAGE_KEY, state);
-    });
+    }
 
     return () => {
-      if (cloudTimer) clearTimeout(cloudTimer);
+      if (cloudTimerRef.current) clearTimeout(cloudTimerRef.current);
     };
   }, [state, isLoaded]);
 
-  // Synchronize state when user signs in or out
+  // Synchronize state on Auth State changes (Login, Logout, Account Switch)
   useEffect(() => {
     const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === "SIGNED_IN" && session?.user) {
-        try {
-          if (typeof window !== "undefined") {
-            sessionStorage.removeItem('focusforge_guest_temp_data');
-          }
-          const { data: cloudData } = await supabase
-            .from('user_cloud_state')
-            .select('state')
-            .eq('id', session.user.id)
-            .maybeSingle();
+      const newUserId = session?.user?.id || null;
 
-          if (cloudData?.state) {
-            setState(prev => ({
-              ...defaultState,
-              ...(cloudData.state as AppState),
-              theme: { ...defaultState.theme, ...((cloudData.state as AppState).theme || {}) }
-            }));
-          } else {
-            setState({ ...defaultState });
-          }
-
-          const dbNotes = await noteService.fetchNotes(session.user.id);
-          if (dbNotes && dbNotes.length > 0) {
-            setState(prev => ({ ...prev, notes: dbNotes }));
-          }
-
-          try {
-            const dbLearning = await learningDbService.fetchLearningData(session.user.id);
-            if (dbLearning) {
-              setState(prev => ({
-                ...prev,
-                learningFolders: dbLearning.folders || prev.learningFolders,
-                learningLogs: dbLearning.logs || prev.learningLogs
-              }));
-            }
-          } catch (e) { }
-        } catch (err) {
-          console.warn("[AppContext] Error on SIGNED_IN load:", err);
+      if ((event === "SIGNED_IN" || event === "INITIAL_SESSION") && newUserId) {
+        if (newUserId !== activeUserIdRef.current) {
+          if (cloudTimerRef.current) clearTimeout(cloudTimerRef.current);
+          activeUserIdRef.current = newUserId;
+          requestGenRef.current += 1;
+          loadUserData(newUserId, requestGenRef.current);
         }
       } else if (event === "SIGNED_OUT") {
-        if (typeof window !== "undefined") {
-          sessionStorage.removeItem('focusforge_guest_temp_data');
-        }
+        if (cloudTimerRef.current) clearTimeout(cloudTimerRef.current);
+        activeUserIdRef.current = null;
+        requestGenRef.current += 1;
         setState({ ...defaultState });
+        loadUserData(null, requestGenRef.current);
       }
     });
 
     return () => {
       authListener?.subscription.unsubscribe();
     };
-  }, []);
+  }, [loadUserData]);
 
-  // Realtime subscription for Notes: keeps tabs & devices in sync
+  // Realtime subscription for Notes: scoped to active user
   useEffect(() => {
     let unsubscribe: (() => void) | null = null;
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
-        unsubscribe = noteService.subscribeToNotes(session.user.id, async () => {
-          try {
-            const freshNotes = await noteService.fetchNotes(session.user.id);
-            if (freshNotes && freshNotes.length > 0) {
+    if (activeUserIdRef.current) {
+      const userId = activeUserIdRef.current;
+      unsubscribe = noteService.subscribeToNotes(userId, async () => {
+        try {
+          if (activeUserIdRef.current === userId) {
+            const freshNotes = await noteService.fetchNotes(userId);
+            if (freshNotes && freshNotes.length > 0 && activeUserIdRef.current === userId) {
               setState((prev) => ({ ...prev, notes: freshNotes }));
             }
-          } catch (err) {
-            console.warn("[AppContext] Realtime notes refresh error:", err);
           }
-        });
-      }
-    });
+        } catch (err) {
+          console.warn("[AppContext] Realtime notes refresh error:", err);
+        }
+      });
+    }
 
     return () => {
       if (unsubscribe) unsubscribe();
     };
-  }, []);
+  }, [state.activePage]);
 
   const updateState = useCallback((updates: Partial<AppState>) => {
     if (updates.activePage && typeof window !== 'undefined') {

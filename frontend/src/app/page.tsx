@@ -230,10 +230,10 @@ export default function Home() {
           state.activePage === 'ai-agent'
             ? 'flex-1 flex flex-col p-0 min-h-0 max-w-none w-full h-full overflow-hidden'
             : state.activePage === 'planner'
-            ? 'flex-1 flex flex-col p-0 max-w-none pb-24 md:pb-0'
+            ? 'flex-1 flex flex-col p-0 max-w-none pb-[calc(5rem+env(safe-area-inset-bottom,16px))] md:pb-0'
             : state.activePage === 'today'
-            ? 'flex-1 p-3.5 sm:p-5 md:p-6 lg:p-8 max-w-[1700px] mx-auto pb-24 md:pb-8'
-            : 'flex-1 p-3.5 sm:p-5 md:p-8 lg:p-10 max-w-7xl mx-auto pb-24 md:pb-10'
+            ? 'flex-1 px-3.5 sm:px-6 md:px-8 pt-4 sm:pt-6 md:pt-8 pb-[calc(5.5rem+env(safe-area-inset-bottom,16px))] md:pb-8 max-w-[1600px] mx-auto'
+            : 'flex-1 px-3.5 sm:px-6 md:px-8 pt-4 sm:pt-6 md:pt-8 pb-[calc(5.5rem+env(safe-area-inset-bottom,16px))] md:pb-10 max-w-7xl mx-auto'
         }`}>
           <Suspense fallback={<PageSkeleton page={state.activePage} />}>
             {isPageLoading ? (

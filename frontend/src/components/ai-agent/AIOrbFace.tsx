@@ -6,7 +6,7 @@ import styles from "./ai-orb-face.module.css";
 
 export interface AIOrbFaceProps {
   mood: OrbMood;
-  thoughtText?: string;
+  thoughtText?: string | null;
   speechSide?: "top" | "left" | "right";
   isThinking?: boolean;
   isGiggling?: boolean;
@@ -33,7 +33,6 @@ export function AIOrbFace({
   onTap,
   compact = false,
   showStatusBadge = false,
-  isTypingStream = false,
 }: AIOrbFaceProps) {
   const stageRef = useRef<HTMLDivElement>(null);
   const headGroupRef = useRef<SVGGElement>(null);
@@ -61,15 +60,16 @@ export function AIOrbFace({
 
   const [isBlinking, setIsBlinking] = useState(false);
 
-  // Head tilt angle based on emotion (Matching Reference Images)
+  // Head tilt angle based on emotion
   const headAngle = useMemo(() => {
     if (mood === "curious") return 6.5;
     if (mood === "thinking") return 5.5;
-    if (mood === "sad") return -4.5;
+    if (mood === "sad" || mood === "error") return -4.5;
     if (mood === "sulky") return -3.0;
-    if (mood === "playful" || isGiggling) return 4.5;
+    if (mood === "playful" || mood === "excited" || mood === "celebrating" || isGiggling) return 4.5;
     if (mood === "proud") return -4.0;
-    if (mood === "caring") return 3.5;
+    if (mood === "caring" || mood === "supportive" || mood === "concerned") return 3.5;
+    if (mood === "focused") return 1.5;
     if (isEnjoying) return -2.5;
     return 0;
   }, [mood, isGiggling, isEnjoying]);
@@ -91,7 +91,7 @@ export function AIOrbFace({
     return () => clearTimeout(blinkTimer);
   }, []);
 
-  // 2. High-Performance Real-Time LERP Animation Loop (60Hz / 120Hz Silk-Smooth Tracking)
+  // 2. High-Performance Real-Time LERP Animation Loop
   useEffect(() => {
     let active = true;
 
@@ -119,6 +119,8 @@ export function AIOrbFace({
           allowCursorTracking = false;
           break;
         case "sleepy":
+        case "offline":
+        case "usage_limit":
           moodBiasX = 0;
           moodBiasY = 0.38; // drooped down in sleep
           allowCursorTracking = false;
@@ -129,8 +131,15 @@ export function AIOrbFace({
           allowCursorTracking = false;
           break;
         case "proud":
+        case "celebrating":
           moodBiasX = 0.32;
-          moodBiasY = -0.36; // cheerful high tilt towards stars
+          moodBiasY = -0.36; // cheerful high tilt
+          allowCursorTracking = true;
+          break;
+        case "excited":
+        case "playful":
+          moodBiasX = 0.22;
+          moodBiasY = -0.28;
           allowCursorTracking = true;
           break;
         case "curious":
@@ -139,13 +148,22 @@ export function AIOrbFace({
           allowCursorTracking = true;
           break;
         case "sad":
+        case "error":
           moodBiasX = 0;
           moodBiasY = 0.32; // apologetic droop
           allowCursorTracking = true;
           break;
         case "caring":
+        case "supportive":
+        case "concerned":
           moodBiasX = 0;
           moodBiasY = 0.1; // gentle centered gaze
+          allowCursorTracking = true;
+          break;
+        case "focused":
+        case "attentive":
+          moodBiasX = 0;
+          moodBiasY = -0.05;
           allowCursorTracking = true;
           break;
         default:
@@ -160,7 +178,6 @@ export function AIOrbFace({
       let targetY = moodBiasY;
 
       if (allowCursorTracking && targetRef.current.active) {
-        // Blend real-time mouse position with subtle mood personality bias
         targetX = targetRef.current.x * 0.92 + moodBiasX * 0.15;
         targetY = targetRef.current.y * 0.92 + moodBiasY * 0.15;
         const mag = Math.hypot(targetX, targetY);
@@ -170,7 +187,7 @@ export function AIOrbFace({
         }
       }
 
-      // Multi-rate organic LERP (Eye saccades fastest, facial features medium, 3D head with inertial weight)
+      // Multi-rate organic LERP
       const headSpeed = 0.088;
       const faceSpeed = 0.115;
       const pupilSpeed = 0.165;
@@ -178,19 +195,19 @@ export function AIOrbFace({
       const head = currentHeadRef.current;
       head.x = lerp(head.x, targetX * 13.5, headSpeed);
       head.y = lerp(head.y, targetY * 9.8, headSpeed);
-      head.rotY = lerp(head.rotY, targetX * 15.5, headSpeed);
       head.rotX = lerp(head.rotX, -targetY * 11.5, headSpeed);
-      head.rotZ = lerp(head.rotZ, targetX * 4.0, headSpeed);
+      head.rotY = lerp(head.rotY, targetX * 15.5, headSpeed);
+      head.rotZ = lerp(head.rotZ, targetX * 3.5, headSpeed);
 
       const face = currentFaceRef.current;
-      face.x = lerp(face.x, targetX * 7.0, faceSpeed);
-      face.y = lerp(face.y, targetY * 5.4, faceSpeed);
+      face.x = lerp(face.x, targetX * 19.5, faceSpeed);
+      face.y = lerp(face.y, targetY * 14.5, faceSpeed);
 
       const pupil = currentPupilRef.current;
-      pupil.x = lerp(pupil.x, targetX * 5.5, pupilSpeed);
-      pupil.y = lerp(pupil.y, targetY * 4.5, pupilSpeed);
+      pupil.x = lerp(pupil.x, targetX * 6.5, pupilSpeed);
+      pupil.y = lerp(pupil.y, targetY * 4.8, pupilSpeed);
 
-      // Direct Ref Updates for 60/120fps Zero-Lag Fluidity
+      // Direct DOM updates for maximum FPS
       if (stageRef.current) {
         stageRef.current.style.transform = `perspective(750px) rotateX(${head.rotX.toFixed(2)}deg) rotateY(${head.rotY.toFixed(2)}deg) translate3d(${head.x.toFixed(2)}px, ${head.y.toFixed(2)}px, 0px)`;
       }
@@ -205,7 +222,7 @@ export function AIOrbFace({
       if (specularRef.current) {
         specularRef.current.setAttribute(
           "transform",
-          `translate(${(face.x * 0.35).toFixed(2)}, ${(face.y * 0.35).toFixed(2)})`
+          `translate(${(head.x * 0.45).toFixed(2)}, ${(head.y * 0.45).toFixed(2)})`
         );
       }
 
@@ -270,38 +287,31 @@ export function AIOrbFace({
   // 3. Pointer Move, Touch, & Window Blur Listeners
   useEffect(() => {
     const handlePointerMove = (e: PointerEvent) => {
-      if (!stageRef.current) return;
-      const rect = stageRef.current.getBoundingClientRect();
-      const orbCenterX = rect.left + rect.width / 2;
-      const orbCenterY = rect.top + rect.height / 2;
+      const stage = stageRef.current;
+      if (!stage) return;
+      const rect = stage.getBoundingClientRect();
+      const centerX = rect.left + rect.width / 2;
+      const centerY = rect.top + rect.height / 2;
 
-      const dx = e.clientX - orbCenterX;
-      const dy = e.clientY - orbCenterY;
+      const dx = e.clientX - centerX;
+      const dy = e.clientY - centerY;
+      const dist = Math.hypot(dx, dy);
 
-      // Proportional normalization across screen sizes (-1 to +1)
-      const maxDistanceX = Math.max(window.innerWidth * 0.44, 260);
-      const maxDistanceY = Math.max(window.innerHeight * 0.44, 260);
-
-      const rawNormX = dx / maxDistanceX;
-      const rawNormY = dy / maxDistanceY;
-      const dist = Math.hypot(rawNormX, rawNormY);
-
-      if (dist > 0.002) {
-        // Smooth non-linear sinusoidal easing for organic responsiveness
-        const clampedDist = Math.min(1.0, dist);
-        const easedDist = Math.sin((clampedDist * Math.PI) / 2);
-        const scale = easedDist / dist;
+      // Interactive tracking boundary (within 700px radius)
+      if (dist < 700) {
+        const radius = Math.min(rect.width, rect.height) * 1.8;
+        const normX = Math.max(-1, Math.min(1, dx / radius));
+        const normY = Math.max(-1, Math.min(1, dy / radius));
         targetRef.current = {
-          x: rawNormX * scale,
-          y: rawNormY * scale,
+          x: normX,
+          y: normY,
           active: true,
         };
       } else {
-        targetRef.current = { x: 0, y: 0, active: true };
+        targetRef.current.active = false;
       }
     };
 
-    // When cursor leaves window or frame, smoothly re-center orb
     const handlePointerLeave = () => {
       targetRef.current = { x: 0, y: 0, active: false };
     };
@@ -310,28 +320,30 @@ export function AIOrbFace({
     window.addEventListener("pointerup", handlePointerLeave, { passive: true });
     document.addEventListener("mouseleave", handlePointerLeave);
     window.addEventListener("blur", handlePointerLeave);
-    window.addEventListener("mouseout", (e: MouseEvent) => {
-      if (!e.relatedTarget && !(e as unknown as { toElement?: Element }).toElement) {
+
+    const checkVisibility = () => {
+      if (document.hidden) {
         handlePointerLeave();
       }
-    });
+    };
+    document.addEventListener("visibilitychange", checkVisibility);
 
     return () => {
       window.removeEventListener("pointermove", handlePointerMove);
       window.removeEventListener("pointerup", handlePointerLeave);
       document.removeEventListener("mouseleave", handlePointerLeave);
       window.removeEventListener("blur", handlePointerLeave);
+      document.removeEventListener("visibilitychange", checkVisibility);
     };
   }, []);
 
-  // Determine active mood animation class
   const orbMotionClass = useMemo(() => {
     if (isGiggling) return styles.orbGiggling;
     if (isEnjoying) return styles.orbEnjoying;
-    if (mood === "playful") return styles.orbGiggling;
+    if (mood === "playful" || mood === "excited" || mood === "celebrating") return styles.orbGiggling;
     if (mood === "typing") return styles.orbTyping;
     if (mood === "thinking") return styles.orbThinking;
-    if (mood === "sleepy") return styles.orbSleepy;
+    if (mood === "sleepy" || mood === "offline" || mood === "usage_limit") return styles.orbSleepy;
     return styles.orbFloating;
   }, [isGiggling, isEnjoying, mood]);
 
@@ -340,90 +352,16 @@ export function AIOrbFace({
     onTap?.(isTouch ? "touch" : "mouse");
   };
 
+  const isThinkingActive = mood === "thinking" || isThinking;
+
   return (
     <div
       className={`${styles.orbContainer} ${speechSide === "left" ? styles.orbContainerSideLeft : ""} ${className}`.trim()}
       data-theme={isLight ? "light" : "dark"}
     >
-      {/* 1. TOP SPEECH BUBBLE (Centered above Orb with Downward Speech Tail) */}
-      {thoughtText && !compact && speechSide === "top" && (
-        <div className={styles.speechBubbleWrapper} aria-live="polite">
-          <div className={styles.speechBubble}>
-            <span className={styles.speechBubbleText}>
-              {thoughtText}
-              {isTypingStream && <span className={styles.typewriterCursor} />}
-            </span>
-
-            {/* Downward speech bubble tail pointing directly to the Orb */}
-            <svg
-              className={styles.speechTail}
-              viewBox="0 0 24 16"
-              width="24"
-              height="16"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-              aria-hidden="true"
-            >
-              <path
-                d="M 2 0 C 5 3, 9 9, 12 15 C 15 9, 19 3, 22 0 Z"
-                fill="var(--bubble-bg, rgba(10, 22, 50, 0.9))"
-              />
-              <path
-                d="M 2 0 C 5 3, 9 9, 12 15 C 15 9, 19 3, 22 0"
-                stroke="var(--bubble-border, rgba(59, 130, 246, 0.7))"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                fill="none"
-              />
-              <path
-                d="M 0 -2 L 24 -2 L 24 2 L 0 2 Z"
-                fill="var(--bubble-bg, rgba(10, 22, 50, 0.9))"
-              />
-            </svg>
-          </div>
-        </div>
-      )}
-
-      {/* 2. LEFT SPEECH BUBBLE (Beside Orb on the Left with Right-Pointing Tail) */}
-      {thoughtText && !compact && speechSide === "left" && (
-        <div className={styles.speechBubbleLeftWrapper} aria-live="polite">
-          <div className={styles.speechBubble}>
-            <span className={styles.speechBubbleText}>
-              {thoughtText}
-              {isTypingStream && <span className={styles.typewriterCursor} />}
-            </span>
-
-            {/* Right-pointing speech bubble tail towards the Orb */}
-            <svg
-              className={styles.speechTailRight}
-              viewBox="0 0 16 24"
-              width="16"
-              height="24"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-              aria-hidden="true"
-            >
-              <path
-                d="M 0 2 C 3 5, 9 9, 15 12 C 9 15, 3 19, 0 22 Z"
-                fill="var(--bubble-bg, rgba(10, 22, 50, 0.9))"
-              />
-              <path
-                d="M 0 2 C 3 5, 9 9, 15 12 C 9 15, 3 19, 0 22"
-                stroke="var(--bubble-border, rgba(59, 130, 246, 0.7))"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                fill="none"
-              />
-            </svg>
-          </div>
-        </div>
-      )}
-
-      {/* 3. THOUGHT CLOUD FOR THINKING (Matching Image 2 Reference) */}
-      {(mood === "thinking" || isThinking) && (
-        <div className={styles.thoughtCloudWrapper} aria-label="AI is thinking">
+      {/* 1. SINGLE AUTHORITATIVE THINKING STATUS BUBBLE (Strict single-source-of-truth) */}
+      {isThinkingActive ? (
+        <div className={styles.thoughtCloudWrapper} aria-label="AI is thinking" role="status">
           <div className={styles.thoughtCloud}>
             <span>{language === "bn" ? "AI ভাবছে" : "AI is thinking"}</span>
             <span className={styles.dotPulse1}>.</span>
@@ -433,16 +371,78 @@ export function AIOrbFace({
           <div className={styles.cloudTrail1} />
           <div className={styles.cloudTrail2} />
         </div>
+      ) : (
+        /* 2. COMPANION REACTION / STATUS SPEECH BUBBLE (Short, contextual, no neon glow) */
+        thoughtText && !compact && (
+          speechSide === "left" ? (
+            <div className={styles.speechBubbleLeftWrapper} aria-live="polite">
+              <div className={styles.speechBubble}>
+                <span className={styles.speechBubbleText}>{thoughtText}</span>
+                {/* Right-pointing speech bubble tail towards the Orb */}
+                <svg
+                  className={styles.speechTailRight}
+                  viewBox="0 0 16 24"
+                  width="16"
+                  height="24"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                  aria-hidden="true"
+                >
+                  <path
+                    d="M 0 2 C 3 5, 9 9, 15 12 C 9 15, 3 19, 0 22 Z"
+                    fill="var(--bubble-bg, rgba(11, 17, 34, 0.96))"
+                  />
+                  <path
+                    d="M 0 2 C 3 5, 9 9, 15 12 C 9 15, 3 19, 0 22"
+                    stroke="var(--bubble-border, rgba(44, 69, 119, 0.65))"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    fill="none"
+                  />
+                </svg>
+              </div>
+            </div>
+          ) : (
+            <div className={styles.speechBubbleWrapper} aria-live="polite">
+              <div className={styles.speechBubble}>
+                <span className={styles.speechBubbleText}>{thoughtText}</span>
+                {/* Downward speech bubble tail pointing directly to the Orb */}
+                <svg
+                  className={styles.speechTail}
+                  viewBox="0 0 24 16"
+                  width="24"
+                  height="16"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                  aria-hidden="true"
+                >
+                  <path
+                    d="M 2 0 C 5 3, 9 9, 12 15 C 15 9, 19 3, 22 0 Z"
+                    fill="var(--bubble-bg, rgba(11, 17, 34, 0.96))"
+                  />
+                  <path
+                    d="M 2 0 C 5 3, 9 9, 12 15 C 15 9, 19 3, 22 0"
+                    stroke="var(--bubble-border, rgba(44, 69, 119, 0.65))"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    fill="none"
+                  />
+                </svg>
+              </div>
+            </div>
+          )
+        )
       )}
 
-      {/* 4. THE 3D COBALT ORB STAGE WITH 3D PERSPECTIVE HEAD TILT */}
+      {/* 3. THE 3D ORB STAGE WITH PERSPECTIVE HEAD TILT */}
       <div className={`${styles.orbMotionWrapper} ${orbMotionClass}`}>
         <div
           ref={stageRef}
           className={styles.orbStage}
           onPointerDown={handlePointerDown}
           onClick={(e) => {
-            // If onPointerDown was bypassed, trigger fallback click
             if (e.nativeEvent.detail === 0) {
               onTap?.("mouse");
             }
@@ -467,7 +467,7 @@ export function AIOrbFace({
             xmlns="http://www.w3.org/2000/svg"
           >
             <defs>
-              {/* Ambient Ambient Shadow Glow */}
+              {/* Ambient Shadow Glow */}
               <radialGradient id="sphereAuraDark" cx="50%" cy="50%" r="50%">
                 <stop offset="0%" stopColor="#2563eb" stopOpacity="0.25" />
                 <stop offset="65%" stopColor="#1e3a8a" stopOpacity="0.08" />
@@ -475,12 +475,12 @@ export function AIOrbFace({
               </radialGradient>
 
               <radialGradient id="sphereAuraLight" cx="50%" cy="50%" r="50%">
-                <stop offset="0%" stopColor="#60a5fa" stopOpacity="0.25" />
-                <stop offset="70%" stopColor="#93c5fd" stopOpacity="0.08" />
+                <stop offset="0%" stopColor="#94a3b8" stopOpacity="0.18" />
+                <stop offset="70%" stopColor="#cbd5e1" stopOpacity="0.06" />
                 <stop offset="100%" stopColor="#ffffff" stopOpacity="0" />
               </radialGradient>
 
-              {/* Vibrant Cobalt 3D Sphere Body - Dark Mode (Reference Image 1 & 2) */}
+              {/* Vibrant Cobalt 3D Sphere Body - Dark Mode */}
               <radialGradient id="vibrantCobaltDark" cx="36%" cy="26%" r="74%">
                 <stop offset="0%" stopColor="#3b82f6" stopOpacity="1" />
                 <stop offset="38%" stopColor="#1d4ed8" stopOpacity="1" />
@@ -488,29 +488,43 @@ export function AIOrbFace({
                 <stop offset="100%" stopColor="#0f172a" stopOpacity="1" />
               </radialGradient>
 
-              {/* Silky Pearl Azure Sphere Body - Light Mode */}
+              {/* Silky Pearl Sphere Body - Light Mode (Clean neutral pearl with soft slate depth) */}
               <radialGradient id="vibrantCobaltLight" cx="36%" cy="26%" r="74%">
                 <stop offset="0%" stopColor="#ffffff" stopOpacity="1" />
-                <stop offset="45%" stopColor="#f1f7fe" stopOpacity="1" />
-                <stop offset="85%" stopColor="#dbeafe" stopOpacity="1" />
-                <stop offset="100%" stopColor="#bfdbfe" stopOpacity="1" />
+                <stop offset="40%" stopColor="#f8fafc" stopOpacity="1" />
+                <stop offset="82%" stopColor="#e2e8f0" stopOpacity="1" />
+                <stop offset="100%" stopColor="#cbd5e1" stopOpacity="1" />
               </radialGradient>
 
-              {/* Hand Gradient for Thinking Pose */}
-              <radialGradient id="cuteHandGrad" cx="35%" cy="30%" r="70%">
+              {/* Hand Gradient - Dark Mode */}
+              <radialGradient id="cuteHandGradDark" cx="35%" cy="30%" r="70%">
                 <stop offset="0%" stopColor="#38bdf8" />
                 <stop offset="65%" stopColor="#1d4ed8" />
                 <stop offset="100%" stopColor="#0f172a" />
               </radialGradient>
 
-              {/* Elegant Soft Top-Left Specular Shine */}
-              <linearGradient id="softSpecular" x1="0%" y1="0%" x2="100%" y2="100%">
+              {/* Hand Gradient - Light Mode (Neutral white pearl with subtle depth, no blue tint) */}
+              <radialGradient id="cuteHandGradLight" cx="35%" cy="30%" r="70%">
+                <stop offset="0%" stopColor="#ffffff" />
+                <stop offset="50%" stopColor="#f1f5f9" />
+                <stop offset="100%" stopColor="#cbd5e1" />
+              </radialGradient>
+
+              {/* Elegant Soft Top-Left Specular Shine - Dark Mode */}
+              <linearGradient id="softSpecularDark" x1="0%" y1="0%" x2="100%" y2="100%">
                 <stop offset="0%" stopColor="#ffffff" stopOpacity="0.85" />
                 <stop offset="45%" stopColor="#93c5fd" stopOpacity="0.28" />
                 <stop offset="100%" stopColor="#38bdf8" stopOpacity="0" />
               </linearGradient>
 
-              {/* Soft, Light Pastel Pink Cheek Blush (Low opacity, natural & cute) */}
+              {/* Elegant Soft Top-Left Specular Shine - Light Mode (Pure clean white shine) */}
+              <linearGradient id="softSpecularLight" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#ffffff" stopOpacity="0.95" />
+                <stop offset="45%" stopColor="#ffffff" stopOpacity="0.35" />
+                <stop offset="100%" stopColor="#ffffff" stopOpacity="0" />
+              </linearGradient>
+
+              {/* Soft, Light Pastel Pink Cheek Blush */}
               <radialGradient id="softPinkBlush" cx="50%" cy="50%" r="50%">
                 <stop offset="0%" stopColor="#ff3366" stopOpacity="0.48" />
                 <stop offset="60%" stopColor="#ff4d79" stopOpacity="0.18" />
@@ -538,10 +552,16 @@ export function AIOrbFace({
                 <stop offset="100%" stopColor="#020617" />
               </radialGradient>
 
-              {/* Miniature Laptop Glow for typing */}
-              <linearGradient id="cuteLaptopLid" x1="0%" y1="0%" x2="100%" y2="100%">
+              {/* Miniature Laptop Lid - Dark Mode */}
+              <linearGradient id="cuteLaptopLidDark" x1="0%" y1="0%" x2="100%" y2="100%">
                 <stop offset="0%" stopColor="#0284c7" stopOpacity="0.9" />
                 <stop offset="100%" stopColor="#0f172a" stopOpacity="0.95" />
+              </linearGradient>
+
+              {/* Miniature Laptop Lid - Light Mode */}
+              <linearGradient id="cuteLaptopLidLight" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#ffffff" stopOpacity="0.95" />
+                <stop offset="100%" stopColor="#cbd5e1" stopOpacity="0.95" />
               </linearGradient>
 
               {/* Soft Glow Filter */}
@@ -550,7 +570,7 @@ export function AIOrbFace({
                 <feComposite in="SourceGraphic" in2="blur" operator="over" />
               </filter>
 
-              {/* Clip path for Sulky / Bombastic straight eyelid */}
+              {/* Clip path for Sulky eyelid */}
               <clipPath id="sulkyLidClipL">
                 <rect x="94" y="107" width="36" height="24" />
               </clipPath>
@@ -559,14 +579,14 @@ export function AIOrbFace({
               </clipPath>
             </defs>
 
-            {/* 1. Floor Drop Shadow (Follows subtle body motion while staying grounded) */}
+            {/* 1. Floor Drop Shadow */}
             <ellipse
               ref={dropShadowRef}
               cx="140"
               cy="214"
               rx="64"
               ry="9"
-              fill={isLight ? "rgba(30, 58, 138, 0.1)" : "rgba(0, 0, 0, 0.45)"}
+              fill={isLight ? "rgba(100, 116, 139, 0.15)" : "rgba(0, 0, 0, 0.45)"}
             />
 
             {/* 2. Soft Ambient Halo Glow */}
@@ -586,7 +606,7 @@ export function AIOrbFace({
                   rx="98"
                   ry="36"
                   fill="none"
-                  stroke="#38bdf8"
+                  stroke={isLight ? "#3b82f6" : "#38bdf8"}
                   strokeWidth="2"
                   strokeDasharray="14 10"
                   opacity="0.8"
@@ -598,7 +618,7 @@ export function AIOrbFace({
                   rx="102"
                   ry="32"
                   fill="none"
-                  stroke="#60a5fa"
+                  stroke={isLight ? "#60a5fa" : "#60a5fa"}
                   strokeWidth="1.6"
                   strokeDasharray="10 8"
                   opacity="0.7"
@@ -607,35 +627,42 @@ export function AIOrbFace({
               </g>
             )}
 
-            {/* 3. Smooth, Luxury Cobalt Sphere Body & Head Group with Natural Head Movement */}
+            {/* 3. Luxury Cobalt / Pearl Sphere Body & Head Group with Natural Head Movement */}
             <g
               ref={headGroupRef}
               transform={`rotate(${headAngle}, 140, 126)`}
               className={styles.headGroup}
             >
-              {/* 3D Cobalt Sphere Main Body */}
+              {/* 3D Sphere Main Body */}
               <circle
                 cx="140"
                 cy="126"
                 r="78"
                 fill={isLight ? "url(#vibrantCobaltLight)" : "url(#vibrantCobaltDark)"}
-                stroke={isLight ? "rgba(191, 219, 254, 0.7)" : "rgba(96, 165, 250, 0.3)"}
+                stroke={isLight ? "rgba(148, 163, 184, 0.45)" : "rgba(96, 165, 250, 0.3)"}
                 strokeWidth="1.5"
               />
 
-              {/* Top-Left Glossy Studio Specular Sheen (Dynamic 3D depth) */}
+              {/* Top-Left Glossy Specular Sheen (Clean white in light mode, cobalt in dark mode) */}
               <g ref={specularRef} transform="translate(0, 0)">
                 <path
                   d="M 88 78 C 100 54, 140 48, 184 62 C 148 55, 108 62, 88 78 Z"
-                  fill="url(#softSpecular)"
+                  fill={isLight ? "url(#softSpecularLight)" : "url(#softSpecularDark)"}
                 />
-                <ellipse cx="106" cy="78" rx="16" ry="10" fill="url(#softSpecular)" transform="rotate(-28, 106, 78)" />
+                <ellipse
+                  cx="106"
+                  cy="78"
+                  rx="16"
+                  ry="10"
+                  fill={isLight ? "url(#softSpecularLight)" : "url(#softSpecularDark)"}
+                  transform="rotate(-28, 106, 78)"
+                />
                 <circle cx="102" cy="74" r="5" fill="#ffffff" opacity="0.6" filter="url(#softGlow)" />
               </g>
 
-              {/* 4. FACIAL FEATURES WRAPPER (Spherical Parallax Movement inside the Orb) */}
+              {/* 4. FACIAL FEATURES WRAPPER */}
               <g ref={faceFeaturesRef} transform="translate(0, 0)">
-                {/* Soft Glowing Neon Coral-Pink Cheek Blushes */}
+                {/* Cheek Blushes */}
                 <ellipse cx="92" cy="130" rx="12" ry="7" fill="url(#softPinkBlush)" filter="url(#softGlow)" className={styles.faceFeaturesGroup} />
                 <ellipse cx="188" cy="130" rx="12" ry="7" fill="url(#softPinkBlush)" filter="url(#softGlow)" className={styles.faceFeaturesGroup} />
 
@@ -647,38 +674,38 @@ export function AIOrbFace({
                   strokeLinecap="round"
                   opacity={isLight ? "0.8" : "0.9"}
                 >
-                  {mood === "sad" ? (
-                    /* Sad: Worried/apologetic inverted upward slanted brows */
+                  {mood === "sad" || mood === "error" ? (
+                    /* Sad / Error: Worried/apologetic inverted upward slanted brows */
                     <>
                       <path d="M 96 95 Q 110 86 124 93" fill="none" />
                       <path d="M 156 93 Q 170 86 184 95" fill="none" />
                     </>
                   ) : mood === "curious" ? (
-                    /* Curious: Left brow raised high arch, Right brow slightly lower/level */
+                    /* Curious: Left brow raised high arch, Right brow slightly level */
                     <>
                       <path d="M 98 83 Q 112 74 124 84" fill="none" />
                       <path d="M 156 93 Q 168 90 180 94" fill="none" />
                     </>
                   ) : mood === "sulky" ? (
-                    /* Sulky: Left brow flat, Right brow raised skeptically (bombastic side-eye) */
+                    /* Sulky: Left brow flat, Right brow raised skeptically */
                     <>
                       <line x1="98" y1="93" x2="124" y2="93" />
                       <path d="M 156 88 Q 168 81 180 88" fill="none" />
                     </>
-                  ) : mood === "playful" || isGiggling ? (
-                    /* Playful: Joyful raised brows over the open eye and wink */
+                  ) : mood === "playful" || mood === "excited" || mood === "celebrating" || isGiggling ? (
+                    /* Playful / Excited: Joyfully raised brows */
                     <>
                       <path d="M 98 88 Q 112 82 124 88" fill="none" />
                       <path d="M 156 88 Q 168 82 180 88" fill="none" />
                     </>
-                  ) : mood === "sleepy" ? (
-                    /* Sleepy: Relaxed, downward sloping brows */
+                  ) : mood === "sleepy" || mood === "offline" || mood === "usage_limit" ? (
+                    /* Sleepy / Offline / Limit: Relaxed downward sloping brows */
                     <>
                       <path d="M 100 96 Q 112 99 124 97" fill="none" />
                       <path d="M 156 97 Q 168 99 180 96" fill="none" />
                     </>
                   ) : mood === "thinking" ? (
-                    /* Thinking: Left brow lowered pensive, Right brow high in thought */
+                    /* Thinking: Left brow lowered pensive, Right brow high */
                     <>
                       <path d="M 98 94 Q 112 90 124 95" fill="none" />
                       <path d="M 156 87 Q 168 80 180 87" fill="none" />
@@ -695,8 +722,8 @@ export function AIOrbFace({
                       <path d="M 99 86 Q 112 79 125 86" fill="none" />
                       <path d="M 155 86 Q 168 79 181 86" fill="none" />
                     </>
-                  ) : mood === "caring" ? (
-                    /* Caring: Soft sympathetic upward slant in the middle */
+                  ) : mood === "caring" || mood === "supportive" || mood === "concerned" ? (
+                    /* Caring / Supportive / Concerned: Soft sympathetic upward slant in the middle */
                     <>
                       <path d="M 98 93 Q 112 86 124 93" fill="none" />
                       <path d="M 156 93 Q 168 86 182 93" fill="none" />
@@ -708,7 +735,7 @@ export function AIOrbFace({
                       <path d="M 155 89 Q 168 81 181 88" fill="none" />
                     </>
                   ) : (
-                    /* Default / Idle: Delicate, sweet, perfectly balanced arched eyebrows */
+                    /* Default / Idle / Focused / Attentive: Delicate, sweet, perfectly balanced arched eyebrows */
                     <>
                       <path d="M 100 91 Q 112 85 124 91" fill="none" />
                       <path d="M 156 91 Q 168 85 180 91" fill="none" />
@@ -718,15 +745,13 @@ export function AIOrbFace({
 
                 {/* REALISTIC EXPRESSIVE EYES */}
                 {mood === "playful" || isGiggling ? (
-                  /* A. Playful / Touch Tickle: Left Eye Open & Glossy, Right Eye Winking */
+                  /* A. Playful / Tickle: Left Eye Open, Right Eye Winking */
                   <g>
-                    {/* Left Open Shiny Anime Eye */}
                     <ellipse cx="112" cy="112" rx="13.5" ry="15.5" fill="url(#cuteEyeGrad)" />
                     <ellipse cx="112" cy="116" rx="9" ry="5" fill="#0284c7" opacity="0.38" />
                     <circle cx="115.5" cy="107.5" r="4.3" fill="#ffffff" filter="url(#softGlow)" />
                     <circle cx="108.5" cy="115" r="1.8" fill="#ffffff" opacity="0.85" />
 
-                    {/* Right Winking Eye Arc */}
                     <path
                       d="M 152 114 Q 166 126 180 114"
                       fill="none"
@@ -734,27 +759,11 @@ export function AIOrbFace({
                       strokeWidth="3.8"
                       strokeLinecap="round"
                     />
-                    <line
-                      x1="180"
-                      y1="114"
-                      x2="186"
-                      y2="108"
-                      stroke={isLight ? "#0f172a" : "#38bdf8"}
-                      strokeWidth="2.5"
-                      strokeLinecap="round"
-                    />
-                    <line
-                      x1="178"
-                      y1="117"
-                      x2="185"
-                      y2="117"
-                      stroke={isLight ? "#0f172a" : "#38bdf8"}
-                      strokeWidth="2.2"
-                      strokeLinecap="round"
-                    />
+                    <line x1="180" y1="114" x2="186" y2="108" stroke={isLight ? "#0f172a" : "#38bdf8"} strokeWidth="2.5" strokeLinecap="round" />
+                    <line x1="178" y1="117" x2="185" y2="117" stroke={isLight ? "#0f172a" : "#38bdf8"} strokeWidth="2.2" strokeLinecap="round" />
                   </g>
-                ) : mood === "sleepy" ? (
-                  /* B. Sleepy: Peaceful Closed Sleeping Lines */
+                ) : mood === "sleepy" || mood === "offline" || mood === "usage_limit" ? (
+                  /* B. Sleepy / Offline / Usage Limit: Peaceful Closed Sleeping Lines */
                   <g>
                     <path
                       d="M 98 114 Q 112 122 126 114"
@@ -773,8 +782,8 @@ export function AIOrbFace({
                     />
                     <line x1="182" y1="114" x2="185" y2="111" stroke={isLight ? "#0f172a" : "#38bdf8"} strokeWidth="2.2" strokeLinecap="round" />
                   </g>
-                ) : mood === "happy" || isEnjoying ? (
-                  /* C. Happy / Enjoying: Arched Joyful Curved Eyes ^ ^ */
+                ) : mood === "happy" || mood === "excited" || mood === "celebrating" || isEnjoying ? (
+                  /* C. Happy / Excited / Celebrating / Enjoying: Arched Joyful Curved Eyes ^ ^ */
                   <g>
                     <path
                       d="M 98 114 Q 112 98 126 114"
@@ -792,24 +801,21 @@ export function AIOrbFace({
                     />
                   </g>
                 ) : mood === "sulky" ? (
-                  /* D. Sulky / Bombastic: Half-lidded Side-Glance (Bombastic Side-eye) */
+                  /* D. Sulky / Bombastic: Half-lidded Side-Glance */
                   <g>
-                    {/* Left Eye Half-Lidded */}
                     <ellipse cx="112" cy="112" rx="13.5" ry="15" fill="url(#cuteEyeGrad)" clipPath="url(#sulkyLidClipL)" />
                     <line x1="97" y1="107" x2="127" y2="107" stroke={isLight ? "#0f172a" : "#38bdf8"} strokeWidth="2.4" />
                     <circle cx="116" cy="113" r="5" fill="#0284c7" />
                     <circle cx="118" cy="111" r="2.8" fill="#ffffff" filter="url(#softGlow)" />
 
-                    {/* Right Eye Half-Lidded */}
                     <ellipse cx="168" cy="112" rx="13.5" ry="15" fill="url(#cuteEyeGrad)" clipPath="url(#sulkyLidClipR)" />
                     <line x1="153" y1="107" x2="183" y2="107" stroke={isLight ? "#0f172a" : "#38bdf8"} strokeWidth="2.4" />
                     <circle cx="172" cy="113" r="5" fill="#0284c7" />
                     <circle cx="174" cy="111" r="2.8" fill="#ffffff" filter="url(#softGlow)" />
                   </g>
-                ) : mood === "sad" ? (
-                  /* E. Sad: Big Pleading Watery Teary Eyes with Glistening Water Drops */
+                ) : mood === "sad" || mood === "error" ? (
+                  /* E. Sad / Error: Pleading Teary Eyes with Glistening Glints */
                   <g className={isBlinking ? styles.eyeLidClosed : styles.eyeLidOpen}>
-                    {/* Left Eye */}
                     <g>
                       <ellipse cx="112" cy="113" rx="13.5" ry="15.5" fill="url(#cuteEyeGrad)" />
                       <ellipse cx="112" cy="118" rx="10" ry="6" fill="#0284c7" opacity="0.45" />
@@ -820,7 +826,6 @@ export function AIOrbFace({
                       </g>
                     </g>
 
-                    {/* Right Eye */}
                     <g>
                       <ellipse cx="168" cy="113" rx="13.5" ry="15.5" fill="url(#cuteEyeGrad)" />
                       <ellipse cx="168" cy="118" rx="10" ry="6" fill="#0284c7" opacity="0.45" />
@@ -832,9 +837,8 @@ export function AIOrbFace({
                     </g>
                   </g>
                 ) : (
-                  /* F. Open Anime Eyes with Gaze / Cursor Tracking */
+                  /* F. Open Anime Eyes with Gaze Tracking */
                   <g className={isBlinking ? styles.eyeLidClosed : styles.eyeLidOpen}>
-                    {/* LEFT EYE */}
                     <g>
                       <ellipse cx="112" cy="112" rx="13.5" ry="15.5" fill="url(#cuteEyeGrad)" />
                       <ellipse cx="112" cy="116" rx="9" ry="5" fill="#0284c7" opacity="0.35" />
@@ -845,7 +849,6 @@ export function AIOrbFace({
                       </g>
                     </g>
 
-                    {/* RIGHT EYE */}
                     <g>
                       <ellipse cx="168" cy="112" rx="13.5" ry="15.5" fill="url(#cuteEyeGrad)" />
                       <ellipse cx="168" cy="116" rx="9" ry="5" fill="#0284c7" opacity="0.35" />
@@ -858,396 +861,377 @@ export function AIOrbFace({
                   </g>
                 )}
 
-              {/* REALISTIC MOUTH EXPRESSIONS */}
-              <g className={styles.faceFeaturesGroup}>
-                {mood === "curious" ? (
-                  /* Curious: Tiny cute open 'o' mouth */
-                  <ellipse cx="140" cy="128" rx="3.5" ry="4" fill="#0b1328" stroke={isLight ? "#0f172a" : "#60a5fa"} strokeWidth="1.2" />
-                ) : mood === "sulky" ? (
-                  /* Sulky: Downturned pouty frown */
-                  <path
-                    d="M 132 133 Q 140 125 148 133"
-                    fill="none"
-                    stroke={isLight ? "#0f172a" : "#60a5fa"}
-                    strokeWidth="2.5"
-                    strokeLinecap="round"
-                  />
-                ) : mood === "playful" || isGiggling ? (
-                  /* Playful: Open smiling mouth with pink tongue sticking out! */
-                  <g>
+                {/* REALISTIC MOUTH EXPRESSIONS */}
+                <g className={styles.faceFeaturesGroup}>
+                  {mood === "curious" ? (
+                    /* Curious: Tiny cute open 'o' mouth */
+                    <ellipse cx="140" cy="128" rx="3.5" ry="4" fill="#0b1328" stroke={isLight ? "#0f172a" : "#60a5fa"} strokeWidth="1.2" />
+                  ) : mood === "sulky" ? (
+                    /* Sulky: Downturned pouty frown */
                     <path
-                      d="M 131 123 Q 140 133 149 123"
+                      d="M 132 133 Q 140 125 148 133"
+                      fill="none"
+                      stroke={isLight ? "#0f172a" : "#60a5fa"}
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                    />
+                  ) : mood === "playful" || isGiggling ? (
+                    /* Playful: Open smiling mouth with pink tongue */
+                    <g>
+                      <path
+                        d="M 131 123 Q 140 133 149 123"
+                        fill="none"
+                        stroke={isLight ? "#0f172a" : "#38bdf8"}
+                        strokeWidth="2.4"
+                        strokeLinecap="round"
+                      />
+                      <path
+                        d="M 135 126 Q 140 140 145 126 Z"
+                        fill="#ff4d79"
+                        stroke="#e11d48"
+                        strokeWidth="0.8"
+                      />
+                    </g>
+                  ) : mood === "sleepy" || mood === "offline" || mood === "usage_limit" ? (
+                    /* Sleepy / Offline: Yawning or peaceful mouth */
+                    <g>
+                      <ellipse cx="140" cy="129" rx="6.5" ry="8" fill="#090e21" stroke={isLight ? "#0f172a" : "#60a5fa"} strokeWidth="1.5" />
+                      <ellipse cx="140" cy="133.5" rx="4.2" ry="2.8" fill="#ff4d79" />
+                    </g>
+                  ) : mood === "thinking" ? (
+                    /* Thinking: Thoughtful pensive curve */
+                    <path
+                      d="M 134 130 Q 140 126 146 130"
+                      fill="none"
+                      stroke={isLight ? "#0f172a" : "#60a5fa"}
+                      strokeWidth="2.2"
+                      strokeLinecap="round"
+                    />
+                  ) : mood === "happy" || mood === "excited" || mood === "celebrating" || isEnjoying ? (
+                    /* Happy / Excited / Celebrating / Enjoying: Joyful smile with tongue */
+                    <path
+                      d="M 132 125 Q 140 138 148 125 Z"
+                      fill="#ff4d79"
+                      stroke={isLight ? "#0f172a" : "#38bdf8"}
+                      strokeWidth="1.8"
+                    />
+                  ) : mood === "proud" ? (
+                    /* Proud: Confident, sweet curved smile */
+                    <path
+                      d="M 133 125 Q 140 132 149 124"
                       fill="none"
                       stroke={isLight ? "#0f172a" : "#38bdf8"}
                       strokeWidth="2.4"
                       strokeLinecap="round"
                     />
-                    {/* Pink Tongue Sticking Out */}
+                  ) : mood === "caring" || mood === "supportive" || mood === "concerned" ? (
+                    /* Caring / Supportive / Concerned: Warm, gentle comforting smile */
                     <path
-                      d="M 135 126 Q 140 140 145 126 Z"
-                      fill="#ff4d79"
-                      stroke="#e11d48"
-                      strokeWidth="0.8"
-                    />
-                  </g>
-                ) : mood === "sleepy" ? (
-                  /* Sleepy: Yawning open mouth */
-                  <g>
-                    <ellipse cx="140" cy="129" rx="6.5" ry="8" fill="#090e21" stroke={isLight ? "#0f172a" : "#60a5fa"} strokeWidth="1.5" />
-                    <ellipse cx="140" cy="133.5" rx="4.2" ry="2.8" fill="#ff4d79" />
-                  </g>
-                ) : mood === "thinking" ? (
-                  /* Thinking: Thoughtful pensive curve */
-                  <path
-                    d="M 134 130 Q 140 126 146 130"
-                    fill="none"
-                    stroke={isLight ? "#0f172a" : "#60a5fa"}
-                    strokeWidth="2.2"
-                    strokeLinecap="round"
-                  />
-                ) : mood === "happy" || isEnjoying ? (
-                  /* Happy / Enjoying: Wide open joyful smile with laughing tongue */
-                  <path
-                    d="M 132 125 Q 140 138 148 125 Z"
-                    fill="#ff4d79"
-                    stroke={isLight ? "#0f172a" : "#38bdf8"}
-                    strokeWidth="1.8"
-                  />
-                ) : mood === "proud" ? (
-                  /* Proud: Confident, sweet curved smile */
-                  <path
-                    d="M 133 125 Q 140 132 149 124"
-                    fill="none"
-                    stroke={isLight ? "#0f172a" : "#38bdf8"}
-                    strokeWidth="2.4"
-                    strokeLinecap="round"
-                  />
-                ) : mood === "caring" ? (
-                  /* Caring: Warm, gentle sweet smile */
-                  <path
-                    d="M 134 125 Q 140 131 146 125"
-                    fill="none"
-                    stroke={isLight ? "#0f172a" : "#93c5fd"}
-                    strokeWidth="2.2"
-                    strokeLinecap="round"
-                  />
-                ) : mood === "angry" ? (
-                  /* Angry: Pouty triangle mouth */
-                  <path
-                    d="M 134 126 L 140 130 L 146 126"
-                    fill="none"
-                    stroke={isLight ? "#0f172a" : "#38bdf8"}
-                    strokeWidth="2.5"
-                    strokeLinecap="round"
-                  />
-                ) : mood === "sad" ? (
-                  /* Sad: Apologetic soft downward mouth pout */
-                  <g>
-                    <path
-                      d="M 133 133 Q 140 126 147 133"
+                      d="M 134 125 Q 140 131 146 125"
                       fill="none"
-                      stroke={isLight ? "#0f172a" : "#60a5fa"}
+                      stroke={isLight ? "#0f172a" : "#93c5fd"}
+                      strokeWidth="2.2"
+                      strokeLinecap="round"
+                    />
+                  ) : mood === "angry" ? (
+                    /* Angry: Pouty triangle mouth */
+                    <path
+                      d="M 134 126 L 140 130 L 146 126"
+                      fill="none"
+                      stroke={isLight ? "#0f172a" : "#38bdf8"}
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                    />
+                  ) : mood === "sad" || mood === "error" ? (
+                    /* Sad / Error: Apologetic soft mouth pout */
+                    <g>
+                      <path
+                        d="M 133 133 Q 140 126 147 133"
+                        fill="none"
+                        stroke={isLight ? "#0f172a" : "#60a5fa"}
+                        strokeWidth="2.4"
+                        strokeLinecap="round"
+                      />
+                      <ellipse cx="178" cy="125" rx="3" ry="4.5" fill="#38bdf8" opacity="0.9" filter="url(#softGlow)" />
+                      <circle cx="177" cy="124" r="1.2" fill="#ffffff" />
+                    </g>
+                  ) : (
+                    /* Default / Idle / Focused / Attentive: Sweet, clean, friendly smile */
+                    <path
+                      d="M 133 125 Q 140 131 147 125"
+                      fill="none"
+                      stroke={isLight ? "#0f172a" : "#93c5fd"}
                       strokeWidth="2.4"
                       strokeLinecap="round"
                     />
-                    {/* Subtle cute tear glint */}
-                    <ellipse cx="178" cy="125" rx="3" ry="4.5" fill="#38bdf8" opacity="0.9" filter="url(#softGlow)" />
-                    <circle cx="177" cy="124" r="1.2" fill="#ffffff" />
+                  )}
+                </g>
+
+                {/* ACCESSORIES & EMOTION SYMBOLS */}
+                {/* Curious: Floating Question Mark ? */}
+                {mood === "curious" && (
+                  <g transform="translate(196, 62)">
+                    <text
+                      x="0"
+                      y="0"
+                      fill={isLight ? "#2563eb" : "#38bdf8"}
+                      fontSize="22"
+                      fontWeight="bold"
+                      fontFamily="sans-serif"
+                      filter="url(#softGlow)"
+                    >
+                      ?
+                    </text>
                   </g>
-                ) : (
-                  /* Default / Idle / Typing: Sweet, clean, friendly smile */
-                  <path
-                    d="M 133 125 Q 140 131 147 125"
-                    fill="none"
-                    stroke={isLight ? "#0f172a" : "#93c5fd"}
-                    strokeWidth="2.4"
+                )}
+
+                {/* Sulky: Floating Comic Puff */}
+                {mood === "sulky" && (
+                  <g transform="translate(192, 52)" stroke={isLight ? "#2563eb" : "#38bdf8"} strokeWidth="1.8" fill="none">
+                    <path d="M 0 4 Q 4 0 8 4 Q 12 0 16 4 Q 20 8 16 12 Q 20 16 16 20 Q 12 16 8 20 Q 4 16 0 20 Q -4 16 0 12 Z" opacity="0.85" />
+                  </g>
+                )}
+
+                {/* Playful / Tickle: Floating Radiating Energy */}
+                {(mood === "playful" || isGiggling) && (
+                  <g
+                    stroke={isLight ? "#0284c7" : "#38bdf8"}
+                    strokeWidth="3.2"
                     strokeLinecap="round"
-                  />
+                    filter="url(#softGlow)"
+                  >
+                    <line x1="68" y1="62" x2="56" y2="52" />
+                    <line x1="62" y1="84" x2="48" y2="82" />
+                    <line x1="212" y1="62" x2="224" y2="52" />
+                    <line x1="218" y1="84" x2="232" y2="82" />
+                  </g>
+                )}
+
+                {/* Sleepy / Offline / Usage Limit: Floating Zzz */}
+                {(mood === "sleepy" || mood === "offline" || mood === "usage_limit") && (
+                  <g className={styles.sleepyZzzWrapper} transform="translate(196, 68)">
+                    <text x="0" y="0" fill={isLight ? "#2563eb" : "#38bdf8"} fontSize="13" fontWeight="bold" className={styles.zzz1}>
+                      z
+                    </text>
+                    <text x="7" y="-8" fill={isLight ? "#3b82f6" : "#60a5fa"} fontSize="16" fontWeight="bold" className={styles.zzz2}>
+                      Z
+                    </text>
+                    <text x="16" y="-18" fill={isLight ? "#60a5fa" : "#93c5fd"} fontSize="20" fontWeight="bold" className={styles.zzz3}>
+                      Z
+                    </text>
+                  </g>
+                )}
+
+                {/* Proud / Celebrating: Floating Golden Sparkle Stars ✦ ✦ */}
+                {(mood === "proud" || mood === "celebrating" || isEnjoying) && (
+                  <g transform="translate(196, 50)">
+                    <path
+                      d="M 0 -13 Q 1.5 -2 11 0 Q 1.5 2 0 13 Q -1.5 2 -11 0 Q -1.5 -2 0 -13 Z"
+                      fill="url(#goldStarGrad)"
+                      filter="url(#softGlow)"
+                      className={styles.proudStar1}
+                    />
+                    <path
+                      d="M 0 -8 Q 1 -1.5 7 0 Q 1 1.5 0 8 Q -1 1.5 -7 0 Q -1 -1.5 0 -8 Z"
+                      fill="url(#goldStarGrad)"
+                      filter="url(#softGlow)"
+                      className={styles.proudStar2}
+                      transform="translate(-6, 20)"
+                    />
+                  </g>
+                )}
+
+                {/* Caring / Supportive: Floating Pink Hearts */}
+                {(mood === "caring" || mood === "supportive") && (
+                  <g transform="translate(194, 52)">
+                    <path
+                      d="M 0 -4 C -2 -11 -12 -10 -12 -3 C -12 4 -4 8 0 13 C 4 8 12 4 12 -3 C 12 -10 2 -11 0 -4 Z"
+                      fill="#ff3b7a"
+                      filter="url(#softGlow)"
+                      className={styles.floatingHeart1}
+                      transform="rotate(14) scale(0.9)"
+                    />
+                    <path
+                      d="M 0 -4 C -2 -11 -12 -10 -12 -3 C -12 4 -4 8 0 13 C 4 8 12 4 12 -3 C 12 -10 2 -11 0 -4 Z"
+                      fill="#ff4d79"
+                      filter="url(#softGlow)"
+                      className={styles.floatingHeart2}
+                      transform="translate(10, 20) rotate(22) scale(0.62)"
+                    />
+                  </g>
                 )}
               </g>
 
-              {/* ACCESSORIES & EMOTION SYMBOLS */}
-              {/* Curious: Floating Question Mark ? */}
-              {mood === "curious" && (
-                <g transform="translate(196, 62)">
-                  <text
+              {/* 5. HAND POSES FOR EMOTIONS */}
+              {/* A. Thinking Hand Pose: Cute arm & spherical paw resting on chin */}
+              {mood === "thinking" && (
+                <g>
+                  <ellipse
+                    cx="94"
+                    cy="152"
+                    rx="10"
+                    ry="7"
+                    fill={isLight ? "url(#cuteHandGradLight)" : "url(#cuteHandGradDark)"}
+                    stroke={isLight ? "#94a3b8" : "#38bdf8"}
+                    strokeWidth="1.2"
+                    opacity={isLight ? "0.7" : "0.6"}
+                    transform="rotate(-15, 94, 152)"
+                  />
+                  <path
+                    d="M 194 162 C 206 148, 198 132, 172 134"
+                    fill="none"
+                    stroke={isLight ? "url(#cuteHandGradLight)" : "url(#cuteHandGradDark)"}
+                    strokeWidth="15"
+                    strokeLinecap="round"
+                    filter="url(#softGlow)"
+                  />
+                  <path
+                    d="M 194 162 C 206 148, 198 132, 172 134"
+                    fill="none"
+                    stroke={isLight ? "#94a3b8" : "#38bdf8"}
+                    strokeWidth="1.6"
+                    strokeLinecap="round"
+                    opacity={isLight ? "0.6" : "0.85"}
+                  />
+                  <g transform="translate(162, 136)">
+                    <circle
+                      cx="0"
+                      cy="0"
+                      r="11"
+                      fill={isLight ? "url(#cuteHandGradLight)" : "url(#cuteHandGradDark)"}
+                      stroke={isLight ? "#94a3b8" : "#38bdf8"}
+                      strokeWidth="1.6"
+                      filter="url(#softGlow)"
+                    />
+                    <path d="M -5 -4 Q 0 -7 5 -4" fill="none" stroke={isLight ? "#94a3b8" : "#60a5fa"} strokeWidth="1.4" strokeLinecap="round" />
+                    <path d="M -5 1 Q 0 -2 5 1" fill="none" stroke={isLight ? "#94a3b8" : "#60a5fa"} strokeWidth="1.4" strokeLinecap="round" />
+                  </g>
+                </g>
+              )}
+
+              {/* B. Caring / Supportive Hand Pose: Holding 3D Glowing Pink Heart with two paws */}
+              {(mood === "caring" || mood === "supportive") && (
+                <g transform="translate(140, 158)">
+                  <g className={styles.pulsingHeart}>
+                    <path
+                      d="M 0 -7 C -3 -18 -20 -16 -20 -5 C -20 6 -7 13 0 20 C 7 13 20 6 20 -5 C 20 -16 3 -18 0 -7 Z"
+                      fill="url(#cute3DHeart)"
+                      filter="url(#softGlow)"
+                    />
+                    <ellipse cx="-6" cy="-7" rx="4.5" ry="2.6" fill="#ffffff" opacity="0.65" transform="rotate(-30, -6, -7)" />
+                    <circle cx="-16" cy="3" r="8" fill={isLight ? "url(#cuteHandGradLight)" : "url(#cuteHandGradDark)"} stroke={isLight ? "#94a3b8" : "#38bdf8"} strokeWidth="1.4" />
+                    <circle cx="16" cy="3" r="8" fill={isLight ? "url(#cuteHandGradLight)" : "url(#cuteHandGradDark)"} stroke={isLight ? "#94a3b8" : "#38bdf8"} strokeWidth="1.4" />
+                  </g>
+                </g>
+              )}
+            </g>
+
+            {/* 6. MINIATURE LAPTOP & TYPING ARMS */}
+            {mood === "typing" && (
+              <g transform="translate(0, 8)">
+                {/* Floating typing wave dots (...) */}
+                <g transform="translate(122, 122)">
+                  <circle cx="8" cy="0" r="3.2" fill={isLight ? "#2563eb" : "#38bdf8"} className={styles.typingDot1} />
+                  <circle cx="18" cy="0" r="3.2" fill={isLight ? "#2563eb" : "#38bdf8"} className={styles.typingDot2} />
+                  <circle cx="28" cy="0" r="3.2" fill={isLight ? "#2563eb" : "#38bdf8"} className={styles.typingDot3} />
+                </g>
+
+                {/* Floor ring under laptop */}
+                <ellipse
+                  cx="140"
+                  cy="210"
+                  rx="58"
+                  ry="10"
+                  fill="none"
+                  stroke={isLight ? "rgba(148, 163, 184, 0.4)" : "#38bdf8"}
+                  strokeWidth="1.5"
+                  opacity={isLight ? "0.4" : "0.6"}
+                  filter="url(#softGlow)"
+                />
+
+                {/* Laptop Lid Facing Viewer */}
+                <g transform="translate(98, 160)">
+                  <rect
                     x="0"
                     y="0"
+                    width="84"
+                    height="44"
+                    rx="7"
+                    fill={isLight ? "url(#cuteLaptopLidLight)" : "url(#cuteLaptopLidDark)"}
+                    stroke={isLight ? "#94a3b8" : "#38bdf8"}
+                    strokeWidth="1.8"
+                  />
+
+                  <rect
+                    x="3"
+                    y="3"
+                    width="78"
+                    height="38"
+                    rx="5"
+                    fill="none"
+                    stroke={isLight ? "rgba(148, 163, 184, 0.3)" : "rgba(56, 189, 248, 0.35)"}
+                    strokeWidth="1"
+                  />
+
+                  {/* FocusForge 'F' Logo on Laptop Lid */}
+                  <path
+                    d="M 39 14 L 47 14 C 48 14 49 14.8 49 15.8 L 49 16.5 C 49 17.5 48.2 18 47.2 18 L 42.5 18 L 42.5 20.5 L 46 20.5 C 46.8 20.5 47.5 21.2 47.5 22 L 47.5 22.5 C 47.5 23.3 46.8 24 46 24 L 42.5 24 L 42.5 29 C 42.5 29.8 41.8 30.5 41 30.5 L 40 30.5 C 39.2 30.5 38.5 29.8 38.5 29 Z"
                     fill={isLight ? "#2563eb" : "#38bdf8"}
-                    fontSize="22"
-                    fontWeight="bold"
-                    fontFamily="sans-serif"
                     filter="url(#softGlow)"
-                  >
-                    ?
-                  </text>
-                </g>
-              )}
-
-              {/* Sulky: Floating Comic Anger/Frustration Puff 💢 */}
-              {mood === "sulky" && (
-                <g transform="translate(192, 52)" stroke={isLight ? "#2563eb" : "#38bdf8"} strokeWidth="1.8" fill="none">
-                  <path d="M 0 4 Q 4 0 8 4 Q 12 0 16 4 Q 20 8 16 12 Q 20 16 16 20 Q 12 16 8 20 Q 4 16 0 20 Q -4 16 0 12 Z" opacity="0.85" />
-                </g>
-              )}
-
-              {/* Playful / Tickle: Floating Radiating Energy Slashes \ | */}
-              {(mood === "playful" || isGiggling) && (
-                <g
-                  stroke={isLight ? "#0284c7" : "#38bdf8"}
-                  strokeWidth="3.2"
-                  strokeLinecap="round"
-                  filter="url(#softGlow)"
-                  className={styles.playfulSlashes}
-                >
-                  <line x1="188" y1="58" x2="197" y2="42" />
-                  <line x1="202" y1="65" x2="215" y2="54" />
-                </g>
-              )}
-
-              {/* Sleepy: Floating z Z Z */}
-              {mood === "sleepy" && (
-                <g fill={isLight ? "#2563eb" : "#38bdf8"} fontWeight="bold" fontFamily="sans-serif">
-                  <text x="188" y="70" fontSize="13" className={styles.sleepyZ1}>z</text>
-                  <text x="196" y="56" fontSize="16" className={styles.sleepyZ2}>Z</text>
-                  <text x="207" y="40" fontSize="20" className={styles.sleepyZ3}>Z</text>
-                </g>
-              )}
-
-              {/* Thinking: Floating Thought Bubble 💭 */}
-              {mood === "thinking" && (
-                <g transform="translate(194, 54)" opacity="0.9">
-                  <circle cx="0" cy="12" r="3" fill="#38bdf8" />
-                  <circle cx="6" cy="4" r="5" fill="#38bdf8" />
-                  <ellipse cx="18" cy="-6" rx="12" ry="9" fill="#0284c7" stroke="#38bdf8" strokeWidth="1.5" />
-                </g>
-              )}
-
-              {/* Proud / Joyful Click: Floating Golden Sparkle Stars ✦ ✦ */}
-              {(mood === "proud" || isEnjoying) && (
-                <g transform="translate(196, 50)">
-                  <path
-                    d="M 0 -13 Q 1.5 -2 11 0 Q 1.5 2 0 13 Q -1.5 2 -11 0 Q -1.5 -2 0 -13 Z"
-                    fill="url(#goldStarGrad)"
-                    filter="url(#softGlow)"
-                    className={styles.proudStar1}
-                  />
-                  <path
-                    d="M 0 -8 Q 1 -1.5 7 0 Q 1 1.5 0 8 Q -1 1.5 -7 0 Q -1 -1.5 0 -8 Z"
-                    fill="url(#goldStarGrad)"
-                    filter="url(#softGlow)"
-                    className={styles.proudStar2}
-                    transform="translate(-6, 20)"
                   />
                 </g>
-              )}
 
-              {/* Caring: Floating Pink Hearts at Top-Right */}
-              {mood === "caring" && (
-                <g transform="translate(194, 52)">
-                  <path
-                    d="M 0 -4 C -2 -11 -12 -10 -12 -3 C -12 4 -4 8 0 13 C 4 8 12 4 12 -3 C 12 -10 2 -11 0 -4 Z"
-                    fill="#ff3b7a"
-                    filter="url(#softGlow)"
-                    className={styles.floatingHeart1}
-                    transform="rotate(14) scale(0.9)"
-                  />
-                  <path
-                    d="M 0 -4 C -2 -11 -12 -10 -12 -3 C -12 4 -4 8 0 13 C 4 8 12 4 12 -3 C 12 -10 2 -11 0 -4 Z"
-                    fill="#ff4d79"
-                    filter="url(#softGlow)"
-                    className={styles.floatingHeart2}
-                    transform="translate(10, 20) rotate(22) scale(0.62)"
-                  />
-                </g>
-              )}
-
-              {/* Sad: Animated Falling Teardrops & Apologetic Sweatdrop */}
-              {mood === "sad" && (
-                <g>
-                  <g transform="translate(93, 130)" className={styles.sadTeardropLeft}>
-                    <path
-                      d="M 0 -7 C 3 -3, 5 2, 0 7 C -5 2, -3 -3, 0 -7 Z"
-                      fill="#38bdf8"
-                      filter="url(#softGlow)"
-                      opacity="0.95"
-                    />
-                    <circle cx="1" cy="2" r="1.4" fill="#ffffff" />
-                  </g>
-                  <g transform="translate(187, 132)" className={styles.sadTeardropRight}>
-                    <path
-                      d="M 0 -6 C 2.5 -2.5, 4.5 1.5, 0 6 C -4.5 1.5, -2.5 -2.5, 0 -6 Z"
-                      fill="#60a5fa"
-                      filter="url(#softGlow)"
-                      opacity="0.9"
-                    />
-                    <circle cx="0.8" cy="1.5" r="1.2" fill="#ffffff" />
-                  </g>
-                  <g transform="translate(196, 56)" className={styles.sadSweatdrop}>
-                    <path
-                      d="M 0 -8 C 3 -3, 6 2, 0 8 C -6 2, -3 -3, 0 -8 Z"
-                      fill="#38bdf8"
-                      filter="url(#softGlow)"
-                      opacity="0.9"
-                    />
-                    <circle cx="1.2" cy="2.2" r="1.5" fill="#ffffff" />
-                  </g>
-                </g>
-              )}
-            </g>
-
-            {/* 5. HAND POSES FOR EMOTIONS */}
-            {/* A. Thinking Hand Pose: Cute arm & spherical paw resting on chin */}
-            {mood === "thinking" && (
-              <g>
-                <ellipse cx="94" cy="152" rx="10" ry="7" fill="url(#cuteHandGrad)" stroke="#38bdf8" strokeWidth="1.2" opacity="0.6" transform="rotate(-15, 94, 152)" />
+                {/* Laptop Base */}
                 <path
-                  d="M 194 162 C 206 148, 198 132, 172 134"
-                  fill="none"
-                  stroke="url(#cuteHandGrad)"
-                  strokeWidth="15"
-                  strokeLinecap="round"
-                  filter="url(#softGlow)"
+                  d="M 90 204 L 190 204 L 182 210 L 98 210 Z"
+                  fill={isLight ? "#e2e8f0" : "#0b1329"}
+                  stroke={isLight ? "#94a3b8" : "#38bdf8"}
+                  strokeWidth="1.5"
                 />
+
+                {/* Left Typing Arm & Paw */}
                 <path
-                  d="M 194 162 C 206 148, 198 132, 172 134"
+                  d="M 82 152 Q 86 172 96 172"
                   fill="none"
-                  stroke="#38bdf8"
-                  strokeWidth="1.6"
+                  stroke={isLight ? "#94a3b8" : "#38bdf8"}
+                  strokeWidth="4"
                   strokeLinecap="round"
-                  opacity="0.85"
+                  opacity={isLight ? "0.65" : "0.8"}
                 />
-                <g transform="translate(162, 136)">
-                  <circle cx="0" cy="0" r="11" fill="url(#cuteHandGrad)" stroke="#38bdf8" strokeWidth="1.6" filter="url(#softGlow)" />
-                  <path d="M -5 -4 Q 0 -7 5 -4" fill="none" stroke="#60a5fa" strokeWidth="1.4" strokeLinecap="round" />
-                  <path d="M -5 1 Q 0 -2 5 1" fill="none" stroke="#60a5fa" strokeWidth="1.4" strokeLinecap="round" />
-                </g>
+                <circle
+                  cx="96"
+                  cy="172"
+                  r="8.5"
+                  fill={isLight ? "url(#cuteHandGradLight)" : "url(#cuteHandGradDark)"}
+                  stroke={isLight ? "#94a3b8" : "#38bdf8"}
+                  strokeWidth="1.5"
+                  className={styles.pawLeft}
+                />
+
+                {/* Right Typing Arm & Paw */}
+                <path
+                  d="M 198 152 Q 194 172 184 172"
+                  fill="none"
+                  stroke={isLight ? "#94a3b8" : "#38bdf8"}
+                  strokeWidth="4"
+                  strokeLinecap="round"
+                  opacity={isLight ? "0.65" : "0.8"}
+                />
+                <circle
+                  cx="184"
+                  cy="172"
+                  r="8.5"
+                  fill={isLight ? "url(#cuteHandGradLight)" : "url(#cuteHandGradDark)"}
+                  stroke={isLight ? "#94a3b8" : "#38bdf8"}
+                  strokeWidth="1.5"
+                  className={styles.pawRight}
+                />
               </g>
             )}
-
-            {/* B. Caring Hand Pose: Holding 3D Glowing Pink Heart with two paws */}
-            {mood === "caring" && (
-              <g transform="translate(140, 158)">
-                <g className={styles.pulsingHeart}>
-                  <path
-                    d="M 0 -7 C -3 -18 -20 -16 -20 -5 C -20 6 -7 13 0 20 C 7 13 20 6 20 -5 C 20 -16 3 -18 0 -7 Z"
-                    fill="url(#cute3DHeart)"
-                    filter="url(#softGlow)"
-                  />
-                  <ellipse cx="-6" cy="-7" rx="4.5" ry="2.6" fill="#ffffff" opacity="0.65" transform="rotate(-30, -6, -7)" />
-                  <circle cx="-16" cy="3" r="8" fill="url(#cuteHandGrad)" stroke="#38bdf8" strokeWidth="1.4" />
-                  <circle cx="16" cy="3" r="8" fill="url(#cuteHandGrad)" stroke="#38bdf8" strokeWidth="1.4" />
-                </g>
-              </g>
-            )}
-          </g>
-
-          {/* 6. MINIATURE LAPTOP & TYPING ARMS */}
-          {mood === "typing" && (
-            <g transform="translate(0, 8)">
-              {/* Floating animated typing wave dots (...) */}
-              <g transform="translate(122, 122)">
-                <circle cx="8" cy="0" r="3.2" fill="#38bdf8" className={styles.typingDot1} />
-                <circle cx="18" cy="0" r="3.2" fill="#38bdf8" className={styles.typingDot2} />
-                <circle cx="28" cy="0" r="3.2" fill="#38bdf8" className={styles.typingDot3} />
-              </g>
-
-              {/* Glowing floor ring under laptop */}
-              <ellipse
-                cx="140"
-                cy="210"
-                rx="58"
-                ry="10"
-                fill="none"
-                stroke="#38bdf8"
-                strokeWidth="1.5"
-                opacity="0.6"
-                filter="url(#softGlow)"
-              />
-
-              {/* Laptop Screen / Lid Facing Viewer */}
-              <g transform="translate(98, 160)">
-                <rect
-                  x="0"
-                  y="0"
-                  width="84"
-                  height="44"
-                  rx="7"
-                  fill="url(#cuteLaptopLid)"
-                  stroke="#38bdf8"
-                  strokeWidth="1.8"
-                />
-
-                <rect
-                  x="3"
-                  y="3"
-                  width="78"
-                  height="38"
-                  rx="5"
-                  fill="none"
-                  stroke="rgba(56, 189, 248, 0.35)"
-                  strokeWidth="1"
-                />
-
-                {/* FocusForge 'F' Logo on Laptop Lid */}
-                <path
-                  d="M 39 14 L 47 14 C 48 14 49 14.8 49 15.8 L 49 16.5 C 49 17.5 48.2 18 47.2 18 L 42.5 18 L 42.5 20.5 L 46 20.5 C 46.8 20.5 47.5 21.2 47.5 22 L 47.5 22.5 C 47.5 23.3 46.8 24 46 24 L 42.5 24 L 42.5 29 C 42.5 29.8 41.8 30.5 41 30.5 L 40 30.5 C 39.2 30.5 38.5 29.8 38.5 29 Z"
-                  fill="#38bdf8"
-                  filter="url(#softGlow)"
-                />
-              </g>
-
-              {/* Laptop Keyboard Tray & Base */}
-              <path
-                d="M 90 204 L 190 204 L 182 210 L 98 210 Z"
-                fill="#0b1329"
-                stroke="#38bdf8"
-                strokeWidth="1.5"
-              />
-
-              {/* Left Typing Arm & Paw */}
-              <path
-                d="M 82 152 Q 86 172 96 172"
-                fill="none"
-                stroke="#38bdf8"
-                strokeWidth="4"
-                strokeLinecap="round"
-                opacity="0.8"
-              />
-              <circle
-                cx="96"
-                cy="172"
-                r="8.5"
-                fill="url(#cuteHandGrad)"
-                stroke="#38bdf8"
-                strokeWidth="1.5"
-                className={styles.pawLeft}
-              />
-
-              {/* Right Typing Arm & Paw */}
-              <path
-                d="M 198 152 Q 194 172 184 172"
-                fill="none"
-                stroke="#38bdf8"
-                strokeWidth="4"
-                strokeLinecap="round"
-                opacity="0.8"
-              />
-              <circle
-                cx="184"
-                cy="172"
-                r="8.5"
-                fill="url(#cuteHandGrad)"
-                stroke="#38bdf8"
-                strokeWidth="1.5"
-                className={styles.pawRight}
-              />
-            </g>
-          )}
-        </svg>
+          </svg>
+        </div>
       </div>
     </div>
-  </div>
   );
 }
 

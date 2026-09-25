@@ -34,7 +34,10 @@ export default function Modal({ isOpen, onClose, children, title, maxWidth = "ma
   return (
     <div
       ref={overlayRef}
-      className={`${isExiting ? "motion-exit-fade" : "motion-overlay"} fixed inset-0 z-[90] flex items-center justify-center`}
+      role="dialog"
+      aria-modal="true"
+      aria-label={title || "Dialog"}
+      className={`${isExiting ? "motion-exit-fade" : "motion-overlay"} fixed inset-0 z-[90] flex items-center justify-center p-3 sm:p-4`}
       onClick={(e) => {
         if (e.target === overlayRef.current) onClose();
       }}
@@ -43,22 +46,24 @@ export default function Modal({ isOpen, onClose, children, title, maxWidth = "ma
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
 
       {/* Content */}
-      <div className={`${isExiting ? "motion-exit-reveal" : "motion-reveal"} relative ${maxWidth} w-full mx-4`}>
+      <div className={`${isExiting ? "motion-exit-reveal" : "motion-reveal"} relative ${maxWidth} w-full max-h-[calc(100dvh-2rem)] flex flex-col`}>
         <div
-          className="app-modal-panel rounded-2xl p-6 border"
+          className="app-modal-panel rounded-2xl p-4 sm:p-6 border overflow-y-auto"
           style={{
             background: "var(--color-bg-elevated)",
             borderColor: "var(--color-border-subtle)",
           }}
         >
           {title && (
-            <div className="flex items-center justify-between mb-5">
-              <h3 className="text-lg font-semibold" style={{ color: "var(--color-text-primary)" }}>
+            <div className="flex items-center justify-between mb-4 sm:mb-5 pb-1">
+              <h3 id="modal-title" className="text-base sm:text-lg font-semibold tracking-tight" style={{ color: "var(--color-text-primary)" }}>
                 {title}
               </h3>
               <button
+                type="button"
                 onClick={onClose}
-                className="p-1.5 rounded-lg hover:bg-white/5 transition-colors"
+                aria-label="Close dialog"
+                className="w-9 h-9 min-w-[36px] min-h-[36px] flex items-center justify-center rounded-lg hover:bg-white/5 transition-colors cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                 style={{ color: "var(--color-text-muted)" }}
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

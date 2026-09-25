@@ -451,21 +451,21 @@ export default function DashboardPage() {
   }
 
   return (
-    <main className="w-full max-w-[1680px] mx-auto pb-16 space-y-6 text-foreground select-none">
+    <main className="w-full max-w-[1600px] mx-auto pb-16 space-y-6 text-foreground select-none">
       {/* Top Header: Clean, dynamic greeting with NO emojis */}
-      <header className="pt-2 px-1 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <header className="pt-1 px-0.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6 md:mb-8">
         <div>
-          <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold tracking-tight text-foreground leading-tight break-words">
+          <h1 className="text-[26px] sm:text-[28px] md:text-[32px] font-bold tracking-tight text-foreground leading-[1.2] break-words">
             {greetingText(userName)}
           </h1>
-          <p className="mt-1 text-xs sm:text-sm md:text-base text-muted-foreground font-normal leading-relaxed">
+          <p className="mt-1.5 sm:mt-2 text-xs sm:text-sm md:text-[15px] text-muted-foreground font-normal leading-relaxed">
             Your focus today builds your future tomorrow.
           </p>
         </div>
         {!isToday && (
           <button
             onClick={() => setSelectedDate(today)}
-            className="self-start sm:self-auto px-3 py-1.5 rounded-lg bg-blue-600/20 text-blue-400 hover:bg-blue-600/30 border border-blue-500/30 text-xs sm:text-sm font-medium transition-colors cursor-pointer shadow-sm flex items-center gap-2"
+            className="self-start sm:self-auto px-3 py-1.5 min-h-[36px] rounded-lg bg-blue-600/20 text-blue-400 hover:bg-blue-600/30 border border-blue-500/30 text-xs sm:text-sm font-medium transition-colors cursor-pointer shadow-sm flex items-center gap-2"
           >
             Back to Today
           </button>
@@ -473,28 +473,28 @@ export default function DashboardPage() {
       </header>
 
       {/* Top Section: 3 Balanced Cards (Today's Tasks, Today's Focus + Distractions, Current Skills) */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 items-stretch">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3.5 sm:gap-4 md:gap-6 items-stretch">
         
         {/* Card 1: Today's Tasks (Main Card: #FFFFFF, #DCE5F0 border, radius 18, shadow 0 8px 28px) */}
         <section
-          className="dashboard-card card rounded-[18px] p-5 sm:p-6 bg-white dark:bg-card border border-[#DCE5F0] dark:border-border shadow-[0_8px_28px_rgba(0,0,0,0.06)] dark:shadow-none flex flex-col justify-between"
+          className="dashboard-card card rounded-[18px] p-4 sm:p-5 md:p-6 bg-white dark:bg-card border border-[#DCE5F0] dark:border-border shadow-[0_8px_28px_rgba(0,0,0,0.06)] dark:shadow-none flex flex-col justify-between"
         >
           <div>
             {/* Header: Title + Subtitle + Icon Badge '+' button */}
             <div className="flex items-start justify-between gap-3 pb-3">
               <div>
-                <h2 className="text-base md:text-lg font-bold text-[#111827] dark:text-foreground tracking-tight">{tasksTitle}</h2>
+                <h2 className="text-[17px] md:text-[18px] font-bold text-[#111827] dark:text-foreground tracking-tight">{tasksTitle}</h2>
                 <p className="text-xs text-[#52627A] dark:text-muted-foreground mt-0.5 font-normal">
                   {tasksList.length} tasks | {completedCount} completed | {pendingCount} pending
                 </p>
               </div>
               <button
                 onClick={() => navigateTo("planner")}
-                className="w-8 h-8 rounded-xl bg-[#EBF3FE] hover:bg-[#DBEAFE] dark:bg-blue-500/20 dark:hover:bg-blue-500/30 text-[#1D4ED8] dark:text-blue-300 border border-[#D0E1FD] dark:border-blue-500/30 flex items-center justify-center transition-all cursor-pointer shrink-0 mt-0.5 shadow-xs"
+                className="w-9 h-9 min-w-[36px] min-h-[36px] rounded-xl bg-[#EBF3FE] hover:bg-[#DBEAFE] dark:bg-blue-500/20 dark:hover:bg-blue-500/30 text-[#1D4ED8] dark:text-blue-300 border border-[#D0E1FD] dark:border-blue-500/30 flex items-center justify-center transition-all cursor-pointer shrink-0 mt-0.5 shadow-xs outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                 title="Add task in Planner"
                 aria-label="Add task in Planner"
               >
-                <Plus size={16} strokeWidth={2.5} />
+                <Plus size={17} strokeWidth={2.5} />
               </button>
             </div>
 
@@ -559,13 +559,13 @@ export default function DashboardPage() {
 
         {/* Card 2: Today's Focus (Focus Time #5B8DEF, Break Time #D99A32, Distractions #D95C68) */}
         <section
-          className="dashboard-card card rounded-[18px] p-5 sm:p-6 bg-white dark:bg-card border border-[#DCE5F0] dark:border-border shadow-[0_8px_28px_rgba(0,0,0,0.06)] dark:shadow-none flex flex-col justify-between"
+          className="dashboard-card card rounded-[18px] p-4 sm:p-5 md:p-6 bg-white dark:bg-card border border-[#DCE5F0] dark:border-border shadow-[0_8px_28px_rgba(0,0,0,0.06)] dark:shadow-none flex flex-col justify-between"
         >
           <div>
             {/* Header: Title + Subtitle */}
             <div className="flex items-center justify-between pb-3">
               <div>
-                <h2 className="text-base md:text-lg font-bold text-[#111827] dark:text-foreground tracking-tight">{focusTitle}</h2>
+                <h2 className="text-[17px] md:text-[18px] font-bold text-[#111827] dark:text-foreground tracking-tight">{focusTitle}</h2>
                 <p className="text-xs text-[#52627A] dark:text-muted-foreground mt-0.5 font-normal">Focus time &amp; daily breakdown</p>
               </div>
             </div>
@@ -632,7 +632,7 @@ export default function DashboardPage() {
                 </svg>
                 {/* Center text: Pure calculated focus time */}
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                  <span className="text-lg font-bold text-[#111827] dark:text-foreground tracking-tight">{selectedFocusStats.focusTime}</span>
+                  <span className="text-lg font-bold text-[#111827] dark:text-foreground tracking-tight tabular-nums">{selectedFocusStats.focusTime}</span>
                 </div>
               </div>
 
@@ -643,14 +643,14 @@ export default function DashboardPage() {
                     <span className="w-2.5 h-2.5 rounded-full bg-[#5B8DEF] shrink-0" />
                     Focus Time
                   </span>
-                  <span className="font-bold text-[#111827] dark:text-foreground font-mono text-xs">{selectedFocusStats.focusTime}</span>
+                  <span className="font-bold text-[#111827] dark:text-foreground font-mono tabular-nums text-xs">{selectedFocusStats.focusTime}</span>
                 </div>
                 <div className="flex items-center justify-between text-xs">
                   <span className="flex items-center gap-2 text-[#52627A] dark:text-foreground font-medium">
                     <span className="w-2.5 h-2.5 rounded-full bg-[#D99A32] shrink-0" />
                     Break Time
                   </span>
-                  <span className="font-bold text-[#D99A32] dark:text-amber-400 font-mono text-xs">{selectedFocusStats.breakTime}</span>
+                  <span className="font-bold text-[#D99A32] dark:text-amber-400 font-mono tabular-nums text-xs">{selectedFocusStats.breakTime}</span>
                 </div>
               </div>
             </div>
@@ -661,7 +661,7 @@ export default function DashboardPage() {
             <div className="flex items-center gap-1.5 text-[#52627A] dark:text-muted-foreground">
               <span className="w-2 h-2 rounded-full bg-[#D95C68] shrink-0" />
               <span>Daily Distractions:</span>
-              <span className="font-bold text-[#D95C68] font-mono">
+              <span className="font-bold text-[#D95C68] font-mono tabular-nums">
                 {selectedFocusStats.distractionCount > 0 ? `${selectedFocusStats.distractionCount}` : "0"}
               </span>
             </div>
@@ -673,22 +673,22 @@ export default function DashboardPage() {
 
         {/* Card 3: Current Skills (Skill Builder with clean inline progress lines and (+) button) */}
         <section
-          className="dashboard-card card rounded-[18px] p-5 sm:p-6 bg-white dark:bg-card border border-[#DCE5F0] dark:border-border shadow-[0_8px_28px_rgba(0,0,0,0.06)] dark:shadow-none flex flex-col justify-between"
+          className="dashboard-card card rounded-[18px] p-4 sm:p-5 md:p-6 bg-white dark:bg-card border border-[#DCE5F0] dark:border-border shadow-[0_8px_28px_rgba(0,0,0,0.06)] dark:shadow-none flex flex-col justify-between"
         >
           <div>
             {/* Header: Title + Plus (+) button to Skill Builder */}
             <div className="flex items-start justify-between pb-3">
               <div>
-                <h2 className="text-base md:text-lg font-bold text-[#111827] dark:text-foreground tracking-tight">Current Skills</h2>
+                <h2 className="text-[17px] md:text-[18px] font-bold text-[#111827] dark:text-foreground tracking-tight">Current Skills</h2>
                 <p className="text-xs text-[#52627A] dark:text-muted-foreground mt-0.5 font-normal">Skill Builder progress</p>
               </div>
               <button
                 onClick={() => navigateTo("learning")}
-                className="w-8 h-8 rounded-xl bg-[#EBF3FE] hover:bg-[#DBEAFE] dark:bg-blue-500/20 dark:hover:bg-blue-500/30 text-[#1D4ED8] dark:text-blue-300 border border-[#D0E1FD] dark:border-blue-500/30 flex items-center justify-center transition-all cursor-pointer shrink-0 mt-0.5 shadow-xs"
+                className="w-9 h-9 min-w-[36px] min-h-[36px] rounded-xl bg-[#EBF3FE] hover:bg-[#DBEAFE] dark:bg-blue-500/20 dark:hover:bg-blue-500/30 text-[#1D4ED8] dark:text-blue-300 border border-[#D0E1FD] dark:border-blue-500/30 flex items-center justify-center transition-all cursor-pointer shrink-0 mt-0.5 shadow-xs outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                 title="Manage skills in Skill Builder"
                 aria-label="Manage skills in Skill Builder"
               >
-                <Plus size={16} strokeWidth={2.5} />
+                <Plus size={17} strokeWidth={2.5} />
               </button>
             </div>
 
@@ -743,9 +743,11 @@ export default function DashboardPage() {
           </div>
         </section>
 
-      </div>        {/* Bottom Section: Focus & Productivity Progress (Main Card: #FFFFFF, #DCE5F0 border, radius 18, shadow 0 8px 28px) */}
+      </div>
+
+      {/* Bottom Section: Focus & Productivity Progress (Main Card: #FFFFFF, #DCE5F0 border, radius 18, shadow 0 8px 28px) */}
       <section
-        className="dashboard-card card rounded-[18px] p-5 sm:p-7 bg-white dark:bg-card border border-[#DCE5F0] dark:border-border shadow-[0_8px_28px_rgba(0,0,0,0.06)] dark:shadow-none"
+        className="dashboard-card card rounded-[18px] p-4 sm:p-6 md:p-7 bg-white dark:bg-card border border-[#DCE5F0] dark:border-border shadow-[0_8px_28px_rgba(0,0,0,0.06)] dark:shadow-none"
       >
         {/* Header Bar */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4">
@@ -754,7 +756,7 @@ export default function DashboardPage() {
               <TrendingUp size={18} />
             </div>
             <div>
-              <h2 className="text-base md:text-lg font-bold text-[#111827] dark:text-foreground tracking-tight">Focus &amp; Productivity Progress</h2>
+              <h2 className="text-[17px] md:text-[18px] font-bold text-[#111827] dark:text-foreground tracking-tight">Focus &amp; Productivity Progress</h2>
               <p className="text-xs text-[#52627A] dark:text-muted-foreground mt-0.5 font-normal">
                 {progressView === "weekly"
                   ? "Weekly Overview · Real-time 7-day focus & task performance"

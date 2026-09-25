@@ -375,7 +375,7 @@ export async function GET(request: NextRequest, context: { params: Promise<{ pat
   }
 
   // 16. Reviews Prompt State
-  if (pathStr === 'reviews/prompt-state') {
+  if (pathStr === 'reviews/prompt-state' || pathStr === 'reviews/state') {
     try {
       const state = await dbGetReviewPromptState(userId);
       return NextResponse.json(state || { status: 'eligible', meaningfulActions: 0, skipCount: 0 });
@@ -384,7 +384,18 @@ export async function GET(request: NextRequest, context: { params: Promise<{ pat
     }
   }
 
-  // 17. Health Check
+  // 17. User Cloud State
+  if (pathStr === 'user/cloud-state' || pathStr === 'user/state') {
+    if (!userId || isGuest) return NextResponse.json(null);
+    try {
+      const res = await pool.query('SELECT state FROM user_cloud_state WHERE id = $1', [userId]);
+      return NextResponse.json(res.rows[0]?.state || null);
+    } catch {
+      return NextResponse.json(null);
+    }
+  }
+
+  // 18. Health Check
   if (pathStr === 'health') {
     return NextResponse.json({ status: 'ok', timestamp: new Date().toISOString() });
   }
@@ -967,7 +978,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ pa
   }
 
   // 17. Reviews & Prompt State
-  if (pathStr === 'reviews/prompt-state') {
+  if (pathStr === 'reviews/prompt-state' || pathStr === 'reviews/state') {
     if (!userId) return NextResponse.json({ error: 'Unauthorized', code: ERROR_CODES.UNAUTHORIZED }, { status: 401 });
     try {
       const saved = await dbUpsertReviewPromptState(userId, body);
@@ -977,20 +988,90 @@ export async function POST(request: NextRequest, context: { params: Promise<{ pa
     }
   }
 
-  if (pathStr === 'reviews') {
-    if (!userId) return NextResponse.json({ error: 'Unauthorized', code: ERROR_CODES.UNAUTHORIZED }, { status: 401 });
+  if (pathStr === 'reviews/action') {
+    if (!userId || isGuest) {
+      return NextResponse.json({ success: true, count: 0 });
+    }
     try {
-      const saved = await dbInsertReview(userId, body.rating, body.comment);
-      return NextResponse.json(saved);
+      const state = await dbGetReviewPromptState(userId);
+      if (state?.status === 'submitted') {
+        return NextResponse.json({ success: true, status: 'submitted' });
+      }
+      const currentCount = state?.meaningfulActions || 0;
+      const newCount = currentCount + 1;
+      await dbUpsertReviewPromptState(userId, {
+        status: state?.status || 'eligible',
+        meaningfulActions: newCount,
+        skipCount: state?.skipCount || 0,
+      });
+      return NextResponse.json({ success: true, count: newCount });
+    } catch (err: any) {
+      return NextResponse.json({ error: err.message || 'Failed to record action' }, { status: 500 });
+    }
+  }
+
+  if (pathStr === 'reviews/skip') {
+    if (!userId || isGuest) {
+      return NextResponse.json({ success: true });
+    }
+    try {
+      const state = await dbGetReviewPromptState(userId);
+      if (state?.status === 'submitted') {
+        return NextResponse.json({ success: true, status: 'submitted' });
+      }
+      const currentSkipCount = state?.skipCount || 0;
+      const newSkipCount = currentSkipCount + 1;
+      let delayHours = 36;
+      if (newSkipCount === 1) delayHours = 36;
+      else if (newSkipCount === 2) delayHours = 84;
+      else if (newSkipCount === 3) delayHours = 24 * 7;
+      else if (newSkipCount === 4) delayHours = 24 * 14;
+      else if (newSkipCount === 5) delayHours = 24 * 30;
+      else delayHours = 24 * 45;
+      const nextPromptDate = new Date(Date.now() + delayHours * 60 * 60 * 1000);
+      const nowIso = new Date().toISOString();
+      await dbUpsertReviewPromptState(userId, {
+        status: 'skipped',
+        meaningfulActions: 0,
+        skipCount: newSkipCount,
+        lastShownAt: nowIso,
+        nextPromptAt: nextPromptDate.toISOString(),
+      });
+      return NextResponse.json({
+        success: true,
+        skipCount: newSkipCount,
+        nextPromptAt: nextPromptDate.toISOString(),
+      });
+    } catch (err: any) {
+      return NextResponse.json({ error: err.message || 'Failed to record skip' }, { status: 500 });
+    }
+  }
+
+  if (pathStr === 'reviews' || pathStr === 'reviews/submit') {
+    try {
+      const parsedRating = typeof body.rating === 'number' && body.rating >= 1 && body.rating <= 5 ? Math.round(body.rating) : null;
+      const trimmedComment = typeof body.comment === 'string' && body.comment.trim().length > 0 ? body.comment.trim() : null;
+      if (parsedRating === null && trimmedComment === null) {
+        return NextResponse.json({ error: 'Please provide either a star rating or a comment.' }, { status: 400 });
+      }
+      if (userId && !isGuest) {
+        await dbInsertReview(userId, parsedRating || 5, trimmedComment || '');
+        await dbUpsertReviewPromptState(userId, {
+          status: 'submitted',
+          submittedAt: new Date().toISOString(),
+        });
+      }
+      return NextResponse.json({ success: true, message: 'Review submitted successfully' });
     } catch (err: any) {
       return NextResponse.json({ error: err.message || 'Failed to submit review' }, { status: 500 });
     }
   }
 
   // 18. User Cloud State
-  if (pathStr === 'user/cloud-state') {
-    if (userId) {
+  if (pathStr === 'user/cloud-state' || pathStr === 'user/state') {
+    if (userId && !isGuest) {
       try {
+        const statePayload = body.state !== undefined ? body.state : body;
         await pool.query(
           `
           INSERT INTO user_cloud_state (id, state, updated_at)
@@ -999,7 +1080,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ pa
             state = EXCLUDED.state,
             updated_at = NOW()
           `,
-          [userId, JSON.stringify(body.stateData || body)]
+          [userId, JSON.stringify(statePayload)]
         );
       } catch {}
     }
@@ -1331,3 +1412,5 @@ export async function DELETE(request: NextRequest, context: { params: Promise<{ 
 
   return NextResponse.json({ success: true });
 }
+
+export const PUT = PATCH;
