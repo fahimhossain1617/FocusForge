@@ -14,13 +14,19 @@ function AuthCallbackContent() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   useEffect(() => {
+    let isMounted = true;
+
     async function handleAuthRedirect() {
       try {
-        // Exchange code or process session from hash / url
+        const code = searchParams.get("code");
+        if (code) {
+          await supabase.auth.exchangeCodeForSession(code);
+        }
+
         const { data, error } = await supabase.auth.getSession();
 
         if (error) {
-          setErrorMsg(error.message);
+          if (isMounted) setErrorMsg(error.message);
           return;
         }
 
@@ -46,19 +52,23 @@ function AuthCallbackContent() {
           showToast("Successfully signed in!", "success");
           router.replace("/");
         } else {
-          // If no session is found, wait a moment or redirect to login
+          // If no session is found immediately, wait or redirect to login
           const timer = setTimeout(() => {
-            router.replace("/login");
+            if (isMounted) router.replace("/login");
           }, 1500);
           return () => clearTimeout(timer);
         }
       } catch (err: any) {
-        setErrorMsg(err?.message || "Failed to process authentication redirect.");
+        if (isMounted) setErrorMsg(err?.message || "Failed to process authentication redirect.");
       }
     }
 
     handleAuthRedirect();
-  }, [router, onAuthSuccess, showToast]);
+
+    return () => {
+      isMounted = false;
+    };
+  }, [router, searchParams, onAuthSuccess, showToast]);
 
   return (
     <div className="auth-frame flex flex-col items-center justify-center min-h-screen p-4 text-center">
