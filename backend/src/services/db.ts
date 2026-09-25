@@ -1,7 +1,7 @@
-import { Pool } from 'pg';
 import dotenv from 'dotenv';
-
 dotenv.config();
+
+import { Pool } from 'pg';
 
 const connectionString = (
   process.env.DATABASE_URL ||
@@ -10,12 +10,21 @@ const connectionString = (
   ''
 ).replace(/^["']|["']$/g, '').trim();
 
-export const pool = new Pool({
+declare global {
+  // eslint-disable-next-line no-var
+  var __focusforge_pg_pool__: Pool | undefined;
+}
+
+export const pool = global.__focusforge_pg_pool__ || new Pool({
   connectionString,
   max: 10,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 10000,
 });
+
+if (process.env.NODE_ENV !== 'production') {
+  global.__focusforge_pg_pool__ = pool;
+}
 
 // ==================== TASKS ====================
 
@@ -215,6 +224,7 @@ export async function dbUpdateTask(userId: string, taskId: number, body: any) {
     }
   }
 
+  // Synchronize status and completed if only one is passed
   if (body.status !== undefined && body.completed === undefined) {
     params.push(body.status === 'completed');
     fields.push(`completed = $${params.length}`);
@@ -764,9 +774,502 @@ export async function dbInsertReview(userId: string, rating: number, comment?: s
   return res.rows[0];
 }
 
-// ==================== ACCOUNT DELETION & SUPPORT ====================
+// ==================== AI CHAT SESSIONS ====================
 
-export async function dbDeleteUserAccount(userId: string): Promise<void> {
+export async function dbClearAllChatSessions(userId: string | null) {
+  if (userId) {
+    // Delete messages for user sessions first, then sessions
+    await pool.query(
+      `DELETE FROM ai_chat_messages WHERE session_id IN (SELECT id FROM ai_chat_sessions WHERE user_id = $1)`,
+      [userId]
+    );
+    await pool.query('DELETE FROM ai_chat_sessions WHERE user_id = $1', [userId]);
+  } else {
+    // Guest mode: clear sessions with null user_id
+    await pool.query(
+      `DELETE FROM ai_chat_messages WHERE session_id IN (SELECT id FROM ai_chat_sessions WHERE user_id IS NULL)`
+    );
+    await pool.query('DELETE FROM ai_chat_sessions WHERE user_id IS NULL');
+  }
+  return { success: true };
+}
+
+// ==================== USER PROFILE & SETTINGS ====================
+
+export function mapProfileRow(row: any) {
+  if (!row) return null;
+  return {
+    id: row.id,
+    identifier: row.identifier,
+    authMethod: row.auth_method || 'email',
+    displayName: row.display_name || '',
+    fullName: row.full_name || '',
+    email: row.identifier || '',
+    emailVerified: Boolean(row.email_verified || row.auth_method === 'google'),
+    phone: row.phone || '',
+    dateOfBirth: row.date_of_birth ? new Date(row.date_of_birth).toISOString().split('T')[0] : '',
+    gender: row.gender || '',
+    country: row.country || '',
+    city: row.city || '',
+    bio: row.bio || '',
+    avatarUrl: row.avatar_url || null,
+    preferredLanguage: row.preferred_language || 'en',
+    preferredTheme: row.preferred_theme || 'dark',
+    onboardingCompleted: Boolean(row.onboarding_completed),
+    createdAt: row.created_at ? new Date(row.created_at).toISOString() : new Date().toISOString(),
+    updatedAt: row.updated_at ? new Date(row.updated_at).toISOString() : new Date().toISOString(),
+  };
+}
+
+export async function dbGetUserProfile(userId: string) {
+  const res = await pool.query('SELECT * FROM profiles WHERE id = $1', [userId]);
+  if (res.rows.length === 0) return null;
+  return mapProfileRow(res.rows[0]);
+}
+
+export async function dbCheckUsernameAvailable(displayName: string, excludeUserId?: string): Promise<boolean> {
+  const norm = displayName.trim().toLowerCase();
+  if (!norm) return true;
+
+  let query = 'SELECT id FROM profiles WHERE LOWER(TRIM(display_name)) = $1';
+  const params: any[] = [norm];
+
+  if (excludeUserId) {
+    query += ' AND id <> $2';
+    params.push(excludeUserId);
+  }
+
+  const res = await pool.query(query, params);
+  return res.rows.length === 0;
+}
+
+export async function dbUpdateUserProfile(userId: string, updates: Record<string, any>) {
+  const allowedFields: Record<string, string> = {
+    displayName: 'display_name',
+    fullName: 'full_name',
+    phone: 'phone',
+    dateOfBirth: 'date_of_birth',
+    gender: 'gender',
+    country: 'country',
+    city: 'city',
+    bio: 'bio',
+    avatarUrl: 'avatar_url',
+    preferredLanguage: 'preferred_language',
+    preferredTheme: 'preferred_theme',
+    emailVerified: 'email_verified',
+    onboardingCompleted: 'onboarding_completed',
+  };
+
+  const fields: string[] = [];
+  const params: any[] = [userId];
+
+  for (const [key, col] of Object.entries(allowedFields)) {
+    if (updates[key] !== undefined) {
+      params.push(updates[key]);
+      fields.push(`${col} = $${params.length}`);
+    }
+  }
+
+  if (fields.length === 0) {
+    return dbGetUserProfile(userId);
+  }
+
+  fields.push('updated_at = NOW()');
+
+  const query = `
+    UPDATE profiles
+    SET ${fields.join(', ')}
+    WHERE id = $1
+    RETURNING *;
+  `;
+
+  const res = await pool.query(query, params);
+  if (res.rows.length === 0) {
+    // If profile row doesn't exist yet, insert it
+    const insertRes = await pool.query(
+      `
+      INSERT INTO profiles (id, identifier, auth_method, display_name, full_name, created_at, updated_at)
+      VALUES ($1, $2, 'email', $3, $4, NOW(), NOW())
+      ON CONFLICT (id) DO UPDATE SET updated_at = NOW()
+      RETURNING *;
+      `,
+      [userId, updates.email || 'user', updates.displayName || '', updates.fullName || '']
+    );
+    return mapProfileRow(insertRes.rows[0]);
+  }
+
+  return mapProfileRow(res.rows[0]);
+}
+
+// ==================== NOTIFICATIONS ====================
+
+export async function dbGetNotificationSettings(userId: string) {
+  const res = await pool.query('SELECT * FROM user_notification_settings WHERE user_id = $1', [userId]);
+  if (res.rows.length === 0) {
+    return {
+      pushEnabled: true,
+      taskReminders: true,
+      focusReminders: true,
+      dailyProgressReminders: true,
+      dailyReminderTime: '20:00',
+      timezone: 'UTC',
+    };
+  }
+  const row = res.rows[0];
+  return {
+    pushEnabled: row.push_enabled ?? true,
+    taskReminders: row.task_reminders ?? true,
+    focusReminders: row.focus_reminders ?? true,
+    dailyProgressReminders: row.daily_progress_reminders ?? true,
+    dailyReminderTime: row.daily_reminder_time || '20:00',
+    timezone: row.timezone || 'UTC',
+  };
+}
+
+export async function dbUpsertNotificationSettings(userId: string, settings: any) {
+  const res = await pool.query(
+    `
+    INSERT INTO user_notification_settings (
+      user_id, push_enabled, task_reminders, focus_reminders,
+      daily_progress_reminders, daily_reminder_time, timezone, updated_at
+    ) VALUES (
+      $1, $2, $3, $4, $5, $6, $7, NOW()
+    )
+    ON CONFLICT (user_id) DO UPDATE SET
+      push_enabled = EXCLUDED.push_enabled,
+      task_reminders = EXCLUDED.task_reminders,
+      focus_reminders = EXCLUDED.focus_reminders,
+      daily_progress_reminders = EXCLUDED.daily_progress_reminders,
+      daily_reminder_time = EXCLUDED.daily_reminder_time,
+      timezone = EXCLUDED.timezone,
+      updated_at = NOW()
+    RETURNING *;
+    `,
+    [
+      userId,
+      settings.pushEnabled ?? true,
+      settings.taskReminders ?? true,
+      settings.focusReminders ?? true,
+      settings.dailyProgressReminders ?? true,
+      settings.dailyReminderTime || '20:00',
+      settings.timezone || 'UTC',
+    ]
+  );
+  const row = res.rows[0];
+  return {
+    pushEnabled: row.push_enabled,
+    taskReminders: row.task_reminders,
+    focusReminders: row.focus_reminders,
+    dailyProgressReminders: row.daily_progress_reminders,
+    dailyReminderTime: row.daily_reminder_time,
+    timezone: row.timezone,
+  };
+}
+
+export async function dbSavePushSubscription(userId: string, subscription: any, userAgent?: string) {
+  const { endpoint, keys } = subscription;
+  if (!endpoint || !keys?.p256dh || !keys?.auth) throw new Error('Invalid subscription object');
+
+  await pool.query(
+    `
+    INSERT INTO push_subscriptions (user_id, endpoint, p256dh, auth, user_agent, updated_at)
+    VALUES ($1, $2, $3, $4, $5, NOW())
+    ON CONFLICT (user_id, endpoint) DO UPDATE SET
+      p256dh = EXCLUDED.p256dh,
+      auth = EXCLUDED.auth,
+      user_agent = EXCLUDED.user_agent,
+      updated_at = NOW()
+    `,
+    [userId, endpoint, keys.p256dh, keys.auth, userAgent || '']
+  );
+  return { success: true };
+}
+
+export async function dbRemovePushSubscription(userId: string, endpoint: string) {
+  await pool.query('DELETE FROM push_subscriptions WHERE user_id = $1 AND endpoint = $2', [userId, endpoint]);
+  return { success: true };
+}
+
+// ==================== SUPPORT TICKETS & SUPERVISOR ====================
+
+export function mapTicketRow(row: any) {
+  if (!row) return null;
+  let attachments = row.attachments;
+  if (typeof attachments === 'string') {
+    try { attachments = JSON.parse(attachments); } catch { attachments = []; }
+  }
+
+  return {
+    id: row.id,
+    ticketNumber: row.ticket_number,
+    type: row.type,
+    category: row.category,
+    subject: row.subject,
+    message: row.message,
+    attachments: Array.isArray(attachments) ? attachments : [],
+    userId: row.user_id,
+    name: row.name,
+    email: row.email,
+    isGuest: Boolean(row.is_guest),
+    appVersion: row.app_version,
+    browserInfo: row.browser_info,
+    language: row.language,
+    status: row.status,
+    priority: row.priority,
+    assignedTo: row.assigned_to,
+    internalNotes: row.internal_notes,
+    readBySupervisor: Boolean(row.read_by_supervisor),
+    createdAt: row.created_at ? new Date(row.created_at).toISOString() : new Date().toISOString(),
+    updatedAt: row.updated_at ? new Date(row.updated_at).toISOString() : new Date().toISOString(),
+    resolvedAt: row.resolved_at ? new Date(row.resolved_at).toISOString() : undefined,
+  };
+}
+
+export async function dbCreateSupportTicket(data: {
+  type: string;
+  category?: string;
+  subject: string;
+  message: string;
+  attachments?: string[];
+  userId?: string | null;
+  name?: string;
+  email?: string;
+  isGuest?: boolean;
+  appVersion?: string;
+  browserInfo?: string;
+  language?: string;
+}) {
+  const seqRes = await pool.query("SELECT nextval('support_ticket_seq') as seq");
+  const seqNum = String(seqRes.rows[0].seq).padStart(6, '0');
+  const ticketNumber = `FF-${seqNum}`;
+
+  const res = await pool.query(
+    `
+    INSERT INTO support_tickets (
+      ticket_number, type, category, subject, message, attachments,
+      user_id, name, email, is_guest, app_version, browser_info, language,
+      status, priority, read_by_supervisor, created_at, updated_at
+    ) VALUES (
+      $1, $2, $3, $4, $5, $6::jsonb,
+      $7, $8, $9, $10, $11, $12, $13,
+      'new', 'normal', false, NOW(), NOW()
+    )
+    RETURNING *;
+    `,
+    [
+      ticketNumber,
+      data.type,
+      data.category || null,
+      data.subject,
+      data.message,
+      JSON.stringify(data.attachments || []),
+      data.userId || null,
+      data.name || 'Anonymous',
+      data.email || null,
+      Boolean(data.isGuest),
+      data.appVersion || '1.0.0',
+      data.browserInfo || null,
+      data.language || 'en',
+    ]
+  );
+
+  return mapTicketRow(res.rows[0]);
+}
+
+export async function dbGetSupportTickets(filters: {
+  type?: string;
+  status?: string;
+  priority?: string;
+  unreadOnly?: boolean;
+  search?: string;
+  limit?: number;
+  offset?: number;
+}) {
+  const params: any[] = [];
+  let query = 'SELECT * FROM support_tickets WHERE 1=1';
+
+  if (filters.type && filters.type !== 'all') {
+    params.push(filters.type);
+    query += ` AND type = $${params.length}`;
+  }
+  if (filters.status && filters.status !== 'all') {
+    params.push(filters.status);
+    query += ` AND status = $${params.length}`;
+  }
+  if (filters.priority && filters.priority !== 'all') {
+    params.push(filters.priority);
+    query += ` AND priority = $${params.length}`;
+  }
+  if (filters.unreadOnly) {
+    query += ` AND read_by_supervisor = false`;
+  }
+  if (filters.search) {
+    params.push(`%${filters.search}%`);
+    query += ` AND (ticket_number ILIKE $${params.length} OR subject ILIKE $${params.length} OR message ILIKE $${params.length} OR email ILIKE $${params.length} OR name ILIKE $${params.length})`;
+  }
+
+  query += ' ORDER BY created_at DESC';
+
+  if (filters.limit) {
+    params.push(filters.limit);
+    query += ` LIMIT $${params.length}`;
+  }
+  if (filters.offset) {
+    params.push(filters.offset);
+    query += ` OFFSET $${params.length}`;
+  }
+
+  const res = await pool.query(query, params);
+  return res.rows.map(mapTicketRow);
+}
+
+export async function dbGetSupportTicketById(idOrNumber: string) {
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(idOrNumber);
+  const query = isUuid
+    ? 'SELECT * FROM support_tickets WHERE id = $1'
+    : 'SELECT * FROM support_tickets WHERE ticket_number = $1';
+  
+  const res = await pool.query(query, [idOrNumber]);
+  if (res.rows.length === 0) return null;
+  return mapTicketRow(res.rows[0]);
+}
+
+export async function dbUpdateSupportTicket(id: string, updates: Record<string, any>) {
+  const fields: string[] = [];
+  const params: any[] = [id];
+
+  const allowed: Record<string, string> = {
+    status: 'status',
+    priority: 'priority',
+    assignedTo: 'assigned_to',
+    internalNotes: 'internal_notes',
+    readBySupervisor: 'read_by_supervisor',
+  };
+
+  for (const [key, col] of Object.entries(allowed)) {
+    if (updates[key] !== undefined) {
+      params.push(updates[key]);
+      fields.push(`${col} = $${params.length}`);
+    }
+  }
+
+  if (updates.status === 'resolved' || updates.status === 'closed') {
+    fields.push('resolved_at = NOW()');
+  }
+
+  fields.push('updated_at = NOW()');
+
+  const query = `
+    UPDATE support_tickets
+    SET ${fields.join(', ')}
+    WHERE id = $1
+    RETURNING *;
+  `;
+
+  const res = await pool.query(query, params);
+  if (res.rows.length === 0) throw new Error('Ticket not found');
+  return mapTicketRow(res.rows[0]);
+}
+
+export async function dbAddTicketReply(data: {
+  ticketId: string;
+  senderRole: 'supervisor' | 'user' | 'system';
+  senderId?: string | null;
+  senderName: string;
+  message: string;
+  attachments?: string[];
+}) {
+  const res = await pool.query(
+    `
+    INSERT INTO ticket_replies (ticket_id, sender_role, sender_id, sender_name, message, attachments, created_at)
+    VALUES ($1, $2, $3, $4, $5, $6::jsonb, NOW())
+    RETURNING *;
+    `,
+    [
+      data.ticketId,
+      data.senderRole,
+      data.senderId || null,
+      data.senderName,
+      data.message,
+      JSON.stringify(data.attachments || []),
+    ]
+  );
+
+  await pool.query('UPDATE support_tickets SET updated_at = NOW() WHERE id = $1', [data.ticketId]);
+
+  const row = res.rows[0];
+  return {
+    id: row.id,
+    ticketId: row.ticket_id,
+    senderRole: row.sender_role,
+    senderId: row.sender_id,
+    senderName: row.sender_name,
+    message: row.message,
+    attachments: row.attachments,
+    createdAt: row.created_at ? new Date(row.created_at).toISOString() : new Date().toISOString(),
+  };
+}
+
+export async function dbGetTicketReplies(ticketId: string) {
+  const res = await pool.query(
+    'SELECT * FROM ticket_replies WHERE ticket_id = $1 ORDER BY created_at ASC',
+    [ticketId]
+  );
+  return res.rows.map((row) => ({
+    id: row.id,
+    ticketId: row.ticket_id,
+    senderRole: row.sender_role,
+    senderId: row.sender_id,
+    senderName: row.sender_name,
+    message: row.message,
+    attachments: row.attachments,
+    createdAt: row.created_at ? new Date(row.created_at).toISOString() : new Date().toISOString(),
+  }));
+}
+
+export async function dbCheckUserRole(userId: string | null): Promise<string[]> {
+  if (!userId) return [];
+  const res = await pool.query('SELECT role FROM user_roles WHERE user_id = $1', [userId]);
+  return res.rows.map((r) => r.role);
+}
+
+export async function dbLogSupervisorAction(
+  supervisorId: string | null,
+  action: string,
+  targetType: string,
+  targetId: string,
+  metadata?: any,
+  ipAddress?: string
+) {
+  await pool.query(
+    `
+    INSERT INTO supervisor_audit_logs (supervisor_id, action, target_type, target_id, metadata, ip_address, created_at)
+    VALUES ($1, $2, $3, $4, $5::jsonb, $6, NOW())
+    `,
+    [supervisorId, action, targetType, targetId, JSON.stringify(metadata || {}), ipAddress || null]
+  );
+}
+
+export async function dbGetSupervisorAuditLogs(limit: number = 50) {
+  const res = await pool.query(
+    'SELECT * FROM supervisor_audit_logs ORDER BY created_at DESC LIMIT $1',
+    [limit]
+  );
+  return res.rows.map((row) => ({
+    id: row.id,
+    supervisorId: row.supervisor_id,
+    action: row.action,
+    targetType: row.target_type,
+    targetId: row.target_id,
+    metadata: row.metadata,
+    ipAddress: row.ip_address,
+    createdAt: row.created_at ? new Date(row.created_at).toISOString() : new Date().toISOString(),
+  }));
+}
+
+// ==================== SAFE IDEMPOTENT ACCOUNT DELETION ====================
+
+export async function dbDeleteUserAccountCompletely(userId: string): Promise<void> {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
@@ -775,41 +1278,53 @@ export async function dbDeleteUserAccount(userId: string): Promise<void> {
     await client.query(
       'DELETE FROM ai_chat_messages WHERE session_id IN (SELECT id FROM ai_chat_sessions WHERE user_id = $1)',
       [userId]
-    ).catch(() => {});
-    await client.query('DELETE FROM ai_chat_sessions WHERE user_id = $1', [userId]).catch(() => {});
+    );
+    await client.query('DELETE FROM ai_chat_sessions WHERE user_id = $1', [userId]);
+    await client.query('DELETE FROM ai_tokens WHERE user_id = $1', [userId]);
 
     // 2. Delete tasks and routine templates
-    await client.query('DELETE FROM tasks WHERE user_id = $1', [userId]).catch(() => {});
-    await client.query('DELETE FROM routine_templates WHERE user_id = $1', [userId]).catch(() => {});
+    await client.query('DELETE FROM tasks WHERE user_id = $1', [userId]);
+    await client.query('DELETE FROM routine_templates WHERE user_id = $1', [userId]);
 
     // 3. Delete notes and mind items
-    await client.query('DELETE FROM notes WHERE user_id = $1', [userId]).catch(() => {});
-    await client.query('DELETE FROM mind_items WHERE user_id = $1', [userId]).catch(() => {});
+    await client.query('DELETE FROM note_blocks WHERE note_id IN (SELECT id FROM notes WHERE user_id = $1)', [userId]);
+    await client.query('DELETE FROM notes WHERE user_id = $1', [userId]);
+    await client.query('DELETE FROM mind_items WHERE user_id = $1', [userId]);
 
     // 4. Delete focus sessions and distractions
-    await client.query('DELETE FROM distraction_entries WHERE user_id = $1', [userId]).catch(() => {});
-    await client.query('DELETE FROM focus_sessions WHERE user_id = $1', [userId]).catch(() => {});
+    await client.query('DELETE FROM focus_sessions WHERE user_id = $1', [userId]);
 
     // 5. Delete diary entries and topics
-    await client.query('DELETE FROM diary_entries WHERE user_id = $1', [userId]).catch(() => {});
-    await client.query('DELETE FROM diary_topics WHERE user_id = $1', [userId]).catch(() => {});
+    await client.query('DELETE FROM diary_entries WHERE user_id = $1', [userId]);
+    await client.query('DELETE FROM diary_topics WHERE user_id = $1', [userId]);
 
     // 6. Delete learning logs and folders
-    await client.query('DELETE FROM learning_logs WHERE user_id = $1', [userId]).catch(() => {});
-    await client.query('DELETE FROM learning_folders WHERE user_id = $1', [userId]).catch(() => {});
+    await client.query('DELETE FROM learning_logs WHERE user_id = $1', [userId]);
+    await client.query('DELETE FROM learning_folders WHERE user_id = $1', [userId]);
 
     // 7. Delete review prompt states and reviews
-    await client.query('DELETE FROM review_prompt_state WHERE user_id = $1', [userId]).catch(() => {});
-    await client.query('DELETE FROM reviews WHERE user_id = $1', [userId]).catch(() => {});
+    await client.query('DELETE FROM review_prompt_state WHERE user_id = $1', [userId]);
+    await client.query('DELETE FROM reviews WHERE user_id = $1', [userId]);
 
-    // 8. Delete user cloud state & profiles
-    await client.query('DELETE FROM user_cloud_state WHERE id = $1', [userId]).catch(() => {});
-    await client.query('DELETE FROM profiles WHERE id = $1', [userId]).catch(() => {});
+    // 8. Delete user cloud state, notification settings, push subscriptions
+    await client.query('DELETE FROM user_cloud_state WHERE id = $1', [userId]);
+    await client.query('DELETE FROM user_notification_settings WHERE user_id = $1', [userId]);
+    await client.query('DELETE FROM push_subscriptions WHERE user_id = $1', [userId]);
+    await client.query('DELETE FROM sent_notifications_log WHERE user_id = $1', [userId]);
+    await client.query('DELETE FROM user_roles WHERE user_id = $1', [userId]);
 
-    // 9. Delete auth user from auth.users (if accessible via direct DB connection)
-    await client.query('DELETE FROM auth.users WHERE id = $1', [userId]).catch((err) => {
-      console.warn('[dbDeleteUserAccount] Could not direct-delete from auth.users:', err?.message);
-    });
+    // 9. Anonymize any support tickets linked to this user
+    await client.query(
+      `
+      UPDATE support_tickets 
+      SET user_id = NULL, name = 'Deleted User', email = 'deleted@focusforge.app' 
+      WHERE user_id = $1
+      `,
+      [userId]
+    );
+
+    // 10. Delete profile row
+    await client.query('DELETE FROM profiles WHERE id = $1', [userId]);
 
     await client.query('COMMIT');
   } catch (err) {
@@ -820,34 +1335,26 @@ export async function dbDeleteUserAccount(userId: string): Promise<void> {
   }
 }
 
+
+// ==================== LEGACY COMPATIBILITY HELPERS ====================
+export async function dbDeleteUserAccount(userId: string) {
+  return dbDeleteUserAccountCompletely(userId);
+}
+
 export async function dbSaveSupportSubmission(
   userId: string | null,
   type: 'report' | 'contact' | 'feedback',
   payload: Record<string, any>
 ) {
-  // Ensure support_submissions table exists (graceful create)
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS support_submissions (
-      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-      user_id TEXT,
-      type TEXT NOT NULL,
-      payload JSONB NOT NULL,
-      created_at TIMESTAMPTZ DEFAULT NOW()
-    );
-  `).catch(() => {});
-
-  const res = await pool.query(
-    `
-    INSERT INTO support_submissions (user_id, type, payload, created_at)
-    VALUES ($1, $2, $3, NOW())
-    RETURNING id, created_at;
-    `,
-    [userId, type, JSON.stringify(payload)]
-  ).catch((err) => {
-    console.warn('[dbSaveSupportSubmission] Table insert warning, logging payload:', err?.message);
-    return { rows: [{ id: 'temp_' + Date.now(), created_at: new Date().toISOString() }] };
+  return dbCreateSupportTicket({
+    userId,
+    type,
+    category: payload.category || payload.type || 'General',
+    subject: payload.subject || payload.title || (type.toUpperCase() + ' Submission'),
+    message: payload.message || payload.description || '',
+    name: payload.name || 'User',
+    email: payload.email || '',
+    attachments: payload.screenshot ? [payload.screenshot] : (payload.attachments || []),
+    isGuest: !userId,
   });
-
-  return res.rows[0];
 }
-

@@ -86,7 +86,10 @@ export default function QuickCapture() {
 
   return (
     <div
-      className={`fixed inset-0 z-[95] flex items-start justify-center pt-[20vh] ${isExiting ? "motion-exit-fade" : "motion-overlay"}`}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Quick capture"
+      className={`fixed inset-0 z-[95] flex items-start justify-center pt-[10vh] sm:pt-[18vh] p-3 sm:p-4 ${isExiting ? "motion-exit-fade" : "motion-overlay"}`}
       onClick={(e) => {
         if (e.target === e.currentTarget) {
           setIsOpen(false);

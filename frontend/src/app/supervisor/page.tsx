@@ -364,7 +364,7 @@ export default function SupervisorPortal() {
                 placeholder="Search ticket #, subject, sender..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-secondary)] focus:outline-none focus:ring-1 focus:ring-primary"
+                className="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-secondary)] focus:outline-none focus:border-primary transition-colors"
               />
             </div>
 
@@ -582,7 +582,7 @@ export default function SupervisorPortal() {
                   value={internalNotesText}
                   onChange={(e) => setInternalNotesText(e.target.value)}
                   placeholder="Add internal investigation notes, actions taken, or assignee info..."
-                  className="w-full p-3 text-xs rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-secondary)] focus:outline-none focus:ring-1 focus:ring-amber-500"
+                  className="w-full p-3 text-xs rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-secondary)] focus:outline-none focus:border-amber-500 transition-colors"
                 />
               </div>
 
@@ -634,7 +634,7 @@ export default function SupervisorPortal() {
                     value={replyText}
                     onChange={(e) => setReplyText(e.target.value)}
                     placeholder="Type your response to the customer..."
-                    className="w-full p-3 text-sm rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-secondary)] focus:outline-none focus:ring-1 focus:ring-primary"
+                    className="w-full p-3 text-sm rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-secondary)] focus:outline-none focus:border-primary transition-colors"
                     required
                   />
                   <div className="flex justify-end">

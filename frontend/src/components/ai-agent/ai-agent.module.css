@@ -66,9 +66,15 @@
 }
 
 /* Focus state accessibility */
-.agentShell :focus-visible {
+.agentShell button:focus-visible,
+.agentShell a:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
+}
+.agentShell textarea,
+.agentShell input {
+  outline: none !important;
+  box-shadow: none !important;
 }
 
 /* Responsive Central Layout Container */
@@ -412,90 +418,125 @@
   display: inline-flex;
 }
 
-.moodPopover {
+.moodPopover,
+.moodPopoverBottom {
   position: absolute;
-  top: calc(100% + 8px);
-  right: 0;
-  width: 290px;
+  width: 210px;
   background: var(--surface);
   border: 1px solid var(--line-strong);
-  border-radius: 16px;
-  padding: 12px;
+  border-radius: 12px;
+  padding: 5px;
   box-shadow: var(--dropdown-shadow);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   z-index: 100;
-  animation: menuFadeIn 0.18s cubic-bezier(0.16, 1, 0.3, 1);
   display: flex;
   flex-direction: column;
-  gap: 8px;
 }
 
-.moodPopoverHeader {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 2px 4px 6px 4px;
-  border-bottom: 1px solid var(--line);
+.moodPopover {
+  top: calc(100% + 8px);
+  right: 0;
+  animation: menuFadeIn 0.18s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.moodPopoverTitle {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+.moodPopoverBottom {
+  bottom: calc(100% + 8px);
+  left: 0;
+  max-width: calc(100vw - 32px);
+  animation: menuFadeUp 0.18s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+@keyframes menuFadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.moodGrid,
 .moodPopoverGrid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 6px;
+  gap: 3.5px;
 }
 
+.moodItem,
 .moodPopoverItem {
   background: var(--surface-2);
   border: 1px solid var(--line);
-  border-radius: 10px;
-  padding: 7px 10px;
+  border-radius: 6px;
+  padding: 4px 6px;
+  min-height: 25px;
   display: flex;
   align-items: center;
-  gap: 8px;
+  justify-content: center;
+  text-align: center;
   cursor: pointer;
   color: var(--text);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 500;
+  line-height: 1.2;
   transition: all 0.14s ease;
   user-select: none;
 }
 
+.moodItem:hover,
 .moodPopoverItem:hover {
   background: var(--line);
-  border-color: var(--accent);
-  transform: translateY(-1px);
+  border-color: var(--line-strong);
+  color: var(--text);
 }
 
+.moodItemActive,
 .moodPopoverItemActive {
-  background: rgba(59, 130, 246, 0.15);
+  background: rgba(56, 189, 248, 0.14);
   border-color: var(--accent);
   color: var(--accent);
   font-weight: 600;
 }
 
-.moodDot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  flex-shrink: 0;
-  box-shadow: 0 0 8px currentColor;
-}
-
+.moodLabel,
 .moodName {
-  flex: 1;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  text-align: left;
+  font-size: 11px;
+  line-height: 1.2;
+}
+
+/* ── SCROLLABLE CHAT CONVERSATION AREA ── */
+.chatArea {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 12px 16px 145px 16px;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  scrollbar-width: thin;
+  scrollbar-color: var(--line) transparent;
+  box-sizing: border-box;
+}
+
+@media (max-width: 767px) {
+  .chatArea {
+    padding: 12px 14px calc(140px + 4.25rem + env(safe-area-inset-bottom, 0px)) 14px;
+  }
+  .chatAreaKeyboardOpen {
+    padding-bottom: 145px !important;
+  }
+}
+
+@media (min-width: 768px) {
+  .chatArea {
+    padding: 16px 24px 150px 24px;
+  }
 }
 
 /* Bottom Interactive AI Orb Stage during Conversation */
@@ -504,10 +545,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 16px 0 8px 0;
-  margin-top: auto;
-  position: relative;
-  z-index: 5;
+  padding: 20px 0 16px 0;
+  margin-top: 14px;
 }
 
 .bottomOrbInner {
@@ -518,24 +557,10 @@
   max-width: 680px;
 }
 
-/* Main Content Area */
-.chatArea {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  overflow-x: hidden;
-  padding: 12px 16px 135px 16px;
-  display: flex;
-  flex-direction: column;
-  position: relative;
-  scrollbar-width: thin;
-  scrollbar-color: var(--line) transparent;
-  box-sizing: border-box;
-}
-
-@media (min-width: 768px) {
-  .chatArea {
-    padding: 16px 24px 140px 24px;
+@media (max-width: 640px) {
+  .bottomOrbStageWrapper {
+    padding: 16px 0 24px 0;
+    margin-top: 10px;
   }
 }
 
@@ -554,7 +579,7 @@
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  padding: 4px 0 14px 0;
+  padding: 12px 0 24px 0;
   text-align: center;
   max-width: 680px;
   width: 100%;
@@ -885,19 +910,28 @@
   bottom: calc(4.25rem + env(safe-area-inset-bottom, 0px));
   left: 0;
   right: 0;
-  padding: 6px 12px 6px 12px;
+  padding: 4px 12px;
   z-index: 20;
   display: flex;
   flex-direction: column;
   align-items: center;
+  box-sizing: border-box;
   pointer-events: none;
+  transition: bottom 0.2s ease, padding-bottom 0.2s ease;
+}
+
+@media (max-width: 767px) {
+  .composerWrapperKeyboardOpen {
+    bottom: 0 !important;
+    padding-bottom: 6px !important;
+  }
 }
 
 @media (min-width: 768px) {
   .composerWrapper {
     bottom: 0;
-    padding: 8px 24px 14px 24px;
-    padding-bottom: max(14px, env(safe-area-inset-bottom, 14px));
+    padding: 6px 24px 12px 24px;
+    padding-bottom: max(12px, env(safe-area-inset-bottom, 12px));
   }
 }
 
@@ -910,52 +944,412 @@
   gap: 4px;
 }
 
-/* The input box itself */
-.composerBox {
+/* ── GEMINI STYLE COMPACT PILL COMPOSER (Exact Gemini style single unified capsule bar) ── */
+.composerPillBox {
   position: relative;
-  overflow: hidden;
-  background: var(--surface);
-  border: 1px solid var(--line-strong);
-  border-radius: 20px;
-  padding: 12px 12px 12px 16px;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: 9999px;
+  padding: 6px 12px 6px 16px;
+  min-height: 52px;
   display: flex;
-  flex-direction: column;
-  box-shadow: var(--card-shadow);
+  align-items: center;
+  gap: 10px;
+  box-shadow: none !important;
+  outline: none !important;
   transition: border-color 0.15s ease;
   box-sizing: border-box;
-}
-
-.composerBox:focus-within {
-  border-color: var(--accent);
-}
-
-.textarea {
   width: 100%;
+}
+
+.composerPillBox:focus-within {
+  border-color: var(--line-strong);
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+.pillMoodBtn {
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  min-height: 32px;
+  border-radius: 50%;
   background: transparent;
   border: none;
-  outline: none;
-  color: var(--text);
-  font-family: var(--ff-font);
-  font-size: 15.5px;
-  line-height: 1.45;
-  resize: none;
-  max-height: 140px;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
   padding: 0;
-  margin-bottom: 8px;
+  transition: color 0.15s ease, opacity 0.15s ease;
+  user-select: none;
+  flex-shrink: 0;
+}
+
+.pillMoodBtn:hover {
+  color: var(--text);
+  opacity: 0.9;
+}
+
+.pillMoodBtnActive {
+  color: var(--accent);
+}
+
+.pillTextarea,
+.composerPillBox textarea,
+:global(.composer-pill-box) textarea,
+:global(.composer-pill-textarea) {
+  flex: 1;
+  min-width: 0;
+  height: 24px;
+  min-height: 24px;
+  max-height: 180px;
+  background: transparent !important;
+  background-color: transparent !important;
+  border: 0 !important;
+  border-width: 0 !important;
+  border-radius: 0 !important;
+  outline: none !important;
+  box-shadow: none !important;
+  -webkit-box-shadow: none !important;
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  appearance: none !important;
+  color: var(--text) !important;
+  font-family: var(--ff-font);
+  font-size: 15px;
+  line-height: 24px;
+  resize: none;
+  padding: 0 !important;
+  margin: 0 !important;
+  box-sizing: border-box;
+  scrollbar-width: thin;
+  scrollbar-color: var(--line) transparent;
+}
+
+.pillTextarea:focus,
+.pillTextarea:focus-visible,
+.pillTextarea:active,
+.pillTextarea:hover,
+.composerPillBox textarea:focus,
+.composerPillBox textarea:focus-visible,
+.composerPillBox textarea:active,
+.composerPillBox textarea:hover,
+:global(.composer-pill-textarea):focus,
+:global(.composer-pill-textarea):focus-visible,
+:global(.composer-pill-textarea):active,
+:global(.composer-pill-textarea):hover {
+  background: transparent !important;
+  background-color: transparent !important;
+  border: 0 !important;
+  border-width: 0 !important;
+  outline: none !important;
+  box-shadow: none !important;
+  -webkit-box-shadow: none !important;
+}
+
+.pillTextarea::-webkit-scrollbar {
+  width: 4px;
+}
+.pillTextarea::-webkit-scrollbar-thumb {
+  background-color: var(--line);
+  border-radius: 4px;
+}
+
+.pillTextarea::placeholder {
+  color: var(--muted);
+  opacity: 0.8;
+  font-size: 15px;
+  line-height: 24px;
+}
+
+.pillControlsRight {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.modelMenuWrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.pillModelBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 32px;
+  padding: 0 8px;
+  border-radius: 9999px;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+.pillModelBtn:hover,
+.pillModelBtnActive {
+  background: var(--surface);
+  border-color: var(--line);
+  color: var(--text);
+}
+
+.modelChevron {
+  transition: transform 0.2s ease;
+  color: var(--muted);
+  flex-shrink: 0;
+}
+
+.modelChevronOpen {
+  transform: rotate(180deg);
+}
+
+.modelPopover {
+  position: absolute;
+  bottom: calc(100% + 10px);
+  right: 0;
+  width: 250px;
+  max-width: calc(100vw - 32px);
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  border-radius: 14px;
+  padding: 6px;
+  box-shadow: var(--dropdown-shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  z-index: 1000;
+  animation: modelPopoverFadeIn 0.18s cubic-bezier(0.16, 1, 0.3, 1);
   box-sizing: border-box;
 }
 
-.textarea::placeholder {
+@keyframes modelPopoverFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.modelPopoverHeader {
+  padding: 6px 10px 4px 10px;
+  font-size: 11px;
+  font-weight: 600;
   color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 2px;
+}
+
+.modelMenuItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: transparent;
+  border: 1px solid transparent;
+  cursor: pointer;
+  text-align: left;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+  box-sizing: border-box;
+  width: 100%;
+  color: var(--text);
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+.modelMenuItem:hover {
+  background: var(--surface-2);
+}
+
+.modelMenuItemActive {
+  background: var(--surface-2);
+  border-color: var(--line);
+}
+
+.modelMenuIconWrap {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.modelIconFast {
+  background: rgba(245, 158, 11, 0.12);
+  color: #F59E0B;
+}
+
+.modelIconDeep {
+  background: rgba(59, 130, 246, 0.12);
+  color: #3B82F6;
+}
+
+.modelMenuInfo {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.modelMenuTitleRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.modelMenuName {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.2;
+}
+
+.modelMenuBadge {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 1px 5px;
+  border-radius: 999px;
+  background: rgba(245, 158, 11, 0.15);
+  color: #F59E0B;
+}
+
+.modelMenuBadgeDeep {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 1px 5px;
+  border-radius: 999px;
+  background: rgba(59, 130, 246, 0.15);
+  color: #60A5FA;
+}
+
+.modelMenuDesc {
+  font-size: 11.5px;
+  color: var(--muted);
+  line-height: 1.3;
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.modelCheckIcon {
+  color: var(--accent);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pillIconBtn {
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  min-height: 32px;
+  border-radius: 50%;
+  background: transparent;
+  border: none;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  transition: opacity 0.15s ease;
+  user-select: none;
+  flex-shrink: 0;
+}
+
+.pillIconBtn:hover {
   opacity: 0.8;
 }
 
-/* Tools row under the textarea */
-.toolsRow {
+.pillIconBtnActive {
+  color: #ef4444;
+}
+
+.pillSendBtn {
+  width: 34px;
+  height: 34px;
+  min-width: 34px;
+  min-height: 34px;
+  border-radius: 50%;
+  background: var(--primary);
+  border: none;
+  color: var(--on-primary);
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 8px;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  transition: transform 0.1s ease, opacity 0.15s ease;
+  user-select: none;
+  flex-shrink: 0;
+}
+
+.pillSendBtn:hover {
+  opacity: 0.92;
+  transform: scale(1.04);
+}
+
+.pillSendBtn:active {
+  transform: scale(0.96);
+}
+
+.toolsLeft {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.composerMoodBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 29px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  color: var(--muted);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.composerMoodBtn:hover {
+  color: var(--text);
+  border-color: var(--line-strong);
+  background: var(--surface);
+}
+
+.composerMoodBtnActive {
+  background: var(--surface);
+  border-color: var(--line-strong);
+  color: var(--accent);
+}
+
+.composerMoodDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
 }
 
 /* Model Selector (Fast / Deep icon switcher) */

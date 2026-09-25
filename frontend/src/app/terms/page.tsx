@@ -1,8 +1,15 @@
-"use client";
-
 import React from "react";
+import type { Metadata } from "next";
 import Link from "next/link";
 import { AuthIcons } from "../../components/auth/AuthIcons";
+
+export const metadata: Metadata = {
+  title: "Terms of Service",
+  description: "Review the Terms of Service for using FocusForge productivity suite, personal external brain, and focus tools.",
+  alternates: {
+    canonical: "/terms",
+  },
+};
 
 export default function TermsPage() {
   return (

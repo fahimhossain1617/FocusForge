@@ -1,8 +1,15 @@
-"use client";
-
 import React from "react";
+import type { Metadata } from "next";
 import Link from "next/link";
 import { AuthIcons } from "../../components/auth/AuthIcons";
+
+export const metadata: Metadata = {
+  title: "Privacy Policy",
+  description: "Learn how FocusForge protects your personal data, ensures data ownership, and maintains end-to-end privacy for your notes and tasks.",
+  alternates: {
+    canonical: "/privacy",
+  },
+};
 
 export default function PrivacyPage() {
   return (

@@ -90,17 +90,18 @@ export default function MobileHeader() {
       {/* COMPACT / MOBILE HEADER BAR                                  */}
       {/* ============================================================ */}
       <header
-        className="md:hidden sticky top-0 z-30 flex items-center justify-between px-4 py-2.5 border-b backdrop-blur-xl transition-colors shrink-0 select-none"
+        className="md:hidden sticky top-0 z-30 flex items-center justify-between px-4 py-2.5 border-b backdrop-blur-xl transition-colors shrink-0 select-none min-h-[52px]"
         style={{
           backgroundColor: isLight ? "rgba(243, 247, 252, 0.94)" : "rgba(10, 14, 26, 0.85)",
           borderColor: isLight ? "#DCE5F0" : "var(--color-border-subtle)",
+          paddingTop: "calc(0.625rem + env(safe-area-inset-top, 0px))",
         }}
       >
         {/* Unified Brand Unit: [ App Icon ] [ FocusForge ] */}
         <button
           type="button"
           onClick={() => navigateTo("today")}
-          className="flex items-center gap-2.5 cursor-pointer rounded-xl p-1 -ml-1 transition-transform active:scale-95 outline-none focus-visible:ring-2 focus-visible:ring-[#2563EB] border-none text-left"
+          className="flex items-center gap-2.5 cursor-pointer rounded-xl p-1 -ml-1 transition-transform active:scale-95 outline-none focus-visible:ring-2 focus-visible:ring-[#2563EB] border-none text-left min-h-[44px]"
           aria-label="FocusForge Home"
           title="FocusForge Home"
         >
@@ -116,15 +117,15 @@ export default function MobileHeader() {
         </button>
 
         {/* Right Actions: Clean Unboxed Bell + 3-Dots Menu */}
-        <div className="flex items-center gap-0.5">
+        <div className="flex items-center gap-1">
           {/* 1. Normal Clean Bell Icon (No box/border around it) */}
           <button
             type="button"
             onClick={() => {
               setIsMenuOpen(false);
-              setIsNotifOpen((prev) => !prev)}
-            }
-            className={`relative p-2 rounded-xl flex items-center justify-center transition-colors cursor-pointer active:scale-95 ${
+              setIsNotifOpen((prev) => !prev);
+            }}
+            className={`relative w-10 h-10 min-w-[40px] min-h-[40px] rounded-xl flex items-center justify-center transition-colors cursor-pointer active:scale-95 ${
               isNotifOpen
                 ? isLight
                   ? "text-[#2563EB] bg-blue-50"
@@ -166,7 +167,7 @@ export default function MobileHeader() {
               }}
               aria-expanded={isMenuOpen}
               aria-label={isBn ? "অতিরিক্ত অপশন" : "More options"}
-              className={`p-2 rounded-xl flex items-center justify-center transition-colors cursor-pointer active:scale-95 ${
+              className={`w-10 h-10 min-w-[40px] min-h-[40px] rounded-xl flex items-center justify-center transition-colors cursor-pointer active:scale-95 ${
                 isMenuOpen
                   ? isLight
                     ? "text-[#2563EB] bg-blue-50"

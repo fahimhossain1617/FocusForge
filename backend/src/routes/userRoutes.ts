@@ -1,7 +1,34 @@
 import { Router, Response } from 'express';
 import { requireAuth, AuthenticatedRequest } from '../middleware/auth';
 import { createClient } from '@supabase/supabase-js';
-import { dbDeleteUserAccount, dbSaveSupportSubmission } from '../services/db';
+import {
+  dbGetUserProfile,
+  dbUpdateUserProfile,
+  dbCheckUsernameAvailable,
+  dbCreateSupportTicket,
+  dbDeleteUserAccountCompletely,
+  dbUpsertTask,
+  dbUpsertNote,
+  dbUpsertMindItem,
+  pool,
+} from '../services/db';
+import {
+  ERROR_CODES,
+  validateFullName,
+  validateDisplayName,
+  validatePhone,
+  validateDateOfBirth,
+  validateBio,
+  validateGender,
+  validatePassword,
+} from '../services/validation';
+import { checkRateLimit } from '../services/rateLimiter';
+import {
+  sendSupportNotificationToOwner,
+  sendSupportConfirmationToUser,
+  sendPasswordChangedEmail,
+  sendAccountDeletedEmail,
+} from '../services/emailService';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -10,6 +37,11 @@ const router = Router();
 const supabase = createClient(
   process.env.SUPABASE_URL || '',
   process.env.SUPABASE_ANON_KEY || ''
+);
+
+const supabaseServiceRole = createClient(
+  process.env.SUPABASE_URL || '',
+  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || ''
 );
 
 router.use(requireAuth);
@@ -32,47 +64,16 @@ router.get('/profile', async (req: AuthenticatedRequest, res: Response) => {
       });
     }
 
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', userId)
-      .maybeSingle();
-
-    if (error) {
-      return res.status(500).json({ error: error.message });
-    }
-
-    if (data) {
-      return res.json({
-        id: data.id,
-        identifier: data.identifier,
-        authMethod: data.auth_method || 'email',
-        displayName: data.display_name || 'User',
-        fullName: data.full_name || '',
-        phone: data.phone || '',
-        dateOfBirth: data.date_of_birth || '',
-        gender: data.gender || '',
-        country: data.country || '',
-        city: data.city || '',
-        bio: data.bio || '',
-        avatarUrl: data.avatar_url,
-        preferredTheme: data.preferred_theme || 'dark',
-        preferredLanguage: data.preferred_language || 'en',
-        createdAt: data.created_at,
-        updatedAt: data.updated_at,
+    let profile = await dbGetUserProfile(userId);
+    if (!profile) {
+      profile = await dbUpdateUserProfile(userId, {
+        email: req.user?.email || 'user',
+        fullName: req.user?.user_metadata?.full_name || '',
+        displayName: '',
       });
     }
 
-    // Fallback from auth metadata
-    res.json({
-      id: req.user.id,
-      identifier: req.user.email || req.user.phone || 'User',
-      authMethod: req.user.app_metadata?.provider || 'email',
-      displayName: req.user.user_metadata?.display_name || 'User',
-      fullName: req.user.user_metadata?.full_name || '',
-      avatarUrl: req.user.user_metadata?.avatar_url || null,
-      createdAt: req.user.created_at || new Date().toISOString(),
-    });
+    res.json(profile);
   } catch (err: any) {
     res.status(500).json({ error: err.message || 'Failed to fetch user profile' });
   }
@@ -80,7 +81,7 @@ router.get('/profile', async (req: AuthenticatedRequest, res: Response) => {
 
 /**
  * PATCH /api/user/profile
- * Update current user profile
+ * Update current user profile with server validation
  */
 router.patch('/profile', async (req: AuthenticatedRequest, res: Response) => {
   try {
@@ -89,53 +90,352 @@ router.patch('/profile', async (req: AuthenticatedRequest, res: Response) => {
       return res.status(401).json({ error: 'Authentication required' });
     }
 
-    const { 
-      displayName, 
-      fullName, 
-      avatarUrl, 
-      identifier,
-      phone,
-      dateOfBirth,
-      gender,
-      country,
-      city,
-      bio,
-      preferredTheme,
-      preferredLanguage,
-    } = req.body;
+    const body = req.body;
 
-    const updates: Record<string, any> = {
-      updated_at: new Date().toISOString(),
-    };
-
-    if (displayName !== undefined) updates.display_name = displayName;
-    if (fullName !== undefined) updates.full_name = fullName;
-    if (avatarUrl !== undefined) updates.avatar_url = avatarUrl;
-    if (identifier !== undefined) updates.identifier = identifier;
-    if (phone !== undefined) updates.phone = phone;
-    if (dateOfBirth !== undefined) updates.date_of_birth = dateOfBirth;
-    if (gender !== undefined) updates.gender = gender;
-    if (country !== undefined) updates.country = country;
-    if (city !== undefined) updates.city = city;
-    if (bio !== undefined) updates.bio = bio;
-    if (preferredTheme !== undefined) updates.preferred_theme = preferredTheme;
-    if (preferredLanguage !== undefined) updates.preferred_language = preferredLanguage;
-
-    const { data, error } = await supabase
-      .from('profiles')
-      .update(updates)
-      .eq('id', userId)
-      .select()
-      .maybeSingle();
-
-    if (error) {
-      return res.status(500).json({ error: error.message });
+    // Server-side validations
+    if (body.fullName !== undefined) {
+      const v = validateFullName(body.fullName);
+      if (!v.valid) return res.status(400).json({ error: v.message, code: v.code });
     }
 
-    res.json(data);
+    if (body.displayName !== undefined && body.displayName.trim() !== '') {
+      const v = validateDisplayName(body.displayName);
+      if (!v.valid) return res.status(400).json({ error: v.message, code: v.code });
+      const available = await dbCheckUsernameAvailable(body.displayName, userId);
+      if (!available) {
+        return res.status(409).json({ error: 'Username is already taken.', code: ERROR_CODES.USERNAME_TAKEN });
+      }
+    }
+
+    if (body.phone !== undefined) {
+      const v = validatePhone(body.phone);
+      if (!v.valid) return res.status(400).json({ error: v.message, code: v.code });
+    }
+
+    if (body.dateOfBirth !== undefined) {
+      const v = validateDateOfBirth(body.dateOfBirth);
+      if (!v.valid) return res.status(400).json({ error: v.message, code: v.code });
+    }
+
+    if (body.bio !== undefined) {
+      const v = validateBio(body.bio);
+      if (!v.valid) return res.status(400).json({ error: v.message, code: v.code });
+    }
+
+    if (body.gender !== undefined) {
+      const v = validateGender(body.gender);
+      if (!v.valid) return res.status(400).json({ error: v.message, code: v.code });
+    }
+
+    const updated = await dbUpdateUserProfile(userId, body);
+    res.json(updated);
   } catch (err: any) {
     res.status(500).json({ error: err.message || 'Failed to update user profile' });
   }
+});
+
+/**
+ * GET /api/user/check-username?username=...
+ * Check if a display name or username is available
+ */
+router.get('/check-username', async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const clientIp = req.ip || req.headers['x-forwarded-for']?.toString() || '127.0.0.1';
+    const rateCheck = checkRateLimit(`check_user:${clientIp}`, 30, 60000);
+    if (!rateCheck.allowed) {
+      return res.status(429).json({ error: 'Too many requests', code: ERROR_CODES.TOO_MANY_ATTEMPTS });
+    }
+
+    const username = (req.query.username as string) || '';
+    const val = validateDisplayName(username);
+    if (!val.valid) {
+      return res.json({ available: false, valid: false, message: val.message, code: val.code });
+    }
+
+    const available = await dbCheckUsernameAvailable(username, req.user?.id || undefined);
+    res.json({ available, valid: true });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Database check failed', code: ERROR_CODES.SERVER_ERROR });
+  }
+});
+
+/**
+ * POST /api/user/avatar
+ * Upload or set user avatar URL
+ */
+router.post('/avatar', async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId || req.user?.isGuest) {
+      return res.status(401).json({ error: 'Authentication required', code: ERROR_CODES.UNAUTHORIZED });
+    }
+
+    const { avatarUrl } = req.body;
+    if (!avatarUrl || typeof avatarUrl !== 'string') {
+      return res.status(400).json({ error: 'Valid avatar URL is required', code: ERROR_CODES.INVALID_INPUT });
+    }
+
+    const updated = await dbUpdateUserProfile(userId, { avatarUrl });
+    res.json({ success: true, profile: updated });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to update avatar', code: ERROR_CODES.SERVER_ERROR });
+  }
+});
+
+/**
+ * DELETE /api/user/avatar
+ * Remove user avatar
+ */
+router.delete('/avatar', async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId || req.user?.isGuest) {
+      return res.status(401).json({ error: 'Authentication required', code: ERROR_CODES.UNAUTHORIZED });
+    }
+
+    await dbUpdateUserProfile(userId, { avatarUrl: null });
+    res.json({ success: true });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to remove avatar', code: ERROR_CODES.SERVER_ERROR });
+  }
+});
+
+/**
+ * POST /api/user/change-password
+ * Change password with provider checks, rate limiting and security notification email
+ */
+router.post('/change-password', async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId || req.user?.isGuest) {
+      return res.status(401).json({ error: 'Authentication required', code: ERROR_CODES.UNAUTHORIZED });
+    }
+
+    const clientIp = req.ip || req.headers['x-forwarded-for']?.toString() || '127.0.0.1';
+    const rateCheck = checkRateLimit(`pwd_change:${userId}`, 5, 900000); // 5 attempts per 15 min
+    if (!rateCheck.allowed) {
+      return res.status(429).json({
+        error: `Too many attempts. Please try again in ${rateCheck.retryAfterSeconds} seconds.`,
+        code: ERROR_CODES.TOO_MANY_ATTEMPTS,
+      });
+    }
+
+    const authProvider = req.user.app_metadata?.provider || 'email';
+    if (authProvider === 'google' || authProvider === 'apple' || authProvider === 'github') {
+      return res.status(400).json({
+        error: `This account is managed through Google login. Password change is handled by Google.`,
+        code: ERROR_CODES.PASSWORD_MANAGED_BY_PROVIDER,
+      });
+    }
+
+    const { newPassword } = req.body;
+    const v = validatePassword(newPassword);
+    if (!v.valid) {
+      return res.status(400).json({ error: v.message, code: v.code });
+    }
+
+    const { error: updateError } = await supabaseServiceRole.auth.admin.updateUserById(userId, {
+      password: newPassword,
+    });
+
+    if (updateError) {
+      return res.status(400).json({ error: updateError.message, code: ERROR_CODES.INVALID_PASSWORD });
+    }
+
+    const userEmail = req.user.email;
+    if (userEmail) {
+      sendPasswordChangedEmail(userEmail);
+    }
+
+    res.json({ success: true, message: 'Password updated successfully' });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to change password', code: ERROR_CODES.SERVER_ERROR });
+  }
+});
+
+/**
+ * DELETE /api/user/account
+ * Completely deletes all user profile, task, note, diary, focus, learning, AI, and state data.
+ */
+router.delete('/account', async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId || req.user?.isGuest) {
+      return res.status(401).json({ error: 'Authentication required', code: ERROR_CODES.UNAUTHORIZED });
+    }
+
+    const userEmail = req.user.email;
+
+    // 1. Safe idempotent database cleanup
+    await dbDeleteUserAccountCompletely(userId);
+
+    // 2. Send confirmation email
+    if (userEmail) {
+      sendAccountDeletedEmail(userEmail);
+    }
+
+    // 3. Delete auth account in Supabase
+    try {
+      await supabaseServiceRole.auth.admin.deleteUser(userId);
+    } catch (e: any) {
+      console.warn('[Account deletion] Supabase auth user delete notice:', e?.message);
+    }
+
+    res.json({ success: true, message: 'Account and all associated data permanently deleted.' });
+  } catch (err: any) {
+    console.error('[DELETE /api/user/account] Error:', err);
+    res.status(500).json({ error: err.message || 'Failed to delete user account', code: ERROR_CODES.SERVER_ERROR });
+  }
+});
+
+/**
+ * POST /api/user/migrate-guest-data
+ * Migrates local guest data (tasks, notes, mind items) into authenticated account
+ */
+router.post('/migrate-guest-data', async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId || req.user?.isGuest) {
+      return res.status(401).json({ error: 'Authentication required to merge data', code: ERROR_CODES.UNAUTHORIZED });
+    }
+
+    const { tasks = [], notes = [], mindItems = [] } = req.body;
+    let tasksMigrated = 0;
+    let notesMigrated = 0;
+    let mindMigrated = 0;
+
+    for (const t of tasks) {
+      try {
+        await dbUpsertTask(userId, { ...t, id: undefined });
+        tasksMigrated++;
+      } catch {}
+    }
+
+    for (const n of notes) {
+      try {
+        await dbUpsertNote(userId, { ...n, id: undefined });
+        notesMigrated++;
+      } catch {}
+    }
+
+    for (const m of mindItems) {
+      try {
+        await dbUpsertMindItem(userId, { ...m, id: undefined });
+        mindMigrated++;
+      } catch {}
+    }
+
+    res.json({
+      success: true,
+      migrated: { tasks: tasksMigrated, notes: notesMigrated, mindItems: mindMigrated },
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Migration failed', code: ERROR_CODES.SERVER_ERROR });
+  }
+});
+
+/**
+ * Support pipeline handler helper
+ */
+async function handleSupportSubmission(req: AuthenticatedRequest, res: Response, type: 'report' | 'contact' | 'feedback') {
+  try {
+    const userId = req.user?.isGuest ? null : (req.user?.id || null);
+    const clientIp = req.ip || req.headers['x-forwarded-for']?.toString() || '127.0.0.1';
+    const rateKey = userId ? `support:${userId}` : `support_ip:${clientIp}`;
+    const rateCheck = checkRateLimit(rateKey, 10, 3600000); // 10 submissions per hour
+    if (!rateCheck.allowed) {
+      return res.status(429).json({ error: 'Too many submissions. Please wait before sending another message.', code: ERROR_CODES.TOO_MANY_ATTEMPTS });
+    }
+
+    const body = req.body;
+    const senderName = body.name || (userId ? 'FocusForge User' : 'Guest User');
+    const senderEmail = body.email || req.user?.email || '';
+    const subject = body.subject || body.title || `${type.toUpperCase()} Submission`;
+    const message = body.message || body.description || '';
+    const category = body.category || body.type || 'General';
+    const attachments = body.screenshot ? [body.screenshot] : body.attachments || [];
+    const appVersion = body.appVersion || '1.0.0';
+    const browserInfo = body.browserInfo || req.headers['user-agent'] || undefined;
+    const lang = (req.headers['x-app-lang'] as string) || 'bn';
+
+    if (!message.trim() && !subject.trim()) {
+      return res.status(400).json({ error: 'Message cannot be empty', code: ERROR_CODES.INVALID_INPUT });
+    }
+
+    // 1. Create support ticket
+    const ticket = await dbCreateSupportTicket({
+      userId,
+      type,
+      category,
+      subject,
+      message,
+      name: senderName,
+      email: senderEmail,
+      attachments,
+      isGuest: !userId,
+      appVersion,
+      browserInfo,
+      language: lang,
+    });
+
+    if (!ticket) {
+      throw new Error('Ticket creation failed');
+    }
+
+    // 2. Dispatch emails in background
+    sendSupportNotificationToOwner({
+      ticketNumber: ticket.ticketNumber,
+      type: ticket.type,
+      senderName: ticket.name || 'Anonymous',
+      senderEmail: ticket.email || 'noreply@focusforge.app',
+      subject: ticket.subject,
+      message: ticket.message,
+      appVersion: ticket.appVersion || '1.0.0',
+      browserInfo: ticket.browserInfo || undefined,
+      isGuest: ticket.isGuest,
+      attachments: ticket.attachments,
+    });
+
+    if (ticket.email) {
+      sendSupportConfirmationToUser({
+        ticketNumber: ticket.ticketNumber,
+        senderName: ticket.name || 'there',
+        senderEmail: ticket.email,
+        subject: ticket.subject,
+      });
+    }
+
+    res.json({
+      success: true,
+      ticketNumber: ticket.ticketNumber,
+      ticketId: ticket.id,
+      message: 'Your message has been received. Ticket created.',
+    });
+  } catch (err: any) {
+    console.error('[Support Submission Error]:', err);
+    res.status(500).json({ error: err.message || 'Failed to submit ticket', code: ERROR_CODES.SERVER_ERROR });
+  }
+}
+
+/**
+ * POST /api/user/support/report
+ */
+router.post('/support/report', (req: AuthenticatedRequest, res: Response) => {
+  return handleSupportSubmission(req, res, 'report');
+});
+
+/**
+ * POST /api/user/support/contact
+ */
+router.post('/support/contact', (req: AuthenticatedRequest, res: Response) => {
+  return handleSupportSubmission(req, res, 'contact');
+});
+
+/**
+ * POST /api/user/support/feedback
+ */
+router.post('/support/feedback', (req: AuthenticatedRequest, res: Response) => {
+  return handleSupportSubmission(req, res, 'feedback');
 });
 
 /**
@@ -203,7 +503,6 @@ router.post('/state', async (req: AuthenticatedRequest, res: Response) => {
 
 /**
  * GET /api/user/onboarding
- * Get onboarding completion & preference state for authenticated user
  */
 router.get('/onboarding', async (req: AuthenticatedRequest, res: Response) => {
   try {
@@ -255,7 +554,6 @@ router.get('/onboarding', async (req: AuthenticatedRequest, res: Response) => {
 
 /**
  * POST /api/user/onboarding
- * Persist onboarding completion and preferences for current user
  */
 router.post('/onboarding', async (req: AuthenticatedRequest, res: Response) => {
   try {
@@ -304,101 +602,4 @@ router.post('/onboarding', async (req: AuthenticatedRequest, res: Response) => {
   }
 });
 
-/**
- * DELETE /api/user/account
- * Completely deletes all user profile, task, note, diary, focus, learning, AI, and state data.
- */
-router.delete('/account', async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    const userId = req.user?.id;
-    if (!userId || req.user?.isGuest) {
-      return res.status(401).json({ error: 'Authentication required' });
-    }
-
-    await dbDeleteUserAccount(userId);
-
-    res.json({ success: true, message: 'Account and all associated data permanently deleted.' });
-  } catch (err: any) {
-    console.error('[DELETE /api/user/account] Error:', err);
-    res.status(500).json({ error: err.message || 'Failed to delete user account' });
-  }
-});
-
-/**
- * POST /api/user/support/report
- * Store problem report
- */
-router.post('/support/report', async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    const userId = req.user?.id || null;
-    const { category, title, description, screenshot } = req.body;
-
-    if (!title || !description) {
-      return res.status(400).json({ error: 'Title and description are required' });
-    }
-
-    const submission = await dbSaveSupportSubmission(userId, 'report', {
-      category: category || 'Bug',
-      title,
-      description,
-      screenshot: screenshot ? (screenshot.length > 200 ? screenshot.substring(0, 100) + '...[attached]' : screenshot) : null,
-    });
-
-    res.json({ success: true, submissionId: submission.id });
-  } catch (err: any) {
-    res.status(500).json({ error: err.message || 'Failed to submit problem report' });
-  }
-});
-
-/**
- * POST /api/user/support/contact
- * Store contact support message
- */
-router.post('/support/contact', async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    const userId = req.user?.id || null;
-    const { name, email, subject, message } = req.body;
-
-    if (!email || !subject || !message) {
-      return res.status(400).json({ error: 'Email, subject and message are required' });
-    }
-
-    const submission = await dbSaveSupportSubmission(userId, 'contact', {
-      name: name || 'Anonymous',
-      email,
-      subject,
-      message,
-    });
-
-    res.json({ success: true, submissionId: submission.id });
-  } catch (err: any) {
-    res.status(500).json({ error: err.message || 'Failed to send message' });
-  }
-});
-
-/**
- * POST /api/user/support/feedback
- * Store feedback and suggestions
- */
-router.post('/support/feedback', async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    const userId = req.user?.id || null;
-    const { type, message } = req.body;
-
-    if (!message) {
-      return res.status(400).json({ error: 'Message is required' });
-    }
-
-    const submission = await dbSaveSupportSubmission(userId, 'feedback', {
-      type: type || 'General feedback',
-      message,
-    });
-
-    res.json({ success: true, submissionId: submission.id });
-  } catch (err: any) {
-    res.status(500).json({ error: err.message || 'Failed to submit feedback' });
-  }
-});
-
 export default router;
-

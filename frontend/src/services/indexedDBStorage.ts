@@ -1,29 +1,18 @@
 /**
- * FocusForge IndexedDB Storage Service
- * Provides virtually unlimited browser storage for notes, media attachments, and full state backup,
- * eliminating the 5MB browser localStorage QuotaExceededError limit.
+ * FocusForge IndexedDB & Storage Scoping Service
+ * Provides user-scoped local persistence for notes, media attachments, and state backup.
+ * Eliminates cross-account data leakage and isolates guest data from authenticated data.
  */
 
 const DB_NAME = "focusforge_db";
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 const STORE_NAME = "app_state";
-const KEY = "state";
 
-/** Remove the local state database when the active account signs out. */
-export function clearPersistedAppState(): Promise<void> {
-  if (typeof window === "undefined" || !window.indexedDB) {
-    return Promise.resolve();
+export function getUserStorageKey(userId?: string | null): string {
+  if (!userId || userId === 'guest') {
+    return 'focusforge_data_guest';
   }
-
-  return new Promise((resolve) => {
-    const request = indexedDB.deleteDatabase(DB_NAME);
-    request.onsuccess = () => resolve();
-    request.onerror = () => {
-      console.warn("IndexedDB clear warning:", request.error);
-      resolve();
-    };
-    request.onblocked = () => resolve();
-  });
+  return `focusforge_data_${userId}`;
 }
 
 function openDB(): Promise<IDBDatabase> {
@@ -32,7 +21,7 @@ function openDB(): Promise<IDBDatabase> {
       return reject(new Error("IndexedDB not available"));
     }
     const request = indexedDB.open(DB_NAME, DB_VERSION);
-    request.onupgradeneeded = () => {
+    request.onupgradeneeded = (event: IDBVersionChangeEvent) => {
       const db = request.result;
       if (!db.objectStoreNames.contains(STORE_NAME)) {
         db.createObjectStore(STORE_NAME);
@@ -43,41 +32,158 @@ function openDB(): Promise<IDBDatabase> {
   });
 }
 
-export async function saveStateToIndexedDB(state: any): Promise<void> {
+/**
+ * Saves state to IndexedDB scoped by user ID or 'guest'.
+ */
+export async function saveStateToIndexedDB(state: any, userId?: string | null): Promise<void> {
+  if (typeof window === "undefined" || !window.indexedDB) return;
   try {
     const db = await openDB();
+    const key = userId ? `state_${userId}` : 'state_guest';
     return new Promise((resolve, reject) => {
       const tx = db.transaction(STORE_NAME, "readwrite");
       const store = tx.objectStore(STORE_NAME);
-      const req = store.put(state, KEY);
+      const req = store.put(state, key);
       req.onsuccess = () => resolve();
       req.onerror = () => reject(req.error);
     });
   } catch (err) {
-    // Non-blocking warning instead of error
-    console.warn("IndexedDB save warning:", err);
+    console.warn("[IndexedDB] save warning:", err);
   }
 }
 
-export async function loadStateFromIndexedDB(): Promise<any | null> {
+/**
+ * Loads state from IndexedDB scoped by user ID or 'guest'.
+ * Falls back to legacy 'state' key for backward compatibility if found.
+ */
+export async function loadStateFromIndexedDB(userId?: string | null): Promise<any | null> {
+  if (typeof window === "undefined" || !window.indexedDB) return null;
   try {
     const db = await openDB();
-    return new Promise((resolve, reject) => {
+    const key = userId ? `state_${userId}` : 'state_guest';
+    const result = await new Promise<any>((resolve, reject) => {
       const tx = db.transaction(STORE_NAME, "readonly");
       const store = tx.objectStore(STORE_NAME);
-      const req = store.get(KEY);
+      const req = store.get(key);
       req.onsuccess = () => resolve(req.result || null);
       req.onerror = () => reject(req.error);
     });
+
+    if (result) return result;
+
+    // Backward compatibility fallback for pre-migration state
+    if (!userId) {
+      const legacyResult = await new Promise<any>((resolve) => {
+        try {
+          const tx = db.transaction(STORE_NAME, "readonly");
+          const store = tx.objectStore(STORE_NAME);
+          const req = store.get('state');
+          req.onsuccess = () => resolve(req.result || null);
+          req.onerror = () => resolve(null);
+        } catch {
+          resolve(null);
+        }
+      });
+      return legacyResult;
+    }
+
+    return null;
   } catch {
     return null;
   }
 }
 
 /**
- * Safely saves data to localStorage.
+ * Clears explicitly identified guest-owned data across localStorage, sessionStorage, and IndexedDB.
+ * Does NOT delete any authenticated user's records.
+ */
+export async function clearGuestData(): Promise<void> {
+  if (typeof window === "undefined") return;
+
+  // 1. Clear guest localStorage entries
+  try {
+    localStorage.removeItem("focusforge_data_guest");
+    localStorage.removeItem("focusforge_data"); // legacy guest key
+    localStorage.removeItem("focusforge_guest_sessions_list");
+    localStorage.removeItem("focusforge_onboarding_guest_completed");
+
+    const keysToRemove: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && (key.startsWith("focusforge_guest_") || key.startsWith("focusforge_ai_msg_guest"))) {
+        keysToRemove.push(key);
+      }
+    }
+    keysToRemove.forEach((k) => localStorage.removeItem(k));
+  } catch (err) {
+    console.warn("[clearGuestData] localStorage warning:", err);
+  }
+
+  // 2. Clear guest sessionStorage entries
+  try {
+    sessionStorage.removeItem("focusforge_guest_temp_data");
+    sessionStorage.removeItem("focusforge_guest_sessions_list");
+    const sessionKeys: string[] = [];
+    for (let i = 0; i < sessionStorage.length; i++) {
+      const key = sessionStorage.key(i);
+      if (key && key.startsWith("focusforge_guest_")) {
+        sessionKeys.push(key);
+      }
+    }
+    sessionKeys.forEach((k) => sessionStorage.removeItem(k));
+  } catch (err) {
+    console.warn("[clearGuestData] sessionStorage warning:", err);
+  }
+
+  // 3. Clear guest state from IndexedDB
+  if (window.indexedDB) {
+    try {
+      const db = await openDB();
+      await new Promise<void>((resolve) => {
+        const tx = db.transaction(STORE_NAME, "readwrite");
+        const store = tx.objectStore(STORE_NAME);
+        store.delete("state_guest");
+        store.delete("state"); // legacy guest key
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => resolve();
+      });
+    } catch (err) {
+      console.warn("[clearGuestData] IndexedDB warning:", err);
+    }
+  }
+}
+
+/**
+ * Safely removes a specific account's local cache or clears in-memory state.
+ * Never deletes the database or wipes unrelated accounts' records.
+ */
+export async function clearPersistedAppState(userId?: string): Promise<void> {
+  if (typeof window === "undefined") return;
+
+  if (userId) {
+    try {
+      localStorage.removeItem(`focusforge_data_${userId}`);
+    } catch {}
+
+    if (window.indexedDB) {
+      try {
+        const db = await openDB();
+        await new Promise<void>((resolve) => {
+          const tx = db.transaction(STORE_NAME, "readwrite");
+          const store = tx.objectStore(STORE_NAME);
+          store.delete(`state_${userId}`);
+          tx.oncomplete = () => resolve();
+          tx.onerror = () => resolve();
+        });
+      } catch {}
+    }
+  }
+}
+
+/**
+ * Safely saves data to localStorage with quota protection.
  * If quota is exceeded, strips heavy base64 strings from notes to preserve localStorage quota
- * while letting IndexedDB retain the full data. Never triggers console.error.
+ * while letting IndexedDB retain the full data.
  */
 export function safeSaveToLocalStorage(key: string, data: any): void {
   if (typeof window === "undefined") return;
@@ -92,14 +198,13 @@ export function safeSaveToLocalStorage(key: string, data: any): void {
 
     if (isQuotaError) {
       try {
-        // Strip heavy embedded file/image data from notes for localStorage copy
         const lightweightData = {
           ...data,
           notes: Array.isArray(data.notes) ? data.notes.map((n: any) => ({
             ...n,
             blocks: Array.isArray(n.blocks) ? n.blocks.map((b: any) => {
               if ((b.type === "image" || b.type === "file") && typeof b.url === "string" && b.url.length > 500) {
-                return { ...b, url: "" }; // Full URL preserved in IndexedDB
+                return { ...b, url: "" };
               }
               return b;
             }) : n.blocks
@@ -107,7 +212,6 @@ export function safeSaveToLocalStorage(key: string, data: any): void {
         };
         localStorage.setItem(key, JSON.stringify(lightweightData));
       } catch {
-        // Silently skip localStorage if completely full
         console.warn("LocalStorage quota full; state safely retained in IndexedDB.");
       }
     } else {
@@ -117,8 +221,7 @@ export function safeSaveToLocalStorage(key: string, data: any): void {
 }
 
 /**
- * Compresses an image in the browser via canvas before storing,
- * reducing a 5-15MB photo down to ~100KB without visible quality loss.
+ * Compresses an image in the browser via canvas before storing.
  */
 export function compressImageFile(file: File, maxDim = 1600, quality = 0.82): Promise<string> {
   return new Promise((resolve) => {

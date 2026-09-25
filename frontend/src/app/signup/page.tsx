@@ -86,7 +86,6 @@ export default function SignupPage() {
 
       if (!res.success) {
         setError(res.error || "Failed to create account. Please check your credentials.");
-        setLoading(false);
         return;
       }
 
@@ -108,6 +107,7 @@ export default function SignupPage() {
       router.push(`/verify?email=${encodeURIComponent(email.trim().toLowerCase())}`);
     } catch (err: any) {
       setError(err?.message || "An unexpected error occurred during signup.");
+    } finally {
       setLoading(false);
     }
   };
@@ -119,10 +119,10 @@ export default function SignupPage() {
       const res = await authService.loginWithGoogle();
       if (!res.success) {
         setError(res.error || "Google sign-up could not be initiated.");
-        setLoading(false);
       }
     } catch (err: any) {
       setError(err?.message || "Google sign-up failed.");
+    } finally {
       setLoading(false);
     }
   };
