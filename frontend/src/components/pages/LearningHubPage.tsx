@@ -85,6 +85,24 @@ export default function LearningHubPage() {
   const [mounted, setMounted] = useState(false);
   useEffect(() => {
     setMounted(true);
+    
+    // Check if there is one queued in sessionStorage (e.g. from Dashboard)
+    if (typeof window !== "undefined") {
+      const storedFolderId = sessionStorage.getItem("focusforge_learning_open_folder");
+      if (storedFolderId) {
+        setSelectedFolderId(storedFolderId);
+        sessionStorage.removeItem("focusforge_learning_open_folder");
+      }
+      
+      const handleOpenFolder = (e: any) => {
+        if (e.detail?.folderId) {
+          setSelectedFolderId(e.detail.folderId);
+        }
+      };
+      
+      window.addEventListener("focusforge:open_learning_folder", handleOpenFolder);
+      return () => window.removeEventListener("focusforge:open_learning_folder", handleOpenFolder);
+    }
   }, []);
 
   const triggerCelebrationConfetti = () => {

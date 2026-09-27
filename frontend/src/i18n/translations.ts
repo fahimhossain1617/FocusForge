@@ -1192,8 +1192,8 @@ export const TRANSLATIONS = {
       sameDateWarning: "উৎস এবং গন্তব্য তারিখ একই",
     },
     myMind: {
-      title: "Capture",
-      subtitle: "Write it down before you forget",
+      title: "ক্যাপচার",
+      subtitle: "ভুলে যাওয়ার আগেই লিখে রাখুন",
       emptyMyMind: "মাই মাইন্ড খালি করুন",
       problemSolver: "সমস্যা সমাধানকারী",
       captureAnIdea: "একটি ধারণা ক্যাপচার করুন",

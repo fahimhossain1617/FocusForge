@@ -118,7 +118,7 @@ export default function MindHome({ navigate, setActiveThoughtId }: MindHomeProps
           style={{
             background: "var(--color-bg-card)",
             borderColor: (isFocused || input.trim()) ? "var(--color-purple-primary)" : "var(--color-border-subtle)",
-            boxShadow: (isFocused || input.trim()) ? "0 0 12px rgba(59, 130, 246, 0.1)" : "none",
+            boxShadow: (isFocused || input.trim()) ? "0 4px 12px rgba(0, 0, 0, 0.03)" : "none",
           }}
         >
           <textarea

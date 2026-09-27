@@ -63,8 +63,8 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 3. In dev or for Next.js internal dynamic bundles, bypass cache to avoid chunk mismatch
-  if (url.pathname.startsWith('/_next/') || url.hostname === 'localhost' || url.hostname === '127.0.0.1') {
+  // 3. For Next.js internal dynamic bundles, bypass cache to avoid chunk mismatch
+  if (url.pathname.startsWith('/_next/')) {
     return;
   }
 

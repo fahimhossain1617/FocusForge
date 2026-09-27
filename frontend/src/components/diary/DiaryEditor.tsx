@@ -341,14 +341,14 @@ export default function DiaryEditor({ entry, onSave, lang }: DiaryEditorProps) {
                   />
 
                   {/* Floating Size Selector & Remove Button Overlay */}
-                  <div className="absolute top-2 right-2 flex items-center gap-1 p-1 bg-black/80 backdrop-blur-md rounded-lg shadow-lg opacity-90 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity z-10 border border-white/10">
-                    <span className="text-[10px] text-zinc-400 font-mono px-1 select-none hidden xs:inline">
+                  <div className="absolute top-2 right-2 flex flex-wrap justify-end items-center gap-1 p-1 bg-black/80 backdrop-blur-md rounded-lg shadow-lg opacity-90 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity z-10 border border-white/10 max-w-[calc(100%-16px)]">
+                    <span className="text-[10px] text-zinc-400 font-mono px-1 select-none hidden xs:inline shrink-0">
                       {t.diary?.imageSize || "Size"}:
                     </span>
                     <button
                       type="button"
                       onClick={() => handleUpdateImageSize(img.id, "small")}
-                      className={`px-2 py-0.5 rounded text-[11px] font-semibold transition-all cursor-pointer ${
+                      className={`px-1.5 xs:px-2 py-0.5 rounded text-[10px] xs:text-[11px] font-semibold transition-all cursor-pointer shrink-0 ${
                         img.size === "small"
                           ? "bg-blue-600 text-white shadow-xs"
                           : "text-zinc-300 hover:text-white hover:bg-white/10"
@@ -360,7 +360,7 @@ export default function DiaryEditor({ entry, onSave, lang }: DiaryEditorProps) {
                     <button
                       type="button"
                       onClick={() => handleUpdateImageSize(img.id, "medium")}
-                      className={`px-2 py-0.5 rounded text-[11px] font-semibold transition-all cursor-pointer ${
+                      className={`px-1.5 xs:px-2 py-0.5 rounded text-[10px] xs:text-[11px] font-semibold transition-all cursor-pointer shrink-0 ${
                         img.size === "medium" || !img.size
                           ? "bg-blue-600 text-white shadow-xs"
                           : "text-zinc-300 hover:text-white hover:bg-white/10"
@@ -372,7 +372,7 @@ export default function DiaryEditor({ entry, onSave, lang }: DiaryEditorProps) {
                     <button
                       type="button"
                       onClick={() => handleUpdateImageSize(img.id, "large")}
-                      className={`px-2 py-0.5 rounded text-[11px] font-semibold transition-all cursor-pointer ${
+                      className={`px-1.5 xs:px-2 py-0.5 rounded text-[10px] xs:text-[11px] font-semibold transition-all cursor-pointer shrink-0 ${
                         img.size === "large"
                           ? "bg-blue-600 text-white shadow-xs"
                           : "text-zinc-300 hover:text-white hover:bg-white/10"
@@ -384,7 +384,7 @@ export default function DiaryEditor({ entry, onSave, lang }: DiaryEditorProps) {
                     <button
                       type="button"
                       onClick={() => handleUpdateImageSize(img.id, "full")}
-                      className={`px-2 py-0.5 rounded text-[11px] font-semibold transition-all cursor-pointer ${
+                      className={`px-1.5 xs:px-2 py-0.5 rounded text-[10px] xs:text-[11px] font-semibold transition-all cursor-pointer shrink-0 ${
                         img.size === "full"
                           ? "bg-blue-600 text-white shadow-xs"
                           : "text-zinc-300 hover:text-white hover:bg-white/10"
@@ -393,11 +393,11 @@ export default function DiaryEditor({ entry, onSave, lang }: DiaryEditorProps) {
                     >
                       Full
                     </button>
-                    <div className="w-px h-3 bg-white/20 mx-0.5" />
+                    <div className="w-px h-3 bg-white/20 mx-0.5 shrink-0" />
                     <button
                       type="button"
                       onClick={() => handleDeleteImage(img.id)}
-                      className="p-1 rounded text-red-400 hover:text-red-300 hover:bg-red-500/20 transition-colors cursor-pointer"
+                      className="p-1 rounded text-red-400 hover:text-red-300 hover:bg-red-500/20 transition-colors cursor-pointer shrink-0"
                       title={t.diary?.removeImage || "Delete image"}
                     >
                       <Trash2 size={13} />

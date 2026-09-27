@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, KeyboardEvent } from "react";
 import { useAppContext } from "../context/AppContext";
 import { useAuth } from "../context/AuthContext";
+import { useTranslation } from "../hooks/useTranslation";
 import { useKeyboardShortcut } from "../hooks/useKeyboardShortcut";
 import { useAnimateExit } from "../hooks/useAnimateExit";
 import { Brain } from "lucide-react";
@@ -15,6 +16,7 @@ export default function QuickCapture() {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { addMindItem, showToast } = useAppContext();
   const { requireAuth } = useAuth();
+  const { t, state } = useTranslation();
   const { shouldRender, isExiting } = useAnimateExit({ isOpen, durationMs: 200 });
 
   useKeyboardShortcut("Space", () => setIsOpen(true), { ctrl: true });
@@ -57,7 +59,7 @@ export default function QuickCapture() {
     const text = value.trim();
     requireAuth(() => {
       addMindItem(text);
-      showToast("Saved to My Mind", "success");
+      showToast(t.myMind.toastChangesSaved || "Saved to My Mind", "success");
       setValue("");
       setIsOpen(false);
       
@@ -110,7 +112,7 @@ export default function QuickCapture() {
               value={value + (interim ? (value ? " " : "") + interim : "")}
               onChange={handleChange}
               onKeyDown={handleKeyDown}
-              placeholder="What's on your mind? (Speak in বাংলা or English...)"
+              placeholder={state.lang === 'bn' ? "আপনার মনে কী চলছে? (বাংলা বা ইংরেজিতে বলুন...)" : "What's on your mind? (Speak in বাংলা or English...)"}
               className="flex-1 py-1 text-base font-medium bg-transparent !border-none !shadow-none focus:!shadow-none resize-none text-[#111827] dark:text-foreground placeholder:text-[#8290A5]"
               style={{
                 background: "transparent",
@@ -126,7 +128,7 @@ export default function QuickCapture() {
               <VoiceInput onResult={handleVoiceResult} onInterimResult={setInterim} />
               {interim && (
                 <span className="text-xs text-[#5B8DEF] animate-pulse font-medium">
-                  Listening...
+                  {t.myMind.listening || "Listening..."}
                 </span>
               )}
             </div>
@@ -135,7 +137,7 @@ export default function QuickCapture() {
               disabled={!value.trim() && !interim.trim()}
               className="px-5 py-2 rounded-xl text-xs font-bold transition-all duration-150 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed bg-[#223A5E] hover:bg-[#2E4E7B] text-white shadow-sm"
             >
-              Save
+              {t.myMind.save || "Save"}
             </button>
           </div>
         </div>

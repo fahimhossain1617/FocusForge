@@ -50,15 +50,23 @@ interface SkillDisplay {
   iconBg: string;
 }
 
-function greetingText(name: string) {
+function greetingText(name: string, lang?: string) {
   const hour = new Date().getHours();
+  if (lang === 'bn') {
+    let timeGreeting = "শুভ সন্ধ্যা";
+    if (hour < 12) timeGreeting = "শুভ সকাল";
+    else if (hour < 17) timeGreeting = "শুভ অপরাহ্ন";
+    else if (hour < 21) timeGreeting = "শুভ সন্ধ্যা";
+    else timeGreeting = "শুভ রাত্রি";
+    return `${timeGreeting}, ${name.split(" ")[0]}`;
+  }
   let timeGreeting = "Good Evening";
   if (hour < 12) timeGreeting = "Good Morning";
   else if (hour < 17) timeGreeting = "Good Afternoon";
   else if (hour < 21) timeGreeting = "Good Evening";
   else timeGreeting = "Good Night";
 
-  return `${timeGreeting}, ${name}`;
+  return `${timeGreeting}, ${name.split(" ")[0]}`;
 }
 
 function formatMinutes(totalMins: number): string {
@@ -286,7 +294,7 @@ export default function DashboardPage() {
         { icon: Globe, bg: "text-cyan-400 bg-cyan-500/10 border-cyan-500/20" },
       ];
 
-      return state.learningFolders.slice(0, 5).map((folder, idx) => {
+      return state.learningFolders.slice(0, 4).map((folder, idx) => {
         const pal = iconPalette[idx % iconPalette.length];
         const logs = (state.learningLogs || []).filter((l) => l.folderId === folder.id);
         const totalMinutes = logs.reduce((acc, l) => acc + l.watchMinutes + l.practiceMinutes, 0);
@@ -456,10 +464,10 @@ export default function DashboardPage() {
       <header className="pt-1 px-0.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6 md:mb-8">
         <div>
           <h1 className="text-[26px] sm:text-[28px] md:text-[32px] font-bold tracking-tight text-foreground leading-[1.2] break-words">
-            {greetingText(userName)}
+            {greetingText(userName, state.lang)}
           </h1>
           <p className="mt-1.5 sm:mt-2 text-xs sm:text-sm md:text-[15px] text-muted-foreground font-normal leading-relaxed">
-            Your focus today builds your future tomorrow.
+            {state.lang === 'bn' ? "আপনার আজকের মনোযোগ আগামীকালের ভবিষ্যৎ তৈরি করে।" : "Your focus today builds your future tomorrow."}
           </p>
         </div>
         {!isToday && (
@@ -467,7 +475,7 @@ export default function DashboardPage() {
             onClick={() => setSelectedDate(today)}
             className="self-start sm:self-auto px-3 py-1.5 min-h-[36px] rounded-lg bg-blue-600/20 text-blue-400 hover:bg-blue-600/30 border border-blue-500/30 text-xs sm:text-sm font-medium transition-colors cursor-pointer shadow-sm flex items-center gap-2"
           >
-            Back to Today
+            {state.lang === 'bn' ? "আজকের দিনে ফিরে যান" : "Back to Today"}
           </button>
         )}
       </header>
@@ -485,14 +493,14 @@ export default function DashboardPage() {
               <div>
                 <h2 className="text-[17px] md:text-[18px] font-bold text-[#111827] dark:text-foreground tracking-tight">{tasksTitle}</h2>
                 <p className="text-xs text-[#52627A] dark:text-muted-foreground mt-0.5 font-normal">
-                  {tasksList.length} tasks | {completedCount} completed | {pendingCount} pending
+                  {state.lang === 'bn' ? `${tasksList.length} টি কাজ | ${completedCount} টি সম্পন্ন | ${pendingCount} টি বাকি` : `${tasksList.length} tasks | ${completedCount} completed | ${pendingCount} pending`}
                 </p>
               </div>
               <button
                 onClick={() => navigateTo("planner")}
                 className="w-9 h-9 min-w-[36px] min-h-[36px] rounded-xl bg-[#EBF3FE] hover:bg-[#DBEAFE] dark:bg-blue-500/20 dark:hover:bg-blue-500/30 text-[#1D4ED8] dark:text-blue-300 border border-[#D0E1FD] dark:border-blue-500/30 flex items-center justify-center transition-all cursor-pointer shrink-0 mt-0.5 shadow-xs outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
-                title="Add task in Planner"
-                aria-label="Add task in Planner"
+                title={state.lang === 'bn' ? "প্ল্যানারে কাজ যোগ করুন" : "Add task in Planner"}
+                aria-label={state.lang === 'bn' ? "প্ল্যানারে কাজ যোগ করুন" : "Add task in Planner"}
               >
                 <Plus size={17} strokeWidth={2.5} />
               </button>
@@ -525,7 +533,7 @@ export default function DashboardPage() {
                         }`}
                         title={item.name}
                       >
-                        {item.name || "Untitled Task"}
+                        {item.name || (state.lang === 'bn' ? "শিরোনামহীন কাজ" : "Untitled Task")}
                       </span>
                     </div>
 
@@ -539,8 +547,8 @@ export default function DashboardPage() {
                       <button
                         onClick={(e) => handleOpenTaskInPlanner(item, e)}
                         className="text-[#8290A5] hover:text-[#111827] dark:hover:text-white w-6 h-6 flex items-center justify-center rounded-lg transition-colors cursor-pointer hover:bg-slate-200/50 dark:hover:bg-white/10 shrink-0"
-                        title="Open in Planner"
-                        aria-label="Open in Planner"
+                        title={state.lang === 'bn' ? "প্ল্যানারে খুলুন" : "Open in Planner"}
+                        aria-label={state.lang === 'bn' ? "প্ল্যানারে খুলুন" : "Open in Planner"}
                       >
                         <MoreVertical size={13} />
                       </button>
@@ -550,7 +558,7 @@ export default function DashboardPage() {
               ) : (
                 <div className="py-8 text-center text-[#8290A5] text-sm flex flex-col items-center">
                   <Check size={24} className="text-[#8290A5] mb-2" />
-                  No tasks recorded for this day
+                  {state.lang === 'bn' ? "এই দিনের জন্য কোনো কাজ রেকর্ড করা হয়নি" : "No tasks recorded for this day"}
                 </div>
               )}
             </div>
@@ -566,7 +574,9 @@ export default function DashboardPage() {
             <div className="flex items-center justify-between pb-3">
               <div>
                 <h2 className="text-[17px] md:text-[18px] font-bold text-[#111827] dark:text-foreground tracking-tight">{focusTitle}</h2>
-                <p className="text-xs text-[#52627A] dark:text-muted-foreground mt-0.5 font-normal">Focus time &amp; daily breakdown</p>
+                <p className="text-xs text-[#52627A] dark:text-muted-foreground mt-0.5 font-normal">
+                  {state.lang === 'bn' ? "মনোযোগের সময় এবং দৈনিক বিবরণ" : "Focus time & daily breakdown"}
+                </p>
               </div>
             </div>
 
@@ -641,14 +651,14 @@ export default function DashboardPage() {
                 <div className="flex items-center justify-between text-xs">
                   <span className="flex items-center gap-2 text-[#52627A] dark:text-foreground font-medium">
                     <span className="w-2.5 h-2.5 rounded-full bg-[#5B8DEF] shrink-0" />
-                    Focus Time
+                    {state.lang === 'bn' ? "মনোযোগের সময়" : "Focus Time"}
                   </span>
                   <span className="font-bold text-[#111827] dark:text-foreground font-mono tabular-nums text-xs">{selectedFocusStats.focusTime}</span>
                 </div>
                 <div className="flex items-center justify-between text-xs">
                   <span className="flex items-center gap-2 text-[#52627A] dark:text-foreground font-medium">
                     <span className="w-2.5 h-2.5 rounded-full bg-[#D99A32] shrink-0" />
-                    Break Time
+                    {state.lang === 'bn' ? "বিরতির সময়" : "Break Time"}
                   </span>
                   <span className="font-bold text-[#D99A32] dark:text-amber-400 font-mono tabular-nums text-xs">{selectedFocusStats.breakTime}</span>
                 </div>
@@ -660,7 +670,7 @@ export default function DashboardPage() {
           <div className="mt-4 pt-3 border-t border-[#DCE5F0] dark:border-white/[0.06] flex items-center justify-between text-xs">
             <div className="flex items-center gap-1.5 text-[#52627A] dark:text-muted-foreground">
               <span className="w-2 h-2 rounded-full bg-[#D95C68] shrink-0" />
-              <span>Daily Distractions:</span>
+              <span>{state.lang === 'bn' ? "দৈনিক বিক্ষেপ:" : "Daily Distractions:"}</span>
               <span className="font-bold text-[#D95C68] font-mono tabular-nums">
                 {selectedFocusStats.distractionCount > 0 ? `${selectedFocusStats.distractionCount}` : "0"}
               </span>
@@ -679,14 +689,18 @@ export default function DashboardPage() {
             {/* Header: Title + Plus (+) button to Skill Builder */}
             <div className="flex items-start justify-between pb-3">
               <div>
-                <h2 className="text-[17px] md:text-[18px] font-bold text-[#111827] dark:text-foreground tracking-tight">Current Skills</h2>
-                <p className="text-xs text-[#52627A] dark:text-muted-foreground mt-0.5 font-normal">Skill Builder progress</p>
+                <h2 className="text-[17px] md:text-[18px] font-bold text-[#111827] dark:text-foreground tracking-tight">
+                  {state.lang === 'bn' ? "বর্তমান দক্ষতা" : "Current Skills"}
+                </h2>
+                <p className="text-xs text-[#52627A] dark:text-muted-foreground mt-0.5 font-normal">
+                  {state.lang === 'bn' ? "দক্ষতা বৃদ্ধির অগ্রগতি" : "Skill Builder progress"}
+                </p>
               </div>
               <button
                 onClick={() => navigateTo("learning")}
                 className="w-9 h-9 min-w-[36px] min-h-[36px] rounded-xl bg-[#EBF3FE] hover:bg-[#DBEAFE] dark:bg-blue-500/20 dark:hover:bg-blue-500/30 text-[#1D4ED8] dark:text-blue-300 border border-[#D0E1FD] dark:border-blue-500/30 flex items-center justify-center transition-all cursor-pointer shrink-0 mt-0.5 shadow-xs outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
-                title="Manage skills in Skill Builder"
-                aria-label="Manage skills in Skill Builder"
+                title={state.lang === 'bn' ? "দক্ষতা বিল্ডারে দক্ষতা পরিচালনা করুন" : "Manage skills in Skill Builder"}
+                aria-label={state.lang === 'bn' ? "দক্ষতা বিল্ডারে দক্ষতা পরিচালনা করুন" : "Manage skills in Skill Builder"}
               >
                 <Plus size={17} strokeWidth={2.5} />
               </button>
@@ -700,7 +714,14 @@ export default function DashboardPage() {
                   return (
                     <div
                       key={skill.id}
-                      className="flex items-center gap-3 py-2 px-2.5 rounded-xl bg-[#F7FAFE] dark:bg-white/[0.02] border border-[#DCE5F0] dark:border-white/[0.06] transition-colors"
+                      onClick={() => {
+                        if (typeof window !== "undefined") {
+                          sessionStorage.setItem("focusforge_learning_open_folder", skill.id);
+                          window.dispatchEvent(new CustomEvent("focusforge:open_learning_folder", { detail: { folderId: skill.id } }));
+                        }
+                        navigateTo("learning");
+                      }}
+                      className="flex items-center gap-3 py-2 px-2.5 rounded-xl bg-[#F7FAFE] dark:bg-white/[0.02] border border-[#DCE5F0] dark:border-white/[0.06] transition-colors cursor-pointer hover:bg-[#EBF3FE] dark:hover:bg-white/[0.06]"
                     >
                       {/* Icon Badge: Bright #EBF3FE with vivid #1D4ED8 icon */}
                       <div
@@ -717,26 +738,29 @@ export default function DashboardPage() {
                         {skill.name}
                       </span>
 
-                      {/* Inline Progress Bar (Track #E5EDF7, Fill #223A5E) */}
-                      <div className="flex-1 h-2 rounded-full bg-[#E5EDF7] dark:bg-white/[0.07] overflow-hidden">
-                        <div
-                          className="h-full rounded-full transition-all duration-500 bg-[#223A5E] dark:bg-blue-400"
-                          style={{ width: `${skill.progress}%` }}
-                        />
+                      <div className="flex-1 flex justify-end">
+                        {skill.progress >= 100 ? (
+                          <span className="text-[10px] font-medium px-2 py-0.5 rounded-md bg-[#2E9B73]/10 text-[#2E9B73] dark:bg-emerald-500/10 dark:text-emerald-400">
+                            {state.lang === 'bn' ? "সম্পন্ন" : "Completed"}
+                          </span>
+                        ) : (
+                          <span className="text-[10px] font-medium px-2 py-0.5 rounded-md bg-[#5B8DEF]/10 text-[#1D4ED8] dark:bg-blue-500/10 dark:text-blue-400">
+                            {state.lang === 'bn' ? "চলমান" : "In progress"}
+                          </span>
+                        )}
                       </div>
-
-                      {/* Percentage on the right */}
-                      <span className="text-[#111827] dark:text-foreground font-mono text-xs font-bold w-9 text-right shrink-0">
-                        {skill.progress}%
-                      </span>
                     </div>
                   );
                 })
               ) : (
                 <div className="py-8 text-center text-[#8290A5] text-sm flex flex-col items-center">
                   <BookOpen size={24} className="text-[#8290A5] mb-2" />
-                  <p className="font-semibold text-[#111827] dark:text-foreground">No skills added yet</p>
-                  <p className="text-xs text-[#52627A] dark:text-muted-foreground mt-1">Add a skill in Skill Builder to track your progress</p>
+                  <p className="font-semibold text-[#111827] dark:text-foreground">
+                    {state.lang === 'bn' ? "এখনও কোনো দক্ষতা যোগ করা হয়নি" : "No skills added yet"}
+                  </p>
+                  <p className="text-xs text-[#52627A] dark:text-muted-foreground mt-1">
+                    {state.lang === 'bn' ? "আপনার অগ্রগতি ট্র্যাক করতে দক্ষতা বিল্ডারে একটি দক্ষতা যোগ করুন" : "Add a skill in Skill Builder to track your progress"}
+                  </p>
                 </div>
               )}
             </div>
@@ -752,15 +776,14 @@ export default function DashboardPage() {
         {/* Header Bar */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-[#EBF3FE] dark:bg-blue-500/20 text-[#1D4ED8] dark:text-blue-300 border border-[#D0E1FD]/80 dark:border-blue-500/30 flex items-center justify-center shrink-0">
-              <TrendingUp size={18} />
-            </div>
             <div>
-              <h2 className="text-[17px] md:text-[18px] font-bold text-[#111827] dark:text-foreground tracking-tight">Focus &amp; Productivity Progress</h2>
+              <h2 className="text-[17px] md:text-[18px] font-bold text-[#111827] dark:text-foreground tracking-tight">
+                {state.lang === 'bn' ? "পারফরম্যান্স" : "Performance"}
+              </h2>
               <p className="text-xs text-[#52627A] dark:text-muted-foreground mt-0.5 font-normal">
                 {progressView === "weekly"
-                  ? "Weekly Overview · Real-time 7-day focus & task performance"
-                  : "Monthly Overview · 4-Week breakdown and cumulative performance"}
+                  ? (state.lang === 'bn' ? "সাপ্তাহিক ওভারভিউ · রিয়েল-টাইম ৭-দিনের ফোকাস এবং কাজ" : "Weekly Overview · Real-time 7-day focus & task performance")
+                  : (state.lang === 'bn' ? "মাসিক ওভারভিউ · ৪-সপ্তাহের ব্রেকডাউন এবং সামগ্রিক পারফরম্যান্স" : "Monthly Overview · 4-Week breakdown and cumulative performance")}
               </p>
             </div>
           </div>
@@ -775,7 +798,7 @@ export default function DashboardPage() {
                   : "text-[#52627A] dark:text-muted-foreground hover:text-[#111827] dark:hover:text-foreground hover:bg-[#E7F0FF]/60 dark:hover:bg-white/[0.04]"
               }`}
             >
-              Weekly
+              {state.lang === 'bn' ? "সাপ্তাহিক" : "Weekly"}
             </button>
             <button
               onClick={() => setProgressView("monthly")}
@@ -785,7 +808,7 @@ export default function DashboardPage() {
                   : "text-[#52627A] dark:text-muted-foreground hover:text-[#111827] dark:hover:text-foreground hover:bg-[#E7F0FF]/60 dark:hover:bg-white/[0.04]"
               }`}
             >
-              Monthly
+              {state.lang === 'bn' ? "মাসিক" : "Monthly"}
             </button>
           </div>
         </div>
@@ -797,12 +820,14 @@ export default function DashboardPage() {
             {/* Legend & Date Range */}
             <div className="flex flex-wrap items-center justify-between gap-3 text-xs pt-1">
               <div className="flex items-center gap-1.5 text-[#52627A] dark:text-slate-300 font-medium">
-                <span className="text-sm font-bold text-[#111827] dark:text-white">Weekly Overview</span>
+                <span className="text-sm font-bold text-[#111827] dark:text-white">
+                  {state.lang === 'bn' ? "সাপ্তাহিক ওভারভিউ" : "Weekly Overview"}
+                </span>
                 <span className="text-[#8290A5]">·</span>
                 <span className="text-[#52627A] dark:text-slate-400 font-mono text-xs">
                   {weeklyData.length > 0
                     ? `${weeklyData[0].day}, ${weeklyData[0].date} – ${weeklyData[weeklyData.length - 1].day}, ${weeklyData[weeklyData.length - 1].date}`
-                    : "Current 7 Days"}
+                    : (state.lang === 'bn' ? "বর্তমান ৭ দিন" : "Current 7 Days")}
                 </span>
               </div>
 
@@ -810,15 +835,15 @@ export default function DashboardPage() {
               <div className="flex flex-wrap items-center gap-2.5 sm:gap-5 text-xs font-medium">
                 <span className="flex items-center gap-1.5 text-[#52627A] dark:text-slate-200">
                   <span className="w-2.5 h-2.5 rounded-sm bg-[#5B8DEF] shrink-0" />
-                  Focus Time
+                  {state.lang === 'bn' ? "মনোযোগের সময়" : "Focus Time"}
                 </span>
                 <span className="flex items-center gap-1.5 text-[#52627A] dark:text-slate-200">
                   <span className="w-2.5 h-2.5 rounded-sm bg-[#2E9B73] shrink-0" />
-                  Tasks Done
+                  {state.lang === 'bn' ? "কাজ সম্পন্ন" : "Tasks Done"}
                 </span>
                 <span className="flex items-center gap-1.5 text-[#52627A] dark:text-slate-200">
                   <span className="w-2.5 h-2.5 rounded-sm bg-[#D95C68] shrink-0" />
-                  Tasks Missed
+                  {state.lang === 'bn' ? "কাজ মিস হয়েছে" : "Tasks Missed"}
                 </span>
               </div>
             </div>
@@ -847,9 +872,9 @@ export default function DashboardPage() {
                     {isHovered && (
                       <div className="absolute -top-16 z-20 bg-white dark:bg-slate-900/95 border border-[#DCE5F0] dark:border-blue-500/30 rounded-xl p-2.5 shadow-xl text-xs whitespace-nowrap pointer-events-none">
                         <p className="font-bold text-[#111827] dark:text-white">{d.day}, {d.date}</p>
-                        <p className="text-[#5B8DEF] font-medium">Focus: {d.focusTime}</p>
-                        <p className="text-[#2E9B73] font-medium">Tasks Done: {d.tasksDone}</p>
-                        <p className="text-[#D95C68] font-medium">Tasks Missed: {d.tasksMissed}</p>
+                        <p className="text-[#5B8DEF] font-medium">{state.lang === 'bn' ? "মনোযোগ:" : "Focus:"} {d.focusTime}</p>
+                        <p className="text-[#2E9B73] font-medium">{state.lang === 'bn' ? "কাজ সম্পন্ন:" : "Tasks Done:"} {d.tasksDone}</p>
+                        <p className="text-[#D95C68] font-medium">{state.lang === 'bn' ? "কাজ মিস হয়েছে:" : "Tasks Missed:"} {d.tasksMissed}</p>
                       </div>
                     )}
 
@@ -939,9 +964,11 @@ export default function DashboardPage() {
             <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 pb-1">
               <span className="flex items-center gap-1.5 font-medium text-slate-700 dark:text-slate-300">
                 <Calendar size={14} className="text-blue-500 dark:text-blue-400" />
-                Monthly Progress · 4-Week Overview
+                {state.lang === 'bn' ? "মাসিক অগ্রগতি · ৪-সপ্তাহের ওভারভিউ" : "Monthly Progress · 4-Week Overview"}
               </span>
-              <span className="text-xs font-mono text-slate-500 dark:text-slate-400">Target: 60h focus / month</span>
+              <span className="text-xs font-mono text-slate-500 dark:text-slate-400">
+                {state.lang === 'bn' ? "লক্ষ্য: মাসে ৬০ ঘণ্টা মনোযোগ" : "Target: 60h focus / month"}
+              </span>
             </div>
 
             {/* 4 Weekly Radial Progress Cards Grid */}
@@ -964,11 +991,11 @@ export default function DashboardPage() {
                       
                       <div className="pt-2 space-y-1 text-xs">
                         <div className="flex items-center justify-between gap-3">
-                          <span className="text-slate-500 dark:text-slate-400">Focus Time</span>
+                          <span className="text-slate-500 dark:text-slate-400">{state.lang === 'bn' ? "মনোযোগের সময়" : "Focus Time"}</span>
                           <span className="font-semibold text-[#111827] dark:text-white font-mono">{item.focusTime}</span>
                         </div>
                         <div className="flex items-center justify-between gap-3">
-                          <span className="text-slate-500 dark:text-slate-400">Tasks Done</span>
+                          <span className="text-slate-500 dark:text-slate-400">{state.lang === 'bn' ? "কাজ সম্পন্ন" : "Tasks Done"}</span>
                           <span className="font-semibold text-emerald-600 dark:text-emerald-400 font-mono">{item.tasksDone}</span>
                         </div>
                       </div>
