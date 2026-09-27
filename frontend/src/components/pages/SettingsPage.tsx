@@ -323,8 +323,8 @@ export default function SettingsPage() {
 
     if (!newPassword || newPassword.length < 8) {
       errors.new = t.settings.passwordSecurity.minLength;
-    } else if (!/(?=.*[A-Za-z])(?=.*\d)/.test(newPassword)) {
-      errors.new = t.settings.passwordSecurity.letterAndNumber;
+    } else if (!/[A-Z]/.test(newPassword) || !/[0-9]/.test(newPassword) || !/[^a-zA-Z0-9]/.test(newPassword)) {
+      errors.new = "Password must include an uppercase letter, a number, and a special character.";
     } else if (newPassword === currentPassword) {
       errors.new = t.settings.passwordSecurity.mustDiffer;
     }

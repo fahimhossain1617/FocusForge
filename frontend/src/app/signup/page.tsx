@@ -68,8 +68,12 @@ export default function SignupPage() {
       return;
     }
 
-    if (password.length < 8 || !/[a-zA-Z]/.test(password) || !/[0-9]/.test(password)) {
-      setError("Password must be at least 8 characters with at least one letter and one number.");
+    const hasCapital = /[A-Z]/.test(password);
+    const hasNumber = /[0-9]/.test(password);
+    const hasSpecial = /[^a-zA-Z0-9]/.test(password);
+
+    if (password.length < 8 || !hasCapital || !hasNumber || !hasSpecial) {
+      setError("Password must be at least 8 characters long and include an uppercase letter, a number, and a special character.");
       return;
     }
 
@@ -89,8 +93,8 @@ export default function SignupPage() {
         return;
       }
 
-      // If user session is returned or user is active, log in and open dashboard directly
-      if (res.user) {
+      // If user session is returned (auto-login enabled and no email confirmation required), log in directly
+      if (res.session && res.user) {
         onAuthSuccess(res.user, true);
         showToast("Account created successfully! Welcome to FocusForge.", "success");
         router.push("/");
@@ -221,7 +225,7 @@ export default function SignupPage() {
           <i className={strength.level >= 4 ? "on" : ""} />
         </div>
         <div className="auth-strength">
-          <span>8+ characters, a letter and a number</span>
+          <span>8+ chars, 1 uppercase, 1 number, 1 special char</span>
           {strength.text && <b>{strength.text}</b>}
         </div>
 

@@ -70,7 +70,11 @@ function LoginContent() {
       }
 
       if (!res.success) {
-        setError(res.error || "Invalid email or password.");
+        let errorMessage = res.error || "Invalid email or password.";
+        if (errorMessage.toLowerCase().includes("invalid login credentials")) {
+          errorMessage = "No account found with this email, or incorrect password. Please create a new account if you don't have one.";
+        }
+        setError(errorMessage);
         return;
       }
 

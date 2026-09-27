@@ -200,6 +200,10 @@ export default function AuthModal() {
       setErrorMessage("Password must be at least 8 characters long.");
       return;
     }
+    if (!/[A-Z]/.test(password) || !/[0-9]/.test(password) || !/[^a-zA-Z0-9]/.test(password)) {
+      setErrorMessage("Password must include an uppercase letter, a number, and a special character.");
+      return;
+    }
 
     setIsLoading(true);
     const cleanEmail = email.trim().toLowerCase();
@@ -359,13 +363,29 @@ export default function AuthModal() {
     setIsLoading(true);
 
     const valRes = await authService.validateCredentials(cleanEmail, password, rememberMe);
-    setIsLoading(false);
     
     if (!valRes.success || !valRes.user) {
-      setErrorMessage(valRes.error || "Incorrect email or password.");
+      if (valRes.isUnconfirmed) {
+        setOtpPurpose('signup');
+        await authService.sendOtp(cleanEmail, 'signup');
+        setResendTimer(30);
+        setCanResend(false);
+        setOtpDigits(["", "", "", "", "", ""]);
+        setAuthView('otp');
+        setIsLoading(false);
+        return;
+      }
+
+      let errorMsg = valRes.error || "Incorrect email or password.";
+      if (errorMsg.toLowerCase().includes("invalid login credentials")) {
+        errorMsg = "No account found with this email, or incorrect password. Please create a new account if you don't have one.";
+      }
+      setErrorMessage(errorMsg);
+      setIsLoading(false);
       return;
     }
-
+    
+    setIsLoading(false);
     onAuthSuccess(valRes.user, false);
   };
 
@@ -411,6 +431,10 @@ export default function AuthModal() {
 
     if (password.length < 8) {
       setErrorMessage("Password must be at least 8 characters long.");
+      return;
+    }
+    if (!/[A-Z]/.test(password) || !/[0-9]/.test(password) || !/[^a-zA-Z0-9]/.test(password)) {
+      setErrorMessage("Password must include an uppercase letter, a number, and a special character.");
       return;
     }
     if (password !== confirmPassword) {
@@ -845,8 +869,8 @@ export default function AuthModal() {
                 <Check size={13} className={password.length >= 8 ? "text-emerald-400" : "text-zinc-600"} />
                 <span>{t.auth.reqMinChars}</span>
               </div>
-              <div className={`flex items-center gap-2 ${/[A-Za-z]/.test(password) && /\d/.test(password) ? "text-emerald-400 font-medium" : ""}`}>
-                <Check size={13} className={/[A-Za-z]/.test(password) && /\d/.test(password) ? "text-emerald-400" : "text-zinc-600"} />
+              <div className={`flex items-center gap-2 ${/[A-Z]/.test(password) && /\d/.test(password) ? "text-emerald-400 font-medium" : ""}`}>
+                <Check size={13} className={/[A-Z]/.test(password) && /\d/.test(password) ? "text-emerald-400" : "text-zinc-600"} />
                 <span>{t.auth.reqLetterNumber}</span>
               </div>
               <div className={`flex items-center gap-2 ${/[^A-Za-z0-9]/.test(password) ? "text-emerald-400 font-medium" : ""}`}>
@@ -873,7 +897,7 @@ export default function AuthModal() {
             {/* Submit Button */}
             <button
               type="submit"
-              disabled={isLoading || password.length < 8}
+              disabled={isLoading || password.length < 8 || !/[A-Z]/.test(password) || !/[0-9]/.test(password) || !/[^a-zA-Z0-9]/.test(password)}
               className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-semibold text-sm text-white  transition-all hover:opacity-95 disabled:opacity-50 cursor-pointer"
               style={{ background: "linear-gradient(135deg, #2563EB, #3B82F6)" }}
             >
@@ -1076,14 +1100,56 @@ export default function AuthModal() {
               <label className="block text-xs font-semibold text-zinc-300 mb-1.5">
                 {t.auth.newPassword}
               </label>
-              <input
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter at least 8 characters"
-                className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-white/[0.04] border border-white/10 text-white focus:border-blue-500 focus:outline-none transition-colors"
-              />
+              <div className="relative">
+                <Lock size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none z-10" />
+                <input
+                  type={showPassword ? "text" : "password"}
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Enter at least 8 characters"
+                  className="w-full input-with-icon input-with-icon-right py-2.5 rounded-xl text-sm bg-white/[0.04] border border-white/10 text-white focus:border-blue-500 focus:outline-none transition-colors"
+                  style={{ paddingLeft: "42px", paddingRight: "42px" }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-white z-10 p-1"
+                >
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+
+              {/* Password Strength Meter */}
+              {password.length > 0 && (
+                <div className="mt-2.5 space-y-1.5 animate-fade-in">
+                  <div className="flex items-center justify-between text-[11px]">
+                    <span className="text-zinc-400">Strength:</span>
+                    <span className={`font-semibold ${strength.text}`}>{strength.label}</span>
+                  </div>
+                  <div className="h-1.5 w-full bg-white/10 rounded-full overflow-hidden flex gap-1">
+                    <div className={`h-full flex-1 rounded-full transition-all duration-300 ${strength.score >= 1 ? strength.color : "bg-transparent"}`} />
+                    <div className={`h-full flex-1 rounded-full transition-all duration-300 ${strength.score >= 2 ? strength.color : "bg-transparent"}`} />
+                    <div className={`h-full flex-1 rounded-full transition-all duration-300 ${strength.score >= 3 ? strength.color : "bg-transparent"}`} />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Password Requirements Checklist */}
+            <div className="space-y-1.5 text-[11px] text-zinc-400">
+              <div className={`flex items-center gap-2 ${password.length >= 8 ? "text-emerald-400 font-medium" : ""}`}>
+                <Check size={13} className={password.length >= 8 ? "text-emerald-400" : "text-zinc-600"} />
+                <span>{t.auth.reqMinChars}</span>
+              </div>
+              <div className={`flex items-center gap-2 ${/[A-Z]/.test(password) && /\d/.test(password) ? "text-emerald-400 font-medium" : ""}`}>
+                <Check size={13} className={/[A-Z]/.test(password) && /\d/.test(password) ? "text-emerald-400" : "text-zinc-600"} />
+                <span>{t.auth.reqLetterNumber}</span>
+              </div>
+              <div className={`flex items-center gap-2 ${/[^A-Za-z0-9]/.test(password) ? "text-emerald-400 font-medium" : ""}`}>
+                <Check size={13} className={/[^A-Za-z0-9]/.test(password) ? "text-emerald-400" : "text-zinc-600"} />
+                <span>{t.auth.reqSpecialChar}</span>
+              </div>
             </div>
 
             <div>
@@ -1102,7 +1168,7 @@ export default function AuthModal() {
 
             <button
               type="submit"
-              disabled={isLoading || !password || password !== confirmPassword}
+              disabled={isLoading || password.length < 8 || password !== confirmPassword || !/[A-Z]/.test(password) || !/[0-9]/.test(password) || !/[^a-zA-Z0-9]/.test(password)}
               className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-semibold text-sm text-white  transition-all hover:opacity-95 disabled:opacity-50 cursor-pointer"
               style={{ background: "linear-gradient(135deg, #2563EB, #3B82F6)" }}
             >
