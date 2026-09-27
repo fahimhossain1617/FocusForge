@@ -31,7 +31,11 @@ function getOrCreateAudioContext(): AudioContext | null {
   }
 }
 
-export function useAudioAnalyzer(isActive: boolean = false, isSpeakingActive: boolean = false) {
+export function useAudioAnalyzer(
+  isActive: boolean = false,
+  isSpeakingActive: boolean = false,
+  externalStream?: MediaStream | null
+) {
   const [state, setState] = useState<AudioAnalyzerState>({
     isInitialized: false,
     hasPermission: false,
@@ -42,6 +46,7 @@ export function useAudioAnalyzer(isActive: boolean = false, isSpeakingActive: bo
   const analyserRef = useRef<AnalyserNode | null>(null);
   const sourceNodeRef = useRef<MediaStreamAudioSourceNode | null>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
+  const isSelfCreatedStreamRef = useRef<boolean>(false);
   const dataArrayRef = useRef<Uint8Array | null>(null);
   const rafIdRef = useRef<number | null>(null);
 
@@ -69,14 +74,15 @@ export function useAudioAnalyzer(isActive: boolean = false, isSpeakingActive: bo
       analyserRef.current = null;
     }
 
-    if (mediaStreamRef.current) {
+    if (mediaStreamRef.current && isSelfCreatedStreamRef.current) {
       mediaStreamRef.current.getTracks().forEach((track) => {
         try {
           track.stop();
         } catch (e) {}
       });
-      mediaStreamRef.current = null;
     }
+    mediaStreamRef.current = null;
+    isSelfCreatedStreamRef.current = false;
 
     if (sharedAudioContext && sharedAudioContext.state === "running") {
       sharedAudioContext.suspend().catch(() => {});
@@ -91,9 +97,6 @@ export function useAudioAnalyzer(isActive: boolean = false, isSpeakingActive: bo
     cleanup();
 
     // Check if on mobile or tablet:
-    // On mobile devices (Android/iOS), calling getUserMedia while webkitSpeechRecognition is active
-    // causes the OS to seize exclusive mic focus, instantly aborting speech recognition!
-    // Therefore, on mobile we use a procedural high-fidelity organic waveform.
     const isMobileDevice =
       typeof window !== "undefined" &&
       (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
@@ -129,17 +132,24 @@ export function useAudioAnalyzer(isActive: boolean = false, isSpeakingActive: bo
     }
 
     try {
-      if (typeof window === "undefined" || !navigator?.mediaDevices?.getUserMedia) {
-        throw new Error("MediaDevices API is not available.");
-      }
+      let stream = externalStream || null;
 
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true,
-        },
-      });
+      if (!stream) {
+        if (typeof window === "undefined" || !navigator?.mediaDevices?.getUserMedia) {
+          throw new Error("MediaDevices API is not available.");
+        }
+
+        stream = await navigator.mediaDevices.getUserMedia({
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true,
+          },
+        });
+        isSelfCreatedStreamRef.current = true;
+      } else {
+        isSelfCreatedStreamRef.current = false;
+      }
 
       mediaStreamRef.current = stream;
 
@@ -237,7 +247,7 @@ export function useAudioAnalyzer(isActive: boolean = false, isSpeakingActive: bo
       };
       rafIdRef.current = requestAnimationFrame(tickFallback);
     }
-  }, [cleanup, isSpeakingActive]);
+  }, [cleanup, isSpeakingActive, externalStream]);
 
   useEffect(() => {
     if (isActive) {

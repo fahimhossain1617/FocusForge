@@ -55,9 +55,9 @@ export default function DiaryVoiceInput({ onInsertText, onError }: DiaryVoiceInp
         );
         return;
       }
-      startListening(speechLanguage);
+      startListening("auto");
     }
-  }, [isListening, isOnline, showToast, speechLanguage, startListening, state.lang, stopListening]);
+  }, [isListening, isOnline, showToast, startListening, state.lang, stopListening]);
 
   if (!isSupported) return null;
 
@@ -84,22 +84,14 @@ export default function DiaryVoiceInput({ onInsertText, onError }: DiaryVoiceInp
         )}
       </button>
 
-      {/* Language Switcher Pill */}
-      <button
-        type="button"
-        onClick={cycleLanguage}
-        className="px-2 py-1 text-[11px] font-medium rounded-lg border border-black/10 dark:border-white/10 bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 transition-all flex items-center gap-1 text-zinc-600 dark:text-zinc-300 cursor-pointer shadow-xs"
-        title={
-          speechLanguage === "auto"
-            ? "স্বয়ংক্রিয় মোড: বাংলা ও ইংরেজি উভয়ই বোঝে (ক্লিক করে পরিবর্তন করুন)"
-            : speechLanguage === "bn-BD"
-            ? "বাংলা মোড: শুধুমাত্র বাংলা (ক্লিক করে পরিবর্তন করুন)"
-            : "English Mode (Click to switch)"
-        }
+      {/* Automatic Multilingual Indicator */}
+      <div
+        className="px-2 py-1 text-[11px] font-medium rounded-lg border border-black/10 dark:border-white/10 bg-black/5 dark:bg-white/5 flex items-center gap-1 text-zinc-600 dark:text-zinc-300 shadow-xs select-none"
+        title="স্বয়ংক্রিয় মোড: বাংলা ও ইংরেজি উভয়ই বোঝে (Auto-Detect)"
       >
         <Globe size={11} className="opacity-70 text-blue-500" />
-        <span className="font-semibold">{speechLanguage === "auto" ? "Auto" : speechLanguage === "bn-BD" ? "বাং" : "EN"}</span>
-      </button>
+        <span className="font-semibold">Auto</span>
+      </div>
 
       {/* Floating live text preview so user sees it typing simultaneously */}
       {isListening && interimText && (

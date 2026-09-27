@@ -19,6 +19,8 @@ const userRoutes_1 = __importDefault(require("./routes/userRoutes"));
 const notificationRoutes_1 = __importDefault(require("./routes/notificationRoutes"));
 const reviewRoutes_1 = __importDefault(require("./routes/reviewRoutes"));
 const supervisorRoutes_1 = __importDefault(require("./routes/supervisorRoutes"));
+const http_1 = require("http");
+const webSocketService_1 = require("./services/webSocketService");
 // Load environment variables
 dotenv_1.default.config();
 const app = (0, express_1.default)();
@@ -55,6 +57,8 @@ app.use((err, req, res, next) => {
 });
 // Start the server
 const host = process.env.HOST || '0.0.0.0';
-app.listen(Number(port), host, () => {
+const server = (0, http_1.createServer)(app);
+(0, webSocketService_1.setupWebSocketServer)(server);
+server.listen(Number(port), host, () => {
     console.log(`FocusForge Backend running on http://${host}:${port}`);
 });

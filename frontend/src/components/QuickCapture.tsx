@@ -14,9 +14,9 @@ export default function QuickCapture() {
   const [value, setValue] = useState("");
   const [interim, setInterim] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const { addMindItem, showToast } = useAppContext();
+  const { addMindItem, showToast, state } = useAppContext();
   const { requireAuth } = useAuth();
-  const { t, state } = useTranslation();
+  const { t } = useTranslation();
   const { shouldRender, isExiting } = useAnimateExit({ isOpen, durationMs: 200 });
 
   useKeyboardShortcut("Space", () => setIsOpen(true), { ctrl: true });

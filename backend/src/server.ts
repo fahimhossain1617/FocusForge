@@ -14,6 +14,8 @@ import userRoutes from './routes/userRoutes';
 import notificationRoutes from './routes/notificationRoutes';
 import reviewRoutes from './routes/reviewRoutes';
 import supervisorRoutes from './routes/supervisorRoutes';
+import { createServer } from 'http';
+import { setupWebSocketServer } from './services/webSocketService';
 
 // Load environment variables
 dotenv.config();
@@ -57,6 +59,9 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
 
 // Start the server
 const host = process.env.HOST || '0.0.0.0';
-app.listen(Number(port), host, () => {
+const server = createServer(app);
+setupWebSocketServer(server);
+
+server.listen(Number(port), host, () => {
   console.log(`FocusForge Backend running on http://${host}:${port}`);
 });

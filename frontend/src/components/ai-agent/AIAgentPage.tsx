@@ -429,14 +429,29 @@ export function AIAgentPage() {
   const handleSpeechResult = (voiceText: string) => {
     if (!voiceText) return;
     const base = baseInputRef.current;
-    const updated = base ? `${base} ${voiceText}`.trim() : voiceText;
-    setInput(updated);
-    setTimeout(() => {
-      if (textareaRef.current) {
-        textareaRef.current.focus();
+    const prefix = base ? `${base} ` : "";
+    const targetText = (base ? `${base} ${voiceText}` : voiceText).trim();
+
+    // Smooth incremental typing-style text animation for real recognized speech
+    let currentLength = prefix.length;
+    setInput(prefix);
+
+    const timer = setInterval(() => {
+      currentLength += 2;
+      if (currentLength >= targetText.length) {
+        clearInterval(timer);
+        setInput(targetText);
+        setTimeout(() => {
+          if (textareaRef.current) {
+            textareaRef.current.focus();
+            adjustTextareaHeight();
+          }
+        }, 30);
+      } else {
+        setInput(targetText.slice(0, currentLength));
         adjustTextareaHeight();
       }
-    }, 50);
+    }, 16);
   };
 
   return (

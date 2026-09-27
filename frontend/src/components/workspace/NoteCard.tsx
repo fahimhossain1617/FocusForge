@@ -18,13 +18,20 @@ const getPreview = (blocks: NoteBlock[]) =>
     .join(" ") || "A fresh canvas for your next great idea.";
 
 export default function NoteCard({ note, onEdit, onDelete }: NoteCardProps) {
+  const getSafeDate = (d1: any, d2: any) => {
+    const val = d1 || d2;
+    if (!val) return new Date();
+    const d = new Date(val);
+    return isNaN(d.getTime()) ? new Date() : d;
+  };
+
   const [showSavedChip, setShowSavedChip] = useState(() => {
-    const timeDiff = Date.now() - new Date(note.updatedAt || note.createdAt).getTime();
+    const timeDiff = Date.now() - getSafeDate(note.updatedAt, note.createdAt).getTime();
     return timeDiff >= 0 && timeDiff < 3000;
   });
 
   useEffect(() => {
-    const timeDiff = Date.now() - new Date(note.updatedAt || note.createdAt).getTime();
+    const timeDiff = Date.now() - getSafeDate(note.updatedAt, note.createdAt).getTime();
     if (timeDiff >= 0 && timeDiff < 3000) {
       setShowSavedChip(true);
       const timer = setTimeout(() => {
@@ -41,7 +48,7 @@ export default function NoteCard({ note, onEdit, onDelete }: NoteCardProps) {
     month: "short", 
     day: "numeric", 
     year: "numeric" 
-  }).format(new Date(note.updatedAt || note.createdAt));
+  }).format(getSafeDate(note.updatedAt, note.createdAt));
 
   const hasCode = note.blocks.some((block) => block.type === "code");
   const hasMath = note.blocks.some((block) => block.type === "math");

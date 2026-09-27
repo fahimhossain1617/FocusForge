@@ -53,7 +53,7 @@ export default function VoiceInput({ onResult, onInterimResult, onError }: Voice
             );
             return;
           }
-          isListening ? stopListening() : startListening(speechLanguage);
+          isListening ? stopListening() : startListening("auto");
         }}
         className="voice-input__toggle w-10 h-10 flex items-center justify-center transition-all cursor-pointer"
         title={isListening ? t.myMind.stopListening : t.myMind.speakThought}
@@ -69,22 +69,14 @@ export default function VoiceInput({ onResult, onInterimResult, onError }: Voice
         )}
       </button>
 
-      {/* Interactive Language Mode Toggle Pill */}
-      <button
-        type="button"
-        onClick={cycleLanguage}
-        className="px-2.5 py-1 text-[11px] font-medium rounded-full border border-black/10 dark:border-white/10 bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 transition-all flex items-center gap-1.5 text-zinc-600 dark:text-zinc-300 cursor-pointer shadow-xs"
-        title={
-          speechLanguage === "auto"
-            ? "স্বয়ংক্রিয় মোড: বাংলা ও ইংরেজি উভয়ই বোঝে (ক্লিক করে সুইচ করুন)"
-            : speechLanguage === "bn-BD"
-            ? "বাংলা মোড: শুধুমাত্র বাংলা (ক্লিক করে সুইচ করুন)"
-            : "English Mode: Transcribe English (Click to switch)"
-        }
+      {/* Automatic Multilingual Mode Indicator */}
+      <div
+        className="px-2.5 py-1 text-[11px] font-medium rounded-full border border-black/10 dark:border-white/10 bg-black/5 dark:bg-white/5 flex items-center gap-1.5 text-zinc-600 dark:text-zinc-300 shadow-xs select-none"
+        title="স্বয়ংক্রিয় বহুভাষিক মোড: বাংলা ও ইংরেজি উভয়ই স্বয়ংক্রিয়ভাবে বোঝে"
       >
         <Globe size={12} className="opacity-70 text-blue-500" />
-        <span className="font-semibold">{speechLanguage === "auto" ? "Auto" : speechLanguage === "bn-BD" ? "বাংলা" : "EN"}</span>
-      </button>
+        <span className="font-semibold">Auto</span>
+      </div>
 
       {isListening ? (
         <div className="voice-wave" role="status" aria-label="Listening">
