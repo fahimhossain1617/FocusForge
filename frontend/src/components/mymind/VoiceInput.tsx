@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { Mic, MicOff, Globe } from "lucide-react";
+import { Mic, MicOff } from "lucide-react";
 import { useSpeechRecognition } from "../../hooks/useSpeechRecognition";
 import { useTranslation } from "../../hooks/useTranslation";
 import { useAppContext } from "../../context/AppContext";
@@ -21,8 +21,6 @@ export default function VoiceInput({ onResult, onInterimResult, onError }: Voice
     isListening,
     isTranscribing,
     interimText,
-    speechLanguage,
-    cycleLanguage,
     startListening,
     stopListening,
   } = useSpeechRecognition({
@@ -68,15 +66,6 @@ export default function VoiceInput({ onResult, onInterimResult, onError }: Voice
           <Mic size={18} />
         )}
       </button>
-
-      {/* Automatic Multilingual Mode Indicator */}
-      <div
-        className="px-2.5 py-1 text-[11px] font-medium rounded-full border border-black/10 dark:border-white/10 bg-black/5 dark:bg-white/5 flex items-center gap-1.5 text-zinc-600 dark:text-zinc-300 shadow-xs select-none"
-        title="স্বয়ংক্রিয় বহুভাষিক মোড: বাংলা ও ইংরেজি উভয়ই স্বয়ংক্রিয়ভাবে বোঝে"
-      >
-        <Globe size={12} className="opacity-70 text-blue-500" />
-        <span className="font-semibold">Auto</span>
-      </div>
 
       {isListening ? (
         <div className="voice-wave" role="status" aria-label="Listening">
