@@ -10,6 +10,7 @@ import { authService } from "../../services/authService";
 import { useAuth } from "../../context/AuthContext";
 import { useAppContext } from "../../context/AppContext";
 
+
 export default function SignupPage() {
   const router = useRouter();
   const { onAuthSuccess } = useAuth();

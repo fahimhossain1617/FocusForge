@@ -7,6 +7,7 @@ import { useTranslation } from "../../hooks/useTranslation";
 import VoiceInput from "./VoiceInput";
 import { getMindSourceInfo, formatMindDate } from "../../utils/mindUtils";
 
+
 interface MindHomeProps {
   navigate: (view: string) => void;
   setActiveThoughtId: (id: string) => void;

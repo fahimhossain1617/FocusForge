@@ -11,6 +11,7 @@ import {
 import FocusForgeDatePicker from "../ui/FocusForgeDatePicker";
 import FocusForgeSelect from "../ui/FocusForgeSelect";
 
+
 export default function ProfilePage() {
   const { user, isGuest, updateUserProfile, openAuth } = useAuth();
   const { showToast, navigateTo, state } = useAppContext();

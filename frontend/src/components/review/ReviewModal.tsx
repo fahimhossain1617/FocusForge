@@ -5,6 +5,7 @@ import { X, Star, Loader2 } from "lucide-react";
 import { useAppContext } from "../../context/AppContext";
 import styles from "./review-modal.module.css";
 
+
 interface ReviewModalProps {
   isOpen: boolean;
   onClose: () => void;

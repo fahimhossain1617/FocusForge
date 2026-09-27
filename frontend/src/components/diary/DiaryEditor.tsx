@@ -8,6 +8,7 @@ import { Check, Loader2, Eraser, ImagePlus, Trash2 } from "lucide-react";
 import { storageService } from "../../services/storageService";
 import { supabase } from "../../lib/supabaseClient";
 
+
 interface DiaryEditorProps {
   entry: DiaryEntry;
   onSave: (title: string, content: string, images?: DiaryImage[]) => void;

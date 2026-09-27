@@ -15,6 +15,7 @@ import { storageService } from "../../services/storageService";
 import { compressImageFile } from "../../services/indexedDBStorage";
 import { useAnimateExit } from "../../hooks/useAnimateExit";
 
+
 interface NoteEditorViewProps { 
   note?: Note | null;
   initialTitle: string; 

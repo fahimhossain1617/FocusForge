@@ -15,6 +15,7 @@ import katex from "katex";
 import "katex/dist/katex.min.css";
 import { Editor } from "@monaco-editor/react";
 
+
 /* ───────────── Constants ───────────── */
 
 export const formatBytes = (bytes?: number) => {

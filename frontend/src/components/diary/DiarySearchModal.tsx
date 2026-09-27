@@ -7,6 +7,7 @@ import { DiaryTopic } from "../../types";
 import { searchDiary, DiarySearchResult, formatTopicNumber } from "../../services/diaryStorageService";
 import { useAnimateExit } from "../../hooks/useAnimateExit";
 
+
 interface DiarySearchModalProps {
   isOpen: boolean;
   onClose: () => void;

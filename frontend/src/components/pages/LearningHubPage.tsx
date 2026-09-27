@@ -10,6 +10,7 @@ import { Folder, Plus, Trash2, CheckCircle, Clock, CalendarDays, AlertTriangle, 
 import { useAnimateExit } from "../../hooks/useAnimateExit";
 import confetti from "canvas-confetti";
 
+
 function formatHoursMins(totalMins: number): string {
   const h = Math.floor(totalMins / 60);
   const m = Math.round(totalMins % 60);

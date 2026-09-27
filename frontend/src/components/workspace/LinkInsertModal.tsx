@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { Link2, ExternalLink, X } from "lucide-react";
 import { useAnimateExit } from "../../hooks/useAnimateExit";
 
+
 interface LinkInsertModalProps {
   isOpen: boolean;
   onClose: () => void;

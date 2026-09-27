@@ -6,6 +6,7 @@ import { useAppContext } from "../../context/AppContext";
 import { useTranslation } from "../../hooks/useTranslation";
 import VoiceInput from "./VoiceInput";
 
+
 interface ProblemSolverProps {
   navigate: (view: string) => void;
 }

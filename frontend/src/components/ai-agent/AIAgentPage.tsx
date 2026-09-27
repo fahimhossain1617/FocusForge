@@ -32,6 +32,7 @@ import { VoiceAssistantModal } from "@/components/voice";
 import { AIOrbFace } from "./AIOrbFace";
 import { useOrbMood, type OrbMood } from "./useOrbMood";
 import styles from "./ai-agent.module.css";
+import { AIChatAnimatedTypingInput } from "./AIChatAnimatedTypingInput";
 
 const moodList: { id: OrbMood; labelBn: string; labelEn: string }[] = [
   { id: "happy", labelBn: "হ্যাপি", labelEn: "Happy" },
@@ -961,8 +962,8 @@ export function AIAgentPage() {
                 )}
               </div>
 
-              {/* Center Input Textarea */}
-              <textarea
+              {/* Center Input Textarea with Animated User Typing */}
+              <AIChatAnimatedTypingInput
                 ref={textareaRef}
                 value={input}
                 disabled={isThinking}
@@ -978,10 +979,22 @@ export function AIAgentPage() {
                     submit();
                   }
                 }}
-                placeholder="Ask about your tasks, routine or goals"
+                placeholder={
+                  messages && messages.length > 0
+                    ? isSystemBn
+                      ? "গ্লোরিকে উত্তর দিন..."
+                      : "Reply to Glory..."
+                    : isSystemBn
+                    ? "গ্লোরির সাথে চ্যাট করুন..."
+                    : "Chat with Glory..."
+                }
                 rows={1}
                 className={`${styles.pillTextarea} composer-pill-textarea`}
-                aria-label="Message FocusForge AI"
+                aria-label={
+                  messages && messages.length > 0
+                    ? "Reply to Glory"
+                    : "Chat with Glory"
+                }
               />
 
               {/* Right Controls: Model Switcher + Mic + Send/Stop */}

@@ -9,6 +9,7 @@ import NoteCard from "../workspace/NoteCard";
 import NoteEditorView from "./NoteEditorView";
 import { Plus, Search, Filter, X } from "lucide-react";
 
+
 export default function WorkspacePage() {
   const { state, addNote, updateNote, deleteNote } = useAppContext();
   const [mounted, setMounted] = useState(false);

@@ -11,6 +11,7 @@ import { useAppContext } from "../../context/AppContext";
 import { User, Users, Trash2, ArrowRight } from "lucide-react";
 import { RememberedAccount } from "../../services/accountManager";
 
+
 function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();

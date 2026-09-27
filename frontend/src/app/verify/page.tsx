@@ -9,6 +9,7 @@ import { authService } from "../../services/authService";
 import { useAuth } from "../../context/AuthContext";
 import { useAppContext } from "../../context/AppContext";
 
+
 function VerifyContent() {
   const router = useRouter();
   const searchParams = useSearchParams();

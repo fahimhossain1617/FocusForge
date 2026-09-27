@@ -6,6 +6,7 @@ import { useTranslation } from "../../hooks/useTranslation";
 import { DiaryTopic } from "../../types";
 import { useAnimateExit } from "../../hooks/useAnimateExit";
 
+
 interface DiaryTopicModalProps {
   isOpen: boolean;
   onClose: () => void;

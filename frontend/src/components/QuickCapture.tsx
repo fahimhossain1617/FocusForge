@@ -9,6 +9,7 @@ import { useAnimateExit } from "../hooks/useAnimateExit";
 import { Brain } from "lucide-react";
 import VoiceInput from "./mymind/VoiceInput";
 
+
 export default function QuickCapture() {
   const [isOpen, setIsOpen] = useState(false);
   const [value, setValue] = useState("");

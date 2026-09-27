@@ -30,6 +30,7 @@ import {
 } from "lucide-react";
 import { useAnimateExit } from "../../hooks/useAnimateExit";
 
+
 type SessionPhase = "setup" | "focus_active" | "break_selection" | "break_active" | "break_completed";
 
 export default function FocusPage() {
