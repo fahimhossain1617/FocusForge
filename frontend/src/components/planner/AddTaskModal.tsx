@@ -113,7 +113,7 @@ export default function AddTaskModal({
       }}
     >
       <div
-        className="app-modal-panel relative w-full max-w-lg my-auto rounded-3xl border flex flex-col shadow-2xl overflow-hidden bg-white dark:bg-[#0f172a] border-slate-200 dark:border-blue-500/25"
+        className="app-modal-panel relative w-full max-w-lg my-auto rounded-3xl border flex flex-col shadow-none overflow-hidden bg-white dark:bg-[#0f172a] border-slate-200 dark:border-blue-500/25"
       >
         {/* MODAL HEADER */}
         <div className="flex items-center justify-between px-6 py-5 border-b border-slate-200 dark:border-white/[0.08] bg-slate-50/70 dark:bg-white/[0.02]">
@@ -205,7 +205,7 @@ export default function AddTaskModal({
             </button>
             <button
               type="submit"
-              className="px-6 py-2.5 rounded-xl bg-[#223A5E] hover:bg-[#2E4E7B] dark:bg-blue-600 dark:hover:bg-blue-500 text-white text-xs font-bold transition-all shadow-md shadow-[#223A5E]/20 cursor-pointer"
+              className="px-6 py-2.5 rounded-xl bg-[#223A5E] hover:bg-[#2E4E7B] dark:bg-blue-600 dark:hover:bg-blue-500 text-white text-xs font-bold transition-all shadow-none cursor-pointer"
             >
               Save Task
             </button>

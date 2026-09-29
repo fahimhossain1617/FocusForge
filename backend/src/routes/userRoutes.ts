@@ -10,6 +10,10 @@ import {
   dbUpsertTask,
   dbUpsertNote,
   dbUpsertMindItem,
+  dbGetUserCloudState,
+  dbUpsertUserCloudState,
+  dbGetUserOnboarding,
+  dbUpsertUserOnboarding,
   pool,
 } from '../services/db';
 import {
@@ -449,17 +453,8 @@ router.get('/state', async (req: AuthenticatedRequest, res: Response) => {
       return res.json({ state: null });
     }
 
-    const { data, error } = await supabase
-      .from('user_cloud_state')
-      .select('state, updated_at')
-      .eq('id', userId)
-      .maybeSingle();
-
-    if (error) {
-      return res.status(500).json({ error: error.message });
-    }
-
-    res.json(data ? data.state : null);
+    const state = await dbGetUserCloudState(userId);
+    res.json(state);
   } catch (err: any) {
     res.status(500).json({ error: err.message || 'Failed to fetch cloud state' });
   }
@@ -481,21 +476,8 @@ router.post('/state', async (req: AuthenticatedRequest, res: Response) => {
       return res.status(400).json({ error: 'State payload is required' });
     }
 
-    const { data, error } = await supabase
-      .from('user_cloud_state')
-      .upsert({
-        id: userId,
-        state: state,
-        updated_at: new Date().toISOString(),
-      })
-      .select()
-      .single();
-
-    if (error) {
-      return res.status(500).json({ error: error.message });
-    }
-
-    res.json({ success: true, updated_at: data.updated_at });
+    const result = await dbUpsertUserCloudState(userId, state);
+    res.json({ success: true, updated_at: result?.updated_at });
   } catch (err: any) {
     res.status(500).json({ error: err.message || 'Failed to save cloud state' });
   }
@@ -518,25 +500,9 @@ router.get('/onboarding', async (req: AuthenticatedRequest, res: Response) => {
       });
     }
 
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('onboarding_completed, onboarding_completed_at, preferred_language, preferred_theme, account_mode, product_tour_completed')
-      .eq('id', userId)
-      .maybeSingle();
-
-    if (error) {
-      return res.status(500).json({ error: error.message });
-    }
-
+    const data = await dbGetUserOnboarding(userId);
     if (data) {
-      return res.json({
-        onboardingCompleted: Boolean(data.onboarding_completed),
-        onboardingCompletedAt: data.onboarding_completed_at,
-        preferredLanguage: data.preferred_language || 'en',
-        preferredTheme: data.preferred_theme || 'dark',
-        accountMode: data.account_mode || 'authenticated',
-        productTourCompleted: Boolean(data.product_tour_completed),
-      });
+      return res.json(data);
     }
 
     res.json({
@@ -562,40 +528,7 @@ router.post('/onboarding', async (req: AuthenticatedRequest, res: Response) => {
       return res.json({ success: true, guest: true });
     }
 
-    const {
-      onboardingCompleted,
-      preferredLanguage,
-      preferredTheme,
-      accountMode,
-      productTourCompleted,
-    } = req.body;
-
-    const updates: Record<string, any> = {
-      updated_at: new Date().toISOString(),
-    };
-
-    if (onboardingCompleted !== undefined) {
-      updates.onboarding_completed = Boolean(onboardingCompleted);
-      if (onboardingCompleted) {
-        updates.onboarding_completed_at = new Date().toISOString();
-      }
-    }
-    if (preferredLanguage !== undefined) updates.preferred_language = preferredLanguage;
-    if (preferredTheme !== undefined) updates.preferred_theme = preferredTheme;
-    if (accountMode !== undefined) updates.account_mode = accountMode;
-    if (productTourCompleted !== undefined) updates.product_tour_completed = Boolean(productTourCompleted);
-
-    const { data, error } = await supabase
-      .from('profiles')
-      .update(updates)
-      .eq('id', userId)
-      .select('onboarding_completed, onboarding_completed_at, preferred_language, preferred_theme, account_mode, product_tour_completed')
-      .maybeSingle();
-
-    if (error) {
-      return res.status(500).json({ error: error.message });
-    }
-
+    const data = await dbUpsertUserOnboarding(userId, req.body);
     res.json({ success: true, data });
   } catch (err: any) {
     res.status(500).json({ error: err.message || 'Failed to save onboarding state' });

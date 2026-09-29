@@ -243,12 +243,12 @@ export default function FocusForgeSelect({
           id={`${selectId}-menu`}
           role="listbox"
           aria-label={ariaLabel || placeholder}
-          className="fixed z-[99999] overflow-hidden rounded-2xl shadow-2xl animate-fade-in bg-white dark:bg-[#0C1222] border border-[#DCE5F0] dark:border-white/10"
+          className="fixed z-[99999] overflow-hidden rounded-2xl shadow-none animate-fade-in bg-white dark:bg-[#0C1222] border border-[#DCE5F0] dark:border-white/10"
           style={{
             top: `${dropdownPos.top}px`,
             left: `${dropdownPos.left}px`,
             width: `${dropdownPos.width}px`,
-            boxShadow: "0 16px 40px rgba(0, 0, 0, 0.16), 0 0 0 1px rgba(0, 0, 0, 0.04)",
+            boxShadow: "none",
           }}
         >
           <div className="max-h-64 overflow-y-auto p-1.5 space-y-0.5 custom-scrollbar">

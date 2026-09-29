@@ -26,7 +26,11 @@ import {
   Pause, 
   FastForward, 
   ChevronRight, 
-  Clock 
+  Clock,
+  Plus,
+  Minus,
+  Check,
+  Sparkles
 } from "lucide-react";
 import { useAnimateExit } from "../../hooks/useAnimateExit";
 
@@ -64,7 +68,6 @@ export default function FocusPage() {
   const [showDistraction, setShowDistraction] = useState(false);
   const [distractionText, setDistractionText] = useState("");
   const [isDeepFocus, setIsDeepFocus] = useState(false);
-  const [showTaskError, setShowTaskError] = useState(false);
   const [showDurationError, setShowDurationError] = useState(false);
 
   // Custom Task History (synced with Supabase state & local fallback)
@@ -234,6 +237,50 @@ export default function FocusPage() {
   const timerWorkMinutesRef = useRef(timer.workMinutes);
   timerWorkMinutesRef.current = timer.workMinutes;
 
+  // Custom Duration State (Hours and Minutes)
+  const [customHours, setCustomHours] = useState<number>(0);
+  const [customMinutes, setCustomMinutes] = useState<number>(25);
+  const [isHoursFocused, setIsHoursFocused] = useState(false);
+  const [isMinutesFocused, setIsMinutesFocused] = useState(false);
+
+  // Sync custom inputs with timer.workMinutes whenever it changes
+  useEffect(() => {
+    if (timer.workMinutes > 0) {
+      setCustomHours(Math.floor(timer.workMinutes / 60));
+      setCustomMinutes(timer.workMinutes % 60);
+    }
+  }, [timer.workMinutes]);
+
+  // Default to 25m preset on initial mount if not yet initialized
+  useEffect(() => {
+    if (timer.workMinutes === 0) {
+      timer.setPreset(25);
+    }
+  }, [timer]);
+
+  const handleDurationPreset = (mins: number) => {
+    setCustomHours(Math.floor(mins / 60));
+    setCustomMinutes(mins % 60);
+    timer.setPreset(mins);
+    setShowDurationError(false);
+  };
+
+  const handleCustomHoursChange = (h: number) => {
+    const validH = Math.max(0, Math.min(12, h));
+    setCustomHours(validH);
+    const total = validH * 60 + customMinutes;
+    timer.setPreset(total);
+    if (total > 0) setShowDurationError(false);
+  };
+
+  const handleCustomMinutesChange = (m: number) => {
+    const validM = Math.max(0, Math.min(59, m));
+    setCustomMinutes(validM);
+    const total = customHours * 60 + validM;
+    timer.setPreset(total);
+    if (total > 0) setShowDurationError(false);
+  };
+
   // Register focus lock with AppContext to intercept sidebar/global navigation ONLY while focus is active
   useEffect(() => {
     if (sessionPhase === "focus_active" && activeSessionId && timer.remaining > 0) {
@@ -267,7 +314,6 @@ export default function FocusPage() {
           const category = data.category || "Study";
 
           setSelectedTask({ id: 0, name: taskName, category });
-          setShowTaskError(false);
           setShowDurationError(false);
           setExitAttempts(0);
           saveToHistory(taskName);
@@ -327,34 +373,36 @@ export default function FocusPage() {
 
   const handleSelectTask = (task: { id?: number; name: string; category: string }) => {
     setSelectedTask(task);
-    setShowTaskError(false);
   };
 
   const handleStartFocus = () => {
-    const hasNoTask = !selectedTask.name;
     const hasNoDuration = !timer.workMinutes || timer.workMinutes <= 0;
 
-    if (hasNoTask || hasNoDuration) {
-      setShowTaskError(hasNoTask);
-      setShowDurationError(hasNoDuration);
+    if (hasNoDuration) {
+      setShowDurationError(true);
       return;
     }
 
-    setShowTaskError(false);
     setShowDurationError(false);
     setExitAttempts(0);
 
-    if (!selectedTask.id) {
-      saveToHistory(selectedTask.name);
+    const rawName = selectedTask.name?.trim() || "";
+    const defaultName = state.lang === "bn" ? "ফোকাস সেশন" : "Focus Session";
+    const finalTaskName = rawName || defaultName;
+    const finalCategory = selectedTask.category || "";
+
+    if (rawName && !selectedTask.id) {
+      saveToHistory(rawName);
     }
 
     const sessionId = startFocusSession(
-      selectedTask.name,
-      selectedTask.category,
+      finalTaskName,
+      finalCategory,
       selectedTask.id,
       timer.workMinutes
     );
     setActiveSessionId(sessionId);
+    setSelectedTask({ id: selectedTask.id, name: finalTaskName, category: finalCategory });
     setSessionPhase("focus_active");
     timer.start();
   };
@@ -509,11 +557,13 @@ export default function FocusPage() {
         {/* Deep Focus Top Navigation Bar */}
         <div className="w-full max-w-2xl flex items-center justify-between z-10">
           <button
+            type="button"
             onClick={() => setIsDeepFocus(false)}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-zinc-300 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 transition-all group active:scale-95 shadow-sm"
+            className="inline-flex items-center justify-center w-9 h-9 rounded-full text-zinc-400 hover:text-white hover:bg-white/10 active:scale-95 transition-colors cursor-pointer"
+            aria-label={state.lang === "bn" ? "ফিরে যান" : "Back"}
+            title={state.lang === "bn" ? "ফিরে যান" : "Back"}
           >
-            <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-            <span>{state.lang === "bn" ? "ফোকাসে ফিরে যান" : "Back to Focus"}</span>
+            <ArrowLeft className="w-5 h-5" strokeWidth={2} />
           </button>
 
           <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/25 text-xs font-semibold text-blue-400">
@@ -549,7 +599,7 @@ export default function FocusPage() {
             <div className="flex items-center justify-center gap-3">
               <button
                 onClick={timer.isRunning ? handlePauseAttempt : timer.start}
-                className="w-20 h-12 rounded-full bg-white text-zinc-950 hover:bg-zinc-200 transition-all flex items-center justify-center shadow-xl active:scale-95 cursor-pointer"
+                className="w-20 h-12 rounded-full bg-white text-zinc-950 hover:bg-zinc-200 transition-all flex items-center justify-center shadow-none active:scale-95 cursor-pointer"
                 title={timer.isRunning ? t.focus.pause : t.focus.resume}
                 aria-label={timer.isRunning ? t.focus.pause : t.focus.resume}
               >
@@ -563,9 +613,9 @@ export default function FocusPage() {
               <button
                 type="button"
                 onClick={() => setShowDistraction((prev) => !prev)}
-                className={`h-12 px-4 rounded-full border transition-all flex items-center gap-2 text-xs font-semibold cursor-pointer active:scale-95 shadow-xs ${
+                className={`h-12 px-4 rounded-full border transition-all flex items-center gap-2 text-xs font-semibold cursor-pointer active:scale-95 shadow-none ${
                   showDistraction
-                    ? "bg-[#223A5E] dark:bg-blue-600 text-white border-[#223A5E] dark:border-blue-500 shadow-sm"
+                    ? "bg-[#223A5E] dark:bg-blue-600 text-white border-[#223A5E] dark:border-blue-500 shadow-none"
                     : "bg-[#F7FAFE] dark:bg-white/5 hover:bg-[#F0F5FD] dark:hover:bg-white/10 text-[#52627A] dark:text-zinc-300 hover:text-[#111827] dark:hover:text-white border-[#DCE5F0] dark:border-white/10"
                 }`}
                 title={t.focus.distracted}
@@ -582,7 +632,7 @@ export default function FocusPage() {
 
             {/* Distraction capture inline popover in Deep Focus */}
             {showDistraction && (
-              <div className="mt-4 w-full p-4 rounded-2xl border border-[#DCE5F0] dark:border-blue-500/30 bg-white dark:bg-[#0c1222]/95 shadow-xl dark:shadow-2xl text-left">
+              <div className="mt-4 w-full p-4 rounded-2xl border border-[#DCE5F0] dark:border-blue-500/30 bg-white dark:bg-[#0c1222]/95 shadow-none text-left">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-xs font-semibold text-[#111827] dark:text-white flex items-center gap-1.5">
                     <MessageSquare className="w-3.5 h-3.5 text-[#5B8DEF] dark:text-blue-400" />
@@ -610,7 +660,7 @@ export default function FocusPage() {
                     type="button"
                     onClick={handleLogDistraction}
                     disabled={!distractionText.trim()}
-                    className="flex-1 py-2 px-3 rounded-xl bg-[#223A5E] hover:bg-[#2E4E7B] dark:bg-blue-600 dark:hover:bg-blue-500 disabled:opacity-40 text-white text-xs font-semibold transition-all shadow-sm active:scale-98 cursor-pointer"
+                    className="flex-1 py-2 px-3 rounded-xl bg-[#223A5E] hover:bg-[#2E4E7B] dark:bg-blue-600 dark:hover:bg-blue-500 disabled:opacity-40 text-white text-xs font-semibold transition-all shadow-none active:scale-98 cursor-pointer"
                   >
                     {t.focus.saveReturn}
                   </button>
@@ -651,7 +701,7 @@ export default function FocusPage() {
               onClick={() => setShowPauseModal(false)}
             ></div>
             <div
-              className={`focus-dialog relative w-full max-w-md border rounded-2xl p-8 shadow-2xl text-center ${
+              className={`focus-dialog relative w-full max-w-md border rounded-2xl p-8 shadow-none text-center ${
                 pauseAnim.isExiting ? "motion-exit-reveal" : "motion-reveal"
               }`}
             >
@@ -705,174 +755,344 @@ export default function FocusPage() {
   }
 
   return (
-    <div className="motion-page w-full pb-12">
+    <div className="motion-page max-w-6xl mx-auto w-full pb-14">
       {/* ============================================================ */}
       {/* 1. SETUP SCREEN (Inactive State)                             */}
       {/* ============================================================ */}
       {sessionPhase === "setup" && (
-        <div className="max-w-2xl mx-auto space-y-6">
-          {/* Setup Header - Aligned directly with the cards */}
-          <div className="pb-1">
-            <h1 className="text-base md:text-lg font-semibold tracking-tight text-foreground">
+        <div className="w-full space-y-6">
+          {/* Header Row: Title & Subtitle */}
+          <div className="mb-2">
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
               {t.focus.title}
             </h1>
             <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
               {t.focus.subtitleInactive}
             </p>
           </div>
-            {/* Task Selection */}
-            <div className="card p-5">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-sm font-semibold flex items-center gap-2" style={{ color: "var(--color-text-primary)" }}>
-                  <Target className="w-4 h-4 text-purple-400" />
-                  {t.focus.whatToFocus}
-                </h3>
-                <button
-                  onClick={() => setShowHistoryModal(true)}
-                  className="p-1.5 rounded-lg hover:bg-white/5 transition-colors text-zinc-400 hover:text-white flex items-center gap-1 text-xs"
-                  title="View History"
-                >
-                  <History className="w-3.5 h-3.5" />
-                  <span>{t.focus.taskHistory}</span>
-                </button>
-              </div>
 
-              {taskHistory.length > 0 && (
-                <div className="space-y-1.5 mb-4">
-                  <button
-                    onClick={() => handleSelectTask({ name: taskHistory[0].name, category: "" })}
-                    className="w-full text-left px-4 py-3 rounded-xl text-sm transition-all flex items-center justify-between"
-                    style={{
-                      background:
-                        selectedTask.name === taskHistory[0].name
-                          ? "var(--color-purple-muted)"
-                          : "var(--color-bg-secondary)",
-                      color:
-                        selectedTask.name === taskHistory[0].name
-                          ? "var(--color-purple-bright)"
-                          : "var(--color-text-secondary)",
-                      borderWidth: 1,
-                      borderColor:
-                        selectedTask.name === taskHistory[0].name
-                          ? "var(--color-border-active)"
-                          : "transparent",
-                    }}
-                  >
-                    <span className="font-medium truncate">{taskHistory[0].name}</span>
-                    <span className="text-xs opacity-60 ml-2 whitespace-nowrap">
-                      {taskHistory[0].totalMinutes}m {state.lang === "bn" ? "ফোকাস" : "focused"}
-                    </span>
-                  </button>
+          {/* Two-Column Side-by-Side Cards (Responsive: 1 col on mobile, 2 cols on lg) */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+            {/* LEFT COLUMN: What will you focus on? */}
+            <div className="lg:col-span-6 flex flex-col">
+              <div className="rounded-2xl p-5 sm:p-6 border border-border/70 dark:border-white/10 bg-card/60 shadow-none flex flex-col h-full justify-between gap-5">
+                <div>
+                  {/* Card Title (Clean, no icon, no subtitle) */}
+                  <div className="mb-4">
+                    <h3 className="text-base font-semibold text-foreground">
+                      {t.focus.whatToFocus}
+                    </h3>
+                  </div>
+
+                  {/* Custom Task Input Box */}
+                  <div className="relative mb-5">
+                    <input
+                      type="text"
+                      value={selectedTask.id ? "" : selectedTask.name}
+                      onChange={(e) => {
+                        setSelectedTask({ name: e.target.value, category: "" });
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          handleStartFocus();
+                        }
+                      }}
+                      placeholder={t.focus.orCustomTask}
+                      className="input-field w-full py-3 px-4 text-sm rounded-xl transition-all"
+                    />
+                    {selectedTask.name && (
+                      <button
+                        type="button"
+                        onClick={() => setSelectedTask({ name: "", category: "" })}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-1 rounded-md cursor-pointer transition-colors"
+                        title="Clear input"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Quick Select from Recent Task History */}
+                  {taskHistory.length > 0 && (
+                    <div className="space-y-2.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-semibold text-muted-foreground">
+                          {t.focus.recentTasks ||
+                            (state.lang === "bn" ? "সাম্প্রতিক টাস্কসমূহ" : "Recent Tasks")}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setShowHistoryModal(true)}
+                          className="text-xs text-blue-400 hover:underline cursor-pointer font-medium"
+                        >
+                          {state.lang === "bn" ? "ভিউ অল" : "View all"}
+                        </button>
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        {taskHistory.slice(0, 3).map((item, idx) => {
+                          const isSelected = selectedTask.name === item.name;
+                          return (
+                            <button
+                              key={idx}
+                              type="button"
+                              onClick={() => handleSelectTask({ name: item.name, category: "" })}
+                              className={`w-full text-left px-3.5 py-2.5 rounded-xl text-xs sm:text-sm transition-all flex items-center justify-between border cursor-pointer active:scale-[0.99] ${
+                                isSelected
+                                  ? "bg-blue-500/15 border-blue-500 text-blue-400 font-semibold shadow-none"
+                                  : "bg-secondary/40 hover:bg-secondary text-foreground/90 border-border/60 hover:border-border"
+                              }`}
+                            >
+                              <span className="truncate mr-2 font-medium">{item.name}</span>
+                              <span
+                                className={`text-[11px] px-2 py-0.5 rounded-md shrink-0 whitespace-nowrap ${
+                                  isSelected
+                                    ? "bg-blue-500/25 text-blue-300 font-semibold"
+                                    : "bg-black/20 dark:bg-white/5 text-muted-foreground"
+                                }`}
+                              >
+                                {item.totalMinutes}m {state.lang === "bn" ? "ফোকাস" : "focused"}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Starter Suggestions if no history */}
+                  {taskHistory.length === 0 && (
+                    <div className="space-y-2.5">
+                      <span className="text-xs font-semibold text-muted-foreground">
+                        {t.focus.popularTopics ||
+                          (state.lang === "bn" ? "জনপ্রিয় টপিকসমূহ" : "Popular Topics")}
+                      </span>
+                      <div className="flex flex-wrap gap-2">
+                        {[
+                          { en: "Deep Study", bn: "গভীর পড়াশোনা" },
+                          { en: "Coding & Dev", bn: "কোডিং ও ডেভেলপমেন্ট" },
+                          { en: "Book Reading", bn: "বই পড়া" },
+                          { en: "Project Work", bn: "প্রজেক্টের কাজ" },
+                        ].map((topic, i) => (
+                          <button
+                            key={i}
+                            type="button"
+                            onClick={() =>
+                              handleSelectTask({
+                                name: state.lang === "bn" ? topic.bn : topic.en,
+                                category: "",
+                              })
+                            }
+                            className="px-3 py-1.5 rounded-xl text-xs bg-secondary/40 hover:bg-secondary border border-border/60 hover:border-border text-foreground/80 transition-all cursor-pointer active:scale-95"
+                          >
+                            {state.lang === "bn" ? topic.bn : topic.en}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
-              )}
 
-              {/* Custom Task Input */}
-              <div className="flex items-center gap-2 mt-2">
-                <input
-                  type="text"
-                  value={selectedTask.id ? "" : selectedTask.name}
-                  onChange={(e) => {
-                    setSelectedTask({ name: e.target.value, category: "" });
-                    setShowTaskError(false);
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      document.getElementById("duration-input")?.focus();
-                    }
-                  }}
-                  placeholder={t.focus.orCustomTask}
-                  className="text-sm input-field"
-                />
-              </div>
-            </div>
-
-            {/* Timer Presets */}
-            <div className="card p-5">
-              <h3 className="text-sm font-semibold mb-3 flex items-center gap-2" style={{ color: "var(--color-text-primary)" }}>
-                <Clock className="w-4 h-4 text-purple-400" />
-                {t.focus.sessionDuration}
-              </h3>
-              <div className="flex flex-wrap items-center gap-2.5">
-                {[25, 50, 90].map((mins) => (
-                  <button
-                    key={mins}
-                    onClick={() => {
-                      timer.setPreset(mins);
-                      setShowDurationError(false);
-                    }}
-                    className="px-4 py-2.5 rounded-xl text-sm font-semibold transition-all"
-                    style={{
-                      background:
-                        timer.workMinutes === mins
-                          ? "var(--color-purple-muted)"
-                          : "var(--color-bg-secondary)",
-                      color:
-                        timer.workMinutes === mins
-                          ? "var(--color-purple-bright)"
-                          : "var(--color-text-secondary)",
-                      border:
-                        timer.workMinutes === mins
-                          ? "1px solid var(--color-border-active)"
-                          : "1px solid transparent",
-                    }}
-                  >
-                    {mins}m
-                  </button>
-                ))}
-
-                <div className="relative flex items-center min-w-[120px]">
-                  <input
-                    id="duration-input"
-                    type="number"
-                    value={timer.workMinutes || ""}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      timer.setPreset(val === "" ? 0 : parseInt(val));
-                      if (val !== "" && parseInt(val) > 0) setShowDurationError(false);
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        handleStartFocus();
-                      }
-                    }}
-                    placeholder={t.focus.setDuration}
-                    className="input-field !w-36 text-sm text-center py-2.5 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                    min={1}
-                    max={180}
-                  />
-                  {!!timer.workMinutes && (
-                    <span
-                      className="absolute right-3 text-xs pointer-events-none"
-                      style={{ color: "var(--color-text-muted)" }}
-                    >
-                      min
-                    </span>
+                {/* Selected Task feedback pill */}
+                <div>
+                  {selectedTask.name && (
+                    <div className="p-3 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-between text-xs text-blue-400">
+                      <div className="flex items-center gap-2 truncate">
+                        <Check className="w-3.5 h-3.5 shrink-0" />
+                        <span className="truncate">
+                          {state.lang === "bn" ? "বাছাইকৃত টাস্ক:" : "Selected:"}{" "}
+                          <strong>{selectedTask.name}</strong>
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedTask({ name: "", category: "" })}
+                        className="text-[11px] underline opacity-80 hover:opacity-100 ml-2 shrink-0 cursor-pointer"
+                      >
+                        {state.lang === "bn" ? "মুছুন" : "Clear"}
+                      </button>
+                    </div>
                   )}
                 </div>
               </div>
             </div>
 
-            {/* Start Button */}
-            <button
-              onClick={handleStartFocus}
-              className="btn-primary w-full text-base py-4 font-bold tracking-wide shadow-lg hover:shadow-purple-500/20 transition-all"
-            >
-              {t.focus.startFocus}
-            </button>
+            {/* RIGHT COLUMN: Session Duration & Start Focus */}
+            <div className="lg:col-span-6 flex flex-col">
+              <div className="rounded-2xl p-5 sm:p-6 border border-border/70 dark:border-white/10 bg-card/60 shadow-none flex flex-col h-full justify-between gap-5">
+                <div>
+                  {/* Card Title (Clean, no icon, no subtitle, no badge) */}
+                  <div className="mb-4">
+                    <h3 className="text-base font-semibold text-foreground">
+                      {t.focus.sessionDuration}
+                    </h3>
+                  </div>
 
-            {showTaskError && (
-              <p className="text-red-400 text-sm mt-2 text-center fade-in font-medium">
-                {t.focus.errSelectTask}
-              </p>
-            )}
+                  {/* Preset Pills: 25m, 50m, 90m */}
+                  <div className="mb-5">
+                    <div className="text-xs font-semibold text-muted-foreground mb-2">
+                      {t.focus.quickPresets ||
+                        (state.lang === "bn" ? "জনপ্রিয় সময়কাল" : "Quick Presets")}
+                    </div>
+                    <div className="grid grid-cols-3 gap-2.5">
+                      {[
+                        { mins: 25, label: "25m", subEn: "Pomodoro", subBn: "পোমোডোরো" },
+                        { mins: 50, label: "50m", subEn: "Deep Flow", subBn: "ডিপ ফ্লো" },
+                        {
+                          mins: 90,
+                          label: state.lang === "bn" ? "১ঘ ৩০মি" : "1h 30m",
+                          subEn: "Ultradian (90m)",
+                          subBn: "দেড় ঘণ্টা (৯০মি)",
+                        },
+                      ].map((preset) => {
+                        const isSelected = timer.workMinutes === preset.mins;
+                        return (
+                          <button
+                            key={preset.mins}
+                            type="button"
+                            onClick={() => handleDurationPreset(preset.mins)}
+                            className={`py-2.5 px-2 sm:px-3 rounded-xl border text-center transition-all cursor-pointer flex flex-col items-center justify-center active:scale-95 ${
+                              isSelected
+                                ? "bg-blue-600/15 border-blue-500 text-blue-400 shadow-none ring-1 ring-blue-500/30 font-semibold"
+                                : "bg-secondary/40 hover:bg-secondary border-border/60 hover:border-border text-foreground/80"
+                            }`}
+                          >
+                            <span className="text-sm font-bold">{preset.label}</span>
+                            <span
+                              className={`text-[10px] mt-0.5 truncate max-w-full ${
+                                isSelected ? "text-blue-300 font-medium" : "text-muted-foreground"
+                              }`}
+                            >
+                              {state.lang === "bn" ? preset.subBn : preset.subEn}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
 
-            {showDurationError && (
-              <p className="text-red-400 text-sm mt-2 text-center fade-in font-medium">
-                {t.focus.errSelectDuration}
-              </p>
-            )}
+                  {/* Custom Hours & Minutes Controls (Clean, Sleek Steppers) */}
+                  <div className="space-y-3">
+                    <div className="text-xs font-semibold text-muted-foreground">
+                      {t.focus.customDuration ||
+                        (state.lang === "bn"
+                          ? "কাস্টম সময় (ঘণ্টা ও মিনিট)"
+                          : "Custom Duration (Hours & Minutes)")}
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      {/* Hours Stepper */}
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-[11px] text-muted-foreground font-medium">
+                          {t.focus.hours || (state.lang === "bn" ? "ঘণ্টা (Hours)" : "Hours")}
+                        </label>
+                        <div className="flex items-center rounded-xl bg-secondary/40 border border-border/70 p-1 shadow-none focus-within:border-blue-500/60 focus-within:ring-1 focus-within:ring-blue-500/20 transition-all">
+                          <button
+                            type="button"
+                            onClick={() => handleCustomHoursChange(customHours - 1)}
+                            disabled={customHours <= 0}
+                            className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-secondary text-muted-foreground hover:text-foreground disabled:opacity-30 disabled:hover:bg-transparent transition-all cursor-pointer active:scale-90"
+                            aria-label="Decrease hours"
+                          >
+                            <Minus className="w-3.5 h-3.5" />
+                          </button>
+                          <input
+                            type="number"
+                            min={0}
+                            max={12}
+                            value={customHours === 0 && isHoursFocused ? "" : customHours}
+                            onFocus={(e) => {
+                              setIsHoursFocused(true);
+                              e.target.select();
+                            }}
+                            onBlur={() => setIsHoursFocused(false)}
+                            onChange={(e) => {
+                              const str = e.target.value.replace(/^0+(?=\d)/, "");
+                              const val = str === "" ? 0 : parseInt(str, 10);
+                              handleCustomHoursChange(isNaN(val) ? 0 : val);
+                            }}
+                            className="w-full text-center text-sm font-bold bg-transparent text-foreground outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => handleCustomHoursChange(customHours + 1)}
+                            disabled={customHours >= 12}
+                            className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-secondary text-muted-foreground hover:text-foreground disabled:opacity-30 disabled:hover:bg-transparent transition-all cursor-pointer active:scale-90"
+                            aria-label="Increase hours"
+                          >
+                            <Plus className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Minutes Stepper */}
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-[11px] text-muted-foreground font-medium">
+                          {t.focus.minutes || (state.lang === "bn" ? "মিনিট (Minutes)" : "Minutes")}
+                        </label>
+                        <div className="flex items-center rounded-xl bg-secondary/40 border border-border/70 p-1 shadow-none focus-within:border-blue-500/60 focus-within:ring-1 focus-within:ring-blue-500/20 transition-all">
+                          <button
+                            type="button"
+                            onClick={() => handleCustomMinutesChange(Math.max(0, customMinutes - 5))}
+                            disabled={customMinutes <= 0}
+                            className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-secondary text-muted-foreground hover:text-foreground disabled:opacity-30 disabled:hover:bg-transparent transition-all cursor-pointer active:scale-90"
+                            aria-label="Decrease minutes"
+                          >
+                            <Minus className="w-3.5 h-3.5" />
+                          </button>
+                          <input
+                            type="number"
+                            min={0}
+                            max={59}
+                            value={customMinutes === 0 && isMinutesFocused ? "" : customMinutes}
+                            onFocus={(e) => {
+                              setIsMinutesFocused(true);
+                              e.target.select();
+                            }}
+                            onBlur={() => setIsMinutesFocused(false)}
+                            onChange={(e) => {
+                              const str = e.target.value.replace(/^0+(?=\d)/, "");
+                              const val = str === "" ? 0 : parseInt(str, 10);
+                              handleCustomMinutesChange(isNaN(val) ? 0 : val);
+                            }}
+                            className="w-full text-center text-sm font-bold bg-transparent text-foreground outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => handleCustomMinutesChange(Math.min(59, customMinutes + 5))}
+                            disabled={customMinutes >= 59}
+                            className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-secondary text-muted-foreground hover:text-foreground disabled:opacity-30 disabled:hover:bg-transparent transition-all cursor-pointer active:scale-90"
+                            aria-label="Increase minutes"
+                          >
+                            <Plus className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Start Focus Button & Duration Error */}
+                <div className="pt-2">
+                  <button
+                    type="button"
+                    onClick={handleStartFocus}
+                    className="btn-primary w-full py-3.5 px-6 rounded-xl text-sm sm:text-base font-bold flex items-center justify-center gap-2 cursor-pointer active:scale-[0.99] transition-colors"
+                  >
+                    <Play className="w-4 h-4 fill-current" />
+                    <span>{t.focus.startFocus}</span>
+                  </button>
+
+                  {showDurationError && (
+                    <p className="text-red-400 text-xs mt-2 text-center flex items-center justify-center gap-1.5 font-medium animate-shake">
+                      <span>•</span> {t.focus.errSelectDuration}
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
           </div>
-        )}
+        </div>
+      )}
 
       {/* ============================================================ */}
       {/* 2. ACTIVE FOCUS SESSION (Automatic Completion at 00:00)      */}
@@ -882,16 +1102,17 @@ export default function FocusPage() {
           {/* Top Bar for Active Session - Full width with left arrow & right status pill */}
           <div className="mb-4 sm:mb-6 flex items-center justify-between w-full">
             <button
+              type="button"
               onClick={handleBackAttempt}
-              className="p-2.5 rounded-xl text-zinc-400 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 transition-all flex items-center justify-center group active:scale-95 cursor-pointer shadow-sm"
-              title={t.focus.backToDashboard}
-              aria-label={t.focus.backToDashboard}
+              className="inline-flex items-center justify-center w-9 h-9 rounded-full text-zinc-400 hover:text-white hover:bg-white/10 active:scale-95 transition-colors cursor-pointer"
+              title={state.lang === "bn" ? "ফিরে যান" : "Back"}
+              aria-label={state.lang === "bn" ? "ফিরে যান" : "Back"}
             >
-              <ArrowLeft className="w-5 h-5 group-hover:-translate-x-0.5 transition-transform" />
+              <ArrowLeft className="w-5 h-5" strokeWidth={2} />
             </button>
 
             <div className="flex items-center">
-              <div className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-xs font-semibold text-blue-400 shadow-sm">
+              <div className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-xs font-semibold text-blue-400 shadow-none">
                 <span className={`w-2 h-2 rounded-full ${timer.isRunning ? "bg-blue-400 animate-pulse" : "bg-zinc-500"}`} />
                 <span>
                   {timer.isRunning
@@ -937,7 +1158,7 @@ export default function FocusPage() {
                 <div className="flex items-center justify-center gap-3">
                   <button
                     onClick={timer.isRunning ? handlePauseAttempt : timer.start}
-                    className="w-20 h-12 rounded-full bg-white text-zinc-950 hover:bg-zinc-200 transition-all flex items-center justify-center shadow-xl active:scale-95 cursor-pointer"
+                    className="w-20 h-12 rounded-full bg-white text-zinc-950 hover:bg-zinc-200 transition-all flex items-center justify-center shadow-none active:scale-95 cursor-pointer"
                     title={timer.isRunning ? t.focus.pause : t.focus.resume}
                     aria-label={timer.isRunning ? t.focus.pause : t.focus.resume}
                   >
@@ -951,9 +1172,9 @@ export default function FocusPage() {
                   <button
                     type="button"
                     onClick={() => setShowDistraction((prev) => !prev)}
-                    className={`h-12 px-4 rounded-full border transition-all flex items-center gap-2 text-xs font-semibold cursor-pointer active:scale-95 shadow-xs ${
+                    className={`h-12 px-4 rounded-full border transition-all flex items-center gap-2 text-xs font-semibold cursor-pointer active:scale-95 shadow-none ${
                       showDistraction
-                        ? "bg-[#223A5E] dark:bg-blue-600 text-white border-[#223A5E] dark:border-blue-500 shadow-sm"
+                        ? "bg-[#223A5E] dark:bg-blue-600 text-white border-[#223A5E] dark:border-blue-500 shadow-none"
                         : "bg-[#F7FAFE] dark:bg-white/5 hover:bg-[#F0F5FD] dark:hover:bg-white/10 text-[#52627A] dark:text-zinc-300 hover:text-[#111827] dark:hover:text-white border-[#DCE5F0] dark:border-white/10"
                     }`}
                     title={t.focus.distracted}
@@ -970,7 +1191,7 @@ export default function FocusPage() {
 
                 {/* Inline Distraction Input Box (Expands inline below controls) */}
                 {showDistraction && (
-                  <div className="mt-4 w-full p-4 rounded-2xl border border-[#DCE5F0] dark:border-blue-500/30 bg-white dark:bg-[#0c1222]/95 shadow-xl dark:shadow-2xl text-left">
+                  <div className="mt-4 w-full p-4 rounded-2xl border border-[#DCE5F0] dark:border-blue-500/30 bg-white dark:bg-[#0c1222]/95 shadow-none text-left">
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-xs font-semibold text-[#111827] dark:text-white flex items-center gap-1.5">
                         <MessageSquare className="w-3.5 h-3.5 text-[#5B8DEF] dark:text-blue-400" />
@@ -998,7 +1219,7 @@ export default function FocusPage() {
                         type="button"
                         onClick={handleLogDistraction}
                         disabled={!distractionText.trim()}
-                        className="flex-1 py-2 px-3 rounded-xl bg-[#223A5E] hover:bg-[#2E4E7B] dark:bg-blue-600 dark:hover:bg-blue-500 disabled:opacity-40 text-white text-xs font-semibold transition-all shadow-sm active:scale-98 cursor-pointer"
+                        className="flex-1 py-2 px-3 rounded-xl bg-[#223A5E] hover:bg-[#2E4E7B] dark:bg-blue-600 dark:hover:bg-blue-500 disabled:opacity-40 text-white text-xs font-semibold transition-all shadow-none active:scale-98 cursor-pointer"
                       >
                         {t.focus.saveReturn}
                       </button>
@@ -1032,7 +1253,7 @@ export default function FocusPage() {
       {/* ============================================================ */}
       {sessionPhase === "break_selection" && (
         <div className="max-w-2xl mx-auto">
-          <div className="card p-8 text-center relative overflow-hidden border border-[#DCE5F0] dark:border-purple-500/30 bg-white dark:bg-[#0c1424] shadow-xl dark:shadow-2xl motion-reveal">
+          <div className="card p-8 text-center relative overflow-hidden border border-[#DCE5F0] dark:border-purple-500/30 bg-white dark:bg-[#0c1424] shadow-none motion-reveal">
             <h2 className="text-base md:text-lg font-semibold text-[#111827] dark:text-white mb-2">
               {t.focus.breakSelectionTitle}
             </h2>
@@ -1043,7 +1264,7 @@ export default function FocusPage() {
 
             {/* Session Summary Tag */}
             {completedSessionData && (
-              <div className="inline-flex items-center gap-2.5 px-4 py-2 rounded-full bg-[#F0F5FD] dark:bg-white/5 border border-[#DCE5F0] dark:border-white/10 text-xs shadow-2xs mb-7">
+              <div className="inline-flex items-center gap-2.5 px-4 py-2 rounded-full bg-[#F0F5FD] dark:bg-white/5 border border-[#DCE5F0] dark:border-white/10 text-xs shadow-none mb-7">
                 <CheckCircle2 className="w-4 h-4 text-emerald-500 dark:text-emerald-400 shrink-0" />
                 <span className="font-semibold text-[#111827] dark:text-white">{completedSessionData.name}</span>
                 <span className="text-[#8290A5] dark:text-zinc-500">•</span>
@@ -1071,7 +1292,7 @@ export default function FocusPage() {
                   <button
                     key={mins}
                     onClick={() => handleSelectBreak(mins)}
-                    className="group relative p-3 rounded-xl border border-[#DCE5F0] dark:border-white/10 hover:border-[#5B8DEF] dark:hover:border-purple-500/50 bg-white dark:bg-black/30 hover:bg-[#F0F5FD] dark:hover:bg-purple-950/20 text-center transition-all hover:scale-[1.03] active:scale-[0.98] focus:outline-none cursor-pointer shadow-2xs"
+                    className="group relative p-3 rounded-xl border border-[#DCE5F0] dark:border-white/10 hover:border-[#5B8DEF] dark:hover:border-purple-500/50 bg-white dark:bg-black/30 hover:bg-[#F0F5FD] dark:hover:bg-purple-950/20 text-center transition-all hover:scale-[1.03] active:scale-[0.98] focus:outline-none cursor-pointer shadow-none"
                   >
                     <div className="text-lg font-bold text-[#111827] dark:text-foreground group-hover:text-[#223A5E] dark:group-hover:text-purple-300 transition-colors">
                       {mins}
@@ -1093,7 +1314,7 @@ export default function FocusPage() {
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
               <button
                 onClick={handleSkipBreak}
-                className="w-full sm:w-auto px-6 py-2.5 rounded-xl font-semibold text-sm text-[#52627A] hover:text-[#111827] dark:text-zinc-300 dark:hover:text-white bg-[#F3F7FC] hover:bg-[#EAF1FB] dark:bg-white/5 dark:hover:bg-white/10 border border-[#DCE5F0] dark:border-white/10 transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-2xs"
+                className="w-full sm:w-auto px-6 py-2.5 rounded-xl font-semibold text-sm text-[#52627A] hover:text-[#111827] dark:text-zinc-300 dark:hover:text-white bg-[#F3F7FC] hover:bg-[#EAF1FB] dark:bg-white/5 dark:hover:bg-white/10 border border-[#DCE5F0] dark:border-white/10 transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-none"
               >
                 <FastForward className="w-4 h-4 text-[#5B8DEF] dark:text-current" />
                 {t.focus.skipBreak}
@@ -1111,16 +1332,17 @@ export default function FocusPage() {
           {/* Top Bar for Break */}
           <div className="mb-4 sm:mb-6 flex items-center justify-between w-full">
             <button
+              type="button"
               onClick={handleBackAttempt}
-              className="p-2.5 rounded-xl text-zinc-400 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 transition-all flex items-center justify-center group active:scale-95 cursor-pointer shadow-sm"
-              title={t.focus.backToDashboard}
-              aria-label={t.focus.backToDashboard}
+              className="inline-flex items-center justify-center w-9 h-9 rounded-full text-zinc-400 hover:text-white hover:bg-white/10 active:scale-95 transition-colors cursor-pointer"
+              title={state.lang === "bn" ? "ফিরে যান" : "Back"}
+              aria-label={state.lang === "bn" ? "ফিরে যান" : "Back"}
             >
-              <ArrowLeft className="w-5 h-5 group-hover:-translate-x-0.5 transition-transform" />
+              <ArrowLeft className="w-5 h-5" strokeWidth={2} />
             </button>
 
             <div className="flex items-center">
-              <div className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-xs font-semibold text-emerald-400 shadow-sm">
+              <div className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-xs font-semibold text-emerald-400 shadow-none">
                 <span className={`w-2 h-2 rounded-full ${timer.isRunning ? "bg-emerald-400 animate-pulse" : "bg-zinc-500"}`} />
                 <span>{state.lang === "bn" ? "বিরতি" : "Break"}</span>
               </div>
@@ -1159,7 +1381,7 @@ export default function FocusPage() {
               <div className="flex items-center justify-center gap-4 relative z-10">
                 <button
                   onClick={timer.isRunning ? timer.pause : timer.start}
-                  className="w-16 h-11 rounded-full bg-white text-zinc-950 hover:bg-zinc-200 transition-all flex items-center justify-center shadow-lg active:scale-95 cursor-pointer"
+                  className="w-16 h-11 rounded-full bg-white text-zinc-950 hover:bg-zinc-200 transition-all flex items-center justify-center shadow-none active:scale-95 cursor-pointer"
                   title={timer.isRunning ? t.focus.pause : t.focus.resume}
                   aria-label={timer.isRunning ? t.focus.pause : t.focus.resume}
                 >
@@ -1186,25 +1408,22 @@ export default function FocusPage() {
       {/* 5. BREAK COMPLETED SCREEN                                    */}
       {/* ============================================================ */}
       {sessionPhase === "break_completed" && (
-        <div className="max-w-2xl mx-auto">
+        <div className="min-h-[50vh] sm:min-h-[55vh] flex items-center justify-center p-4 w-full">
           <div
-            className="card p-8 text-center relative overflow-hidden border border-emerald-500/30 shadow-2xl motion-reveal"
-            style={{
-              background: "linear-gradient(180deg, rgba(16, 26, 23, 0.95) 0%, rgba(10, 15, 14, 0.98) 100%)",
-            }}
+            className="w-full max-w-sm sm:max-w-md p-6 sm:p-8 rounded-2xl sm:rounded-3xl text-center relative overflow-hidden border border-slate-200 dark:border-white/10 bg-white dark:bg-[#111827] shadow-none motion-reveal"
           >
-            <h2 className="text-base md:text-lg font-semibold text-foreground mb-2">
+            <h2 className="text-lg sm:text-xl font-bold text-foreground mb-2">
               {t.focus.breakComplete}
             </h2>
 
-            <p className="text-sm text-muted-foreground mb-8 max-w-md mx-auto leading-relaxed">
+            <p className="text-xs sm:text-sm text-muted-foreground mb-6 max-w-xs mx-auto leading-relaxed">
               {t.focus.breakCompleteSubtitle}
             </p>
 
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+            <div className="flex flex-col gap-2.5 w-full max-w-xs mx-auto">
               <button
                 onClick={handleStartNewSessionAfterBreak}
-                className="btn-primary w-full sm:w-auto px-7 py-3 text-sm font-bold flex items-center justify-center gap-2"
+                className="btn-primary w-full py-3 px-5 text-xs sm:text-sm font-bold flex items-center justify-center gap-2 rounded-xl cursor-pointer shadow-none"
               >
                 <span>{t.focus.startNewSession}</span>
                 <ChevronRight className="w-4 h-4" />
@@ -1214,7 +1433,7 @@ export default function FocusPage() {
                   setSessionPhase("setup");
                   navigateTo("dashboard");
                 }}
-                className="btn-ghost w-full sm:w-auto px-6 py-3 text-sm font-medium"
+                className="btn-ghost w-full py-2.5 px-5 text-xs sm:text-sm font-medium rounded-xl text-muted-foreground hover:text-foreground cursor-pointer shadow-none"
               >
                 {t.focus.backToDashboard}
               </button>
@@ -1222,6 +1441,7 @@ export default function FocusPage() {
           </div>
         </div>
       )}
+
 
       {/* --- MODALS --- */}
 
@@ -1233,7 +1453,7 @@ export default function FocusPage() {
             onClick={() => setShowPauseModal(false)}
           ></div>
           <div
-            className={`focus-dialog relative w-full max-w-md border rounded-2xl p-8 shadow-2xl text-center ${
+            className={`focus-dialog relative w-full max-w-md border rounded-2xl p-8 shadow-none text-center ${
               pauseAnim.isExiting ? "motion-exit-reveal" : "motion-reveal"
             }`}
           >
@@ -1326,11 +1546,11 @@ export default function FocusPage() {
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
             <div className="fixed inset-0 bg-transparent" onClick={handleKeepFocusing}></div>
             <div
-              className={`focus-dialog relative w-full max-w-sm border border-amber-500/20 rounded-2xl p-6 shadow-2xl text-center ${
+              className={`focus-dialog relative w-full max-w-sm border border-amber-500/20 rounded-2xl p-6 shadow-none text-center ${
                 earlyExitAnim.isExiting ? "motion-exit-reveal" : "motion-reveal"
               }`}
               style={{
-                boxShadow: "0 20px 50px rgba(0, 0, 0, 0.5), 0 0 25px rgba(245, 158, 11, 0.12)",
+                boxShadow: "none",
               }}
             >
               {/* Attempt Progress Indicator: 3 steps */}
@@ -1405,44 +1625,64 @@ export default function FocusPage() {
       {/* History Modal */}
       {historyModalAnim.shouldRender && (
         <div
-          className={`fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/30 backdrop-blur-[2px] ${
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowHistoryModal(false);
+          }}
+          className={`fixed inset-0 z-[100] flex items-center justify-center p-4 ${
             historyModalAnim.isExiting ? "motion-exit-fade" : "motion-overlay"
           }`}
         >
           <div
-            className={`card w-full max-w-md p-0 shadow-2xl overflow-hidden flex flex-col max-h-[80vh] ${
+            className={`w-full max-w-md p-0 rounded-2xl bg-[#121624] dark:bg-[#0c101b] border border-border/80 shadow-none overflow-hidden flex flex-col max-h-[80vh] ${
               historyModalAnim.isExiting ? "motion-exit-reveal" : "motion-reveal"
             }`}
           >
-            <div className="p-4 border-b border-white/5 flex items-center justify-between">
-              <h2 className="text-base md:text-lg font-semibold text-foreground flex items-center gap-2">
-                <History className="w-5 h-5 text-purple-400" /> {t.focus.taskHistory}
+            {/* Modal Header */}
+            <div className="p-4 sm:p-5 border-b border-border/60 flex items-center justify-between bg-[#151a2b]/60 dark:bg-[#101524]/60">
+              <h2 className="text-base font-semibold text-foreground flex items-center gap-2">
+                <History className="w-4 h-4 text-blue-400" />
+                <span>{t.focus.taskHistory}</span>
               </h2>
-              <button onClick={() => setShowHistoryModal(false)} className="text-zinc-400 hover:text-white p-1">
-                <X className="w-5 h-5" />
+              <button
+                type="button"
+                onClick={() => setShowHistoryModal(false)}
+                className="text-muted-foreground hover:text-foreground p-1 rounded-lg hover:bg-white/5 transition-colors cursor-pointer"
+                title="Close"
+              >
+                <X className="w-4 h-4" />
               </button>
             </div>
-            <div className="p-4 overflow-y-auto custom-scrollbar flex-1">
+
+            {/* Modal Content */}
+            <div className="p-4 sm:p-5 overflow-y-auto custom-scrollbar flex-1 bg-[#121624] dark:bg-[#0c101b]">
               {taskHistory.length === 0 ? (
-                <p className="text-center text-zinc-500 text-sm py-8">{t.focus.noHistory}</p>
+                <p className="text-center text-muted-foreground text-sm py-8">{t.focus.noHistory}</p>
               ) : (
                 <div className="space-y-2">
                   {taskHistory.map((taskItem, idx) => (
-                    <div key={idx} className="flex items-center gap-2">
+                    <div
+                      key={idx}
+                      onClick={() => {
+                        handleSelectTask({ name: taskItem.name, category: "" });
+                        setShowHistoryModal(false);
+                      }}
+                      className="group w-full px-4 py-3 rounded-xl text-sm transition-all bg-[#181e30] hover:bg-[#202840] border border-border/60 hover:border-blue-500/40 text-foreground flex items-center justify-between cursor-pointer active:scale-[0.99]"
+                    >
+                      <div className="flex items-center gap-2 truncate mr-3">
+                        <span className="font-medium text-foreground truncate">{taskItem.name}</span>
+                        <span className="text-xs text-muted-foreground whitespace-nowrap">
+                          ({taskItem.totalMinutes}m {state.lang === "bn" ? "ফোকাস" : "focused"})
+                        </span>
+                      </div>
                       <button
-                        onClick={() => {
-                          handleSelectTask({ name: taskItem.name, category: "" });
-                          setShowHistoryModal(false);
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          deleteHistoryItem(taskItem.name);
                         }}
-                        className="history-task-item flex-1 text-left px-4 py-3 rounded-xl text-sm transition-all bg-[#101019] hover:bg-[#1a1a24] text-zinc-300 hover:text-white border border-white/5"
-                      >
-                        {taskItem.name}{" "}
-                        <span className="text-xs opacity-50 ml-2">({taskItem.totalMinutes}m focused)</span>
-                      </button>
-                      <button
-                        onClick={() => deleteHistoryItem(taskItem.name)}
-                        className="p-3 rounded-xl bg-red-500/5 hover:bg-red-500/10 text-red-400 hover:text-red-300 transition-colors border border-red-500/10"
-                        title="Delete"
+                        className="p-1.5 rounded-lg text-muted-foreground hover:text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer shrink-0"
+                        title={state.lang === "bn" ? "মুছুন" : "Delete"}
+                        aria-label="Delete task"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>

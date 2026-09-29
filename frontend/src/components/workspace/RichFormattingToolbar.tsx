@@ -55,7 +55,7 @@ export default function RichFormattingToolbar({
   return (
     <div className="w-full">
       <div 
-        className="flex items-center justify-between gap-2 p-1 sm:p-1.5 rounded-xl border backdrop-blur-xl shadow-md transition-all"
+        className="flex items-center justify-between gap-2 p-1 sm:p-1.5 rounded-xl border backdrop-blur-xl shadow-none transition-all"
         style={{
           background: "var(--color-bg-elevated, rgba(13, 20, 36, 0.85))",
           borderColor: "var(--color-border-subtle, rgba(255, 255, 255, 0.08))"
@@ -77,13 +77,13 @@ export default function RichFormattingToolbar({
 
             {addMenuOpen && (
               <div 
-                className="absolute left-0 top-full mt-2 w-64 sm:w-72 rounded-2xl border p-2 shadow-2xl z-50 animate-scale-up"
+                className="absolute left-0 top-full mt-2 w-64 sm:w-72 rounded-2xl border p-2 shadow-none z-50 animate-scale-up"
                 style={{
-                  background: "var(--color-bg-card, #0B1120)",
-                  borderColor: "var(--color-border-subtle, rgba(255,255,255,0.12))"
+                  background: "var(--color-bg-elevated)",
+                  borderColor: "var(--color-border-subtle)"
                 }}
               >
-                <div className="px-2.5 py-1.5 mb-1 text-[11px] font-semibold text-zinc-400 uppercase tracking-wider">
+                <div className="px-2.5 py-1.5 mb-1 text-[11px] font-semibold text-slate-500 dark:text-zinc-400 uppercase tracking-wider">
                   Insert Block or Resource
                 </div>
                 <div className="space-y-0.5">
@@ -101,16 +101,16 @@ export default function RichFormattingToolbar({
                             onAddBlock(item.type);
                           }
                         }}
-                        className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-left hover:bg-white/10 transition-colors cursor-pointer group"
+                        className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-left hover:bg-black/5 dark:hover:bg-white/10 transition-colors cursor-pointer group"
                       >
-                        <div className="p-1.5 rounded-lg bg-white/5 group-hover:bg-blue-500/20 text-zinc-400 group-hover:text-blue-400 transition-colors">
+                        <div className="p-1.5 rounded-lg bg-black/5 dark:bg-white/5 group-hover:bg-blue-500/20 text-slate-500 dark:text-zinc-400 group-hover:text-blue-500 dark:group-hover:text-blue-400 transition-colors">
                           <Icon size={16} />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="text-xs font-semibold text-zinc-200 group-hover:text-white">
+                          <div className="text-xs font-semibold text-slate-800 dark:text-zinc-200 group-hover:text-blue-600 dark:group-hover:text-white">
                             {item.label}
                           </div>
-                          <div className="text-[10px] text-zinc-500 truncate">
+                          <div className="text-[10px] text-slate-500 dark:text-zinc-500 truncate">
                             {item.desc}
                           </div>
                         </div>
@@ -122,14 +122,14 @@ export default function RichFormattingToolbar({
             )}
           </div>
 
-          <div className="h-5 w-px bg-white/10 mx-1 shrink-0" />
+          <div className="h-5 w-px bg-slate-200 dark:bg-white/10 mx-1 shrink-0" />
 
           {/* Heading Quick Buttons */}
           <div className="flex items-center gap-0.5 shrink-0">
             <button
               type="button"
               onClick={() => onAddBlock("h1")}
-              className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+              className="p-1.5 rounded-lg text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 transition-colors cursor-pointer"
               title="Heading 1"
             >
               <Heading1 size={15} />
@@ -137,7 +137,7 @@ export default function RichFormattingToolbar({
             <button
               type="button"
               onClick={() => onAddBlock("h2")}
-              className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+              className="p-1.5 rounded-lg text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 transition-colors cursor-pointer"
               title="Heading 2"
             >
               <Heading2 size={15} />
@@ -145,21 +145,21 @@ export default function RichFormattingToolbar({
             <button
               type="button"
               onClick={() => onAddBlock("h3")}
-              className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+              className="p-1.5 rounded-lg text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 transition-colors cursor-pointer"
               title="Heading 3"
             >
               <Heading3 size={15} />
             </button>
           </div>
 
-          <div className="h-5 w-px bg-white/10 mx-1 shrink-0" />
+          <div className="h-5 w-px bg-slate-200 dark:bg-white/10 mx-1 shrink-0" />
 
           {/* List & Structure Buttons */}
           <div className="flex items-center gap-0.5 shrink-0">
             <button
               type="button"
               onClick={() => onAddBlock("bullet")}
-              className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+              className="p-1.5 rounded-lg text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 transition-colors cursor-pointer"
               title="Bullet List"
             >
               <List size={15} />
@@ -167,7 +167,7 @@ export default function RichFormattingToolbar({
             <button
               type="button"
               onClick={() => onAddBlock("numbered")}
-              className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+              className="p-1.5 rounded-lg text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 transition-colors cursor-pointer"
               title="Numbered List"
             >
               <ListOrdered size={15} />
@@ -175,7 +175,7 @@ export default function RichFormattingToolbar({
             <button
               type="button"
               onClick={() => onAddBlock("todo")}
-              className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+              className="p-1.5 rounded-lg text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 transition-colors cursor-pointer"
               title="Checklist"
             >
               <CheckSquare2 size={15} />
@@ -183,7 +183,7 @@ export default function RichFormattingToolbar({
             <button
               type="button"
               onClick={() => onAddBlock("quote")}
-              className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+              className="p-1.5 rounded-lg text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 transition-colors cursor-pointer"
               title="Quote Block"
             >
               <Quote size={15} />
@@ -191,14 +191,14 @@ export default function RichFormattingToolbar({
             <button
               type="button"
               onClick={() => onAddBlock("code")}
-              className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+              className="p-1.5 rounded-lg text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 transition-colors cursor-pointer"
               title="Code Block"
             >
               <Braces size={15} />
             </button>
           </div>
 
-          <div className="h-5 w-px bg-white/10 mx-1 shrink-0 hidden sm:block" />
+          <div className="h-5 w-px bg-slate-200 dark:bg-white/10 mx-1 shrink-0 hidden sm:block" />
 
           {/* Inline formatting */}
           {onFormatInline && (
@@ -206,7 +206,7 @@ export default function RichFormattingToolbar({
               <button
                 type="button"
                 onClick={() => onFormatInline("**")}
-                className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+                className="p-1.5 rounded-lg text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 transition-colors cursor-pointer"
                 title="Bold (Ctrl+B)"
               >
                 <Bold size={15} />
@@ -214,7 +214,7 @@ export default function RichFormattingToolbar({
               <button
                 type="button"
                 onClick={() => onFormatInline("*")}
-                className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+                className="p-1.5 rounded-lg text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 transition-colors cursor-pointer"
                 title="Italic (Ctrl+I)"
               >
                 <Italic size={15} />
@@ -222,7 +222,7 @@ export default function RichFormattingToolbar({
               <button
                 type="button"
                 onClick={() => onFormatInline("<u>")}
-                className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+                className="p-1.5 rounded-lg text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 transition-colors cursor-pointer"
                 title="Underline (Ctrl+U)"
               >
                 <Underline size={15} />

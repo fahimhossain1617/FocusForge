@@ -49,7 +49,9 @@ export function formatDiaryDateTime(isoString: string, lang: "en" | "bn" = "en")
 export function createDiaryTopic(
   title: string,
   description: string = "",
-  existingTopics: DiaryTopic[] = []
+  existingTopics: DiaryTopic[] = [],
+  category?: string,
+  theme?: string
 ): { topic: DiaryTopic; updatedTopics: DiaryTopic[] } {
   const now = new Date().toISOString();
   const nextOrder = existingTopics.length + 1;
@@ -67,6 +69,9 @@ export function createDiaryTopic(
     order: nextOrder,
     title: title.trim(),
     description: description.trim(),
+    category: category ? category.trim() : undefined,
+    theme: theme ? theme.trim() : undefined,
+    isBookmarked: false,
     createdAt: now,
     updatedAt: now,
     entries: [firstEntry],
@@ -77,11 +82,11 @@ export function createDiaryTopic(
 }
 
 /**
- * Updates a topic's title or description.
+ * Updates a topic's title, description, category, theme, or isBookmarked.
  */
 export function updateDiaryTopic(
   topicId: string,
-  updates: Partial<Pick<DiaryTopic, "title" | "description">>,
+  updates: Partial<Pick<DiaryTopic, "title" | "description" | "category" | "theme" | "isBookmarked">>,
   topics: DiaryTopic[] = []
 ): DiaryTopic[] {
   const now = new Date().toISOString();
@@ -244,12 +249,18 @@ export function searchDiary(query: string, topics: DiaryTopic[] = []): DiarySear
   const results: DiarySearchResult[] = [];
 
   for (const topic of topics) {
-    // 1. Topic Title Match
+    // 1. Topic Title & Description & Category Match
     if (topic.title.toLowerCase().includes(trimmed)) {
       results.push({
         topic,
         matchType: "topic_title",
         snippet: topic.title,
+      });
+    } else if (topic.category && topic.category.toLowerCase().includes(trimmed)) {
+      results.push({
+        topic,
+        matchType: "topic_description",
+        snippet: topic.category,
       });
     } else if (topic.description && topic.description.toLowerCase().includes(trimmed)) {
       results.push({

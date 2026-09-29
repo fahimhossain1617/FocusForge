@@ -44,18 +44,18 @@ export default function NoteAttachmentsSection({
       <div 
         className="mt-12 pt-6 border-t border-dashed rounded-2xl p-6 transition-all"
         style={{
-          borderColor: "var(--color-border-subtle, rgba(255, 255, 255, 0.12))",
-          background: "var(--color-bg-elevated, rgba(13, 20, 36, 0.35))"
+          borderColor: "var(--color-border-subtle)",
+          background: "var(--color-bg-elevated)"
         }}
       >
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-blue-500/10 text-blue-400 border border-blue-500/20 shrink-0">
+            <div className="p-2.5 rounded-xl bg-blue-500/10 text-blue-500 dark:text-blue-400 border border-blue-500/20 shrink-0">
               <Paperclip size={18} />
             </div>
             <div>
-              <h4 className="text-sm font-bold text-white">Attachments & Resources</h4>
-              <p className="text-xs text-zinc-400">
+              <h4 className="text-sm font-bold text-foreground">Attachments & Resources</h4>
+              <p className="text-xs text-muted-foreground">
                 Attach PDFs, documents, images, or web links to this note
               </p>
             </div>
@@ -65,9 +65,9 @@ export default function NoteAttachmentsSection({
               <button
                 type="button"
                 onClick={onTriggerFileUpload}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-zinc-200 bg-white/5 hover:bg-white/10 hover:text-white border border-white/10 transition-colors cursor-pointer"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-700 dark:text-zinc-200 bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-white/10 transition-colors cursor-pointer"
               >
-                <FileText size={14} className="text-rose-400" />
+                <FileText size={14} className="text-rose-500 dark:text-rose-400" />
                 <span>Attach File</span>
               </button>
             )}
@@ -75,9 +75,9 @@ export default function NoteAttachmentsSection({
               <button
                 type="button"
                 onClick={onTriggerImageUpload}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-zinc-200 bg-white/5 hover:bg-white/10 hover:text-white border border-white/10 transition-colors cursor-pointer"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-700 dark:text-zinc-200 bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-white/10 transition-colors cursor-pointer"
               >
-                <ImageIcon size={14} className="text-blue-400" />
+                <ImageIcon size={14} className="text-blue-500 dark:text-blue-400" />
                 <span>Add Image</span>
               </button>
             )}
@@ -85,9 +85,9 @@ export default function NoteAttachmentsSection({
               <button
                 type="button"
                 onClick={onTriggerLinkModal}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-zinc-200 bg-white/5 hover:bg-white/10 hover:text-white border border-white/10 transition-colors cursor-pointer"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-700 dark:text-zinc-200 bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-white/10 transition-colors cursor-pointer"
               >
-                <Link2 size={14} className="text-emerald-400" />
+                <Link2 size={14} className="text-emerald-500 dark:text-emerald-400" />
                 <span>Add Link</span>
               </button>
             )}
@@ -101,21 +101,21 @@ export default function NoteAttachmentsSection({
     <div 
       className="mt-12 pt-6 border-t rounded-2xl p-5 backdrop-blur-sm transition-all"
       style={{
-        borderColor: "var(--color-border-subtle, rgba(255, 255, 255, 0.08))",
-        background: "var(--color-bg-elevated, rgba(13, 20, 36, 0.5))"
+        borderColor: "var(--color-border-subtle)",
+        background: "var(--color-bg-elevated)"
       }}
     >
       <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
         <button
           type="button"
           onClick={() => setIsExpanded(!isExpanded)}
-          className="flex items-center gap-2 text-sm font-bold text-white hover:text-blue-400 transition-colors cursor-pointer"
+          className="flex items-center gap-2 text-sm font-bold text-foreground hover:text-blue-500 transition-colors cursor-pointer"
         >
-          <div className="p-1.5 rounded-lg bg-blue-500/10 text-blue-400">
+          <div className="p-1.5 rounded-lg bg-blue-500/10 text-blue-500 dark:text-blue-400">
             <Paperclip size={16} />
           </div>
           <span>Attachments & Resources</span>
-          <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-white/10 text-zinc-300">
+          <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-black/5 dark:bg-white/10 text-slate-600 dark:text-zinc-300">
             {mediaBlocks.length}
           </span>
           {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
@@ -126,7 +126,7 @@ export default function NoteAttachmentsSection({
             <button
               type="button"
               onClick={onTriggerFileUpload}
-              className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-[#EBF3FE] dark:bg-blue-500/20 text-[#1D4ED8] dark:text-blue-300 border border-[#D0E1FD] dark:border-blue-500/30 hover:bg-[#DBEAFE] dark:hover:bg-blue-500/30 transition-all cursor-pointer shadow-xs"
+              className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-[#EBF3FE] dark:bg-blue-500/20 text-[#1D4ED8] dark:text-blue-300 border border-[#D0E1FD] dark:border-blue-500/30 hover:bg-[#DBEAFE] dark:hover:bg-blue-500/30 transition-all cursor-pointer shadow-none"
               title="Attach File"
             >
               <Plus size={12} strokeWidth={2.5} />
@@ -137,7 +137,7 @@ export default function NoteAttachmentsSection({
             <button
               type="button"
               onClick={onTriggerImageUpload}
-              className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-[#EBF3FE] dark:bg-blue-500/20 text-[#1D4ED8] dark:text-blue-300 border border-[#D0E1FD] dark:border-blue-500/30 hover:bg-[#DBEAFE] dark:hover:bg-blue-500/30 transition-all cursor-pointer shadow-xs"
+              className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-[#EBF3FE] dark:bg-blue-500/20 text-[#1D4ED8] dark:text-blue-300 border border-[#D0E1FD] dark:border-blue-500/30 hover:bg-[#DBEAFE] dark:hover:bg-blue-500/30 transition-all cursor-pointer shadow-none"
               title="Add Image"
             >
               <Plus size={12} strokeWidth={2.5} />
@@ -148,7 +148,7 @@ export default function NoteAttachmentsSection({
             <button
               type="button"
               onClick={onTriggerLinkModal}
-              className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-[#EBF3FE] dark:bg-blue-500/20 text-[#1D4ED8] dark:text-blue-300 border border-[#D0E1FD] dark:border-blue-500/30 hover:bg-[#DBEAFE] dark:hover:bg-blue-500/30 transition-all cursor-pointer shadow-xs"
+              className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-[#EBF3FE] dark:bg-blue-500/20 text-[#1D4ED8] dark:text-blue-300 border border-[#D0E1FD] dark:border-blue-500/30 hover:bg-[#DBEAFE] dark:hover:bg-blue-500/30 transition-all cursor-pointer shadow-none"
               title="Add Link"
             >
               <Plus size={12} strokeWidth={2.5} />

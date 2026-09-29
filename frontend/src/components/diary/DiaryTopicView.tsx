@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
-import { ChevronLeft, Lock, Search, Edit3, Trash2, Calendar, BookOpen, Settings2 } from "lucide-react";
+import { ArrowLeft, Lock, Search, Edit3, Trash2, Calendar, BookOpen, Settings2 } from "lucide-react";
 import { useTranslation } from "../../hooks/useTranslation";
 import { DiaryTopic, DiaryEntry, DiaryImage } from "../../types";
 import { formatTopicNumber, formatDiaryDate } from "../../services/diaryStorageService";
@@ -19,7 +19,7 @@ interface DiaryTopicViewProps {
     content: string,
     images?: DiaryImage[]
   ) => void;
-  onUpdateTopic: (topicId: string, title: string, description: string) => void;
+  onUpdateTopic: (topicId: string, title: string, description?: string, category?: string, theme?: string) => void;
   onDeleteTopic: (topicId: string) => void;
   onOpenSearch: () => void;
   lang: "en" | "bn";
@@ -90,32 +90,28 @@ export default function DiaryTopicView({
     : 0;
 
   return (
-    <div className="w-full max-w-4xl mx-auto px-2 sm:px-4 pt-3 pb-8 animate-fade-in">
+    <div className="motion-page max-w-6xl mx-auto w-full pb-14">
       {/* Top Header Controls */}
-      <div className="flex items-center justify-between gap-2 mb-4 sm:mb-6">
+      <div className="flex items-center justify-between gap-3 mb-4">
         {/* Back Button */}
         <button
           type="button"
           onClick={onBackToTOC}
-          className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer shadow-xs shrink-0"
-          style={{
-            borderColor: "var(--color-border-subtle)",
-            color: "var(--color-text-primary)",
-          }}
+          className="inline-flex items-center justify-center w-9 h-9 -ml-1.5 rounded-full text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-black/5 dark:hover:bg-white/5 active:scale-95 transition-colors cursor-pointer shrink-0"
+          aria-label={t.diary?.backToTOC || "Table of Contents"}
+          title={t.diary?.backToTOC || "Table of Contents"}
         >
-          <ChevronLeft size={16} />
-          <span className="hidden xs:inline">{t.diary?.backToTOC || "Table of Contents"}</span>
-          <span className="xs:hidden">{lang === "bn" ? "সূচিপত্র" : "TOC"}</span>
+          <ArrowLeft className="w-5 h-5" strokeWidth={2} />
         </button>
 
-        {/* Right Actions: Mode Toggle, Privacy Badge & Tools */}
-        <div className="flex items-center gap-1.5 sm:gap-2.5 flex-wrap justify-end">
+        {/* Right Actions: Mode Toggle, Edit Topic Settings & Delete */}
+        <div className="flex items-center gap-2 sm:gap-2.5 justify-end">
           {/* Mode Switcher: Read vs Edit */}
           {mode === "read" ? (
             <button
               type="button"
               onClick={() => setMode("edit")}
-              className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-500 text-white transition-all cursor-pointer shrink-0 shadow-xs"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-500 text-white transition-all cursor-pointer shrink-0 shadow-none"
               title={t.diary?.edit || "Edit"}
             >
               <Edit3 size={14} />
@@ -125,7 +121,7 @@ export default function DiaryTopicView({
             <button
               type="button"
               onClick={() => setMode("read")}
-              className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer shadow-xs shrink-0"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer shadow-none shrink-0"
               style={{
                 borderColor: "var(--color-border-subtle)",
                 color: "var(--color-text-primary)",
@@ -136,31 +132,6 @@ export default function DiaryTopicView({
               <span>{t.diary?.readMode || "Read"}</span>
             </button>
           )}
-
-          {/* Subtle Privacy Indicator */}
-          <div
-            className="hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium border select-none"
-            style={{
-              borderColor: "var(--color-border-subtle)",
-              color: "var(--color-text-secondary)",
-              background: "rgba(59, 130, 246, 0.04)",
-            }}
-            title="Only saved locally on your private device"
-          >
-            <Lock size={11} className="text-blue-500" />
-            <span>{t.diary?.privateToYou || "Private to you"}</span>
-          </div>
-
-          {/* Search Trigger */}
-          <button
-            type="button"
-            onClick={onOpenSearch}
-            className="p-1.5 sm:p-2 rounded-xl text-zinc-400 hover:text-blue-500 hover:bg-black/5 dark:hover:bg-white/5 border border-transparent hover:border-black/10 dark:hover:border-white/10 transition-colors cursor-pointer shrink-0"
-            title={t.diary?.searchResults || "Search Diary"}
-            aria-label="Search Diary"
-          >
-            <Search size={15} />
-          </button>
 
           {/* Edit Topic Metadata */}
           <button
@@ -198,12 +169,6 @@ export default function DiaryTopicView({
             {topic.title}
           </h1>
         </div>
-
-        {topic.description && (
-          <p className="text-xs sm:text-sm mt-1 text-muted-foreground">
-            {topic.description}
-          </p>
-        )}
 
         {/* Entry Human Timestamp & Word Count Badge */}
         <div className="flex items-center gap-2.5 mt-2 text-xs font-medium text-muted-foreground flex-wrap">
@@ -304,7 +269,9 @@ export default function DiaryTopicView({
       <DiaryTopicModal
         isOpen={isEditModalOpen}
         onClose={() => setIsEditModalOpen(false)}
-        onSubmit={(newTitle, newDesc) => onUpdateTopic(topic.id, newTitle, newDesc)}
+        onSubmit={(newTitle, newDesc, newCat, newTheme) =>
+          onUpdateTopic(topic.id, newTitle, newDesc, newCat, newTheme)
+        }
         onDelete={() => {
           onDeleteTopic(topic.id);
           onBackToTOC();
@@ -322,7 +289,7 @@ export default function DiaryTopicView({
             <img
               src={viewingImage}
               alt="Fullscreen view"
-              className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl"
+              className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-none"
               onClick={(e) => e.stopPropagation()}
             />
             <button

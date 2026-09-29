@@ -368,12 +368,12 @@ export default function FocusForgeDatePicker({
           role="dialog"
           aria-modal="false"
           aria-label="Select date"
-          className="fixed z-[99999] overflow-hidden rounded-2xl shadow-2xl animate-fade-in bg-white dark:bg-[#0C1222] border border-[#DCE5F0] dark:border-white/10"
+          className="fixed z-[99999] overflow-hidden rounded-2xl shadow-none animate-fade-in bg-white dark:bg-[#0C1222] border border-[#DCE5F0] dark:border-white/10"
           style={{
             top: `${panelPos.top}px`,
             left: `${panelPos.left}px`,
             width: `${panelPos.width}px`,
-            boxShadow: "0 16px 40px rgba(0, 0, 0, 0.18), 0 0 0 1px rgba(0, 0, 0, 0.04)",
+            boxShadow: "none",
           }}
         >
           {/* Header: Selected Date Preview */}
@@ -461,7 +461,7 @@ export default function FocusForgeDatePicker({
                         item.isDisabled
                           ? "opacity-20 cursor-not-allowed text-slate-400 dark:text-zinc-600"
                           : isSelected
-                          ? "bg-blue-600 text-white font-bold shadow-xs scale-105"
+                          ? "bg-blue-600 text-white font-bold shadow-none scale-105"
                           : isToday
                           ? "border border-blue-500 text-blue-600 dark:text-blue-400 bg-blue-50/50 dark:bg-blue-500/10 font-bold hover:bg-blue-100/60 dark:hover:bg-blue-500/20"
                           : item.isCurrentMonth
@@ -496,7 +496,7 @@ export default function FocusForgeDatePicker({
                     }}
                     className={`py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                       isSelected
-                        ? "bg-blue-600 text-white shadow-xs"
+                        ? "bg-blue-600 text-white shadow-none"
                         : "text-[#111827] dark:text-zinc-300 hover:bg-[#E8F1FC] dark:hover:bg-white/10"
                     }`}
                   >
@@ -522,7 +522,7 @@ export default function FocusForgeDatePicker({
                     }}
                     className={`py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                       isSelected
-                        ? "bg-blue-600 text-white shadow-xs"
+                        ? "bg-blue-600 text-white shadow-none"
                         : "text-[#111827] dark:text-zinc-300 hover:bg-[#E8F1FC] dark:hover:bg-white/10"
                     }`}
                   >
@@ -560,7 +560,7 @@ export default function FocusForgeDatePicker({
               <button
                 type="button"
                 onClick={handleConfirm}
-                className="px-3.5 py-1.5 rounded-xl text-xs font-bold text-white bg-blue-600 hover:bg-blue-500 shadow-xs active:scale-95 transition-all cursor-pointer flex items-center gap-1"
+                className="px-3.5 py-1.5 rounded-xl text-xs font-bold text-white bg-blue-600 hover:bg-blue-500 shadow-none active:scale-95 transition-all cursor-pointer flex items-center gap-1"
               >
                 <Check size={13} />
                 <span>OK</span>

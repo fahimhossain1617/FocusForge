@@ -72,12 +72,12 @@ export const HourglassTimer: React.FC<HourglassTimerProps> = ({
 
         {/* Center Navy-Glass Disc with Ultra-Realistic Physical Hourglass */}
         <div
-          className="relative rounded-full flex items-center justify-center shadow-inner overflow-hidden border border-blue-500/20"
+          className="relative rounded-full flex items-center justify-center shadow-none overflow-hidden border border-blue-500/20"
           style={{
             width: innerDiscSize,
             height: innerDiscSize,
             background: "radial-gradient(circle at 50% 28%, #162444 0%, #0D162A 60%, #070B14 100%)",
-            boxShadow: "inset 0 3px 14px rgba(0, 0, 0, 0.75), 0 4px 20px rgba(0, 0, 0, 0.5), inset 0 0 24px rgba(59, 130, 246, 0.14)",
+            boxShadow: "none",
           }}
         >
           {/* Soft inner blue glass highlight reflection */}

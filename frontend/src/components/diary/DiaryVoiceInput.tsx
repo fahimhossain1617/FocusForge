@@ -84,7 +84,7 @@ export default function DiaryVoiceInput({ onInsertText, onError }: DiaryVoiceInp
 
       {/* Floating live text preview so user sees it typing simultaneously */}
       {isListening && interimText && (
-        <div className="absolute top-12 left-0 w-max max-w-[250px] bg-black/90 dark:bg-zinc-800/95 text-white dark:text-zinc-100 text-xs p-2.5 rounded-xl shadow-xl backdrop-blur-md pointer-events-none z-50 animate-fade-in whitespace-normal border border-white/10 text-left leading-relaxed">
+        <div className="absolute top-12 left-0 w-max max-w-[250px] bg-black/90 dark:bg-zinc-800/95 text-white dark:text-zinc-100 text-xs p-2.5 rounded-xl shadow-none backdrop-blur-md pointer-events-none z-50 animate-fade-in whitespace-normal border border-white/10 text-left leading-relaxed">
           {interimText}
           <span className="animate-pulse ml-1">...</span>
         </div>

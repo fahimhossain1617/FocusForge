@@ -29,11 +29,11 @@ export default function GuestTransitionModal({
       aria-labelledby="guest-transition-title"
     >
       <div
-        className={`user-menu-dropdown-box relative w-full max-w-md rounded-3xl border border-[#DCE5F0] dark:border-white/10 bg-white dark:bg-[#111216] p-6 sm:p-7 text-center shadow-2xl ${
+        className={`user-menu-dropdown-box relative w-full max-w-md rounded-3xl border border-[#DCE5F0] dark:border-white/10 bg-white dark:bg-[#111216] p-6 sm:p-7 text-center shadow-none ${
           modalAnim.isExiting ? "motion-exit-reveal" : "motion-scale-in"
         }`}
       >
-        <div className="w-13 h-13 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center mx-auto mb-4 text-amber-500 shadow-sm">
+        <div className="w-13 h-13 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center mx-auto mb-4 text-amber-500 shadow-none">
           <ShieldAlert size={26} />
         </div>
 
@@ -59,7 +59,7 @@ export default function GuestTransitionModal({
           <button
             type="button"
             onClick={onContinue}
-            className="btn-accent-solid flex-1 py-2.5 px-4 rounded-xl text-xs sm:text-sm font-semibold bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-600/30 transition-all cursor-pointer"
+            className="btn-accent-solid flex-1 py-2.5 px-4 rounded-xl text-xs sm:text-sm font-semibold bg-blue-600 hover:bg-blue-500 text-white shadow-none shadow-blue-600/30 transition-all cursor-pointer"
           >
             Continue to Login
           </button>

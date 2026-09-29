@@ -37,10 +37,10 @@ export default function LegalModal({
       onClick={onClose}
     >
       <div
-        className="relative w-full max-w-2xl max-h-[85vh] flex flex-col rounded-2xl border border-white/15 bg-[#03081e]/95 text-slate-200 shadow-2xl overflow-hidden backdrop-blur-2xl"
+        className="relative w-full max-w-2xl max-h-[85vh] flex flex-col rounded-2xl border border-white/15 bg-[#03081e]/95 text-slate-200 shadow-none overflow-hidden backdrop-blur-2xl"
         onClick={(e) => e.stopPropagation()}
         style={{
-          boxShadow: "0 25px 60px -15px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(150, 180, 255, 0.2)",
+          boxShadow: "none",
         }}
       >
         {/* Header */}
@@ -51,7 +51,7 @@ export default function LegalModal({
               onClick={() => setActiveTab("terms")}
               className={`px-3 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
                 activeTab === "terms"
-                  ? "bg-[#1f6fe0] text-white shadow-md shadow-blue-500/20"
+                  ? "bg-[#1f6fe0] text-white shadow-none shadow-blue-500/20"
                   : "text-slate-400 hover:text-white hover:bg-white/5"
               }`}
             >
@@ -62,7 +62,7 @@ export default function LegalModal({
               onClick={() => setActiveTab("privacy")}
               className={`px-3 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
                 activeTab === "privacy"
-                  ? "bg-[#1f6fe0] text-white shadow-md shadow-blue-500/20"
+                  ? "bg-[#1f6fe0] text-white shadow-none shadow-blue-500/20"
                   : "text-slate-400 hover:text-white hover:bg-white/5"
               }`}
             >
@@ -171,7 +171,7 @@ export default function LegalModal({
           <button
             type="button"
             onClick={onClose}
-            className="px-5 py-2 rounded-xl text-xs sm:text-sm font-semibold bg-[#1f6fe0] hover:bg-blue-600 text-white transition-all cursor-pointer shadow-md shadow-blue-500/20"
+            className="px-5 py-2 rounded-xl text-xs sm:text-sm font-semibold bg-[#1f6fe0] hover:bg-blue-600 text-white transition-all cursor-pointer shadow-none shadow-blue-500/20"
           >
             I Understand
           </button>

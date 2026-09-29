@@ -63,7 +63,7 @@
   padding: 36px 32px;
   background: linear-gradient(145deg, rgba(15, 23, 42, 0.82), rgba(10, 16, 32, 0.94));
   border: 1px solid rgba(147, 197, 253, 0.24);
-  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.6), 0 0 40px rgba(37, 99, 235, 0.16), inset 0 1px 1px rgba(255, 255, 255, 0.15);
+  box-shadow: none !important;
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   color: #f8fafc;
@@ -76,7 +76,7 @@
 :global([data-theme="light"]) .onboardingCard {
   background: linear-gradient(145deg, rgba(255, 255, 255, 0.95), rgba(241, 245, 249, 0.95));
   border-color: #DCE5F0;
-  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.08), 0 0 35px rgba(91, 141, 239, 0.12);
+  box-shadow: none !important;
   color: #111827;
 }
 
@@ -176,7 +176,7 @@
   border-color: rgba(96, 165, 250, 0.55);
   background: rgba(30, 58, 138, 0.2);
   transform: translateY(-2px);
-  box-shadow: 0 10px 24px rgba(37, 99, 235, 0.14);
+  box-shadow: none !important;
 }
 
 :global([data-theme="light"]) .optionCard:hover {
@@ -187,13 +187,13 @@
 .optionCardActive {
   border-color: #3b82f6 !important;
   background: linear-gradient(145deg, rgba(37, 99, 235, 0.22), rgba(29, 78, 216, 0.12)) !important;
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.4), 0 12px 28px rgba(37, 99, 235, 0.25) !important;
+  box-shadow: none !important;
 }
 
 :global([data-theme="light"]) .optionCardActive {
   border-color: #2563eb !important;
   background: linear-gradient(145deg, rgba(239, 246, 255, 1), rgba(219, 234, 254, 0.6)) !important;
-  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.3), 0 10px 24px rgba(37, 99, 235, 0.12) !important;
+  box-shadow: none !important;
 }
 
 .optionIconWrapper {
@@ -305,13 +305,13 @@
   height: 6px;
   border-radius: 50%;
   background-color: #38bdf8;
-  box-shadow: 0 0 8px #38bdf8;
+  box-shadow: none !important;
   shrink: 0;
 }
 
 :global([data-theme="light"]) .bulletDot {
   background-color: #2563eb;
-  box-shadow: 0 0 6px rgba(37, 99, 235, 0.4);
+  box-shadow: none !important;
 }
 
 .philosophyQuoteBox {
@@ -406,7 +406,7 @@
 .stepDotActive {
   width: 22px;
   background: #3b82f6;
-  box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+  box-shadow: none !important;
 }
 
 /* ==========================================================================
@@ -431,7 +431,7 @@
   z-index: 10000;
   border-radius: 14px;
   border: 2px solid #3b82f6;
-  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.25), 0 0 28px rgba(59, 130, 246, 0.45);
+  box-shadow: none !important;
   pointer-events: none;
   transition: all 0.28s cubic-bezier(0.16, 1, 0.3, 1);
   animation: spotlightPulse 2s infinite ease-in-out;
@@ -439,10 +439,10 @@
 
 @keyframes spotlightPulse {
   0%, 100% {
-    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.25), 0 0 24px rgba(59, 130, 246, 0.45);
+    box-shadow: none !important;
   }
   50% {
-    box-shadow: 0 0 0 7px rgba(59, 130, 246, 0.35), 0 0 36px rgba(59, 130, 246, 0.7);
+    box-shadow: none !important;
   }
 }
 
@@ -455,7 +455,7 @@
   padding: 18px 20px;
   background: linear-gradient(145deg, rgba(15, 23, 42, 0.92), rgba(10, 16, 32, 0.96));
   border: 1px solid rgba(147, 197, 253, 0.35);
-  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.6), 0 0 30px rgba(37, 99, 235, 0.25), inset 0 1px 1px rgba(255, 255, 255, 0.15);
+  box-shadow: none !important;
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
   color: #f8fafc;
@@ -466,7 +466,7 @@
 :global([data-theme="light"]) .tourCard {
   background: linear-gradient(145deg, rgba(255, 255, 255, 0.96), rgba(241, 245, 249, 0.96));
   border-color: #DCE5F0;
-  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.1), 0 0 25px rgba(91, 141, 239, 0.15);
+  box-shadow: none !important;
   color: #111827;
 }
 
@@ -541,12 +541,12 @@
   font-weight: 700;
   cursor: pointer;
   transition: all 0.2s ease;
-  box-shadow: 0 2px 10px rgba(37, 99, 235, 0.35);
+  box-shadow: none !important;
 }
 
 .tourNextBtn:hover {
   background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-  box-shadow: 0 4px 16px rgba(37, 99, 235, 0.5);
+  box-shadow: none !important;
   transform: translateY(-0.5px);
 }
 
@@ -796,7 +796,7 @@
     margin: 0 auto !important;
     padding: 16px 18px !important;
     border-radius: 18px !important;
-    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.7), 0 0 24px rgba(37, 99, 235, 0.25) !important;
+    box-shadow: none !important;
   }
 
   .tourCardWide {

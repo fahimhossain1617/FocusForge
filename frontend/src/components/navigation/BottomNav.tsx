@@ -12,7 +12,10 @@ import {
   Files,
   PencilLine,
   GraduationCap,
+  Brain,
+  BookOpenText,
 } from "lucide-react";
+import { MindSpaceIcon } from "../icons/MindSpaceIcon";
 
 export default function BottomNav() {
   const { state, navigateTo } = useAppContext();
@@ -76,8 +79,13 @@ export default function BottomNav() {
     },
     {
       id: "mind",
-      label: isBn ? "ক্যাপচার" : "Capture",
-      icon: PencilLine,
+      label: isBn ? "মাইন্ড স্পেস" : "Mind Space",
+      icon: MindSpaceIcon,
+    },
+    {
+      id: "diary",
+      label: isBn ? "মাই ডায়েরি" : "My Diary",
+      icon: BookOpenText,
     },
     {
       id: "learning",
@@ -120,16 +128,15 @@ export default function BottomNav() {
               ease: isActionsOpen ? [0.16, 1, 0.3, 1] : [0.4, 0, 1, 1],
             }}
             style={{ transformOrigin: "bottom center" }}
-            className={`fixed bottom-[calc(4.75rem+env(safe-area-inset-bottom,0px))] left-1/2 -translate-x-1/2 z-50 w-[calc(100vw-2rem)] max-w-[300px] rounded-3xl p-3 border shadow-2xl md:hidden ${
+            className={`fixed bottom-[calc(4.75rem+env(safe-area-inset-bottom,0px))] left-1/2 -translate-x-1/2 z-50 w-[calc(100vw-2rem)] max-w-[300px] rounded-3xl p-3 border shadow-none md:hidden ${
               isLight
-                ? "bg-white border-[#DCE5F0] shadow-[0_20px_45px_rgba(34,58,94,0.18)]"
-                : "bg-[#0B101E] border-white/[0.12] shadow-[0_20px_50px_rgba(0,0,0,0.9)]"
+                ? "bg-white border-[#DCE5F0] shadow-none"
+                : "bg-[#0B101E] border-white/[0.12] shadow-none"
             }`}
             role="dialog"
             aria-label="Secondary Features Navigation"
           >
-            {/* 3-Column Grid of Quick Actions */}
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-4 gap-2">
               {secondaryFeatures.map((feature) => {
                 const Icon = feature.icon;
                 const isItemActive = activePage === feature.id;
@@ -144,11 +151,11 @@ export default function BottomNav() {
                   >
                     {/* Monochromatic Normal Icon Container */}
                     <div
-                      className={`w-11 h-11 rounded-2xl flex items-center justify-center transition-all shadow-xs group-hover:scale-105 group-active:scale-95 ${
+                      className={`w-11 h-11 rounded-2xl flex items-center justify-center transition-all shadow-none group-hover:scale-105 group-active:scale-95 ${
                         isItemActive
                           ? isLight
-                            ? "bg-[#5B8DEF]/15 border border-[#5B8DEF]/30 text-[#223A5E] shadow-sm"
-                            : "bg-blue-600/20 border border-blue-500/40 text-blue-300 shadow-sm"
+                            ? "bg-[#5B8DEF]/15 border border-[#5B8DEF]/30 text-[#223A5E] shadow-none"
+                            : "bg-blue-600/20 border border-blue-500/40 text-blue-300 shadow-none"
                           : isLight
                           ? "bg-[#EDF2F9] border border-[#DCE5F0] text-slate-600 group-hover:bg-[#E2EAF5] group-hover:text-slate-900"
                           : "bg-[#131B2E] border border-white/[0.08] text-slate-300 group-hover:bg-[#1A253E] group-hover:text-white"
@@ -187,8 +194,8 @@ export default function BottomNav() {
         aria-label="Mobile Bottom Navigation"
         className={`fixed bottom-0 left-0 w-full z-50 border-t backdrop-blur-xl select-none md:hidden transition-colors ${
           isLight
-            ? "bg-white/95 border-[#DCE5F0] text-slate-700 shadow-[0_-8px_24px_rgba(0,0,0,0.06)]"
-            : "bg-[#0A0E1A]/95 border-white/[0.08] text-slate-200 shadow-[0_-8px_24px_rgba(0,0,0,0.45)]"
+            ? "bg-white/95 border-[#DCE5F0] text-slate-700 shadow-none"
+            : "bg-[#0A0E1A]/95 border-white/[0.08] text-slate-200 shadow-none"
         }`}
         style={{
           paddingBottom: "env(safe-area-inset-bottom, 0px)",
@@ -227,11 +234,11 @@ export default function BottomNav() {
                 onClick={toggleActions}
                 aria-expanded={isActionsOpen}
                 aria-label={isActionsOpen ? "Close extra navigation features" : "Open extra navigation features"}
-                className={`relative flex items-center justify-center w-11 h-11 min-w-[44px] min-h-[44px] rounded-full cursor-pointer shadow-md outline-none focus-visible:ring-2 focus-visible:ring-blue-500 border active:scale-92 transition-all ${
+                className={`relative flex items-center justify-center w-11 h-11 min-w-[44px] min-h-[44px] rounded-full cursor-pointer shadow-none outline-none focus-visible:ring-2 focus-visible:ring-blue-500 border active:scale-92 transition-all ${
                   isActionsOpen
                     ? isLight
-                      ? "bg-[#1E293B] text-white border-[#334155] shadow-sm"
-                      : "bg-[#1A253E] text-white border-white/20 shadow-sm"
+                      ? "bg-[#1E293B] text-white border-[#334155] shadow-none"
+                      : "bg-[#1A253E] text-white border-white/20 shadow-none"
                     : isLight
                     ? "bg-[#0F172A] text-white border-[#1E293B] hover:bg-[#1E293B]"
                     : "bg-[#131B2E] text-white border-white/10 hover:bg-[#1A253E]"

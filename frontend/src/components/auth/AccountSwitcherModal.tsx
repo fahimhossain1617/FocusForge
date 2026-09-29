@@ -48,7 +48,7 @@ export default function AccountSwitcherModal({
       aria-labelledby="account-switcher-title"
     >
       <div
-        className={`user-menu-dropdown-box relative w-full max-w-md rounded-3xl border border-[#DCE5F0] dark:border-white/10 bg-white dark:bg-[#111216] p-6 text-left shadow-2xl ${
+        className={`user-menu-dropdown-box relative w-full max-w-md rounded-3xl border border-[#DCE5F0] dark:border-white/10 bg-white dark:bg-[#111216] p-6 text-left shadow-none ${
           modalAnim.isExiting ? "motion-exit-reveal" : "motion-scale-in"
         }`}
       >

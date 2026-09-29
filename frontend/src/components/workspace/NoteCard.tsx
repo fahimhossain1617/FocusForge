@@ -1,8 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import type { Note, NoteBlock } from "../../types";
-import { CalendarDays, Code2, Edit3, Sigma, Trash2, Image as ImageIcon, FileText, Link2 } from "lucide-react";
+import React from "react";
+import type { Note } from "../../types";
+import { useAppContext } from "../../context/AppContext";
+import "./notecard.css";
+import { CalendarDays } from "lucide-react";
 
 interface NoteCardProps { 
   note: Note; 
@@ -10,14 +12,10 @@ interface NoteCardProps {
   onDelete: (id: number) => void; 
 }
 
-const getPreview = (blocks: NoteBlock[]) => 
-  blocks
-    .filter((block) => block.type !== "code" && block.type !== "math" && block.type !== "image" && block.type !== "file" && block.type !== "link")
-    .map((block) => block.content)
-    .filter(Boolean)
-    .join(" ") || "A fresh canvas for your next great idea.";
+export default function NoteCard({ note, onEdit }: NoteCardProps) {
+  const { state } = useAppContext();
+  const isBn = state?.lang === 'bn';
 
-export default function NoteCard({ note, onEdit, onDelete }: NoteCardProps) {
   const getSafeDate = (d1: any, d2: any) => {
     const val = d1 || d2;
     if (!val) return new Date();
@@ -25,105 +23,91 @@ export default function NoteCard({ note, onEdit, onDelete }: NoteCardProps) {
     return isNaN(d.getTime()) ? new Date() : d;
   };
 
-  const [showSavedChip, setShowSavedChip] = useState(() => {
-    const timeDiff = Date.now() - getSafeDate(note.updatedAt, note.createdAt).getTime();
-    return timeDiff >= 0 && timeDiff < 3000;
-  });
-
-  useEffect(() => {
-    const timeDiff = Date.now() - getSafeDate(note.updatedAt, note.createdAt).getTime();
-    if (timeDiff >= 0 && timeDiff < 3000) {
-      setShowSavedChip(true);
-      const timer = setTimeout(() => {
-        setShowSavedChip(false);
-      }, 3000 - timeDiff);
-      return () => clearTimeout(timer);
-    } else {
-      setShowSavedChip(false);
-    }
-  }, [note.updatedAt, note.createdAt]);
-
-  const previewText = getPreview(note.blocks);
-  const formattedDate = new Intl.DateTimeFormat(undefined, { 
+  const formattedDate = new Intl.DateTimeFormat(isBn ? "bn-BD" : "en-US", { 
+    day: "numeric",
     month: "short", 
-    day: "numeric", 
-    year: "numeric" 
+    year: "numeric"
   }).format(getSafeDate(note.updatedAt, note.createdAt));
 
-  const hasCode = note.blocks.some((block) => block.type === "code");
-  const hasMath = note.blocks.some((block) => block.type === "math");
-  const hasImages = note.blocks.some((block) => block.type === "image");
-  const hasFiles = note.blocks.some((block) => block.type === "file");
-  const hasLinks = note.blocks.some((block) => block.type === "link");
-  const hasMedia = hasCode || hasMath || hasImages || hasFiles || hasLinks;
+  // Dynamic counts based on actual note blocks & attachments
+  const textBlocks = (note.blocks || []).filter(
+    (b) => b.type !== "image" && b.type !== "file" && b.type !== "link"
+  );
+  const mediaBlocks = (note.blocks || []).filter(
+    (b) => b.type === "image" || b.type === "file" || b.type === "link"
+  );
+  const attachmentsCount = (note.attachments?.length || 0) + (note.links?.length || 0);
+  const totalFiles = mediaBlocks.length + attachmentsCount;
+  const totalNotes = Math.max(1, textBlocks.length);
 
   return (
     <article 
-      className={`note-card motion-grid-item card-interactive relative transition-all duration-200 ${
-        showSavedChip ? "note-card--saved" : ""
-      }`} 
+      className="folder-card-wrapper motion-grid-item"
       onClick={() => onEdit(note)}
     >
-      {/* Top Header: Category Tag & Quick Action Buttons */}
-      <div className="note-card__top">
-        <span className="note-card__badge" title={note.category || "General"}>
-          {note.category || "General"}
-        </span>
-
-        <div className="note-card__actions" onClick={(event) => event.stopPropagation()}>
-          {showSavedChip && (
-            <span className="note-card__saved-pill">
-              <span className="note-card__saved-dot" />
-              Saved
-            </span>
-          )}
-          <button 
-            type="button" 
-            onClick={() => onEdit(note)} 
-            aria-label="Edit note"
-            title="Edit note"
-          >
-            <Edit3 size={13.5} />
-          </button>
-          <button 
-            type="button" 
-            onClick={() => onDelete(note.id)} 
-            aria-label="Delete note"
-            title="Delete note"
-          >
-            <Trash2 size={13.5} />
-          </button>
+      {/* 3D Physical Folder Container */}
+      <div className="folder-card__base">
+        {/* Back Folder Dark Plate */}
+        <div className="folder-card__back-plate">
+          <div className="folder-card__back-tab" />
         </div>
-      </div>
-      
-      {/* Note Title */}
-      <h3 title={note.title || "Untitled note"}>
-        {note.title || "Untitled note"}
-      </h3>
 
-      {/* Date metadata */}
-      <div className="note-card__date">
-        <CalendarDays size={12} className="shrink-0" />
-        <span>Edited {formattedDate}</span>
-      </div>
-      
-      {/* Description / Content Preview */}
-      <p>{previewText}</p>
-      
-      {/* Footer: Content Type Indicators & Blocks Count */}
-      <div className="note-card__footer">
-        <div className="note-card__tags">
-          {hasCode && <span><Code2 size={11.5} /> Code</span>}
-          {hasMath && <span><Sigma size={11.5} /> Math</span>}
-          {hasImages && <span><ImageIcon size={11.5} /> Image</span>}
-          {hasFiles && <span><FileText size={11.5} /> Doc</span>}
-          {hasLinks && <span><Link2 size={11.5} /> Link</span>}
-          {!hasMedia && <span><FileText size={11.5} /> Text</span>}
+        {/* Realistic Layered Papers Sticking Out */}
+        <div className="folder-card__papers">
+          {/* Back Right Paper (tilted + higher) */}
+          <div className="folder-paper-sheet folder-paper-sheet--back">
+            <div className="sheet-line sheet-line--header" />
+            <div className="sheet-line sheet-line--full" />
+            <div className="sheet-line sheet-line--medium" />
+            <div className="sheet-line sheet-line--short" />
+          </div>
+
+          {/* Front Left Paper (tilted left) */}
+          <div className="folder-paper-sheet folder-paper-sheet--front">
+            <div className="sheet-line sheet-line--header" />
+            <div className="sheet-line sheet-line--full" />
+            <div className="sheet-line sheet-line--medium" />
+            <div className="sheet-line sheet-line--short" />
+          </div>
         </div>
-        <span className="note-card__block-count">
-          {note.blocks.length} {note.blocks.length === 1 ? "block" : "blocks"}
-        </span>
+
+        {/* Front Frosted Glass Flap */}
+        <div className="folder-card__front-flap">
+          {/* Top Folder Notch Tab */}
+          <div className="folder-card__tab-notch" />
+          {/* Right Edge Accent */}
+          <div className="folder-card__accent-edge" />
+          {/* Glass Specular Sheen */}
+          <div className="folder-card__sheen" />
+
+          {/* Card Content on Frosted Glass */}
+          <div className="folder-card__content">
+            {/* Title & Count details */}
+            <div className="folder-card__details">
+              <h3 className="folder-card__title" title={note.title || (isBn ? "শিরোনামহীন নোট" : "Untitled Note")}>
+                {note.title || (isBn ? "শিরোনামহীন নোট" : "Untitled Note")}
+              </h3>
+              <p className="folder-card__subtitle">
+                {isBn 
+                  ? `${totalNotes} টি নোট • ${totalFiles} টি ফাইল` 
+                  : `${totalNotes} ${totalNotes === 1 ? "note" : "notes"} • ${totalFiles} ${totalFiles === 1 ? "file" : "files"}`}
+              </p>
+            </div>
+
+            {/* Bottom Row: Pure Clean Date */}
+            <div className="folder-card__bottom-row">
+              <div className="folder-card__date">
+                <CalendarDays size={13} className="shrink-0 opacity-70" />
+                <span>{formattedDate}</span>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </article>
   );
 }
+
+
+
+

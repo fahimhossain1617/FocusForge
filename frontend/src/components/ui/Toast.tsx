@@ -38,7 +38,7 @@ function ToastItem({ message, type }: { message: string; type: string }) {
         type === "error"
           ? "border-[#D95C68] text-[#111827] dark:text-foreground"
           : "border-[#DCE5F0] dark:border-white/10 text-[#111827] dark:text-foreground"
-      } shadow-[0_8px_28px_rgba(0,0,0,0.06)] dark:shadow-xl pointer-events-auto max-w-sm`}
+      } shadow-none pointer-events-auto max-w-sm`}
     >
       {/* Icon */}
       <div className="shrink-0">

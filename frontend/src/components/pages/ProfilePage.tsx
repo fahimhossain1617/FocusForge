@@ -14,7 +14,7 @@ import FocusForgeSelect from "../ui/FocusForgeSelect";
 
 export default function ProfilePage() {
   const { user, isGuest, updateUserProfile, openAuth } = useAuth();
-  const { showToast, navigateTo, state } = useAppContext();
+  const { showToast, navigateTo, navigateBack, state } = useAppContext();
   const { t } = useTranslation();
 
   const [isEditing, setIsEditing] = useState(false);
@@ -202,16 +202,12 @@ export default function ProfilePage() {
       <div className="flex items-center justify-between pt-1">
         <button
           type="button"
-          onClick={() => navigateTo("today")}
-          className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-semibold border transition-all hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer shadow-xs"
-          style={{
-            borderColor: "var(--color-border-subtle)",
-            color: "var(--color-text-primary)",
-          }}
-          aria-label="Back to Dashboard"
+          onClick={navigateBack}
+          className="inline-flex items-center justify-center w-9 h-9 -ml-1.5 rounded-full text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-black/5 dark:hover:bg-white/5 active:scale-95 transition-colors cursor-pointer"
+          aria-label={state.lang === 'bn' ? "ফিরে যান" : "Back"}
+          title={state.lang === 'bn' ? "ফিরে যান" : "Back"}
         >
-          <ArrowLeft size={16} />
-          <span>{state.lang === 'bn' ? "ড্যাশবোর্ডে ফিরে যান" : "Back to Dashboard"}</span>
+          <ArrowLeft className="w-5 h-5" strokeWidth={2} />
         </button>
       </div>
 
@@ -219,7 +215,7 @@ export default function ProfilePage() {
       {/* 1. PROFILE HEADER SECTION                                 */}
       {/* ======================================================== */}
       <div 
-        className="relative rounded-3xl border border-[#DCE5F0] dark:border-blue-500/20 bg-white dark:bg-[#0D1426] p-6 sm:p-8 overflow-hidden shadow-sm dark:shadow-xl"
+        className="relative rounded-3xl border border-[#DCE5F0] dark:border-blue-500/20 bg-white dark:bg-[#0D1426] p-6 sm:p-8 overflow-hidden shadow-none"
       >
         {/* Ambient Top Glow */}
         <div className="absolute top-0 left-1/4 w-96 h-32 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
@@ -228,7 +224,7 @@ export default function ProfilePage() {
           {/* Avatar Container */}
           <div className="relative group shrink-0">
             <div 
-              className="w-24 h-24 sm:w-28 sm:h-28 rounded-full overflow-hidden border border-[#D0E1FD] dark:border-blue-900/40 flex items-center justify-center cursor-pointer transition-all hover:border-[#5B8DEF] bg-[#E8F1FC] dark:bg-blue-950/60 shadow-xs"
+              className="w-24 h-24 sm:w-28 sm:h-28 rounded-full overflow-hidden border border-[#D0E1FD] dark:border-blue-900/40 flex items-center justify-center cursor-pointer transition-all hover:border-[#5B8DEF] bg-[#E8F1FC] dark:bg-blue-950/60 shadow-none"
               onClick={() => fileInputRef.current?.click()}
               title="Change Profile Photo"
             >
@@ -260,7 +256,7 @@ export default function ProfilePage() {
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="absolute bottom-0 right-0 p-2 sm:p-2.5 rounded-full bg-[#223A5E] dark:bg-[#2563EB] text-white hover:bg-[#1A2E4C] dark:hover:bg-[#1D4ED8] ring-[2.5px] ring-white dark:ring-[#0D1426] shadow-sm transition-all cursor-pointer"
+              className="absolute bottom-0 right-0 p-2 sm:p-2.5 rounded-full bg-[#223A5E] dark:bg-[#2563EB] text-white hover:bg-[#1A2E4C] dark:hover:bg-[#1D4ED8] ring-[2.5px] ring-white dark:ring-[#0D1426] shadow-none transition-all cursor-pointer"
               title="Change Photo"
               aria-label="Change Photo"
             >
@@ -275,7 +271,7 @@ export default function ProfilePage() {
                   e.stopPropagation();
                   handleRemovePhoto();
                 }}
-                className="absolute top-0 right-0 p-1.5 rounded-full bg-red-600 hover:bg-red-700 text-white ring-2 ring-white dark:ring-[#0D1426] shadow-xs transition-all cursor-pointer"
+                className="absolute top-0 right-0 p-1.5 rounded-full bg-red-600 hover:bg-red-700 text-white ring-2 ring-white dark:ring-[#0D1426] shadow-none transition-all cursor-pointer"
                 title="Remove Photo"
                 aria-label="Remove Photo"
               >
@@ -331,7 +327,7 @@ export default function ProfilePage() {
                         setIsEditing(true);
                       }
                     }}
-                    className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold text-white hover:opacity-95 border border-transparent shadow-xs transition-all cursor-pointer"
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold text-white hover:opacity-95 border border-transparent shadow-none transition-all cursor-pointer"
                     style={{ background: "linear-gradient(135deg, #2563EB, #3B82F6)" }}
                   >
                     <Edit3 size={14} />
@@ -351,7 +347,7 @@ export default function ProfilePage() {
         {/* LEFT 2 COLUMNS: Personal Information Form / View */}
         <div className="lg:col-span-2 space-y-6">
           <div 
-            className="rounded-3xl border border-[#DCE5F0] dark:border-blue-500/20 bg-white dark:bg-[#0D1426] shadow-sm dark:shadow-xl p-6 sm:p-7"
+            className="rounded-3xl border border-[#DCE5F0] dark:border-blue-500/20 bg-white dark:bg-[#0D1426] shadow-none p-6 sm:p-7"
           >
             <div className="flex items-center justify-between pb-4 border-b border-[#E2E8F0] dark:border-white/5 mb-6">
               <div>
@@ -598,7 +594,7 @@ export default function ProfilePage() {
                   <button
                     type="submit"
                     disabled={isSaving}
-                    className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-semibold text-white hover:opacity-95 border border-transparent shadow-xs transition-all cursor-pointer disabled:opacity-50"
+                    className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-semibold text-white hover:opacity-95 border border-transparent shadow-none transition-all cursor-pointer disabled:opacity-50"
                     style={{ background: "linear-gradient(135deg, #2563EB, #3B82F6)" }}
                   >
                     <Save size={14} />
@@ -614,7 +610,7 @@ export default function ProfilePage() {
         <div className="space-y-6">
           {/* Profile Completion Card */}
           <div 
-            className="rounded-3xl border border-[#DCE5F0] dark:border-blue-500/20 bg-white dark:bg-[#0D1426] shadow-sm dark:shadow-xl p-6"
+            className="rounded-3xl border border-[#DCE5F0] dark:border-blue-500/20 bg-white dark:bg-[#0D1426] shadow-none p-6"
           >
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-sm font-bold text-[#0F172A] dark:text-white">Profile Completion</h3>
@@ -628,7 +624,7 @@ export default function ProfilePage() {
                 style={{
                   width: `${completionPercent}%`,
                   background: "linear-gradient(90deg, #2563EB, #38BDF8)",
-                  boxShadow: "0 0 10px rgba(56, 189, 248, 0.5)"
+                  boxShadow: "none"
                 }}
               />
             </div>
@@ -657,7 +653,7 @@ export default function ProfilePage() {
 
           {/* Account Overview Card (Read-only) */}
           <div 
-            className="rounded-3xl border border-[#DCE5F0] dark:border-blue-500/20 bg-white dark:bg-[#0D1426] shadow-sm dark:shadow-xl p-6"
+            className="rounded-3xl border border-[#DCE5F0] dark:border-blue-500/20 bg-white dark:bg-[#0D1426] shadow-none p-6"
           >
             <div className="flex items-center gap-2 mb-4 pb-3 border-b border-[#E2E8F0] dark:border-white/5">
               <ShieldCheck size={16} className="text-blue-600 dark:text-blue-400" />

@@ -20,8 +20,11 @@ import {
   ChevronLeft,
   ChevronRight,
   X,
-  Users
+  Users,
+  Brain,
+  BookOpenText
 } from "lucide-react";
+import { MindSpaceIcon } from "./icons/MindSpaceIcon";
 import { useAuth } from "../context/AuthContext";
 import { useAnimateExit } from "../hooks/useAnimateExit";
 
@@ -37,7 +40,8 @@ const navItems: NavItem[] = [
   { id: "ai-agent", label: "AI Agent", tagline: "Productivity AI copilot", icon: Bot },
   { id: "tasks", label: "Notes & files", tagline: "Your notes, docs, and attachments", icon: Files },
   { id: "planner", label: "Planner", tagline: "Plan your day and week", icon: CalendarDays },
-  { id: "mind", label: "Capture", tagline: "Write it down before you forget", icon: PencilLine },
+  { id: "mind", label: "Mind Space", tagline: "Capture, solve, and reflect", icon: MindSpaceIcon },
+  { id: "diary", label: "My Diary", tagline: "Your private journal", icon: BookOpenText },
   { id: "learning", label: "Skill builder", tagline: "Track what you're learning", icon: GraduationCap },
   { id: "focus", label: "Focus", tagline: "Start a focus session", icon: Target },
 ];
@@ -126,10 +130,10 @@ export default function Sidebar({
 
       {/* Sidebar Drawer / Desktop Rail */}
       <aside
-        className={`sidebar fixed left-0 top-0 bottom-0 min-h-screen flex flex-col py-4 bg-white dark:bg-[#070a14] text-[#52627A] dark:text-muted-foreground border-r border-[#DCE5F0] dark:border-border transition-all duration-200 ease-in-out select-none shadow-[0_8px_28px_rgba(0,0,0,0.06)] dark:shadow-none w-[78%] max-w-[300px] px-3.5 ${
+        className={`sidebar fixed left-0 top-0 bottom-0 min-h-screen flex flex-col py-4 bg-white dark:bg-[#070a14] text-[#52627A] dark:text-muted-foreground border-r border-[#DCE5F0] dark:border-border transition-all duration-200 ease-in-out select-none shadow-none w-[78%] max-w-[300px] px-3.5 ${
           isTourActive ? "z-[9999]" : "z-50"
         } ${
-          isOpen ? "open translate-x-0 !translate-x-0 shadow-2xl" : "-translate-x-full md:translate-x-0"
+          isOpen ? "open translate-x-0 !translate-x-0 shadow-none" : "-translate-x-full md:translate-x-0"
         } ${
           isCollapsed ? "md:w-[76px] md:px-2" : "md:w-[260px] md:px-3.5"
         }`}
@@ -159,7 +163,7 @@ export default function Sidebar({
             <img 
               src={logoSrc} 
               alt="FocusForge Logo" 
-              className="w-8 h-8 rounded-xl object-contain shadow-xs shrink-0" 
+              className="w-8 h-8 rounded-xl object-contain shadow-none shrink-0" 
             />
 
             {/* Brand Title (Hidden when collapsed on desktop) */}
@@ -207,6 +211,7 @@ export default function Sidebar({
             const translationKeyMap: Record<string, { label: keyof typeof t.sidebar; tagline?: keyof typeof t.sidebar }> = {
               today: { label: 'dashboard', tagline: 'dashboardTagline' },
               mind: { label: 'myMind', tagline: 'myMindTagline' },
+              diary: { label: 'myDiary', tagline: 'myDiaryTagline' },
               tasks: { label: 'workspace', tagline: 'workspaceTagline' },
               planner: { label: 'planner', tagline: 'plannerTagline' },
               focus: { label: 'focus', tagline: 'focusTagline' },
@@ -246,7 +251,7 @@ export default function Sidebar({
                       transition={{ type: "spring", stiffness: 420, damping: 35, duration: 0.2 }}
                     >
                       <div className="sidebar-active-pill-bg absolute inset-0 rounded-xl bg-[#E7F0FF] dark:bg-blue-950/40" />
-                      <div className="sidebar-active-pill-edge absolute right-0 top-1/2 -translate-y-1/2 w-1 h-5 rounded-l-full bg-[#5B8DEF] dark:bg-blue-400 shadow-[0_0_8px_#5B8DEF]" />
+                      <div className="sidebar-active-pill-edge absolute right-0 top-1/2 -translate-y-1/2 w-1 h-5 rounded-l-full bg-[#5B8DEF] dark:bg-blue-400 shadow-none" />
                     </motion.div>
                   )}
 
@@ -272,7 +277,7 @@ export default function Sidebar({
 
                 {/* Tooltip for Collapsed State */}
                 {isCollapsed && (
-                  <div className="hidden md:block pointer-events-none absolute left-full ml-3 px-3 py-1.5 bg-[#0F172A] text-white dark:bg-[#1A2234] dark:text-slate-100 text-xs rounded-lg shadow-xl opacity-0 group-hover:opacity-100 transition-all duration-150 whitespace-nowrap z-50 translate-x-1 group-hover:translate-x-0 border border-slate-700/50">
+                  <div className="hidden md:block pointer-events-none absolute left-full ml-3 px-3 py-1.5 bg-[#0F172A] text-white dark:bg-[#1A2234] dark:text-slate-100 text-xs rounded-lg shadow-none opacity-0 group-hover:opacity-100 transition-all duration-150 whitespace-nowrap z-50 translate-x-1 group-hover:translate-x-0 border border-slate-700/50">
                     <div className="font-semibold">{displayLabel}</div>
                     {displayTagline && (
                       <div className="text-[10px] text-slate-400 dark:text-slate-400 font-normal">
@@ -298,7 +303,7 @@ export default function Sidebar({
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 8, scale: 0.96 }}
                 transition={{ duration: 0.15 }}
-                className={`absolute z-50 rounded-2xl border border-[#DCE5F0] dark:border-white/10 bg-white/95 dark:bg-[#0c101d]/95 backdrop-blur-2xl shadow-2xl p-2 mb-2 flex flex-col gap-1.5 ${
+                className={`absolute z-50 rounded-2xl border border-[#DCE5F0] dark:border-white/10 bg-white/95 dark:bg-[#0c101d]/95 backdrop-blur-2xl shadow-none p-2 mb-2 flex flex-col gap-1.5 ${
                   isCollapsed 
                     ? "left-full ml-3 bottom-0 w-64" 
                     : "bottom-full left-0 right-0 w-full"
@@ -407,14 +412,14 @@ export default function Sidebar({
                   <img 
                     src={user.avatarUrl} 
                     alt={userName} 
-                    className="w-9 h-9 rounded-full object-cover ring-2 ring-[#5B8DEF]/30 group-hover:ring-[#5B8DEF]/60 transition-all shadow-xs" 
+                    className="w-9 h-9 rounded-full object-cover ring-2 ring-[#5B8DEF]/30 group-hover:ring-[#5B8DEF]/60 transition-all shadow-none" 
                   />
                 ) : isGuestMode ? (
-                  <div className="w-9 h-9 rounded-full flex items-center justify-center bg-[#E8F1FC] dark:bg-blue-950/60 border border-[#D0E1FD] dark:border-blue-900/40 shadow-xs text-[#0F172A] dark:text-blue-300 transition-colors">
+                  <div className="w-9 h-9 rounded-full flex items-center justify-center bg-[#E8F1FC] dark:bg-blue-950/60 border border-[#D0E1FD] dark:border-blue-900/40 shadow-none text-[#0F172A] dark:text-blue-300 transition-colors">
                     <ProfileIcon size={18} strokeWidth={2.2} />
                   </div>
                 ) : (
-                  <div className="w-9 h-9 rounded-full flex items-center justify-center bg-[#223A5E] text-white font-bold text-sm shadow-xs ring-2 ring-[#5B8DEF]/30 group-hover:ring-[#5B8DEF]/60 transition-all uppercase">
+                  <div className="w-9 h-9 rounded-full flex items-center justify-center bg-[#223A5E] text-white font-bold text-sm shadow-none ring-2 ring-[#5B8DEF]/30 group-hover:ring-[#5B8DEF]/60 transition-all uppercase">
                     {userName ? userName[0].toUpperCase() : <ProfileIcon size={18} strokeWidth={2.2} />}
                   </div>
                 )}
@@ -479,7 +484,7 @@ export default function Sidebar({
                     <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-[#2E9B73] ring-2 ring-white dark:ring-[#070a14]" />
                   </div>
                 </button>
-                <div className="pointer-events-none absolute left-full ml-3 px-3 py-1.5 bg-[#0F172A] text-white dark:bg-[#1A2234] dark:text-slate-100 text-xs rounded-lg shadow-xl opacity-0 group-hover:opacity-100 transition-all duration-150 whitespace-nowrap z-50 translate-x-1 group-hover:translate-x-0 border border-slate-700/50">
+                <div className="pointer-events-none absolute left-full ml-3 px-3 py-1.5 bg-[#0F172A] text-white dark:bg-[#1A2234] dark:text-slate-100 text-xs rounded-lg shadow-none opacity-0 group-hover:opacity-100 transition-all duration-150 whitespace-nowrap z-50 translate-x-1 group-hover:translate-x-0 border border-slate-700/50">
                   <div className="font-semibold">{userName}</div>
                   <div className="text-[10px] text-slate-400">{userSubtitle}</div>
                 </div>
@@ -499,7 +504,7 @@ export default function Sidebar({
                 >
                   <SettingsIcon size={19} />
                 </button>
-                <div className="pointer-events-none absolute left-full ml-3 px-3 py-1.5 bg-[#0F172A] text-white dark:bg-[#1A2234] dark:text-slate-100 text-xs rounded-lg shadow-xl opacity-0 group-hover:opacity-100 transition-all duration-150 whitespace-nowrap z-50 translate-x-1 group-hover:translate-x-0 border border-slate-700/50">
+                <div className="pointer-events-none absolute left-full ml-3 px-3 py-1.5 bg-[#0F172A] text-white dark:bg-[#1A2234] dark:text-slate-100 text-xs rounded-lg shadow-none opacity-0 group-hover:opacity-100 transition-all duration-150 whitespace-nowrap z-50 translate-x-1 group-hover:translate-x-0 border border-slate-700/50">
                   <div className="font-semibold">{t.sidebar.settings || "Settings"}</div>
                 </div>
               </div>
@@ -511,7 +516,7 @@ export default function Sidebar({
       {/* Logout Confirmation Modal */}
       {logoutAnim.shouldRender && (
         <div className={`fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md ${logoutAnim.isExiting ? "motion-exit-fade" : "motion-overlay"}`}>
-          <div className={`relative w-full max-w-sm rounded-3xl border border-[#DCE5F0] dark:border-white/10 bg-white dark:bg-[#111216] p-6 text-center shadow-2xl ${logoutAnim.isExiting ? "motion-exit-reveal" : "motion-scale-in"}`}>
+          <div className={`relative w-full max-w-sm rounded-3xl border border-[#DCE5F0] dark:border-white/10 bg-white dark:bg-[#111216] p-6 text-center shadow-none ${logoutAnim.isExiting ? "motion-exit-reveal" : "motion-scale-in"}`}>
             <div className="w-12 h-12 rounded-2xl bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 flex items-center justify-center mx-auto mb-4 text-red-500">
               <ShieldAlert size={24} />
             </div>
@@ -534,7 +539,7 @@ export default function Sidebar({
               <button
                 type="button"
                 onClick={confirmLogout}
-                className="flex-1 py-2.5 px-4 rounded-xl text-xs font-semibold bg-red-600 hover:bg-red-500 text-white transition-all cursor-pointer shadow-lg shadow-red-600/30"
+                className="flex-1 py-2.5 px-4 rounded-xl text-xs font-semibold bg-red-600 hover:bg-red-500 text-white transition-all cursor-pointer shadow-none shadow-red-600/30"
               >
                 {t.auth.logOut || "Log Out"}
               </button>

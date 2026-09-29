@@ -6,16 +6,20 @@ import ReviewAll from "../mymind/ReviewAll";
 import ProblemSolver from "../mymind/ProblemSolver";
 import IdeaCapture from "../mymind/IdeaCapture";
 import ThoughtDetail from "../mymind/ThoughtDetail";
-import DiaryHome from "../diary/DiaryHome";
 
-export type MindView = 'home' | 'review_all' | 'problem_solver' | 'idea_capture' | 'detail' | 'diary';
+export type MindView = 'home' | 'review_all' | 'problem_solver' | 'idea_capture' | 'detail';
 
 export default function MyMindPage() {
   const [activeView, setActiveView] = useState<MindView>('home');
   const [activeThoughtId, setActiveThoughtId] = useState<string | null>(null);
+  const [previousView, setPreviousView] = useState<MindView>('home');
 
   const navigate = (view: string) => {
-    setActiveView(view as MindView);
+    const nextView = view as MindView;
+    if (activeView !== nextView) {
+      setPreviousView(activeView);
+      setActiveView(nextView);
+    }
   };
 
   return (
@@ -33,10 +37,11 @@ export default function MyMindPage() {
         <IdeaCapture navigate={navigate} />
       )}
       {activeView === 'detail' && activeThoughtId && (
-        <ThoughtDetail thoughtId={activeThoughtId} navigate={navigate} />
-      )}
-      {activeView === 'diary' && (
-        <DiaryHome onBackToMind={() => navigate('home')} />
+        <ThoughtDetail
+          thoughtId={activeThoughtId}
+          navigate={navigate}
+          previousView={previousView}
+        />
       )}
     </div>
   );

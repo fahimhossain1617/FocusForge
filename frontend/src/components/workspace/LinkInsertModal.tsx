@@ -84,29 +84,29 @@ export default function LinkInsertModal({ isOpen, onClose, onAddLink }: LinkInse
       onClick={onClose}
     >
       <div 
-        className={`w-full max-w-md rounded-2xl border p-6 shadow-2xl relative ${
+        className={`w-full max-w-md rounded-2xl border p-6 shadow-none relative ${
           isExiting ? "motion-exit-reveal" : "motion-dialog"
         }`}
         style={{ 
-          background: "var(--color-bg-card, #0B1120)", 
-          borderColor: "var(--color-border-subtle, rgba(255,255,255,0.1))" 
+          background: "var(--color-bg-elevated)", 
+          borderColor: "var(--color-border-subtle)" 
         }}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-5">
           <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-xl bg-blue-500/10 text-blue-400 border border-blue-500/20">
+            <div className="p-2 rounded-xl bg-blue-500/10 text-blue-500 dark:text-blue-400 border border-blue-500/20">
               <Link2 size={18} />
             </div>
             <div>
-              <h3 className="text-base font-bold text-white">Add External Link</h3>
-              <p className="text-xs text-zinc-400">Embed Google Drive, YouTube, Docs, or web resources</p>
+              <h3 className="text-base font-bold text-foreground">Add External Link</h3>
+              <p className="text-xs text-muted-foreground">Embed Google Drive, YouTube, Docs, or web resources</p>
             </div>
           </div>
           <button 
             type="button" 
             onClick={onClose}
-            className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+            className="p-1.5 rounded-lg text-slate-500 hover:text-slate-900 dark:text-zinc-400 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 transition-colors cursor-pointer"
           >
             <X size={16} />
           </button>
@@ -114,8 +114,8 @@ export default function LinkInsertModal({ isOpen, onClose, onAddLink }: LinkInse
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-xs font-semibold mb-1.5 text-zinc-300">
-              URL or Web Address <span className="text-red-400">*</span>
+            <label className="block text-xs font-semibold mb-1.5 text-slate-700 dark:text-zinc-300">
+              URL or Web Address <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
@@ -125,22 +125,22 @@ export default function LinkInsertModal({ isOpen, onClose, onAddLink }: LinkInse
                 if (error) setError("");
               }}
               placeholder="https://drive.google.com/... or youtube.com/..."
-              className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-black/30 border border-white/10 text-white placeholder-zinc-500 outline-none focus:border-blue-500 transition-colors"
+              className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-black/5 dark:bg-black/30 border border-slate-200 dark:border-white/10 text-foreground placeholder:text-muted-foreground outline-none focus:border-blue-500 transition-colors"
               autoFocus
             />
-            {error && <p className="text-xs text-red-400 mt-1">{error}</p>}
+            {error && <p className="text-xs text-red-500 mt-1">{error}</p>}
           </div>
 
           <div>
-            <label className="block text-xs font-semibold mb-1.5 text-zinc-300">
-              Title / Resource Name <span className="text-zinc-500 font-normal">(Optional)</span>
+            <label className="block text-xs font-semibold mb-1.5 text-slate-700 dark:text-zinc-300">
+              Title / Resource Name <span className="text-muted-foreground font-normal">(Optional)</span>
             </label>
             <input
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="e.g. Physics Chapter 3 Slides"
-              className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-black/30 border border-white/10 text-white placeholder-zinc-500 outline-none focus:border-blue-500 transition-colors"
+              className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-black/5 dark:bg-black/30 border border-slate-200 dark:border-white/10 text-foreground placeholder:text-muted-foreground outline-none focus:border-blue-500 transition-colors"
             />
           </div>
 
@@ -148,13 +148,13 @@ export default function LinkInsertModal({ isOpen, onClose, onAddLink }: LinkInse
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-xl text-xs font-semibold text-zinc-400 hover:text-white hover:bg-white/5 border border-white/5 transition-colors cursor-pointer"
+              className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5 border border-slate-200 dark:border-white/5 transition-colors cursor-pointer"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-5 py-2 rounded-xl text-xs font-semibold text-white bg-blue-600 hover:bg-blue-500  transition-all flex items-center gap-1.5 cursor-pointer"
+              className="px-5 py-2 rounded-xl text-xs font-semibold text-white bg-blue-600 hover:bg-blue-500 transition-all flex items-center gap-1.5 cursor-pointer shadow-none"
             >
               <ExternalLink size={13} />
               Add Link

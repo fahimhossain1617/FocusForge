@@ -1050,7 +1050,7 @@ function EditorBlock({
     const captionValue = isRawHashCaption ? "" : (block.caption || "");
 
     return (
-      <div className={`editor-block editor-block--image my-4 p-2.5 rounded-2xl border border-white/10 bg-black/20 group relative w-full ${sizeConfig.container} mx-auto transition-all duration-200 shadow-lg shadow-black/20`}>
+      <div className={`editor-block editor-block--image my-4 p-2.5 rounded-2xl border border-white/10 bg-black/20 group relative w-full ${sizeConfig.container} mx-auto transition-all duration-200 shadow-none`}>
         {control}
         <div className={`relative rounded-xl overflow-hidden ${sizeConfig.imgMaxH} flex items-center justify-center bg-black/40`}>
           {block.url ? (
@@ -1086,7 +1086,7 @@ function EditorBlock({
                   onClick={() => onUpdateColor({ imageSize: s })}
                   className={`px-1.5 py-0.5 text-[10px] font-bold rounded transition-colors ${
                     (block.imageSize || "medium") === s 
-                      ? "bg-blue-600 text-white shadow-xs" 
+                      ? "bg-blue-600 text-white shadow-none" 
                       : "text-zinc-400 hover:text-zinc-200 hover:bg-white/5"
                   }`}
                   title={`${s.charAt(0).toUpperCase() + s.slice(1)} size`}
@@ -1177,7 +1177,7 @@ function EditorBlock({
                 target="_blank"
                 rel="noopener noreferrer"
                 download={block.fileName || (isPdf ? "document.pdf" : "document")}
-                className="px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-blue-600/80 hover:bg-blue-600 text-white flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs"
+                className="px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-blue-600/80 hover:bg-blue-600 text-white flex items-center gap-1.5 transition-colors cursor-pointer shadow-none"
                 title="Download document"
               >
                 <Download size={13} />

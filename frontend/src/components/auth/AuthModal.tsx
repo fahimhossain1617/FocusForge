@@ -469,11 +469,11 @@ export default function AuthModal() {
 
       {/* Main Glass Card */}
       <div 
-        className={`app-modal-panel relative w-full max-w-[420px] my-auto rounded-3xl border shadow-2xl p-6 sm:p-8 overflow-hidden ${isExiting ? "motion-exit-reveal" : "motion-scale-in"}`}
+        className={`app-modal-panel relative w-full max-w-[420px] my-auto rounded-3xl border shadow-none p-6 sm:p-8 overflow-hidden ${isExiting ? "motion-exit-reveal" : "motion-scale-in"}`}
         style={{
           background: "var(--ff-modal-bg, rgba(13, 20, 38, 0.84))",
           borderColor: "var(--ff-modal-border, rgba(59, 130, 246, 0.22))",
-          boxShadow: "var(--ff-modal-shadow, 0 24px 60px rgba(0, 0, 0, 0.7), 0 0 35px rgba(59, 130, 246, 0.08))",
+          boxShadow: "none",
           backdropFilter: "blur(24px)",
           WebkitBackdropFilter: "blur(24px)"
         }}
@@ -524,7 +524,7 @@ export default function AuthModal() {
             <button
               type="button"
               onClick={handleGoogleLogin}
-              className="w-full flex items-center justify-center gap-3 py-3 px-4 rounded-xl font-semibold text-sm text-white border transition-all cursor-pointer shadow-sm hover:scale-[1.01] active:scale-[0.99]"
+              className="w-full flex items-center justify-center gap-3 py-3 px-4 rounded-xl font-semibold text-sm text-white border transition-all cursor-pointer shadow-none hover:scale-[1.01] active:scale-[0.99]"
               style={{
                 background: "rgba(255, 255, 255, 0.04)",
                 borderColor: "rgba(255, 255, 255, 0.14)",

@@ -430,7 +430,7 @@ export default function PlannerPage() {
             <button 
               type="button"
               onClick={() => changeMonth(-1)} 
-              className="w-8 h-8 rounded-full bg-white dark:bg-white/5 hover:bg-[#F3F7FC] dark:hover:bg-white/10 border border-[#DCE5F0] dark:border-white/10 flex items-center justify-center text-[#52627A] dark:text-slate-400 hover:text-[#111827] dark:hover:text-white transition-all cursor-pointer shadow-xs focus:outline-none focus:ring-2 focus:ring-[#5B8DEF]"
+              className="w-8 h-8 rounded-full bg-white dark:bg-white/5 hover:bg-[#F3F7FC] dark:hover:bg-white/10 border border-[#DCE5F0] dark:border-white/10 flex items-center justify-center text-[#52627A] dark:text-slate-400 hover:text-[#111827] dark:hover:text-white transition-all cursor-pointer shadow-none focus:outline-none focus:ring-2 focus:ring-[#5B8DEF]"
               aria-label="Previous Month"
               title="Previous Month"
             >
@@ -461,7 +461,7 @@ export default function PlannerPage() {
             <button 
               type="button"
               onClick={() => changeMonth(1)} 
-              className="w-8 h-8 rounded-full bg-white dark:bg-white/5 hover:bg-[#F3F7FC] dark:hover:bg-white/10 border border-[#DCE5F0] dark:border-white/10 flex items-center justify-center text-[#52627A] dark:text-slate-400 hover:text-[#111827] dark:hover:text-white transition-all cursor-pointer shadow-xs focus:outline-none focus:ring-2 focus:ring-[#5B8DEF]"
+              className="w-8 h-8 rounded-full bg-white dark:bg-white/5 hover:bg-[#F3F7FC] dark:hover:bg-white/10 border border-[#DCE5F0] dark:border-white/10 flex items-center justify-center text-[#52627A] dark:text-slate-400 hover:text-[#111827] dark:hover:text-white transition-all cursor-pointer shadow-none focus:outline-none focus:ring-2 focus:ring-[#5B8DEF]"
               aria-label="Next Month"
               title="Next Month"
             >
@@ -477,7 +477,7 @@ export default function PlannerPage() {
           <div className="planner-weekdays grid grid-cols-7 p-2 sm:p-4 gap-1 sm:gap-2">
             {t.planner.weekDays.map(day => (
               <div key={day} className="text-center">
-                <div className="inline-block px-1.5 sm:px-4 py-1 sm:py-1.5 rounded-full bg-slate-100 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/50 text-[9px] sm:text-[10px] font-bold uppercase tracking-wider sm:tracking-widest text-slate-600 dark:text-slate-300 shadow-xs">
+                <div className="inline-block px-1.5 sm:px-4 py-1 sm:py-1.5 rounded-full bg-slate-100 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/50 text-[9px] sm:text-[10px] font-bold uppercase tracking-wider sm:tracking-widest text-slate-600 dark:text-slate-300 shadow-none">
                   {day.slice(0, 3)}
                 </div>
               </div>
@@ -506,7 +506,7 @@ export default function PlannerPage() {
                   <div className="flex items-center justify-between relative z-10 mb-0.5 sm:mb-3">
                     <div className={`w-5 h-5 sm:w-7 sm:h-7 flex items-center justify-center rounded-full text-[11px] sm:text-xs font-semibold transition-all ${
                       isToday 
-                        ? 'is-today-badge bg-[#EAF1FB] dark:bg-blue-500/20 border border-[#5B8DEF]/40 dark:border-blue-400/30 text-[#223A5E] dark:text-blue-300 font-bold shadow-xs' 
+                        ? 'is-today-badge bg-[#EAF1FB] dark:bg-blue-500/20 border border-[#5B8DEF]/40 dark:border-blue-400/30 text-[#223A5E] dark:text-blue-300 font-bold shadow-none' 
                         : isSelected 
                         ? 'text-[#223A5E] dark:text-blue-400 font-bold bg-blue-100/60 dark:bg-blue-500/15 sm:bg-transparent' 
                         : 'text-[#52627A] dark:text-zinc-400 group-hover:text-[#111827] dark:group-hover:text-zinc-200'
@@ -520,7 +520,7 @@ export default function PlannerPage() {
                     <button 
                       type="button"
                       onClick={(e) => { e.stopPropagation(); setSelectedDateStr(day.dateStr); setDrawerDateStr(day.dateStr); setShowAddTaskModal(true); }}
-                      className="hidden sm:flex opacity-0 group-hover:opacity-100 w-6 h-6 rounded-lg bg-[#EBF3FE] dark:bg-blue-500/20 border border-[#D0E1FD] dark:border-blue-500/30 items-center justify-center text-[#1D4ED8] dark:text-blue-300 hover:bg-[#DBEAFE] dark:hover:bg-blue-500/30 transition-all cursor-pointer shadow-xs"
+                      className="hidden sm:flex opacity-0 group-hover:opacity-100 w-6 h-6 rounded-lg bg-[#EBF3FE] dark:bg-blue-500/20 border border-[#D0E1FD] dark:border-blue-500/30 items-center justify-center text-[#1D4ED8] dark:text-blue-300 hover:bg-[#DBEAFE] dark:hover:bg-blue-500/30 transition-all cursor-pointer shadow-none"
                       title="Add Task"
                     >
                       <Plus className="w-3.5 h-3.5" strokeWidth={2.5} />
@@ -533,7 +533,7 @@ export default function PlannerPage() {
                       {itemsForDay.slice(0, 3).map((item) => (
                         <span
                           key={item.id}
-                          className={`w-1.5 h-1.5 rounded-full shrink-0 shadow-xs ${getBadgeColor(item.category, item.isBreak)}`}
+                          className={`w-1.5 h-1.5 rounded-full shrink-0 shadow-none ${getBadgeColor(item.category, item.isBreak)}`}
                         />
                       ))}
                       {itemsForDay.length > 3 && (
@@ -556,7 +556,7 @@ export default function PlannerPage() {
                             handleDragStart(e, item.blockId); 
                           }
                         }}
-                        className={`group/block relative w-full px-2 py-1 rounded-[4px] text-[10px] font-bold truncate transition-all hover:brightness-105 border border-slate-200 dark:border-white/5 bg-slate-50 dark:bg-white/[0.04] flex items-center gap-1.5 shadow-xs ${item.completed ? 'opacity-60 line-through' : ''}`}
+                        className={`group/block relative w-full px-2 py-1 rounded-[4px] text-[10px] font-bold truncate transition-all hover:brightness-105 border border-slate-200 dark:border-white/5 bg-slate-50 dark:bg-white/[0.04] flex items-center gap-1.5 shadow-none ${item.completed ? 'opacity-60 line-through' : ''}`}
                       >
                         <div className={`w-2 h-2 rounded-full flex-shrink-0 ${getBadgeColor(item.category, item.isBreak)}`}></div>
                         <span className="truncate flex-1 text-slate-700 dark:text-white/80" style={{ opacity: item.isBreak ? 0.5 : 1 }}>
@@ -565,7 +565,7 @@ export default function PlannerPage() {
 
                         {/* Hover Preview Tooltip */}
                         <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 opacity-0 group-hover/block:opacity-100 pointer-events-none transition-all z-50 transform translate-y-[10px] group-hover/block:translate-y-0 w-max max-w-[200px]">
-                          <div className="bg-slate-900/95 dark:bg-black/90 text-white backdrop-blur-xl border border-slate-700 dark:border-white/10 p-3 rounded-xl shadow-2xl text-left whitespace-normal">
+                          <div className="bg-slate-900/95 dark:bg-black/90 text-white backdrop-blur-xl border border-slate-700 dark:border-white/10 p-3 rounded-xl shadow-none text-left whitespace-normal">
                             <div className="text-xs font-bold text-white mb-1">{item.label}</div>
                             <div className="text-[10px] text-blue-300 dark:text-purple-300/70 flex items-center gap-1 mb-1">
                               <Clock className="w-3 h-3" /> {formatTime12hr(item.startTime)} - {formatTime12hr(item.endTime)}
@@ -656,7 +656,7 @@ export default function PlannerPage() {
           
           <div 
             ref={drawerContentRef}
-            className={`planner-drawer ${drawerAnim.isExiting ? "motion-exit-drawer" : "motion-drawer"} fixed top-0 right-0 h-full w-full max-w-[420px] z-[9999] flex flex-col p-6 overflow-y-auto shadow-2xl bg-white dark:bg-[#0c1424] border-l border-slate-200 dark:border-blue-500/15`}
+            className={`planner-drawer ${drawerAnim.isExiting ? "motion-exit-drawer" : "motion-drawer"} fixed top-0 right-0 h-full w-full max-w-[420px] z-[9999] flex flex-col p-6 overflow-y-auto shadow-none bg-white dark:bg-[#0c1424] border-l border-slate-200 dark:border-blue-500/15`}
           >
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-xl font-bold text-foreground">
@@ -674,7 +674,7 @@ export default function PlannerPage() {
             
             {drawerDayItems.map((item) => {
               return (
-                <div key={item.id} className="mb-3 p-3.5 rounded-xl border border-slate-200 dark:border-blue-500/15 bg-slate-50 dark:bg-slate-900/75 flex items-center justify-between gap-3 shadow-xs">
+                <div key={item.id} className="mb-3 p-3.5 rounded-xl border border-slate-200 dark:border-blue-500/15 bg-slate-50 dark:bg-slate-900/75 flex items-center justify-between gap-3 shadow-none">
                   <div className="space-y-1 min-w-0 flex-1">
                     <h4 className={`font-semibold text-sm text-foreground break-words line-clamp-1 ${item.completed ? 'line-through opacity-70' : ''}`} title={item.label}>
                       {item.label || "Untitled Task"}

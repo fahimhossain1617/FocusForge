@@ -103,7 +103,7 @@ export default function CalendarWidget({ currentDate, selectedDateStr, onDateSel
           }}
           className={`py-3 px-2 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
             i === month 
-              ? 'bg-blue-600 text-white shadow-md shadow-blue-500/30' 
+              ? 'bg-blue-600 text-white shadow-none shadow-blue-500/30' 
               : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/80 hover:text-blue-600 dark:hover:text-white'
           }`}
         >
@@ -128,7 +128,7 @@ export default function CalendarWidget({ currentDate, selectedDateStr, onDateSel
               }}
               className={`py-3 px-2 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
                 y === year 
-                  ? 'bg-blue-600 text-white shadow-md shadow-blue-500/30' 
+                  ? 'bg-blue-600 text-white shadow-none shadow-blue-500/30' 
                   : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/80 hover:text-blue-600 dark:hover:text-white'
               }`}
             >
@@ -166,7 +166,7 @@ export default function CalendarWidget({ currentDate, selectedDateStr, onDateSel
             onClick={() => handleDaySelect(i)}
             className={`h-8 w-8 mx-auto flex items-center justify-center rounded-full text-xs font-medium transition-all cursor-pointer ${
               isSelected 
-                ? 'bg-blue-600 text-white font-bold shadow-md shadow-blue-500/40 ring-2 ring-blue-400/40' 
+                ? 'bg-blue-600 text-white font-bold shadow-none shadow-blue-500/40 ring-2 ring-blue-400/40' 
                 : isToday 
                   ? 'border border-blue-500/50 text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/15 font-bold' 
                   : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-blue-600 dark:hover:text-white'
@@ -201,7 +201,7 @@ export default function CalendarWidget({ currentDate, selectedDateStr, onDateSel
             }}
             className={`h-11 w-9 mx-auto flex flex-col items-center justify-center rounded-lg transition-all cursor-pointer ${
               isSelected 
-                ? 'bg-blue-600 text-white font-bold shadow-md shadow-blue-500/40 ring-2 ring-blue-400/40' 
+                ? 'bg-blue-600 text-white font-bold shadow-none shadow-blue-500/40 ring-2 ring-blue-400/40' 
                 : isToday 
                   ? 'border border-blue-500/50 text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/15 font-bold' 
                   : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-blue-600 dark:hover:text-white'
@@ -252,7 +252,7 @@ export default function CalendarWidget({ currentDate, selectedDateStr, onDateSel
       {/* Popover */}
       {isOpen && (
         <div 
-          className="calendar-popover absolute right-0 top-[110%] mt-2 w-[310px] z-50 overflow-hidden fade-in origin-top-right rounded-2xl bg-white dark:bg-[#0c1424] border border-[#DCE5F0] dark:border-[rgba(59,130,246,0.25)] shadow-xl dark:shadow-[0_25px_60px_rgba(0,0,0,0.95)]"
+          className="calendar-popover absolute right-0 top-[110%] mt-2 w-[310px] z-50 overflow-hidden fade-in origin-top-right rounded-2xl bg-white dark:bg-[#0c1424] border border-[#DCE5F0] dark:border-[rgba(59,130,246,0.25)] shadow-none"
         >
           {/* Tabs */}
           <div 
@@ -267,7 +267,7 @@ export default function CalendarWidget({ currentDate, selectedDateStr, onDateSel
                 }}
                 className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
                   viewMode === tab 
-                    ? 'bg-blue-600 text-white font-bold shadow-md shadow-blue-500/30' 
+                    ? 'bg-blue-600 text-white font-bold shadow-none shadow-blue-500/30' 
                     : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white/60 dark:hover:bg-white/[0.04]'
                 }`}
               >
@@ -320,7 +320,7 @@ export default function CalendarWidget({ currentDate, selectedDateStr, onDateSel
                 setIsOpen(false);
                 onAddEvent();
               }}
-              className="w-full flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-white transition-all cursor-pointer shadow-md bg-blue-600 hover:bg-blue-700 shadow-blue-500/30"
+              className="w-full flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-white transition-all cursor-pointer shadow-none bg-blue-600 hover:bg-blue-700 shadow-blue-500/30"
             >
               <Plus className="w-3.5 h-3.5" /> New Event
             </button>

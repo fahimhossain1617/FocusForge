@@ -50,14 +50,14 @@ export default function DiarySearchModal({
       onClick={onClose}
     >
       <div
-        className={`w-full max-w-xl rounded-3xl border shadow-2xl overflow-hidden flex flex-col max-h-[80vh] ${
+        className={`w-full max-w-xl rounded-3xl border shadow-none overflow-hidden flex flex-col max-h-[80vh] ${
           isExiting ? "motion-exit-reveal" : "motion-dialog"
         }`}
         onClick={(e) => e.stopPropagation()}
         style={{
           background: "var(--color-bg-elevated)",
           borderColor: "var(--color-border-subtle)",
-          boxShadow: "0 24px 60px rgba(0, 0, 0, 0.6)",
+          boxShadow: "none",
         }}
       >
         {/* Search Header */}
@@ -69,14 +69,14 @@ export default function DiarySearchModal({
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder={t.diary?.searchPlaceholder || "Search memories, thoughts, and moments..."}
-            className="flex-1 bg-transparent border-0 text-sm focus:outline-none placeholder:text-zinc-400 dark:placeholder:text-zinc-500"
+            className="flex-1 bg-transparent border-0 text-sm focus:outline-none placeholder:text-muted-foreground"
             style={{ color: "var(--color-text-primary)" }}
           />
           {query && (
             <button
               type="button"
               onClick={() => setQuery("")}
-              className="text-xs font-semibold px-2 py-1 rounded-md text-zinc-400 hover:text-zinc-200 cursor-pointer"
+              className="text-xs font-semibold px-2 py-1 rounded-md text-slate-500 dark:text-zinc-400 hover:text-slate-800 dark:hover:text-zinc-200 cursor-pointer"
             >
               Clear
             </button>
@@ -84,7 +84,7 @@ export default function DiarySearchModal({
           <button
             type="button"
             onClick={onClose}
-            className="p-1 rounded-xl text-zinc-400 hover:text-zinc-200 hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer"
+            className="p-1 rounded-xl text-slate-500 dark:text-zinc-400 hover:text-slate-800 dark:hover:text-zinc-200 hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer"
           >
             <X size={18} />
           </button>

@@ -1,16 +1,16 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { X, BookOpen, Trash2 } from "lucide-react";
+import { X, BookOpen, Trash2, Palette } from "lucide-react";
 import { useTranslation } from "../../hooks/useTranslation";
 import { DiaryTopic } from "../../types";
 import { useAnimateExit } from "../../hooks/useAnimateExit";
-
+import { DIARY_THEMES } from "./diaryThemes";
 
 interface DiaryTopicModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (title: string, description: string) => void;
+  onSubmit: (title: string, description?: string, category?: string, theme?: string) => void;
   onDelete?: (topicId: string) => void;
   initialTopic?: DiaryTopic | null;
 }
@@ -25,7 +25,7 @@ export default function DiaryTopicModal({
   const { shouldRender, isExiting } = useAnimateExit(isOpen, 200);
   const { t } = useTranslation();
   const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
+  const [theme, setTheme] = useState<string>("auto");
   const inputRef = useRef<HTMLInputElement>(null);
   const lastTopicRef = useRef<DiaryTopic | null | undefined>(initialTopic);
 
@@ -36,7 +36,7 @@ export default function DiaryTopicModal({
   useEffect(() => {
     if (isOpen) {
       setTitle(initialTopic?.title || "");
-      setDescription(initialTopic?.description || "");
+      setTheme(initialTopic?.theme || "auto");
       setTimeout(() => inputRef.current?.focus(), 50);
     }
   }, [isOpen, initialTopic]);
@@ -46,7 +46,8 @@ export default function DiaryTopicModal({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) return;
-    onSubmit(title.trim(), description.trim());
+    const finalTheme = theme === "auto" ? undefined : theme;
+    onSubmit(title.trim(), "", undefined, finalTheme);
     onClose();
   };
 
@@ -54,32 +55,29 @@ export default function DiaryTopicModal({
 
   return (
     <div 
-      className={`fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm ${
-        isExiting ? "motion-exit-fade" : "motion-overlay"
-      }`}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-transparent"
+      style={{
+        animation: isExiting ? "app-fade-out 0.2s ease-in forwards" : "app-overlay-enter 0.2s ease-out both"
+      }}
       onClick={onClose}
     >
       <div
-        className={`w-full max-w-md rounded-3xl border p-6 shadow-2xl ${
+        className={`w-full max-w-md rounded-3xl border p-6 shadow-none ${
           isExiting ? "motion-exit-reveal" : "motion-dialog"
         }`}
         onClick={(e) => e.stopPropagation()}
         style={{
           background: "var(--color-bg-elevated)",
           borderColor: "var(--color-border-subtle)",
-          boxShadow: "0 24px 50px rgba(0, 0, 0, 0.5)",
         }}
       >
         {/* Header */}
         <div className="flex items-center justify-between pb-4 border-b border-black/5 dark:border-white/5">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-blue-500/15 flex items-center justify-center text-blue-500">
-              <BookOpen size={18} />
-            </div>
             <div>
               <h3 className="text-base font-bold" style={{ color: "var(--color-text-primary)" }}>
                 {isEditing
-                  ? t.diary?.editTopic || "Edit Topic"
+                  ? t.diary?.editTopic || "Edit Diary"
                   : t.diary?.createTopic || "Create Topic"}
               </h3>
             </div>
@@ -95,12 +93,13 @@ export default function DiaryTopicModal({
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="mt-4 space-y-4">
+          {/* Title */}
           <div>
             <label
               className="block text-xs font-semibold mb-1.5"
               style={{ color: "var(--color-text-primary)" }}
             >
-              {t.diary?.topicTitle || "Topic Title"} <span className="text-blue-500">*</span>
+              {t.diary?.topicTitle || "Topic Title"}
             </label>
             <input
               ref={inputRef}
@@ -108,7 +107,7 @@ export default function DiaryTopicModal({
               required
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder={t.diary?.topicTitlePlaceholder || "e.g. My University Life, Personal Thoughts..."}
+              placeholder={t.diary?.topicTitlePlaceholder || "e.g. Personal Thoughts, Daily Reflections..."}
               className="w-full px-3.5 py-2.5 rounded-xl border text-sm focus:outline-none focus:border-blue-500 transition-colors"
               style={{
                 background: "var(--color-bg-base)",
@@ -118,28 +117,48 @@ export default function DiaryTopicModal({
             />
           </div>
 
+          {/* Cover Color Palette Picker */}
           <div>
             <label
-              className="block text-xs font-semibold mb-1.5"
+              className="block text-xs font-semibold mb-2"
               style={{ color: "var(--color-text-primary)" }}
             >
-              {t.diary?.topicDesc || "Description (optional)"}
+              Cover Theme
             </label>
-            <textarea
-              rows={3}
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder={t.diary?.topicDescPlaceholder || "A brief note about what this chapter is for..."}
-              className="w-full px-3.5 py-2.5 rounded-xl border text-sm resize-none focus:outline-none focus:border-blue-500 transition-colors"
-              style={{
-                background: "var(--color-bg-base)",
-                borderColor: "var(--color-border-subtle)",
-                color: "var(--color-text-primary)",
-              }}
-            />
+            <div className="grid grid-cols-5 gap-2">
+              <button
+                type="button"
+                onClick={() => setTheme("auto")}
+                className={`flex flex-col items-center justify-center p-1.5 rounded-xl border transition-all cursor-pointer ${
+                  theme === "auto" ? "border-blue-500 ring-2 ring-blue-500/30" : "border-border/60 hover:border-border"
+                }`}
+                title="Auto-assign theme"
+              >
+                <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-indigo-500 via-purple-500 to-teal-400 mb-1" />
+                <span className="text-[10px] text-muted-foreground">Auto</span>
+              </button>
+
+              {Object.values(DIARY_THEMES).slice(0, 4).map((tDef) => (
+                <button
+                  key={tDef.id}
+                  type="button"
+                  onClick={() => setTheme(tDef.id)}
+                  className={`flex flex-col items-center justify-center p-1.5 rounded-xl border transition-all cursor-pointer ${
+                    theme === tDef.id ? "border-blue-500 ring-2 ring-blue-500/30" : "border-border/60 hover:border-border"
+                  }`}
+                  title={tDef.name}
+                >
+                  <div 
+                    className="w-6 h-6 rounded-lg mb-1 border"
+                    style={{ background: tDef.coverBg, borderColor: tDef.coverBorder }}
+                  />
+                  <span className="text-[10px] text-muted-foreground truncate max-w-[48px]">{tDef.name.split(" ")[0]}</span>
+                </button>
+              ))}
+            </div>
           </div>
 
-          <div className="flex items-center justify-between gap-2.5 pt-2">
+          <div className="flex items-center justify-between gap-2.5 pt-3">
             <div>
               {isEditing && initialTopic && onDelete && (
                 <button
@@ -148,7 +167,7 @@ export default function DiaryTopicModal({
                     if (
                       window.confirm(
                         t.diary?.deleteTopicConfirm ||
-                          "Are you sure you want to delete this topic and all its pages? This action cannot be undone."
+                          "Are you sure you want to delete this diary and all its pages? This action cannot be undone."
                       )
                     ) {
                       onDelete(initialTopic.id);
@@ -178,10 +197,10 @@ export default function DiaryTopicModal({
               <button
                 type="submit"
                 disabled={!title.trim()}
-                className="btn-accent-solid px-5 py-2 rounded-xl text-xs font-semibold text-white bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed  transition-all cursor-pointer"
+                className="btn-accent-solid px-5 py-2 rounded-xl text-xs font-semibold text-white bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all cursor-pointer"
                 style={{ color: "#FFFFFF" }}
               >
-                {isEditing ? t.diary?.save || "Save" : t.diary?.createTopic || "Create Topic"}
+                {isEditing ? t.diary?.save || "Save" : t.diary?.createTopic || "Create Diary"}
               </button>
             </div>
           </div>

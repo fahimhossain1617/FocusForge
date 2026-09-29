@@ -67,15 +67,11 @@ export default function ProblemSolver({ navigate }: ProblemSolverProps) {
         <button 
           type="button"
           onClick={() => navigate('home')}
-          className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-semibold border transition-all hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer shadow-xs"
-          style={{
-            borderColor: "var(--color-border-subtle)",
-            color: "var(--color-text-primary)",
-          }}
-          aria-label="Back to Capture"
+          className="inline-flex items-center justify-center w-9 h-9 -ml-1.5 rounded-full text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-black/5 dark:hover:bg-white/5 active:scale-95 transition-colors cursor-pointer"
+          aria-label={t.myMind.backToMyMind || "Back to Capture"}
+          title={t.myMind.backToMyMind || "Back to Capture"}
         >
-          <ArrowLeft size={16} />
-          <span>{t.myMind.backToMyMind || "Back to Capture"}</span>
+          <ArrowLeft className="w-5 h-5" strokeWidth={2} />
         </button>
         <span className="text-xs font-bold uppercase tracking-wider" style={{ color: "var(--color-text-muted)" }}>
           {t.myMind.stepStr} {step} {t.myMind.of4}
@@ -106,7 +102,7 @@ export default function ProblemSolver({ navigate }: ProblemSolverProps) {
               onChange={(e) => setCurrentVal(e.target.value)}
               onFocus={() => setIsFocused(true)}
               onBlur={() => setIsFocused(false)}
-              placeholder={t.myMind.writeFreely}
+              placeholder={t.myMind.problemSolverPlaceholder || "What problem are you trying to break down?"}
               className="w-full px-6 py-6 text-lg border-0 resize-none no-focus-ring bg-transparent my-mind-textarea"
               style={{ 
                 background: "transparent", 

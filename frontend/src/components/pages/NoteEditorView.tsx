@@ -433,16 +433,21 @@ export default function NoteEditorView({
       />
 
       {/* Header */}
-      <header className="note-editor-screen__header">
-        <button type="button" onClick={goBack} className="note-editor-back cursor-pointer flex items-center gap-2">
-          <ArrowLeft size={18} />
-          <span className="font-semibold text-sm">{isBn ? "নোটসে ফিরে যান" : "Back to notes"}</span>
+      <header className="note-editor-screen__header w-full max-w-6xl mx-auto px-3.5 sm:px-6 md:px-8 pt-3 sm:pt-4 md:pt-5 pb-2 flex items-center justify-between gap-3">
+        <button 
+          type="button" 
+          onClick={goBack} 
+          className="inline-flex items-center justify-center w-9 h-9 -ml-1.5 rounded-full text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-black/5 dark:hover:bg-white/10 active:scale-95 transition-colors cursor-pointer shrink-0"
+          aria-label={isBn ? "ফিরে যান" : "Back"}
+          title={isBn ? "ফিরে যান" : "Back"}
+        >
+          <ArrowLeft className="w-5 h-5" strokeWidth={2} />
         </button>
 
-        <div className="note-editor-actions flex items-center gap-3">
+        <div className="note-editor-actions flex items-center gap-2.5">
           <button 
             type="button" 
-            className="note-header-icon note-header-icon--danger cursor-pointer" 
+            className="note-header-icon note-header-icon--danger cursor-pointer p-1.5 rounded-xl text-zinc-400 hover:text-red-500 hover:bg-red-500/10 transition-colors" 
             onClick={() => setConfirmDelete(true)} 
             aria-label="Delete note"
             title={isBn ? "নোট মুছুন" : "Delete note"}
@@ -452,27 +457,27 @@ export default function NoteEditorView({
 
           <span className={saveState === "saving" ? "note-save-state is-saving" : "note-save-state"}>
             {saveState === "saving" ? (
-              <>
-                <CloudUpload size={14} className="animate-pulse text-blue-400" />
-                <span>{isBn ? "সংরক্ষণ হচ্ছে..." : "Auto-saving..."}</span>
-              </>
+              <span className="inline-flex items-center gap-1.5 text-xs text-blue-500 font-medium select-none">
+                <CloudUpload size={13} className="animate-pulse" />
+                <span>{isBn ? "সংরক্ষণ..." : "Saving..."}</span>
+              </span>
             ) : (
-              <>
-                <Check size={14} className="text-emerald-400" />
-                <span>{isBn ? "সংরক্ষিত" : "All changes saved"}</span>
-              </>
+              <span className="inline-flex items-center gap-1.5 text-xs text-emerald-500 font-medium select-none">
+                <Check size={13} />
+                <span>{isBn ? "সংরক্ষিত" : "Saved"}</span>
+              </span>
             )}
           </span>
 
           <div className="relative z-[9999]">
             <button 
               type="button" 
-              className="note-header-icon cursor-pointer" 
+              className="note-header-icon cursor-pointer p-1.5 rounded-xl text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-black/5 dark:hover:bg-white/5 transition-colors" 
               onClick={() => setMoreOpen((open) => !open)} 
               aria-label="More options"
               title={isBn ? "আরও অপশন" : "More options"}
             >
-              <MoreHorizontal size={19} />
+              <MoreHorizontal size={18} />
             </button>
             {shouldRenderMore && (
               <div className={`note-more-menu ${isExitingMore ? "motion-dropdown-exit" : "motion-dropdown"}`}>
@@ -505,8 +510,8 @@ export default function NoteEditorView({
       </header>
 
       {/* Editor Main Canvas */}
-      <main className="note-editor-screen__scroll custom-scrollbar flex-1 overflow-y-auto">
-        <div className="note-editor-canvas relative !pt-8">
+      <main className="note-editor-screen__scroll custom-scrollbar flex-1 overflow-y-auto px-3.5 sm:px-6 md:px-8">
+        <div className="note-editor-canvas relative max-w-6xl mx-auto !pt-2">
           
           {/* Drag and Drop Zone Overlay */}
           {isDraggingOver && (
@@ -625,7 +630,7 @@ export default function NoteEditorView({
             <img 
               src={previewImageUrl || lastPreviewImageUrlRef.current || ""} 
               alt="Preview" 
-              className="max-w-full max-h-[85vh] object-contain rounded-2xl border border-white/10 shadow-2xl" 
+              className="max-w-full max-h-[85vh] object-contain rounded-2xl border border-white/10 shadow-none" 
             />
           </div>
         </div>

@@ -117,7 +117,8 @@ interface AppContextType {
   setPageLoading: (loading: boolean) => void;
 
   // Navigation
-  navigateTo: (page: string) => void;
+  navigateTo: (page: string, isBack?: boolean) => void;
+  navigateBack: () => void;
   registerFocusLock: (onAttemptExit: (targetPage: string) => boolean) => void;
   unregisterFocusLock: () => void;
 
@@ -166,8 +167,8 @@ interface AppContextType {
   deleteLearningLog: (id: string) => void;
 
   // My Diary
-  saveDiaryTopic: (title: string, description?: string) => DiaryTopic;
-  updateDiaryTopicItem: (topicId: string, updates: Partial<Pick<DiaryTopic, 'title' | 'description'>>) => void;
+  saveDiaryTopic: (title: string, description?: string, category?: string, theme?: string) => DiaryTopic;
+  updateDiaryTopicItem: (topicId: string, updates: Partial<Pick<DiaryTopic, 'title' | 'description' | 'category' | 'theme' | 'isBookmarked'>>) => void;
   deleteDiaryTopicItem: (topicId: string) => void;
   addDiaryEntryItem: (topicId: string, title?: string, content?: string) => DiaryEntry;
   saveDiaryEntryItem: (topicId: string, entryId: string, updates: Partial<Pick<DiaryEntry, 'title' | 'content' | 'images'>>) => void;
@@ -598,7 +599,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     reviewService.recordAction().catch(() => { });
   }, []);
 
-  const navigateTo = useCallback((page: string) => {
+  const pageHistoryRef = useRef<string[]>([]);
+
+  const navigateTo = useCallback((page: string, isBack: boolean = false) => {
     if (focusLockRef.current.isLocked && focusLockRef.current.onAttemptExit) {
       const allowed = focusLockRef.current.onAttemptExit(page);
       if (!allowed) {
@@ -617,6 +620,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setIsPageLoading(true);
     setState((prev) => {
       if (prev.activePage === page) return prev;
+      if (!isBack && prev.activePage && prev.activePage !== page) {
+        pageHistoryRef.current.push(prev.activePage);
+        if (pageHistoryRef.current.length > 30) {
+          pageHistoryRef.current.shift();
+        }
+      }
       return { ...prev, activePage: page };
     });
 
@@ -624,6 +633,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setIsPageLoading(false);
     }, 180);
   }, [trackMeaningfulAction]);
+
+  const navigateBack = useCallback(() => {
+    const prevPage = pageHistoryRef.current.pop();
+    if (prevPage) {
+      navigateTo(prevPage, true);
+    } else {
+      navigateTo('today', true);
+    }
+  }, [navigateTo]);
 
   // ==================== Toast ====================
 
@@ -1550,10 +1568,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   // ==================== My Diary ====================
 
-  const saveDiaryTopic = useCallback((title: string, description: string = '') => {
+  const saveDiaryTopic = useCallback((title: string, description: string = '', category?: string, theme?: string) => {
     let createdTopic: DiaryTopic;
     setState((prev) => {
-      const { topic, updatedTopics } = createDiaryTopic(title, description, prev.diaryTopics || []);
+      const { topic, updatedTopics } = createDiaryTopic(title, description, prev.diaryTopics || [], category, theme);
       createdTopic = topic;
       return { ...prev, diaryTopics: updatedTopics };
     });
@@ -1572,7 +1590,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return createdTopic!;
   }, [trackMeaningfulAction]);
 
-  const updateDiaryTopicItem = useCallback((topicId: string, updates: Partial<Pick<DiaryTopic, 'title' | 'description'>>) => {
+  const updateDiaryTopicItem = useCallback((topicId: string, updates: Partial<Pick<DiaryTopic, 'title' | 'description' | 'category' | 'theme' | 'isBookmarked'>>) => {
     setState((prev) => {
       const updatedTopics = updateDiaryTopic(topicId, updates, prev.diaryTopics || []);
       const updatedTopic = updatedTopics.find(t => t.id === topicId);
@@ -1656,6 +1674,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         updateState,
         resetState,
         navigateTo,
+        navigateBack,
         registerFocusLock,
         unregisterFocusLock,
         addMindItem,

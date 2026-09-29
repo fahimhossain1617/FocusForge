@@ -40,10 +40,12 @@ import SettingsPage from "../components/pages/SettingsPage";
 import AIAgentPage from "../components/ai-agent/AIAgentPage";
 import BottomNav from "../components/navigation/BottomNav";
 import MobileHeader from "../components/navigation/MobileHeader";
+import DiaryHome from "../components/diary/DiaryHome";
 
 const pageComponents: Record<string, React.ComponentType<{ onOpenSidebar?: () => void }>> = {
   today: DashboardPage,
   mind: MyMindPage,
+  diary: DiaryHome,
   tasks: WorkspacePage,
   planner: PlannerPage,
   focus: FocusPage,
@@ -232,8 +234,8 @@ export default function Home() {
             : state.activePage === 'planner'
             ? 'flex-1 flex flex-col p-0 max-w-none pb-[calc(5rem+env(safe-area-inset-bottom,16px))] md:pb-0'
             : state.activePage === 'today'
-            ? 'flex-1 px-3.5 sm:px-6 md:px-8 pt-4 sm:pt-6 md:pt-8 pb-[calc(5.5rem+env(safe-area-inset-bottom,16px))] md:pb-8 max-w-[1600px] mx-auto'
-            : 'flex-1 px-3.5 sm:px-6 md:px-8 pt-4 sm:pt-6 md:pt-8 pb-[calc(5.5rem+env(safe-area-inset-bottom,16px))] md:pb-10 max-w-7xl mx-auto'
+            ? 'flex-1 px-3.5 sm:px-6 md:px-8 pt-3 sm:pt-4 md:pt-5 pb-[calc(5.5rem+env(safe-area-inset-bottom,16px))] md:pb-8 max-w-[1600px] mx-auto'
+            : 'flex-1 px-3.5 sm:px-6 md:px-8 pt-3 sm:pt-4 md:pt-5 pb-[calc(5.5rem+env(safe-area-inset-bottom,16px))] md:pb-10 max-w-7xl mx-auto'
         }`}>
           <Suspense fallback={<PageSkeleton page={state.activePage} />}>
             {isPageLoading ? (

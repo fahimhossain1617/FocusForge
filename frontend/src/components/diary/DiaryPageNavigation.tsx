@@ -34,7 +34,7 @@ export default function DiaryPageNavigation({
           disabled={!hasPrev}
           className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-all ${
             hasPrev
-              ? "border-black/10 dark:border-white/10 text-zinc-700 dark:text-zinc-300 hover:bg-black/5 dark:hover:bg-white/10 cursor-pointer shadow-sm"
+              ? "border-black/10 dark:border-white/10 text-zinc-700 dark:text-zinc-300 hover:bg-black/5 dark:hover:bg-white/10 cursor-pointer shadow-none"
               : "border-transparent text-zinc-400 dark:text-zinc-600 opacity-40 cursor-not-allowed"
           }`}
           title={t.diary?.previousPage || "Previous Page"}
@@ -53,7 +53,7 @@ export default function DiaryPageNavigation({
           disabled={!hasNext}
           className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-all ${
             hasNext
-              ? "border-black/10 dark:border-white/10 text-zinc-700 dark:text-zinc-300 hover:bg-black/5 dark:hover:bg-white/10 cursor-pointer shadow-sm"
+              ? "border-black/10 dark:border-white/10 text-zinc-700 dark:text-zinc-300 hover:bg-black/5 dark:hover:bg-white/10 cursor-pointer shadow-none"
               : "border-transparent text-zinc-400 dark:text-zinc-600 opacity-40 cursor-not-allowed"
           }`}
           title={t.diary?.nextPage || "Next Page"}

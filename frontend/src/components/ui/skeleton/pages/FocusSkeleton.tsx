@@ -48,7 +48,7 @@ export default function FocusSkeleton() {
       </SkeletonCard>
 
       {/* 4. Start Focus Button */}
-      <Skeleton variant="rounded" className="h-14 w-full rounded-2xl shadow-lg" />
+      <Skeleton variant="rounded" className="h-14 w-full rounded-2xl shadow-none" />
     </div>
   );
 }

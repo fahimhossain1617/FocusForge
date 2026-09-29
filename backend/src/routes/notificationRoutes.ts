@@ -5,18 +5,13 @@ import {
   dbUpsertNotificationSettings,
   dbSavePushSubscription,
   dbRemovePushSubscription,
+  dbGetTasks,
 } from '../services/db';
-import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
 
 dotenv.config();
 
 const router = Router();
-const supabase = createClient(
-  process.env.SUPABASE_URL || '',
-  process.env.SUPABASE_ANON_KEY || ''
-);
-
 router.use(requireAuth);
 
 /**
@@ -138,19 +133,10 @@ router.get('/reminders', async (req: AuthenticatedRequest, res: Response) => {
     }
 
     const todayStr = new Date().toISOString().split('T')[0];
+    const tasks = await dbGetTasks(userId, todayStr);
+    const pendingWithReminders = tasks.filter((t: any) => !t.completed && t.status !== 'completed');
 
-    const { data: tasks, error } = await supabase
-      .from('tasks')
-      .select('*')
-      .eq('user_id', userId)
-      .eq('target_date', todayStr)
-      .neq('status', 'completed');
-
-    if (error) {
-      return res.status(500).json({ error: error.message });
-    }
-
-    res.json({ reminders: tasks || [] });
+    res.json({ reminders: pendingWithReminders || [] });
   } catch (err: any) {
     res.status(500).json({ error: err.message || 'Failed to fetch reminders' });
   }

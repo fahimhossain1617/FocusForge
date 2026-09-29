@@ -200,7 +200,7 @@ export default function DiaryEditor({ entry, onSave, lang }: DiaryEditorProps) {
             type="button"
             onClick={() => fileInputRef.current?.click()}
             disabled={isUploadingImage}
-            className="flex items-center justify-center w-8 h-8 rounded-xl border border-[#D0E1FD] dark:border-blue-500/30 bg-[#EBF3FE] dark:bg-blue-500/20 text-[#1D4ED8] dark:text-blue-300 hover:bg-[#DBEAFE] dark:hover:bg-blue-500/30 hover:border-[#5B8DEF] transition-all cursor-pointer disabled:opacity-50 shadow-xs shrink-0"
+            className="flex items-center justify-center w-8 h-8 rounded-xl border border-[#D0E1FD] dark:border-blue-500/30 bg-[#EBF3FE] dark:bg-blue-500/20 text-[#1D4ED8] dark:text-blue-300 hover:bg-[#DBEAFE] dark:hover:bg-blue-500/30 hover:border-[#5B8DEF] transition-all cursor-pointer disabled:opacity-50 shadow-none shrink-0"
             title={t.diary?.addImage || "Add Image"}
             aria-label="Add Image"
           >
@@ -225,7 +225,7 @@ export default function DiaryEditor({ entry, onSave, lang }: DiaryEditorProps) {
               onClick={() => setWritingStyle("clean")}
               className={`px-2 py-1 rounded-lg transition-all ${
                 writingStyle === "clean"
-                  ? "bg-white dark:bg-zinc-800 text-blue-500 font-semibold shadow-xs"
+                  ? "bg-white dark:bg-zinc-800 text-blue-500 font-semibold shadow-none"
                   : "text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
               }`}
             >
@@ -236,7 +236,7 @@ export default function DiaryEditor({ entry, onSave, lang }: DiaryEditorProps) {
               onClick={() => setWritingStyle("classic")}
               className={`px-2 py-1 rounded-lg transition-all ${
                 writingStyle === "classic"
-                  ? "bg-white dark:bg-zinc-800 text-blue-500 font-semibold shadow-xs font-serif"
+                  ? "bg-white dark:bg-zinc-800 text-blue-500 font-semibold shadow-none font-serif"
                   : "text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
               }`}
             >
@@ -247,7 +247,7 @@ export default function DiaryEditor({ entry, onSave, lang }: DiaryEditorProps) {
               onClick={() => setWritingStyle("handwritten")}
               className={`px-2 py-1 rounded-lg transition-all ${
                 writingStyle === "handwritten"
-                  ? "bg-white dark:bg-zinc-800 text-blue-500 font-semibold shadow-xs"
+                  ? "bg-white dark:bg-zinc-800 text-blue-500 font-semibold shadow-none"
                   : "text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
               }`}
             >
@@ -263,7 +263,7 @@ export default function DiaryEditor({ entry, onSave, lang }: DiaryEditorProps) {
             <button
               type="button"
               onClick={handleTrimExcessiveLines}
-              className="flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-semibold bg-amber-500/10 text-amber-500 hover:bg-amber-500/20 border border-amber-500/20 transition-all cursor-pointer shadow-xs"
+              className="flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-semibold bg-amber-500/10 text-amber-500 hover:bg-amber-500/20 border border-amber-500/20 transition-all cursor-pointer shadow-none"
               title={t.diary?.trimExtraLines || "Trim empty lines"}
             >
               <Eraser size={12} />
@@ -342,7 +342,7 @@ export default function DiaryEditor({ entry, onSave, lang }: DiaryEditorProps) {
                   />
 
                   {/* Floating Size Selector & Remove Button Overlay */}
-                  <div className="absolute top-2 right-2 flex flex-wrap justify-end items-center gap-1 p-1 bg-black/80 backdrop-blur-md rounded-lg shadow-lg opacity-90 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity z-10 border border-white/10 max-w-[calc(100%-16px)]">
+                  <div className="absolute top-2 right-2 flex flex-wrap justify-end items-center gap-1 p-1 bg-black/80 backdrop-blur-md rounded-lg shadow-none opacity-90 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity z-10 border border-white/10 max-w-[calc(100%-16px)]">
                     <span className="text-[10px] text-zinc-400 font-mono px-1 select-none hidden xs:inline shrink-0">
                       {t.diary?.imageSize || "Size"}:
                     </span>
@@ -351,7 +351,7 @@ export default function DiaryEditor({ entry, onSave, lang }: DiaryEditorProps) {
                       onClick={() => handleUpdateImageSize(img.id, "small")}
                       className={`px-1.5 xs:px-2 py-0.5 rounded text-[10px] xs:text-[11px] font-semibold transition-all cursor-pointer shrink-0 ${
                         img.size === "small"
-                          ? "bg-blue-600 text-white shadow-xs"
+                          ? "bg-blue-600 text-white shadow-none"
                           : "text-zinc-300 hover:text-white hover:bg-white/10"
                       }`}
                       title={t.diary?.small || "Small (25%)"}
@@ -363,7 +363,7 @@ export default function DiaryEditor({ entry, onSave, lang }: DiaryEditorProps) {
                       onClick={() => handleUpdateImageSize(img.id, "medium")}
                       className={`px-1.5 xs:px-2 py-0.5 rounded text-[10px] xs:text-[11px] font-semibold transition-all cursor-pointer shrink-0 ${
                         img.size === "medium" || !img.size
-                          ? "bg-blue-600 text-white shadow-xs"
+                          ? "bg-blue-600 text-white shadow-none"
                           : "text-zinc-300 hover:text-white hover:bg-white/10"
                       }`}
                       title={t.diary?.medium || "Medium (50%)"}
@@ -375,7 +375,7 @@ export default function DiaryEditor({ entry, onSave, lang }: DiaryEditorProps) {
                       onClick={() => handleUpdateImageSize(img.id, "large")}
                       className={`px-1.5 xs:px-2 py-0.5 rounded text-[10px] xs:text-[11px] font-semibold transition-all cursor-pointer shrink-0 ${
                         img.size === "large"
-                          ? "bg-blue-600 text-white shadow-xs"
+                          ? "bg-blue-600 text-white shadow-none"
                           : "text-zinc-300 hover:text-white hover:bg-white/10"
                       }`}
                       title={t.diary?.large || "Large (75%)"}
@@ -387,7 +387,7 @@ export default function DiaryEditor({ entry, onSave, lang }: DiaryEditorProps) {
                       onClick={() => handleUpdateImageSize(img.id, "full")}
                       className={`px-1.5 xs:px-2 py-0.5 rounded text-[10px] xs:text-[11px] font-semibold transition-all cursor-pointer shrink-0 ${
                         img.size === "full"
-                          ? "bg-blue-600 text-white shadow-xs"
+                          ? "bg-blue-600 text-white shadow-none"
                           : "text-zinc-300 hover:text-white hover:bg-white/10"
                       }`}
                       title={t.diary?.full || "Full (100%)"}
@@ -446,7 +446,7 @@ export default function DiaryEditor({ entry, onSave, lang }: DiaryEditorProps) {
             <img
               src={viewingImage}
               alt="Fullscreen view"
-              className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl"
+              className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-none"
               onClick={(e) => e.stopPropagation()}
             />
             <button

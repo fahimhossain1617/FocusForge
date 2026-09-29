@@ -14,7 +14,7 @@ export const metadata: Metadata = {
 export default function TermsPage() {
   return (
     <div className="auth-frame min-h-screen py-10 px-4 sm:px-6 flex flex-col items-center justify-center">
-      <div className="w-full max-w-3xl rounded-3xl border border-white/15 bg-[#03081e]/90 p-6 sm:p-10 backdrop-blur-2xl shadow-2xl">
+      <div className="w-full max-w-3xl rounded-3xl border border-white/15 bg-[#03081e]/90 p-6 sm:p-10 backdrop-blur-2xl shadow-none">
         <div className="flex items-center justify-between mb-8 pb-4 border-b border-white/10">
           <Link href="/login" className="inline-flex items-center gap-2 text-sm font-semibold text-blue-400 hover:text-blue-300 transition-colors">
             {AuthIcons.back}

@@ -167,10 +167,10 @@ export default function NotificationCenter({ isOpen, onClose }: NotificationCent
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -14, scale: 0.97 }}
             transition={{ type: "spring", stiffness: 450, damping: 30 }}
-            className={`fixed top-14 right-3 left-3 z-50 max-h-[82vh] flex flex-col rounded-2xl border shadow-2xl md:hidden overflow-hidden ${
+            className={`fixed top-14 right-3 left-3 z-50 max-h-[82vh] flex flex-col rounded-2xl border shadow-none md:hidden overflow-hidden ${
               isLight
-                ? "bg-white border-[#DCE5F0] shadow-[0_20px_50px_rgba(34,58,94,0.18)]"
-                : "bg-[#0c101c] border-white/[0.12] shadow-[0_20px_50px_rgba(0,0,0,0.9)]"
+                ? "bg-white border-[#DCE5F0] shadow-none"
+                : "bg-[#0c101c] border-white/[0.12] shadow-none"
             }`}
             role="dialog"
             aria-modal="true"
@@ -257,7 +257,7 @@ export default function NotificationCenter({ isOpen, onClose }: NotificationCent
                 <button
                   type="button"
                   onClick={requestBrowserPermission}
-                  className="px-2.5 py-1 text-[11px] font-semibold bg-[#2563EB] hover:bg-[#1D4ED8] text-white rounded-lg transition-colors shrink-0 shadow-xs cursor-pointer active:scale-95"
+                  className="px-2.5 py-1 text-[11px] font-semibold bg-[#2563EB] hover:bg-[#1D4ED8] text-white rounded-lg transition-colors shrink-0 shadow-none cursor-pointer active:scale-95"
                 >
                   {isBn ? "অনুমতি দিন" : "Enable"}
                 </button>
@@ -299,8 +299,8 @@ export default function NotificationCenter({ isOpen, onClose }: NotificationCent
                       className={`group relative flex items-start gap-3 p-3 rounded-xl border transition-all cursor-pointer select-none active:scale-[0.99] ${
                         isUnread
                           ? isLight
-                            ? "bg-blue-50/40 hover:bg-blue-50/70 border-blue-200/80 shadow-xs"
-                            : "bg-blue-500/[0.08] hover:bg-blue-500/[0.12] border-blue-500/30 shadow-xs"
+                            ? "bg-blue-50/40 hover:bg-blue-50/70 border-blue-200/80 shadow-none"
+                            : "bg-blue-500/[0.08] hover:bg-blue-500/[0.12] border-blue-500/30 shadow-none"
                           : isLight
                           ? "bg-slate-50/50 hover:bg-slate-100/70 border-slate-100 text-slate-600"
                           : "bg-white/[0.02] hover:bg-white/[0.05] border-white/[0.06] text-slate-300"

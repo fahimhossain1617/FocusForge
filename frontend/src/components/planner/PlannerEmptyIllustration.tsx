@@ -17,7 +17,7 @@ export default function PlannerEmptyIllustration({ className = "w-28 h-24 sm:w-3
         viewBox="0 0 160 140"
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
-        className="w-full h-full drop-shadow-md overflow-visible hidden dark:block"
+        className="w-full h-full drop-shadow-none overflow-visible hidden dark:block"
       >
         <defs>
           {/* Ambient Glow */}
@@ -217,7 +217,7 @@ export default function PlannerEmptyIllustration({ className = "w-28 h-24 sm:w-3
         viewBox="0 0 160 140"
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
-        className="w-full h-full drop-shadow-sm overflow-visible block dark:hidden"
+        className="w-full h-full drop-shadow-none overflow-visible block dark:hidden"
       >
         <defs>
           {/* Ambient Glow */}

@@ -223,7 +223,7 @@ export default function CopyTasksModal({
           }}
           className={`py-1.5 px-1 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
             i === popMonth
-              ? 'bg-[#223A5E] dark:bg-blue-600 text-white shadow-xs'
+              ? 'bg-[#223A5E] dark:bg-blue-600 text-white shadow-none'
               : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-blue-600 dark:hover:text-white'
           }`}
         >
@@ -248,7 +248,7 @@ export default function CopyTasksModal({
               }}
               className={`py-1.5 px-1 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
                 y === popYear
-                  ? 'bg-[#223A5E] dark:bg-blue-600 text-white shadow-xs'
+                  ? 'bg-[#223A5E] dark:bg-blue-600 text-white shadow-none'
                   : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-blue-600 dark:hover:text-white'
               }`}
             >
@@ -287,7 +287,7 @@ export default function CopyTasksModal({
             }}
             className={`relative h-6 w-6 rounded-full text-xs font-medium flex items-center justify-center transition-all cursor-pointer mx-auto ${
               isSelected
-                ? 'bg-[#223A5E] dark:bg-blue-600 text-white font-bold shadow-xs'
+                ? 'bg-[#223A5E] dark:bg-blue-600 text-white font-bold shadow-none'
                 : isToday
                 ? 'border border-blue-400 text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/15 font-bold'
                 : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-blue-600 dark:hover:text-white'
@@ -324,7 +324,7 @@ export default function CopyTasksModal({
             }}
             className={`relative h-6 w-6 rounded-full text-xs font-medium flex items-center justify-center transition-all cursor-pointer mx-auto ${
               isSelected
-                ? 'bg-[#223A5E] dark:bg-blue-600 text-white font-bold shadow-xs'
+                ? 'bg-[#223A5E] dark:bg-blue-600 text-white font-bold shadow-none'
                 : isToday
                 ? 'border border-blue-400 text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/15 font-bold'
                 : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-blue-600 dark:hover:text-white'
@@ -536,7 +536,7 @@ export default function CopyTasksModal({
     >
       <div
         data-theme={isLightMode ? "light" : "dark"}
-        className="app-modal-panel relative w-full max-w-[420px] rounded-2xl border flex flex-col shadow-2xl overflow-hidden bg-white dark:bg-[#0c1424] border-[#DCE5F0] dark:border-blue-500/25 max-h-[85vh] my-auto"
+        className="app-modal-panel relative w-full max-w-[420px] rounded-2xl border flex flex-col shadow-none overflow-hidden bg-white dark:bg-[#0c1424] border-[#DCE5F0] dark:border-blue-500/25 max-h-[85vh] my-auto"
       >
         {/* COMPACT MODAL HEADER */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-[#DCE5F0] dark:border-white/[0.08] bg-[#F7FAFE] dark:bg-white/[0.02]">
@@ -573,7 +573,7 @@ export default function CopyTasksModal({
                 onClick={() => setShowCalendarPopover(!showCalendarPopover)}
                 className={`w-6 h-6 rounded-lg border text-xs transition-all cursor-pointer flex items-center justify-center ${
                   showCalendarPopover
-                    ? "bg-[#223A5E] dark:bg-blue-600 text-white border-transparent shadow-xs"
+                    ? "bg-[#223A5E] dark:bg-blue-600 text-white border-transparent shadow-none"
                     : "bg-white dark:bg-slate-800 border-[#DCE5F0] dark:border-white/10 text-[#52627A] dark:text-slate-300 hover:text-[#223A5E] dark:hover:text-blue-400 hover:border-[#5B8DEF]"
                 }`}
                 aria-label="Open Calendar Picker"
@@ -586,7 +586,7 @@ export default function CopyTasksModal({
               {showCalendarPopover && (
                 <div
                   ref={popoverRef}
-                  className="calendar-popover absolute top-full left-0 mt-1 z-50 w-[265px] overflow-hidden rounded-2xl bg-white dark:bg-[#0c1424] border border-[#DCE5F0] dark:border-blue-500/25 shadow-xl dark:shadow-[0_20px_50px_rgba(0,0,0,0.9)] animate-in fade-in zoom-in-95 duration-150"
+                  className="calendar-popover absolute top-full left-0 mt-1 z-50 w-[265px] overflow-hidden rounded-2xl bg-white dark:bg-[#0c1424] border border-[#DCE5F0] dark:border-blue-500/25 shadow-none animate-in fade-in zoom-in-95 duration-150"
                 >
                   {/* Segmented Mode Tabs (Weekly / Monthly) */}
                   <div className="flex items-center justify-between p-1 m-1.5 rounded-xl bg-[#F3F7FC] dark:bg-[#070c16] border border-[#DCE5F0] dark:border-transparent">
@@ -600,7 +600,7 @@ export default function CopyTasksModal({
                         }}
                         className={`flex-1 py-1 text-[11px] font-semibold rounded-lg transition-all cursor-pointer ${
                           popoverViewMode === tab
-                            ? 'bg-[#223A5E] dark:bg-blue-600 text-white font-bold shadow-xs'
+                            ? 'bg-[#223A5E] dark:bg-blue-600 text-white font-bold shadow-none'
                             : 'text-[#52627A] dark:text-slate-400 hover:text-[#111827] dark:hover:text-white'
                         }`}
                       >
@@ -676,7 +676,7 @@ export default function CopyTasksModal({
             <button
               type="button"
               onClick={handlePrevDay}
-              className="w-7 h-7 rounded-full bg-white dark:bg-white/5 hover:bg-[#F3F7FC] dark:hover:bg-white/10 border border-[#DCE5F0] dark:border-white/10 flex items-center justify-center text-[#52627A] dark:text-slate-400 hover:text-[#111827] dark:hover:text-white transition-all cursor-pointer shrink-0 shadow-xs focus:outline-none focus:ring-2 focus:ring-[#5B8DEF]"
+              className="w-7 h-7 rounded-full bg-white dark:bg-white/5 hover:bg-[#F3F7FC] dark:hover:bg-white/10 border border-[#DCE5F0] dark:border-white/10 flex items-center justify-center text-[#52627A] dark:text-slate-400 hover:text-[#111827] dark:hover:text-white transition-all cursor-pointer shrink-0 shadow-none focus:outline-none focus:ring-2 focus:ring-[#5B8DEF]"
               aria-label="Previous Day"
               title="Previous Day"
             >
@@ -692,7 +692,7 @@ export default function CopyTasksModal({
                   onClick={() => handleSelectSourceDate(day.dateStr)}
                   className={`relative py-1.5 px-0.5 rounded-xl flex flex-col items-center justify-center transition-all cursor-pointer group ${
                     day.isSelected
-                      ? "bg-[#223A5E] dark:bg-blue-600 text-white font-bold shadow-xs scale-[1.02]"
+                      ? "bg-[#223A5E] dark:bg-blue-600 text-white font-bold shadow-none scale-[1.02]"
                       : day.isToday
                       ? "bg-blue-50 dark:bg-blue-500/15 border border-[#5B8DEF]/40 dark:border-blue-500/30 text-[#223A5E] dark:text-blue-400 font-bold"
                       : "bg-white dark:bg-slate-900/60 border border-[#DCE5F0] dark:border-white/5 text-[#111827] dark:text-slate-300 hover:border-slate-300 dark:hover:border-white/20 hover:bg-[#F7FAFE] dark:hover:bg-white/5"
@@ -713,7 +713,7 @@ export default function CopyTasksModal({
                     {day.hasTasks && (
                       <span
                         className={`w-1 h-1 rounded-full ${
-                          day.isSelected ? "bg-white shadow-xs" : "bg-[#5B8DEF] dark:bg-blue-400"
+                          day.isSelected ? "bg-white shadow-none" : "bg-[#5B8DEF] dark:bg-blue-400"
                         }`}
                         title={`${day.taskCount} task${day.taskCount > 1 ? "s" : ""}`}
                       />
@@ -727,7 +727,7 @@ export default function CopyTasksModal({
             <button
               type="button"
               onClick={handleNextDay}
-              className="w-7 h-7 rounded-full bg-white dark:bg-white/5 hover:bg-[#F3F7FC] dark:hover:bg-white/10 border border-[#DCE5F0] dark:border-white/10 flex items-center justify-center text-[#52627A] dark:text-slate-400 hover:text-[#111827] dark:hover:text-white transition-all cursor-pointer shrink-0 shadow-xs focus:outline-none focus:ring-2 focus:ring-[#5B8DEF]"
+              className="w-7 h-7 rounded-full bg-white dark:bg-white/5 hover:bg-[#F3F7FC] dark:hover:bg-white/10 border border-[#DCE5F0] dark:border-white/10 flex items-center justify-center text-[#52627A] dark:text-slate-400 hover:text-[#111827] dark:hover:text-white transition-all cursor-pointer shrink-0 shadow-none focus:outline-none focus:ring-2 focus:ring-[#5B8DEF]"
               aria-label="Next Day"
               title="Next Day"
             >
@@ -781,7 +781,7 @@ export default function CopyTasksModal({
                     onClick={() => handleToggleTask(task.id)}
                     className={`group relative p-2 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-2 ${
                       isSelected
-                        ? "bg-[#F0F6FF] dark:bg-blue-500/10 border-[#5B8DEF]/50 dark:border-blue-400/50 shadow-xs"
+                        ? "bg-[#F0F6FF] dark:bg-blue-500/10 border-[#5B8DEF]/50 dark:border-blue-400/50 shadow-none"
                         : "bg-white dark:bg-slate-900/50 border-[#DCE5F0] dark:border-white/5 hover:border-[#B8CCE4] dark:hover:border-white/15 hover:bg-[#F7FAFE]"
                     }`}
                   >
@@ -790,7 +790,7 @@ export default function CopyTasksModal({
                       <div
                         className={`w-3.5 h-3.5 rounded border flex items-center justify-center transition-all shrink-0 ${
                           isSelected
-                            ? "bg-[#223A5E] dark:bg-blue-600 border-[#223A5E] dark:border-blue-600 text-white shadow-xs"
+                            ? "bg-[#223A5E] dark:bg-blue-600 border-[#223A5E] dark:border-blue-600 text-white shadow-none"
                             : "border-[#DCE5F0] dark:border-slate-600 bg-white dark:bg-slate-800 group-hover:border-[#5B8DEF]"
                         }`}
                       >
@@ -867,7 +867,7 @@ export default function CopyTasksModal({
               type="button"
               disabled={selectedCount === 0 || isCopying}
               onClick={handleCopyTasks}
-              className="px-4 py-1.5 rounded-xl text-xs font-semibold bg-[#223A5E] hover:bg-[#2E4E7B] dark:bg-blue-600 dark:hover:bg-blue-500 text-white transition-all text-center cursor-pointer shadow-xs disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.98]"
+              className="px-4 py-1.5 rounded-xl text-xs font-semibold bg-[#223A5E] hover:bg-[#2E4E7B] dark:bg-blue-600 dark:hover:bg-blue-500 text-white transition-all text-center cursor-pointer shadow-none disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.98]"
             >
               {isCopying ? "..." : "Copy"}
             </button>

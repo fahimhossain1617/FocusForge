@@ -22,16 +22,16 @@ export default function Error({
         aria-hidden="true" 
       />
       
-      <div className="relative z-10 max-w-md w-full p-8 rounded-3xl border shadow-2xl flex flex-col items-center text-center"
+      <div className="relative z-10 max-w-md w-full p-8 rounded-3xl border shadow-none flex flex-col items-center text-center"
         style={{
           background: "rgba(13, 20, 38, 0.84)",
           borderColor: "rgba(220, 38, 38, 0.22)",
-          boxShadow: "0 24px 60px rgba(0, 0, 0, 0.7), 0 0 35px rgba(220, 38, 38, 0.08)",
+          boxShadow: "none",
           backdropFilter: "blur(24px)",
           WebkitBackdropFilter: "blur(24px)"
         }}
       >
-        <div className="w-14 h-14 bg-red-500/10 rounded-2xl flex items-center justify-center mb-6 border border-red-500/20 shadow-inner">
+        <div className="w-14 h-14 bg-red-500/10 rounded-2xl flex items-center justify-center mb-6 border border-red-500/20 shadow-none">
           <AlertTriangle className="w-7 h-7 text-red-400" />
         </div>
         
@@ -44,7 +44,7 @@ export default function Error({
         <div className="flex flex-col sm:flex-row gap-3 w-full">
           <button
             onClick={() => reset()}
-            className="flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-medium text-sm text-white border transition-all cursor-pointer shadow-sm hover:bg-white/5 active:scale-[0.98]"
+            className="flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-medium text-sm text-white border transition-all cursor-pointer shadow-none hover:bg-white/5 active:scale-[0.98]"
             style={{
               background: "rgba(255, 255, 255, 0.04)",
               borderColor: "rgba(255, 255, 255, 0.14)",

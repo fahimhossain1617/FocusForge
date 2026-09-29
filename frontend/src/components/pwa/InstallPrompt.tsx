@@ -140,7 +140,7 @@ export default function InstallPrompt({ variant = "sidebar" }: InstallPromptProp
           <img 
             src="/icons/icon-72x72.png" 
             alt="FocusForge" 
-            className="w-6 h-6 rounded-md shadow-sm border border-blue-500/30 object-cover shrink-0" 
+            className="w-6 h-6 rounded-md shadow-none border border-blue-500/30 object-cover shrink-0" 
           />
           <div className="min-w-0">
             <h4 

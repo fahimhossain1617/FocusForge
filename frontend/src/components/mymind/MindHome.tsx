@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useRef, useEffect, KeyboardEvent, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
+import { ArrowRight, PenLine, Sparkles } from "lucide-react";
 import { useAppContext } from "../../context/AppContext";
 import { useAuth } from "../../context/AuthContext";
 import { useTranslation } from "../../hooks/useTranslation";
 import VoiceInput from "./VoiceInput";
-import { getMindSourceInfo, formatMindDate } from "../../utils/mindUtils";
-
+import ThoughtPaperCard from "./ThoughtPaperCard";
 
 interface MindHomeProps {
   navigate: (view: string) => void;
@@ -16,10 +16,11 @@ interface MindHomeProps {
 export default function MindHome({ navigate, setActiveThoughtId }: MindHomeProps) {
   const { state, addMindItem, showToast } = useAppContext();
   const { requireAuth } = useAuth();
-  const { t, lang } = useTranslation();
+  const { t } = useTranslation();
   const [input, setInput] = useState("");
   const [interim, setInterim] = useState("");
   const [isFocused, setIsFocused] = useState(false);
+  const [activeMode, setActiveMode] = useState<'mind' | 'idea' | 'problem'>('mind');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
@@ -62,7 +63,11 @@ export default function MindHome({ navigate, setActiveThoughtId }: MindHomeProps
     if (!input.trim()) return;
     
     requireAuth(() => {
-      addMindItem(input.trim(), 'home');
+      let source: 'home' | 'idea_capture' | 'problem_solver' = 'home';
+      if (activeMode === 'idea') source = 'idea_capture';
+      if (activeMode === 'problem') source = 'problem_solver';
+      
+      addMindItem(input.trim(), source);
       setInput("");
       
       if (textareaRef.current) {
@@ -73,53 +78,93 @@ export default function MindHome({ navigate, setActiveThoughtId }: MindHomeProps
     }, 'mind');
   };
 
-
   const openDetail = (id: string) => {
     setActiveThoughtId(id);
     navigate('detail');
   };
 
+  // Smart dashboard preview sorting & filtering:
+  // - Sorted newest first
+  // - Prioritize thoughts from the last 1-2 days (48 hours)
+  // - Gracefully fall back to most recent available thoughts if none from last 2 days
+  // - Never exceeds 6 cards
+  const sortedThoughts = useMemo(() => {
+    return [...state.mindItems].sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+  }, [state.mindItems]);
+
+  const previewThoughts = useMemo(() => {
+    if (sortedThoughts.length === 0) return [];
+    const twoDaysAgo = Date.now() - 2 * 24 * 60 * 60 * 1000;
+    const recentWithin2Days = sortedThoughts.filter(
+      (item) => new Date(item.createdAt).getTime() >= twoDaysAgo
+    );
+    if (recentWithin2Days.length > 0) {
+      return recentWithin2Days.slice(0, 6);
+    }
+    return sortedThoughts.slice(0, 6);
+  }, [sortedThoughts]);
+
   const displayValue = input + (interim ? ((input && !input.endsWith(" ") && !input.endsWith("\n")) ? " " : "") + interim : "");
 
   return (
-    <div className="motion-page max-w-2xl mx-auto">
-      <div className="mb-8 text-center mt-4">
-        <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold tracking-tight text-foreground mb-2">
-          {t.myMind.title}
-        </h1>
-        <p className="text-sm font-normal text-muted-foreground">
-          {t.myMind.subtitle}
-        </p>
-      </div>
+    <div className="motion-page w-full max-w-3xl mx-auto px-4 sm:px-6 pt-1 pb-16">
+      {/* ── Top Section: Heading, Category Buttons, Writing Box ── */}
+      <div className="w-full mb-10">
+        <div className="mb-7 text-center mt-0">
+          <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold tracking-tight text-foreground mb-2">
+            {t.myMind.title}
+          </h1>
+          <p className="text-sm font-normal text-muted-foreground">
+            {t.myMind.subtitle}
+          </p>
+        </div>
 
-      <div className="flex flex-wrap justify-center gap-2.5 mb-8">
-        <button 
-          onClick={() => navigate('problem_solver')} 
-          className="px-4 py-2 text-xs font-semibold rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 text-slate-700 dark:text-slate-300 hover:border-blue-500/40 hover:text-blue-600 dark:hover:text-white hover:bg-blue-50 dark:hover:bg-white/10 transition-all shadow-xs cursor-pointer"
-        >
-          {t.myMind.problemSolver}
-        </button>
-        <button 
-          onClick={() => navigate('idea_capture')} 
-          className="px-4 py-2 text-xs font-semibold rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 text-slate-700 dark:text-slate-300 hover:border-blue-500/40 hover:text-blue-600 dark:hover:text-white hover:bg-blue-50 dark:hover:bg-white/10 transition-all shadow-xs cursor-pointer"
-        >
-          {t.myMind.captureAnIdea}
-        </button>
-        <button 
-          onClick={() => navigate('diary')} 
-          className="px-4 py-2 text-xs font-semibold rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 text-slate-700 dark:text-slate-300 hover:border-blue-500/40 hover:text-blue-600 dark:hover:text-white hover:bg-blue-50 dark:hover:bg-white/10 transition-all shadow-xs cursor-pointer"
-        >
-          {t.myMind.myDiary || "My Diary"}
-        </button>
-      </div>
+        {/* Category Tabs */}
+        <div className="flex flex-wrap justify-center gap-2.5 mb-7">
+          <button 
+            type="button"
+            onClick={() => setActiveMode('mind')} 
+            className={`px-4 py-2 text-xs font-semibold rounded-xl border transition-all shadow-none cursor-pointer ${
+              activeMode === 'mind' 
+                ? 'bg-blue-600 text-white border-blue-600' 
+                : 'border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 text-slate-700 dark:text-slate-300 hover:border-blue-500/40 hover:text-blue-600 dark:hover:text-white hover:bg-blue-50 dark:hover:bg-white/10'
+            }`}
+          >
+            {t.myMind.freeFlow || "Free Flow"}
+          </button>
+          <button 
+            type="button"
+            onClick={() => setActiveMode('idea')} 
+            className={`px-4 py-2 text-xs font-semibold rounded-xl border transition-all shadow-none cursor-pointer ${
+              activeMode === 'idea' 
+                ? 'bg-blue-600 text-white border-blue-600' 
+                : 'border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 text-slate-700 dark:text-slate-300 hover:border-blue-500/40 hover:text-blue-600 dark:hover:text-white hover:bg-blue-50 dark:hover:bg-white/10'
+            }`}
+          >
+            {t.myMind.captureAnIdea || "Idea Vault"}
+          </button>
+          <button 
+            type="button"
+            onClick={() => setActiveMode('problem')} 
+            className={`px-4 py-2 text-xs font-semibold rounded-xl border transition-all shadow-none cursor-pointer ${
+              activeMode === 'problem' 
+                ? 'bg-blue-600 text-white border-blue-600' 
+                : 'border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 text-slate-700 dark:text-slate-300 hover:border-blue-500/40 hover:text-blue-600 dark:hover:text-white hover:bg-blue-50 dark:hover:bg-white/10'
+            }`}
+          >
+            {t.myMind.problemSolver || "Problem Solver"}
+          </button>
+        </div>
 
-      <div className="mb-8">
+        {/* Writing Area */}
         <div
-          className="rounded-2xl border transition-all duration-300 relative pb-16 overflow-hidden"
+          className="rounded-2xl border transition-all duration-200 relative pb-16 overflow-hidden w-full"
           style={{
             background: "var(--color-bg-card)",
             borderColor: (isFocused || input.trim()) ? "var(--color-purple-primary)" : "var(--color-border-subtle)",
-            boxShadow: (isFocused || input.trim()) ? "0 4px 12px rgba(0, 0, 0, 0.03)" : "none",
+            boxShadow: (isFocused || input.trim()) ? "0 4px 14px rgba(0, 0, 0, 0.08)" : "none",
           }}
         >
           <textarea
@@ -134,8 +179,14 @@ export default function MindHome({ navigate, setActiveThoughtId }: MindHomeProps
             }}
             onFocus={() => setIsFocused(true)}
             onBlur={() => setIsFocused(false)}
-            placeholder={t.myMind.writeFreely}
-            className="w-full px-6 py-6 text-lg border-0 resize-none no-focus-ring bg-transparent my-mind-textarea"
+            placeholder={
+              activeMode === 'idea' 
+                ? (t.myMind.ideaVaultPlaceholder || "What's the core idea or spark?")
+                : activeMode === 'problem'
+                ? (t.myMind.problemSolverPlaceholder || "What problem are you trying to break down?")
+                : (t.myMind.writeFreely || "Write whatever comes to mind...")
+            }
+            className="w-full px-6 py-6 text-base sm:text-lg border-0 resize-none no-focus-ring bg-transparent my-mind-textarea"
             style={{ 
               background: "transparent", 
               border: "none", 
@@ -157,7 +208,7 @@ export default function MindHome({ navigate, setActiveThoughtId }: MindHomeProps
                 type="button"
                 onClick={() => handleSubmit()}
                 disabled={!input.trim()}
-                className="px-4 py-2 rounded-xl text-sm font-medium transition-all"
+                className="px-4 py-2 rounded-xl text-sm font-semibold transition-all cursor-pointer shadow-none disabled:cursor-not-allowed"
                 style={{
                   background: input.trim() ? "var(--color-purple-primary)" : "var(--color-bg-elevated)",
                   color: input.trim() ? "white" : "var(--color-text-muted)",
@@ -170,56 +221,67 @@ export default function MindHome({ navigate, setActiveThoughtId }: MindHomeProps
         </div>
       </div>
 
-      <div className="flex justify-between items-center mb-4 px-1">
-        <h2 className="text-sm font-bold" style={{ color: "var(--color-text-primary)" }}>
-          {t.myMind.recentThoughts}
-        </h2>
-        <button onClick={() => navigate('review_all')} className="text-xs font-medium transition-colors hover:opacity-80" style={{ color: "var(--color-purple-primary)" }}>
-          {t.myMind.reviewAll}
-        </button>
-      </div>
+      {/* ── Recent Thoughts Section (Perfect Alignment with Textarea) ── */}
+      <section className="w-full" aria-labelledby="recent-thoughts-heading">
+        <div className="flex justify-between items-center mb-5 px-0.5">
+          <div className="flex items-center gap-2">
+            <h2 id="recent-thoughts-heading" className="text-base sm:text-lg font-bold tracking-tight text-foreground">
+              {t.myMind.recentThoughts}
+            </h2>
+            {previewThoughts.length > 0 && (
+              <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-200/70 dark:bg-white/10 text-slate-700 dark:text-slate-300">
+                {previewThoughts.length}
+              </span>
+            )}
+          </div>
+          <button 
+            type="button"
+            onClick={() => navigate('review_all')} 
+            className="group inline-flex items-center gap-1.5 text-xs sm:text-sm font-semibold transition-colors hover:opacity-90 cursor-pointer"
+            style={{ color: "var(--color-purple-primary)" }}
+          >
+            <span>{t.myMind.reviewAll}</span>
+            <ArrowRight size={14} className="transition-transform group-hover:translate-x-0.5" />
+          </button>
+        </div>
 
-      {state.mindItems.length > 0 ? (
-        <div className="space-y-3 motion-stagger-fast">
-          {state.mindItems.slice(0, 5).map((item) => {
-            const sourceInfo = getMindSourceInfo(item, t);
-            return (
-              <div
+        {previewThoughts.length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-4.5">
+            {previewThoughts.map((item, index) => (
+              <ThoughtPaperCard
                 key={item.id}
-                onClick={() => openDetail(item.id)}
-                className="rounded-2xl p-4 border transition-colors cursor-pointer group hover:bg-black/[0.02] dark:hover:bg-white/[0.02]"
-                style={{ background: "var(--color-bg-card)", borderColor: "var(--color-border-subtle)" }}
-              >
-                <div className="flex flex-wrap items-center gap-2 mb-2">
-                  {sourceInfo.label && (
-                    <span 
-                      className="px-2.5 py-0.5 text-xs font-semibold rounded-lg"
-                      style={{ 
-                        background: "rgba(99, 102, 241, 0.12)", 
-                        color: "var(--color-purple-primary)" 
-                      }}
-                    >
-                      {sourceInfo.label}
-                    </span>
-                  )}
-                  <span className="text-xs font-medium" style={{ color: "var(--color-text-muted)" }}>
-                    {formatMindDate(item.createdAt, lang)}
-                  </span>
-                </div>
-                <p className="text-sm font-medium line-clamp-2" style={{ color: "var(--color-text-primary)" }}>
-                  {item.content}
-                </p>
-              </div>
-            );
-          })}
-        </div>
-      ) : (
-        <div className="text-center py-12 opacity-60">
-          <p className="text-sm" style={{ color: "var(--color-text-muted)" }}>
-            {t.myMind.mindEmpty}
-          </p>
-        </div>
-      )}
+                item={item}
+                index={index}
+                onOpenDetail={() => openDetail(item.id)}
+              />
+            ))}
+          </div>
+        ) : (
+          /* Clean, notebook-styled empty state */
+          <div 
+            onClick={() => textareaRef.current?.focus()}
+            className="flex flex-col items-center justify-center p-10 sm:p-14 rounded-2xl border border-dashed transition-all cursor-pointer group hover:border-blue-500/40 hover:bg-black/[0.01] dark:hover:bg-white/[0.01]"
+            style={{
+              borderColor: "var(--color-border-subtle)",
+              background: "var(--color-bg-card)",
+            }}
+          >
+            <div className="w-12 h-12 rounded-2xl bg-blue-500/10 dark:bg-blue-500/15 flex items-center justify-center text-blue-500 dark:text-blue-400 mb-3 group-hover:scale-105 transition-transform">
+              <PenLine size={22} />
+            </div>
+            <p className="text-sm font-semibold text-foreground mb-1">
+              {t.myMind.mindEmpty}
+            </p>
+            <p className="text-xs text-muted-foreground text-center max-w-sm mb-4">
+              {t.myMind.writeYourFirstThought || "Capture your first thought to see it here."}
+            </p>
+            <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-3.5 py-1.5 rounded-xl bg-blue-600 text-white shadow-none group-hover:bg-blue-500 transition-colors">
+              <Sparkles size={12} />
+              <span>{t.myMind.freeFlow || "Free Flow"}</span>
+            </span>
+          </div>
+        )}
+      </section>
     </div>
   );
 }

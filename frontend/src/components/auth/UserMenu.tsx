@@ -53,10 +53,10 @@ export default function UserMenu({ variant = "sidebar" }: UserMenuProps) {
             <button
               type="button"
               onClick={() => openAuth('login')}
-              className="user-menu-sidebar-btn w-full flex items-center gap-2.5 p-2 rounded-xl text-left border transition-all duration-200 cursor-pointer shadow-sm hover:border-blue-500/50 hover: group"
+              className="user-menu-sidebar-btn w-full flex items-center gap-2.5 p-2 rounded-xl text-left border transition-all duration-200 cursor-pointer shadow-none hover:border-blue-500/50 hover: group"
               title={state.lang === 'bn' ? "গেস্ট মোড - লগইন করতে ক্লিক করুন" : "Guest Mode - Click to Sign In"}
             >
-              <div className="w-8 h-8 rounded-full bg-blue-500/20 border border-blue-500/30 flex items-center justify-center text-xs font-bold text-blue-400 uppercase shadow-sm shrink-0 group-hover:bg-blue-500/30 transition-colors">
+              <div className="w-8 h-8 rounded-full bg-blue-500/20 border border-blue-500/30 flex items-center justify-center text-xs font-bold text-blue-400 uppercase shadow-none shrink-0 group-hover:bg-blue-500/30 transition-colors">
                 <UserIcon size={14} />
               </div>
               <div className="flex-1 min-w-0">
@@ -82,7 +82,7 @@ export default function UserMenu({ variant = "sidebar" }: UserMenuProps) {
             <button
               type="button"
               onClick={() => openAuth('login')}
-              className="user-menu-guest-btn flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-semibold border transition-all duration-200 cursor-pointer shadow-sm hover: hover:border-blue-500/50"
+              className="user-menu-guest-btn flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-semibold border transition-all duration-200 cursor-pointer shadow-none hover: hover:border-blue-500/50"
             >
               <div className="w-5 h-5 rounded-full bg-blue-500/15 flex items-center justify-center text-blue-500">
                 <UserIcon size={12} />
@@ -102,7 +102,7 @@ export default function UserMenu({ variant = "sidebar" }: UserMenuProps) {
             <button
               type="button"
               onClick={() => setDropdownOpen(!dropdownOpen)}
-              className="user-menu-sidebar-btn w-full flex items-center gap-2.5 p-2 rounded-xl text-left border transition-all duration-200 cursor-pointer shadow-sm hover:border-blue-500/40"
+              className="user-menu-sidebar-btn w-full flex items-center gap-2.5 p-2 rounded-xl text-left border transition-all duration-200 cursor-pointer shadow-none hover:border-blue-500/40"
             >
               {user?.avatarUrl ? (
                 <img 
@@ -112,7 +112,7 @@ export default function UserMenu({ variant = "sidebar" }: UserMenuProps) {
                 />
               ) : (
                 <div 
-                  className="badge-accent-solid w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-xs font-bold text-white uppercase shadow-sm shrink-0"
+                  className="badge-accent-solid w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-xs font-bold text-white uppercase shadow-none shrink-0"
                   style={{ color: "#FFFFFF" }}
                 >
                   {user?.displayName ? user.displayName[0] : "U"}
@@ -145,7 +145,7 @@ export default function UserMenu({ variant = "sidebar" }: UserMenuProps) {
             <button
               type="button"
               onClick={() => setDropdownOpen(!dropdownOpen)}
-              className="user-menu-sidebar-btn flex items-center gap-2.5 px-3 py-1.5 rounded-full text-xs font-semibold border transition-all duration-200 cursor-pointer shadow-sm hover:border-blue-500/40"
+              className="user-menu-sidebar-btn flex items-center gap-2.5 px-3 py-1.5 rounded-full text-xs font-semibold border transition-all duration-200 cursor-pointer shadow-none hover:border-blue-500/40"
             >
               {user?.avatarUrl ? (
                 <img 
@@ -155,7 +155,7 @@ export default function UserMenu({ variant = "sidebar" }: UserMenuProps) {
                 />
               ) : (
                 <div 
-                  className="badge-accent-solid w-5 h-5 rounded-full bg-blue-600 flex items-center justify-center text-[10px] font-bold text-white uppercase shadow-sm shrink-0"
+                  className="badge-accent-solid w-5 h-5 rounded-full bg-blue-600 flex items-center justify-center text-[10px] font-bold text-white uppercase shadow-none shrink-0"
                   style={{ color: "#FFFFFF" }}
                 >
                   {user?.displayName ? user.displayName[0] : "U"}

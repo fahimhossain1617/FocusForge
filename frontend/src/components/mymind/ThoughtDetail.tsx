@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Trash2 } from "lucide-react";
 import { useAppContext } from "../../context/AppContext";
 import { useTranslation } from "../../hooks/useTranslation";
 import VoiceInput from "./VoiceInput";
@@ -11,10 +11,11 @@ import { getMindSourceInfo, formatMindDate } from "../../utils/mindUtils";
 interface ThoughtDetailProps {
   thoughtId: string;
   navigate: (view: string) => void;
+  previousView?: string;
 }
 
-export default function ThoughtDetail({ thoughtId, navigate }: ThoughtDetailProps) {
-  const { state, updateMindItem, deleteMindItem, addNote, showToast } = useAppContext();
+export default function ThoughtDetail({ thoughtId, navigate, previousView }: ThoughtDetailProps) {
+  const { state, updateMindItem, deleteMindItem, showToast } = useAppContext();
   const { t, lang } = useTranslation();
   
   const thought = state.mindItems.find(item => item.id === thoughtId);
@@ -68,62 +69,36 @@ export default function ThoughtDetail({ thoughtId, navigate }: ThoughtDetailProp
     }
   };
 
-  const handleSendToWorkspace = () => {
-    if (!thought) return;
-    
-    // Determine title based on content or source
-    let title = t.myMind.myMindThought;
-    if (content.startsWith("Idea Capture") || content.startsWith("💡 Idea Capture") || content.startsWith("ধারণা ক্যাপচার") || content.startsWith("💡 ধারণা ক্যাপচার")) title = t.myMind.myMindIdea;
-    if (content.startsWith("Problem Solver Reflection") || content.startsWith("সমস্যা সমাধানকারীর ভাবনা")) title = t.myMind.myMindProblemSolver;
-    
-    addNote({
-      title,
-      blocks: [{ id: 'b_' + Date.now(), type: 'paragraph', content }],
-      category: "MyMind"
-    });
-    showToast(t.myMind.toastSentToWorkspace, "success");
-  };
-
   if (!thought) return null;
 
   const sourceInfo = getMindSourceInfo(thought, t);
   const displayValue = content + (interim ? ((content && !content.endsWith(" ") && !content.endsWith("\n")) ? " " : "") + interim : "");
 
   return (
-    <div className="motion-page max-w-3xl mx-auto py-8">
-      <div className="flex items-center justify-between mb-8">
+    <div className="motion-page max-w-6xl mx-auto w-full pb-14">
+      <div className="flex items-center justify-between gap-3 mb-4">
         <button 
           type="button"
-          onClick={() => navigate('review_all')}
-          className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-semibold border transition-all hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer shadow-xs"
-          style={{
-            borderColor: "var(--color-border-subtle)",
-            color: "var(--color-text-primary)",
-          }}
-          aria-label="Back to all thoughts"
+          onClick={() => navigate(previousView === 'home' ? 'home' : 'review_all')}
+          className="inline-flex items-center justify-center w-9 h-9 -ml-1.5 rounded-full text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-black/5 dark:hover:bg-white/5 active:scale-95 transition-colors cursor-pointer shrink-0"
+          aria-label={(t.myMind.backText || t.myMind.backLeft || "Back").replace(/^[←\s]+/, "")}
+          title={(t.myMind.backText || t.myMind.backLeft || "Back").replace(/^[←\s]+/, "")}
         >
-          <ArrowLeft size={16} />
-          <span>{(t.myMind.backText || t.myMind.backLeft || "Back").replace(/^[←\s]+/, "")}</span>
+          <ArrowLeft className="w-5 h-5" strokeWidth={2} />
         </button>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2">
           <button 
+            type="button"
             onClick={handleDelete}
-            className="text-sm font-medium transition-colors hover:opacity-80"
-            style={{ color: "var(--color-danger, #EF4444)" }}
+            title={t.myMind.deleteText || "Delete Thought"}
+            className="p-2 rounded-xl text-red-400 hover:text-red-500 hover:bg-red-500/10 border border-transparent hover:border-red-500/20 transition-all cursor-pointer shrink-0"
           >
-            {t.myMind.deleteText}
-          </button>
-          <button 
-            onClick={handleSendToWorkspace}
-            className="text-sm font-medium px-4 py-2 rounded-lg border transition-colors hover:bg-black/5 dark:hover:bg-white/5"
-            style={{ borderColor: "var(--color-border-subtle)", color: "var(--color-text-primary)" }}
-          >
-            {t.myMind.sendToWorkspace}
+            <Trash2 className="w-4 h-4" />
           </button>
         </div>
       </div>
 
-      <div className="mb-4 flex flex-wrap items-center gap-2">
+      <div className="mb-3 flex flex-wrap items-center gap-2">
         {sourceInfo.label && (
           <span 
             className="px-2.5 py-0.5 text-xs font-semibold rounded-lg"
@@ -145,7 +120,7 @@ export default function ThoughtDetail({ thoughtId, navigate }: ThoughtDetailProp
         style={{
           background: "var(--color-bg-card)",
           borderColor: (isFocused || isEditing) ? "var(--color-purple-primary)" : "var(--color-border-subtle)",
-          boxShadow: (isFocused || isEditing) ? "0 0 12px rgba(59, 130, 246, 0.1)" : "none",
+          boxShadow: (isFocused || isEditing) ? "0 4px 14px rgba(0, 0, 0, 0.08)" : "none",
         }}
       >
         <textarea
@@ -158,7 +133,7 @@ export default function ThoughtDetail({ thoughtId, navigate }: ThoughtDetailProp
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
           placeholder={t.myMind.writeFreely}
-          className="w-full px-8 py-8 text-lg border-0 resize-none no-focus-ring leading-relaxed bg-transparent my-mind-textarea"
+          className="w-full px-5 sm:px-7 py-5 sm:py-6 text-base sm:text-lg border-0 resize-none no-focus-ring leading-relaxed bg-transparent my-mind-textarea"
           style={{ 
             background: "transparent", 
             border: "none",

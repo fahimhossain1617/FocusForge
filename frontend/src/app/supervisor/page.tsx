@@ -271,7 +271,7 @@ export default function SupervisorPortal() {
   if (!isSupervisor) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-[var(--color-bg-primary)] text-[var(--color-text-primary)]">
-        <div className="max-w-md w-full p-8 rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-card)] text-center shadow-lg">
+        <div className="max-w-md w-full p-8 rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-card)] text-center shadow-none">
           <div className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-rose-500/10 text-rose-500 flex items-center justify-center">
             <Lock className="w-7 h-7" />
           </div>
@@ -465,7 +465,7 @@ export default function SupervisorPortal() {
           {selectedTicket ? (
             <div className="flex-1 flex flex-col p-6 max-w-4xl mx-auto w-full space-y-6">
               {/* Header card */}
-              <div className="p-6 rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-card)] shadow-sm space-y-4">
+              <div className="p-6 rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-card)] shadow-none space-y-4">
                 <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--color-border)] pb-4">
                   <div>
                     <div className="flex items-center gap-2">
@@ -564,7 +564,7 @@ export default function SupervisorPortal() {
               </div>
 
               {/* Internal Notes */}
-              <div className="p-6 rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-card)] shadow-sm space-y-3">
+              <div className="p-6 rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-card)] shadow-none space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="text-xs font-semibold uppercase text-amber-500 flex items-center gap-1.5">
                     <Shield className="w-3.5 h-3.5" />
@@ -588,7 +588,7 @@ export default function SupervisorPortal() {
               </div>
 
               {/* Conversation Thread & Replies */}
-              <div className="p-6 rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-card)] shadow-sm space-y-4">
+              <div className="p-6 rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-card)] shadow-none space-y-4">
                 <h3 className="text-sm font-bold flex items-center gap-2">
                   <MessageSquare className="w-4 h-4 text-primary" />
                   Conversation Thread & Customer Replies

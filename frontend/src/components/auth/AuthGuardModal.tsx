@@ -32,11 +32,11 @@ export default function AuthGuardModal() {
   return (
     <div className={`fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-black/70 backdrop-blur-md ${isExiting ? "motion-exit-fade" : "motion-overlay"}`}>
       <div 
-        className={`relative w-full max-w-md rounded-3xl border shadow-2xl p-6 sm:p-8 overflow-hidden text-center ${isExiting ? "motion-exit-reveal" : "motion-scale-in"}`}
+        className={`relative w-full max-w-md rounded-3xl border shadow-none p-6 sm:p-8 overflow-hidden text-center ${isExiting ? "motion-exit-reveal" : "motion-scale-in"}`}
         style={{
           background: "rgba(13, 20, 38, 0.88)",
           borderColor: "rgba(59, 130, 246, 0.25)",
-          boxShadow: "0 24px 60px rgba(0, 0, 0, 0.7), 0 0 35px rgba(59, 130, 246, 0.12)",
+          boxShadow: "none",
           backdropFilter: "blur(24px)",
           WebkitBackdropFilter: "blur(24px)"
         }}
@@ -73,7 +73,7 @@ export default function AuthGuardModal() {
           <button
             type="button"
             onClick={loginWithGoogle}
-            className="w-full flex items-center justify-center gap-3 py-3 px-4 rounded-xl font-semibold text-sm text-white border border-white/10 bg-white/[0.04] hover:bg-white/[0.08] transition-all cursor-pointer shadow-sm"
+            className="w-full flex items-center justify-center gap-3 py-3 px-4 rounded-xl font-semibold text-sm text-white border border-white/10 bg-white/[0.04] hover:bg-white/[0.08] transition-all cursor-pointer shadow-none"
           >
             <GoogleIcon />
             <span>{t.auth.continueWithGoogle}</span>

@@ -76,7 +76,7 @@ html.light .auth-frame,
   place-items: center;
   background: #1f6fe0;
   flex-shrink: 0;
-  box-shadow: 0 4px 12px rgba(31, 111, 224, 0.3);
+  box-shadow: none !important;
 }
 
 .auth-mark svg {
@@ -127,7 +127,7 @@ html.light .auth-frame,
   width: 100%;
   max-width: 410px;
   padding: 22px 26px;
-  box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.35);
+  box-shadow: none !important;
 }
 
 .auth-gbtn {
@@ -698,7 +698,7 @@ html.light .auth-frame,
     border: none;
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
-    box-shadow: none;
+    box-shadow: none !important;
     padding: 0;
     max-width: 100%;
     width: 100%;

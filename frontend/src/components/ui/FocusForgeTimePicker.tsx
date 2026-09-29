@@ -217,7 +217,7 @@ export default function FocusForgeTimePicker({
           key={n}
           className={`absolute flex items-center justify-center rounded-full select-none pointer-events-none ${
             isSelected
-              ? "!text-white font-extrabold shadow-sm scale-110"
+              ? "!text-white font-extrabold shadow-none scale-110"
               : "!text-slate-900 font-bold"
           }`}
           style={{
@@ -249,7 +249,7 @@ export default function FocusForgeTimePicker({
         aria-label={ariaLabel || placeholder}
         aria-required={required}
         aria-expanded={isOpen}
-        className={`group flex items-center justify-between w-full px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-colors outline-none cursor-pointer border bg-slate-50 border-slate-200 hover:border-[#223A5E] text-slate-900 shadow-xs ${
+        className={`group flex items-center justify-between w-full px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-colors outline-none cursor-pointer border bg-slate-50 border-slate-200 hover:border-[#223A5E] text-slate-900 shadow-none ${
           disabled ? "opacity-50 cursor-not-allowed" : ""
         } ${isOpen ? "ring-2 ring-[#223A5E]/20 border-[#223A5E]" : ""}`}
       >
@@ -274,9 +274,9 @@ export default function FocusForgeTimePicker({
           }}
         >
           <div
-            className="rounded-2xl overflow-hidden shadow-xl bg-white border border-slate-200"
+            className="rounded-2xl overflow-hidden shadow-none bg-white border border-slate-200"
             style={{
-              boxShadow: "0 12px 36px rgba(34, 58, 94, 0.14), 0 0 0 1px rgba(34, 58, 94, 0.04)",
+              boxShadow: "none",
             }}
           >
             {/* Header: HH:MM + AM/PM */}
@@ -287,7 +287,7 @@ export default function FocusForgeTimePicker({
                   onClick={() => setActiveUnit("hour")}
                   className={`text-base w-9 h-7 flex items-center justify-center rounded-lg cursor-pointer font-mono font-bold ${
                     activeUnit === "hour"
-                      ? "!text-white shadow-xs"
+                      ? "!text-white shadow-none"
                       : "text-slate-800 hover:bg-slate-200/70"
                   }`}
                   style={{
@@ -304,7 +304,7 @@ export default function FocusForgeTimePicker({
                   onClick={() => setActiveUnit("minute")}
                   className={`text-base w-9 h-7 flex items-center justify-center rounded-lg cursor-pointer font-mono font-bold ${
                     activeUnit === "minute"
-                      ? "!text-white shadow-xs"
+                      ? "!text-white shadow-none"
                       : "text-slate-800 hover:bg-slate-200/70"
                   }`}
                   style={{
@@ -325,7 +325,7 @@ export default function FocusForgeTimePicker({
                     onClick={() => setPeriod(p)}
                     className={`px-2 py-0.5 text-[11px] font-bold rounded-md cursor-pointer ${
                       period === p
-                        ? "!text-white shadow-xs"
+                        ? "!text-white shadow-none"
                         : "text-slate-600 hover:text-slate-900"
                     }`}
                     style={{
@@ -426,7 +426,7 @@ export default function FocusForgeTimePicker({
                 <button
                   type="button"
                   onClick={handleConfirm}
-                  className="flex items-center gap-1 px-3 py-1 rounded-lg text-xs font-bold !text-white shadow-xs cursor-pointer hover:opacity-90"
+                  className="flex items-center gap-1 px-3 py-1 rounded-lg text-xs font-bold !text-white shadow-none cursor-pointer hover:opacity-90"
                   style={{
                     color: "#FFFFFF",
                     backgroundColor: "#223A5E",

@@ -331,7 +331,7 @@ export default function RoutineLibraryModal({
       }}
     >
       <div
-        className="app-modal-panel relative w-full max-w-3xl my-auto rounded-3xl border flex flex-col shadow-2xl overflow-hidden max-h-[90vh] bg-white dark:bg-[#0f172a] border-slate-200 dark:border-blue-500/25"
+        className="app-modal-panel relative w-full max-w-3xl my-auto rounded-3xl border flex flex-col shadow-none overflow-hidden max-h-[90vh] bg-white dark:bg-[#0f172a] border-slate-200 dark:border-blue-500/25"
       >
         {/* MODAL HEADER */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-slate-200 dark:border-white/[0.08] bg-slate-50/70 dark:bg-white/[0.02]">
@@ -370,7 +370,7 @@ export default function RoutineLibraryModal({
                   }}
                   className={`flex-1 min-w-[64px] sm:min-w-[80px] py-1.5 px-1.5 rounded-xl text-xs font-semibold flex flex-col items-center gap-0.5 transition-colors cursor-pointer ${
                     isActive
-                      ? "bg-[#223A5E] text-white shadow-sm border border-[#223A5E]"
+                      ? "bg-[#223A5E] text-white shadow-none border border-[#223A5E]"
                       : "bg-white dark:bg-white/[0.03] text-slate-700 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/[0.06] border border-slate-200 dark:border-white/[0.06]"
                   }`}
                 >
@@ -416,7 +416,7 @@ export default function RoutineLibraryModal({
             {!isEditingTask && (
               <button
                 onClick={handleOpenAddForm}
-                className="px-3.5 py-1.5 rounded-xl bg-[#223A5E] hover:bg-[#2E4E7B] text-white text-xs font-bold flex items-center gap-1.5 transition-all shadow-md shadow-[#223A5E]/20 cursor-pointer shrink-0"
+                className="px-3.5 py-1.5 rounded-xl bg-[#223A5E] hover:bg-[#2E4E7B] text-white text-xs font-bold flex items-center gap-1.5 transition-all shadow-none cursor-pointer shrink-0"
                 title="Add Task to Routine"
                 aria-label="Add Task to Routine"
               >
@@ -446,7 +446,7 @@ export default function RoutineLibraryModal({
                   </button>
                   <button
                     type="submit"
-                    className="px-4 py-1.5 rounded-xl bg-[#223A5E] hover:bg-[#2E4E7B] text-white text-xs font-bold transition-all shadow-md shadow-[#223A5E]/20 cursor-pointer"
+                    className="px-4 py-1.5 rounded-xl bg-[#223A5E] hover:bg-[#2E4E7B] text-white text-xs font-bold transition-all shadow-none cursor-pointer"
                   >
                     Save
                   </button>
@@ -526,7 +526,7 @@ export default function RoutineLibraryModal({
                 return (
                   <div
                     key={task.id}
-                    className="group relative p-3 sm:p-3.5 rounded-2xl border border-slate-200 dark:border-blue-500/15 bg-white dark:bg-slate-900/60 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 hover:border-[#223A5E]/40 shadow-xs"
+                    className="group relative p-3 sm:p-3.5 rounded-2xl border border-slate-200 dark:border-blue-500/15 bg-white dark:bg-slate-900/60 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 hover:border-[#223A5E]/40 shadow-none"
                   >
                     <div className="flex items-start gap-2.5 min-w-0 flex-1">
                       {/* Reorder Buttons (Desktop + Mobile) */}
@@ -609,7 +609,7 @@ export default function RoutineLibraryModal({
                 {!isEditingTask && (
                   <button
                     onClick={handleOpenAddForm}
-                    className="mt-1 px-4 py-2 rounded-xl bg-[#223A5E] hover:bg-[#2E4E7B] text-white text-xs font-bold transition-all shadow-md shadow-[#223A5E]/20 flex items-center gap-1.5 cursor-pointer"
+                    className="mt-1 px-4 py-2 rounded-xl bg-[#223A5E] hover:bg-[#2E4E7B] text-white text-xs font-bold transition-all shadow-none flex items-center gap-1.5 cursor-pointer"
                   >
                     <Plus className="w-3.5 h-3.5" />
                     {t.planner.addTask || "Add Task"}

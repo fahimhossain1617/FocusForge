@@ -156,6 +156,9 @@ export interface DiaryTopic {
   order: number;
   title: string;
   description?: string;
+  category?: string;
+  theme?: string;
+  isBookmarked?: boolean;
   createdAt: string; // ISO date string
   updatedAt: string; // ISO date string
   entries: DiaryEntry[];

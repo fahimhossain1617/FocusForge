@@ -109,7 +109,7 @@ export default function MobileHeader() {
           <img
             src={logoSrc}
             alt="FocusForge Logo"
-            className="w-7 h-7 rounded-lg object-contain shadow-xs shrink-0"
+            className="w-7 h-7 rounded-lg object-contain shadow-none shrink-0"
           />
           <span className="font-bold text-[17px] tracking-tight text-[#0F172A] dark:text-foreground whitespace-nowrap">
             FocusForge
@@ -198,10 +198,10 @@ export default function MobileHeader() {
                     exit={{ opacity: 0, scale: 0.92, y: -8 }}
                     transition={{ duration: 0.18, ease: "easeOut" }}
                     style={{ transformOrigin: "top right" }}
-                    className={`absolute top-full right-0 mt-1.5 z-50 w-64 max-w-[calc(100vw-2rem)] rounded-2xl p-2 border shadow-2xl flex flex-col gap-1.5 select-none ${
+                    className={`absolute top-full right-0 mt-1.5 z-50 w-64 max-w-[calc(100vw-2rem)] rounded-2xl p-2 border shadow-none flex flex-col gap-1.5 select-none ${
                       isLight
-                        ? "bg-white border-[#DCE5F0] shadow-[0_20px_50px_rgba(34,58,94,0.18)] text-slate-800"
-                        : "bg-[#0c1120] border-white/[0.12] shadow-[0_20px_50px_rgba(0,0,0,0.9)] text-foreground"
+                        ? "bg-white border-[#DCE5F0] shadow-none text-slate-800"
+                        : "bg-[#0c1120] border-white/[0.12] shadow-none text-foreground"
                     }`}
                     role="menu"
                     aria-label="User Options Menu"

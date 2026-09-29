@@ -11,10 +11,10 @@ import DiaryTopicView from "./DiaryTopicView";
 import DiarySearchModal from "./DiarySearchModal";
 
 interface DiaryHomeProps {
-  onBackToMind: () => void;
+  onOpenSidebar?: () => void;
 }
 
-export default function DiaryHome({ onBackToMind }: DiaryHomeProps) {
+export default function DiaryHome({ onOpenSidebar }: DiaryHomeProps) {
   const {
     state,
     saveDiaryTopic,
@@ -54,10 +54,15 @@ export default function DiaryHome({ onBackToMind }: DiaryHomeProps) {
     setTopicMode("read");
   };
 
-  const handleCreateTopic = (title: string, description: string) => {
+  const handleCreateTopic = (
+    title: string, 
+    description?: string, 
+    category?: string, 
+    theme?: string
+  ) => {
     requireAuth(() => {
-      const newTopic = saveDiaryTopic(title, description);
-      showToast(t.diary?.saved || "Topic created", "success");
+      const newTopic = saveDiaryTopic(title, description || "", category, theme);
+      showToast(t.diary?.saved || "Diary created", "success");
       // Immediately open the newly created topic in EDIT mode so the user can write
       if (newTopic) {
         setActiveTopicId(newTopic.id);
@@ -67,20 +72,38 @@ export default function DiaryHome({ onBackToMind }: DiaryHomeProps) {
     }, "mind");
   };
 
-  const handleUpdateTopic = (topicId: string, title: string, description: string) => {
+  const handleUpdateTopic = (
+    topicId: string, 
+    title: string, 
+    description?: string, 
+    category?: string, 
+    theme?: string
+  ) => {
     requireAuth(() => {
-      updateDiaryTopicItem(topicId, { title, description });
-      showToast(t.diary?.saved || "Topic updated", "success");
+      updateDiaryTopicItem(topicId, { title, description: description || "", category, theme });
+      showToast(t.diary?.saved || "Diary updated", "success");
     }, "mind");
   };
 
+  const handleToggleBookmark = (topicId: string) => {
+    const target = topics.find((t) => t.id === topicId);
+    if (!target) return;
+    const nextBookmarked = !target.isBookmarked;
+    updateDiaryTopicItem(topicId, { isBookmarked: nextBookmarked });
+    showToast(
+      nextBookmarked 
+        ? (state.lang === "bn" ? "বুকমার্কে যোগ করা হয়েছে" : "Diary bookmarked")
+        : (state.lang === "bn" ? "বুকমার্ক সরানো হয়েছে" : "Bookmark removed"),
+      "info"
+    );
+  };
+
   const handleDeleteTopic = (topicId: string) => {
-    if (!window.confirm("Are you sure you want to delete this topic?")) return;
     deleteDiaryTopicItem(topicId);
     if (activeTopicId === topicId) {
       setActiveTopicId(null);
     }
-    showToast(t.diary?.delete || "Topic deleted", "info");
+    showToast(t.diary?.delete || "Diary deleted", "info");
   };
 
   const handleSaveEntry = (
@@ -125,11 +148,12 @@ export default function DiaryHome({ onBackToMind }: DiaryHomeProps) {
       ) : (
         <DiaryTableOfContents
           topics={topics}
-          onBackToMind={onBackToMind}
           onOpenTopic={handleOpenTopic}
           onCreateTopic={handleCreateTopic}
+          onOpenSidebar={onOpenSidebar}
           onUpdateTopic={handleUpdateTopic}
           onDeleteTopic={handleDeleteTopic}
+          onToggleBookmark={handleToggleBookmark}
           onOpenSearch={() => setIsSearchOpen(true)}
           lang={state.lang}
         />

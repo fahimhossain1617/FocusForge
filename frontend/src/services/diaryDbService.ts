@@ -26,6 +26,9 @@ export const diaryDbService = {
           title: topic.title,
           description: topic.description,
           order: topic.order,
+          category: topic.category,
+          theme: topic.theme,
+          isBookmarked: topic.isBookmarked,
         }),
       });
     } catch (err) {

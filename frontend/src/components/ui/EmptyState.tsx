@@ -21,7 +21,7 @@ export default function EmptyState({
 }: EmptyStateProps) {
   return (
     <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
-      <div className="mb-4 flex items-center justify-center w-14 h-14 rounded-2xl bg-[#E7F0FF] dark:bg-white/5 border border-[#DCE5F0] dark:border-white/10 shadow-xs text-[#5B8DEF] dark:text-blue-400">
+      <div className="mb-4 flex items-center justify-center w-14 h-14 rounded-2xl bg-[#E7F0FF] dark:bg-white/5 border border-[#DCE5F0] dark:border-white/10 shadow-none text-[#5B8DEF] dark:text-blue-400">
         {icon}
       </div>
       <h3
@@ -37,7 +37,7 @@ export default function EmptyState({
       {action && (
         <button 
           onClick={action.onClick} 
-          className="btn-primary mt-5 px-5 py-2.5 text-xs sm:text-sm font-semibold cursor-pointer shadow-sm"
+          className="btn-primary mt-5 px-5 py-2.5 text-xs sm:text-sm font-semibold cursor-pointer shadow-none"
         >
           {action.label}
         </button>

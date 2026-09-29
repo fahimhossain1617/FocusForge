@@ -104,7 +104,7 @@ export default function QuickCapture() {
       <div className="absolute inset-0 bg-[#223A5E]/38 backdrop-blur-sm" />
       <div className={`relative w-full max-w-lg mx-4 ${isExiting ? "motion-exit-reveal" : "motion-reveal"}`}>
         <div
-          className="app-capture-modal rounded-[18px] p-1 bg-white dark:bg-[#111827] border border-[#5B8DEF] shadow-[0_8px_28px_rgba(0,0,0,0.08)] dark:shadow-2xl"
+          className="app-capture-modal rounded-[18px] p-1 bg-white dark:bg-[#111827] border border-[#5B8DEF] shadow-none"
         >
           <div className="flex items-start gap-3 p-4">
             <Brain className="w-5 h-5 text-[#5B8DEF] shrink-0 mt-1" />
@@ -136,7 +136,7 @@ export default function QuickCapture() {
             <button
               onClick={handleSubmit}
               disabled={!value.trim() && !interim.trim()}
-              className="px-5 py-2 rounded-xl text-xs font-bold transition-all duration-150 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed bg-[#223A5E] hover:bg-[#2E4E7B] text-white shadow-sm"
+              className="px-5 py-2 rounded-xl text-xs font-bold transition-all duration-150 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed bg-[#223A5E] hover:bg-[#2E4E7B] text-white shadow-none"
             >
               {t.myMind.save || "Save"}
             </button>

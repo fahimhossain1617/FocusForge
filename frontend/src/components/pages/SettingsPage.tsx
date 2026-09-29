@@ -78,7 +78,7 @@ function Toggle({
 }
 
 export default function SettingsPage() {
-  const { state, updateState, showToast, navigateTo } = useAppContext();
+  const { state, updateState, showToast, navigateTo, navigateBack } = useAppContext();
   const { user, isGuest, updateUserProfile, logout, openAuth } = useAuth();
   const { t } = useTranslation();
 
@@ -132,7 +132,13 @@ export default function SettingsPage() {
     return () => window.removeEventListener("popstate", handlePopState);
   }, [parseRoute]);
 
-  const selectSubItem = (group: SettingsGroup, subItem: SettingsSubItem) => {
+  const subHistoryRef = useRef<{ group: SettingsGroup; subItem: SettingsSubItem }[]>([]);
+
+  const selectSubItem = (group: SettingsGroup, subItem: SettingsSubItem, isBack = false) => {
+    if (!isBack && (activeSubItem !== subItem || expandedGroup !== group)) {
+      subHistoryRef.current.push({ group: expandedGroup, subItem: activeSubItem });
+      if (subHistoryRef.current.length > 20) subHistoryRef.current.shift();
+    }
     setExpandedGroup(group);
     setActiveSubItem(subItem);
     setMobileView("detail");
@@ -141,6 +147,26 @@ export default function SettingsPage() {
       const newHash = `#settings/${group}/${subItem}`;
       window.history.pushState({ group, subItem }, "", newHash);
     }
+  };
+
+  const handleBack = () => {
+    if (mobileView === "detail") {
+      const prev = subHistoryRef.current.pop();
+      if (prev) {
+        selectSubItem(prev.group, prev.subItem, true);
+      } else {
+        setMobileView("menu");
+      }
+      return;
+    }
+
+    const prev = subHistoryRef.current.pop();
+    if (prev) {
+      selectSubItem(prev.group, prev.subItem, true);
+      return;
+    }
+
+    navigateBack();
   };
 
   const toggleGroup = (group: SettingsGroup) => {
@@ -737,7 +763,7 @@ export default function SettingsPage() {
 
   // Helper: Guest Auth Prompt Component
   const GuestPromptCard = ({ heading, text }: { heading: string; text: string }) => (
-    <div className="rounded-2xl border border-[var(--color-border-subtle)] bg-[var(--color-surface-elevated)] p-8 sm:p-12 text-center max-w-lg mx-auto shadow-xs">
+    <div className="rounded-2xl border border-[var(--color-border-subtle)] bg-[var(--color-surface-elevated)] p-8 sm:p-12 text-center max-w-lg mx-auto shadow-none">
       <div className="w-14 h-14 mx-auto mb-4 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center">
         <User size={26} />
       </div>
@@ -751,7 +777,7 @@ export default function SettingsPage() {
         <button
           type="button"
           onClick={() => openAuth("login")}
-          className="w-full sm:w-auto px-6 py-2.5 rounded-xl text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 transition-colors shadow-xs cursor-pointer min-h-[44px]"
+          className="w-full sm:w-auto px-6 py-2.5 rounded-xl text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 transition-colors shadow-none cursor-pointer min-h-[44px]"
         >
           {t.auth.logIn}
         </button>
@@ -815,7 +841,7 @@ export default function SettingsPage() {
             />
 
             {/* Profile Header Card */}
-            <div className="rounded-2xl border border-[var(--color-border-subtle)] bg-[var(--color-surface-elevated)] p-6 sm:p-7 shadow-xs">
+            <div className="rounded-2xl border border-[var(--color-border-subtle)] bg-[var(--color-surface-elevated)] p-6 sm:p-7 shadow-none">
               <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
                 {/* Circular Avatar with Camera Button */}
                 <div className="relative shrink-0">
@@ -839,7 +865,7 @@ export default function SettingsPage() {
                   <button
                     type="button"
                     onClick={() => profileFileInputRef.current?.click()}
-                    className="absolute bottom-0 right-0 p-2 rounded-full bg-blue-600 text-white hover:bg-blue-700 ring-2 ring-[var(--color-surface-elevated)] shadow-xs transition-colors cursor-pointer"
+                    className="absolute bottom-0 right-0 p-2 rounded-full bg-blue-600 text-white hover:bg-blue-700 ring-2 ring-[var(--color-surface-elevated)] shadow-none transition-colors cursor-pointer"
                     title="Change Photo"
                     aria-label="Change Photo"
                   >
@@ -851,7 +877,7 @@ export default function SettingsPage() {
                     <button
                       type="button"
                       onClick={handleRemoveAvatar}
-                      className="absolute top-0 right-0 p-1.5 rounded-full bg-red-600 hover:bg-red-700 text-white ring-2 ring-[var(--color-surface-elevated)] shadow-xs transition-colors cursor-pointer"
+                      className="absolute top-0 right-0 p-1.5 rounded-full bg-red-600 hover:bg-red-700 text-white ring-2 ring-[var(--color-surface-elevated)] shadow-none transition-colors cursor-pointer"
                       title="Remove Photo"
                       aria-label="Remove Photo"
                     >
@@ -876,7 +902,7 @@ export default function SettingsPage() {
                       <button
                         type="button"
                         onClick={() => setIsEditingProfile(true)}
-                        className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 transition-colors shadow-xs cursor-pointer min-h-[44px] shrink-0"
+                        className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 transition-colors shadow-none cursor-pointer min-h-[44px] shrink-0"
                       >
                         <Edit3 size={14} />
                         <span>{t.settings.profile.editProfile}</span>
@@ -888,7 +914,7 @@ export default function SettingsPage() {
             </div>
 
             {/* Personal Information Card */}
-            <div className="rounded-2xl border border-[var(--color-border-subtle)] bg-[var(--color-surface-elevated)] p-6 sm:p-7 shadow-xs">
+            <div className="rounded-2xl border border-[var(--color-border-subtle)] bg-[var(--color-surface-elevated)] p-6 sm:p-7 shadow-none">
               <div className="flex items-center justify-between pb-4 border-b border-[var(--color-border-subtle)] mb-6">
                 <div>
                   <h3 className="text-base font-semibold text-[var(--color-text-primary)] tracking-tight">
@@ -1169,7 +1195,7 @@ export default function SettingsPage() {
                     <button
                       type="submit"
                       disabled={isSavingProfile}
-                      className="px-5 py-2.5 rounded-xl text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 transition-colors shadow-xs cursor-pointer disabled:opacity-50 min-h-[44px]"
+                      className="px-5 py-2.5 rounded-xl text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 transition-colors shadow-none cursor-pointer disabled:opacity-50 min-h-[44px]"
                     >
                       {isSavingProfile ? t.settings.profile.saving : t.settings.profile.save}
                     </button>
@@ -1215,7 +1241,7 @@ export default function SettingsPage() {
               </p>
             </div>
 
-            <div className="rounded-2xl border border-[var(--color-border-subtle)] bg-[var(--color-surface-elevated)] p-6 sm:p-7 shadow-xs">
+            <div className="rounded-2xl border border-[var(--color-border-subtle)] bg-[var(--color-surface-elevated)] p-6 sm:p-7 shadow-none">
               {isGoogleUser ? (
                 <div className="text-sm text-[var(--color-text-secondary)] py-2 leading-relaxed">
                   {t.settings.passwordSecurity.googleNotice}
@@ -1304,7 +1330,7 @@ export default function SettingsPage() {
                     <button
                       type="submit"
                       disabled={isChangingPassword}
-                      className="px-5 py-2.5 rounded-xl text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 transition-colors shadow-xs cursor-pointer disabled:opacity-50 min-h-[44px]"
+                      className="px-5 py-2.5 rounded-xl text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 transition-colors shadow-none cursor-pointer disabled:opacity-50 min-h-[44px]"
                     >
                       {isChangingPassword ? t.settings.passwordSecurity.changing : t.settings.passwordSecurity.changePassword}
                     </button>
@@ -1341,7 +1367,7 @@ export default function SettingsPage() {
               </div>
             )}
 
-            <div className="rounded-2xl border border-[var(--color-border-subtle)] bg-[var(--color-surface-elevated)] divide-y divide-[var(--color-border-subtle)] shadow-xs">
+            <div className="rounded-2xl border border-[var(--color-border-subtle)] bg-[var(--color-surface-elevated)] divide-y divide-[var(--color-border-subtle)] shadow-none">
               {/* Master Push Toggle */}
               <div className="p-5 sm:p-6 flex items-center justify-between gap-4">
                 <div>
@@ -1432,7 +1458,7 @@ export default function SettingsPage() {
               </p>
             </div>
 
-            <div className="rounded-2xl border border-[var(--color-border-subtle)] bg-[var(--color-surface-elevated)] p-5 sm:p-6 shadow-xs">
+            <div className="rounded-2xl border border-[var(--color-border-subtle)] bg-[var(--color-surface-elevated)] p-5 sm:p-6 shadow-none">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {/* English */}
                 <button
@@ -1597,7 +1623,7 @@ export default function SettingsPage() {
               </p>
             </div>
 
-            <div className="rounded-2xl border border-[var(--color-border-subtle)] bg-[var(--color-surface-elevated)] p-6 sm:p-8 space-y-6 shadow-xs">
+            <div className="rounded-2xl border border-[var(--color-border-subtle)] bg-[var(--color-surface-elevated)] p-6 sm:p-8 space-y-6 shadow-none">
               {/* What is FocusForge */}
               <div>
                 <h3 className="text-sm font-semibold text-[var(--color-text-primary)] mb-2">
@@ -1660,7 +1686,7 @@ export default function SettingsPage() {
               </p>
             </div>
 
-            <div className="rounded-2xl border border-[var(--color-border-subtle)] bg-[var(--color-surface-elevated)] p-6 sm:p-8 shadow-xs leading-relaxed text-sm text-[var(--color-text-primary)]">
+            <div className="rounded-2xl border border-[var(--color-border-subtle)] bg-[var(--color-surface-elevated)] p-6 sm:p-8 shadow-none leading-relaxed text-sm text-[var(--color-text-primary)]">
               <p>{t.settings.support.gettingStartedContent}</p>
             </div>
           </div>
@@ -1682,7 +1708,7 @@ export default function SettingsPage() {
               </p>
             </div>
 
-            <div className="rounded-2xl border border-[var(--color-border-subtle)] bg-[var(--color-surface-elevated)] divide-y divide-[var(--color-border-subtle)] shadow-xs">
+            <div className="rounded-2xl border border-[var(--color-border-subtle)] bg-[var(--color-surface-elevated)] divide-y divide-[var(--color-border-subtle)] shadow-none">
               {t.settings.support.faqs.map((faq, idx) => {
                 const isExpanded = expandedFaqIndex === idx;
                 return (
@@ -1745,7 +1771,7 @@ export default function SettingsPage() {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {/* Guides Selector Tabs */}
-              <div className="rounded-2xl border border-[var(--color-border-subtle)] bg-[var(--color-surface-elevated)] p-2 divide-y divide-[var(--color-border-subtle)] md:divide-y-0 space-y-1 shadow-xs">
+              <div className="rounded-2xl border border-[var(--color-border-subtle)] bg-[var(--color-surface-elevated)] p-2 divide-y divide-[var(--color-border-subtle)] md:divide-y-0 space-y-1 shadow-none">
                 {guides.map((g) => {
                   const isActive = activeGuideTab === g.key;
                   return (
@@ -1767,7 +1793,7 @@ export default function SettingsPage() {
               </div>
 
               {/* Guide Content Display */}
-              <div className="md:col-span-2 rounded-2xl border border-[var(--color-border-subtle)] bg-[var(--color-surface-elevated)] p-6 sm:p-7 shadow-xs">
+              <div className="md:col-span-2 rounded-2xl border border-[var(--color-border-subtle)] bg-[var(--color-surface-elevated)] p-6 sm:p-7 shadow-none">
                 <h3 className="text-lg font-bold text-[var(--color-text-primary)] mb-3">
                   {selectedGuide.title}
                 </h3>
@@ -1795,7 +1821,7 @@ export default function SettingsPage() {
               </p>
             </div>
 
-            <div className="rounded-2xl border border-[var(--color-border-subtle)] bg-[var(--color-surface-elevated)] p-6 sm:p-7 shadow-xs">
+            <div className="rounded-2xl border border-[var(--color-border-subtle)] bg-[var(--color-surface-elevated)] p-6 sm:p-7 shadow-none">
               <form onSubmit={handleSubmitReport} className="space-y-4 max-w-xl">
                 {/* Category */}
                 <div>
@@ -1892,7 +1918,7 @@ export default function SettingsPage() {
                   <button
                     type="submit"
                     disabled={isSubmittingReport}
-                    className="px-5 py-2.5 rounded-xl text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 transition-colors shadow-xs cursor-pointer disabled:opacity-50 min-h-[44px]"
+                    className="px-5 py-2.5 rounded-xl text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 transition-colors shadow-none cursor-pointer disabled:opacity-50 min-h-[44px]"
                   >
                     {isSubmittingReport ? t.settings.support.submitting : t.settings.support.submitReport}
                   </button>
@@ -1918,7 +1944,7 @@ export default function SettingsPage() {
               </p>
             </div>
 
-            <div className="rounded-2xl border border-[var(--color-border-subtle)] bg-[var(--color-surface-elevated)] p-6 sm:p-7 shadow-xs space-y-6 max-w-xl">
+            <div className="rounded-2xl border border-[var(--color-border-subtle)] bg-[var(--color-surface-elevated)] p-6 sm:p-7 shadow-none space-y-6 max-w-xl">
               <div className="text-xs text-[var(--color-text-secondary)]">
                 <span className="font-medium text-[var(--color-text-primary)]">{t.settings.support.supportEmailText} </span>
                 <span className="font-mono text-blue-600 dark:text-blue-400">{SUPPORT_EMAIL}</span>
@@ -1999,7 +2025,7 @@ export default function SettingsPage() {
                   <button
                     type="submit"
                     disabled={isSubmittingContact}
-                    className="px-5 py-2.5 rounded-xl text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 transition-colors shadow-xs cursor-pointer disabled:opacity-50 min-h-[44px]"
+                    className="px-5 py-2.5 rounded-xl text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 transition-colors shadow-none cursor-pointer disabled:opacity-50 min-h-[44px]"
                   >
                     {isSubmittingContact ? t.settings.support.sending : t.settings.support.sendMessage}
                   </button>
@@ -2025,7 +2051,7 @@ export default function SettingsPage() {
               </p>
             </div>
 
-            <div className="rounded-2xl border border-[var(--color-border-subtle)] bg-[var(--color-surface-elevated)] p-6 sm:p-7 shadow-xs">
+            <div className="rounded-2xl border border-[var(--color-border-subtle)] bg-[var(--color-surface-elevated)] p-6 sm:p-7 shadow-none">
               <form onSubmit={handleSubmitFeedback} className="space-y-4 max-w-xl">
                 <div>
                   <label className="block text-xs font-medium text-[var(--color-text-primary)] mb-1.5">
@@ -2068,7 +2094,7 @@ export default function SettingsPage() {
                   <button
                     type="submit"
                     disabled={isSubmittingFeedback}
-                    className="px-5 py-2.5 rounded-xl text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 transition-colors shadow-xs cursor-pointer disabled:opacity-50 min-h-[44px]"
+                    className="px-5 py-2.5 rounded-xl text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 transition-colors shadow-none cursor-pointer disabled:opacity-50 min-h-[44px]"
                   >
                     {isSubmittingFeedback ? t.settings.support.submitting : t.settings.support.submitFeedback}
                   </button>
@@ -2096,7 +2122,7 @@ export default function SettingsPage() {
               </p>
             </div>
 
-            <div className="rounded-2xl border border-[var(--color-border-subtle)] bg-[var(--color-surface-elevated)] p-6 sm:p-8 space-y-6 shadow-xs text-xs sm:text-sm text-[var(--color-text-secondary)] leading-relaxed max-w-3xl">
+            <div className="rounded-2xl border border-[var(--color-border-subtle)] bg-[var(--color-surface-elevated)] p-6 sm:p-8 space-y-6 shadow-none text-xs sm:text-sm text-[var(--color-text-secondary)] leading-relaxed max-w-3xl">
               <p>{policy.intro}</p>
 
               <div>
@@ -2187,7 +2213,7 @@ export default function SettingsPage() {
               </p>
             </div>
 
-            <div className="rounded-2xl border border-[var(--color-border-subtle)] bg-[var(--color-surface-elevated)] p-6 sm:p-8 space-y-6 shadow-xs text-xs sm:text-sm text-[var(--color-text-secondary)] leading-relaxed max-w-3xl">
+            <div className="rounded-2xl border border-[var(--color-border-subtle)] bg-[var(--color-surface-elevated)] p-6 sm:p-8 space-y-6 shadow-none text-xs sm:text-sm text-[var(--color-text-secondary)] leading-relaxed max-w-3xl">
               <p>{terms.intro}</p>
 
               <div>
@@ -2298,7 +2324,7 @@ export default function SettingsPage() {
               </p>
             </div>
 
-            <div className="rounded-2xl border border-red-500/20 bg-red-500/5 p-6 sm:p-7 space-y-4 max-w-xl shadow-xs">
+            <div className="rounded-2xl border border-red-500/20 bg-red-500/5 p-6 sm:p-7 space-y-4 max-w-xl shadow-none">
               <h3 className="text-sm font-semibold text-red-600 dark:text-red-400">
                 {t.settings.privacy.deleteAccount.modalTitle}
               </h3>
@@ -2314,7 +2340,7 @@ export default function SettingsPage() {
                     setDeleteError("");
                     setShowDeleteModal(true);
                   }}
-                  className="px-5 py-2.5 rounded-xl text-xs font-semibold text-white bg-red-600 hover:bg-red-700 transition-colors shadow-xs cursor-pointer min-h-[44px]"
+                  className="px-5 py-2.5 rounded-xl text-xs font-semibold text-white bg-red-600 hover:bg-red-700 transition-colors shadow-none cursor-pointer min-h-[44px]"
                 >
                   {t.settings.privacy.deleteAccount.buttonLabel}
                 </button>
@@ -2331,16 +2357,16 @@ export default function SettingsPage() {
 
   return (
     <div className="motion-page max-w-6xl mx-auto space-y-6 pb-20">
-      {/* Top Back To Dashboard Navigation */}
+      {/* Top Back Navigation */}
       <div className="flex items-center justify-between">
         <button
           type="button"
-          onClick={() => navigateTo("today")}
-          className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-semibold border border-[var(--color-border-subtle)] text-[var(--color-text-primary)] hover:bg-[var(--color-surface-hover)] transition-colors cursor-pointer shadow-xs min-h-[36px]"
-          aria-label={t.settings.backToDashboard}
+          onClick={handleBack}
+          className="inline-flex items-center justify-center w-9 h-9 -ml-1.5 rounded-full text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-black/5 dark:hover:bg-white/5 active:scale-95 transition-colors cursor-pointer"
+          aria-label={state.lang === 'bn' ? "ফিরে যান" : "Back"}
+          title={state.lang === 'bn' ? "ফিরে যান" : "Back"}
         >
-          <ArrowLeft size={16} />
-          <span>{t.settings.backToDashboard}</span>
+          <ArrowLeft className="w-5 h-5" strokeWidth={2} />
         </button>
       </div>
 
@@ -2350,7 +2376,7 @@ export default function SettingsPage() {
         {/* LEFT PANEL: 2-Level Expandable Navigation Menu (Desktop & Mobile) */}
         {/* ================================================================= */}
         <aside
-          className={`lg:col-span-4 rounded-3xl border border-[var(--color-border-subtle)] bg-[var(--color-surface-elevated)] p-4 sm:p-5 shadow-xs ${
+          className={`lg:col-span-4 rounded-3xl border border-[var(--color-border-subtle)] bg-[var(--color-surface-elevated)] p-4 sm:p-5 shadow-none ${
             mobileView === "detail" ? "hidden lg:block" : "block"
           }`}
         >
@@ -2378,7 +2404,7 @@ export default function SettingsPage() {
               <button
                 type="button"
                 onClick={() => openAuth("login")}
-                className="px-3 py-1.5 rounded-lg text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 transition-colors shadow-xs cursor-pointer shrink-0"
+                className="px-3 py-1.5 rounded-lg text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 transition-colors shadow-none cursor-pointer shrink-0"
               >
                 {t.auth.logIn}
               </button>
@@ -2454,17 +2480,7 @@ export default function SettingsPage() {
             mobileView === "menu" ? "hidden lg:block" : "block"
           }`}
         >
-          {/* Mobile Back to Navigation Menu Arrow */}
-          <div className="lg:hidden mb-4">
-            <button
-              type="button"
-              onClick={() => setMobileView("menu")}
-              className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold bg-[var(--color-surface-elevated)] border border-[var(--color-border-subtle)] text-[var(--color-text-primary)] cursor-pointer min-h-[44px]"
-            >
-              <ArrowLeft size={16} />
-              <span>Back to Settings Menu</span>
-            </button>
-          </div>
+
 
           {/* Active Sub-item Content */}
           <div className="motion-page">
@@ -2482,7 +2498,7 @@ export default function SettingsPage() {
           aria-modal="true"
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs"
         >
-          <div className="relative w-full max-w-lg rounded-3xl border border-red-500/30 bg-[var(--color-surface-elevated)] p-6 sm:p-8 shadow-2xl space-y-5">
+          <div className="relative w-full max-w-lg rounded-3xl border border-red-500/30 bg-[var(--color-surface-elevated)] p-6 sm:p-8 shadow-none space-y-5">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-bold text-red-600 dark:text-red-400">
                 {t.settings.privacy.deleteAccount.modalTitle}
@@ -2556,7 +2572,7 @@ export default function SettingsPage() {
                 type="button"
                 disabled={deleteConfirmText.trim() !== "DELETE" || isDeletingAccount}
                 onClick={handleDeleteAccount}
-                className="px-5 py-2.5 rounded-xl text-xs font-semibold text-white bg-red-600 hover:bg-red-700 transition-colors shadow-xs cursor-pointer disabled:opacity-40 min-h-[44px]"
+                className="px-5 py-2.5 rounded-xl text-xs font-semibold text-white bg-red-600 hover:bg-red-700 transition-colors shadow-none cursor-pointer disabled:opacity-40 min-h-[44px]"
               >
                 {isDeletingAccount ? t.settings.privacy.deleteAccount.deleting : t.settings.privacy.deleteAccount.confirmButton}
               </button>

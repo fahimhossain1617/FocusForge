@@ -473,7 +473,7 @@ export default function DashboardPage() {
         {!isToday && (
           <button
             onClick={() => setSelectedDate(today)}
-            className="self-start sm:self-auto px-3 py-1.5 min-h-[36px] rounded-lg bg-blue-600/20 text-blue-400 hover:bg-blue-600/30 border border-blue-500/30 text-xs sm:text-sm font-medium transition-colors cursor-pointer shadow-sm flex items-center gap-2"
+            className="self-start sm:self-auto px-3 py-1.5 min-h-[36px] rounded-lg bg-blue-600/20 text-blue-400 hover:bg-blue-600/30 border border-blue-500/30 text-xs sm:text-sm font-medium transition-colors cursor-pointer shadow-none flex items-center gap-2"
           >
             {state.lang === 'bn' ? "আজকের দিনে ফিরে যান" : "Back to Today"}
           </button>
@@ -485,7 +485,7 @@ export default function DashboardPage() {
         
         {/* Card 1: Today's Tasks (Main Card: #FFFFFF, #DCE5F0 border, radius 18, shadow 0 8px 28px) */}
         <section
-          className="dashboard-card card rounded-[18px] p-4 sm:p-5 md:p-6 bg-white dark:bg-card border border-[#DCE5F0] dark:border-border shadow-[0_8px_28px_rgba(0,0,0,0.06)] dark:shadow-none flex flex-col justify-between"
+          className="dashboard-card card rounded-[18px] p-4 sm:p-5 md:p-6 bg-white dark:bg-card border border-[#DCE5F0] dark:border-border shadow-none flex flex-col justify-between"
         >
           <div>
             {/* Header: Title + Subtitle + Icon Badge '+' button */}
@@ -498,7 +498,7 @@ export default function DashboardPage() {
               </div>
               <button
                 onClick={() => navigateTo("planner")}
-                className="w-9 h-9 min-w-[36px] min-h-[36px] rounded-xl bg-[#EBF3FE] hover:bg-[#DBEAFE] dark:bg-blue-500/20 dark:hover:bg-blue-500/30 text-[#1D4ED8] dark:text-blue-300 border border-[#D0E1FD] dark:border-blue-500/30 flex items-center justify-center transition-all cursor-pointer shrink-0 mt-0.5 shadow-xs outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                className="w-9 h-9 min-w-[36px] min-h-[36px] rounded-xl bg-[#EBF3FE] hover:bg-[#DBEAFE] dark:bg-blue-500/20 dark:hover:bg-blue-500/30 text-[#1D4ED8] dark:text-blue-300 border border-[#D0E1FD] dark:border-blue-500/30 flex items-center justify-center transition-all cursor-pointer shrink-0 mt-0.5 shadow-none outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                 title={state.lang === 'bn' ? "প্ল্যানারে কাজ যোগ করুন" : "Add task in Planner"}
                 aria-label={state.lang === 'bn' ? "প্ল্যানারে কাজ যোগ করুন" : "Add task in Planner"}
               >
@@ -567,17 +567,25 @@ export default function DashboardPage() {
 
         {/* Card 2: Today's Focus (Focus Time #5B8DEF, Break Time #D99A32, Distractions #D95C68) */}
         <section
-          className="dashboard-card card rounded-[18px] p-4 sm:p-5 md:p-6 bg-white dark:bg-card border border-[#DCE5F0] dark:border-border shadow-[0_8px_28px_rgba(0,0,0,0.06)] dark:shadow-none flex flex-col justify-between"
+          className="dashboard-card card rounded-[18px] p-4 sm:p-5 md:p-6 bg-white dark:bg-card border border-[#DCE5F0] dark:border-border shadow-none flex flex-col justify-between"
         >
           <div>
-            {/* Header: Title + Subtitle */}
-            <div className="flex items-center justify-between pb-3">
+            {/* Header: Title + Subtitle + Icon Badge '+' button */}
+            <div className="flex items-start justify-between gap-3 pb-3">
               <div>
                 <h2 className="text-[17px] md:text-[18px] font-bold text-[#111827] dark:text-foreground tracking-tight">{focusTitle}</h2>
                 <p className="text-xs text-[#52627A] dark:text-muted-foreground mt-0.5 font-normal">
                   {state.lang === 'bn' ? "মনোযোগের সময় এবং দৈনিক বিবরণ" : "Focus time & daily breakdown"}
                 </p>
               </div>
+              <button
+                onClick={() => navigateTo("focus")}
+                className="w-9 h-9 min-w-[36px] min-h-[36px] rounded-xl bg-[#EBF3FE] hover:bg-[#DBEAFE] dark:bg-blue-500/20 dark:hover:bg-blue-500/30 text-[#1D4ED8] dark:text-blue-300 border border-[#D0E1FD] dark:border-blue-500/30 flex items-center justify-center transition-all cursor-pointer shrink-0 mt-0.5 shadow-none outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                title={state.lang === 'bn' ? "ফোকাস সেশন শুরু করুন" : "Start a Focus session"}
+                aria-label={state.lang === 'bn' ? "ফোকাস সেশন শুরু করুন" : "Start a Focus session"}
+              >
+                <Plus size={17} strokeWidth={2.5} />
+              </button>
             </div>
 
             {/* Main Center Gauge and Breakdown */}
@@ -617,7 +625,7 @@ export default function DashboardPage() {
                       cy="50"
                       r="38"
                       fill="none"
-                      stroke="#D99A32"
+                      stroke="#10B981"
                       strokeWidth="9"
                       strokeDasharray={`${selectedFocusStats.breakLen} 238.761`}
                       strokeDashoffset={selectedFocusStats.breakOffset}
@@ -640,10 +648,6 @@ export default function DashboardPage() {
                     />
                   )}
                 </svg>
-                {/* Center text: Pure calculated focus time */}
-                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                  <span className="text-lg font-bold text-[#111827] dark:text-foreground tracking-tight tabular-nums">{selectedFocusStats.focusTime}</span>
-                </div>
               </div>
 
               {/* Focus Time & Break Time breakdown with exact legend dots */}
@@ -657,10 +661,10 @@ export default function DashboardPage() {
                 </div>
                 <div className="flex items-center justify-between text-xs">
                   <span className="flex items-center gap-2 text-[#52627A] dark:text-foreground font-medium">
-                    <span className="w-2.5 h-2.5 rounded-full bg-[#D99A32] shrink-0" />
+                    <span className="w-2.5 h-2.5 rounded-full bg-[#10B981] shrink-0" />
                     {state.lang === 'bn' ? "বিরতির সময়" : "Break Time"}
                   </span>
-                  <span className="font-bold text-[#D99A32] dark:text-amber-400 font-mono tabular-nums text-xs">{selectedFocusStats.breakTime}</span>
+                  <span className="font-bold text-[#10B981] dark:text-emerald-400 font-mono tabular-nums text-xs">{selectedFocusStats.breakTime}</span>
                 </div>
               </div>
             </div>
@@ -683,7 +687,7 @@ export default function DashboardPage() {
 
         {/* Card 3: Current Skills (Skill Builder with clean inline progress lines and (+) button) */}
         <section
-          className="dashboard-card card rounded-[18px] p-4 sm:p-5 md:p-6 bg-white dark:bg-card border border-[#DCE5F0] dark:border-border shadow-[0_8px_28px_rgba(0,0,0,0.06)] dark:shadow-none flex flex-col justify-between"
+          className="dashboard-card card rounded-[18px] p-4 sm:p-5 md:p-6 bg-white dark:bg-card border border-[#DCE5F0] dark:border-border shadow-none flex flex-col justify-between"
         >
           <div>
             {/* Header: Title + Plus (+) button to Skill Builder */}
@@ -698,7 +702,7 @@ export default function DashboardPage() {
               </div>
               <button
                 onClick={() => navigateTo("learning")}
-                className="w-9 h-9 min-w-[36px] min-h-[36px] rounded-xl bg-[#EBF3FE] hover:bg-[#DBEAFE] dark:bg-blue-500/20 dark:hover:bg-blue-500/30 text-[#1D4ED8] dark:text-blue-300 border border-[#D0E1FD] dark:border-blue-500/30 flex items-center justify-center transition-all cursor-pointer shrink-0 mt-0.5 shadow-xs outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                className="w-9 h-9 min-w-[36px] min-h-[36px] rounded-xl bg-[#EBF3FE] hover:bg-[#DBEAFE] dark:bg-blue-500/20 dark:hover:bg-blue-500/30 text-[#1D4ED8] dark:text-blue-300 border border-[#D0E1FD] dark:border-blue-500/30 flex items-center justify-center transition-all cursor-pointer shrink-0 mt-0.5 shadow-none outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                 title={state.lang === 'bn' ? "দক্ষতা বিল্ডারে দক্ষতা পরিচালনা করুন" : "Manage skills in Skill Builder"}
                 aria-label={state.lang === 'bn' ? "দক্ষতা বিল্ডারে দক্ষতা পরিচালনা করুন" : "Manage skills in Skill Builder"}
               >
@@ -771,7 +775,7 @@ export default function DashboardPage() {
 
       {/* Bottom Section: Focus & Productivity Progress (Main Card: #FFFFFF, #DCE5F0 border, radius 18, shadow 0 8px 28px) */}
       <section
-        className="dashboard-card card rounded-[18px] p-4 sm:p-6 md:p-7 bg-white dark:bg-card border border-[#DCE5F0] dark:border-border shadow-[0_8px_28px_rgba(0,0,0,0.06)] dark:shadow-none"
+        className="dashboard-card card rounded-[18px] p-4 sm:p-6 md:p-7 bg-white dark:bg-card border border-[#DCE5F0] dark:border-border shadow-none"
       >
         {/* Header Bar */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4">
@@ -870,7 +874,7 @@ export default function DashboardPage() {
                   >
                     {/* Hover Tooltip */}
                     {isHovered && (
-                      <div className="absolute -top-16 z-20 bg-white dark:bg-slate-900/95 border border-[#DCE5F0] dark:border-blue-500/30 rounded-xl p-2.5 shadow-xl text-xs whitespace-nowrap pointer-events-none">
+                      <div className="absolute -top-16 z-20 bg-white dark:bg-slate-900/95 border border-[#DCE5F0] dark:border-blue-500/30 rounded-xl p-2.5 shadow-none text-xs whitespace-nowrap pointer-events-none">
                         <p className="font-bold text-[#111827] dark:text-white">{d.day}, {d.date}</p>
                         <p className="text-[#5B8DEF] font-medium">{state.lang === 'bn' ? "মনোযোগ:" : "Focus:"} {d.focusTime}</p>
                         <p className="text-[#2E9B73] font-medium">{state.lang === 'bn' ? "কাজ সম্পন্ন:" : "Tasks Done:"} {d.tasksDone}</p>
@@ -981,8 +985,8 @@ export default function DashboardPage() {
                     onClick={() => setSelectedDate(item.week)}
                     className={`rounded-xl p-4 flex items-center justify-between gap-3 cursor-pointer transition-all duration-150 ${
                       isSelected
-                        ? "bg-blue-50/80 dark:bg-white/[0.06] shadow-inner ring-1 ring-blue-300 dark:ring-white/[0.1] scale-[1.02]"
-                        : "bg-white dark:bg-slate-900/70 border border-[#DCE5F0] dark:border-white/[0.07] hover:border-blue-400 hover:bg-slate-50 dark:hover:bg-white/[0.03] shadow-xs"
+                        ? "bg-blue-50/80 dark:bg-white/[0.06] shadow-none ring-1 ring-blue-300 dark:ring-white/[0.1] scale-[1.02]"
+                        : "bg-white dark:bg-slate-900/70 border border-[#DCE5F0] dark:border-white/[0.07] hover:border-blue-400 hover:bg-slate-50 dark:hover:bg-white/[0.03] shadow-none"
                     }`}
                   >
                     <div className="space-y-1.5 min-w-0">
@@ -1042,7 +1046,7 @@ export default function DashboardPage() {
 
             {/* Monthly Bottom 3 Summary Metric Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
-              <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-[#DCE5F0] dark:border-white/[0.06] shadow-xs">
+              <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-[#DCE5F0] dark:border-white/[0.06] shadow-none">
                 <div>
                   <p className="text-xs text-slate-500 dark:text-muted-foreground font-medium">
                     {state.lang === 'bn' ? "মাসিক মোট ফোকাস টাইম" : "Total Monthly Focus Time"}
@@ -1051,7 +1055,7 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-[#DCE5F0] dark:border-white/[0.06] shadow-xs">
+              <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-[#DCE5F0] dark:border-white/[0.06] shadow-none">
                 <div>
                   <p className="text-xs text-slate-500 dark:text-muted-foreground font-medium">
                     {state.lang === 'bn' ? "মাসিক সম্পন্ন টাস্ক" : "Monthly Tasks Completed"}
@@ -1062,7 +1066,7 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-[#DCE5F0] dark:border-white/[0.06] shadow-xs">
+              <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-[#DCE5F0] dark:border-white/[0.06] shadow-none">
                 <div>
                   <p className="text-xs text-slate-500 dark:text-muted-foreground font-medium">
                     {state.lang === 'bn' ? "মাসিক মিস হওয়া টাস্ক" : "Monthly Missed Tasks"}

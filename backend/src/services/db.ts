@@ -472,6 +472,7 @@ export function mapFocusSessionRow(row: any) {
     endedAt: row.ended_at ? new Date(row.ended_at).toISOString() : undefined,
     targetMinutes: row.target_minutes || 25,
     durationMinutes: row.duration_minutes || 0,
+    breakMinutes: row.break_minutes || 0,
     completed: row.completed ?? false,
     distractions: Array.isArray(distractions) ? distractions : [],
     createdAt: row.created_at ? new Date(row.created_at).toISOString() : new Date().toISOString(),
@@ -485,33 +486,40 @@ export async function dbGetFocusSessions(userId: string | null) {
 }
 
 export async function dbUpsertFocusSession(userId: string, body: any) {
-  const { id, taskId, taskName, category = 'Focus Session', startedAt, targetMinutes = 25 } = body;
+  const { id, taskId, taskName, category = 'Focus Session', startedAt, targetMinutes = 25, breakMinutes = 0 } = body;
   if (!taskName) throw new Error('Task name is required');
 
   const sessionId = id || `focus_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
   const res = await pool.query(
     `
-    INSERT INTO focus_sessions (id, user_id, task_id, task_name, category, started_at, target_minutes, duration_minutes, completed, distractions)
-    VALUES ($1, $2, $3, $4, $5, $6, $7, 0, false, '[]'::jsonb)
+    INSERT INTO focus_sessions (id, user_id, task_id, task_name, category, started_at, target_minutes, duration_minutes, break_minutes, completed, distractions)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, 0, $8, false, '[]'::jsonb)
     ON CONFLICT (id) DO UPDATE SET
       task_name = EXCLUDED.task_name,
-      category = EXCLUDED.category
+      category = EXCLUDED.category,
+      break_minutes = EXCLUDED.break_minutes
     RETURNING *;
     `,
-    [sessionId, userId, taskId || null, taskName.trim(), category, startedAt || new Date(), targetMinutes]
+    [sessionId, userId, taskId || null, taskName.trim(), category, startedAt || new Date(), targetMinutes, Number(breakMinutes) || 0]
   );
   return mapFocusSessionRow(res.rows[0]);
 }
 
-export async function dbEndFocusSession(userId: string, sessionId: string, durationMinutes: number, completed: boolean, endedAt?: string) {
+export async function dbEndFocusSession(userId: string, sessionId: string, durationMinutes: number, completed: boolean, endedAt?: string, breakMinutes?: number) {
+  const fields = ['duration_minutes = $1', 'completed = $2', 'ended_at = $3'];
+  const params: any[] = [durationMinutes, completed, endedAt || new Date(), userId, sessionId];
+  if (breakMinutes !== undefined) {
+    params.push(breakMinutes);
+    fields.push(`break_minutes = $${params.length}`);
+  }
   const res = await pool.query(
     `
     UPDATE focus_sessions 
-    SET duration_minutes = $1, completed = $2, ended_at = $3
+    SET ${fields.join(', ')}
     WHERE user_id = $4 AND id = $5
     RETURNING *;
     `,
-    [durationMinutes, completed, endedAt || new Date(), userId, sessionId]
+    params
   );
   if (res.rows.length === 0) throw new Error('Session not found');
   return mapFocusSessionRow(res.rows[0]);
@@ -560,6 +568,9 @@ export async function dbGetDiaryTopics(userId: string | null) {
       order: t.sort_order,
       title: t.title,
       description: t.description || undefined,
+      category: t.category || undefined,
+      theme: t.theme || undefined,
+      isBookmarked: Boolean(t.is_bookmarked),
       createdAt: t.created_at ? new Date(t.created_at).toISOString() : new Date().toISOString(),
       updatedAt: t.updated_at ? new Date(t.updated_at).toISOString() : new Date().toISOString(),
       entries: topicEntries,
@@ -568,23 +579,26 @@ export async function dbGetDiaryTopics(userId: string | null) {
 }
 
 export async function dbUpsertDiaryTopic(userId: string, body: any) {
-  const { id, title, description, order = 0 } = body;
+  const { id, title, description, order = 0, category = null, theme = null, isBookmarked = false } = body;
   if (!title) throw new Error('Title is required');
 
   const topicId = id || `diary_topic_${Date.now()}`;
   const res = await pool.query(
     `
-    INSERT INTO diary_topics (id, user_id, title, description, sort_order, created_at, updated_at)
-    VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
+    INSERT INTO diary_topics (id, user_id, title, description, sort_order, category, theme, is_bookmarked, created_at, updated_at)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())
     ON CONFLICT (id) DO UPDATE SET
       title = EXCLUDED.title,
       description = EXCLUDED.description,
       sort_order = EXCLUDED.sort_order,
+      category = EXCLUDED.category,
+      theme = EXCLUDED.theme,
+      is_bookmarked = EXCLUDED.is_bookmarked,
       updated_at = NOW()
     WHERE diary_topics.user_id = $2
     RETURNING *;
     `,
-    [topicId, userId, title.trim(), description || null, order]
+    [topicId, userId, title.trim(), description || null, order, category || null, theme || null, Boolean(isBookmarked)]
   );
   return res.rows[0];
 }
@@ -1357,4 +1371,76 @@ export async function dbSaveSupportSubmission(
     attachments: payload.screenshot ? [payload.screenshot] : (payload.attachments || []),
     isGuest: !userId,
   });
+}
+
+// ==================== USER CLOUD STATE & ONBOARDING ====================
+
+export async function dbGetUserCloudState(userId: string) {
+  const res = await pool.query('SELECT state FROM user_cloud_state WHERE id = $1', [userId]);
+  return res.rows[0]?.state || null;
+}
+
+export async function dbUpsertUserCloudState(userId: string, state: any) {
+  const res = await pool.query(
+    `INSERT INTO user_cloud_state (id, state, updated_at)
+     VALUES ($1, $2::jsonb, NOW())
+     ON CONFLICT (id) DO UPDATE SET state = EXCLUDED.state, updated_at = NOW()
+     RETURNING updated_at;`,
+    [userId, JSON.stringify(state)]
+  );
+  return res.rows[0];
+}
+
+export async function dbGetUserOnboarding(userId: string) {
+  const res = await pool.query(
+    `SELECT onboarding_completed, onboarding_completed_at, preferred_language, preferred_theme, account_mode, product_tour_completed
+     FROM profiles WHERE id = $1`,
+    [userId]
+  );
+  if (res.rows.length === 0) return null;
+  const row = res.rows[0];
+  return {
+    onboardingCompleted: Boolean(row.onboarding_completed),
+    onboardingCompletedAt: row.onboarding_completed_at,
+    preferredLanguage: row.preferred_language || 'en',
+    preferredTheme: row.preferred_theme || 'dark',
+    accountMode: row.account_mode || 'authenticated',
+    productTourCompleted: Boolean(row.product_tour_completed),
+  };
+}
+
+export async function dbUpsertUserOnboarding(userId: string, data: any) {
+  const fields: string[] = ['updated_at = NOW()'];
+  const params: any[] = [userId];
+
+  if (data.onboardingCompleted !== undefined) {
+    params.push(Boolean(data.onboardingCompleted));
+    fields.push(`onboarding_completed = $${params.length}`);
+    if (data.onboardingCompleted) {
+      params.push(new Date().toISOString());
+      fields.push(`onboarding_completed_at = $${params.length}`);
+    }
+  }
+  if (data.preferredLanguage !== undefined) {
+    params.push(data.preferredLanguage);
+    fields.push(`preferred_language = $${params.length}`);
+  }
+  if (data.preferredTheme !== undefined) {
+    params.push(data.preferredTheme);
+    fields.push(`preferred_theme = $${params.length}`);
+  }
+  if (data.accountMode !== undefined) {
+    params.push(data.accountMode);
+    fields.push(`account_mode = $${params.length}`);
+  }
+  if (data.productTourCompleted !== undefined) {
+    params.push(Boolean(data.productTourCompleted));
+    fields.push(`product_tour_completed = $${params.length}`);
+  }
+
+  const res = await pool.query(
+    `UPDATE profiles SET ${fields.join(', ')} WHERE id = $1 RETURNING onboarding_completed, onboarding_completed_at, preferred_language, preferred_theme, account_mode, product_tour_completed;`,
+    params
+  );
+  return res.rows[0];
 }
