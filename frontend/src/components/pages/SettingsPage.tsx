@@ -512,6 +512,8 @@ export default function SettingsPage() {
         title: reportTitle.trim(),
         description: reportDesc.trim(),
         screenshot: reportScreenshot || undefined,
+        name: user?.displayName || user?.fullName || "User",
+        email: user?.email || (user?.authMethod === "email" ? user?.identifier : "") || "",
       });
 
       if (res.success) {
@@ -608,6 +610,8 @@ export default function SettingsPage() {
       const res = await userService.submitFeedback({
         type: feedbackType,
         message: feedbackMessage.trim(),
+        name: user?.displayName || user?.fullName || "User",
+        email: user?.email || (user?.authMethod === "email" ? user?.identifier : "") || "",
       });
 
       if (res.success) {

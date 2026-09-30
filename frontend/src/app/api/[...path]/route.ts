@@ -85,6 +85,7 @@ import {
   sendPasswordChangedEmail,
   sendAccountDeletedEmail,
 } from '@/lib/server/emailService';
+import { sendToGoogleAppsScript } from '@/lib/server/googleSheetsService';
 import { supabase } from '@/lib/supabaseClient';
 
 async function extractAuth(request: NextRequest) {
@@ -726,6 +727,21 @@ export async function POST(request: NextRequest, context: { params: Promise<{ pa
         }
       } catch (emailErr) {
         console.error('[Support Route] Email dispatch error:', emailErr);
+      }
+
+      // 3. DISPATCH TO GOOGLE APPS SCRIPT / GOOGLE SPREADSHEET (Auto Row Append + Support Email)
+      try {
+        sendToGoogleAppsScript({
+          type: ticket.type,
+          name: ticket.name,
+          email: ticket.email,
+          message: ticket.message,
+          subject: ticket.subject,
+          category: ticket.category,
+          ticketNumber: ticket.ticketNumber,
+        }).catch((gErr) => console.warn('[Support Route] Google Apps Script sync warning:', gErr));
+      } catch (gSyncErr) {
+        console.warn('[Support Route] Google Apps Script sync error:', gSyncErr);
       }
 
       return NextResponse.json({

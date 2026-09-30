@@ -2,7 +2,7 @@ import nodemailer, { type Transporter } from 'nodemailer';
 
 // Configuration
 export const SUPPORT_EMAIL = process.env.SUPPORT_EMAIL || 'support@focusforge.app';
-export const SUPPORT_INBOX_EMAIL = process.env.SUPPORT_INBOX_EMAIL || 'fahimhossain1617@gmail.com';
+export const SUPPORT_INBOX_EMAIL = process.env.SUPPORT_INBOX_EMAIL || 'focentia13@gmail.com';
 export const APP_URL = process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL || 'http://localhost:3000';
 
 interface EmailJob {

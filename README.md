@@ -22,7 +22,7 @@ cp .env.example backend/.env
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Public client API key | `eyJhbGciOi...` |
 | `SUPABASE_SERVICE_ROLE_KEY` | Admin service role key | `eyJhbGciOi...` |
 | `SUPPORT_EMAIL` | Public customer support address | `support@focusforge.app` |
-| `SUPPORT_INBOX_EMAIL` | Private owner inbox for tickets | `fahimhossain1617@gmail.com` |
+| `SUPPORT_INBOX_EMAIL` | Private owner inbox for tickets | `focentia13@gmail.com` |
 | `SMTP_HOST` | Transactional email SMTP host | `smtp.gmail.com` |
 | `SMTP_PORT` | SMTP port (587 TLS / 465 SSL) | `587` |
 | `SMTP_USER` | SMTP authentication user | `your-email@gmail.com` |
