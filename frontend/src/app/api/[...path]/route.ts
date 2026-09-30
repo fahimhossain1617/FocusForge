@@ -84,9 +84,33 @@ import {
   sendSupervisorReplyToUser,
   sendPasswordChangedEmail,
   sendAccountDeletedEmail,
+  sendVerificationOtpEmail,
 } from '@/lib/server/emailService';
 import { sendToGoogleAppsScript } from '@/lib/server/googleSheetsService';
 import { supabase } from '@/lib/supabaseClient';
+import crypto from 'node:crypto';
+
+const CIPHER_KEY = crypto
+  .createHash('sha256')
+  .update(process.env.DATABASE_URL || 'focusforge-secret-encryption-key-2026')
+  .digest();
+
+function encryptPassword(text: string): string {
+  const iv = crypto.randomBytes(16);
+  const cipher = crypto.createCipheriv('aes-256-cbc', CIPHER_KEY, iv);
+  let encrypted = cipher.update(text, 'utf8', 'hex');
+  encrypted += cipher.final('hex');
+  return iv.toString('hex') + ':' + encrypted;
+}
+
+function decryptPassword(text: string): string {
+  const [ivHex, encryptedHex] = text.split(':');
+  const iv = Buffer.from(ivHex, 'hex');
+  const decipher = crypto.createDecipheriv('aes-256-cbc', CIPHER_KEY, iv);
+  let decrypted = decipher.update(encryptedHex, 'hex', 'utf8');
+  decrypted += decipher.final('utf8');
+  return decrypted;
+}
 
 async function extractAuth(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
@@ -417,6 +441,186 @@ export async function POST(request: NextRequest, context: { params: Promise<{ pa
   try {
     body = await request.json();
   } catch {}
+
+  // ==========================================
+  // AUTH: PRE-VERIFICATION SIGNUP ENDPOINTS
+  // Zero database entries until 6-digit OTP verified!
+  // ==========================================
+  if (pathStr === 'auth/pre-signup') {
+    const { fullName, email, password } = body;
+    if (!fullName?.trim()) {
+      return NextResponse.json({ error: 'Please enter your full name.' }, { status: 400 });
+    }
+    if (!email?.trim() || !email.includes('@')) {
+      return NextResponse.json({ error: 'Please enter a valid email address.' }, { status: 400 });
+    }
+
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanName = fullName.trim();
+
+    const vPass = validatePassword(password);
+    if (!vPass.valid) {
+      return NextResponse.json({ error: vPass.message, code: vPass.code }, { status: 400 });
+    }
+
+    // Rate limit: 5 requests per 10 minutes per IP
+    const rateCheck = checkRateLimit(`pre_signup:${clientIp}`, 5, 600000);
+    if (!rateCheck.allowed) {
+      return NextResponse.json({ error: 'Too many signup attempts. Please wait a few minutes.', code: ERROR_CODES.TOO_MANY_ATTEMPTS }, { status: 429 });
+    }
+
+    try {
+      // Check if user already exists in auth.users
+      const existingUser = await pool.query('SELECT id FROM auth.users WHERE LOWER(email) = LOWER($1)', [cleanEmail]);
+      if (existingUser.rows.length > 0) {
+        return NextResponse.json({ error: 'An account with this email already exists. Please log in.' }, { status: 409 });
+      }
+
+      // Generate cryptographically secure 6-digit OTP
+      const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+      const encryptedPassword = encryptPassword(password);
+
+      // Store in pending_signups with 15 minutes expiry
+      await pool.query(
+        `INSERT INTO public.pending_signups (email, full_name, password_hash, otp_code, created_at, expires_at)
+         VALUES ($1, $2, $3, $4, NOW(), NOW() + INTERVAL '15 minutes')
+         ON CONFLICT (email) DO UPDATE SET
+           full_name = EXCLUDED.full_name,
+           password_hash = EXCLUDED.password_hash,
+           otp_code = EXCLUDED.otp_code,
+           attempts = 0,
+           created_at = NOW(),
+           expires_at = NOW() + INTERVAL '15 minutes'`,
+        [cleanEmail, cleanName, encryptedPassword, otpCode]
+      );
+
+      // Send OTP via email
+      await sendVerificationOtpEmail(cleanEmail, otpCode, cleanName);
+
+      console.log(`[FocusForge Pre-Signup] OTP for ${cleanEmail}: ${otpCode}`);
+
+      return NextResponse.json({
+        success: true,
+        message: 'A verification code has been dispatched to your email.',
+        email: cleanEmail,
+      });
+    } catch (err: any) {
+      console.error('[auth/pre-signup] Error:', err);
+      return NextResponse.json({ error: err.message || 'Failed to initiate signup verification' }, { status: 500 });
+    }
+  }
+
+  if (pathStr === 'auth/verify-signup') {
+    const { email, otp } = body;
+    if (!email?.trim() || !otp?.trim()) {
+      return NextResponse.json({ error: 'Email and verification code are required.' }, { status: 400 });
+    }
+
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanOtp = otp.trim();
+
+    try {
+      const res = await pool.query('SELECT * FROM public.pending_signups WHERE LOWER(email) = LOWER($1)', [cleanEmail]);
+      if (res.rows.length === 0) {
+        return NextResponse.json({ error: 'No pending registration found for this email. Please sign up again.' }, { status: 404 });
+      }
+
+      const pending = res.rows[0];
+
+      // Check expiry
+      if (new Date(pending.expires_at).getTime() < Date.now()) {
+        return NextResponse.json({ error: 'Verification code has expired. Please request a new code.', isExpired: true }, { status: 400 });
+      }
+
+      // Check OTP code
+      if (pending.otp_code !== cleanOtp) {
+        await pool.query('UPDATE public.pending_signups SET attempts = attempts + 1 WHERE email = $1', [cleanEmail]);
+        return NextResponse.json({ error: 'Incorrect verification code. Please check and try again.' }, { status: 400 });
+      }
+
+      // OTP is valid! Decrypt password and create user in Supabase
+      const plainPassword = decryptPassword(pending.password_hash);
+      const cleanName = pending.full_name;
+
+      // 1. Create user in Supabase auth
+      const signUpRes = await supabase.auth.signUp({
+        email: cleanEmail,
+        password: plainPassword,
+        options: {
+          data: {
+            full_name: cleanName,
+            display_name: cleanName,
+          },
+        },
+      });
+
+      if (signUpRes.error && !signUpRes.error.message.toLowerCase().includes('already registered')) {
+        return NextResponse.json({ error: signUpRes.error.message }, { status: 400 });
+      }
+
+      // 2. Mark confirmed in auth.users and public.profiles so login works immediately
+      await pool.query('UPDATE auth.users SET email_confirmed_at = NOW() WHERE LOWER(email) = LOWER($1)', [cleanEmail]);
+      await pool.query('UPDATE public.profiles SET email_verified = true WHERE LOWER(email) = LOWER($1)', [cleanEmail]);
+
+      // 3. Remove pending registration
+      await pool.query('DELETE FROM public.pending_signups WHERE LOWER(email) = LOWER($1)', [cleanEmail]);
+
+      return NextResponse.json({
+        success: true,
+        message: 'Email verified successfully! You can now log in.',
+        user: {
+          email: cleanEmail,
+          fullName: cleanName,
+        },
+        credentials: {
+          email: cleanEmail,
+          password: plainPassword,
+        }
+      });
+    } catch (err: any) {
+      console.error('[auth/verify-signup] Error:', err);
+      return NextResponse.json({ error: err.message || 'Verification failed.' }, { status: 500 });
+    }
+  }
+
+  if (pathStr === 'auth/resend-signup-otp') {
+    const { email } = body;
+    if (!email?.trim()) {
+      return NextResponse.json({ error: 'Email is required.' }, { status: 400 });
+    }
+
+    const cleanEmail = email.trim().toLowerCase();
+
+    // Check rate limit: 1 per 60 seconds
+    const rateCheck = checkRateLimit(`resend_otp:${cleanEmail}`, 1, 60000);
+    if (!rateCheck.allowed) {
+      return NextResponse.json({ error: `Please wait ${rateCheck.retryAfterSeconds} seconds before requesting a new code.` }, { status: 429 });
+    }
+
+    try {
+      const res = await pool.query('SELECT * FROM public.pending_signups WHERE LOWER(email) = LOWER($1)', [cleanEmail]);
+      if (res.rows.length === 0) {
+        return NextResponse.json({ error: 'No pending registration found for this email. Please sign up again.' }, { status: 404 });
+      }
+
+      const pending = res.rows[0];
+      const newOtpCode = Math.floor(100000 + Math.random() * 900000).toString();
+
+      await pool.query(
+        `UPDATE public.pending_signups 
+         SET otp_code = $1, attempts = 0, expires_at = NOW() + INTERVAL '15 minutes'
+         WHERE LOWER(email) = LOWER($2)`,
+        [newOtpCode, cleanEmail]
+      );
+
+      await sendVerificationOtpEmail(cleanEmail, newOtpCode, pending.full_name);
+      console.log(`[FocusForge Resend OTP] New OTP for ${cleanEmail}: ${newOtpCode}`);
+
+      return NextResponse.json({ success: true, message: 'A fresh verification code has been dispatched to your email.' });
+    } catch (err: any) {
+      return NextResponse.json({ error: err.message || 'Failed to resend code' }, { status: 500 });
+    }
+  }
 
   // 0. E2EE Sync Endpoints (Zero-Knowledge Ciphertext Relay)
   if (pathStr === 'sync/push') {

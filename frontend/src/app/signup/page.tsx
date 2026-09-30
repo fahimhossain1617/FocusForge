@@ -9,17 +9,17 @@ import LegalModal from "../../components/auth/LegalModal";
 import { authService } from "../../services/authService";
 import { useAuth } from "../../context/AuthContext";
 import { useAppContext } from "../../context/AppContext";
-
+import { Check, Circle } from "lucide-react";
 
 export default function SignupPage() {
   const router = useRouter();
-  const { onAuthSuccess } = useAuth();
   const { showToast } = useAppContext();
 
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [isPasswordFocused, setIsPasswordFocused] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -31,30 +31,12 @@ export default function SignupPage() {
     setLegalModalOpen(true);
   };
 
-  // Compute password strength
-  const getPasswordStrength = () => {
-    if (!password) return { level: 0, text: "" };
-    const hasLetter = /[a-zA-Z]/.test(password);
-    const hasNumber = /[0-9]/.test(password);
-    const hasSpecial = /[^a-zA-Z0-9]/.test(password);
-    const isLongEnough = password.length >= 8;
-
-    if (password.length >= 10 && hasLetter && hasNumber && hasSpecial) {
-      return { level: 4, text: "Strong" };
-    }
-    if (isLongEnough && hasLetter && hasNumber) {
-      return { level: 3, text: "Good" };
-    }
-    if (isLongEnough && (hasLetter || hasNumber)) {
-      return { level: 2, text: "Fair" };
-    }
-    if (password.length >= 6) {
-      return { level: 1, text: "Weak" };
-    }
-    return { level: 1, text: "Too short" };
-  };
-
-  const strength = getPasswordStrength();
+  // Password criteria verification
+  const hasMinLength = password.length >= 8;
+  const hasCapital = /[A-Z]/.test(password);
+  const hasNumber = /[0-9]/.test(password);
+  const hasSpecial = /[^a-zA-Z0-9]/.test(password);
+  const isAllValid = hasMinLength && hasCapital && hasNumber && hasSpecial;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -64,17 +46,13 @@ export default function SignupPage() {
       return;
     }
 
-    if (!email.trim()) {
-      setError("Please enter your email address.");
+    if (!email.trim() || !email.includes("@")) {
+      setError("Please enter a valid email address.");
       return;
     }
 
-    const hasCapital = /[A-Z]/.test(password);
-    const hasNumber = /[0-9]/.test(password);
-    const hasSpecial = /[^a-zA-Z0-9]/.test(password);
-
-    if (password.length < 8 || !hasCapital || !hasNumber || !hasSpecial) {
-      setError("Password must be at least 8 characters long and include an uppercase letter, a number, and a special character.");
+    if (!isAllValid) {
+      setError("Password must meet all 4 security criteria below.");
       return;
     }
 
@@ -87,32 +65,20 @@ export default function SignupPage() {
     setError(null);
 
     try {
+      // Pre-verification signup: sends OTP, NO user created in DB yet!
       const res = await authService.signUp(fullName, email, password);
 
       if (!res.success) {
-        setError(res.error || "Failed to create account. Please check your credentials.");
+        setError(res.error || "Failed to initiate registration. Please check your credentials.");
         return;
       }
 
-      // Clear any auto-session to strictly enforce email OTP verification before login
-      if (res.session) {
-        await authService.clearSession();
-      }
-
-      // Ensure verification OTP is dispatched to user's email
-      try {
-        await authService.resendOtp(email.trim().toLowerCase());
-      } catch (e) {
-        console.warn("[signup] resendOtp notice:", e);
-      }
-
-      // Store pending email in sessionStorage for verification screen fallback
+      // Store pending info in sessionStorage for verification fallback
       if (typeof window !== "undefined") {
         sessionStorage.setItem("focusforge_pending_email", email.trim().toLowerCase());
         sessionStorage.setItem("focusforge_pending_name", fullName.trim());
       }
 
-      // Redirect to step 2 (Email Verification)
       showToast("A verification code has been dispatched to your email.", "info");
       router.push(`/verify?email=${encodeURIComponent(email.trim().toLowerCase())}`);
     } catch (err: any) {
@@ -138,31 +104,9 @@ export default function SignupPage() {
   };
 
   return (
-    <AuthLayout screen="signup" showBack>
-      <div className="auth-steps">
-        <i className="on" />
-        <i />
-        <span>Step 1 of 2</span>
-      </div>
-
+    <AuthLayout screen="signup" showBack stepInfo="Step 1 of 2">
       <h2 className="auth-title">Create your account</h2>
-      <p className="auth-lead">Start tracking your progress today.</p>
-
-      <div style={{ height: "12px" }} />
-
-      {error && <div className="auth-error-banner">{error}</div>}
-
-      <button
-        type="button"
-        className="auth-gbtn"
-        onClick={handleGoogleSignup}
-        disabled={loading}
-      >
-        {AuthIcons.google}
-        Sign up with Google
-      </button>
-
-      <div className="auth-or">or sign up with email</div>
+      <p className="auth-lead mb-4">Start tracking your progress today.</p>
 
       <form onSubmit={handleSubmit}>
         <label htmlFor="signup-name" className="auth-label">
@@ -184,7 +128,7 @@ export default function SignupPage() {
         <label htmlFor="signup-email" className="auth-label">
           Email address
         </label>
-        <div className="auth-field" style={{ marginBottom: "8px" }}>
+        <div className="auth-field mb-1">
           {AuthIcons.mail}
           <input
             id="signup-email"
@@ -196,21 +140,22 @@ export default function SignupPage() {
             autoComplete="email"
           />
         </div>
-        <div className="auth-hint" style={{ marginTop: 0 }}>
-          We’ll send a verification code to this address.
+        <div className="text-[11px] text-slate-400 mb-3 ml-1">
+          We’ll send a 6-digit verification code to this address.
         </div>
 
         <label htmlFor="signup-password" className="auth-label">
           Password
         </label>
-        <div className="auth-field" style={{ marginBottom: "12px" }}>
+        <div className="auth-field mb-1">
           {AuthIcons.lock}
           <input
             id="signup-password"
             type={showPassword ? "text" : "password"}
-            placeholder="Create a password"
+            placeholder="Create a strong password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            onFocus={() => setIsPasswordFocused(true)}
             required
             autoComplete="new-password"
           />
@@ -224,19 +169,41 @@ export default function SignupPage() {
           </button>
         </div>
 
-        <div className="auth-meter">
-          <i className={strength.level >= 1 ? "on" : ""} />
-          <i className={strength.level >= 2 ? "on" : ""} />
-          <i className={strength.level >= 3 ? "on" : ""} />
-          <i className={strength.level >= 4 ? "on" : ""} />
-        </div>
-        <div className="auth-strength">
-          <span>8+ chars, 1 uppercase, 1 number, 1 special char</span>
-          {strength.text && <b>{strength.text}</b>}
-        </div>
+        {/* Minimal Non-Glowing Criteria Checklist under password input */}
+        {(isPasswordFocused || password.length > 0) && (
+          <div className="auth-pass-checklist">
+            <div className="flex items-center justify-between text-[11px] mb-1">
+              <span className="text-slate-400 font-medium">Password Requirements</span>
+              <span className={`font-bold ${isAllValid ? "text-green-400" : "text-slate-400"}`}>
+                {isAllValid ? "Strong" : "Incomplete"}
+              </span>
+            </div>
 
+            <div className={`auth-pass-item ${hasMinLength ? "valid" : ""}`}>
+              {hasMinLength ? <Check size={12} className="text-green-400" /> : <Circle size={8} className="text-slate-500" />}
+              <span>At least 8 characters</span>
+            </div>
+
+            <div className={`auth-pass-item ${hasCapital ? "valid" : ""}`}>
+              {hasCapital ? <Check size={12} className="text-green-400" /> : <Circle size={8} className="text-slate-500" />}
+              <span>At least 1 uppercase letter (A-Z)</span>
+            </div>
+
+            <div className={`auth-pass-item ${hasNumber ? "valid" : ""}`}>
+              {hasNumber ? <Check size={12} className="text-green-400" /> : <Circle size={8} className="text-slate-500" />}
+              <span>At least 1 number (0-9)</span>
+            </div>
+
+            <div className={`auth-pass-item ${hasSpecial ? "valid" : ""}`}>
+              {hasSpecial ? <Check size={12} className="text-green-400" /> : <Circle size={8} className="text-slate-500" />}
+              <span>At least 1 special character (!@#$%^&*)</span>
+            </div>
+          </div>
+        )}
+
+        {/* Terms of Service & Privacy Policy Checkbox */}
         <div
-          className="auth-check"
+          className="auth-check mt-3"
           onClick={() => setAgreedToTerms(!agreedToTerms)}
           role="checkbox"
           aria-checked={agreedToTerms}
@@ -251,7 +218,7 @@ export default function SignupPage() {
           <span className={`box ${agreedToTerms ? "" : "unchecked"}`}>
             {agreedToTerms && AuthIcons.check}
           </span>
-          <span>
+          <span className="text-xs text-slate-300">
             I agree to the{" "}
             <button
               type="button"
@@ -259,7 +226,7 @@ export default function SignupPage() {
                 e.stopPropagation();
                 openLegal("terms");
               }}
-              className="text-link hover:underline bg-transparent border-0 p-0 font-medium cursor-pointer"
+              className="font-bold text-blue-400 hover:text-blue-300 underline underline-offset-2 bg-transparent border-0 p-0 cursor-pointer"
             >
               Terms of Service
             </button>{" "}
@@ -270,20 +237,36 @@ export default function SignupPage() {
                 e.stopPropagation();
                 openLegal("privacy");
               }}
-              className="text-link hover:underline bg-transparent border-0 p-0 font-medium cursor-pointer"
+              className="font-bold text-blue-400 hover:text-blue-300 underline underline-offset-2 bg-transparent border-0 p-0 cursor-pointer"
             >
               Privacy Policy
             </button>
           </span>
         </div>
 
-        <button type="submit" className="auth-cta" disabled={loading}>
-          {loading ? "Creating account..." : "Create account"}
+        {/* Bottom Error banner (near user thumb and CTA) */}
+        {error && <div className="auth-bottom-error">{error}</div>}
+
+        <button type="submit" className="auth-cta mt-2" disabled={loading}>
+          {loading ? "Sending verification..." : "Create account"}
         </button>
 
-        <div className="auth-alt">
-          Already have an account? <Link href="/login">Log In</Link>
+        <div className="auth-alt mt-3">
+          Already have an account? <Link href="/login" className="text-blue-400 hover:underline">Log in</Link>
         </div>
+
+        <div className="auth-or my-3">or continue with</div>
+
+        {/* Google sign-up positioned at bottom as requested */}
+        <button
+          type="button"
+          className="auth-gbtn"
+          onClick={handleGoogleSignup}
+          disabled={loading}
+        >
+          {AuthIcons.google}
+          Sign up with Google
+        </button>
       </form>
 
       <LegalModal

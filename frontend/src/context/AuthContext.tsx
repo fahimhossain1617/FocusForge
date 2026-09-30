@@ -247,23 +247,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     ) => {
       setAuthGuardModal({ isOpen: false });
 
-      // If in guest mode and haven't seen the permanent transition warning, show it first
-      const isCurrentlyGuest = !user && !accountManager.isGuestModePermanentlyDisabled();
-      if (isCurrentlyGuest && !accountManager.hasSeenGuestTransitionWarning()) {
-        pendingAuthActionRef.current = () => {
-          accountManager.setSeenGuestTransitionWarning();
-          if ((view as string) === "signup") {
-            router.push("/signup");
-          } else if ((view as string) === "verify") {
-            router.push("/verify");
-          } else {
-            router.push("/login");
-          }
-        };
-        setGuestTransitionWarningOpen(true);
-        return;
-      }
-
       if ((view as string) === "signup") {
         router.push("/signup");
         return;
@@ -274,7 +257,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
       router.push("/login");
     },
-    [user, router]
+    [router]
   );
 
   const closeAuth = useCallback(() => {

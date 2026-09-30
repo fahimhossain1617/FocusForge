@@ -75,9 +75,6 @@ export default function ForgotPasswordModal({
 
         {success ? (
           <div className="text-center py-4">
-            <div className="auth-vicon mx-auto mb-4" style={{ width: 48, height: 48 }}>
-              {AuthIcons.mailok}
-            </div>
             <h4 className="font-semibold text-lg text-white mb-2">Check your email</h4>
             <p className="text-sm text-slate-300 leading-relaxed mb-6">
               We have sent a password reset link to <b className="text-white">{email}</b>. Please follow the instructions in the email to set a new password.

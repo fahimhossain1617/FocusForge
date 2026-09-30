@@ -81,30 +81,63 @@ function VerifyContent() {
       return;
     }
 
+    if (clean.length > 1) {
+      const chars = clean.slice(0, 6).split("");
+      const updated = [...otp];
+      chars.forEach((c, idx) => {
+        if (index + idx < 6) updated[index + idx] = c;
+      });
+      setOtp(updated);
+      const nextPos = Math.min(index + chars.length, 5);
+      inputRefs.current[nextPos]?.focus();
+      inputRefs.current[nextPos]?.select();
+      setActiveIdx(nextPos);
+      return;
+    }
+
     // Single digit input
     const digit = clean[clean.length - 1];
     const updated = [...otp];
     updated[index] = digit;
     setOtp(updated);
 
-    // Jump to next input
+    // Jump to next input immediately
     if (index < 5 && digit) {
-      inputRefs.current[index + 1]?.focus();
-      setActiveIdx(index + 1);
+      const nextEl = inputRefs.current[index + 1];
+      if (nextEl) {
+        nextEl.focus();
+        nextEl.select();
+        setActiveIdx(index + 1);
+      }
     }
   };
 
   const handleKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Backspace") {
       if (!otp[index] && index > 0) {
-        inputRefs.current[index - 1]?.focus();
-        setActiveIdx(index - 1);
+        const updated = [...otp];
+        updated[index - 1] = "";
+        setOtp(updated);
+        const prevEl = inputRefs.current[index - 1];
+        if (prevEl) {
+          prevEl.focus();
+          prevEl.select();
+          setActiveIdx(index - 1);
+        }
+      } else {
+        const updated = [...otp];
+        updated[index] = "";
+        setOtp(updated);
       }
     } else if (e.key === "ArrowLeft" && index > 0) {
+      e.preventDefault();
       inputRefs.current[index - 1]?.focus();
+      inputRefs.current[index - 1]?.select();
       setActiveIdx(index - 1);
     } else if (e.key === "ArrowRight" && index < 5) {
+      e.preventDefault();
       inputRefs.current[index + 1]?.focus();
+      inputRefs.current[index + 1]?.select();
       setActiveIdx(index + 1);
     }
   };
@@ -122,8 +155,12 @@ function VerifyContent() {
     setOtp(updated);
 
     const nextIndex = Math.min(digits.length, 5);
-    inputRefs.current[nextIndex]?.focus();
-    setActiveIdx(nextIndex);
+    const targetEl = inputRefs.current[nextIndex];
+    if (targetEl) {
+      targetEl.focus();
+      targetEl.select();
+      setActiveIdx(nextIndex);
+    }
   };
 
   const handleVerify = async (e?: React.FormEvent) => {
@@ -224,15 +261,7 @@ function VerifyContent() {
   };
 
   return (
-    <AuthLayout screen="verify" showBack onBack={() => router.push("/signup")}>
-      <div className="auth-steps">
-        <i className="on" />
-        <i className="on" />
-        <span>Step 2 of 2</span>
-      </div>
-
-      <div className="auth-vicon">{AuthIcons.mailok}</div>
-
+    <AuthLayout screen="verify" showBack onBack={() => router.push("/signup")} stepInfo="Step 2 of 2">
       <h2 className="auth-title">Verify your email</h2>
       
       {isEditingEmail ? (
@@ -268,8 +297,6 @@ function VerifyContent() {
         </p>
       )}
 
-      {error && <div className="auth-error-banner mt-3">{error}</div>}
-
       <form onSubmit={handleVerify}>
         <div className="auth-otp">
           {otp.map((digit, i) => (
@@ -284,13 +311,19 @@ function VerifyContent() {
               className={activeIdx === i ? "act" : ""}
               onChange={(e) => handleOtpChange(i, e.target.value)}
               onKeyDown={(e) => handleKeyDown(i, e)}
-              onFocus={() => setActiveIdx(i)}
+              onFocus={(e) => {
+                setActiveIdx(i);
+                e.target.select();
+              }}
+              onClick={(e) => (e.target as HTMLInputElement).select()}
               onPaste={handlePaste}
               aria-label={`Digit ${i + 1}`}
               autoComplete="one-time-code"
             />
           ))}
         </div>
+
+        {error && <div className="auth-bottom-error">{error}</div>}
 
         <button type="submit" className="auth-cta" disabled={loading}>
           {loading ? "Verifying..." : "Verify email"}
@@ -323,7 +356,7 @@ function VerifyContent() {
         </button>
 
         <div className="auth-note">
-          Can’t find it? Check your spam folder. The code expires in 10 minutes.
+          Can’t find it? Check your <strong>Spam or Junk</strong> folder. The code expires in 15 minutes.
         </div>
       </form>
     </AuthLayout>

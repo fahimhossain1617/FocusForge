@@ -97,7 +97,7 @@ export const authService = {
   },
 
   // ==========================================
-  // SIGNUP FLOW
+  // SIGNUP FLOW (Pre-Verification: Zero DB writes until OTP verified!)
   // ==========================================
   async signUp(fullName: string, email: string, password: string): Promise<{
     success: boolean;
@@ -107,33 +107,49 @@ export const authService = {
   }> {
     const cleanEmail = email.trim().toLowerCase();
     const cleanName = fullName.trim();
-    const redirectUrl = getAuthRedirectUrl('/auth/callback');
 
-    const res = await supabase.auth.signUp({
-      email: cleanEmail,
-      password,
-      options: {
-        data: {
-          full_name: cleanName,
-          display_name: cleanName,
-        },
-        emailRedirectTo: redirectUrl,
+    try {
+      const resp = await fetch('/api/auth/pre-signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fullName: cleanName, email: cleanEmail, password }),
+      });
+
+      const data = await resp.json();
+
+      if (!resp.ok || !data.success) {
+        return { success: false, error: data.error || 'Failed to initiate signup verification.' };
       }
-    });
 
-    if (res.error) {
-      return { success: false, error: res.error.message };
-    }
-
-    if (res.data.user) {
       return {
         success: true,
-        user: mapSupabaseUserToUser(res.data.user, 'email'),
+      };
+    } catch (err: any) {
+      console.error('[authService.signUp] API error, falling back to client signup:', err);
+      // Fallback to direct client signup if API is unreachable
+      const redirectUrl = getAuthRedirectUrl('/auth/callback');
+      const res = await supabase.auth.signUp({
+        email: cleanEmail,
+        password,
+        options: {
+          data: {
+            full_name: cleanName,
+            display_name: cleanName,
+          },
+          emailRedirectTo: redirectUrl,
+        }
+      });
+
+      if (res.error) {
+        return { success: false, error: res.error.message };
+      }
+
+      return {
+        success: true,
+        user: res.data.user ? mapSupabaseUserToUser(res.data.user, 'email') : undefined,
         session: res.data.session,
       };
     }
-
-    return { success: false, error: "Signup failed." };
   },
 
   // ==========================================
@@ -147,14 +163,47 @@ export const authService = {
     const cleanEmail = email.trim().toLowerCase();
     const cleanToken = token.trim();
 
-    // 1. Primary verifyOtp call
+    // 1. If signup, verify via pre-verification endpoint first
+    if (type === 'signup') {
+      try {
+        const resp = await fetch('/api/auth/verify-signup', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: cleanEmail, otp: cleanToken }),
+        });
+        const data = await resp.json();
+
+        if (resp.ok && data.success) {
+          // If credentials returned, auto sign-in
+          if (data.credentials?.password) {
+            const loginRes = await supabase.auth.signInWithPassword({
+              email: cleanEmail,
+              password: data.credentials.password,
+            });
+
+            if (loginRes.data?.user) {
+              return { success: true, user: mapSupabaseUserToUser(loginRes.data.user, 'email') };
+            }
+          }
+          return { success: true };
+        } else if (data.isExpired) {
+          return { success: false, error: data.error || 'Verification code has expired.', isExpired: true };
+        } else if (data.error && !data.error.includes('No pending registration')) {
+          return { success: false, error: data.error };
+        }
+      } catch (e) {
+        console.warn('[authService.verifyOtp] pre-verification verify fallback:', e);
+      }
+    }
+
+    // 2. Primary verifyOtp call via Supabase
     let res = await supabase.auth.verifyOtp({
       email: cleanEmail,
       token: cleanToken,
       type: type as any,
     });
 
-    // 2. Fallback: if 'signup' fails, try 'email' (magic link/OTP code)
+    // 3. Fallback: if 'signup' fails, try 'email' (magic link/OTP code)
     if (res.error && type === 'signup') {
       const fallbackRes = await supabase.auth.verifyOtp({
         email: cleanEmail,
@@ -191,6 +240,25 @@ export const authService = {
     error?: string;
   }> {
     const cleanEmail = email.trim().toLowerCase();
+
+    if (type === 'signup') {
+      try {
+        const resp = await fetch('/api/auth/resend-signup-otp', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: cleanEmail }),
+        });
+        const data = await resp.json();
+        if (resp.ok && data.success) {
+          return { success: true };
+        } else if (data.error && !data.error.includes('No pending registration')) {
+          return { success: false, error: data.error };
+        }
+      } catch (e) {
+        console.warn('[authService.resendOtp] pre-verification resend fallback:', e);
+      }
+    }
+
     const redirectUrl = getAuthRedirectUrl('/auth/callback');
 
     const { error } = await supabase.auth.resend({

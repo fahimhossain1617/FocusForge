@@ -28,7 +28,8 @@ class EmailQueue {
 
   private initTransporter() {
     const host = process.env.SMTP_HOST || 'smtp.gmail.com';
-    const port = Number(process.env.SMTP_PORT) || 587;
+    let port = Number(process.env.SMTP_PORT) || 465;
+    if (port === 456) port = 465; // Auto-correct common port 456 typo to 465 (Google SSL)
     const user = process.env.SMTP_USER || '';
     const pass = process.env.SMTP_PASS || '';
     const secure = process.env.SMTP_SECURE === 'true' || port === 465;
@@ -54,6 +55,34 @@ class EmailQueue {
       delayMs: 2000,
     });
     this.processNext();
+  }
+
+  public async sendDirect(job: Omit<EmailJob, 'retries' | 'maxRetries' | 'delayMs'>): Promise<boolean> {
+    try {
+      if (!this.transporter) {
+        this.initTransporter();
+      }
+
+      if (this.transporter) {
+        const fromAddress = process.env.SMTP_FROM || `"FocusForge" <${SUPPORT_EMAIL}>`;
+        await this.transporter.sendMail({
+          from: fromAddress,
+          to: job.to,
+          replyTo: job.replyTo,
+          subject: job.subject,
+          text: job.text,
+          html: job.html,
+        });
+        console.log(`[EmailService] Successfully sent OTP email to ${job.to} (Subject: ${job.subject})`);
+        return true;
+      } else {
+        console.log(`[EmailQueue - Local Mock] To: ${job.to} | Subject: ${job.subject} | ReplyTo: ${job.replyTo}`);
+        return true;
+      }
+    } catch (err: any) {
+      console.error(`[EmailService] Failed direct send to ${job.to}:`, err?.message);
+      return false;
+    }
   }
 
   private async processNext() {
@@ -449,3 +478,74 @@ FocusForge Team
     text,
   });
 }
+
+// 6. 6-Digit Email Verification Code
+export async function sendVerificationOtpEmail(to: string, otpCode: string, recipientName?: string): Promise<boolean> {
+  if (!to) return false;
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="utf-8" />
+        <style>
+          body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #1e293b; background-color: #f8fafc; padding: 24px; margin: 0; }
+          .card { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; max-width: 540px; margin: 0 auto; padding: 32px 24px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05); }
+          .brand { font-size: 22px; font-weight: 800; color: #0356C5; margin-bottom: 20px; display: inline-block; letter-spacing: -0.02em; }
+          .title { font-size: 20px; font-weight: 700; color: #0f172a; margin: 0 0 12px; }
+          .sub { font-size: 15px; color: #475569; margin: 0 0 24px; line-height: 1.5; }
+          .otp-box { background: #f0f6ff; border: 1.5px dashed #0356C5; border-radius: 10px; padding: 20px; text-align: center; margin: 24px 0; }
+          .otp-code { font-size: 36px; font-weight: 800; letter-spacing: 8px; color: #0356C5; font-family: monospace, sans-serif; }
+          .expire-note { font-size: 13px; color: #64748b; margin-top: 10px; }
+          .tip-box { background: #f8fafc; border-left: 4px solid #3b82f6; padding: 12px 16px; border-radius: 6px; margin: 20px 0; font-size: 13px; color: #334155; }
+          .footer { font-size: 12px; color: #94a3b8; margin-top: 28px; border-top: 1px solid #e2e8f0; padding-top: 16px; text-align: center; }
+        </style>
+      </head>
+      <body>
+        <div class="card">
+          <div class="brand">FocusForge</div>
+          <h2 class="title">Verify your email address</h2>
+          <p class="sub">Hello ${escapeHtml(recipientName || 'there')},<br />Use the 6-digit verification code below to complete your FocusForge account registration.</p>
+          
+          <div class="otp-box">
+            <div class="otp-code">${escapeHtml(otpCode)}</div>
+            <div class="expire-note">This code expires in 15 minutes.</div>
+          </div>
+
+          <div class="tip-box">
+            <strong>Tip:</strong> If you don't receive future updates in your primary inbox, please check your <strong>Gmail Spam or Promotions</strong> folder and mark us as "Not Spam".
+          </div>
+
+          <p style="font-size: 13px; color: #64748b; margin: 0;">If you did not request this verification code, please ignore this email.</p>
+          
+          <div class="footer">
+            &copy; 2026 FocusForge &bull; Secure Authentication System
+          </div>
+        </div>
+      </body>
+    </html>
+  `;
+
+  const text = `
+FocusForge Email Verification
+
+Hello ${recipientName || 'there'},
+
+Your 6-digit verification code is: ${otpCode}
+
+This code expires in 15 minutes.
+
+If you did not request this code, you can safely ignore this email.
+
+Best regards,
+FocusForge Team
+  `.trim();
+
+  return await emailQueue.sendDirect({
+    to,
+    subject: `${otpCode} is your FocusForge verification code`,
+    html,
+    text,
+  });
+}
+
