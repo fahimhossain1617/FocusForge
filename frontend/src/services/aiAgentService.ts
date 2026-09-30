@@ -1,6 +1,8 @@
 import type { AIAgentLanguage, AIAgentModel, AgentMessage, WorkspaceContext } from "@/types/aiAgent";
 import { supabase } from "../lib/supabaseClient";
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { localDb } from "./localDbService";
+import { aiMemoryService } from "./aiMemoryService";
 
 export interface TokenStatus {
   total: number;
@@ -109,48 +111,22 @@ export function estimateClientTokenUsage(
 }
 
 /**
- * Fetch chat sessions directly from API / Supabase with session/cache fallback
+ * Fetch chat sessions directly from local-first IndexedDB
  */
 export async function getChatSessions(): Promise<ChatSession[]> {
-  const token = await getToken();
-  const guestId = getGuestId();
-
-  // 1. Try server endpoint first
-  try {
-    const res = await fetch(`${getApiUrl()}/ai/agent/sessions`, {
-      headers: {
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        'x-guest-id': guestId,
-      },
-    });
-    if (res.ok) {
-      const data = await res.json();
-      if (Array.isArray(data) && data.length > 0) {
-        if (typeof window !== 'undefined' && token) {
-          try { localStorage.setItem('focusforge_active_sessions_cache', JSON.stringify(data)); } catch {}
-        }
-        return data;
-      }
-    }
-  } catch (err) {
-    console.warn('[aiAgentService] Server sessions fetch error, trying direct Supabase:', err);
-  }
-
-  // 2. Direct Supabase fallback
   try {
     const { data: { user } } = await supabase.auth.getUser();
-    if (user?.id) {
-      const { data, error } = await supabase
-        .from('ai_chat_sessions')
-        .select('id, user_id, title, created_at, updated_at')
-        .eq('user_id', user.id)
-        .order('updated_at', { ascending: false });
-
-      if (!error && Array.isArray(data) && data.length > 0) {
-        return data;
-      }
+    const userId = user?.id || null;
+    if (userId) {
+      const sessions = await localDb.getAllForUser<any>("ai_sessions", userId, false);
+      return sessions.map((s) => ({
+        id: s.id,
+        title: s.title || "Chat",
+        user_id: s.userId || userId,
+        created_at: s.createdAt,
+        updated_at: s.updatedAt || s.createdAt || new Date().toISOString(),
+      })).sort((a, b) => new Date(b.updated_at || 0).getTime() - new Date(a.updated_at || 0).getTime());
     } else {
-      // Guest mode: ONLY read temporary sessionStorage
       if (typeof window !== "undefined") {
         const guestStored = sessionStorage.getItem("focusforge_guest_sessions_list");
         if (guestStored) {
@@ -160,93 +136,61 @@ export async function getChatSessions(): Promise<ChatSession[]> {
       }
       return [];
     }
-  } catch (sbErr) {
-    console.warn("[aiAgentService] Supabase direct sessions fetch error:", sbErr);
+  } catch (err) {
+    console.warn("[aiAgentService] Error reading local sessions:", err);
+    return [];
   }
-
-  // Auth user local storage cache fallback
-  if (typeof window !== "undefined") {
-    try {
-      const cached = localStorage.getItem("focusforge_active_sessions_cache");
-      if (cached) {
-        const parsed = JSON.parse(cached);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      }
-    } catch {}
-  }
-
-  return [];
 }
 
 /**
- * Create a new chat session in Supabase
+ * Create a new chat session in local-first database
  */
 export async function createChatSession(title: string): Promise<ChatSession> {
   const newId = crypto.randomUUID();
-  const token = await getToken();
-
-  // Try API first
-  try {
-    const res = await fetch(`${getApiUrl()}/ai/agent/sessions`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
-      body: JSON.stringify({ title }),
-    });
-    if (res.ok) {
-      const data = await res.json();
-      if (data && data.id) return data;
-    }
-  } catch {}
-
-  // Direct Supabase fallback
+  const now = new Date().toISOString();
   try {
     const { data: { user } } = await supabase.auth.getUser();
-    if (user?.id) {
-      const { data, error } = await supabase
-        .from('ai_chat_sessions')
-        .insert([{ id: newId, title, user_id: user.id }])
-        .select('id, user_id, title, created_at, updated_at')
-        .single();
-
-      if (!error && data) return data;
+    const userId = user?.id || null;
+    const session: ChatSession = { id: newId, title, user_id: userId, updated_at: now, created_at: now };
+    if (userId) {
+      await localDb.put("ai_sessions", {
+        ...session,
+        userId,
+        createdAt: now,
+        updatedAt: now,
+      } as any);
+    } else {
+      if (typeof window !== "undefined") {
+        const existing = JSON.parse(sessionStorage.getItem("focusforge_guest_sessions_list") || "[]");
+        sessionStorage.setItem("focusforge_guest_sessions_list", JSON.stringify([session, ...existing]));
+      }
     }
-  } catch (err) {
-    console.warn("[aiAgentService] Supabase createChatSession error:", err);
+    return session;
+  } catch {
+    return { id: newId, title, updated_at: now };
   }
-
-  return { id: newId, title, updated_at: new Date().toISOString() };
 }
 
 /**
- * Delete a session and its messages from both backend API and Supabase
+ * Delete a session and its messages from local-first database
  */
 export async function deleteChatSession(sessionId: string): Promise<{ success: boolean }> {
-  const token = await getToken();
-
-  // 1. Delete via backend API endpoint (triggers cascading delete in database)
   try {
-    await fetch(`${getApiUrl()}/ai/agent/sessions/${encodeURIComponent(sessionId)}`, {
-      method: 'DELETE',
-      headers: {
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
-    });
+    const { data: { user } } = await supabase.auth.getUser();
+    const userId = user?.id || null;
+    if (userId) {
+      await localDb.softDelete("ai_sessions", userId, sessionId);
+      const allMsgs = await localDb.getAllForUser<any>("ai_messages", userId, false);
+      for (const m of allMsgs) {
+        if (m.sessionId === sessionId) {
+          await localDb.softDelete("ai_messages", userId, m.id);
+        }
+      }
+    }
   } catch (err) {
-    console.warn('[aiAgentService] Backend delete session notice:', err);
+    console.warn("[aiAgentService] Error deleting local chat session:", err);
   }
 
-  // 2. Direct Supabase delete fallback
-  try {
-    await supabase.from('ai_chat_messages').delete().eq('session_id', sessionId);
-    await supabase.from('ai_chat_sessions').delete().eq('id', sessionId);
-  } catch (err) {
-    console.warn("[aiAgentService] Supabase direct delete error:", err);
-  }
-
-  // 3. Clean local & session storage
   if (typeof window !== "undefined") {
     sessionStorage.removeItem(`focusforge_guest_msg_${sessionId}`);
     localStorage.removeItem(`focusforge_auth_msg_${sessionId}`);
@@ -257,40 +201,24 @@ export async function deleteChatSession(sessionId: string): Promise<{ success: b
 }
 
 /**
- * Clear all chat sessions and messages
+ * Clear all chat sessions and messages for the user
  */
 export async function clearAllChatSessions(): Promise<{ success: boolean }> {
-  const token = await getToken();
-
-  // 1. Clear via backend API endpoint
-  try {
-    await fetch(`${getApiUrl()}/ai/agent/sessions`, {
-      method: 'DELETE',
-      headers: {
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
-    });
-  } catch (err) {
-    console.warn('[aiAgentService] Backend clear all sessions notice:', err);
-  }
-
-  // 2. Direct Supabase delete fallback
   try {
     const { data: { user } } = await supabase.auth.getUser();
-    if (user?.id) {
-      const { data: userSessions } = await supabase
-        .from('ai_chat_sessions')
-        .select('id')
-        .eq('user_id', user.id);
-      
-      if (Array.isArray(userSessions) && userSessions.length > 0) {
-        const sessionIds = userSessions.map((s) => s.id);
-        await supabase.from('ai_chat_messages').delete().in('session_id', sessionIds);
+    const userId = user?.id || null;
+    if (userId) {
+      const sessions = await localDb.getAllForUser<any>("ai_sessions", userId, false);
+      for (const s of sessions) {
+        await localDb.softDelete("ai_sessions", userId, s.id);
       }
-      await supabase.from('ai_chat_sessions').delete().eq('user_id', user.id);
+      const allMsgs = await localDb.getAllForUser<any>("ai_messages", userId, false);
+      for (const m of allMsgs) {
+        await localDb.softDelete("ai_messages", userId, m.id);
+      }
     }
   } catch (err) {
-    console.warn("[aiAgentService] Supabase clearAllChatSessions error:", err);
+    console.warn("[aiAgentService] Error clearing local chat sessions:", err);
   }
 
   if (typeof window !== "undefined") {
@@ -314,61 +242,33 @@ export async function clearAllChatSessions(): Promise<{ success: boolean }> {
 }
 
 /**
- * Fetch messages for a specific session
+ * Fetch messages for a specific session from local-first database
  */
 export async function getChatMessages(sessionId: string): Promise<AgentMessage[]> {
-  const token = await getToken();
-
-  // 1. Try server API route first
   try {
-    const res = await fetch(`${getApiUrl()}/ai/agent/sessions/${encodeURIComponent(sessionId)}/messages`, {
-      headers: {
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
-    });
-    if (res.ok) {
-      const data = await res.json();
-      if (Array.isArray(data) && data.length > 0) {
-        return data.map((row: any) => ({
-          id: row.id,
-          role: row.role as 'user' | 'assistant',
-          content: row.content,
-          intent: row.intent,
-          payload: typeof row.payload_json === 'string' ? JSON.parse(row.payload_json) : (row.payload || row.payload_json),
-          createdAt: new Date(row.created_at || Date.now()),
-        }));
+    const { data: { user } } = await supabase.auth.getUser();
+    const userId = user?.id || null;
+    if (userId) {
+      const msgs = await localDb.getAllForUser<any>("ai_messages", userId, false);
+      const sessionMsgs = msgs.filter((m) => m.sessionId === sessionId);
+      if (sessionMsgs.length > 0) {
+        return sessionMsgs
+          .sort((a, b) => new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime())
+          .map((m) => ({
+            id: m.id,
+            role: m.role as "user" | "assistant",
+            content: m.content,
+            intent: m.intent,
+            payload: m.payload,
+            createdAt: new Date(m.createdAt || Date.now()),
+          }));
       }
     }
   } catch (err) {
-    console.warn('[aiAgentService] Server getChatMessages error, trying direct Supabase:', err);
+    console.warn("[aiAgentService] Error reading local messages:", err);
   }
 
-  // 2. Direct Supabase fallback
-  try {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user?.id) {
-      const { data, error } = await supabase
-        .from('ai_chat_messages')
-        .select('id, session_id, role, content, intent, payload_json, created_at')
-        .eq('session_id', sessionId)
-        .order('created_at', { ascending: true });
-
-      if (!error && Array.isArray(data) && data.length > 0) {
-        return data.map((row: any) => ({
-          id: row.id,
-          role: row.role as 'user' | 'assistant',
-          content: row.content,
-          intent: row.intent,
-          payload: typeof row.payload_json === 'string' ? JSON.parse(row.payload_json) : row.payload_json,
-          createdAt: new Date(row.created_at || Date.now()),
-        }));
-      }
-    }
-  } catch (sbErr) {
-    console.warn("[aiAgentService] Supabase getChatMessages error:", sbErr);
-  }
-
-  // Fallback to local / session storage
+  // Fallback to cache / sessionStorage
   if (typeof window !== "undefined") {
     try {
       const cached = localStorage.getItem(`focusforge_chat_msg_${sessionId}`) ||
@@ -936,6 +836,21 @@ export async function sendAgentMessage(
   const token = await getToken();
   const guestId = getGuestId();
 
+  // Inject user-owned local AI memory into prompt context
+  let enrichedContext = context;
+  try {
+    const { data: { user: currentUser } } = await supabase.auth.getUser();
+    if (currentUser?.id) {
+      const memoryContext = await aiMemoryService.buildMemoryContext(currentUser.id);
+      if (memoryContext) {
+        enrichedContext = {
+          ...context,
+          instructions: (context.instructions || "") + memoryContext,
+        };
+      }
+    }
+  } catch {}
+
   let resData: any = null;
 
   // Try Next.js / backend API route first
@@ -949,7 +864,7 @@ export async function sendAgentMessage(
         'x-guest-id': guestId,
         'x-app-lang': lang,
       },
-      body: JSON.stringify({ sessionId: targetSessionId, message, context, history, model })
+      body: JSON.stringify({ sessionId: targetSessionId, message, context: enrichedContext, history, model })
     });
     
     if (res.ok) {
@@ -1029,37 +944,42 @@ export async function sendAgentMessage(
   }
 
   if (isAuth && userId) {
-    // Authenticated User: Persist to Supabase and permanent local cache
+    // Authenticated User: Persist to local-first IndexedDB (zero plaintext to Supabase)
     try {
-      // 1. Upsert session
-      await supabase.from('ai_chat_sessions').upsert({
+      const nowStr = new Date().toISOString();
+
+      // 1. Upsert session locally
+      await localDb.put("ai_sessions", {
         id: resData.sessionId,
         title: finalTitle,
-        user_id: userId,
-        updated_at: new Date().toISOString(),
-      });
+        userId,
+        updatedAt: nowStr,
+        createdAt: nowStr,
+      } as any);
 
-      // 2. Insert user message
-      await supabase.from('ai_chat_messages').insert([{
+      // 2. Insert user message locally
+      await localDb.put("ai_messages", {
         id: crypto.randomUUID(),
-        session_id: resData.sessionId,
+        sessionId: resData.sessionId,
+        userId,
         role: 'user',
         content: message,
-        created_at: new Date().toISOString(),
-      }]);
+        createdAt: nowStr,
+      } as any);
 
-      // 3. Insert assistant message
-      await supabase.from('ai_chat_messages').insert([{
+      // 3. Insert assistant message locally
+      await localDb.put("ai_messages", {
         id: isUuid.test(resData.aiMessage.id) ? resData.aiMessage.id : crypto.randomUUID(),
-        session_id: resData.sessionId,
+        sessionId: resData.sessionId,
+        userId,
         role: 'assistant',
         content: resData.aiMessage.content,
         intent: resData.aiMessage.intent || null,
-        payload_json: (resData.aiMessage as any).payload || (resData.aiMessage as any).payload_json || null,
-        created_at: new Date().toISOString(),
-      }]);
-    } catch (syncErr) {
-      console.warn("[aiAgentService] Supabase sync error:", syncErr);
+        payload: (resData.aiMessage as any).payload || (resData.aiMessage as any).payload_json || null,
+        createdAt: nowStr,
+      } as any);
+    } catch (saveErr) {
+      console.warn("[aiAgentService] LocalDb message save error:", saveErr);
     }
 
     if (typeof window !== "undefined") {

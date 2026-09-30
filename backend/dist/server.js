@@ -19,6 +19,7 @@ const userRoutes_1 = __importDefault(require("./routes/userRoutes"));
 const notificationRoutes_1 = __importDefault(require("./routes/notificationRoutes"));
 const reviewRoutes_1 = __importDefault(require("./routes/reviewRoutes"));
 const supervisorRoutes_1 = __importDefault(require("./routes/supervisorRoutes"));
+const syncRoutes_1 = __importDefault(require("./routes/syncRoutes"));
 const http_1 = require("http");
 const webSocketService_1 = require("./services/webSocketService");
 // Load environment variables
@@ -35,6 +36,7 @@ app.use(express_1.default.json({ limit: '50mb' }));
 app.use(express_1.default.urlencoded({ limit: '50mb', extended: true }));
 app.use((0, morgan_1.default)('dev'));
 // Routes
+app.use('/api/sync', syncRoutes_1.default);
 app.use('/api/ai', aiRoutes_1.default);
 app.use('/api/mind', mindRoutes_1.default);
 app.use('/api/diary', diaryRoutes_1.default);

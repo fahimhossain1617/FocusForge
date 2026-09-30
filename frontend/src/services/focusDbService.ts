@@ -1,42 +1,38 @@
 import { FocusSession, DistractionEntry } from "../types";
-import { fetchBackend } from "../lib/apiClient";
+import { localDb } from "./localDbService";
 
 export const focusDbService = {
   /**
-   * Fetches all focus sessions belonging to the user via Backend API.
+   * Fetches all focus sessions belonging to the user from local-first database.
    */
   async fetchFocusSessions(userId: string): Promise<FocusSession[]> {
     try {
-      return await fetchBackend<FocusSession[]>("/api/focus/sessions");
+      const cleanUserId = userId || "guest";
+      return await localDb.getAllForUser<FocusSession>("focus_sessions", cleanUserId, false);
     } catch (err) {
-      console.error("[focusDbService] Unexpected error fetching focus sessions:", err);
+      console.error("[focusDbService] Error fetching local focus sessions:", err);
       return [];
     }
   },
 
   /**
-   * Saves or starts a focus session via Backend API.
+   * Saves or starts a focus session in local-first database.
    */
   async saveFocusSession(session: FocusSession, userId?: string): Promise<void> {
     try {
-      await fetchBackend("/api/focus/sessions", {
-        method: "POST",
-        body: JSON.stringify({
-          id: session.id,
-          taskId: session.taskId,
-          taskName: session.taskName,
-          category: session.category,
-          startedAt: session.startedAt,
-          targetMinutes: session.targetMinutes,
-        }),
+      const cleanUserId = userId || "guest";
+      await localDb.put("focus_sessions", {
+        ...session,
+        userId: cleanUserId,
+        updatedAt: new Date().toISOString(),
       });
     } catch (err) {
-      console.warn("[focusDbService] Exception saving focus session:", err);
+      console.warn("[focusDbService] Exception saving local focus session:", err);
     }
   },
 
   /**
-   * Updates an ended focus session (completed naturally or quit early) via Backend API.
+   * Updates an ended focus session in local-first database.
    */
   async endFocusSession(
     sessionId: string,
@@ -45,22 +41,25 @@ export const focusDbService = {
     userId?: string
   ): Promise<void> {
     try {
-      const endedAt = new Date().toISOString();
-      await fetchBackend(`/api/focus/sessions/${sessionId}/end`, {
-        method: "PATCH",
-        body: JSON.stringify({
+      const cleanUserId = userId || "guest";
+      const existing = await localDb.get<FocusSession>("focus_sessions", cleanUserId, sessionId);
+      if (existing) {
+        await localDb.put("focus_sessions", {
+          ...existing,
           durationMinutes,
           completed,
-          endedAt,
-        }),
-      });
+          endedAt: new Date().toISOString(),
+          userId: cleanUserId,
+          updatedAt: new Date().toISOString(),
+        });
+      }
     } catch (err) {
-      console.warn("[focusDbService] Exception concluding focus session:", err);
+      console.warn("[focusDbService] Exception concluding local focus session:", err);
     }
   },
 
   /**
-   * Logs a distraction for a focus session via Backend API.
+   * Logs a distraction entry during a focus session in local-first database.
    */
   async addDistraction(
     sessionId: string,
@@ -68,12 +67,19 @@ export const focusDbService = {
     userId?: string
   ): Promise<void> {
     try {
-      await fetchBackend(`/api/focus/sessions/${sessionId}/distractions`, {
-        method: "POST",
-        body: JSON.stringify({ content: distraction.content }),
-      });
+      const cleanUserId = userId || "guest";
+      const existing = await localDb.get<FocusSession>("focus_sessions", cleanUserId, sessionId);
+      if (existing) {
+        const distractions = Array.isArray(existing.distractions) ? [...existing.distractions, distraction] : [distraction];
+        await localDb.put("focus_sessions", {
+          ...existing,
+          distractions,
+          userId: cleanUserId,
+          updatedAt: new Date().toISOString(),
+        });
+      }
     } catch (err) {
-      console.warn("[focusDbService] Exception logging distraction:", err);
+      console.warn("[focusDbService] Exception logging local distraction:", err);
     }
   },
 };

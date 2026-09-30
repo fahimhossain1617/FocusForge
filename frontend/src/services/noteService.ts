@@ -1,69 +1,44 @@
-import { supabase } from "../lib/supabaseClient";
 import { Note } from "../types";
-import { fetchBackend } from "../lib/apiClient";
-
-export interface DbNoteRow {
-  id: number | string;
-  user_id: string;
-  title: string;
-  category?: string | null;
-  blocks: any;
-  attachments?: any;
-  links?: any;
-  created_at: string;
-  updated_at: string;
-}
-
-function mapDbToNote(row: DbNoteRow): Note {
-  return {
-    id: typeof row.id === "string" ? parseInt(row.id, 10) || Date.now() : row.id,
-    title: row.title || "",
-    category: row.category || undefined,
-    blocks: Array.isArray(row.blocks) ? row.blocks : [],
-    attachments: Array.isArray(row.attachments) ? row.attachments : [],
-    links: Array.isArray(row.links) ? row.links : [],
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
-  };
-}
+import { localDb } from "./localDbService";
 
 export const noteService = {
   /**
-   * Fetches all notes belonging to the authenticated user via Backend API.
+   * Fetches all notes belonging to the authenticated user from local-first database.
    */
   async fetchNotes(userId: string): Promise<Note[]> {
     try {
-      const data = await fetchBackend<DbNoteRow[]>("/api/notes");
-      if (!data) return [];
-      return data.map((row) => mapDbToNote(row));
+      const notes = await localDb.getAllForUser<Note>("notes", userId || "guest", false);
+      return notes;
     } catch (err) {
-      console.error("[noteService] Unexpected error fetching notes:", err);
+      console.error("[noteService] Error fetching local notes:", err);
       return [];
     }
   },
 
   /**
-   * Saves or creates a note via Backend API.
+   * Saves or creates a note in local-first database.
    */
   async saveNote(note: Note, userId: string): Promise<{ success: boolean; note?: Note; error?: string }> {
     try {
-      const data = await fetchBackend<DbNoteRow>("/api/notes", {
-        method: "POST",
-        body: JSON.stringify(note),
+      const cleanUserId = userId || "guest";
+      const saved = await localDb.put("notes", {
+        ...note,
+        userId: cleanUserId,
+        updatedAt: new Date().toISOString(),
       });
 
       return {
         success: true,
-        note: data ? mapDbToNote(data) : note,
+        note: saved,
       };
     } catch (err: any) {
-      console.error("[noteService] Unexpected exception saving note:", err);
+      console.error("[noteService] Exception saving local note:", err);
       return { success: false, error: err.message || "Failed to save note" };
     }
   },
 
   /**
-   * Partially updates a note via Backend API.
+   * Partially updates a note in local-first database.
    */
   async updateNote(
     noteId: number,
@@ -71,64 +46,44 @@ export const noteService = {
     userId: string
   ): Promise<{ success: boolean; error?: string }> {
     try {
-      await fetchBackend(`/api/notes/${noteId}`, {
-        method: "PATCH",
-        body: JSON.stringify(updates),
+      const cleanUserId = userId || "guest";
+      const existing = await localDb.get<Note>("notes", cleanUserId, noteId);
+      if (!existing) {
+        return { success: false, error: "Note not found" };
+      }
+
+      await localDb.put("notes", {
+        ...existing,
+        ...updates,
+        userId: cleanUserId,
+        updatedAt: new Date().toISOString(),
       });
 
       return { success: true };
     } catch (err: any) {
-      console.error("[noteService] Unexpected error updating note:", err);
+      console.error("[noteService] Error updating local note:", err);
       return { success: false, error: err.message || "Failed to update note" };
     }
   },
 
   /**
-   * Deletes a note permanently via Backend API.
+   * Soft-deletes a note locally and records tombstone for E2EE sync propagation.
    */
   async deleteNote(noteId: number, userId: string): Promise<{ success: boolean; error?: string }> {
     try {
-      await fetchBackend(`/api/notes/${noteId}`, {
-        method: "DELETE",
-      });
-
+      const cleanUserId = userId || "guest";
+      await localDb.softDelete("notes", cleanUserId, noteId);
       return { success: true };
     } catch (err: any) {
-      console.error("[noteService] Unexpected error deleting note:", err);
+      console.error("[noteService] Error deleting local note:", err);
       return { success: false, error: err.message || "Failed to delete note" };
     }
   },
 
   /**
-   * Subscribes to Supabase Realtime changes on user's notes.
+   * Local changes listener (no Supabase realtime dependency).
    */
   subscribeToNotes(userId: string, onRemoteChange: () => void): () => void {
-    const channelName = `notes-changes-${userId}`;
-    const existingChannels = supabase.getChannels();
-    for (const ch of existingChannels) {
-      if (ch.topic === `realtime:${channelName}` || ch.topic === channelName) {
-        supabase.removeChannel(ch);
-      }
-    }
-
-    const channel = supabase
-      .channel(channelName)
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "notes",
-          filter: `user_id=eq.${userId}`,
-        },
-        () => {
-          onRemoteChange();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    return () => {};
   },
 };

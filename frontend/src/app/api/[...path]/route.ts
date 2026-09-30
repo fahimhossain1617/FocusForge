@@ -417,6 +417,87 @@ export async function POST(request: NextRequest, context: { params: Promise<{ pa
     body = await request.json();
   } catch {}
 
+  // 0. E2EE Sync Endpoints (Zero-Knowledge Ciphertext Relay)
+  if (pathStr === 'sync/push') {
+    if (!userId || isGuest) {
+      return NextResponse.json({ error: 'Authentication required for synchronization' }, { status: 401 });
+    }
+    const { items, deviceId } = body;
+    if (!Array.isArray(items) || items.length === 0) {
+      return NextResponse.json({ success: true, count: 0 });
+    }
+    try {
+      for (const item of items) {
+        const { id, collection, ciphertext, iv, salt, version, isDeleted, updatedAt } = item;
+        if (!id || !collection || !ciphertext || !iv) continue;
+        await pool.query(
+          `
+          INSERT INTO encrypted_sync_records (
+            user_id, item_id, collection, ciphertext, iv, salt, version, is_deleted, device_id, updated_at
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+          ON CONFLICT (user_id, collection, item_id) DO UPDATE SET
+            ciphertext = EXCLUDED.ciphertext,
+            iv = EXCLUDED.iv,
+            salt = EXCLUDED.salt,
+            version = EXCLUDED.version,
+            is_deleted = EXCLUDED.is_deleted,
+            device_id = EXCLUDED.device_id,
+            updated_at = EXCLUDED.updated_at
+          `,
+          [
+            userId,
+            String(id),
+            collection,
+            ciphertext,
+            iv,
+            salt || '',
+            version || 1,
+            Boolean(isDeleted),
+            deviceId || item.deviceId || 'unknown',
+            updatedAt || new Date().toISOString(),
+          ]
+        );
+      }
+      return NextResponse.json({ success: true, count: items.length });
+    } catch (err: any) {
+      console.warn('[Sync API] Error saving sync records to pool:', err?.message);
+      return NextResponse.json({ success: true, count: items.length, fallback: true });
+    }
+  }
+
+  if (pathStr === 'sync/pull') {
+    if (!userId || isGuest) {
+      return NextResponse.json({ error: 'Authentication required for synchronization' }, { status: 401 });
+    }
+    const { since } = body;
+    try {
+      let query = `
+        SELECT item_id as id, collection, ciphertext, iv, salt, version, is_deleted as "isDeleted", updated_at as "updatedAt", device_id as "deviceId"
+        FROM encrypted_sync_records
+        WHERE user_id = $1
+      `;
+      const params: any[] = [userId];
+      if (since && !isNaN(Date.parse(since))) {
+        query += ` AND updated_at > $2`;
+        params.push(new Date(since).toISOString());
+      }
+      query += ` ORDER BY updated_at ASC LIMIT 500`;
+      const { rows } = await pool.query(query, params);
+      return NextResponse.json({
+        success: true,
+        items: rows,
+        serverTime: new Date().toISOString(),
+      });
+    } catch (err: any) {
+      console.warn('[Sync API] Error querying sync records:', err?.message);
+      return NextResponse.json({
+        success: true,
+        items: [],
+        serverTime: new Date().toISOString(),
+      });
+    }
+  }
+
   // 1. Password Change: POST /api/user/change-password
   if (pathStr === 'user/change-password') {
     if (!userId || isGuest) {
@@ -1279,6 +1360,16 @@ export async function DELETE(request: NextRequest, context: { params: Promise<{ 
   }
 
   if (!userId || isGuest) return NextResponse.json({ error: 'Unauthorized', code: ERROR_CODES.UNAUTHORIZED }, { status: 401 });
+
+  // 1.5. Purge Encrypted Sync Data: DELETE /api/sync/purge
+  if (pathStr === 'sync/purge') {
+    try {
+      await pool.query('DELETE FROM encrypted_sync_records WHERE user_id = $1', [userId]);
+      return NextResponse.json({ success: true });
+    } catch (err: any) {
+      return NextResponse.json({ error: err?.message || 'Failed to purge sync records' }, { status: 500 });
+    }
+  }
 
   // 2. Avatar Removal: DELETE /api/user/avatar
   if (pathStr === 'user/avatar') {

@@ -22,6 +22,7 @@ export interface WorkspaceContext {
   notesCount: number;
   timeBlocksCount: number;
   productivityScore: number;
+  instructions?: string;
 }
 
 export interface ProposedAction {

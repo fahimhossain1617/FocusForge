@@ -12,6 +12,7 @@ import {
 } from "@/services/aiAgentService";
 import type { AIAgentLanguage, AIAgentModel, AgentMessage, WorkspaceContext } from "@/types/aiAgent";
 import { useAuth } from "@/context/AuthContext";
+import { aiConsentService } from "@/services/aiConsentService";
 
 let memoryMessages: AgentMessage[] | null = null;
 let memoryActiveSessionId: string | null = null;
@@ -84,6 +85,24 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
   const abortControllerRef = useRef<AbortController | null>(null);
   const typingIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Private Chat & Consent States
+  const [isPrivateMode, setIsPrivateMode] = useState<boolean>(false);
+  const [privateMessages, setPrivateMessages] = useState<AgentMessage[]>([]);
+  const [isConsentOpen, setIsConsentOpen] = useState<boolean>(() => {
+    return !aiConsentService.hasUserDecided(currentUserId);
+  });
+  const [isMemoryModalOpen, setIsMemoryModalOpen] = useState<boolean>(false);
+
+  const togglePrivateMode = useCallback(() => {
+    setIsPrivateMode((prev) => {
+      const next = !prev;
+      if (!next) {
+        setPrivateMessages([]);
+      }
+      return next;
+    });
+  }, []);
+
   const stopGeneration = useCallback((customLang?: string) => {
     if (abortControllerRef.current) {
       try {
@@ -108,6 +127,7 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
 
   // Persist current active messages & activeSessionId to memory / session safely scoped by user ID
   useEffect(() => {
+    if (isPrivateMode) return;
     if (typeof window !== "undefined") {
       memoryMessages = messages;
       memoryActiveSessionId = activeSessionId;
@@ -388,6 +408,55 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
       }
     }
 
+    // Handle Private Chat Mode: purely in-memory ephemeral conversation
+    if (isPrivateMode) {
+      const userMsg: AgentMessage = { id: crypto.randomUUID(), role: "user", content: content.trim(), createdAt: new Date() };
+      setPrivateMessages((prev) => [...prev, userMsg]);
+      setIsThinking(true);
+      const abortController = new AbortController();
+      abortControllerRef.current = abortController;
+      try {
+        const history = privateMessages.slice(-6).map((m) => ({ role: m.role, content: m.content }));
+        const banglishRegex = /\b(ami|amar|amake|amader|tumi|tomar|tomake|apni|apnar|apnake|korbo|korchi|korte|koro|korun|chai|dorkar|shikhbo|sikhbo|shekha|sikhte|shikhte|hobe|kemon|achho|achen|bhalo|parbo|parchi|parbona|ki|kibhabe|kivabe|kothay|kokhon|keno|kar|porbo|porte|porashona|ajke|aajke|ekhon|shuru|routine|plan|schedule|somossa|somosya|somosha|kothin|mon|kharap|bhabna|chinta|idea|notun|diary|journal|onubhuti|dhyan|monojog|focus|pomodoro|timer|note|notes|file|likhe|rakho|rakhbo|help|lagbe|ache|achhe|nai|nei)\b/i;
+        const isContentBengali = /[\u0980-\u09FF]/.test(content) || banglishRegex.test(content);
+        const isContentPureEnglish = /^[a-zA-Z0-9\s.,!?'"()-]+$/.test(content.trim()) && !banglishRegex.test(content);
+        const langParam = isContentBengali ? "bn" : (isContentPureEnglish ? "en" : (language === "en" ? "en" : "bn"));
+        
+        const result = await sendAgentMessage(
+          content,
+          { ...context, instructions: "PRIVATE CHAT MODE ACTIVE: Do not save, memorize, or reference long term storage." },
+          "session_private_temp",
+          history,
+          langParam,
+          model,
+          abortController.signal
+        );
+
+        const aiMsg: AgentMessage = {
+          id: result.aiMessage.id,
+          role: result.aiMessage.role,
+          content: result.aiMessage.content,
+          intent: result.aiMessage.intent,
+          payload: result.aiMessage.payload,
+          createdAt: new Date(),
+        };
+        setPrivateMessages((prev) => [...prev, aiMsg]);
+      } catch (err: any) {
+        if (err?.name !== 'AbortError') {
+          setPrivateMessages((prev) => [...prev, {
+            id: 'err_' + Date.now(),
+            role: "assistant",
+            content: language === "bn" ? "ফেইল্ড টু সেন্ড" : "Failed to send",
+            createdAt: new Date(),
+          }]);
+        }
+      } finally {
+        setIsThinking(false);
+        abortControllerRef.current = null;
+      }
+      return;
+    }
+
     // Optimistic user message
     const userMsg: AgentMessage = { id: crypto.randomUUID(), role: "user", content: content.trim(), createdAt: new Date() };
     setMessages((items) => [...items, userMsg]); 
@@ -556,7 +625,7 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
   const guestLimitExceeded = Boolean((isGuest || !user) && (tokenStatus?.isExhausted || (tokenStatus && tokenStatus.remaining <= 0)));
 
   return { 
-    messages, 
+    messages: isPrivateMode ? privateMessages : messages, 
     sessions,
     activeSessionId,
     tokenStatus,
@@ -573,6 +642,12 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
     removeSession,
     clearAllSessions,
     guestCount,
-    guestLimitExceeded
+    guestLimitExceeded,
+    isPrivateMode,
+    togglePrivateMode,
+    isConsentOpen,
+    setIsConsentOpen,
+    isMemoryModalOpen,
+    setIsMemoryModalOpen,
   };
 }

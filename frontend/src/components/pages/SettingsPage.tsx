@@ -14,6 +14,7 @@ import notificationService from "../../services/notificationService";
 import { userService } from "../../services/userService";
 import { authService } from "../../services/authService";
 import { clearPersistedAppState } from "../../services/indexedDBStorage";
+import { localDb } from "../../services/localDbService";
 import FocusForgeDatePicker from "../ui/FocusForgeDatePicker";
 import FocusForgeSelect from "../ui/FocusForgeSelect";
 import { toggleThemeWithCircularTransition } from "../../utils/themeTransition";
@@ -630,6 +631,7 @@ export default function SettingsPage() {
   const [showDeletePassword, setShowDeletePassword] = useState(false);
   const [deleteError, setDeleteError] = useState("");
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
+  const [deleteScope, setDeleteScope] = useState<"keep_local" | "full_wipe">("full_wipe");
 
   const handleDeleteAccount = async () => {
     if (deleteConfirmText.trim() !== "DELETE") {
@@ -653,9 +655,19 @@ export default function SettingsPage() {
       });
 
       if (res.success) {
-        await clearPersistedAppState();
+        if (deleteScope === "full_wipe") {
+          if (user?.id) {
+            await localDb.clearAllUserData(user.id);
+          }
+          await clearPersistedAppState();
+        }
         logout();
-        showToast(t.settings.privacy.deleteAccount.successToast, "info");
+        showToast(
+          deleteScope === "keep_local"
+            ? (state?.lang === "bn" ? "ক্লাউড অ্যাকাউন্ট ও সিঙ্ক ডেটা মোছা হয়েছে। ডিভাইসে লোকাল ডেটা সংরক্ষিত আছে।" : "Cloud account deleted. Local data preserved on this device.")
+            : t.settings.privacy.deleteAccount.successToast,
+          "info"
+        );
         navigateTo("today");
       } else {
         setDeleteError(res.error || t.settings.privacy.deleteAccount.errorToast);
@@ -2312,6 +2324,70 @@ export default function SettingsPage() {
                     <li key={i}>{item}</li>
                   ))}
                 </ul>
+              </div>
+
+              {/* Option A vs Option B Deletion Scope Choice */}
+              <div className="space-y-3 pt-2">
+                <label className="block text-xs font-semibold text-[var(--color-text-primary)]">
+                  {state?.lang === "bn" ? "ডিলিট অপশন সিলেক্ট করুন:" : "Select Deletion Scope:"}
+                </label>
+                <div className="grid grid-cols-1 gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => setDeleteScope("full_wipe")}
+                    className={`flex items-start gap-3 p-3 rounded-xl border text-left transition-all ${
+                      deleteScope === "full_wipe"
+                        ? "border-red-500 bg-red-500/10 text-[var(--color-text-primary)]"
+                        : "border-[var(--color-border-subtle)] bg-[var(--color-surface)] text-[var(--color-text-secondary)] opacity-80"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="deleteScope"
+                      checked={deleteScope === "full_wipe"}
+                      onChange={() => setDeleteScope("full_wipe")}
+                      className="mt-0.5 accent-red-600 cursor-pointer"
+                    />
+                    <div>
+                      <p className="text-xs font-semibold text-[var(--color-text-primary)]">
+                        {state?.lang === "bn" ? "অপশন বি: সম্পূর্ণ ডেটা মুছে ফেলুন (Full Wipe Everywhere)" : "Option B: Full Wipe (Cloud & Local Device)"}
+                      </p>
+                      <p className="text-[11px] text-[var(--color-text-muted)] mt-0.5">
+                        {state?.lang === "bn"
+                          ? "সার্ভার ও সিঙ্ক রেকর্ড থেকে অ্যাকাউন্ট মোছার পাশাপাশি এই ডিভাইসের সমস্ত লোকাল ডেটা স্থায়ীভাবে মুছে দেওয়া হবে।"
+                          : "Permanently deletes your cloud account, remote sync records, and completely wipes all local data from this device."}
+                      </p>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setDeleteScope("keep_local")}
+                    className={`flex items-start gap-3 p-3 rounded-xl border text-left transition-all ${
+                      deleteScope === "keep_local"
+                        ? "border-amber-500 bg-amber-500/10 text-[var(--color-text-primary)]"
+                        : "border-[var(--color-border-subtle)] bg-[var(--color-surface)] text-[var(--color-text-secondary)] opacity-80"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="deleteScope"
+                      checked={deleteScope === "keep_local"}
+                      onChange={() => setDeleteScope("keep_local")}
+                      className="mt-0.5 accent-amber-600 cursor-pointer"
+                    />
+                    <div>
+                      <p className="text-xs font-semibold text-[var(--color-text-primary)]">
+                        {state?.lang === "bn" ? "অপশন এ: শুধু ক্লাউড মুছুন, লোকাল ডেটা রাখুন (Keep Local Data)" : "Option A: Delete Cloud Account Only (Keep Local Data)"}
+                      </p>
+                      <p className="text-[11px] text-[var(--color-text-muted)] mt-0.5">
+                        {state?.lang === "bn"
+                          ? "সার্ভার ও সিঙ্ক রেকর্ড থেকে অ্যাকাউন্ট পুরোপুরি মুছে যাবে, কিন্তু এই ডিভাইসে আপনার বর্তমান নোট ও টাস্ক সুরক্ষিত থাকবে।"
+                          : "Deletes your account and sync data from the cloud, but preserves your current notes, tasks, and history locally on this device."}
+                      </p>
+                    </div>
+                  </button>
+                </div>
               </div>
 
               <div className="border-t border-red-500/20 pt-5 space-y-4">

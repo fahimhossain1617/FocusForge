@@ -22,7 +22,11 @@ import {
   Clock,
   Smile,
   ChevronDown,
-  Check
+  Check,
+  Lock,
+  Unlock,
+  Brain,
+  Shield
 } from "lucide-react";
 import { useAppContext } from "@/context/AppContext";
 import { useAuth } from "@/context/AuthContext";
@@ -33,6 +37,8 @@ import { AIOrbFace } from "./AIOrbFace";
 import { useOrbMood, type OrbMood } from "./useOrbMood";
 import styles from "./ai-agent.module.css";
 import { AIChatAnimatedTypingInput } from "./AIChatAnimatedTypingInput";
+import AIConsentModal from "../ai/AIConsentModal";
+import AIMemoryModal from "../ai/AIMemoryModal";
 
 const moodList: { id: OrbMood; labelBn: string; labelEn: string }[] = [
   { id: "happy", labelBn: "হ্যাপি", labelEn: "Happy" },
@@ -141,7 +147,13 @@ export function AIAgentPage() {
     selectSession,
     removeSession,
     clearAllSessions,
-    guestLimitExceeded
+    guestLimitExceeded,
+    isPrivateMode,
+    togglePrivateMode,
+    isConsentOpen,
+    setIsConsentOpen,
+    isMemoryModalOpen,
+    setIsMemoryModalOpen
   } = useAIAgent(context, isSystemBn ? "bn" : "en");
 
   // Cleanly extract user's display name without awkward fallbacks like "there"
@@ -467,6 +479,28 @@ export function AIAgentPage() {
         </div>
 
         <div className={styles.topBarRight} ref={menuRef}>
+          {/* Private Chat Mode Toggle */}
+          <button
+            type="button"
+            className={`${styles.iconButton} ${isPrivateMode ? "text-amber-500 bg-amber-500/10 border border-amber-500/30" : ""}`}
+            onClick={togglePrivateMode}
+            aria-label={isPrivateMode ? (isSystemBn ? "প্রাইভেট মোড সক্রিয়" : "Private Mode Active") : (isSystemBn ? "প্রাইভেট মোড চালু করুন" : "Enable Private Mode")}
+            title={isPrivateMode ? (isSystemBn ? "প্রাইভেট চ্যাট চালু আছে (হিস্ট্রি সেভ হবে না)" : "Private Chat Active (No History/Sync)") : (isSystemBn ? "প্রাইভেট চ্যাট মোড" : "Private Chat Mode")}
+          >
+            {isPrivateMode ? <Lock size={18} className="text-amber-500" /> : <Unlock size={18} />}
+          </button>
+
+          {/* AI Memory Manager Button */}
+          <button
+            type="button"
+            className={styles.iconButton}
+            onClick={() => setIsMemoryModalOpen(true)}
+            aria-label={isSystemBn ? "এআই মেমোরি" : "AI Memory"}
+            title={isSystemBn ? "এআই মেমোরি ম্যানেজার" : "AI Memory Manager"}
+          >
+            <Brain size={19} strokeWidth={1.8} />
+          </button>
+
           {/* New Chat Button */}
           <button
             type="button"
@@ -573,6 +607,27 @@ export function AIAgentPage() {
           )}
         </div>
       </header>
+
+      {/* Private Mode Banner */}
+      {isPrivateMode && (
+        <div className="mx-4 mt-2 px-3.5 py-2 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-500 text-xs flex items-center justify-between animate-in fade-in duration-150">
+          <div className="flex items-center gap-2">
+            <Lock size={14} className="shrink-0" />
+            <span>
+              {isSystemBn
+                ? "প্রাইভেট মোড চালু: এই চ্যাটটি সম্পূর্ণ সাময়িক। হিস্ট্রি, মেমোরি বা ক্লাউড সিঙ্কে সেভ হবে না।"
+                : "Private Mode Active: This conversation is temporary and will not be saved to history, memory, or synced."}
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={togglePrivateMode}
+            className="text-[11px] underline font-medium hover:text-amber-400"
+          >
+            {isSystemBn ? "সাধারণ চ্যাটে ফিরুন" : "Exit Private"}
+          </button>
+        </div>
+      )}
 
       {/* CENTERED LAYOUT CONTAINER */}
       {/* CENTERED LAYOUT CONTAINER */}
@@ -1127,6 +1182,22 @@ export function AIAgentPage() {
           onClose={stopVoice}
           language="auto"
           onSpeechResult={handleSpeechResult}
+        />
+
+        {/* AI Privacy Consent Modal */}
+        <AIConsentModal
+          isOpen={isConsentOpen}
+          userId={user?.id}
+          lang={isSystemBn ? "bn" : "en"}
+          onClose={() => setIsConsentOpen(false)}
+        />
+
+        {/* AI Memory Management Modal */}
+        <AIMemoryModal
+          isOpen={isMemoryModalOpen}
+          userId={user?.id || null}
+          lang={isSystemBn ? "bn" : "en"}
+          onClose={() => setIsMemoryModalOpen(false)}
         />
       </div>
     </section>

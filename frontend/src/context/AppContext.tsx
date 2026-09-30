@@ -32,6 +32,7 @@ import {
   deleteRoutineTemplateFromBackend
 } from '../services/taskService';
 import { reviewService } from '../services/reviewService';
+import { syncService } from '../services/syncService';
 
 
 const defaultCategories = ['Programming', 'Study', 'University', 'Exam', 'Personal', 'Health', 'Project', 'Business'];
@@ -283,9 +284,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         return;
       }
 
-      // Background cloud sync for this specific user
+      // Background local data refresh and E2EE cross-device sync
       const fetchPromise = Promise.allSettled([
-        supabase.from('user_cloud_state').select('state').eq('id', userId).maybeSingle(),
+        Promise.resolve({ status: 'fulfilled', value: null }),
         noteService.fetchNotes(userId),
         mindService.fetchMindItems(userId),
         diaryDbService.fetchDiaryTopics(userId),
@@ -296,10 +297,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       ]);
 
       const fetchTimeout = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('Cloud sync timeout')), 4000)
+        setTimeout(() => reject(new Error('Local load timeout')), 4000)
       );
 
       const results = await Promise.race([fetchPromise, fetchTimeout]);
+
+      // Trigger privacy-preserving E2EE cross-device sync in background
+      syncService.syncNow(userId).catch(() => {});
 
       // Check request generation before applying response
       if (requestGenRef.current !== generation || activeUserIdRef.current !== userId) {
@@ -307,7 +311,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }
 
       const [
-        cloudStateResult,
+        _,
         notesResult,
         mindResult,
         diaryResult,
@@ -318,22 +322,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       ] = results;
 
       let loadedData: AppState = cachedState ? { ...cachedState } : { ...defaultState };
-
-      // 1. User Cloud State
-      if (cloudStateResult.status === 'fulfilled') {
-        const { data: cloudData, error } = cloudStateResult.value;
-        if (!error && cloudData?.state) {
-          loadedData = { ...loadedData, ...(cloudData.state as AppState) };
-        } else if (!cachedState) {
-          try {
-            await supabase.from('user_cloud_state').upsert({
-              id: userId,
-              state: defaultState,
-              updated_at: new Date().toISOString()
-            });
-          } catch {}
-        }
-      }
 
       // 2. Structured Notes
       if (notesResult.status === 'fulfilled' && notesResult.value && notesResult.value.length > 0) {
@@ -462,20 +450,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         clearTimeout(cloudTimerRef.current);
       }
 
-      // Debounced cloud sync to Supabase verifying identity
+      // Debounced privacy-preserving E2EE cross-device sync
       cloudTimerRef.current = setTimeout(async () => {
         try {
           if (activeUserIdRef.current === currentUserId) {
-            await supabase.from('user_cloud_state').upsert({
-              id: currentUserId,
-              state: state,
-              updated_at: new Date().toISOString()
-            });
+            await syncService.syncNow(currentUserId);
           }
-        } catch (cloudErr) {
-          console.warn("[AppContext] Cloud sync error:", cloudErr);
+        } catch (syncErr) {
+          console.warn("[AppContext] E2EE sync warning:", syncErr);
         }
-      }, 2500);
+      }, 3000);
     } else {
       // Guest mode: ONLY keep in sessionStorage as temporary data
       if (typeof window !== 'undefined') {

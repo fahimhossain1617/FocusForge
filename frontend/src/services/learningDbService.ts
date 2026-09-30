@@ -1,84 +1,102 @@
 import { LearningFolder, LearningLog } from "../types";
-import { fetchBackend } from "../lib/apiClient";
+import { localDb } from "./localDbService";
 
 export const learningDbService = {
   /**
-   * Fetches all learning folders and logs belonging to the user via Backend API.
+   * Fetches all learning folders and logs belonging to the user from local-first database.
    */
   async fetchLearningData(userId?: string): Promise<{ folders: LearningFolder[]; logs: LearningLog[] }> {
     try {
-      return await fetchBackend<{ folders: LearningFolder[]; logs: LearningLog[] }>("/api/learning/data");
+      const cleanUserId = userId || "guest";
+      const folders = await localDb.getAllForUser<LearningFolder>("learning_folders", cleanUserId, false);
+      const logs = await localDb.getAllForUser<LearningLog>("learning_logs", cleanUserId, false);
+      return { folders, logs };
     } catch (err) {
-      console.error("[learningDbService] Unexpected error fetching learning data:", err);
+      console.error("[learningDbService] Error fetching local learning data:", err);
       return { folders: [], logs: [] };
     }
   },
 
   /**
-   * Saves or creates a learning folder via Backend API.
+   * Saves or creates a learning folder in local-first database.
    */
   async saveFolder(folder: LearningFolder, userId?: string): Promise<void> {
     try {
-      await fetchBackend("/api/learning/folders", {
-        method: "POST",
-        body: JSON.stringify(folder),
+      const cleanUserId = userId || "guest";
+      await localDb.put("learning_folders", {
+        ...folder,
+        userId: cleanUserId,
+        updatedAt: new Date().toISOString(),
       });
     } catch (err) {
-      console.warn("[learningDbService] Exception saving folder:", err);
+      console.warn("[learningDbService] Exception saving local folder:", err);
     }
   },
 
   /**
-   * Updates an existing folder (e.g., toggle completion or rename) via Backend API.
+   * Updates an existing folder in local-first database.
    */
   async updateFolder(folderId: string, updates: Partial<LearningFolder>, userId?: string): Promise<void> {
     try {
-      await fetchBackend(`/api/learning/folders/${folderId}`, {
-        method: "PATCH",
-        body: JSON.stringify(updates),
-      });
+      const cleanUserId = userId || "guest";
+      const existing = await localDb.get<LearningFolder>("learning_folders", cleanUserId, folderId);
+      if (existing) {
+        await localDb.put("learning_folders", {
+          ...existing,
+          ...updates,
+          userId: cleanUserId,
+          updatedAt: new Date().toISOString(),
+        });
+      }
     } catch (err) {
-      console.warn("[learningDbService] Exception updating folder:", err);
+      console.warn("[learningDbService] Exception updating local folder:", err);
     }
   },
 
   /**
-   * Deletes a folder and all its associated logs via Backend API.
+   * Soft-deletes a folder and all its associated logs in local-first database.
    */
   async deleteFolder(folderId: string, userId?: string): Promise<void> {
     try {
-      await fetchBackend(`/api/learning/folders/${folderId}`, {
-        method: "DELETE",
-      });
+      const cleanUserId = userId || "guest";
+      await localDb.softDelete("learning_folders", cleanUserId, folderId);
+
+      const logs = await localDb.getAllForUser<LearningLog>("learning_logs", cleanUserId, false);
+      for (const log of logs) {
+        if (log.folderId === folderId) {
+          await localDb.softDelete("learning_logs", cleanUserId, log.id);
+        }
+      }
     } catch (err) {
-      console.warn("[learningDbService] Exception deleting folder:", err);
+      console.warn("[learningDbService] Exception deleting local folder:", err);
     }
   },
 
   /**
-   * Saves or creates a learning log via Backend API.
+   * Saves or creates a learning log in local-first database.
    */
   async saveLog(log: LearningLog, userId?: string): Promise<void> {
     try {
-      await fetchBackend("/api/learning/logs", {
-        method: "POST",
-        body: JSON.stringify(log),
+      const cleanUserId = userId || "guest";
+      await localDb.put("learning_logs", {
+        ...log,
+        userId: cleanUserId,
+        updatedAt: new Date().toISOString(),
       });
     } catch (err) {
-      console.warn("[learningDbService] Exception saving learning log:", err);
+      console.warn("[learningDbService] Exception saving local log:", err);
     }
   },
 
   /**
-   * Deletes a learning log via Backend API.
+   * Soft-deletes a learning log in local-first database.
    */
   async deleteLog(logId: string, userId?: string): Promise<void> {
     try {
-      await fetchBackend(`/api/learning/logs/${logId}`, {
-        method: "DELETE",
-      });
+      const cleanUserId = userId || "guest";
+      await localDb.softDelete("learning_logs", cleanUserId, logId);
     } catch (err) {
-      console.warn("[learningDbService] Exception deleting learning log:", err);
+      console.warn("[learningDbService] Exception deleting local log:", err);
     }
   },
 };

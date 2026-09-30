@@ -14,6 +14,7 @@ import userRoutes from './routes/userRoutes';
 import notificationRoutes from './routes/notificationRoutes';
 import reviewRoutes from './routes/reviewRoutes';
 import supervisorRoutes from './routes/supervisorRoutes';
+import syncRoutes from './routes/syncRoutes';
 import { createServer } from 'http';
 import { setupWebSocketServer } from './services/webSocketService';
 
@@ -34,6 +35,7 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(morgan('dev'));
 
 // Routes
+app.use('/api/sync', syncRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/mind', mindRoutes);
 app.use('/api/diary', diaryRoutes);

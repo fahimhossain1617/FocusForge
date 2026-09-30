@@ -1344,12 +1344,13 @@ export async function dbDeleteUserAccountCompletely(userId: string): Promise<voi
     await client.query('DELETE FROM review_prompt_state WHERE user_id = $1', [userId]);
     await client.query('DELETE FROM reviews WHERE user_id = $1', [userId]);
 
-    // 8. Delete user cloud state, notification settings, push subscriptions
+    // 8. Delete user cloud state, notification settings, push subscriptions, encrypted sync records
     await client.query('DELETE FROM user_cloud_state WHERE id = $1', [userId]);
     await client.query('DELETE FROM user_notification_settings WHERE user_id = $1', [userId]);
     await client.query('DELETE FROM push_subscriptions WHERE user_id = $1', [userId]);
     await client.query('DELETE FROM sent_notifications_log WHERE user_id = $1', [userId]);
     await client.query('DELETE FROM user_roles WHERE user_id = $1', [userId]);
+    await client.query('DELETE FROM encrypted_sync_records WHERE user_id = $1', [userId]).catch(() => {});
 
     // 9. Anonymize any support tickets linked to this user
     await client.query(

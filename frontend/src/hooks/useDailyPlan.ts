@@ -206,7 +206,7 @@ export function useDailyPlan() {
     // Midday focus reminder at 14:00 (2:00 PM)
     if (now.getHours() >= 14) {
       const todayTasks = getTodayTasks(state.tasks);
-      const pendingTasks = todayTasks.filter((t) => !t.completed && t.status !== "completed");
+      const pendingTasks = todayTasks.filter((t: any) => !t.completed && t.status !== "completed");
 
       if (pendingTasks.length > 0) {
         const isBn = state.lang === "bn";
