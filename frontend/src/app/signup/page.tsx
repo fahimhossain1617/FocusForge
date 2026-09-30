@@ -94,12 +94,16 @@ export default function SignupPage() {
         return;
       }
 
-      // If user session is returned (auto-login enabled and no email confirmation required), log in directly
-      if (res.session && res.user) {
-        onAuthSuccess(res.user, true);
-        showToast("Account created successfully! Welcome to FocusForge.", "success");
-        router.push("/");
-        return;
+      // Clear any auto-session to strictly enforce email OTP verification before login
+      if (res.session) {
+        await authService.clearSession();
+      }
+
+      // Ensure verification OTP is dispatched to user's email
+      try {
+        await authService.resendOtp(email.trim().toLowerCase());
+      } catch (e) {
+        console.warn("[signup] resendOtp notice:", e);
       }
 
       // Store pending email in sessionStorage for verification screen fallback
@@ -109,6 +113,7 @@ export default function SignupPage() {
       }
 
       // Redirect to step 2 (Email Verification)
+      showToast("A verification code has been dispatched to your email.", "info");
       router.push(`/verify?email=${encodeURIComponent(email.trim().toLowerCase())}`);
     } catch (err: any) {
       setError(err?.message || "An unexpected error occurred during signup.");
