@@ -731,7 +731,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ pa
 
       // 3. DISPATCH TO GOOGLE APPS SCRIPT / GOOGLE SPREADSHEET (Auto Row Append + Support Email)
       try {
-        sendToGoogleAppsScript({
+        await sendToGoogleAppsScript({
           type: ticket.type,
           name: ticket.name,
           email: ticket.email,
@@ -739,7 +739,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ pa
           subject: ticket.subject,
           category: ticket.category,
           ticketNumber: ticket.ticketNumber,
-        }).catch((gErr) => console.warn('[Support Route] Google Apps Script sync warning:', gErr));
+        });
       } catch (gSyncErr) {
         console.warn('[Support Route] Google Apps Script sync error:', gSyncErr);
       }

@@ -16,13 +16,17 @@ export interface GoogleSyncPayload {
   [key: string]: any;
 }
 
+export const DEFAULT_APPS_SCRIPT_URL =
+  'https://script.google.com/macros/s/AKfycbyXfmpwZBNBWuI-JcOS7Egtt9p1GJRqhaODNEbbvYUTzd91jgndM-LW1hjpACRJnAPy/exec';
+
 export async function sendToGoogleAppsScript(
   payload: GoogleSyncPayload
 ): Promise<{ success: boolean; error?: string; data?: any }> {
   const scriptUrl =
     process.env.GOOGLE_APPS_SCRIPT_WEBAPP_URL ||
     process.env.GOOGLE_SHEETS_SCRIPT_URL ||
-    process.env.NEXT_PUBLIC_GOOGLE_APPS_SCRIPT_URL;
+    process.env.NEXT_PUBLIC_GOOGLE_APPS_SCRIPT_URL ||
+    DEFAULT_APPS_SCRIPT_URL;
 
   if (!scriptUrl) {
     console.warn(
