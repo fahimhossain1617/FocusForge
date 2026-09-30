@@ -13,6 +13,8 @@ export interface GoogleSyncPayload {
   subject?: string;
   category?: string;
   ticketNumber?: string;
+  image?: string;
+  screenshot?: string;
   [key: string]: any;
 }
 
@@ -41,6 +43,8 @@ export async function sendToGoogleAppsScript(
         ? `[${payload.subject}] ${payload.message || ''}`
         : payload.message || '';
 
+    const imageAttachment = payload.image || payload.screenshot || (payload.attachments && payload.attachments[0]) || '';
+
     const bodyData = {
       type: (payload.type || 'support').toLowerCase(),
       name: payload.name?.trim() || 'Anonymous User',
@@ -49,6 +53,7 @@ export async function sendToGoogleAppsScript(
       timestamp: new Date().toISOString(),
       ticketNumber: payload.ticketNumber || '',
       category: payload.category || '',
+      image: imageAttachment,
     };
 
     // Google Apps Script redirects (302) on successful POST.

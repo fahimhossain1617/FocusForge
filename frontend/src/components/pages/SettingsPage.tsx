@@ -487,7 +487,30 @@ export default function SettingsPage() {
     }
     const reader = new FileReader();
     reader.onload = (ev) => {
-      setReportScreenshot(ev.target?.result as string);
+      const dataUrl = ev.target?.result as string;
+      const img = new Image();
+      img.onload = () => {
+        const maxWidth = 1280;
+        const maxHeight = 1280;
+        let { width, height } = img;
+        if (width > maxWidth || height > maxHeight) {
+          const ratio = Math.min(maxWidth / width, maxHeight / height);
+          width = Math.round(width * ratio);
+          height = Math.round(height * ratio);
+        }
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, width, height);
+          setReportScreenshot(canvas.toDataURL("image/jpeg", 0.82));
+        } else {
+          setReportScreenshot(dataUrl);
+        }
+      };
+      img.onerror = () => setReportScreenshot(dataUrl);
+      img.src = dataUrl;
     };
     reader.readAsDataURL(file);
   };

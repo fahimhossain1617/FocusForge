@@ -46,6 +46,7 @@ export async function POST(request: Request) {
           message: trimmedMsg,
           subject: (subject || body.title || '').trim(),
           category: (category || '').trim(),
+          image: body.image || body.screenshot || (body.attachments && body.attachments[0]) || undefined,
         });
       } catch (syncErr) {
         console.error('[API /api/contact Background Sync Error]:', syncErr);

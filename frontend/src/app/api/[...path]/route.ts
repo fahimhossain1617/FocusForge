@@ -704,31 +704,36 @@ export async function POST(request: NextRequest, context: { params: Promise<{ pa
       // 2. DISPATCH EMAILS & GOOGLE APPS SCRIPT ASYNCHRONOUSLY VIA after()
       // This returns the response to the user in < 50ms while guaranteeing background delivery
       after(async () => {
-        try {
-          sendSupportNotificationToOwner({
-            ticketNumber: ticket.ticketNumber,
-            type: ticket.type,
-            category: ticket.category,
-            senderName: ticket.name || 'Anonymous',
-            senderEmail: ticket.email || 'noreply@focusforge.app',
-            subject: ticket.subject,
-            message: ticket.message,
-            appVersion: ticket.appVersion || '1.0.0',
-            browserInfo: ticket.browserInfo || undefined,
-            isGuest: ticket.isGuest,
-            attachments: ticket.attachments,
-          });
+        const hasPicture = Boolean(ticket.attachments && ticket.attachments.length > 0 && ticket.attachments[0]);
+        const shouldSendEmail = ticket.type === 'contact' || ticket.type === 'support' || (ticket.type === 'report' && hasPicture);
 
-          if (ticket.email) {
-            sendSupportConfirmationToUser({
+        if (shouldSendEmail) {
+          try {
+            sendSupportNotificationToOwner({
               ticketNumber: ticket.ticketNumber,
-              senderName: ticket.name || 'there',
-              senderEmail: ticket.email,
-              subject: ticket.subject,
+              type: ticket.type,
+              category: ticket.category,
+              senderName: ticket.name || 'Anonymous',
+              senderEmail: ticket.email || 'noreply@focusforge.app',
+              subject: ticket.type === 'report' && hasPicture ? `[Photo Attached] ${ticket.subject}` : ticket.subject,
+              message: ticket.message,
+              appVersion: ticket.appVersion || '1.0.0',
+              browserInfo: ticket.browserInfo || undefined,
+              isGuest: ticket.isGuest,
+              attachments: ticket.attachments,
             });
+
+            if (ticket.email) {
+              sendSupportConfirmationToUser({
+                ticketNumber: ticket.ticketNumber,
+                senderName: ticket.name || 'there',
+                senderEmail: ticket.email,
+                subject: ticket.subject,
+              });
+            }
+          } catch (emailErr) {
+            console.error('[Support Route] Email dispatch error:', emailErr);
           }
-        } catch (emailErr) {
-          console.error('[Support Route] Email dispatch error:', emailErr);
         }
 
         try {
@@ -740,6 +745,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ pa
             subject: ticket.subject,
             category: ticket.category,
             ticketNumber: ticket.ticketNumber,
+            image: ticket.attachments?.[0] || undefined,
           });
         } catch (gSyncErr) {
           console.warn('[Support Route] Google Apps Script sync error:', gSyncErr);
