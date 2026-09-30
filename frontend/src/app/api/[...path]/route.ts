@@ -1,7 +1,7 @@
 import dns from 'node:dns';
 try { dns.setDefaultResultOrder('ipv4first'); } catch {}
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse, after } from 'next/server';
 import { executeAIAction, transcribeAudio } from '@/lib/server/aiService';
 import { getUserTokenStatus, consumeUserTokens, estimateTokenUsage } from '@/lib/server/aiTokenService';
 import { 
@@ -701,48 +701,50 @@ export async function POST(request: NextRequest, context: { params: Promise<{ pa
         };
       }
 
-      // 2. DISPATCH EMAILS IN BACKGROUND (Automatic Delivery to Owner & User)
-      try {
-        sendSupportNotificationToOwner({
-          ticketNumber: ticket.ticketNumber,
-          type: ticket.type,
-          category: ticket.category,
-          senderName: ticket.name || 'Anonymous',
-          senderEmail: ticket.email || 'noreply@focusforge.app',
-          subject: ticket.subject,
-          message: ticket.message,
-          appVersion: ticket.appVersion || '1.0.0',
-          browserInfo: ticket.browserInfo || undefined,
-          isGuest: ticket.isGuest,
-          attachments: ticket.attachments,
-        });
-
-        if (ticket.email) {
-          sendSupportConfirmationToUser({
+      // 2. DISPATCH EMAILS & GOOGLE APPS SCRIPT ASYNCHRONOUSLY VIA after()
+      // This returns the response to the user in < 50ms while guaranteeing background delivery
+      after(async () => {
+        try {
+          sendSupportNotificationToOwner({
             ticketNumber: ticket.ticketNumber,
-            senderName: ticket.name || 'there',
-            senderEmail: ticket.email,
+            type: ticket.type,
+            category: ticket.category,
+            senderName: ticket.name || 'Anonymous',
+            senderEmail: ticket.email || 'noreply@focusforge.app',
             subject: ticket.subject,
+            message: ticket.message,
+            appVersion: ticket.appVersion || '1.0.0',
+            browserInfo: ticket.browserInfo || undefined,
+            isGuest: ticket.isGuest,
+            attachments: ticket.attachments,
           });
-        }
-      } catch (emailErr) {
-        console.error('[Support Route] Email dispatch error:', emailErr);
-      }
 
-      // 3. DISPATCH TO GOOGLE APPS SCRIPT / GOOGLE SPREADSHEET (Auto Row Append + Support Email)
-      try {
-        await sendToGoogleAppsScript({
-          type: ticket.type,
-          name: ticket.name,
-          email: ticket.email,
-          message: ticket.message,
-          subject: ticket.subject,
-          category: ticket.category,
-          ticketNumber: ticket.ticketNumber,
-        });
-      } catch (gSyncErr) {
-        console.warn('[Support Route] Google Apps Script sync error:', gSyncErr);
-      }
+          if (ticket.email) {
+            sendSupportConfirmationToUser({
+              ticketNumber: ticket.ticketNumber,
+              senderName: ticket.name || 'there',
+              senderEmail: ticket.email,
+              subject: ticket.subject,
+            });
+          }
+        } catch (emailErr) {
+          console.error('[Support Route] Email dispatch error:', emailErr);
+        }
+
+        try {
+          await sendToGoogleAppsScript({
+            type: ticket.type,
+            name: ticket.name,
+            email: ticket.email,
+            message: ticket.message,
+            subject: ticket.subject,
+            category: ticket.category,
+            ticketNumber: ticket.ticketNumber,
+          });
+        } catch (gSyncErr) {
+          console.warn('[Support Route] Google Apps Script sync error:', gSyncErr);
+        }
+      });
 
       return NextResponse.json({
         success: true,

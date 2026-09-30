@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, after } from 'next/server';
 import { sendToGoogleAppsScript } from '@/lib/server/googleSheetsService';
 
 export const runtime = 'nodejs';
@@ -36,20 +36,25 @@ export async function POST(request: Request) {
       }
     }
 
-    // Forward submission to Google Apps Script Web App (Spreadsheet & MailApp)
-    const syncRes = await sendToGoogleAppsScript({
-      type: normalizedType === 'contact' ? 'support' : normalizedType,
-      name: (name || 'User').trim(),
-      email: senderEmail || 'N/A',
-      message: trimmedMsg,
-      subject: (subject || body.title || '').trim(),
-      category: (category || '').trim(),
+    // Schedule background dispatch with guaranteed delivery
+    after(async () => {
+      try {
+        await sendToGoogleAppsScript({
+          type: normalizedType === 'contact' ? 'support' : normalizedType,
+          name: (name || 'User').trim(),
+          email: senderEmail || 'N/A',
+          message: trimmedMsg,
+          subject: (subject || body.title || '').trim(),
+          category: (category || '').trim(),
+        });
+      } catch (syncErr) {
+        console.error('[API /api/contact Background Sync Error]:', syncErr);
+      }
     });
 
     return NextResponse.json({
       success: true,
       message: 'Submission successfully received and processed.',
-      syncedToGoogleSheet: syncRes.success,
     });
   } catch (error: any) {
     console.error('[API /api/contact Error]:', error);

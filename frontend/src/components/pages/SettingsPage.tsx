@@ -504,31 +504,26 @@ export default function SettingsPage() {
     }
 
     setReportErrors({});
-    setIsSubmittingReport(true);
+    
+    const payload = {
+      category: reportCategory,
+      title: reportTitle.trim(),
+      description: reportDesc.trim(),
+      screenshot: reportScreenshot || undefined,
+      name: user?.displayName || user?.fullName || "User",
+      email: user?.email || (user?.authMethod === "email" ? user?.identifier : "") || "",
+    };
 
-    try {
-      const res = await userService.submitProblemReport({
-        category: reportCategory,
-        title: reportTitle.trim(),
-        description: reportDesc.trim(),
-        screenshot: reportScreenshot || undefined,
-        name: user?.displayName || user?.fullName || "User",
-        email: user?.email || (user?.authMethod === "email" ? user?.identifier : "") || "",
-      });
+    // Instant optimistic response (< 0.1s)
+    showToast(t.settings.support.reportSuccess, "success");
+    setReportTitle("");
+    setReportDesc("");
+    setReportScreenshot(null);
 
-      if (res.success) {
-        showToast(t.settings.support.reportSuccess, "success");
-        setReportTitle("");
-        setReportDesc("");
-        setReportScreenshot(null);
-      } else {
-        showToast(res.error || "Failed to submit report.", "error");
-      }
-    } catch {
-      showToast("Failed to submit report.", "error");
-    } finally {
-      setIsSubmittingReport(false);
-    }
+    // Background dispatch
+    userService.submitProblemReport(payload).catch((err) => {
+      console.warn("[Report submission background error]:", err);
+    });
   };
 
   // Contact Support Form
@@ -566,28 +561,23 @@ export default function SettingsPage() {
     }
 
     setContactErrors({});
-    setIsSubmittingContact(true);
 
-    try {
-      const res = await userService.sendSupportMessage({
-        name: contactName.trim() || "User",
-        email: contactEmail.trim(),
-        subject: contactSubject.trim(),
-        message: contactMessage.trim(),
-      });
+    const payload = {
+      name: contactName.trim() || "User",
+      email: contactEmail.trim(),
+      subject: contactSubject.trim(),
+      message: contactMessage.trim(),
+    };
 
-      if (res.success) {
-        showToast(t.settings.support.contactSuccess, "success");
-        setContactSubject("");
-        setContactMessage("");
-      } else {
-        showToast(res.error || "Failed to send message.", "error");
-      }
-    } catch {
-      showToast("Failed to send message.", "error");
-    } finally {
-      setIsSubmittingContact(false);
-    }
+    // Instant optimistic response (< 0.1s)
+    showToast(t.settings.support.contactSuccess, "success");
+    setContactSubject("");
+    setContactMessage("");
+
+    // Background dispatch
+    userService.sendSupportMessage(payload).catch((err) => {
+      console.warn("[Contact submission background error]:", err);
+    });
   };
 
   // Feedback Form
@@ -604,27 +594,22 @@ export default function SettingsPage() {
     }
 
     setFeedbackError("");
-    setIsSubmittingFeedback(true);
 
-    try {
-      const res = await userService.submitFeedback({
-        type: feedbackType,
-        message: feedbackMessage.trim(),
-        name: user?.displayName || user?.fullName || "User",
-        email: user?.email || (user?.authMethod === "email" ? user?.identifier : "") || "",
-      });
+    const payload = {
+      type: feedbackType,
+      message: feedbackMessage.trim(),
+      name: user?.displayName || user?.fullName || "User",
+      email: user?.email || (user?.authMethod === "email" ? user?.identifier : "") || "",
+    };
 
-      if (res.success) {
-        showToast(t.settings.support.feedbackSuccess, "success");
-        setFeedbackMessage("");
-      } else {
-        showToast(res.error || "Failed to submit feedback.", "error");
-      }
-    } catch {
-      showToast("Failed to submit feedback.", "error");
-    } finally {
-      setIsSubmittingFeedback(false);
-    }
+    // Instant optimistic response (< 0.1s)
+    showToast(t.settings.support.feedbackSuccess, "success");
+    setFeedbackMessage("");
+
+    // Background dispatch
+    userService.submitFeedback(payload).catch((err) => {
+      console.warn("[Feedback submission background error]:", err);
+    });
   };
 
   // =========================================================================
