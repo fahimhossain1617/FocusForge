@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import AuthLayout from "../../components/auth/AuthLayout";
 import { AuthIcons } from "../../components/auth/AuthIcons";
 import ForgotPasswordModal from "../../components/auth/ForgotPasswordModal";
+import { authService } from "../../services/authService";
 import { useAuth } from "../../context/AuthContext";
 import { useAppContext } from "../../context/AppContext";
 import { User, Users, Trash2, ArrowRight } from "lucide-react";
@@ -65,8 +66,13 @@ function LoginContent() {
       const res = await loginWithCredentials(email, password, rememberMe);
 
       if (res.isUnconfirmed) {
-        showToast("Please verify your email address to log in.", "info");
-        router.push(`/verify?email=${encodeURIComponent(email.trim())}`);
+        try {
+          await authService.resendOtp(email.trim());
+          showToast("A verification code has been dispatched to your email. Please verify to log in.", "info");
+        } catch {
+          showToast("Please verify your email address to log in.", "info");
+        }
+        router.push(`/verify?email=${encodeURIComponent(email.trim())}&fromLogin=1`);
         return;
       }
 

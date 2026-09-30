@@ -202,7 +202,12 @@ export const authService = {
     });
 
     if (error) {
-      return { success: false, error: error.message };
+      let friendlyMsg = error.message;
+      const lower = error.message.toLowerCase();
+      if (lower.includes("rate limit") || lower.includes("over_email_send_rate_limit")) {
+        friendlyMsg = "Email send limit reached for this hour. Please check your Spam folder or configure Custom SMTP in Supabase Dashboard.";
+      }
+      return { success: false, error: friendlyMsg };
     }
 
     return { success: true };
