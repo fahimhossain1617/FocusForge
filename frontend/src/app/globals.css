@@ -1169,7 +1169,224 @@ html.light textarea::placeholder,
 .note-editor-actions { position: relative; display: flex; align-items: center; gap: 10px; }.note-header-icon { display: grid; place-items: center; width: 31px; height: 31px; padding: 0; border: 1px solid transparent; border-radius: 8px; background: transparent; color: #8f8f9e; cursor: pointer; transition: .2s; }.note-header-icon:hover { border-color: rgba(255,255,255,.1); background: rgba(255,255,255,.06); color: #fff; }.note-header-icon--danger:hover { color: #fb7185; background: rgba(244,63,94,.1); border-color: rgba(244,63,94,.18); }
 .note-more-menu { position: absolute; z-index: 70; top: 44px; right: 0; width: 200px; padding: 6px; border: 1px solid rgba(255,255,255,.1); border-radius: 16px; background: rgba(18,18,28,.65); box-shadow: none !important; backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1); }.note-more-menu > button { display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 12px; border: 0; border-radius: 10px; background: transparent; color: #e2e2e9; text-align: left; font-size: 13px; font-weight: 500; cursor: pointer; transition: 0.15s; }.note-more-menu > button:hover { background: rgba(255,255,255,.08); color: #fff; box-shadow: none !important; }
 .note-delete-confirm { position: fixed; inset: 0; z-index: 90; display: grid; place-items: center; padding: 20px; background: rgba(0,0,0,.54); backdrop-filter: blur(5px); }.note-delete-confirm > div { width: min(100%, 340px); padding: 24px; border: 1px solid rgba(255,255,255,.12); border-radius: 16px; background: #181821; box-shadow: none !important; }.note-delete-confirm h2 { margin: 0 0 6px; color: #fff; font-size: 18px; }.note-delete-confirm p { margin: 0; color: #a0a0af; font-size: 13px; }.note-delete-confirm section { display: flex; justify-content: flex-end; gap: 8px; margin-top: 22px; }.note-delete-confirm button { padding: 8px 12px; border: 1px solid rgba(255,255,255,.1); border-radius: 8px; background: transparent; color: #d5d5de; font-size: 13px; cursor: pointer; }.note-delete-confirm .is-delete { border-color: #ef4444; background: #dc2626; color: white; }
-@media print { body { background: #fff !important; color: #111 !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }.sidebar, .note-editor-screen__header, .block-controls, .note-command-menu, .block-color-toolbar { display: none !important; }.note-editor-screen, .note-editor-screen__scroll { height: auto !important; overflow: visible !important; background: #fff !important; }.note-editor-canvas { max-width: none; padding: 28px !important; }.note-editor-title, .editor-block input, .editor-block textarea { color: #111 !important; }.editor-block--code { break-inside: avoid; } }
+/* ==================== Note Print & PDF Styles ==================== */
+@media print {
+  @page {
+    margin: 15mm 15mm 15mm 15mm;
+    size: auto;
+  }
+
+  html,
+  body,
+  #__next,
+  .notes-workspace,
+  .note-editor-screen,
+  .note-editor-screen__scroll,
+  .note-editor-canvas,
+  main {
+    position: static !important;
+    inset: auto !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+    background: #ffffff !important;
+    background-color: #ffffff !important;
+    background-image: none !important;
+    box-shadow: none !important;
+    border: none !important;
+    color: #111827 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  /* Hide interactive/editor UI chrome */
+  .sidebar,
+  .note-editor-screen__header,
+  .note-editor-meta-row,
+  .block-controls,
+  .note-command-menu,
+  .block-color-toolbar,
+  .note-more-menu,
+  .note-delete-confirm,
+  .note-editor-bottom-spacer,
+  .code-toolbar,
+  .sticky-label,
+  .custom-scrollbar::-webkit-scrollbar,
+  .note-drag-overlay,
+  button,
+  .ccp-controls {
+    display: none !important;
+  }
+
+  /* Completely hide all placeholders in print */
+  input::placeholder,
+  textarea::placeholder,
+  .placeholder-zinc-600::placeholder,
+  .placeholder-zinc-500::placeholder {
+    color: transparent !important;
+    opacity: 0 !important;
+    -webkit-text-fill-color: transparent !important;
+  }
+
+  /* Top Right Date Header for Print */
+  .note-print-header {
+    display: flex !important;
+    justify-content: flex-end !important;
+    align-items: center !important;
+    width: 100% !important;
+    margin-bottom: 24px !important;
+    padding-bottom: 8px !important;
+    border-bottom: 1px solid #e5e7eb !important;
+  }
+
+  .note-print-date {
+    font-size: 11px !important;
+    color: #6b7280 !important;
+    font-weight: 500 !important;
+    text-align: right !important;
+  }
+
+  /* Clean Note Title */
+  .note-editor-title {
+    color: #000000 !important;
+    -webkit-text-fill-color: #000000 !important;
+    font-size: 26px !important;
+    font-weight: 700 !important;
+    line-height: 1.3 !important;
+    margin-bottom: 20px !important;
+    padding: 0 !important;
+    border: none !important;
+    background: transparent !important;
+    width: 100% !important;
+    box-shadow: none !important;
+  }
+
+  /* Editor Canvas & Blocks */
+  .note-editor-canvas {
+    max-width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    background: #ffffff !important;
+  }
+
+  .editor-block {
+    page-break-inside: avoid;
+    break-inside: avoid;
+    background: transparent !important;
+    margin-bottom: 8px !important;
+    box-shadow: none !important;
+  }
+
+  .editor-block input,
+  .editor-block textarea {
+    color: #111827;
+    -webkit-text-fill-color: #111827;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    resize: none !important;
+    width: 100% !important;
+    font-size: 15px !important;
+    line-height: 1.6 !important;
+    outline: none !important;
+  }
+
+  .editor-block--h1 input {
+    font-size: 24px !important;
+    font-weight: 700 !important;
+    color: #000000;
+    -webkit-text-fill-color: #000000;
+    margin-top: 12px !important;
+    margin-bottom: 4px !important;
+  }
+
+  .editor-block--h2 input {
+    font-size: 20px !important;
+    font-weight: 600 !important;
+    color: #111827;
+    -webkit-text-fill-color: #111827;
+    margin-top: 10px !important;
+    margin-bottom: 4px !important;
+  }
+
+  .editor-block--h3 input {
+    font-size: 17px !important;
+    font-weight: 600 !important;
+    color: #1f2937;
+    -webkit-text-fill-color: #1f2937;
+    margin-top: 8px !important;
+    margin-bottom: 2px !important;
+  }
+
+  .editor-block--quote > div {
+    border-left: 3px solid #3b82f6 !important;
+    background: #f8fafc !important;
+    color: #334155 !important;
+    padding: 8px 12px !important;
+    border-radius: 0 8px 8px 0 !important;
+  }
+
+  .editor-block--todo .todo-toggle {
+    border: 1.5px solid #64748b !important;
+    background: transparent !important;
+    color: #000000 !important;
+  }
+
+  .editor-block--todo .todo-toggle.done {
+    background: #10b981 !important;
+    border-color: #10b981 !important;
+    color: #ffffff !important;
+  }
+
+  .editor-block--code {
+    background: #f8fafc !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 8px !important;
+    padding: 10px 14px !important;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  .editor-block--code .code-editor {
+    background: #f8fafc !important;
+  }
+
+  .editor-block--sticky {
+    background: #fefce8 !important;
+    border: 1px solid #fef08a !important;
+    color: #713f12 !important;
+    border-radius: 8px !important;
+    padding: 12px !important;
+  }
+
+  .editor-block--file {
+    background: #f8fafc !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 10px !important;
+    padding: 10px 14px !important;
+  }
+
+  .editor-block--file h4 {
+    color: #111827 !important;
+  }
+
+  .editor-block--link {
+    background: #f8fafc !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 10px !important;
+    padding: 10px 14px !important;
+  }
+
+  .editor-block--link h4 {
+    color: #111827 !important;
+  }
+}
 
 /* ==================== Block Color Toolbar ==================== */
 
@@ -1541,14 +1758,14 @@ small, .text-xs { font-size: 13px !important; font-weight: 400; line-height: 1.5
 .todo-toggle, .block-controls > button { border-radius: var(--r-sm) !important; }
 .sidebar h1 { font-size: 16px !important; font-weight: 700 !important; line-height: 1.2 !important; letter-spacing: normal !important; }
 
-input:not([type="checkbox"]):not([type="radio"]):not([type="color"]):not(.note-editor-title), select, textarea:not(.code-surface--input):not(.note-editor-canvas textarea):not(.composer-pill-textarea):not([class*="pillTextarea"]) {
+input:not([type="checkbox"]):not([type="radio"]):not([type="color"]):not(.note-editor-title), select, textarea:not(.code-surface--input):not(.note-editor-canvas textarea):not(.composer-pill-textarea):not([class*="pillTextarea"]):not(.diary-lined-textarea) {
   background: rgba(255, 255, 255, 0.04) !important;
   border: 1px solid var(--border-default) !important;
   border-radius: var(--r-md) !important;
   color: var(--text-primary) !important;
   padding: 12px 16px;
 }
-input:not([type="checkbox"]):not([type="radio"]):not([type="color"]):not(.note-editor-title):focus, select:focus, textarea:not(.code-surface--input):not(.note-editor-canvas textarea):not(.composer-pill-textarea):not([class*="pillTextarea"]):focus {
+input:not([type="checkbox"]):not([type="radio"]):not([type="color"]):not(.note-editor-title):focus, select:focus, textarea:not(.code-surface--input):not(.note-editor-canvas textarea):not(.composer-pill-textarea):not([class*="pillTextarea"]):not(.diary-lined-textarea):focus {
   border-color: rgba(148, 163, 184, 0.28) !important;
   box-shadow: none !important;
   outline: none !important;
@@ -1873,10 +2090,10 @@ html.dark:not([data-theme="light"]) .btn-ghost {
 
 html:not([data-theme="light"]):not(.light) input:not([type="checkbox"]):not([type="radio"]):not([type="color"]):not(.note-editor-title),
 html:not([data-theme="light"]):not(.light) select,
-html:not([data-theme="light"]):not(.light) textarea:not(.code-surface--input):not(.note-editor-canvas textarea):not(.composer-pill-textarea):not([class*="pillTextarea"]),
+html:not([data-theme="light"]):not(.light) textarea:not(.code-surface--input):not(.note-editor-canvas textarea):not(.composer-pill-textarea):not([class*="pillTextarea"]):not(.diary-lined-textarea),
 html.dark:not([data-theme="light"]) input:not([type="checkbox"]):not([type="radio"]):not([type="color"]):not(.note-editor-title),
 html.dark:not([data-theme="light"]) select,
-html.dark:not([data-theme="light"]) textarea:not(.code-surface--input):not(.note-editor-canvas textarea):not(.composer-pill-textarea):not([class*="pillTextarea"]) {
+html.dark:not([data-theme="light"]) textarea:not(.code-surface--input):not(.note-editor-canvas textarea):not(.composer-pill-textarea):not([class*="pillTextarea"]):not(.diary-lined-textarea) {
   background: rgba(2, 5, 11, 0.62) !important;
   border-color: rgba(148, 163, 184, 0.18) !important;
 }

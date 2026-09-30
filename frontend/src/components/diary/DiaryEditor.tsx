@@ -19,7 +19,6 @@ export type WritingStyle = "clean" | "classic" | "handwritten";
 
 export default function DiaryEditor({ entry, onSave, lang }: DiaryEditorProps) {
   const { t } = useTranslation();
-  const [title, setTitle] = useState(entry.title || "");
   const [content, setContent] = useState(entry.content || "");
   const [images, setImages] = useState<DiaryImage[]>(entry.images || []);
   const [saveStatus, setSaveStatus] = useState<"saved" | "saving">("saved");
@@ -33,7 +32,6 @@ export default function DiaryEditor({ entry, onSave, lang }: DiaryEditorProps) {
 
   // Sync state when entry changes
   useEffect(() => {
-    setTitle(entry.title || "");
     setContent(entry.content || "");
     setImages(entry.images || []);
     setSaveStatus("saved");
@@ -44,16 +42,14 @@ export default function DiaryEditor({ entry, onSave, lang }: DiaryEditorProps) {
 
   // Debounced Autosave Trigger
   const triggerAutoSave = useCallback(
-    (newTitle: string, newContent: string, newImages?: DiaryImage[]) => {
-      setSaveStatus("saving");
+    (newContent: string, newImages?: DiaryImage[]) => {
       if (debounceTimerRef.current) {
         clearTimeout(debounceTimerRef.current);
       }
 
       debounceTimerRef.current = setTimeout(() => {
-        onSave(newTitle, newContent, newImages !== undefined ? newImages : images);
-        setSaveStatus("saved");
-      }, 500);
+        onSave("", newContent, newImages !== undefined ? newImages : images);
+      }, 400);
     },
     [onSave, images]
   );
@@ -62,7 +58,7 @@ export default function DiaryEditor({ entry, onSave, lang }: DiaryEditorProps) {
   const handleTrimExcessiveLines = () => {
     const trimmed = content.replace(/\n{2,}$/, "\n");
     setContent(trimmed);
-    triggerAutoSave(title, trimmed);
+    triggerAutoSave(trimmed);
     setTimeout(() => {
       if (textareaRef.current) {
         textareaRef.current.selectionStart = trimmed.length;
@@ -70,12 +66,6 @@ export default function DiaryEditor({ entry, onSave, lang }: DiaryEditorProps) {
         textareaRef.current.focus();
       }
     }, 0);
-  };
-
-  const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value;
-    setTitle(val);
-    triggerAutoSave(val, content, images);
   };
 
   // Track cursor position reliably across renders
@@ -91,12 +81,11 @@ export default function DiaryEditor({ entry, onSave, lang }: DiaryEditorProps) {
   const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const val = e.target.value;
     setContent(val);
-    triggerAutoSave(title, val, images);
+    triggerAutoSave(val, images);
     updateCursorPosition();
   };
 
   // Voice speech insertion: Strictly chronological, sequential appending
-  // Ensures 1st phrase is 1st, 2nd is 2nd, 3rd is 3rd, never prepending backwards or scrambling!
   const handleSpeechInsert = useCallback((speechText: string) => {
     const cleanSpeech = speechText.trim();
     if (!cleanSpeech) return;
@@ -112,7 +101,7 @@ export default function DiaryEditor({ entry, onSave, lang }: DiaryEditorProps) {
       }
 
       lastCursorPosRef.current = updated.length;
-      triggerAutoSave(title, updated, images);
+      triggerAutoSave(updated, images);
 
       // Keep cursor synced to the end of appended text
       setTimeout(() => {
@@ -125,7 +114,7 @@ export default function DiaryEditor({ entry, onSave, lang }: DiaryEditorProps) {
 
       return updated;
     });
-  }, [title, images, triggerAutoSave]);
+  }, [images, triggerAutoSave]);
   // Image Upload Handler
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -146,7 +135,7 @@ export default function DiaryEditor({ entry, onSave, lang }: DiaryEditorProps) {
 
       const nextImages = [...images, newImage];
       setImages(nextImages);
-      triggerAutoSave(title, content, nextImages);
+      triggerAutoSave(content, nextImages);
     } catch (err) {
       console.error("[DiaryEditor] Image upload error:", err);
     } finally {
@@ -158,14 +147,14 @@ export default function DiaryEditor({ entry, onSave, lang }: DiaryEditorProps) {
   const handleUpdateImageSize = (id: string, size: DiaryImage["size"]) => {
     const nextImages = images.map((img) => (img.id === id ? { ...img, size } : img));
     setImages(nextImages);
-    triggerAutoSave(title, content, nextImages);
+    triggerAutoSave(content, nextImages);
   };
 
   const handleDeleteImage = async (id: string) => {
     const imgToDelete = images.find((img) => img.id === id);
     const nextImages = images.filter((img) => img.id !== id);
     setImages(nextImages);
-    triggerAutoSave(title, content, nextImages);
+    triggerAutoSave(content, nextImages);
 
     if (imgToDelete?.storagePath) {
       try {
@@ -273,25 +262,9 @@ export default function DiaryEditor({ entry, onSave, lang }: DiaryEditorProps) {
 
           {/* Status Indicator */}
           <div className="flex items-center gap-1 font-medium transition-colors select-none text-[11px] sm:text-xs">
-            {saveStatus === "saving" ? (
-              <span className="flex items-center gap-1 text-amber-500 dark:text-amber-400">
-                <Loader2 size={12} className="animate-spin" />
-                <span>{t.diary?.saving || "Saving..."}</span>
-              </span>
-            ) : (
-              <span className="flex items-center gap-1 text-emerald-500 dark:text-emerald-400">
-                <Check size={12} />
-                <span>{t.diary?.saved || "Saved"}</span>
-              </span>
-            )}
-          </div>
-
-          <div className="h-3 w-px bg-black/10 dark:bg-white/10" />
-
-          {/* Counts */}
-          <div className="text-zinc-400 dark:text-zinc-500 text-[11px] font-mono inline">
-            <span>
-              {wordCount} {t.diary?.words || "words"}
+            <span className="flex items-center gap-1 text-emerald-500 dark:text-emerald-400">
+              <Check size={12} />
+              <span>{t.diary?.saved || "Saved"}</span>
             </span>
           </div>
         </div>
@@ -301,23 +274,6 @@ export default function DiaryEditor({ entry, onSave, lang }: DiaryEditorProps) {
       <div className="relative px-3 xs:px-5 sm:px-10 md:px-14 pt-4 sm:pt-6 pb-10">
         {/* Decorative spine binding on the left edge */}
         <div className="diary-spine-binding" />
-
-        {/* Page Title Input */}
-        <div className="mb-4">
-          <input
-            type="text"
-            value={title}
-            onChange={handleTitleChange}
-            placeholder={t.diary?.entryTitlePlaceholder || "Page Title (optional)"}
-            className={`w-full bg-transparent border-b border-black/5 dark:border-white/5 pb-2 text-base sm:text-xl font-bold tracking-tight text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-zinc-600 focus:outline-none focus:border-blue-500/50 transition-colors ${
-              writingStyle === "classic"
-                ? "font-serif"
-                : writingStyle === "handwritten"
-                ? "italic tracking-wide"
-                : ""
-            }`}
-          />
-        </div>
 
         {/* Attached Images with Size Controls */}
         {images && images.length > 0 && (

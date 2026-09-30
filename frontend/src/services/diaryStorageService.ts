@@ -13,9 +13,9 @@ export function formatDiaryDate(isoString: string, lang: "en" | "bn" = "en"): st
     const d = new Date(isoString);
     if (isNaN(d.getTime())) return isoString;
     return d.toLocaleDateString(lang === "bn" ? "bn-BD" : "en-US", {
-      weekday: "long",
+      weekday: "short",
       year: "numeric",
-      month: "long",
+      month: "short",
       day: "numeric",
     });
   } catch {

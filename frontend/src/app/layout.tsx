@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { GeistSans } from "geist/font/sans";
 import { Noto_Sans_Bengali } from "next/font/google";
 import "./globals.css";
+import "./theme-transition.css";
 import "./auth.css";
 import { AppProvider } from "../context/AppContext";
 import { AuthProvider } from "../context/AuthContext";

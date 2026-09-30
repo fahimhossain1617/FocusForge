@@ -3,8 +3,8 @@
 import { useEffect, useMemo, useRef, useState, useCallback, type ChangeEvent, type ComponentType, type KeyboardEvent } from "react";
 import type { BlockType, NoteBlock } from "../../types";
 import { useAppContext } from "../../context/AppContext";
-import { 
-  Braces, CheckSquare2, Copy, Heading1, Heading2, Heading3, StickyNote, Sigma, Text, 
+import {
+  Braces, CheckSquare2, Copy, Heading1, Heading2, Heading3, StickyNote, Sigma, Text,
   Trash2, Palette, Highlighter, Square, RotateCcw, X, PenTool, MousePointer2, Eraser,
   List, ListOrdered, Quote, Image as ImageIcon, FileText, Link2, ExternalLink, Download, Eye, Paperclip,
   Undo2, Redo2
@@ -26,10 +26,10 @@ export const formatBytes = (bytes?: number) => {
   return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
 };
 
-interface BlockEditorProps { 
-  blocks: NoteBlock[]; 
-  onChange: (blocks: NoteBlock[]) => void; 
-  onDirty: () => void; 
+interface BlockEditorProps {
+  blocks: NoteBlock[];
+  onChange: (blocks: NoteBlock[]) => void;
+  onDirty: () => void;
   onTriggerImageUpload?: (targetBlockId?: string) => void;
   onTriggerFileUpload?: (targetBlockId?: string) => void;
   onTriggerLinkModal?: (targetBlockId?: string) => void;
@@ -58,7 +58,7 @@ const options: MenuOption[] = [
 
 const TEXT_COLORS = [
   "#ffffff", "#f8fafc", "#e2e8f0", "#94a3b8", "#475569", "#000000",
-  "#ef4444", "#f97316", "#eab308", "#84cc16", "#22c55e", "#10b981", 
+  "#ef4444", "#f97316", "#eab308", "#84cc16", "#22c55e", "#10b981",
   "#06b6d4", "#3b82f6", "#6366f1", "#8b5cf6", "#d946ef", "#f43f5e",
   "linear-gradient(45deg, #f97316, #eab308)",
   "linear-gradient(45deg, #06b6d4, #3b82f6)",
@@ -68,12 +68,12 @@ const TEXT_COLORS = [
   "linear-gradient(45deg, #ef4444, #8b5cf6)"
 ];
 const HIGHLIGHT_COLORS = [
-  "#7f1d1d", "#78350f", "#713f12", "#3f6212", "#14532d", "#064e3b", 
+  "#7f1d1d", "#78350f", "#713f12", "#3f6212", "#14532d", "#064e3b",
   "#164e63", "#1e3a8a", "#312e81", "#4c1d95", "#701a75", "#881337",
   "#27272a", "#3f3f46", "#52525b", "#71717a", "#a1a1aa", "#d4d4d8"
 ];
 const BOX_COLORS = [
-  "#450a0a", "#431407", "#422006", "#223318", "#052e16", "#022c22", 
+  "#450a0a", "#431407", "#422006", "#223318", "#052e16", "#022c22",
   "#083344", "#172554", "#1e1b4b", "#2e1065", "#4a044e", "#4c0519",
   "#18181b", "#27272a", "#3f3f46", "#52525b", "#71717a", "#a1a1aa"
 ];
@@ -83,9 +83,9 @@ const newBlock = (type: BlockType = "paragraph"): NoteBlock => ({ id: newId(), t
 
 /* ───────────── Main Editor ───────────── */
 
-export default function BlockEditor({ 
-  blocks, 
-  onChange, 
+export default function BlockEditor({
+  blocks,
+  onChange,
   onDirty,
   onTriggerImageUpload,
   onTriggerFileUpload,
@@ -98,7 +98,7 @@ export default function BlockEditor({
   const [colorToolbar, setColorToolbar] = useState<{ visible: boolean; index: number }>({ visible: false, index: -1 });
 
   useEffect(() => { if (!blocks.length) onChange([newBlock()]); }, [blocks.length, onChange]);
-  
+
   // Compute consecutive numbered list indices (resets to 1 whenever interrupted by another block type)
   const listNumbers = useMemo(() => {
     const nums: number[] = [];
@@ -127,22 +127,22 @@ export default function BlockEditor({
 
   const update = (index: number, patch: Partial<NoteBlock>) => { onDirty(); onChange(blocks.map((b, i) => i === index ? { ...b, ...patch } : b)); };
   const focus = (id: string) => window.setTimeout(() => document.getElementById(`block-${id}`)?.focus(), 0);
-  const insertAfter = (index: number, type: BlockType) => { 
+  const insertAfter = (index: number, type: BlockType) => {
     const effectiveType = (!isOnline && type !== "paragraph" && type !== "h1" && type !== "h2" && type !== "h3") ? "paragraph" : type;
-    const next = newBlock(effectiveType); 
-    onDirty(); 
-    onChange([...blocks.slice(0, index + 1), next, ...blocks.slice(index + 1)]); 
-    focus(next.id); 
+    const next = newBlock(effectiveType);
+    onDirty();
+    onChange([...blocks.slice(0, index + 1), next, ...blocks.slice(index + 1)]);
+    focus(next.id);
   };
   const remove = (index: number) => { if (blocks.length === 1) { update(0, { type: "paragraph", content: "" }); return; } const prev = blocks[index - 1]; onDirty(); onChange(blocks.filter((_, i) => i !== index)); if (prev) focus(prev.id); };
-  const duplicate = (index: number) => { 
+  const duplicate = (index: number) => {
     if (!isOnline && blocks[index].type !== "paragraph" && blocks[index].type !== "h1" && blocks[index].type !== "h2" && blocks[index].type !== "h3") {
       showToast(state.lang === 'bn' ? "আপনি বর্তমানে অফলাইনে আছেন।" : "You are currently offline.", 'error');
       return;
     }
-    const copy = { ...blocks[index], id: newId() }; 
-    onDirty(); 
-    onChange([...blocks.slice(0, index + 1), copy, ...blocks.slice(index + 1)]); 
+    const copy = { ...blocks[index], id: newId() };
+    onDirty();
+    onChange([...blocks.slice(0, index + 1), copy, ...blocks.slice(index + 1)]);
   };
 
   const choose = (type: BlockType) => {
@@ -249,17 +249,17 @@ export default function BlockEditor({
 
       if (!event.shiftKey) {
         event.preventDefault();
-        if (block.type === "image" || block.type === "file" || block.type === "link") { 
-          insertAfter(index, "paragraph"); 
-          return; 
+        if (block.type === "image" || block.type === "file" || block.type === "link") {
+          insertAfter(index, "paragraph");
+          return;
         }
         if (!block.content.trim() && (block.type === "bullet" || block.type === "numbered" || block.type === "todo")) {
           update(index, { type: "paragraph", isCompleted: undefined });
           return;
         }
-        if (!block.content.trim() && block.type !== "paragraph") { 
-          update(index, { type: "paragraph", isCompleted: undefined }); 
-          return; 
+        if (!block.content.trim() && block.type !== "paragraph") {
+          update(index, { type: "paragraph", isCompleted: undefined });
+          return;
         }
         insertAfter(index, block.type === "quote" ? "paragraph" : block.type);
         return;
@@ -296,8 +296,8 @@ export default function BlockEditor({
         ) : null}
       />
     ))}
-    <div 
-      className="mt-4 pb-32 cursor-text min-h-[150px]" 
+    <div
+      className="note-editor-bottom-spacer mt-4 pb-32 cursor-text min-h-[150px]"
       onClick={() => {
         const newBlk: NoteBlock = newBlock("paragraph");
         onChange([...blocks, newBlk]);
@@ -375,28 +375,28 @@ function CommandMenu({ options: shown, selected, onChoose }: { options: MenuOpti
   }, [selected]);
 
   return (
-    <div 
-      ref={menuRef} 
+    <div
+      ref={menuRef}
       className="note-command-menu"
       style={fixedStyle || undefined}
     >
       <p>What do you want to add?</p>
       <div ref={listRef}>
-        {shown.map((option, index) => { 
-          const Icon = option.icon; 
+        {shown.map((option, index) => {
+          const Icon = option.icon;
           return (
-            <button 
-              key={option.type} 
-              type="button" 
-              className={index === selected ? "is-selected" : ""} 
-              onMouseDown={(e) => e.preventDefault()} 
+            <button
+              key={option.type}
+              type="button"
+              className={index === selected ? "is-selected" : ""}
+              onMouseDown={(e) => e.preventDefault()}
               onClick={() => onChoose(option.type)}
             >
               <Icon size={16} />
               <span>{option.label}</span>
               <kbd>{option.command}</kbd>
             </button>
-          ); 
+          );
         })}
       </div>
     </div>
@@ -472,10 +472,10 @@ function ColorToolbar({ block, onUpdate, onClose }: { block: NoteBlock; onUpdate
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const handleClick = (e: MouseEvent) => { 
+    const handleClick = (e: MouseEvent) => {
       // Do not close if clicking inside the color toolbar
       if (ref.current && !ref.current.contains(e.target as Node)) {
-        onClose(); 
+        onClose();
       }
     };
     window.addEventListener("mousedown", handleClick);
@@ -516,20 +516,20 @@ function ColorToolbar({ block, onUpdate, onClose }: { block: NoteBlock; onUpdate
       </div>
       <div className="bct-custom">
         <div style={{ position: "relative" }}>
-          <button 
-            type="button" 
-            className="bct-custom-btn" 
+          <button
+            type="button"
+            className="bct-custom-btn"
             onClick={() => setShowCustomPicker(!showCustomPicker)}
           >
             <div className="bct-custom-swatch" style={{ background: pickerColor }} />
             Custom
           </button>
-          
+
           {showCustomPicker && (
-            <CustomColorPickerPopover 
-              color={pickerColor} 
-              onChange={applyColor} 
-              onClose={() => setShowCustomPicker(false)} 
+            <CustomColorPickerPopover
+              color={pickerColor}
+              onChange={applyColor}
+              onClose={() => setShowCustomPicker(false)}
             />
           )}
         </div>
@@ -623,7 +623,7 @@ function StickyBlock({ block, control, input, textareaRef, onDelete, onUpdate }:
   // Initialize Fabric canvas
   useEffect(() => {
     if (!canvasRef.current) return;
-    
+
     // Only initialize once
     if (!fabricRef.current) {
       fabricRef.current = new fabric.Canvas(canvasRef.current, {
@@ -676,7 +676,7 @@ function StickyBlock({ block, control, input, textareaRef, onDelete, onUpdate }:
       fabricRef.current.on("object:modified", saveState);
       fabricRef.current.on("object:removed", saveState);
       fabricRef.current.on("object:added", saveState);
-      
+
       fabricRef.current.on("selection:created", () => setHasSelection(true));
       fabricRef.current.on("selection:updated", () => setHasSelection(true));
       fabricRef.current.on("selection:cleared", () => setHasSelection(false));
@@ -692,7 +692,7 @@ function StickyBlock({ block, control, input, textareaRef, onDelete, onUpdate }:
   // Update mode
   useEffect(() => {
     if (!fabricRef.current) return;
-    
+
     if (mode === "draw") {
       fabricRef.current.isDrawingMode = true;
       fabricRef.current.selection = false;
@@ -751,7 +751,7 @@ function StickyBlock({ block, control, input, textareaRef, onDelete, onUpdate }:
         }
       }
     };
-    
+
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [mode, undoDrawing, redoDrawing, saveState]);
@@ -791,25 +791,25 @@ function StickyBlock({ block, control, input, textareaRef, onDelete, onUpdate }:
       {control}
       <div className="absolute top-2 right-2 flex items-center gap-2 z-30">
         <div className="flex bg-black/20 p-1 rounded-md border border-white/5">
-          <button 
-            type="button" 
-            onClick={() => setMode(mode === "text" ? "draw" : "text")} 
+          <button
+            type="button"
+            onClick={() => setMode(mode === "text" ? "draw" : "text")}
             className={`p-1 rounded transition-colors ${mode === "text" ? 'bg-white/10 text-white' : 'text-zinc-500 hover:text-white hover:bg-white/5'}`}
             title="Text Mode"
           >
             <Text size={14} />
           </button>
-          <button 
-            type="button" 
-            onClick={() => setMode("draw")} 
+          <button
+            type="button"
+            onClick={() => setMode("draw")}
             className={`p-1 rounded transition-colors ${mode === "draw" ? 'bg-purple-600 text-white' : 'text-zinc-500 hover:text-purple-400 hover:bg-purple-500/20'}`}
             title="Draw Mode"
           >
             <PenTool size={14} />
           </button>
-          <button 
-            type="button" 
-            onClick={() => setMode("select")} 
+          <button
+            type="button"
+            onClick={() => setMode("select")}
             className={`p-1 rounded transition-colors ${mode === "select" ? 'bg-blue-600 text-white' : 'text-zinc-500 hover:text-blue-400 hover:bg-blue-500/20'}`}
             title="Select & Edit Drawing"
           >
@@ -819,18 +819,18 @@ function StickyBlock({ block, control, input, textareaRef, onDelete, onUpdate }:
 
         {(mode === "draw" || mode === "select") && (
           <div className="flex bg-black/20 p-1 rounded-md border border-white/5 items-center gap-0.5">
-            <button 
-              type="button" 
-              onClick={undoDrawing} 
+            <button
+              type="button"
+              onClick={undoDrawing}
               disabled={!canUndo}
               className={`p-1 rounded transition-colors ${canUndo ? 'text-zinc-300 hover:text-white hover:bg-white/10' : 'text-zinc-600 cursor-not-allowed opacity-40'}`}
               title="Undo (Ctrl+Z)"
             >
               <Undo2 size={14} />
             </button>
-            <button 
-              type="button" 
-              onClick={redoDrawing} 
+            <button
+              type="button"
+              onClick={redoDrawing}
               disabled={!canRedo}
               className={`p-1 rounded transition-colors ${canRedo ? 'text-zinc-300 hover:text-white hover:bg-white/10' : 'text-zinc-600 cursor-not-allowed opacity-40'}`}
               title="Redo (Ctrl+Y)"
@@ -839,11 +839,11 @@ function StickyBlock({ block, control, input, textareaRef, onDelete, onUpdate }:
             </button>
           </div>
         )}
-        
+
         {mode === "select" && hasSelection && (
-          <button 
-            type="button" 
-            onClick={deleteSelected} 
+          <button
+            type="button"
+            onClick={deleteSelected}
             className="text-red-400 hover:text-white bg-red-500/10 hover:bg-red-600 p-1.5 rounded-md transition-colors"
             title="Delete Selected"
           >
@@ -852,9 +852,9 @@ function StickyBlock({ block, control, input, textareaRef, onDelete, onUpdate }:
         )}
 
         {block.drawingData && block.drawingData !== "" && (
-          <button 
-            type="button" 
-            onClick={clearDrawing} 
+          <button
+            type="button"
+            onClick={clearDrawing}
             className="text-red-400 hover:text-white bg-red-500/10 hover:bg-red-600 p-1.5 rounded-md transition-colors"
             title="Clear Drawing"
           >
@@ -865,21 +865,21 @@ function StickyBlock({ block, control, input, textareaRef, onDelete, onUpdate }:
       </div>
 
       <div className="sticky-label"><StickyNote size={14} /> QUICK NOTE</div>
-      
+
       <div className="relative mt-2" style={{ minHeight: "150px" }}>
-        <textarea 
-          ref={textareaRef} 
-          {...input} 
-          rows={1} 
-          placeholder={hidePlaceholder ? "" : "Write a sticky note... (Shift+Enter for new block)"} 
+        <textarea
+          ref={textareaRef}
+          {...input}
+          rows={1}
+          placeholder={hidePlaceholder ? "" : "Write a sticky note... (Shift+Enter for new block)"}
           className={mode !== "text" ? "opacity-30" : ""}
           style={{ position: "relative", zIndex: 10, minHeight: "150px", width: "100%", background: "transparent" }}
           disabled={mode !== "text"}
         />
-        <div 
+        <div
           className="absolute top-0 left-0 w-full h-full"
-          style={{ 
-            zIndex: 20, 
+          style={{
+            zIndex: 20,
             pointerEvents: mode === "text" ? "none" : "auto",
             touchAction: "none"
           }}
@@ -893,19 +893,19 @@ function StickyBlock({ block, control, input, textareaRef, onDelete, onUpdate }:
 
 /* ───────────── Editor Block ───────────── */
 
-function EditorBlock({ 
-  block, 
+function EditorBlock({
+  block,
   index,
   listNumber = 1,
-  onInput, 
-  onKeyDown, 
-  onToggle, 
-  onDelete, 
-  onDuplicate, 
-  onLanguage, 
-  onColorToolbar, 
-  colorToolbarOpen, 
-  onCloseColorToolbar, 
+  onInput,
+  onKeyDown,
+  onToggle,
+  onDelete,
+  onDuplicate,
+  onLanguage,
+  onColorToolbar,
+  colorToolbarOpen,
+  onCloseColorToolbar,
   onUpdateColor,
   onReplaceImage,
   onPreviewImage,
@@ -1055,11 +1055,11 @@ function EditorBlock({
         <div className={`relative rounded-xl overflow-hidden ${sizeConfig.imgMaxH} flex items-center justify-center bg-black/40`}>
           {block.url ? (
             /* eslint-disable-next-line @next/next/no-img-element */
-            <img 
-              src={block.url} 
-              alt={captionValue || "Note image"} 
+            <img
+              src={block.url}
+              alt={captionValue || "Note image"}
               className={`w-auto h-auto max-w-full ${sizeConfig.imgMaxH} object-contain rounded-xl cursor-pointer select-none transition-transform duration-200 hover:scale-[1.01]`}
-              onClick={() => onPreviewImage?.(block.url!)} 
+              onClick={() => onPreviewImage?.(block.url!)}
               title="Click to view full size"
             />
           ) : (
@@ -1069,13 +1069,14 @@ function EditorBlock({
             </div>
           )}
         </div>
-        <div className="flex items-center justify-between gap-2 mt-2 px-1">
+        <div className="flex items-center justify-between gap-3 mt-2.5 px-3">
           <input
             type="text"
             value={captionValue}
             onChange={(e) => onUpdateColor({ caption: e.target.value })}
             placeholder="Add an image caption..."
-            className="text-xs text-zinc-400 placeholder-zinc-600 bg-transparent outline-none flex-1 py-1 min-w-0"
+            style={{ textIndent: '8px' }}
+            className="text-xs text-zinc-400 placeholder-zinc-500 bg-black/20 dark:bg-white/5 border border-white/10 rounded-xl outline-none flex-1 py-2 min-w-0 focus:border-blue-500/50 transition-colors"
           />
           <div className="flex items-center gap-1.5 shrink-0">
             <div className="flex items-center bg-white/5 p-0.5 rounded-lg border border-white/5">
@@ -1084,11 +1085,10 @@ function EditorBlock({
                   key={s}
                   type="button"
                   onClick={() => onUpdateColor({ imageSize: s })}
-                  className={`px-1.5 py-0.5 text-[10px] font-bold rounded transition-colors ${
-                    (block.imageSize || "medium") === s 
-                      ? "bg-blue-600 text-white shadow-none" 
-                      : "text-zinc-400 hover:text-zinc-200 hover:bg-white/5"
-                  }`}
+                  className={`px-1.5 py-0.5 text-[10px] font-bold rounded transition-colors ${(block.imageSize || "medium") === s
+                    ? "bg-blue-600 text-white shadow-none"
+                    : "text-zinc-400 hover:text-zinc-200 hover:bg-white/5"
+                    }`}
                   title={`${s.charAt(0).toUpperCase() + s.slice(1)} size`}
                 >
                   {s === "small" ? "S" : s === "medium" ? "M" : "L"}
@@ -1300,13 +1300,13 @@ function EditorBlock({
 
   // ── Sticky ──
   if (block.type === "sticky") {
-    return <StickyBlock 
-      block={block} 
-      control={control} 
-      input={input} 
-      textareaRef={textarea} 
-      onDelete={onDelete} 
-      onUpdate={onUpdateColor} 
+    return <StickyBlock
+      block={block}
+      control={control}
+      input={input}
+      textareaRef={textarea}
+      onDelete={onDelete}
+      onUpdate={onUpdateColor}
     />;
   }
 

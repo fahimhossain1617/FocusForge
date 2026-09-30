@@ -39,16 +39,23 @@
 }
 
 /* Ruled Writing Textarea */
-.diary-lined-textarea {
+.diary-lined-textarea,
+textarea.diary-lined-textarea,
+html:not([data-theme="light"]):not(.light) textarea.diary-lined-textarea,
+html.dark:not([data-theme="light"]) textarea.diary-lined-textarea,
+:root[data-theme="light"] textarea.diary-lined-textarea {
   line-height: 32px !important;
   font-size: 16px;
   background: transparent !important;
+  background-color: transparent !important;
   border: none !important;
   outline: none !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
   resize: none;
   width: 100%;
   color: var(--color-text-primary);
-  padding: 0 0 24px 0;
+  padding: 10px 0 24px 0 !important;
   box-sizing: border-box;
 }
 
@@ -313,11 +320,11 @@
 }
 
 .diary-ring-group-top {
-  top: 24px;
+  top: 18%;
 }
 
 .diary-ring-group-bottom {
-  bottom: 24px;
+  bottom: 18%;
 }
 
 /* Individual Binding Ring */

@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import { 
-  ArrowLeft, Check, CloudUpload, Download, MoreHorizontal, 
+  ArrowLeft, Check, Download, MoreVertical, 
   Share2, Trash2, Image as ImageIcon, 
   FileUp, X, ChevronDown
 } from "lucide-react";
@@ -52,9 +52,9 @@ export default function NoteEditorView({
     const filtered = initialBlocks.filter((b) => !(b.type === "paragraph" && b.content.trim() === "#"));
     return filtered.length > 0 ? filtered : [{ id: newId(), type: "paragraph", content: "" }];
   }); 
-  const [saveState, setSaveState] = useState<"saved" | "saving">("saved"); 
   const [moreOpen, setMoreOpen] = useState(false); 
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const moreMenuRef = useRef<HTMLDivElement>(null);
   
   // Modals & Popups
   const [linkModalOpen, setLinkModalOpen] = useState(false);
@@ -70,6 +70,22 @@ export default function NoteEditorView({
   if (previewImageUrl) {
     lastPreviewImageUrlRef.current = previewImageUrl;
   }
+
+  // Dismiss more menu on click outside
+  useEffect(() => {
+    if (!moreOpen) return;
+    const handleOutsideClick = (e: MouseEvent | TouchEvent) => {
+      if (moreMenuRef.current && !moreMenuRef.current.contains(e.target as Node)) {
+        setMoreOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleOutsideClick);
+    document.addEventListener("touchstart", handleOutsideClick);
+    return () => {
+      document.removeEventListener("mousedown", handleOutsideClick);
+      document.removeEventListener("touchstart", handleOutsideClick);
+    };
+  }, [moreOpen]);
 
   // Hidden File Inputs
   const imageInputRef = useRef<HTMLInputElement>(null);
@@ -94,12 +110,10 @@ export default function NoteEditorView({
   }, [initialBlocks, user]);
 
   const queueSave = (nextTitle: string, nextBlocks: NoteBlock[], nextCategory?: string) => { 
-    setSaveState("saving"); 
     if (saveTimer.current) clearTimeout(saveTimer.current); 
     const currentCat = nextCategory !== undefined ? nextCategory : category;
     saveTimer.current = setTimeout(() => { 
       onUpdate(nextTitle, nextBlocks, currentCat); 
-      setSaveState("saved"); 
     }, 450); 
   };
 
@@ -107,6 +121,30 @@ export default function NoteEditorView({
     if (saveTimer.current) clearTimeout(saveTimer.current); 
     onUpdate(title, blocks, category); 
     onBack(); 
+  };
+
+  const handleDownloadPdf = () => { 
+    if (!isOnline) {
+      showToast(
+        state.lang === 'bn'
+          ? "আপনি বর্তমানে অফলাইনে আছেন।"
+          : "You are currently offline.",
+        'error'
+      );
+      setMoreOpen(false);
+      return;
+    }
+    setMoreOpen(false); 
+
+    const prevDocTitle = document.title;
+    const cleanTitle = (title && title.trim()) ? title.trim() : (state.lang === 'bn' ? "নোট" : "Note");
+    document.title = cleanTitle;
+
+    window.print();
+
+    setTimeout(() => {
+      document.title = prevDocTitle;
+    }, 1000);
   };
 
   const share = async () => { 
@@ -455,21 +493,14 @@ export default function NoteEditorView({
             <Trash2 size={16} />
           </button>
 
-          <span className={saveState === "saving" ? "note-save-state is-saving" : "note-save-state"}>
-            {saveState === "saving" ? (
-              <span className="inline-flex items-center gap-1.5 text-xs text-blue-500 font-medium select-none">
-                <CloudUpload size={13} className="animate-pulse" />
-                <span>{isBn ? "সংরক্ষণ..." : "Saving..."}</span>
-              </span>
-            ) : (
-              <span className="inline-flex items-center gap-1.5 text-xs text-emerald-500 font-medium select-none">
-                <Check size={13} />
-                <span>{isBn ? "সংরক্ষিত" : "Saved"}</span>
-              </span>
-            )}
+          <span className="note-save-state">
+            <span className="inline-flex items-center gap-1.5 text-xs text-emerald-500 font-medium select-none">
+              <Check size={13} />
+              <span>{isBn ? "সংরক্ষিত" : "Saved"}</span>
+            </span>
           </span>
 
-          <div className="relative z-[9999]">
+          <div className="relative z-[9999]" ref={moreMenuRef}>
             <button 
               type="button" 
               className="note-header-icon cursor-pointer p-1.5 rounded-xl text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-black/5 dark:hover:bg-white/5 transition-colors" 
@@ -477,7 +508,7 @@ export default function NoteEditorView({
               aria-label="More options"
               title={isBn ? "আরও অপশন" : "More options"}
             >
-              <MoreHorizontal size={18} />
+              <MoreVertical size={18} />
             </button>
             {shouldRenderMore && (
               <div className={`note-more-menu ${isExitingMore ? "motion-dropdown-exit" : "motion-dropdown"}`}>
@@ -486,20 +517,7 @@ export default function NoteEditorView({
                 </button>
                 <button 
                   type="button" 
-                  onClick={() => { 
-                    if (!isOnline) {
-                      showToast(
-                        state.lang === 'bn'
-                          ? "আপনি বর্তমানে অফলাইনে আছেন।"
-                          : "You are currently offline.",
-                        'error'
-                      );
-                      setMoreOpen(false);
-                      return;
-                    }
-                    window.print(); 
-                    setMoreOpen(false); 
-                  }}
+                  onClick={handleDownloadPdf}
                 >
                   <Download size={15} /> {isBn ? "PDF ডাউনলোড করুন" : "Download as PDF"}
                 </button>
@@ -513,6 +531,17 @@ export default function NoteEditorView({
       <main className="note-editor-screen__scroll custom-scrollbar flex-1 overflow-y-auto px-3.5 sm:px-6 md:px-8">
         <div className="note-editor-canvas relative max-w-6xl mx-auto !pt-2">
           
+          {/* Print Header (Visible in print/PDF only) */}
+          <div className="note-print-header hidden">
+            <div className="note-print-date">
+              {new Date(initialUpdatedAt || initialCreatedAt || Date.now()).toLocaleDateString(isBn ? "bn-BD" : "en-US", {
+                year: "numeric",
+                month: "long",
+                day: "numeric"
+              })}
+            </div>
+          </div>
+
           {/* Drag and Drop Zone Overlay */}
           {isDraggingOver && (
             <div className="absolute inset-0 z-40 bg-blue-950/80 backdrop-blur-md rounded-3xl border-2 border-dashed border-blue-400 flex flex-col items-center justify-center gap-3 p-8 pointer-events-none animate-fade-in">
@@ -529,7 +558,7 @@ export default function NoteEditorView({
           )}
 
           {/* Category Tag & Metadata Row */}
-          <div className="flex items-center gap-3 mb-4 flex-wrap">
+          <div className="note-editor-meta-row flex items-center gap-3 mb-4 flex-wrap">
             <div className="relative">
               <select
                 value={category}
@@ -537,7 +566,7 @@ export default function NoteEditorView({
                   setCategory(e.target.value);
                   queueSave(title, blocks, e.target.value);
                 }}
-                className="text-xs font-semibold px-3 py-1.5 rounded-xl border appearance-none pr-7 transition-all cursor-pointer"
+                className="text-[11px] font-semibold px-2.5 py-1 rounded-lg border appearance-none pr-6 transition-all cursor-pointer"
                 style={{
                   backgroundColor: "var(--color-bg-elevated, rgba(13, 20, 36, 0.6))",
                   borderColor: "var(--color-border-subtle, rgba(255, 255, 255, 0.12))",
@@ -550,8 +579,8 @@ export default function NoteEditorView({
                   </option>
                 ))}
               </select>
-              <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-400">
-                <ChevronDown size={12} />
+              <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-400">
+                <ChevronDown size={11} />
               </div>
             </div>
 
@@ -587,7 +616,7 @@ export default function NoteEditorView({
               setBlocks(nextBlocks); 
               queueSave(title, nextBlocks); 
             }} 
-            onDirty={() => setSaveState("saving")}
+            onDirty={() => {}}
             onTriggerImageUpload={handleImageUploadTrigger}
             onTriggerFileUpload={handleFileUploadTrigger}
             onTriggerLinkModal={(targetBlockId) => {

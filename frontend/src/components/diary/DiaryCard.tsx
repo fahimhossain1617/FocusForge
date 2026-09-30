@@ -108,19 +108,16 @@ export default function DiaryCard({
             }}
           />
 
-          {/* Top Section: Date Chip & Bookmark */}
-          <div className="relative z-10 flex items-center justify-between gap-2 mb-2.5">
-            {/* Date Pill Chip */}
+          {/* Top Section: Date & Bookmark */}
+          <div className="relative z-10 flex items-center justify-between gap-2 mb-2">
+            {/* Plain Unboxed Date */}
             <div 
-              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium tracking-tight"
+              className="inline-flex items-center gap-1.5 text-[11px] font-medium tracking-tight opacity-85"
               style={{
-                backgroundColor: theme.dateChipBg,
-                color: theme.dateChipText,
-                borderColor: theme.dateChipBorder,
-                borderWidth: "1px",
+                color: theme.isLightCover ? "#475569" : "rgba(255, 255, 255, 0.85)",
               }}
             >
-              <Calendar size={10} className="opacity-75" />
+              <Calendar size={11} className="opacity-75" />
               <span>{dateStr}</span>
             </div>
 
@@ -141,11 +138,11 @@ export default function DiaryCard({
             </button>
           </div>
 
-          {/* Content Area: Title */}
-          <div className="relative z-10 flex flex-col flex-1 justify-center min-h-0 py-2">
+          {/* Content Area: Title (upper-middle positioned with natural spacing below date) */}
+          <div className="relative z-10 flex flex-col flex-1 justify-start pt-3 min-h-0">
             {/* Title - 100% crystal clear white on dark covers, deep slate on light covers */}
             <h3 
-              className="text-sm sm:text-base font-bold tracking-tight line-clamp-3"
+              className="text-sm sm:text-base font-bold tracking-tight line-clamp-3 leading-snug"
               style={{ 
                 color: theme.isLightCover ? "#0F172A" : "#FFFFFF",
                 textShadow: theme.isLightCover ? "none" : "0 1px 2px rgba(0, 0, 0, 0.5)"

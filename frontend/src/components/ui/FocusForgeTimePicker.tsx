@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { Clock, Keyboard, Check } from "lucide-react";
-
+import { useAppContext } from "../../context/AppContext";
 
 export interface FocusForgeTimePickerProps {
   value: string;
@@ -55,6 +55,16 @@ export default function FocusForgeTimePicker({
   value, onChange, placeholder = "Select time", disabled = false,
   className = "", id, name, ariaLabel, required = false, clearable = true,
 }: FocusForgeTimePickerProps) {
+  let isLight = false;
+  try {
+    const appContext = useAppContext();
+    isLight = appContext?.state?.theme?.mode === "light";
+  } catch {
+    if (typeof document !== "undefined") {
+      isLight = document.documentElement.getAttribute("data-theme") === "light";
+    }
+  }
+
   const [isOpen, setIsOpen] = useState(false);
   const [activeUnit, setActiveUnit] = useState<"hour" | "minute">("hour");
   const [inputMode, setInputMode] = useState<"dial" | "keyboard">("dial");
@@ -199,6 +209,9 @@ export default function FocusForgeTimePicker({
   const handAngle = activeUnit === "hour" ? (hour12 % 12) * 30 : minute * 6;
   const center = DIAL / 2;
 
+  const accentColor = isLight ? "#223A5E" : "#2563eb";
+  const handColor = isLight ? "#223A5E" : "#3b82f6";
+
   const renderNumbers = () => {
     const items = activeUnit === "hour"
       ? [12, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
@@ -218,7 +231,7 @@ export default function FocusForgeTimePicker({
           className={`absolute flex items-center justify-center rounded-full select-none pointer-events-none ${
             isSelected
               ? "!text-white font-extrabold shadow-none scale-110"
-              : "!text-slate-900 font-bold"
+              : isLight ? "!text-slate-900 font-bold" : "!text-slate-200 font-bold"
           }`}
           style={{
             width: 24,
@@ -227,8 +240,8 @@ export default function FocusForgeTimePicker({
             fontWeight: isSelected ? 800 : 700,
             left: x - 12,
             top: y - 12,
-            color: isSelected ? "#FFFFFF" : "#0F172A",
-            backgroundColor: isSelected ? "#223A5E" : "transparent",
+            color: isSelected ? "#FFFFFF" : isLight ? "#0F172A" : "#E2E8F0",
+            backgroundColor: isSelected ? accentColor : "transparent",
           }}
         >
           {label}
@@ -249,17 +262,29 @@ export default function FocusForgeTimePicker({
         aria-label={ariaLabel || placeholder}
         aria-required={required}
         aria-expanded={isOpen}
-        className={`group flex items-center justify-between w-full px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-colors outline-none cursor-pointer border bg-slate-50 border-slate-200 hover:border-[#223A5E] text-slate-900 shadow-none ${
+        className={`group flex items-center justify-between w-full px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-colors outline-none cursor-pointer border shadow-none ${
+          isLight
+            ? "bg-slate-50 border-slate-200 hover:border-[#223A5E] text-slate-900"
+            : "bg-slate-900/80 border-slate-700/80 hover:border-blue-500/50 text-slate-100"
+        } ${
           disabled ? "opacity-50 cursor-not-allowed" : ""
-        } ${isOpen ? "ring-2 ring-[#223A5E]/20 border-[#223A5E]" : ""}`}
+        } ${
+          isOpen
+            ? isLight
+              ? "ring-2 ring-[#223A5E]/20 border-[#223A5E]"
+              : "ring-2 ring-blue-500/20 border-blue-500"
+            : ""
+        }`}
       >
         <div className="flex items-center gap-2.5 truncate">
-          <Clock size={15} className="shrink-0 text-[#223A5E]" />
-          <span className="truncate font-semibold text-slate-900">{value ? format12Display(value) : placeholder}</span>
+          <Clock size={15} className={`shrink-0 ${isLight ? "text-[#223A5E]" : "text-blue-400"}`} />
+          <span className={`truncate font-semibold ${isLight ? "text-slate-900" : "text-slate-100"}`}>
+            {value ? format12Display(value) : placeholder}
+          </span>
         </div>
       </button>
 
-      {/* Dropdown Panel — Compact Pure Light UI matching #223A5E */}
+      {/* Dropdown Panel */}
       {mounted && isOpen && pos && createPortal(
         <div
           ref={panelRef}
@@ -274,13 +299,20 @@ export default function FocusForgeTimePicker({
           }}
         >
           <div
-            className="rounded-2xl overflow-hidden shadow-none bg-white border border-slate-200"
-            style={{
-              boxShadow: "none",
-            }}
+            className={`rounded-2xl overflow-hidden shadow-none border ${
+              isLight
+                ? "bg-white border-slate-200"
+                : "bg-[#0f172a] border-slate-700/90 shadow-2xl backdrop-blur-xl"
+            }`}
           >
             {/* Header: HH:MM + AM/PM */}
-            <div className="px-3 pt-2.5 pb-2 flex items-center justify-between border-b border-slate-200 bg-slate-50">
+            <div
+              className={`px-3 pt-2.5 pb-2 flex items-center justify-between border-b ${
+                isLight
+                  ? "border-slate-200 bg-slate-50"
+                  : "border-white/[0.08] bg-slate-900/90"
+              }`}
+            >
               <div className="flex items-center gap-0.5 font-bold">
                 <button
                   type="button"
@@ -288,36 +320,46 @@ export default function FocusForgeTimePicker({
                   className={`text-base w-9 h-7 flex items-center justify-center rounded-lg cursor-pointer font-mono font-bold ${
                     activeUnit === "hour"
                       ? "!text-white shadow-none"
-                      : "text-slate-800 hover:bg-slate-200/70"
+                      : isLight
+                      ? "text-slate-800 hover:bg-slate-200/70"
+                      : "text-slate-300 hover:bg-white/10 hover:text-white"
                   }`}
                   style={{
-                    color: activeUnit === "hour" ? "#FFFFFF" : "#1E293B",
-                    backgroundColor: activeUnit === "hour" ? "#223A5E" : "transparent",
-                    borderColor: activeUnit === "hour" ? "#223A5E" : "transparent",
+                    color: activeUnit === "hour" ? "#FFFFFF" : isLight ? "#1E293B" : "#CBD5E1",
+                    backgroundColor: activeUnit === "hour" ? accentColor : "transparent",
+                    borderColor: activeUnit === "hour" ? accentColor : "transparent",
                   }}
                 >
                   {String(hour12).padStart(2, "0")}
                 </button>
-                <span className="text-base text-slate-700 font-bold px-0.5">:</span>
+                <span className={`text-base font-bold px-0.5 ${isLight ? "text-slate-700" : "text-slate-400"}`}>:</span>
                 <button
                   type="button"
                   onClick={() => setActiveUnit("minute")}
                   className={`text-base w-9 h-7 flex items-center justify-center rounded-lg cursor-pointer font-mono font-bold ${
                     activeUnit === "minute"
                       ? "!text-white shadow-none"
-                      : "text-slate-800 hover:bg-slate-200/70"
+                      : isLight
+                      ? "text-slate-800 hover:bg-slate-200/70"
+                      : "text-slate-300 hover:bg-white/10 hover:text-white"
                   }`}
                   style={{
-                    color: activeUnit === "minute" ? "#FFFFFF" : "#1E293B",
-                    backgroundColor: activeUnit === "minute" ? "#223A5E" : "transparent",
-                    borderColor: activeUnit === "minute" ? "#223A5E" : "transparent",
+                    color: activeUnit === "minute" ? "#FFFFFF" : isLight ? "#1E293B" : "#CBD5E1",
+                    backgroundColor: activeUnit === "minute" ? accentColor : "transparent",
+                    borderColor: activeUnit === "minute" ? accentColor : "transparent",
                   }}
                 >
                   {String(minute).padStart(2, "0")}
                 </button>
               </div>
 
-              <div className="flex rounded-lg overflow-hidden border border-slate-200 bg-slate-100 p-0.5 gap-0.5">
+              <div
+                className={`flex rounded-lg overflow-hidden border p-0.5 gap-0.5 ${
+                  isLight
+                    ? "border-slate-200 bg-slate-100"
+                    : "border-white/10 bg-black/40"
+                }`}
+              >
                 {(["AM", "PM"] as const).map((p) => (
                   <button
                     key={p}
@@ -326,11 +368,13 @@ export default function FocusForgeTimePicker({
                     className={`px-2 py-0.5 text-[11px] font-bold rounded-md cursor-pointer ${
                       period === p
                         ? "!text-white shadow-none"
-                        : "text-slate-600 hover:text-slate-900"
+                        : isLight
+                        ? "text-slate-600 hover:text-slate-900"
+                        : "text-slate-400 hover:text-white"
                     }`}
                     style={{
-                      color: period === p ? "#FFFFFF" : "#475569",
-                      backgroundColor: period === p ? "#223A5E" : "transparent",
+                      color: period === p ? "#FFFFFF" : isLight ? "#475569" : "#94A3B8",
+                      backgroundColor: period === p ? accentColor : "transparent",
                     }}
                   >
                     {p}
@@ -341,13 +385,21 @@ export default function FocusForgeTimePicker({
 
             {/* Dial Area */}
             {inputMode === "dial" ? (
-              <div className="flex items-center justify-center py-2.5 px-2 bg-white">
+              <div
+                className={`flex items-center justify-center py-2.5 px-2 ${
+                  isLight ? "bg-white" : "bg-[#0f172a]"
+                }`}
+              >
                 <div
                   ref={dialRef}
                   onPointerDown={onPointerDown}
                   onPointerMove={onPointerMove}
                   onPointerUp={onPointerUp}
-                  className="relative touch-none cursor-pointer select-none rounded-full bg-slate-50 border border-slate-200"
+                  className={`relative touch-none cursor-pointer select-none rounded-full border ${
+                    isLight
+                      ? "bg-slate-50 border-slate-200"
+                      : "bg-slate-900/90 border-white/10"
+                  }`}
                   style={{
                     width: DIAL,
                     height: DIAL,
@@ -365,20 +417,30 @@ export default function FocusForgeTimePicker({
                       top: center - (R - 8),
                       transformOrigin: `1px ${R - 8}px`,
                       transform: `rotate(${handAngle}deg)`,
-                      background: "#223A5E",
+                      background: handColor,
                       borderRadius: 2,
                     }}
                   />
 
                   {/* Center dot */}
                   <div
-                    className="absolute rounded-full bg-[#223A5E]"
-                    style={{ width: 6, height: 6, left: center - 3, top: center - 3 }}
+                    className="absolute rounded-full"
+                    style={{
+                      width: 6,
+                      height: 6,
+                      left: center - 3,
+                      top: center - 3,
+                      backgroundColor: handColor,
+                    }}
                   />
                 </div>
               </div>
             ) : (
-              <div className="flex items-center justify-center gap-2 py-3 px-3 bg-white">
+              <div
+                className={`flex items-center justify-center gap-2 py-3 px-3 ${
+                  isLight ? "bg-white" : "bg-[#0f172a]"
+                }`}
+              >
                 <div className="flex flex-col items-center gap-0.5">
                   <input
                     type="number"
@@ -386,11 +448,15 @@ export default function FocusForgeTimePicker({
                     max={12}
                     value={typedHour}
                     onChange={(e) => setTypedHour(e.target.value)}
-                    className="w-10 h-8 text-sm text-center font-bold rounded-lg border border-slate-200 bg-slate-50 text-slate-900 focus:outline-none focus:border-[#223A5E]"
+                    className={`w-10 h-8 text-sm text-center font-bold rounded-lg border focus:outline-none ${
+                      isLight
+                        ? "border-slate-200 bg-slate-50 text-slate-900 focus:border-[#223A5E]"
+                        : "border-slate-700 bg-slate-900 text-white focus:border-blue-500"
+                    }`}
                   />
-                  <span className="text-[9px] text-slate-500 font-semibold">Hour</span>
+                  <span className={`text-[9px] font-semibold ${isLight ? "text-slate-500" : "text-slate-400"}`}>Hour</span>
                 </div>
-                <span className="text-base text-slate-700 font-bold mb-2.5">:</span>
+                <span className={`text-base font-bold mb-2.5 ${isLight ? "text-slate-700" : "text-slate-400"}`}>:</span>
                 <div className="flex flex-col items-center gap-0.5">
                   <input
                     type="number"
@@ -398,19 +464,33 @@ export default function FocusForgeTimePicker({
                     max={59}
                     value={typedMinute}
                     onChange={(e) => setTypedMinute(e.target.value)}
-                    className="w-10 h-8 text-sm text-center font-bold rounded-lg border border-slate-200 bg-slate-50 text-slate-900 focus:outline-none focus:border-[#223A5E]"
+                    className={`w-10 h-8 text-sm text-center font-bold rounded-lg border focus:outline-none ${
+                      isLight
+                        ? "border-slate-200 bg-slate-50 text-slate-900 focus:border-[#223A5E]"
+                        : "border-slate-700 bg-slate-900 text-white focus:border-blue-500"
+                    }`}
                   />
-                  <span className="text-[9px] text-slate-500 font-semibold">Min</span>
+                  <span className={`text-[9px] font-semibold ${isLight ? "text-slate-500" : "text-slate-400"}`}>Min</span>
                 </div>
               </div>
             )}
 
             {/* Footer */}
-            <div className="flex items-center justify-between px-3 py-2 border-t border-slate-200 bg-slate-50">
+            <div
+              className={`flex items-center justify-between px-3 py-2 border-t ${
+                isLight
+                  ? "border-slate-200 bg-slate-50"
+                  : "border-white/[0.08] bg-slate-900/90"
+              }`}
+            >
               <button
                 type="button"
                 onClick={() => setInputMode((m) => m === "dial" ? "keyboard" : "dial")}
-                className="p-1 rounded-md text-slate-600 hover:text-slate-900 hover:bg-slate-200/70 transition-colors cursor-pointer"
+                className={`p-1 rounded-md transition-colors cursor-pointer ${
+                  isLight
+                    ? "text-slate-600 hover:text-slate-900 hover:bg-slate-200/70"
+                    : "text-slate-400 hover:text-white hover:bg-white/10"
+                }`}
                 title={inputMode === "dial" ? "Switch to keyboard input" : "Switch to clock dial"}
               >
                 {inputMode === "dial" ? <Keyboard size={13} /> : <Clock size={13} />}
@@ -419,7 +499,11 @@ export default function FocusForgeTimePicker({
                 <button
                   type="button"
                   onClick={handleClose}
-                  className="px-2.5 py-1 rounded-md text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-200/60 cursor-pointer"
+                  className={`px-2.5 py-1 rounded-md text-xs font-semibold cursor-pointer ${
+                    isLight
+                      ? "text-slate-600 hover:text-slate-900 hover:bg-slate-200/60"
+                      : "text-slate-400 hover:text-white hover:bg-white/10"
+                  }`}
                 >
                   Cancel
                 </button>
@@ -429,7 +513,7 @@ export default function FocusForgeTimePicker({
                   className="flex items-center gap-1 px-3 py-1 rounded-lg text-xs font-bold !text-white shadow-none cursor-pointer hover:opacity-90"
                   style={{
                     color: "#FFFFFF",
-                    backgroundColor: "#223A5E",
+                    backgroundColor: accentColor,
                   }}
                 >
                   <Check size={11} /> Set

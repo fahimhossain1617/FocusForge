@@ -53,6 +53,7 @@ export default function PlannerPage() {
   // Side Drawer & Highlight State
   const [selectedDateStr, setSelectedDateStr] = useState<string>(formatLocalDate(new Date()));
   const [drawerDateStr, setDrawerDateStr] = useState<string | null>(null);
+  const [showAllHighlights, setShowAllHighlights] = useState(false);
 
   // Modals State
   const [showAddTaskModal, setShowAddTaskModal] = useState(false);
@@ -590,49 +591,78 @@ export default function PlannerPage() {
 
         {/* HIGHLIGHT CARDS SECTION (BOTTOM) */}
         <div className="fade-in">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
-            <div className="flex items-center gap-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 mb-3">
+            <div className="flex items-center gap-2.5">
               <div className="w-2 h-2 rounded-full bg-blue-500"></div>
-              <h3 className="text-lg font-bold text-foreground tracking-wide">
+              <h3 className="text-base sm:text-lg font-bold text-foreground tracking-wide">
                 {t.planner.highlightsFor} {parseLocalDate(selectedDateStr).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
               </h3>
+              {selectedDayItems.length > 0 && (
+                <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-500 dark:text-blue-400 border border-blue-500/20">
+                  {selectedDayItems.length}
+                </span>
+              )}
             </div>
+
+            {selectedDayItems.length > 4 && (
+              <button
+                type="button"
+                onClick={() => setShowAllHighlights(prev => !prev)}
+                className="self-start sm:self-auto text-xs font-bold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors flex items-center gap-1 cursor-pointer px-3 py-1 rounded-lg bg-blue-500/10 hover:bg-blue-500/15"
+              >
+                {showAllHighlights ? (state.lang === 'bn' ? "কম দেখুন" : "Show Less") : (state.lang === 'bn' ? "সবগুলো দেখুন" : "View All")}
+              </button>
+            )}
           </div>
           
-          <div className="flex overflow-x-auto gap-4 pb-4 scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-white/10 scrollbar-track-transparent">
+          <div className="flex overflow-x-auto gap-3 pb-3 scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-white/10 scrollbar-track-transparent">
             {selectedDayItems.length > 0 ? (
-              selectedDayItems.map(item => {
-                return (
-                  <div key={item.id} className="planner-highlight-card min-w-[280px] max-w-[320px] p-5 transition-colors group relative overflow-hidden">
-                    {/* Inner glowing accent */}
-                    <div className={`absolute top-0 left-0 w-1 h-full ${getBadgeColor(item.category, item.isBreak)} opacity-80 group-hover:opacity-100 transition-opacity`}></div>
-                    
-                    <div className="flex items-center justify-between mb-3 pl-2">
-                      <div className="flex items-center gap-2 text-xs font-bold text-slate-500 dark:text-slate-400">
-                        <Clock className="w-3.5 h-3.5 text-blue-500 dark:text-blue-400" />
-                        {formatTime12hr(item.startTime)} <span className="opacity-50">{t.planner.to}</span> {formatTime12hr(item.endTime)}
+              <>
+                {(showAllHighlights ? selectedDayItems : selectedDayItems.slice(0, 4)).map(item => {
+                  return (
+                    <div key={item.id} className="planner-highlight-card min-w-[240px] max-w-[280px] p-3.5 sm:p-4 transition-colors group relative overflow-hidden flex flex-col justify-between">
+                      {/* Inner glowing accent */}
+                      <div className={`absolute top-0 left-0 w-1 h-full ${getBadgeColor(item.category, item.isBreak)} opacity-80 group-hover:opacity-100 transition-opacity`}></div>
+                      
+                      <div>
+                        <div className="flex items-center justify-between mb-2 pl-2">
+                          <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-500 dark:text-slate-400">
+                            <Clock className="w-3 h-3 text-blue-500 dark:text-blue-400 shrink-0" />
+                            <span>{formatTime12hr(item.startTime)} <span className="opacity-50">{t.planner.to}</span> {formatTime12hr(item.endTime)}</span>
+                          </div>
+                        </div>
+                        
+                        <h4 className={`text-sm sm:text-base font-bold text-foreground mb-1 pl-2 break-words line-clamp-2 ${item.isBreak ? 'italic opacity-60' : ''} ${item.completed ? 'line-through opacity-70' : ''}`} title={item.label}>
+                          {item.label || "Untitled Task"}
+                        </h4>
                       </div>
-                      {item.category && (
-                        <span className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/5 text-[9px] uppercase tracking-wider text-slate-600 dark:text-slate-400 font-medium">
-                          {item.category}
-                        </span>
-                      )}
+                      
+                      <button 
+                        type="button"
+                        onClick={() => { handleOpenDrawer(selectedDateStr); }} 
+                        className="pl-2 text-[11px] font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors flex items-center gap-1 mt-3 cursor-pointer self-start"
+                      >
+                        {t.planner.editDetails} <ChevronRight className="w-3 h-3" />
+                      </button>
                     </div>
-                    
-                    <h4 className={`text-xl font-bold text-foreground mb-2 pl-2 break-words line-clamp-2 ${item.isBreak ? 'italic opacity-60' : ''} ${item.completed ? 'line-through opacity-70' : ''}`} title={item.label}>
-                      {item.label || "Untitled Task"}
-                    </h4>
-                    
-                    <button 
-                      type="button"
-                      onClick={() => { handleOpenDrawer(selectedDateStr); }} 
-                      className="pl-2 text-xs font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors flex items-center gap-1 mt-4 cursor-pointer"
-                    >
-                      {t.planner.editDetails} <ChevronRight className="w-3 h-3" />
-                    </button>
-                  </div>
-                );
-              })
+                  );
+                })}
+
+                {selectedDayItems.length > 4 && !showAllHighlights && (
+                  <button
+                    type="button"
+                    onClick={() => setShowAllHighlights(true)}
+                    className="planner-highlight-card min-w-[140px] p-3.5 flex flex-col items-center justify-center text-center gap-2 transition-all hover:bg-blue-500/10 cursor-pointer border border-dashed border-blue-500/30 group shrink-0"
+                  >
+                    <div className="w-8 h-8 rounded-full bg-blue-500/15 text-blue-500 dark:text-blue-400 flex items-center justify-center font-bold text-xs group-hover:scale-110 transition-transform">
+                      +{selectedDayItems.length - 4}
+                    </div>
+                    <span className="text-xs font-bold text-blue-600 dark:text-blue-400 group-hover:underline">
+                      {state.lang === 'bn' ? "সবগুলো দেখুন" : "View All"}
+                    </span>
+                  </button>
+                )}
+              </>
             ) : (
               <div className="w-full bg-white dark:bg-white/[0.02] border border-[#DCE5F0] dark:border-white/[0.07] border-dashed rounded-2xl py-8 px-4 sm:py-10 flex flex-col items-center justify-center text-center transition-all">
                 <PlannerEmptyIllustration className="w-24 h-20 sm:w-28 sm:h-24 mb-3" />

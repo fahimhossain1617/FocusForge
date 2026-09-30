@@ -32,7 +32,6 @@ export default function AddTaskModal({
   const [title, setTitle] = useState("");
   const [startTime, setStartTime] = useState("10:00");
   const [endTime, setEndTime] = useState("11:00");
-  const [category, setCategory] = useState("Study");
   const [error, setError] = useState<string | null>(null);
 
   // Reset form when opened
@@ -41,7 +40,6 @@ export default function AddTaskModal({
       setTitle("");
       setStartTime("10:00");
       setEndTime("11:00");
-      setCategory("Study");
       setError(null);
     }
   }, [isOpen]);
@@ -69,7 +67,7 @@ export default function AddTaskModal({
       priority: "medium",
       reminderEnabled: true,
       reminderTime: startTime,
-      category: category.trim() || "General",
+      category: "General",
       sourceType: "custom",
     });
 
@@ -78,7 +76,7 @@ export default function AddTaskModal({
       startTime: startTime,
       endTime: endTime,
       label: trimmedTitle,
-      category: category.trim() || "General",
+      category: "General",
       isBreak: false,
       taskId: taskId,
       sourceType: "custom",
@@ -182,17 +180,6 @@ export default function AddTaskModal({
                 ariaLabel="End Time"
               />
             </div>
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold mb-2 text-slate-700 dark:text-slate-300">Category</label>
-            <input
-              type="text"
-              placeholder="e.g. Study, Work, Programming, Health"
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              className="w-full bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-700/80 rounded-xl px-4 py-3 outline-none transition-colors text-sm text-slate-900 dark:text-white focus:border-[#223A5E] placeholder-slate-400 dark:placeholder-slate-500"
-            />
           </div>
 
           <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-200 dark:border-white/[0.08]">

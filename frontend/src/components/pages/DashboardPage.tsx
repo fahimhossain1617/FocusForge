@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { motion } from "framer-motion";
 import {
   CalendarDays,
   Check,
@@ -18,6 +19,8 @@ import {
   Calendar,
   Coffee,
   AlertCircle,
+  Moon,
+  Sun,
 } from "lucide-react";
 
 import { useAppContext } from "../../context/AppContext";
@@ -25,6 +28,7 @@ import { useAuth } from "../../context/AuthContext";
 import { useTranslation } from "../../hooks/useTranslation";
 import { getLocalDateString } from "../../services/taskService";
 import { formatTimeRange } from "../../utils/timeUtils";
+import { toggleThemeWithCircularTransition } from "../../utils/themeTransition";
 import { DashboardSkeleton } from "../ui/skeleton";
 
 type ProgressView = "weekly" | "monthly";
@@ -77,10 +81,23 @@ function formatMinutes(totalMins: number): string {
 }
 
 export default function DashboardPage() {
-  const { state, navigateTo, updateTask, addTask, isLoaded } = useAppContext();
+  const { state, updateState, navigateTo, updateTask, addTask, isLoaded } = useAppContext();
   const { user } = useAuth();
   const { t } = useTranslation();
   const today = getLocalDateString();
+
+  const isLight = state.theme?.mode === "light";
+  const toggleTheme = (e?: React.MouseEvent<HTMLElement>) => {
+    const newMode = isLight ? "dark" : "light";
+    toggleThemeWithCircularTransition(e, () => {
+      updateState({
+        theme: {
+          ...state.theme,
+          mode: newMode,
+        },
+      });
+    });
+  };
 
   const [progressView, setProgressView] = useState<ProgressView>("weekly");
   const [hoveredDay, setHoveredDay] = useState<string | null>(null);
@@ -461,7 +478,7 @@ export default function DashboardPage() {
   return (
     <main className="w-full max-w-[1600px] mx-auto pb-16 space-y-6 text-foreground select-none">
       {/* Top Header: Clean, dynamic greeting with NO emojis */}
-      <header className="pt-1 px-0.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6 md:mb-8">
+      <header className="pt-1 px-0.5 flex flex-col sm:flex-row sm:items-start justify-between gap-3 mb-6 md:mb-8">
         <div>
           <h1 className="text-[26px] sm:text-[28px] md:text-[32px] font-bold tracking-tight text-foreground leading-[1.2] break-words">
             {greetingText(userName, state.lang)}
@@ -470,14 +487,26 @@ export default function DashboardPage() {
             {state.lang === 'bn' ? "আপনার আজকের মনোযোগ আগামীকালের ভবিষ্যৎ তৈরি করে।" : "Your focus today builds your future tomorrow."}
           </p>
         </div>
-        {!isToday && (
+        <div className="flex items-center gap-2 self-start sm:self-auto sm:pt-0.5 md:pt-1">
+          {/* Theme Mode Quick Toggle Button (Visible on PC/Laptop, hidden on Mobile where top bar has it) */}
           <button
-            onClick={() => setSelectedDate(today)}
-            className="self-start sm:self-auto px-3 py-1.5 min-h-[36px] rounded-lg bg-blue-600/20 text-blue-400 hover:bg-blue-600/30 border border-blue-500/30 text-xs sm:text-sm font-medium transition-colors cursor-pointer shadow-none flex items-center gap-2"
+            type="button"
+            onClick={(e) => toggleTheme(e)}
+            className="hidden sm:flex w-8 h-8 min-w-[32px] min-h-[32px] rounded-lg items-center justify-center transition-colors cursor-pointer bg-transparent border-none text-[#52627A] dark:text-slate-300 hover:text-[#111827] dark:hover:text-white hover:bg-slate-200/50 dark:hover:bg-white/[0.08] shadow-none outline-none active:scale-95"
+            title={isLight ? (state.lang === 'bn' ? "ডার্ক মোড চালু করুন" : "Switch to dark mode") : (state.lang === 'bn' ? "লাইট মোড চালু করুন" : "Switch to light mode")}
+            aria-label={isLight ? (state.lang === 'bn' ? "ডার্ক মোড চালু করুন" : "Switch to dark mode") : (state.lang === 'bn' ? "লাইট মোড চালু করুন" : "Switch to light mode")}
           >
-            {state.lang === 'bn' ? "আজকের দিনে ফিরে যান" : "Back to Today"}
+            {isLight ? <Moon size={20} strokeWidth={2} /> : <Sun size={20} strokeWidth={2} />}
           </button>
-        )}
+          {!isToday && (
+            <button
+              onClick={() => setSelectedDate(today)}
+              className="px-3 py-1.5 min-h-[32px] rounded-lg bg-blue-600/20 text-blue-400 hover:bg-blue-600/30 border border-blue-500/30 text-xs sm:text-sm font-medium transition-colors cursor-pointer shadow-none flex items-center gap-2"
+            >
+              {state.lang === 'bn' ? "আজকের দিনে ফিরে যান" : "Back to Today"}
+            </button>
+          )}
+        </div>
       </header>
 
       {/* Top Section: 3 Balanced Cards (Today's Tasks, Today's Focus + Distractions, Current Skills) */}
@@ -485,13 +514,13 @@ export default function DashboardPage() {
         
         {/* Card 1: Today's Tasks (Main Card: #FFFFFF, #DCE5F0 border, radius 18, shadow 0 8px 28px) */}
         <section
-          className="dashboard-card card rounded-[18px] p-4 sm:p-5 md:p-6 bg-white dark:bg-card border border-[#DCE5F0] dark:border-border shadow-none flex flex-col justify-between"
+          className="dashboard-card card rounded-[18px] p-3.5 sm:p-4.5 md:p-5 bg-white dark:bg-card border border-[#DCE5F0] dark:border-border shadow-none flex flex-col justify-between"
         >
           <div>
             {/* Header: Title + Subtitle + Icon Badge '+' button */}
             <div className="flex items-start justify-between gap-3 pb-3">
               <div>
-                <h2 className="text-[17px] md:text-[18px] font-bold text-[#111827] dark:text-foreground tracking-tight">{tasksTitle}</h2>
+                <h2 className="text-[15px] md:text-[16px] font-semibold text-[#111827] dark:text-foreground tracking-tight">{tasksTitle}</h2>
                 <p className="text-xs text-[#52627A] dark:text-muted-foreground mt-0.5 font-normal">
                   {state.lang === 'bn' ? `${tasksList.length} টি কাজ | ${completedCount} টি সম্পন্ন | ${pendingCount} টি বাকি` : `${tasksList.length} tasks | ${completedCount} completed | ${pendingCount} pending`}
                 </p>
@@ -567,13 +596,13 @@ export default function DashboardPage() {
 
         {/* Card 2: Today's Focus (Focus Time #5B8DEF, Break Time #D99A32, Distractions #D95C68) */}
         <section
-          className="dashboard-card card rounded-[18px] p-4 sm:p-5 md:p-6 bg-white dark:bg-card border border-[#DCE5F0] dark:border-border shadow-none flex flex-col justify-between"
+          className="dashboard-card card rounded-[18px] p-3.5 sm:p-4.5 md:p-5 bg-white dark:bg-card border border-[#DCE5F0] dark:border-border shadow-none flex flex-col justify-between"
         >
           <div>
             {/* Header: Title + Subtitle + Icon Badge '+' button */}
             <div className="flex items-start justify-between gap-3 pb-3">
               <div>
-                <h2 className="text-[17px] md:text-[18px] font-bold text-[#111827] dark:text-foreground tracking-tight">{focusTitle}</h2>
+                <h2 className="text-[15px] md:text-[16px] font-semibold text-[#111827] dark:text-foreground tracking-tight">{focusTitle}</h2>
                 <p className="text-xs text-[#52627A] dark:text-muted-foreground mt-0.5 font-normal">
                   {state.lang === 'bn' ? "মনোযোগের সময় এবং দৈনিক বিবরণ" : "Focus time & daily breakdown"}
                 </p>
@@ -671,7 +700,7 @@ export default function DashboardPage() {
           </div>
 
           {/* Integrated Compact Distractions Info (#D95C68) */}
-          <div className="mt-4 pt-3 border-t border-[#DCE5F0] dark:border-white/[0.06] flex items-center justify-between text-xs">
+          <div className="mt-3 pt-1 flex items-center justify-between text-xs">
             <div className="flex items-center gap-1.5 text-[#52627A] dark:text-muted-foreground">
               <span className="w-2 h-2 rounded-full bg-[#D95C68] shrink-0" />
               <span>{state.lang === 'bn' ? "দৈনিক বিক্ষেপ:" : "Daily Distractions:"}</span>
@@ -687,13 +716,13 @@ export default function DashboardPage() {
 
         {/* Card 3: Current Skills (Skill Builder with clean inline progress lines and (+) button) */}
         <section
-          className="dashboard-card card rounded-[18px] p-4 sm:p-5 md:p-6 bg-white dark:bg-card border border-[#DCE5F0] dark:border-border shadow-none flex flex-col justify-between"
+          className="dashboard-card card rounded-[18px] p-3.5 sm:p-4.5 md:p-5 bg-white dark:bg-card border border-[#DCE5F0] dark:border-border shadow-none flex flex-col justify-between"
         >
           <div>
             {/* Header: Title + Plus (+) button to Skill Builder */}
             <div className="flex items-start justify-between pb-3">
               <div>
-                <h2 className="text-[17px] md:text-[18px] font-bold text-[#111827] dark:text-foreground tracking-tight">
+                <h2 className="text-[15px] md:text-[16px] font-semibold text-[#111827] dark:text-foreground tracking-tight">
                   {state.lang === 'bn' ? "বর্তমান দক্ষতা" : "Current Skills"}
                 </h2>
                 <p className="text-xs text-[#52627A] dark:text-muted-foreground mt-0.5 font-normal">
@@ -775,13 +804,13 @@ export default function DashboardPage() {
 
       {/* Bottom Section: Focus & Productivity Progress (Main Card: #FFFFFF, #DCE5F0 border, radius 18, shadow 0 8px 28px) */}
       <section
-        className="dashboard-card card rounded-[18px] p-4 sm:p-6 md:p-7 bg-white dark:bg-card border border-[#DCE5F0] dark:border-border shadow-none"
+        className="dashboard-card card rounded-[18px] p-3.5 sm:p-4.5 md:p-5.5 bg-white dark:bg-card border border-[#DCE5F0] dark:border-border shadow-none"
       >
         {/* Header Bar */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4">
           <div className="flex items-center gap-3">
             <div>
-              <h2 className="text-[17px] md:text-[18px] font-bold text-[#111827] dark:text-foreground tracking-tight">
+              <h2 className="text-[15px] md:text-[16px] font-semibold text-[#111827] dark:text-foreground tracking-tight">
                 {state.lang === 'bn' ? "পারফরম্যান্স" : "Performance"}
               </h2>
               <p className="text-xs text-[#52627A] dark:text-muted-foreground mt-0.5 font-normal">
@@ -792,28 +821,47 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Toggle: [ Weekly ] [ Monthly ] */}
-          <div className="dashboard-period-toggle inline-flex rounded-xl p-1 bg-[#F7FAFE] dark:bg-slate-900/90 border border-[#DCE5F0] dark:border-white/[0.08] shrink-0 self-start sm:self-auto shadow-none">
-            <button
-              onClick={() => setProgressView("weekly")}
-              className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all duration-150 cursor-pointer ${
-                progressView === "weekly"
-                  ? "bg-[#223A5E] text-white shadow-none dark:bg-blue-600 dark:text-white"
-                  : "text-[#52627A] dark:text-muted-foreground hover:text-[#111827] dark:hover:text-foreground hover:bg-[#E7F0FF]/60 dark:hover:bg-white/[0.04]"
-              }`}
-            >
-              {state.lang === 'bn' ? "সাপ্তাহিক" : "Weekly"}
-            </button>
-            <button
-              onClick={() => setProgressView("monthly")}
-              className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all duration-150 cursor-pointer ${
-                progressView === "monthly"
-                  ? "bg-[#223A5E] text-white shadow-none dark:bg-blue-600 dark:text-white"
-                  : "text-[#52627A] dark:text-muted-foreground hover:text-[#111827] dark:hover:text-foreground hover:bg-[#E7F0FF]/60 dark:hover:bg-white/[0.04]"
-              }`}
-            >
-              {state.lang === 'bn' ? "মাসিক" : "Monthly"}
-            </button>
+          {/* Smooth Morphing Toggle: [ Weekly ] [ Monthly ] */}
+          <div 
+            className="dashboard-period-toggle relative inline-flex items-center p-1 rounded-2xl bg-[#090f1d] dark:bg-[#070d1a] border border-[#1e293b]/70 dark:border-white/[0.08] shrink-0 self-start sm:self-auto select-none"
+            role="tablist"
+            aria-label="View Mode"
+          >
+            {(["weekly", "monthly"] as const).map((view) => {
+              const isActive = progressView === view;
+              return (
+                <button
+                  key={view}
+                  type="button"
+                  role="tab"
+                  aria-selected={isActive}
+                  onClick={() => setProgressView(view)}
+                  className={`relative z-10 px-5 py-2 rounded-xl text-xs font-semibold tracking-wide transition-colors duration-200 cursor-pointer flex items-center justify-center outline-none select-none ${
+                    isActive
+                      ? "text-white font-bold"
+                      : "text-slate-400 hover:text-slate-200 dark:text-slate-400 dark:hover:text-slate-200"
+                  }`}
+                >
+                  {isActive && (
+                    <motion.div
+                      layoutId="dashboardProgressActivePill"
+                      className="absolute inset-0 rounded-xl bg-blue-600"
+                      transition={{
+                        type: "spring",
+                        stiffness: 420,
+                        damping: 30,
+                        mass: 0.7,
+                      }}
+                    />
+                  )}
+                  <span className="relative z-20">
+                    {view === "weekly"
+                      ? (state.lang === 'bn' ? "সাপ্তাহিক" : "Weekly")
+                      : (state.lang === 'bn' ? "মাসিক" : "Monthly")}
+                  </span>
+                </button>
+              );
+            })}
           </div>
         </div>
 

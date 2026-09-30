@@ -1,10 +1,10 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
-import { ArrowLeft, Lock, Search, Edit3, Trash2, Calendar, BookOpen, Settings2 } from "lucide-react";
+import { ArrowLeft, Edit3, Trash2, Calendar, BookOpen, ClipboardPenLine } from "lucide-react";
 import { useTranslation } from "../../hooks/useTranslation";
 import { DiaryTopic, DiaryEntry, DiaryImage } from "../../types";
-import { formatTopicNumber, formatDiaryDate } from "../../services/diaryStorageService";
+import { formatDiaryDate } from "../../services/diaryStorageService";
 import DiaryEditor from "./DiaryEditor";
 import DiaryTopicModal from "./DiaryTopicModal";
 
@@ -104,80 +104,71 @@ export default function DiaryTopicView({
           <ArrowLeft className="w-5 h-5" strokeWidth={2} />
         </button>
 
-        {/* Right Actions: Mode Toggle, Edit Topic Settings & Delete */}
-        <div className="flex items-center gap-2 sm:gap-2.5 justify-end">
+        {/* Right Actions: Mode Toggle, Edit Topic Details & Delete */}
+        <div className="flex items-center gap-1.5 sm:gap-2 justify-end">
           {/* Mode Switcher: Read vs Edit */}
           {mode === "read" ? (
             <button
               type="button"
               onClick={() => setMode("edit")}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-500 text-white transition-all cursor-pointer shrink-0 shadow-none"
+              className="p-1.5 sm:p-2 rounded-xl text-zinc-400 hover:text-blue-500 hover:bg-black/5 dark:hover:bg-white/5 border border-transparent hover:border-black/10 dark:hover:border-white/10 transition-colors cursor-pointer shrink-0"
               title={t.diary?.edit || "Edit"}
+              aria-label={t.diary?.edit || "Edit"}
             >
-              <Edit3 size={14} />
-              <span>{t.diary?.edit || "Edit"}</span>
+              <Edit3 size={16} />
             </button>
           ) : (
             <button
               type="button"
               onClick={() => setMode("read")}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer shadow-none shrink-0"
-              style={{
-                borderColor: "var(--color-border-subtle)",
-                color: "var(--color-text-primary)",
-              }}
+              className="p-1.5 sm:p-2 rounded-xl text-zinc-400 hover:text-blue-500 hover:bg-black/5 dark:hover:bg-white/5 border border-transparent hover:border-black/10 dark:hover:border-white/10 transition-colors cursor-pointer shrink-0"
               title={t.diary?.readMode || "Read"}
+              aria-label={t.diary?.readMode || "Read"}
             >
-              <BookOpen size={14} className="text-blue-500" />
-              <span>{t.diary?.readMode || "Read"}</span>
+              <BookOpen size={16} />
             </button>
           )}
 
-          {/* Edit Topic Metadata */}
+          {/* Edit Topic Details Modal */}
           <button
             type="button"
             onClick={() => setIsEditModalOpen(true)}
             className="p-1.5 sm:p-2 rounded-xl text-zinc-400 hover:text-blue-500 hover:bg-black/5 dark:hover:bg-white/5 border border-transparent hover:border-black/10 dark:hover:border-white/10 transition-colors cursor-pointer shrink-0"
-            title={t.diary?.editTopic || "Edit Topic Settings"}
-            aria-label="Edit Topic Settings"
+            title={t.diary?.editTopic || "Edit Topic Details"}
+            aria-label={t.diary?.editTopic || "Edit Topic Details"}
           >
-            <Settings2 size={15} />
+            <ClipboardPenLine size={16} />
           </button>
 
           {/* Delete Topic */}
           <button
             type="button"
             onClick={handleDeleteEntireTopic}
-            className="p-1.5 sm:p-2 rounded-xl text-zinc-400 hover:text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer shrink-0"
+            className="p-1.5 sm:p-2 rounded-xl text-zinc-400 hover:text-red-400 hover:bg-red-500/10 border border-transparent transition-colors cursor-pointer shrink-0"
             title={t.diary?.delete || "Delete Topic"}
             aria-label="Delete Topic"
           >
-            <Trash2 size={15} />
+            <Trash2 size={16} />
           </button>
         </div>
       </div>
 
       {/* Topic Title & Date Info Banner */}
       <div className="mb-4 sm:mb-6 px-1">
-        <div className="flex items-baseline gap-2.5 flex-wrap">
-          <span className="diary-number-badge text-sm sm:text-base font-bold text-blue-500">
-            {formatTopicNumber(topic.order)}.
-          </span>
-          <h1
-            className="text-2xl md:text-3xl lg:text-4xl font-bold tracking-tight text-foreground"
-          >
-            {topic.title}
-          </h1>
-        </div>
+        <h1
+          className="text-2xl md:text-3xl lg:text-4xl font-bold tracking-tight text-foreground"
+        >
+          {topic.title}
+        </h1>
 
-        {/* Entry Human Timestamp & Word Count Badge */}
-        <div className="flex items-center gap-2.5 mt-2 text-xs font-medium text-muted-foreground flex-wrap">
+        {/* Entry Human Timestamp & Word Count */}
+        <div className="flex items-center gap-2 mt-2 text-xs font-medium text-muted-foreground flex-wrap">
           <div className="flex items-center gap-1.5">
             <Calendar size={13} className="text-blue-500/80" />
             <span>{formatDiaryDate(continuousEntry.createdAt, lang)}</span>
           </div>
           <span className="text-zinc-300 dark:text-zinc-600 select-none">•</span>
-          <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-[#EBF3FE] text-[#1D4ED8] dark:bg-blue-950/60 dark:text-blue-300 border border-[#D0E1FD]/70 dark:border-blue-900/40 select-none">
+          <span className="text-zinc-400 dark:text-zinc-500 text-[11px] font-medium">
             {wordCount} {t.diary?.words || "words"}
           </span>
         </div>
@@ -199,15 +190,6 @@ export default function DiaryTopicView({
           <div className="relative px-5 sm:px-14 pt-6 pb-12">
             {/* Left spine binding decor */}
             <div className="diary-spine-binding" />
-
-            {/* Entry Title if present */}
-            {continuousEntry.title && (
-              <h2
-                className="text-lg md:text-xl font-semibold tracking-tight text-foreground mb-4 pb-2 border-b border-black/5 dark:border-white/5"
-              >
-                {continuousEntry.title}
-              </h2>
-            )}
 
             {/* Attached Images in Read Mode */}
             {continuousEntry.images && continuousEntry.images.length > 0 && (
@@ -246,14 +228,14 @@ export default function DiaryTopicView({
               </div>
             ) : (
               (!continuousEntry.images || continuousEntry.images.length === 0) && (
-                <div className="py-16 text-center">
-                  <p className="text-sm text-zinc-400 dark:text-zinc-500 mb-4">
+                <div className="pt-20 pb-16 text-center">
+                  <p className="text-sm text-zinc-400 dark:text-zinc-500 mb-4 pt-2">
                     {t.diary?.blankPagePrompt || "This page is currently blank."}
                   </p>
                   <button
                     type="button"
                     onClick={() => setMode("edit")}
-                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-500 text-white transition-all cursor-pointer "
+                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-500 text-white transition-all cursor-pointer shadow-none"
                   >
                     <Edit3 size={14} />
                     <span>{t.diary?.startWriting || "Start Writing"}</span>

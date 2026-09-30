@@ -16,6 +16,7 @@ import { authService } from "../../services/authService";
 import { clearPersistedAppState } from "../../services/indexedDBStorage";
 import FocusForgeDatePicker from "../ui/FocusForgeDatePicker";
 import FocusForgeSelect from "../ui/FocusForgeSelect";
+import { toggleThemeWithCircularTransition } from "../../utils/themeTransition";
 
 import { 
   APP_NAME, 
@@ -456,13 +457,15 @@ export default function SettingsPage() {
     showToast(t.settings.preferences.toastLanguage, "success");
   };
 
-  const handleThemeChange = (mode: "light" | "dark" | "system") => {
+  const handleThemeChange = (mode: "light" | "dark" | "system", e?: React.MouseEvent) => {
     if (state.theme.mode === mode) return;
-    updateState({
-      theme: {
-        ...state.theme,
-        mode,
-      }
+    toggleThemeWithCircularTransition(e, () => {
+      updateState({
+        theme: {
+          ...state.theme,
+          mode,
+        },
+      });
     });
     if (mode === "light") {
       showToast(t.settings.preferences.toastThemeLight, "info");
@@ -1517,7 +1520,7 @@ export default function SettingsPage() {
               {/* Dark Theme Card */}
               <button
                 type="button"
-                onClick={() => handleThemeChange("dark")}
+                onClick={(e) => handleThemeChange("dark", e)}
                 className={`p-5 rounded-2xl border text-left transition-all cursor-pointer relative ${
                   isDark
                     ? "border-blue-500 bg-blue-500/5 ring-1 ring-blue-500"
@@ -1546,7 +1549,7 @@ export default function SettingsPage() {
               {/* Light Theme Card */}
               <button
                 type="button"
-                onClick={() => handleThemeChange("light")}
+                onClick={(e) => handleThemeChange("light", e)}
                 className={`p-5 rounded-2xl border text-left transition-all cursor-pointer relative ${
                   isLight
                     ? "border-blue-500 bg-blue-500/5 ring-1 ring-blue-500"
@@ -1575,7 +1578,7 @@ export default function SettingsPage() {
               {/* System Theme Card */}
               <button
                 type="button"
-                onClick={() => handleThemeChange("system")}
+                onClick={(e) => handleThemeChange("system", e)}
                 className={`p-5 rounded-2xl border text-left transition-all cursor-pointer relative ${
                   isSystem
                     ? "border-blue-500 bg-blue-500/5 ring-1 ring-blue-500"

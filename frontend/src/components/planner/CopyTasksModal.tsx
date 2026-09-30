@@ -807,17 +807,6 @@ export default function CopyTasksModal({
                           >
                             {task.title}
                           </h4>
-
-                          {task.category && (
-                            <span
-                              className={`px-1.5 py-0.5 rounded text-[8px] uppercase tracking-wider font-semibold border shrink-0 ${getBadgeColor(
-                                task.category,
-                                task.isBreak
-                              )}`}
-                            >
-                              {task.category}
-                            </span>
-                          )}
                         </div>
 
                         <div className="flex items-center gap-2 mt-0.5">

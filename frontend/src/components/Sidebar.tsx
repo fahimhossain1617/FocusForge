@@ -251,7 +251,6 @@ export default function Sidebar({
                       transition={{ type: "spring", stiffness: 420, damping: 35, duration: 0.2 }}
                     >
                       <div className="sidebar-active-pill-bg absolute inset-0 rounded-xl bg-[#E7F0FF] dark:bg-blue-950/40" />
-                      <div className="sidebar-active-pill-edge absolute right-0 top-1/2 -translate-y-1/2 w-1 h-5 rounded-l-full bg-[#5B8DEF] dark:bg-blue-400 shadow-none" />
                     </motion.div>
                   )}
 

@@ -15,10 +15,13 @@ import {
   LogIn,
   LogOut,
   ChevronRight,
+  Moon,
+  Sun,
 } from "lucide-react";
+import { toggleThemeWithCircularTransition } from "../../utils/themeTransition";
 
 export default function MobileHeader() {
-  const { state, navigateTo } = useAppContext();
+  const { state, updateState, navigateTo } = useAppContext();
   const { user, isGuest, openAuth, promptLogout } = useAuth();
   const { t } = useTranslation();
   const { hasUnread, unreadCount } = useNotificationCenter();
@@ -34,6 +37,18 @@ export default function MobileHeader() {
   const isBn = state.lang === "bn";
   const isGuestMode = !user || isGuest;
   const activePage = state.activePage || "today";
+
+  const toggleTheme = (e?: React.MouseEvent<HTMLElement>) => {
+    const newMode = isLight ? "dark" : "light";
+    toggleThemeWithCircularTransition(e, () => {
+      updateState({
+        theme: {
+          ...state.theme,
+          mode: newMode,
+        },
+      });
+    });
+  };
 
   // Display user name
   const rawUserName =
@@ -116,8 +131,23 @@ export default function MobileHeader() {
           </span>
         </button>
 
-        {/* Right Actions: Clean Unboxed Bell + 3-Dots Menu */}
+        {/* Right Actions: Theme Toggle + Clean Unboxed Bell + 3-Dots Menu */}
         <div className="flex items-center gap-1">
+          {/* Theme Quick Toggle Button (Clean unboxed icon matching theme) */}
+          <button
+            type="button"
+            onClick={(e) => toggleTheme(e)}
+            className={`w-10 h-10 min-w-[40px] min-h-[40px] rounded-xl flex items-center justify-center transition-colors cursor-pointer bg-transparent border-none shadow-none outline-none active:scale-95 ${
+              isLight
+                ? "text-[#52627A] hover:text-[#111827] hover:bg-slate-200/50"
+                : "text-slate-300 hover:text-white hover:bg-white/[0.08]"
+            }`}
+            aria-label={isLight ? (isBn ? "ডার্ক মোড চালু করুন" : "Switch to dark mode") : (isBn ? "লাইট মোড চালু করুন" : "Switch to light mode")}
+            title={isLight ? (isBn ? "ডার্ক মোড" : "Dark mode") : (isBn ? "লাইট মোড" : "Light mode")}
+          >
+            {isLight ? <Moon size={20} strokeWidth={2} /> : <Sun size={20} strokeWidth={2} />}
+          </button>
+
           {/* 1. Normal Clean Bell Icon (No box/border around it) */}
           <button
             type="button"
