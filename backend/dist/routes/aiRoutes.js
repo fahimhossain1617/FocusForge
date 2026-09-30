@@ -357,7 +357,7 @@ router.post('/agent/chat', async (req, res) => {
             // Generate title if session was previously unnamed
             try {
                 const existingSessions = await (0, aiChatService_1.getChatSessions)(userId);
-                const currentSession = existingSessions.find(s => s.id === sessionId);
+                const currentSession = existingSessions.find((s) => s.id === sessionId);
                 if (currentSession && (currentSession.title === 'New Conversation' || !currentSession.title)) {
                     sessionTitle = await generateSmartTitle(message);
                     await (0, aiChatService_1.updateChatSessionTitle)(sessionId, userId, sessionTitle);

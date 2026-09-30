@@ -571,25 +571,25 @@ function generateClientRuleBasedResponse(
     };
   }
 
-  // 4. Skill Builder (Bangla & Banglish support)
-  if (/(স্কিল|শেখা|শিখব|শিখতে|শেখো|পড়াশোনা|কোর্স|পাইথন|কোডিং|skill|learn|study|master|guide|tutorial|roadmap|shikhbo|sikhbo|shekha|sikhte|shikhte|course|coding|programming|python|javascript|react)/i.test(q)) {
+  // 4. Time Log (Bangla & Banglish support)
+  if (/(টাইম লগ|টাইমলগ|স্কিল|শেখা|শিখব|শিখতে|শেখো|পড়াশোনা|কোর্স|পাইথন|কোডিং|time log|timelog|skill|learn|study|master|guide|tutorial|roadmap|shikhbo|sikhbo|shekha|sikhte|shikhte|course|coding|programming|python|javascript|react)/i.test(q)) {
     const hasSkillDetails = q.length > 35 && (q.includes("ঘণ্টা") || q.includes("মিনিট") || q.includes("beginner") || q.includes("বিগিনার") || q.includes("hours") || q.includes("daily") || q.includes("ghonta"));
     if (!hasSkillDetails) {
       return {
         intent: "GREETING_OR_GENERAL",
         message: isBn
-          ? "নতুন কিছু শেখার দারুণ সিদ্ধান্ত! তোমার জন্য নিখুঁত লার্নিং রোডম্যাপ সাজাতে আমাকে একটু বলো—স্কিলটি একদম শুরু থেকে শিখবে নাকি কিছুটা জানা আছে, আর দিনে কতটা সময় দিতে পারবে?"
-          : "That's a fantastic goal! To build an effective roadmap for you, tell me: are you a complete beginner or do you have some basics, and how much time can you spend each day?",
+          ? "নতুন কিছু শেখা ও পড়াশোনার দারুণ সিদ্ধান্ত! তোমার জন্য নিখুঁত টাইম লগ ও রোডম্যাপ সাজাতে আমাকে একটু বলো—টপিকটি একদম শুরু থেকে শিখবে নাকি কিছুটা জানা আছে, আর দিনে কতটা সময় দিতে পারবে?"
+          : "That's a fantastic goal! To build an effective schedule and roadmap for you, tell me: are you a complete beginner or do you have some basics, and how much time can you spend each day?",
         payload: null
       };
     }
 
-    const skillName = query.replace(/(স্কিল|skill|শিখতে চাই|শিখব|আই ওয়ান্ট টু লার্ন|learn|shikhbo|sikhbo|sikhte)/gi, '').trim() || (isBn ? "নতুন স্কিল" : "New Skill");
+    const skillName = query.replace(/(স্কিল|skill|শিখতে চাই|শিখব|আই ওয়ান্ট টু লার্ন|learn|shikhbo|sikhbo|sikhte|time log)/gi, '').trim() || (isBn ? "নতুন বিষয়" : "New Topic");
     return {
       intent: "LEARNING_HUB",
       message: isBn
-        ? `তোমার '${skillName}' স্কিলের জন্য একটি নতুন লার্নিং ফোল্ডার ও রোডম্যাপ স্কিল বিল্ডারে যুক্ত করা হয়েছে! নিচের বোতামে ক্লিক করে দেখতে পারো।`
-        : `A structured learning roadmap for '${skillName}' has been added to your Skill Builder! Click the button below to view it.`,
+        ? `তোমার '${skillName}' বিষয়ের জন্য একটি নতুন ফোল্ডার টাইম লগে যুক্ত করা হয়েছে! নিচের বোতামে ক্লিক করে দেখতে পারো।`
+        : `A structured topic roadmap for '${skillName}' has been added to your Time Log! Click the button below to view it.`,
       payload: {
         folderName: skillName,
         skillName: skillName,

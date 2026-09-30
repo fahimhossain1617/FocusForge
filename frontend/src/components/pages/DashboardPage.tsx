@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import {
   CalendarDays,
   Check,
+  Clock,
   Clock3,
   MoreVertical,
   Plus,
@@ -50,6 +51,7 @@ interface SkillDisplay {
   id: string;
   name: string;
   progress: number;
+  totalTimeFormatted: string;
   icon: typeof Code2;
   iconBg: string;
 }
@@ -300,7 +302,7 @@ export default function DashboardPage() {
     navigateTo("planner");
   };
 
-  // Skills list with clean inline progress bars (100% dynamic from real user folders)
+  // Skills list: only shows active (incomplete) skills with total time spent
   const skillsList: SkillDisplay[] = useMemo(() => {
     if (state.learningFolders && state.learningFolders.length > 0) {
       const iconPalette = [
@@ -311,16 +313,20 @@ export default function DashboardPage() {
         { icon: Globe, bg: "text-cyan-400 bg-cyan-500/10 border-cyan-500/20" },
       ];
 
-      return state.learningFolders.slice(0, 4).map((folder, idx) => {
+      // Exclude completed skills completely
+      const activeFolders = state.learningFolders.filter((folder) => !folder.completed);
+
+      return activeFolders.slice(0, 4).map((folder, idx) => {
         const pal = iconPalette[idx % iconPalette.length];
         const logs = (state.learningLogs || []).filter((l) => l.folderId === folder.id);
         const totalMinutes = logs.reduce((acc, l) => acc + l.watchMinutes + l.practiceMinutes, 0);
-        const progress = folder.completed ? 100 : Math.min(95, Math.round(totalMinutes / 12));
+        const progress = Math.min(95, Math.round(totalMinutes / 12));
 
         return {
           id: folder.id,
           name: folder.name,
-          progress: folder.completed ? 100 : progress,
+          progress,
+          totalTimeFormatted: formatMinutes(totalMinutes),
           icon: pal.icon,
           iconBg: pal.bg,
         };
@@ -714,26 +720,26 @@ export default function DashboardPage() {
           </div>
         </section>
 
-        {/* Card 3: Current Skills (Skill Builder with clean inline progress lines and (+) button) */}
+        {/* Card 3: Time Log (Track study & practice hours) */}
         <section
           className="dashboard-card card rounded-[18px] p-3.5 sm:p-4.5 md:p-5 bg-white dark:bg-card border border-[#DCE5F0] dark:border-border shadow-none flex flex-col justify-between"
         >
           <div>
-            {/* Header: Title + Plus (+) button to Skill Builder */}
+            {/* Header: Title + Plus (+) button to Time Log */}
             <div className="flex items-start justify-between pb-3">
               <div>
                 <h2 className="text-[15px] md:text-[16px] font-semibold text-[#111827] dark:text-foreground tracking-tight">
-                  {state.lang === 'bn' ? "বর্তমান দক্ষতা" : "Current Skills"}
+                  {state.lang === 'bn' ? "টাইম লগ" : "Time Log"}
                 </h2>
                 <p className="text-xs text-[#52627A] dark:text-muted-foreground mt-0.5 font-normal">
-                  {state.lang === 'bn' ? "দক্ষতা বৃদ্ধির অগ্রগতি" : "Skill Builder progress"}
+                  {state.lang === 'bn' ? "পড়াশোনা ও প্র্যাকটিসের সময়" : "Track study & practice hours"}
                 </p>
               </div>
               <button
                 onClick={() => navigateTo("learning")}
                 className="w-9 h-9 min-w-[36px] min-h-[36px] rounded-xl bg-[#EBF3FE] hover:bg-[#DBEAFE] dark:bg-blue-500/20 dark:hover:bg-blue-500/30 text-[#1D4ED8] dark:text-blue-300 border border-[#D0E1FD] dark:border-blue-500/30 flex items-center justify-center transition-all cursor-pointer shrink-0 mt-0.5 shadow-none outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
-                title={state.lang === 'bn' ? "দক্ষতা বিল্ডারে দক্ষতা পরিচালনা করুন" : "Manage skills in Skill Builder"}
-                aria-label={state.lang === 'bn' ? "দক্ষতা বিল্ডারে দক্ষতা পরিচালনা করুন" : "Manage skills in Skill Builder"}
+                title={state.lang === 'bn' ? "টাইম লগে পরিচালনা করুন" : "Manage in Time Log"}
+                aria-label={state.lang === 'bn' ? "টাইম লগে পরিচালনা করুন" : "Manage in Time Log"}
               >
                 <Plus size={17} strokeWidth={2.5} />
               </button>
@@ -772,27 +778,21 @@ export default function DashboardPage() {
                       </span>
 
                       <div className="flex-1 flex justify-end">
-                        {skill.progress >= 100 ? (
-                          <span className="text-[10px] font-medium px-2 py-0.5 rounded-md bg-[#2E9B73]/10 text-[#2E9B73] dark:bg-emerald-500/10 dark:text-emerald-400">
-                            {state.lang === 'bn' ? "সম্পন্ন" : "Completed"}
-                          </span>
-                        ) : (
-                          <span className="text-[10px] font-medium px-2 py-0.5 rounded-md bg-[#5B8DEF]/10 text-[#1D4ED8] dark:bg-blue-500/10 dark:text-blue-400">
-                            {state.lang === 'bn' ? "চলমান" : "In progress"}
-                          </span>
-                        )}
+                        <span className="text-xs sm:text-[13px] font-semibold text-[#1D4ED8] dark:text-blue-400">
+                          {skill.totalTimeFormatted}
+                        </span>
                       </div>
                     </div>
                   );
                 })
               ) : (
                 <div className="py-8 text-center text-[#8290A5] text-sm flex flex-col items-center">
-                  <BookOpen size={24} className="text-[#8290A5] mb-2" />
+                  <Clock size={24} className="text-[#8290A5] mb-2" />
                   <p className="font-semibold text-[#111827] dark:text-foreground">
-                    {state.lang === 'bn' ? "এখনও কোনো দক্ষতা যোগ করা হয়নি" : "No skills added yet"}
+                    {state.lang === 'bn' ? "এখনও কোনো বিষয় যোগ করা হয়নি" : "No topics added yet"}
                   </p>
                   <p className="text-xs text-[#52627A] dark:text-muted-foreground mt-1">
-                    {state.lang === 'bn' ? "আপনার অগ্রগতি ট্র্যাক করতে দক্ষতা বিল্ডারে একটি দক্ষতা যোগ করুন" : "Add a skill in Skill Builder to track your progress"}
+                    {state.lang === 'bn' ? "আপনার সময় ট্র্যাক করতে টাইম লগে একটি বিষয় যোগ করুন" : "Add a topic in Time Log to track your hours"}
                   </p>
                 </div>
               )}

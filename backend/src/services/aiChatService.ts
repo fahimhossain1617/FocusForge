@@ -53,7 +53,7 @@ export async function getChatSessions(userId: string) {
       'SELECT * FROM ai_chat_sessions WHERE user_id IS NULL ORDER BY updated_at DESC'
     );
   }
-  return res.rows.map(row => ({
+  return res.rows.map((row: any) => ({
     id: row.id,
     user_id: row.user_id,
     title: row.title,
@@ -88,7 +88,7 @@ export async function getChatMessages(userId: string, sessionId: string) {
     [sessionId]
   );
 
-  return res.rows.map(row => {
+  return res.rows.map((row: any) => {
     let payload = row.payload_json;
     if (typeof payload === 'string') {
       try {

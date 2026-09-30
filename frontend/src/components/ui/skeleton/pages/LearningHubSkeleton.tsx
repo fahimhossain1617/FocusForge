@@ -7,7 +7,7 @@ export default function LearningHubSkeleton() {
   return (
     <div
       aria-busy="true"
-      aria-label="Loading skill builder"
+      aria-label="Loading time log"
       role="status"
       className="fade-in max-w-6xl mx-auto flex flex-col gap-6 pb-12"
     >

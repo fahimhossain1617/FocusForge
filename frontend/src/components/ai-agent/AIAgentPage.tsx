@@ -347,9 +347,9 @@ export function AIAgentPage() {
       addMindItem(content, "idea_capture");
       showToast(isSystemBn ? "আইডিয়াটি মাইন্ড ট্র্যাকারে যুক্ত হয়েছে!" : "Idea saved to Mind Hub!", "success");
     } else if (intent === "LEARNING_HUB" || intent === "SKILL_BUILDER") {
-      const folderName = payload.folderName || payload.skillName || (isSystemBn ? "নতুন স্কিল" : "New Skill");
+      const folderName = payload.folderName || payload.skillName || (isSystemBn ? "নতুন বিষয়" : "New Topic");
       addLearningFolder(folderName);
-      showToast(isSystemBn ? `'${folderName}' স্কিল বিল্ডারে যুক্ত হয়েছে!` : `'${folderName}' added to Skill Builder!`, "success");
+      showToast(isSystemBn ? `'${folderName}' টাইম লগে যুক্ত হয়েছে!` : `'${folderName}' added to Time Log!`, "success");
     } else if (intent === "MY_DIARY" || intent === "DIARY_ENTRY") {
       const diaryTitle = payload.title || (isSystemBn ? "আজকের ডায়েরি" : "Today's Diary Entry");
       const diaryContent = payload.content || "";
@@ -710,10 +710,10 @@ export function AIAgentPage() {
                             <div className={styles.proposalCard}>
                               <div className={styles.proposalBadge}>
                                 <CheckCircle2 size={13} />
-                                <span>{isSystemBn ? "স্কিল বিল্ডারে যুক্ত হয়েছে" : "Added to Skill Builder"}</span>
+                                <span>{isSystemBn ? "টাইম লগে যুক্ত হয়েছে" : "Added to Time Log"}</span>
                               </div>
                               <div className={styles.proposalTitle}>
-                                {message.payload.folderName || message.payload.skillName || (isSystemBn ? "নতুন স্কিল রোডম্যাপ" : "New Skill Roadmap")}
+                                {message.payload.folderName || message.payload.skillName || (isSystemBn ? "নতুন টপিক রোডম্যাপ" : "New Topic Roadmap")}
                               </div>
                               <div className={styles.proposalDesc}>
                                 {message.payload.targetHours ? `${message.payload.targetHours}h Target • ` : ""}
@@ -729,7 +729,7 @@ export function AIAgentPage() {
                                   }}
                                 >
                                   <Compass size={14} />
-                                  <span>{isSystemBn ? "স্কিল বিল্ডার খুলুন" : "Open Skill Builder"}</span>
+                                  <span>{isSystemBn ? "টাইম লগ খুলুন" : "Open Time Log"}</span>
                                 </button>
                               </div>
                             </div>

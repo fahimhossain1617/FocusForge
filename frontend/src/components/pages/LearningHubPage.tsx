@@ -16,6 +16,7 @@ import {
   X,
   Search,
   BookOpen,
+  Clock,
   Flame
 } from "lucide-react";
 import { useAnimateExit } from "../../hooks/useAnimateExit";
@@ -100,6 +101,7 @@ export default function LearningHubPage() {
   const [topics, setTopics] = useState("");
   const [practiceDetails, setPracticeDetails] = useState("");
   const [blockers, setBlockers] = useState("");
+  const [isViewAllLogsOpen, setIsViewAllLogsOpen] = useState(false);
 
   const [mounted, setMounted] = useState(false);
 
@@ -368,7 +370,7 @@ export default function LearningHubPage() {
           {state.learningFolders.length === 0 ? (
             <div className="card p-10 min-h-[360px] flex flex-col items-center justify-center text-center">
               <div className="w-16 h-16 rounded-2xl bg-blue-500/10 border border-blue-500/20 text-blue-500 flex items-center justify-center mb-4">
-                <BookOpen className="w-8 h-8" />
+                <Clock className="w-8 h-8" />
               </div>
               <h2 className="text-base sm:text-lg font-semibold text-foreground mb-1">
                 {t.learningHub.noFolders}
@@ -529,12 +531,13 @@ export default function LearningHubPage() {
       )}
 
       {/* ───────────────────────────────────────────────────────────── */}
-      {/* VIEW 2: SKILL DETAIL INTERFACE (IMAGE 2 REFINED)              */}
+      {/* VIEW 2: SKILL DETAIL INTERFACE                                */}
       {/* ───────────────────────────────────────────────────────────── */}
       {selectedFolderId && activeFolder && (
-        <div className="flex flex-col gap-4">
-          {/* Top Bar: Back to Skills Button */}
+        <div className="flex flex-col gap-6">
+          {/* Top Bar: Back Button (Left) | Mark Complete, Current Streak, Delete (Right) */}
           <div className="flex items-center justify-between gap-3">
+            {/* Left: Back Button */}
             <button
               type="button"
               onClick={() => setSelectedFolderId(null)}
@@ -544,29 +547,10 @@ export default function LearningHubPage() {
             >
               <ArrowLeft className="w-5 h-5" strokeWidth={2} />
             </button>
-          </div>
 
-          {/* Skill Title & Actions Header */}
-          <div className="card p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div>
-              <div className="flex items-center gap-2.5">
-                <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
-                  {activeFolder.name}
-                </h1>
-                {activeFolder.completed && (
-                  <span className="inline-flex items-center gap-1 text-xs px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-500 border border-emerald-500/30 font-medium">
-                    <CheckCircle2 className="w-3.5 h-3.5" />
-                    <span>{t.learningHub.completed}</span>
-                  </span>
-                )}
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                {t.learningHub.created} {new Date(activeFolder.createdAt).toLocaleDateString()}
-              </p>
-            </div>
-
-            {/* Actions: Mark Complete & Delete Skill */}
+            {/* Right: Actions in requested order -> 1. Mark Complete, 2. Current Streak, 3. Delete */}
             <div className="flex items-center gap-2.5 shrink-0">
+              {/* 1. Mark Complete Button */}
               <button
                 type="button"
                 onClick={() => {
@@ -580,13 +564,13 @@ export default function LearningHubPage() {
                     });
                   }
                 }}
-                className={`text-xs sm:text-sm px-3.5 py-2 rounded-xl border font-semibold transition-all flex items-center gap-1.5 cursor-pointer ${
+                className={`text-xs px-3 py-1.5 rounded-xl border font-semibold transition-all flex items-center gap-1.5 cursor-pointer shadow-none ${
                   activeFolder.completed
                     ? "border-slate-300 dark:border-white/10 text-muted-foreground hover:bg-slate-100 dark:hover:bg-white/5"
                     : "border-emerald-500 text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20"
                 }`}
               >
-                <CheckCircle2 className="w-4 h-4" />
+                <CheckCircle2 className="w-3.5 h-3.5" />
                 <span>
                   {activeFolder.completed
                     ? t.learningHub.markIncomplete
@@ -594,6 +578,15 @@ export default function LearningHubPage() {
                 </span>
               </button>
 
+              {/* 2. Current Streak (Clean inline text, no box) */}
+              <div className="inline-flex items-center gap-1.5 text-amber-500 text-xs sm:text-sm font-semibold">
+                <Flame className="w-3.5 h-3.5" />
+                <span>
+                  {activeStreak} {t.learningHub.days}
+                </span>
+              </div>
+
+              {/* 3. Delete Skill Button */}
               <button
                 type="button"
                 onClick={() => {
@@ -604,240 +597,259 @@ export default function LearningHubPage() {
                   }
                 }}
                 title={t.learningHub.deleteFolder}
-                className="p-2 rounded-xl text-red-400 hover:text-red-500 hover:bg-red-500/10 border border-transparent hover:border-red-500/20 transition-all cursor-pointer"
+                className="p-1.5 rounded-xl text-muted-foreground hover:text-red-500 hover:bg-red-500/10 border border-transparent hover:border-red-500/20 transition-all cursor-pointer shadow-none"
               >
                 <Trash2 className="w-4 h-4" />
               </button>
             </div>
           </div>
 
-          {/* Time & Streak Overview (Status Active removed as instructed, clean hours and split) */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* Total Time Spent Card (Clean hours display + Self Learning vs Tuition breakdown) */}
-            <div className="card p-5 md:col-span-2 flex flex-col justify-center">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  {t.learningHub.timeSpent}
-                </span>
+          {/* Hero Row: Topic Name & Created Date (Left) | Time Spent Breakdown (Right) */}
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 py-1">
+            {/* Left: Topic Name & Creation Date */}
+            <div>
+              <div className="flex items-center gap-2.5">
+                <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
+                  {activeFolder.name}
+                </h1>
+                {activeFolder.completed && (
+                  <span className="inline-flex items-center gap-1 text-[11px] px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-500 border border-emerald-500/30 font-medium">
+                    <CheckCircle2 className="w-3 h-3" />
+                    <span>{t.learningHub.completed}</span>
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                {t.learningHub.created} {new Date(activeFolder.createdAt).toLocaleDateString()}
                 {activeGapDays >= 2 && (
-                  <span className="inline-flex items-center gap-1 text-xs text-red-400 font-medium bg-red-500/10 px-2 py-0.5 rounded-md">
+                  <span className="ml-2 inline-flex items-center gap-1 text-[11px] text-red-400 font-medium bg-red-500/10 px-2 py-0.5 rounded-md">
                     <AlertTriangle className="w-3 h-3" />
                     <span>
                       {activeGapDays} {t.learningHub.days} {t.learningHub.inactivityGap}
                     </span>
                   </span>
                 )}
-              </div>
-
-              {/* Total Hours Big Text */}
-              <div className="text-3xl sm:text-4xl font-black text-foreground tracking-tight mb-3">
-                {formatHoursMins(activeTotalMins)}
-              </div>
-
-              {/* Clean Breakdown without progressing bar */}
-              <div className="grid grid-cols-2 gap-3 pt-3 border-t border-slate-100 dark:border-white/[0.06]">
-                <div className="flex flex-col">
-                  <span className="text-xs text-muted-foreground">
-                    {t.learningHub.selfLearning}
-                  </span>
-                  <span className="text-base sm:text-lg font-bold text-blue-500 dark:text-blue-400">
-                    {formatHoursMins(activeTotalPracticeMins)}
-                  </span>
-                </div>
-                <div className="flex flex-col">
-                  <span className="text-xs text-muted-foreground">
-                    {t.learningHub.tuition}
-                  </span>
-                  <span className="text-base sm:text-lg font-bold text-indigo-400">
-                    {formatHoursMins(activeTotalWatchMins)}
-                  </span>
-                </div>
-              </div>
+              </p>
             </div>
 
-            {/* Streak Widget: Compact, cleanly tucked into the right corner as requested */}
-            <div className="card p-5 flex flex-col items-center justify-center text-center">
-              <div className="w-11 h-11 rounded-2xl bg-amber-500/15 border border-amber-500/30 text-amber-500 flex items-center justify-center mb-2 shadow-none">
-                <Flame className="w-6 h-6" />
+            {/* Right: Time Breakdown (Total Time Spent, Self Learning, Tuition/Classes) */}
+            <div className="flex items-center gap-5 sm:gap-7 flex-wrap">
+              <div>
+                <span className="text-[11px] font-medium text-muted-foreground block">
+                  {t.learningHub.timeSpent}
+                </span>
+                <span className="text-xl sm:text-2xl font-black text-foreground tracking-tight block">
+                  {formatHoursMins(activeTotalMins)}
+                </span>
               </div>
-              <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-0.5">
-                {t.learningHub.currentStreak}
-              </span>
-              <div className="text-2xl sm:text-3xl font-black text-foreground">
-                {activeStreak}{" "}
-                <span className="text-xs font-medium text-muted-foreground">
-                  {t.learningHub.days}
+              <div className="h-7 w-px bg-slate-200 dark:bg-white/10 hidden sm:block" />
+              <div>
+                <span className="text-[11px] font-medium text-muted-foreground block">
+                  {t.learningHub.selfLearning}
+                </span>
+                <span className="text-sm sm:text-base font-bold text-blue-500 dark:text-blue-400 block">
+                  {formatHoursMins(activeTotalPracticeMins)}
+                </span>
+              </div>
+              <div className="h-7 w-px bg-slate-200 dark:bg-white/10 hidden sm:block" />
+              <div>
+                <span className="text-[11px] font-medium text-muted-foreground block">
+                  {t.learningHub.tuition}
+                </span>
+                <span className="text-sm sm:text-base font-bold text-indigo-400 block">
+                  {formatHoursMins(activeTotalWatchMins)}
                 </span>
               </div>
             </div>
           </div>
 
-          {/* Daily Log Form Card (No '+' in title, Fields ordered per user prompt) */}
-          <div className="card p-5 sm:p-6 border border-blue-500/25">
-            <h2 className="text-base sm:text-lg font-bold text-foreground mb-4">
-              {t.learningHub.addDailyLog}
-            </h2>
+          {/* Side-by-Side: Add Daily Log (Left) & Log History (Right) */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-start">
+            {/* Left: Add Daily Log Form */}
+            <div className="rounded-2xl border border-slate-200 dark:border-white/10 p-5 sm:p-6 bg-white dark:bg-[#111827] shadow-none">
+              <h2 className="text-base sm:text-lg font-bold text-foreground mb-4">
+                {t.learningHub.addDailyLog}
+              </h2>
 
-            <form onSubmit={handleAddLog} className="flex flex-col gap-4">
-              {/* Row 1: Time Inputs (Tuition/Lectures and Self Learning) */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {/* Lectures / Online Classes / Video Time */}
-                <div>
-                  <label className="block text-xs font-medium mb-1.5 text-muted-foreground">
-                    {t.learningHub.tuitionTime}
-                  </label>
-                  <div className="flex gap-2">
-                    <div className="relative flex-1">
-                      <input
-                        type="number"
-                        min="0"
-                        value={watchHours}
-                        onChange={(e) =>
-                          setWatchHours(e.target.value === "" ? "" : Number(e.target.value))
-                        }
-                        placeholder="0"
-                        className="input-field w-full text-sm py-2 pl-3 pr-9 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                      />
-                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground pointer-events-none">
-                        {t.learningHub.hrs}
-                      </span>
+              <form onSubmit={handleAddLog} className="flex flex-col gap-4">
+                {/* Row 1: Time Inputs (Tuition/Lectures and Self Learning) */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* Lectures / Online Classes */}
+                  <div>
+                    <label className="block text-xs font-medium mb-1.5 text-muted-foreground">
+                      {t.learningHub.tuitionTime}
+                    </label>
+                    <div className="flex gap-2">
+                      <div className="relative flex-1">
+                        <input
+                          type="number"
+                          min="0"
+                          value={watchHours}
+                          onChange={(e) =>
+                            setWatchHours(e.target.value === "" ? "" : Number(e.target.value))
+                          }
+                          placeholder="0"
+                          className="input-field w-full text-sm py-2 pl-3 pr-9 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none shadow-none"
+                        />
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground pointer-events-none">
+                          {t.learningHub.hrs}
+                        </span>
+                      </div>
+                      <div className="relative flex-1">
+                        <input
+                          type="number"
+                          min="0"
+                          max="59"
+                          value={watchMins}
+                          onChange={(e) =>
+                            setWatchMins(e.target.value === "" ? "" : Number(e.target.value))
+                          }
+                          placeholder="0"
+                          className="input-field w-full text-sm py-2 pl-3 pr-10 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none shadow-none"
+                        />
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground pointer-events-none">
+                          {t.learningHub.mins}
+                        </span>
+                      </div>
                     </div>
-                    <div className="relative flex-1">
-                      <input
-                        type="number"
-                        min="0"
-                        max="59"
-                        value={watchMins}
-                        onChange={(e) =>
-                          setWatchMins(e.target.value === "" ? "" : Number(e.target.value))
-                        }
-                        placeholder="0"
-                        className="input-field w-full text-sm py-2 pl-3 pr-10 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                      />
-                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground pointer-events-none">
-                        {t.learningHub.mins}
-                      </span>
+                  </div>
+
+                  {/* Self Learning / Self Practice */}
+                  <div>
+                    <label className="block text-xs font-medium mb-1.5 text-muted-foreground">
+                      {t.learningHub.selfPractice}
+                    </label>
+                    <div className="flex gap-2">
+                      <div className="relative flex-1">
+                        <input
+                          type="number"
+                          min="0"
+                          value={practiceHours}
+                          onChange={(e) =>
+                            setPracticeHours(e.target.value === "" ? "" : Number(e.target.value))
+                          }
+                          placeholder="0"
+                          className="input-field w-full text-sm py-2 pl-3 pr-9 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none shadow-none"
+                        />
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground pointer-events-none">
+                          {t.learningHub.hrs}
+                        </span>
+                      </div>
+                      <div className="relative flex-1">
+                        <input
+                          type="number"
+                          min="0"
+                          max="59"
+                          value={practiceMins}
+                          onChange={(e) =>
+                            setPracticeMins(e.target.value === "" ? "" : Number(e.target.value))
+                          }
+                          placeholder="0"
+                          className="input-field w-full text-sm py-2 pl-3 pr-10 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none shadow-none"
+                        />
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground pointer-events-none">
+                          {t.learningHub.mins}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </div>
 
-                {/* Self Learning / Self Practice */}
+                {/* Field 1: Topics Covered */}
                 <div>
                   <label className="block text-xs font-medium mb-1.5 text-muted-foreground">
-                    {t.learningHub.selfPractice}
+                    {t.learningHub.topicsCovered}
                   </label>
-                  <div className="flex gap-2">
-                    <div className="relative flex-1">
-                      <input
-                        type="number"
-                        min="0"
-                        value={practiceHours}
-                        onChange={(e) =>
-                          setPracticeHours(e.target.value === "" ? "" : Number(e.target.value))
-                        }
-                        placeholder="0"
-                        className="input-field w-full text-sm py-2 pl-3 pr-9 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                      />
-                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground pointer-events-none">
-                        {t.learningHub.hrs}
-                      </span>
-                    </div>
-                    <div className="relative flex-1">
-                      <input
-                        type="number"
-                        min="0"
-                        max="59"
-                        value={practiceMins}
-                        onChange={(e) =>
-                          setPracticeMins(e.target.value === "" ? "" : Number(e.target.value))
-                        }
-                        placeholder="0"
-                        className="input-field w-full text-sm py-2 pl-3 pr-10 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                      />
-                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground pointer-events-none">
-                        {t.learningHub.mins}
-                      </span>
-                    </div>
-                  </div>
+                  <input
+                    type="text"
+                    value={topics}
+                    onChange={(e) => setTopics(e.target.value)}
+                    placeholder={t.learningHub.topicsPlaceholder}
+                    className="input-field w-full text-sm py-2 px-3 shadow-none"
+                    required
+                  />
                 </div>
-              </div>
 
-              {/* Field 1: Topics Covered (User explicitly specified this is first) */}
-              <div>
-                <label className="block text-xs font-medium mb-1.5 text-muted-foreground">
-                  {t.learningHub.topicsCovered}
-                </label>
-                <input
-                  type="text"
-                  value={topics}
-                  onChange={(e) => setTopics(e.target.value)}
-                  placeholder={t.learningHub.topicsPlaceholder}
-                  className="input-field w-full text-sm py-2 px-3"
-                  required
-                />
-              </div>
+                {/* Field 2: Practice Details */}
+                <div>
+                  <label className="block text-xs font-medium mb-1.5 text-muted-foreground">
+                    {t.learningHub.practiceDetails}
+                  </label>
+                  <input
+                    type="text"
+                    value={practiceDetails}
+                    onChange={(e) => setPracticeDetails(e.target.value)}
+                    placeholder={t.learningHub.practiceDetailsPlaceholder}
+                    className="input-field w-full text-sm py-2 px-3 shadow-none"
+                  />
+                </div>
 
-              {/* Field 2: Practice Details & Solved Tasks (e.g. Solved 5 problems, 10 MCQs) */}
-              <div>
-                <label className="block text-xs font-medium mb-1.5 text-muted-foreground">
-                  {t.learningHub.practiceDetails}
-                </label>
-                <input
-                  type="text"
-                  value={practiceDetails}
-                  onChange={(e) => setPracticeDetails(e.target.value)}
-                  placeholder={t.learningHub.practiceDetailsPlaceholder}
-                  className="input-field w-full text-sm py-2 px-3"
-                />
-              </div>
+                {/* Field 3: Weak Topics */}
+                <div>
+                  <label className="block text-xs font-medium mb-1.5 text-muted-foreground">
+                    {t.learningHub.weakTopics}
+                  </label>
+                  <input
+                    type="text"
+                    value={blockers}
+                    onChange={(e) => setBlockers(e.target.value)}
+                    placeholder={t.learningHub.weakTopicsPlaceholder}
+                    className="input-field w-full text-sm py-2 px-3 shadow-none"
+                  />
+                </div>
 
-              {/* Field 3: Weak Topics (e.g. Where did you struggle?) */}
-              <div>
-                <label className="block text-xs font-medium mb-1.5 text-muted-foreground">
-                  {t.learningHub.weakTopics}
-                </label>
-                <input
-                  type="text"
-                  value={blockers}
-                  onChange={(e) => setBlockers(e.target.value)}
-                  placeholder={t.learningHub.weakTopicsPlaceholder}
-                  className="input-field w-full text-sm py-2 px-3"
-                />
-              </div>
-
-              {/* Submit Button */}
-              <div className="pt-2">
-                <button
-                  type="submit"
-                  className="btn-primary py-2.5 px-6 rounded-xl text-sm font-semibold shadow-none shadow-blue-600/20 cursor-pointer"
-                >
-                  {t.learningHub.saveLog}
-                </button>
-              </div>
-            </form>
-          </div>
-
-          {/* Learning History & Records (Log History) */}
-          <div className="flex flex-col gap-3">
-            <h2 className="text-base sm:text-lg font-bold text-foreground">
-              {t.learningHub.logHistory}
-            </h2>
-
-            {activeFolderLogs.length === 0 ? (
-              <div className="card p-8 text-center text-muted-foreground text-xs sm:text-sm">
-                {t.learningHub.noLogs}
-              </div>
-            ) : (
-              <div className="flex flex-col gap-3">
-                {activeFolderLogs.map((log) => (
-                  <div
-                    key={log.id}
-                    className="card p-4 sm:p-5 flex flex-col gap-3 hover:border-slate-300 dark:hover:border-white/15 transition-all"
+                {/* Submit Button */}
+                <div className="pt-2">
+                  <button
+                    type="submit"
+                    className="btn-primary py-2.5 px-6 rounded-xl text-sm font-semibold shadow-none cursor-pointer"
                   >
-                    {/* Top Row: Date & Time Badges */}
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-semibold px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 text-foreground">
+                    {t.learningHub.saveLog}
+                  </button>
+                </div>
+              </form>
+            </div>
+
+            {/* Right: Learning History & Records (Log History) */}
+            <div className="rounded-2xl border border-slate-200 dark:border-white/10 p-5 sm:p-6 bg-white dark:bg-[#111827] shadow-none flex flex-col">
+              <div className="flex items-center justify-between gap-2 mb-4">
+                <div className="flex items-center gap-2">
+                  <h2 className="text-base sm:text-lg font-bold text-foreground">
+                    {t.learningHub.logHistory}
+                  </h2>
+                  {activeFolderLogs.length > 0 && (
+                    <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 text-muted-foreground">
+                      {activeFolderLogs.length}
+                    </span>
+                  )}
+                </div>
+
+                {activeFolderLogs.length > 5 && (
+                  <button
+                    type="button"
+                    onClick={() => setIsViewAllLogsOpen(true)}
+                    className="text-xs font-semibold text-blue-500 hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer"
+                  >
+                    {state.lang === "bn" ? "সবগুলো দেখুন" : "View All"}
+                  </button>
+                )}
+              </div>
+
+              {activeFolderLogs.length === 0 ? (
+                <div className="p-8 text-center text-muted-foreground text-xs sm:text-sm rounded-xl border border-dashed border-slate-200 dark:border-white/10">
+                  {t.learningHub.noLogs}
+                </div>
+              ) : (
+                <div className="flex flex-col gap-3">
+                  {/* Show latest 5 logs (newest first) */}
+                  {activeFolderLogs.slice(0, 5).map((log) => (
+                    <div
+                      key={log.id}
+                      className="p-3.5 sm:p-4 rounded-xl border border-slate-200 dark:border-white/[0.08] bg-slate-50/50 dark:bg-white/[0.02] flex flex-col gap-2.5 shadow-none transition-all"
+                    >
+                      {/* Top Row: Date & Time Badges */}
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <span className="text-[11px] font-semibold px-2 py-0.5 rounded-md bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-foreground">
                           {new Date(log.date).toLocaleDateString(undefined, {
                             weekday: "short",
                             year: "numeric",
@@ -845,63 +857,76 @@ export default function LearningHubPage() {
                             day: "numeric",
                           })}
                         </span>
+
+                        <div className="flex items-center gap-1.5 text-xs font-semibold">
+                          {log.practiceMinutes > 0 && (
+                            <span className="px-2 py-0.5 rounded-md bg-blue-500/10 text-blue-500 border border-blue-500/20 text-[11px]">
+                              {t.learningHub.selfLearning}: {formatHoursMins(log.practiceMinutes)}
+                            </span>
+                          )}
+                          {log.watchMinutes > 0 && (
+                            <span className="px-2 py-0.5 rounded-md bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 text-[11px]">
+                              {t.learningHub.tuition}: {formatHoursMins(log.watchMinutes)}
+                            </span>
+                          )}
+                        </div>
                       </div>
 
-                      <div className="flex items-center gap-2 text-xs font-semibold">
-                        {log.practiceMinutes > 0 && (
-                          <span className="px-2 py-0.5 rounded-md bg-blue-500/10 text-blue-500 border border-blue-500/20">
-                            {t.learningHub.selfLearning}: {formatHoursMins(log.practiceMinutes)}
-                          </span>
-                        )}
-                        {log.watchMinutes > 0 && (
-                          <span className="px-2 py-0.5 rounded-md bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
-                            {t.learningHub.tuition}: {formatHoursMins(log.watchMinutes)}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Topics & Practice Details */}
-                    <div>
-                      <p className="text-sm font-semibold text-foreground">
-                        {log.topics}
-                      </p>
-                      {log.practiceDetails && (
-                        <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-                          {log.practiceDetails}
+                      {/* Topics & Practice Details */}
+                      <div>
+                        <p className="text-xs sm:text-sm font-semibold text-foreground">
+                          {log.topics}
                         </p>
+                        {log.practiceDetails && (
+                          <p className="text-xs text-muted-foreground mt-0.5">
+                            {log.practiceDetails}
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Weak Topics */}
+                      {log.blockers && (
+                        <div className="border-l-2 border-amber-500/60 pl-2.5 py-0.5 bg-amber-500/5 rounded-r-md">
+                          <p className="text-[11px] font-semibold text-amber-500 mb-0.5">
+                            {t.learningHub.weakTopicsLabel}
+                          </p>
+                          <ul className="text-xs text-muted-foreground list-disc list-inside space-y-0.5">
+                            {log.blockers.split(/[,;\n]+/).map((b, i) => (
+                              <li key={i}>{b.trim()}</li>
+                            ))}
+                          </ul>
+                        </div>
                       )}
-                    </div>
 
-                    {/* Weak Topics */}
-                    {log.blockers && (
-                      <div className="border-l-2 border-amber-500/60 pl-3 py-0.5 bg-amber-500/5 rounded-r-lg">
-                        <p className="text-xs font-semibold text-amber-500 mb-0.5">
-                          {t.learningHub.weakTopicsLabel}
-                        </p>
-                        <ul className="text-xs text-muted-foreground list-disc list-inside space-y-0.5">
-                          {log.blockers.split(/[,;\n]+/).map((b, i) => (
-                            <li key={i}>{b.trim()}</li>
-                          ))}
-                        </ul>
+                      {/* Delete Log Button */}
+                      <div className="flex justify-end pt-0.5">
+                        <button
+                          type="button"
+                          onClick={() => deleteLearningLog(log.id)}
+                          className="text-xs font-medium text-muted-foreground hover:text-red-500 transition-colors flex items-center gap-1 p-1 rounded-md cursor-pointer"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                          <span>{t.learningHub.deleteLog}</span>
+                        </button>
                       </div>
-                    )}
-
-                    {/* Delete Log Button */}
-                    <div className="flex justify-end pt-1">
-                      <button
-                        type="button"
-                        onClick={() => deleteLearningLog(log.id)}
-                        className="text-xs font-medium text-red-400 hover:text-red-500 transition-colors flex items-center gap-1.5 p-1 rounded-md cursor-pointer"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                        <span>{t.learningHub.deleteLog}</span>
-                      </button>
                     </div>
-                  </div>
-                ))}
-              </div>
-            )}
+                  ))}
+
+                  {/* If more than 5 logs, show View All button at bottom */}
+                  {activeFolderLogs.length > 5 && (
+                    <button
+                      type="button"
+                      onClick={() => setIsViewAllLogsOpen(true)}
+                      className="w-full py-2.5 mt-1 rounded-xl text-xs font-semibold text-blue-500 hover:text-blue-600 dark:hover:text-blue-400 bg-blue-500/10 border border-blue-500/20 hover:bg-blue-500/15 transition-all text-center cursor-pointer shadow-none"
+                    >
+                      {state.lang === "bn"
+                        ? `আরও ${activeFolderLogs.length - 5}টি লগ দেখুন (সবগুলো দেখুন)`
+                        : `View remaining ${activeFolderLogs.length - 5} logs (View All)`}
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}
@@ -939,8 +964,8 @@ export default function LearningHubPage() {
                   </h3>
                   <p className="text-xs text-muted-foreground">
                     {state.lang === "bn"
-                      ? "একটি নতুন স্কিল ফোল্ডার তৈরি করুন"
-                      : "Create a new skill folder to organize your learning"}
+                      ? "একটি নতুন বিষয় বা টপিক ফোল্ডার তৈরি করুন"
+                      : "Create a new topic folder to organize your study hours"}
                   </p>
                 </div>
               </div>
@@ -948,7 +973,7 @@ export default function LearningHubPage() {
               <form onSubmit={handleCreateFolder} className="flex flex-col gap-4">
                 <div>
                   <label className="block text-xs font-medium mb-1.5 text-muted-foreground">
-                    {state.lang === "bn" ? "স্কিলের নাম" : "Skill Name"}
+                    {state.lang === "bn" ? "বিষয় বা টপিকের নাম" : "Topic or Subject Name"}
                   </label>
                   <input
                     ref={modalInputRef}
@@ -1070,6 +1095,130 @@ export default function LearningHubPage() {
                   className="w-full py-1.5 rounded-xl text-xs font-medium text-zinc-400 hover:text-white hover:bg-white/5 transition-colors cursor-pointer"
                 >
                   {t.learningHub.keepInArchive}
+                </button>
+              </div>
+            </div>
+          </div>,
+          document.body
+        )}
+
+      {/* ───────────────────────────────────────────────────────────── */}
+      {/* MODAL 3: VIEW ALL LOGS MODAL                                  */}
+      {/* ───────────────────────────────────────────────────────────── */}
+      {mounted &&
+        isViewAllLogsOpen &&
+        activeFolder &&
+        createPortal(
+          <div
+            className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs motion-overlay"
+            style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0 }}
+          >
+            <div
+              className="absolute inset-0"
+              onClick={() => setIsViewAllLogsOpen(false)}
+            />
+
+            <div className="relative w-full max-w-2xl max-h-[85vh] rounded-2xl border border-slate-200 dark:border-white/10 p-5 sm:p-6 shadow-none bg-white dark:bg-[#111319] text-foreground flex flex-col motion-reveal">
+              {/* Header */}
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-white/10 shrink-0">
+                <div>
+                  <h3 className="text-base sm:text-lg font-bold">
+                    {t.learningHub.logHistory}
+                  </h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {activeFolder.name} • {activeFolderLogs.length} {state.lang === "bn" ? "টি মোট লগ" : "total logs"}
+                  </p>
+                </div>
+                <button
+                  onClick={() => setIsViewAllLogsOpen(false)}
+                  className="p-1 rounded-lg text-muted-foreground hover:text-foreground hover:bg-slate-100 dark:hover:bg-white/10 transition-colors cursor-pointer"
+                  aria-label="Close"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              {/* Logs List */}
+              <div className="overflow-y-auto pr-1 flex flex-col gap-3 my-3">
+                {activeFolderLogs.map((log) => (
+                  <div
+                    key={log.id}
+                    className="p-3.5 sm:p-4 rounded-xl border border-slate-200 dark:border-white/[0.08] bg-slate-50/50 dark:bg-white/[0.02] flex flex-col gap-2.5 shadow-none"
+                  >
+                    {/* Top Row: Date & Time Badges */}
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <span className="text-[11px] font-semibold px-2 py-0.5 rounded-md bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-foreground">
+                        {new Date(log.date).toLocaleDateString(undefined, {
+                          weekday: "short",
+                          year: "numeric",
+                          month: "short",
+                          day: "numeric",
+                        })}
+                      </span>
+
+                      <div className="flex items-center gap-1.5 text-xs font-semibold">
+                        {log.practiceMinutes > 0 && (
+                          <span className="px-2 py-0.5 rounded-md bg-blue-500/10 text-blue-500 border border-blue-500/20 text-[11px]">
+                            {t.learningHub.selfLearning}: {formatHoursMins(log.practiceMinutes)}
+                          </span>
+                        )}
+                        {log.watchMinutes > 0 && (
+                          <span className="px-2 py-0.5 rounded-md bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 text-[11px]">
+                            {t.learningHub.tuition}: {formatHoursMins(log.watchMinutes)}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Topics & Practice Details */}
+                    <div>
+                      <p className="text-xs sm:text-sm font-semibold text-foreground">
+                        {log.topics}
+                      </p>
+                      {log.practiceDetails && (
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          {log.practiceDetails}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Weak Topics */}
+                    {log.blockers && (
+                      <div className="border-l-2 border-amber-500/60 pl-2.5 py-0.5 bg-amber-500/5 rounded-r-md">
+                        <p className="text-[11px] font-semibold text-amber-500 mb-0.5">
+                          {t.learningHub.weakTopicsLabel}
+                        </p>
+                        <ul className="text-xs text-muted-foreground list-disc list-inside space-y-0.5">
+                          {log.blockers.split(/[,;\n]+/).map((b, i) => (
+                            <li key={i}>{b.trim()}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {/* Delete Log Button */}
+                    <div className="flex justify-end pt-0.5">
+                      <button
+                        type="button"
+                        onClick={() => deleteLearningLog(log.id)}
+                        className="text-xs font-medium text-muted-foreground hover:text-red-500 transition-colors flex items-center gap-1 p-1 rounded-md cursor-pointer"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        <span>{t.learningHub.deleteLog}</span>
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Footer */}
+              <div className="pt-2 flex justify-end shrink-0 border-t border-slate-100 dark:border-white/10">
+                <button
+                  type="button"
+                  onClick={() => setIsViewAllLogsOpen(false)}
+                  className="px-4 py-2 rounded-xl text-xs sm:text-sm font-medium text-muted-foreground hover:bg-slate-100 dark:hover:bg-white/5 transition-colors cursor-pointer"
+                >
+                  {state.lang === "bn" ? "বন্ধ করুন" : "Close"}
                 </button>
               </div>
             </div>

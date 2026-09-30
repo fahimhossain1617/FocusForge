@@ -121,6 +121,7 @@ function escapeHtml(text: string): string {
 export function sendSupportNotificationToOwner(ticket: {
   ticketNumber: string;
   type: string;
+  category?: string;
   senderName: string;
   senderEmail: string;
   subject: string;
@@ -131,6 +132,22 @@ export function sendSupportNotificationToOwner(ticket: {
   attachments?: string[];
 }) {
   const supervisorTicketUrl = `${APP_URL}/supervisor?ticket=${ticket.ticketNumber}`;
+  const attachmentsHtml = ticket.attachments && ticket.attachments.length > 0
+    ? `
+      <div style="margin-top: 16px; padding: 12px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 6px;">
+        <strong style="font-size: 13px; color: #475569;">Attached Screenshot / Media:</strong>
+        <div style="margin-top: 8px;">
+          ${ticket.attachments.map(att => {
+            if (att.startsWith('data:image') || att.startsWith('http')) {
+              return `<div style="margin-top: 8px;"><img src="${att}" alt="Screenshot" style="max-width: 100%; border-radius: 8px; border: 1px solid #cbd5e1; display: block;" /></div>`;
+            }
+            return `<div style="margin-top: 4px; font-size: 13px;"><a href="${att}" target="_blank" style="color: #2563eb;">${escapeHtml(att)}</a></div>`;
+          }).join('')}
+        </div>
+      </div>
+    `
+    : '';
+
   const html = `
     <!DOCTYPE html>
     <html>
@@ -153,20 +170,22 @@ export function sendSupportNotificationToOwner(ticket: {
         <div class="card">
           <div class="header">
             <span class="badge">${escapeHtml(ticket.type)}</span>
-            <h2 class="title" style="margin-top: 8px;">New Support Ticket: ${escapeHtml(ticket.ticketNumber)}</h2>
+            <h2 class="title" style="margin-top: 8px;">New ${escapeHtml(ticket.type.toUpperCase())}: ${escapeHtml(ticket.ticketNumber)}</h2>
           </div>
           <div class="meta">
-            <div class="meta-item"><strong>From:</strong> ${escapeHtml(ticket.senderName)} (${escapeHtml(ticket.senderEmail)})</div>
+            <div class="meta-item"><strong>From:</strong> ${escapeHtml(ticket.senderName)} (${escapeHtml(ticket.senderEmail || 'No email provided')})</div>
+            <div class="meta-item"><strong>Category:</strong> ${escapeHtml(ticket.category || 'General')}</div>
             <div class="meta-item"><strong>User Status:</strong> ${ticket.isGuest ? 'Guest User' : 'Registered User'}</div>
             <div class="meta-item"><strong>Subject:</strong> ${escapeHtml(ticket.subject)}</div>
             <div class="meta-item"><strong>App Version:</strong> ${escapeHtml(ticket.appVersion)}</div>
             ${ticket.browserInfo ? `<div class="meta-item"><strong>Environment:</strong> ${escapeHtml(ticket.browserInfo)}</div>` : ''}
           </div>
           <div class="message-box">${escapeHtml(ticket.message)}</div>
-          <p>You can reply directly to this email to reach the user, or manage the ticket in the Supervisor portal:</p>
+          ${attachmentsHtml}
+          <p style="margin-top: 16px;">You can reply directly to this email to reach the user, or manage the ticket in the Supervisor portal:</p>
           <a href="${supervisorTicketUrl}" class="btn">Open in Supervisor Dashboard</a>
           <div class="footer">
-            FocusForge Support System - Internal Notification
+            FocusForge Support System &bull; Inbox: ${SUPPORT_INBOX_EMAIL}
           </div>
         </div>
       </body>
@@ -174,10 +193,11 @@ export function sendSupportNotificationToOwner(ticket: {
   `;
 
   const text = `
-FocusForge Support Notification
+FocusForge ${ticket.type.toUpperCase()} Notification
 Ticket: ${ticket.ticketNumber}
 Type: ${ticket.type}
-From: ${ticket.senderName} (${ticket.senderEmail})
+Category: ${ticket.category || 'General'}
+From: ${ticket.senderName} (${ticket.senderEmail || 'No email provided'})
 User Status: ${ticket.isGuest ? 'Guest' : 'Registered'}
 Subject: ${ticket.subject}
 App Version: ${ticket.appVersion}

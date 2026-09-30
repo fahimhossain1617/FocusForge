@@ -111,6 +111,7 @@ function escapeHtml(text: string): string {
 export function sendSupportNotificationToOwner(ticket: {
   ticketNumber: string;
   type: string;
+  category?: string;
   senderName: string;
   senderEmail: string;
   subject: string;
@@ -121,18 +122,40 @@ export function sendSupportNotificationToOwner(ticket: {
   attachments?: string[];
 }) {
   const supervisorTicketUrl = `${APP_URL}/supervisor?ticket=${ticket.ticketNumber}`;
-  const html = `
-    <div style="font-family: sans-serif; line-height: 1.6; padding: 20px;">
-      <h2>[${escapeHtml(ticket.ticketNumber)}] New ${escapeHtml(ticket.type)} Ticket</h2>
-      <p><strong>From:</strong> ${escapeHtml(ticket.senderName)} (${escapeHtml(ticket.senderEmail)})</p>
-      <p><strong>Subject:</strong> ${escapeHtml(ticket.subject)}</p>
-      <div style="background: #f1f5f9; padding: 16px; border-left: 4px solid #3b82f6; margin: 16px 0;">
-        ${escapeHtml(ticket.message)}
+  const attachmentsHtml = ticket.attachments && ticket.attachments.length > 0
+    ? `
+      <div style="margin-top: 16px; padding: 12px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 6px;">
+        <strong style="font-size: 13px; color: #475569;">Attached Screenshot / Media:</strong>
+        <div style="margin-top: 8px;">
+          ${ticket.attachments.map(att => {
+            if (att.startsWith('data:image') || att.startsWith('http')) {
+              return `<div style="margin-top: 8px;"><img src="${att}" alt="Screenshot" style="max-width: 100%; border-radius: 8px; border: 1px solid #cbd5e1; display: block;" /></div>`;
+            }
+            return `<div style="margin-top: 4px; font-size: 13px;"><a href="${att}" target="_blank" style="color: #2563eb;">${escapeHtml(att)}</a></div>`;
+          }).join('')}
+        </div>
       </div>
-      <p><a href="${supervisorTicketUrl}">View in Supervisor Portal</a></p>
+    `
+    : '';
+
+  const html = `
+    <div style="font-family: sans-serif; line-height: 1.6; padding: 20px; color: #1e293b; background-color: #f8fafc;">
+      <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; max-width: 600px; margin: 0 auto; padding: 24px;">
+        <h2 style="margin-top: 0; color: #0f172a;">[${escapeHtml(ticket.ticketNumber)}] New ${escapeHtml(ticket.type.toUpperCase())}</h2>
+        <p><strong>From:</strong> ${escapeHtml(ticket.senderName)} (${escapeHtml(ticket.senderEmail || 'No email provided')})</p>
+        <p><strong>Category:</strong> ${escapeHtml(ticket.category || 'General')}</p>
+        <p><strong>Subject:</strong> ${escapeHtml(ticket.subject)}</p>
+        <p><strong>User Status:</strong> ${ticket.isGuest ? 'Guest' : 'Registered'}</p>
+        <div style="background: #f1f5f9; padding: 16px; border-left: 4px solid #3b82f6; margin: 16px 0; border-radius: 4px; white-space: pre-wrap;">
+          ${escapeHtml(ticket.message)}
+        </div>
+        ${attachmentsHtml}
+        <p style="margin-top: 20px;"><a href="${supervisorTicketUrl}" style="display: inline-block; background: #2563eb; color: #ffffff; padding: 10px 20px; text-decoration: none; border-radius: 6px;">View in Supervisor Portal</a></p>
+        <p style="font-size: 12px; color: #94a3b8; margin-top: 24px;">Support Inbox: ${SUPPORT_INBOX_EMAIL}</p>
+      </div>
     </div>
   `;
-  const text = `Ticket: ${ticket.ticketNumber}\nFrom: ${ticket.senderName} (${ticket.senderEmail})\nSubject: ${ticket.subject}\n\n${ticket.message}\n\nLink: ${supervisorTicketUrl}`;
+  const text = `Ticket: ${ticket.ticketNumber}\nType: ${ticket.type}\nCategory: ${ticket.category || 'General'}\nFrom: ${ticket.senderName} (${ticket.senderEmail || 'No email'})\nSubject: ${ticket.subject}\n\n${ticket.message}\n\nLink: ${supervisorTicketUrl}`;
 
   emailQueue.enqueue({
     to: SUPPORT_INBOX_EMAIL,

@@ -8,7 +8,7 @@ import {
   User, Lock, Bell, Sliders, HelpCircle, Shield,
   ChevronDown, ChevronRight, Check, ArrowLeft,
   Camera, Trash2, Eye, EyeOff, Upload,
-  Mail, Phone, Calendar, Globe, MapPin, Edit3, X
+  Mail, Phone, Calendar, Globe, MapPin, Edit3, X, AlertTriangle
 } from "lucide-react";
 import notificationService from "../../services/notificationService";
 import { userService } from "../../services/userService";
@@ -115,14 +115,11 @@ export default function SettingsPage() {
         setExpandedGroup(group);
         if (sub) {
           setActiveSubItem(sub);
-        } else {
-          // Defaults per group
-          if (group === "account") setActiveSubItem("profile");
-          else if (group === "preferences") setActiveSubItem("language");
-          else if (group === "support") setActiveSubItem("getting-started");
-          else if (group === "privacy") setActiveSubItem("privacy-policy");
+          setMobileView("detail");
         }
       }
+    } else if (hash === "settings" || hash === "") {
+      setMobileView("menu");
     }
   }, []);
 
@@ -133,40 +130,29 @@ export default function SettingsPage() {
     return () => window.removeEventListener("popstate", handlePopState);
   }, [parseRoute]);
 
-  const subHistoryRef = useRef<{ group: SettingsGroup; subItem: SettingsSubItem }[]>([]);
-
-  const selectSubItem = (group: SettingsGroup, subItem: SettingsSubItem, isBack = false) => {
-    if (!isBack && (activeSubItem !== subItem || expandedGroup !== group)) {
-      subHistoryRef.current.push({ group: expandedGroup, subItem: activeSubItem });
-      if (subHistoryRef.current.length > 20) subHistoryRef.current.shift();
-    }
+  const selectSubItem = (group: SettingsGroup, subItem: SettingsSubItem) => {
     setExpandedGroup(group);
     setActiveSubItem(subItem);
     setMobileView("detail");
 
     if (typeof window !== "undefined") {
       const newHash = `#settings/${group}/${subItem}`;
-      window.history.pushState({ group, subItem }, "", newHash);
+      window.history.replaceState({ group, subItem }, "", newHash);
     }
   };
 
   const handleBack = () => {
+    // On mobile, if viewing a specific sub-page (e.g. Contact Support, About, etc.),
+    // going back returns to the Settings main menu list.
     if (mobileView === "detail") {
-      const prev = subHistoryRef.current.pop();
-      if (prev) {
-        selectSubItem(prev.group, prev.subItem, true);
-      } else {
-        setMobileView("menu");
+      setMobileView("menu");
+      if (typeof window !== "undefined") {
+        window.history.replaceState({}, "", "#settings");
       }
       return;
     }
 
-    const prev = subHistoryRef.current.pop();
-    if (prev) {
-      selectSubItem(prev.group, prev.subItem, true);
-      return;
-    }
-
+    // If already on Settings menu or on Desktop/Laptop, exit Settings to previous app screen
     navigateBack();
   };
 
@@ -639,9 +625,9 @@ export default function SettingsPage() {
   // =========================================================================
   // PRIVACY > DELETE ACCOUNT STATE & HANDLERS
   // =========================================================================
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
   const [deletePassword, setDeletePassword] = useState("");
+  const [showDeletePassword, setShowDeletePassword] = useState(false);
   const [deleteError, setDeleteError] = useState("");
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
 
@@ -669,7 +655,6 @@ export default function SettingsPage() {
       if (res.success) {
         await clearPersistedAppState();
         logout();
-        setShowDeleteModal(false);
         showToast(t.settings.privacy.deleteAccount.successToast, "info");
         navigateTo("today");
       } else {
@@ -681,17 +666,6 @@ export default function SettingsPage() {
       setIsDeletingAccount(false);
     }
   };
-
-  // Keyboard support: Escape closes delete modal
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && showDeleteModal) {
-        setShowDeleteModal(false);
-      }
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [showDeleteModal]);
 
   // Derived user display details
   const displayName = user?.displayName || (isGuest ? t.settings.profileCard.guestName : "User");
@@ -2317,36 +2291,105 @@ export default function SettingsPage() {
         }
 
         return (
-          <div className="space-y-6">
+          <div className="space-y-6 max-w-2xl">
             <div>
-              <h1 className="text-2xl font-bold text-[var(--color-text-primary)] tracking-tight">
-                {t.settings.privacy.deleteAccount.title}
+              <h1 className="text-2xl font-bold text-red-600 dark:text-red-400 tracking-tight flex items-center gap-2.5">
+                <AlertTriangle className="text-red-500 shrink-0" size={24} />
+                {t.settings.privacy.deleteAccount.modalTitle}
               </h1>
               <p className="text-sm text-[var(--color-text-secondary)] mt-1">
                 {t.settings.privacy.deleteAccount.desc}
               </p>
             </div>
 
-            <div className="rounded-2xl border border-red-500/20 bg-red-500/5 p-6 sm:p-7 space-y-4 max-w-xl shadow-none">
-              <h3 className="text-sm font-semibold text-red-600 dark:text-red-400">
-                {t.settings.privacy.deleteAccount.modalTitle}
-              </h3>
-              <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed">
-                {t.settings.privacy.deleteAccount.desc}
-              </p>
-              <div className="pt-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setDeleteConfirmText("");
-                    setDeletePassword("");
-                    setDeleteError("");
-                    setShowDeleteModal(true);
-                  }}
-                  className="px-5 py-2.5 rounded-xl text-xs font-semibold text-white bg-red-600 hover:bg-red-700 transition-colors shadow-none cursor-pointer min-h-[44px]"
-                >
-                  {t.settings.privacy.deleteAccount.buttonLabel}
-                </button>
+            <div className="rounded-2xl border border-red-500/30 bg-red-500/5 p-6 sm:p-7 space-y-6 shadow-none">
+              <div className="space-y-2.5">
+                <h3 className="text-sm font-semibold text-red-600 dark:text-red-400">
+                  {t.settings.privacy.deleteAccount.modalWarning}
+                </h3>
+                <ul className="list-disc pl-5 space-y-1.5 text-xs text-[var(--color-text-secondary)] leading-relaxed">
+                  {t.settings.privacy.deleteAccount.itemsList.map((item, i) => (
+                    <li key={i}>{item}</li>
+                  ))}
+                </ul>
+              </div>
+
+              <div className="border-t border-red-500/20 pt-5 space-y-4">
+                <div>
+                  <label className="block text-xs font-semibold text-[var(--color-text-primary)] mb-1.5">
+                    {t.settings.privacy.deleteAccount.typePrompt}
+                  </label>
+                  <input
+                    type="text"
+                    value={deleteConfirmText}
+                    onChange={(e) => {
+                      setDeleteConfirmText(e.target.value);
+                      if (deleteError) setDeleteError("");
+                    }}
+                    placeholder="DELETE"
+                    className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-[var(--color-surface)] border border-[var(--color-border-subtle)] text-[var(--color-text-primary)] font-mono uppercase focus:outline-none focus:border-red-500 transition-colors min-h-[44px]"
+                  />
+                </div>
+
+                {!isGoogleUser ? (
+                  <div>
+                    <label className="block text-xs font-semibold text-[var(--color-text-primary)] mb-1.5">
+                      {t.settings.privacy.deleteAccount.passwordPrompt}
+                    </label>
+                    <div className="relative">
+                      <input
+                        type={showDeletePassword ? "text" : "password"}
+                        value={deletePassword}
+                        onChange={(e) => {
+                          setDeletePassword(e.target.value);
+                          if (deleteError) setDeleteError("");
+                        }}
+                        className="w-full px-3.5 py-2.5 pr-10 rounded-xl text-sm bg-[var(--color-surface)] border border-[var(--color-border-subtle)] text-[var(--color-text-primary)] focus:outline-none focus:border-red-500 transition-colors min-h-[44px]"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowDeletePassword(!showDeletePassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] cursor-pointer"
+                        aria-label="Toggle password visibility"
+                      >
+                        {showDeletePassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-xs text-[var(--color-text-muted)]">
+                    {t.settings.privacy.deleteAccount.googlePrompt}
+                  </p>
+                )}
+
+                {deleteError && (
+                  <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-xs text-red-500 font-medium">
+                    {deleteError}
+                  </div>
+                )}
+
+                <div className="flex flex-wrap items-center gap-3 pt-2">
+                  <button
+                    type="button"
+                    disabled={deleteConfirmText.trim() !== "DELETE" || isDeletingAccount || (!isGoogleUser && !deletePassword)}
+                    onClick={handleDeleteAccount}
+                    className="px-6 py-2.5 rounded-xl text-xs font-semibold text-white bg-red-600 hover:bg-red-700 transition-colors shadow-none cursor-pointer disabled:opacity-40 min-h-[44px] flex items-center justify-center"
+                  >
+                    {isDeletingAccount ? t.settings.privacy.deleteAccount.deleting : t.settings.privacy.deleteAccount.confirmButton}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setDeleteConfirmText("");
+                      setDeletePassword("");
+                      setDeleteError("");
+                      handleBack();
+                    }}
+                    className="px-5 py-2.5 rounded-xl text-xs font-semibold text-[var(--color-text-primary)] bg-[var(--color-surface)] hover:bg-[var(--color-surface-hover)] border border-[var(--color-border-subtle)] transition-colors cursor-pointer min-h-[44px]"
+                  >
+                    {t.settings.privacy.deleteAccount.cancelButton}
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -2491,98 +2534,6 @@ export default function SettingsPage() {
           </div>
         </main>
       </div>
-
-      {/* =================================================================== */}
-      {/* DELETE ACCOUNT CONFIRMATION MODAL                                   */}
-      {/* =================================================================== */}
-      {showDeleteModal && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs"
-        >
-          <div className="relative w-full max-w-lg rounded-3xl border border-red-500/30 bg-[var(--color-surface-elevated)] p-6 sm:p-8 shadow-none space-y-5">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-bold text-red-600 dark:text-red-400">
-                {t.settings.privacy.deleteAccount.modalTitle}
-              </h3>
-              <button
-                type="button"
-                onClick={() => setShowDeleteModal(false)}
-                className="text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] cursor-pointer"
-                aria-label="Close"
-              >
-                <X size={18} />
-              </button>
-            </div>
-
-            <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed">
-              {t.settings.privacy.deleteAccount.modalWarning}
-            </p>
-
-            <ul className="list-disc pl-5 space-y-1 text-xs text-[var(--color-text-secondary)]">
-              {t.settings.privacy.deleteAccount.itemsList.map((item, i) => (
-                <li key={i}>{item}</li>
-              ))}
-            </ul>
-
-            <div className="space-y-3 pt-2">
-              <div>
-                <label className="block text-xs font-medium text-[var(--color-text-primary)] mb-1">
-                  {t.settings.privacy.deleteAccount.typePrompt}
-                </label>
-                <input
-                  type="text"
-                  value={deleteConfirmText}
-                  onChange={(e) => setDeleteConfirmText(e.target.value)}
-                  placeholder="DELETE"
-                  className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-[var(--color-surface)] border border-[var(--color-border-subtle)] text-[var(--color-text-primary)] font-mono uppercase focus:outline-none focus:border-red-500 transition-colors min-h-[44px]"
-                />
-              </div>
-
-              {!isGoogleUser ? (
-                <div>
-                  <label className="block text-xs font-medium text-[var(--color-text-primary)] mb-1">
-                    {t.settings.privacy.deleteAccount.passwordPrompt}
-                  </label>
-                  <input
-                    type="password"
-                    value={deletePassword}
-                    onChange={(e) => setDeletePassword(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-[var(--color-surface)] border border-[var(--color-border-subtle)] text-[var(--color-text-primary)] focus:outline-none focus:border-red-500 transition-colors min-h-[44px]"
-                  />
-                </div>
-              ) : (
-                <p className="text-xs text-[var(--color-text-muted)]">
-                  {t.settings.privacy.deleteAccount.googlePrompt}
-                </p>
-              )}
-
-              {deleteError && (
-                <p className="text-xs text-red-500">{deleteError}</p>
-              )}
-            </div>
-
-            <div className="flex items-center justify-end gap-3 pt-3 border-t border-[var(--color-border-subtle)]">
-              <button
-                type="button"
-                onClick={() => setShowDeleteModal(false)}
-                className="px-4 py-2.5 rounded-xl text-xs font-semibold text-[var(--color-text-primary)] bg-[var(--color-surface)] hover:bg-[var(--color-surface-hover)] border border-[var(--color-border-subtle)] transition-colors cursor-pointer min-h-[44px]"
-              >
-                {t.settings.privacy.deleteAccount.cancelButton}
-              </button>
-              <button
-                type="button"
-                disabled={deleteConfirmText.trim() !== "DELETE" || isDeletingAccount}
-                onClick={handleDeleteAccount}
-                className="px-5 py-2.5 rounded-xl text-xs font-semibold text-white bg-red-600 hover:bg-red-700 transition-colors shadow-none cursor-pointer disabled:opacity-40 min-h-[44px]"
-              >
-                {isDeletingAccount ? t.settings.privacy.deleteAccount.deleting : t.settings.privacy.deleteAccount.confirmButton}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

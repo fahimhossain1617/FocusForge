@@ -11,7 +11,7 @@ import {
   CalendarDays as PlannerIcon,
   Files,
   PencilLine,
-  GraduationCap,
+  Clock,
   Brain,
   BookOpenText,
 } from "lucide-react";
@@ -89,8 +89,8 @@ export default function BottomNav() {
     },
     {
       id: "learning",
-      label: isBn ? "স্কিল বিল্ডার" : "Skill builder",
-      icon: GraduationCap,
+      label: isBn ? "টাইম লগ" : "Time Log",
+      icon: Clock,
     },
   ];
 

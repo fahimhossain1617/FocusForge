@@ -10,7 +10,7 @@ import {
   Files, 
   CalendarDays, 
   PencilLine, 
-  GraduationCap, 
+  Clock, 
   Target, 
   Settings as SettingsIcon, 
   User as ProfileIcon,
@@ -42,7 +42,7 @@ const navItems: NavItem[] = [
   { id: "planner", label: "Planner", tagline: "Plan your day and week", icon: CalendarDays },
   { id: "mind", label: "Mind Space", tagline: "Capture, solve, and reflect", icon: MindSpaceIcon },
   { id: "diary", label: "My Diary", tagline: "Your private journal", icon: BookOpenText },
-  { id: "learning", label: "Skill builder", tagline: "Track what you're learning", icon: GraduationCap },
+  { id: "learning", label: "Time Log", tagline: "Track your study, teaching & practice hours", icon: Clock },
   { id: "focus", label: "Focus", tagline: "Start a focus session", icon: Target },
 ];
 
