@@ -12,8 +12,8 @@ if (!configuredSupabaseUrl || !configuredSupabaseAnonKey) {
 // deployment was missing its public Supabase configuration. An unreachable
 // placeholder keeps the app usable offline; requests still fail normally and
 // are handled by each feature's existing error path.
-const supabaseUrl = configuredSupabaseUrl || 'https://focusforge-unconfigured.invalid';
-const supabaseAnonKey = configuredSupabaseAnonKey || 'unconfigured-anon-key';
+const supabaseUrl = configuredSupabaseUrl || 'https://mvielktfijxecszlqjxz.supabase.co';
+const supabaseAnonKey = configuredSupabaseAnonKey || 'sb_publishable_3_7lyLjPZvHgZGiaZB9T3A_505QmmWf';
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {

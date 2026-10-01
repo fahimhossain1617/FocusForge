@@ -1,10 +1,13 @@
 import { Pool } from 'pg';
 
+const DEFAULT_DATABASE_URL =
+  'postgresql://postgres.mvielktfijxecszlqjxz:REDACTED_DB_SECRET@aws-0-ap-northeast-2.pooler.supabase.com:5432/postgres';
+
 const connectionString = (
   process.env.DATABASE_URL ||
   process.env.DIRECT_URL ||
   process.env.POSTGRES_URL ||
-  ''
+  DEFAULT_DATABASE_URL
 ).replace(/^["']|["']$/g, '').trim();
 
 const isSsl = connectionString.includes('supabase') ||

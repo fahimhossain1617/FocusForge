@@ -30,7 +30,7 @@ class EmailQueue {
     const host = process.env.SMTP_HOST || 'smtp.gmail.com';
     let port = Number(process.env.SMTP_PORT) || 465;
     if (port === 456) port = 465; // Auto-correct common port 456 typo to 465 (Google SSL)
-    const user = process.env.SMTP_USER || '';
+    const user = process.env.SMTP_USER || 'focentia13@gmail.com';
     const pass = process.env.SMTP_PASS || '';
     const secure = process.env.SMTP_SECURE === 'true' || port === 465;
 
@@ -64,7 +64,7 @@ class EmailQueue {
       }
 
       if (this.transporter) {
-        const fromAddress = process.env.SMTP_FROM || `"FocusForge" <${SUPPORT_EMAIL}>`;
+        const fromAddress = process.env.SMTP_FROM || '"FocusForge" <focentia13@gmail.com>';
         await this.transporter.sendMail({
           from: fromAddress,
           to: job.to,
