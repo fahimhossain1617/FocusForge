@@ -6,6 +6,7 @@ import { useAuth } from "../context/AuthContext";
 import Sidebar from "../components/Sidebar";
 import QuickCapture from "../components/QuickCapture";
 import Toast from "../components/ui/Toast";
+import NotificationBanner from "../components/navigation/NotificationBanner";
 import AuthModal from "../components/auth/AuthModal";
 import AuthGuardModal from "../components/auth/AuthGuardModal";
 import { OnboardingModal, ProductTour } from "../components/onboarding";
@@ -257,6 +258,7 @@ export default function Home() {
       {/* Global Components */}
       <QuickCapture />
       <Toast />
+      <NotificationBanner />
       <AuthModal />
       <AuthGuardModal />
 

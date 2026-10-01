@@ -143,16 +143,20 @@ self.addEventListener('fetch', (event) => {
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
+  const actionRoute = event.notification.data?.actionRoute;
 
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
       for (const client of clientList) {
         if (client.url && 'focus' in client) {
+          if (actionRoute && 'postMessage' in client) {
+            client.postMessage({ type: 'NAVIGATE', route: actionRoute });
+          }
           return client.focus();
         }
       }
       if (self.clients.openWindow) {
-        return self.clients.openWindow('/');
+        return self.clients.openWindow(actionRoute ? `/#${actionRoute}` : '/');
       }
     })
   );

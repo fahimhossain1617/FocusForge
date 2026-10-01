@@ -33,6 +33,8 @@ import {
 } from '../services/taskService';
 import { reviewService } from '../services/reviewService';
 import { syncService } from '../services/syncService';
+import { notificationService } from '../services/notificationService';
+import { notificationCenterService } from '../services/notificationCenterService';
 
 
 const defaultCategories = ['Programming', 'Study', 'University', 'Exam', 'Personal', 'Health', 'Project', 'Business'];
@@ -221,6 +223,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   // Scoped user data loader
   const loadUserData = useCallback(async (userId: string | null, generation: number) => {
     try {
+      // Isolate notifications and history per user/account
+      notificationCenterService.setUserId(userId);
+      notificationService.setUserId(userId);
+
       let cachedState: AppState | null = null;
       let cachedThemeMode: "dark" | "light" | "system" | null = null;
 

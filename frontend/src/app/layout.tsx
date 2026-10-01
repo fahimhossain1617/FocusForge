@@ -7,6 +7,7 @@ import "./auth.css";
 import { AppProvider } from "../context/AppContext";
 import { AuthProvider } from "../context/AuthContext";
 import ServiceWorkerRegister from "../components/pwa/ServiceWorkerRegister";
+import LaunchSplash from "../components/splash/LaunchSplash";
 
 const notoSansBengali = Noto_Sans_Bengali({
   subsets: ["bengali"],
@@ -91,6 +92,36 @@ export default function RootLayout({
       <head>
         <script
           dangerouslySetInnerHTML={{
+            __html: `(function(){try{var isStandalone=(window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches)||(window.navigator&&window.navigator.standalone);var nav=window.performance&&performance.getEntriesByType&&performance.getEntriesByType('navigation')[0];var isNav=!nav||nav.type==='navigate';if(isStandalone&&isNav&&window.history&&window.history.length<=1){try{sessionStorage.removeItem('ff_launch');}catch(e){}}var already=false;try{already=!!sessionStorage.getItem('ff_launch');}catch(e){}if(isNav&&!already){document.documentElement.classList.add('ff-launch-active');try{sessionStorage.setItem('ff_launch','1');}catch(e){}}setTimeout(function(){try{document.documentElement.classList.remove('ff-launch-active');}catch(e){}},5000);}catch(e){}})();`,
+          }}
+        />
+        <style
+          dangerouslySetInnerHTML={{
+            __html: `
+              @property --logo{syntax:'<color>';inherits:true;initial-value:#061f52}
+              :root{--logo-ui:#2f5fd0}
+              [data-theme="dark"]{--logo-ui:#9db8ff}
+              html.ff-launch-active,
+              html.ff-launch-active body {
+                background-color: #FFFFFF !important;
+                overflow: hidden !important;
+              }
+              html.ff-launch-active:not(.ff-launch-mounted) body::before {
+                content: '';
+                position: fixed;
+                inset: 0;
+                background-color: #FFFFFF;
+                z-index: 99990;
+                pointer-events: all;
+              }
+              html.ff-launch-active [data-ff-logo-slot] {
+                visibility: hidden !important;
+              }
+            `,
+          }}
+        />
+        <script
+          dangerouslySetInnerHTML={{
             __html: `(function(){try{var t=localStorage.getItem('focusforge_theme');var isDark=true;if(t){if(t==='light'){isDark=false;}else if(t==='system'){isDark=window.matchMedia('(prefers-color-scheme: dark)').matches;}else{isDark=true;}}else{var d=localStorage.getItem('focusforge_data');if(d){var s=JSON.parse(d);if(s&&s.theme&&s.theme.mode){if(s.theme.mode==='light'){isDark=false;}else if(s.theme.mode==='system'){isDark=window.matchMedia('(prefers-color-scheme: dark)').matches;}else{isDark=true;}}else{isDark=true;}}else{isDark=true;}}var root=document.documentElement;if(isDark){root.dataset.theme='dark';root.classList.add('dark');root.classList.remove('light');root.style.colorScheme='dark';}else{root.dataset.theme='light';root.classList.remove('dark');root.classList.add('light');root.style.colorScheme='light';}}catch(e){}})();`,
           }}
         />
@@ -110,9 +141,10 @@ export default function RootLayout({
         <AppProvider>
           <AuthProvider>
             <ServiceWorkerRegister />
-            <div className="relative z-10 min-h-screen">
+            <div id="app-shell" className="relative z-10 min-h-screen">
               {children}
             </div>
+            <LaunchSplash />
           </AuthProvider>
         </AppProvider>
       </body>

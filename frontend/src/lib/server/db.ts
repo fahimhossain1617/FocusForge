@@ -914,6 +914,13 @@ export async function dbGetNotificationSettings(userId: string) {
       dailyProgressReminders: true,
       dailyReminderTime: '20:00',
       timezone: 'UTC',
+      quietHoursEnabled: true,
+      quietHoursStart: '22:00',
+      quietHoursEnd: '07:00',
+      orbReactionsMode: 'on',
+      dailyLimit: 5,
+      skillReminders: true,
+      inactivityReminders: true,
     };
   }
   const row = res.rows[0];
@@ -924,6 +931,13 @@ export async function dbGetNotificationSettings(userId: string) {
     dailyProgressReminders: row.daily_progress_reminders ?? true,
     dailyReminderTime: row.daily_reminder_time || '20:00',
     timezone: row.timezone || 'UTC',
+    quietHoursEnabled: row.quiet_hours_enabled ?? true,
+    quietHoursStart: row.quiet_hours_start || '22:00',
+    quietHoursEnd: row.quiet_hours_end || '07:00',
+    orbReactionsMode: row.orb_reactions_mode || 'on',
+    dailyLimit: row.daily_limit || 5,
+    skillReminders: row.skill_reminders ?? true,
+    inactivityReminders: row.inactivity_reminders ?? true,
   };
 }
 
@@ -932,9 +946,11 @@ export async function dbUpsertNotificationSettings(userId: string, settings: any
     `
     INSERT INTO user_notification_settings (
       user_id, push_enabled, task_reminders, focus_reminders,
-      daily_progress_reminders, daily_reminder_time, timezone, updated_at
+      daily_progress_reminders, daily_reminder_time, timezone,
+      quiet_hours_enabled, quiet_hours_start, quiet_hours_end,
+      orb_reactions_mode, daily_limit, skill_reminders, inactivity_reminders, updated_at
     ) VALUES (
-      $1, $2, $3, $4, $5, $6, $7, NOW()
+      $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, NOW()
     )
     ON CONFLICT (user_id) DO UPDATE SET
       push_enabled = EXCLUDED.push_enabled,
@@ -943,6 +959,13 @@ export async function dbUpsertNotificationSettings(userId: string, settings: any
       daily_progress_reminders = EXCLUDED.daily_progress_reminders,
       daily_reminder_time = EXCLUDED.daily_reminder_time,
       timezone = EXCLUDED.timezone,
+      quiet_hours_enabled = EXCLUDED.quiet_hours_enabled,
+      quiet_hours_start = EXCLUDED.quiet_hours_start,
+      quiet_hours_end = EXCLUDED.quiet_hours_end,
+      orb_reactions_mode = EXCLUDED.orb_reactions_mode,
+      daily_limit = EXCLUDED.daily_limit,
+      skill_reminders = EXCLUDED.skill_reminders,
+      inactivity_reminders = EXCLUDED.inactivity_reminders,
       updated_at = NOW()
     RETURNING *;
     `,
@@ -954,16 +977,30 @@ export async function dbUpsertNotificationSettings(userId: string, settings: any
       settings.dailyProgressReminders ?? true,
       settings.dailyReminderTime || '20:00',
       settings.timezone || 'UTC',
+      settings.quietHoursEnabled ?? true,
+      settings.quietHoursStart || '22:00',
+      settings.quietHoursEnd || '07:00',
+      settings.orbReactionsMode || 'on',
+      Number(settings.dailyLimit) || 5,
+      settings.skillReminders ?? true,
+      settings.inactivityReminders ?? true,
     ]
   );
   const row = res.rows[0];
   return {
-    pushEnabled: row.push_enabled,
-    taskReminders: row.task_reminders,
-    focusReminders: row.focus_reminders,
-    dailyProgressReminders: row.daily_progress_reminders,
+    pushEnabled: row.push_enabled ?? true,
+    taskReminders: row.task_reminders ?? true,
+    focusReminders: row.focus_reminders ?? true,
+    dailyProgressReminders: row.daily_progress_reminders ?? true,
     dailyReminderTime: row.daily_reminder_time,
     timezone: row.timezone,
+    quietHoursEnabled: row.quiet_hours_enabled ?? true,
+    quietHoursStart: row.quiet_hours_start,
+    quietHoursEnd: row.quiet_hours_end,
+    orbReactionsMode: row.orb_reactions_mode,
+    dailyLimit: row.daily_limit,
+    skillReminders: row.skill_reminders ?? true,
+    inactivityReminders: row.inactivity_reminders ?? true,
   };
 }
 
@@ -1351,7 +1388,9 @@ export async function dbDeleteUserAccountCompletely(userId: string): Promise<voi
     await client.query('DELETE FROM user_cloud_state WHERE id = $1', [userId]);
     await client.query('DELETE FROM user_notification_settings WHERE user_id = $1', [userId]);
     await client.query('DELETE FROM push_subscriptions WHERE user_id = $1', [userId]);
-    await client.query('DELETE FROM sent_notifications_log WHERE user_id = $1', [userId]);
+    await client.query('DELETE FROM sent_notifications_log WHERE user_id = $1', [userId]).catch(() => {});
+    await client.query('DELETE FROM user_notifications WHERE user_id = $1', [userId]).catch(() => {});
+    await client.query('DELETE FROM user_notification_rotation WHERE user_id = $1', [userId]).catch(() => {});
     await client.query('DELETE FROM user_roles WHERE user_id = $1', [userId]);
     await client.query('DELETE FROM encrypted_sync_records WHERE user_id = $1', [userId]).catch(() => {});
 
@@ -1375,4 +1414,109 @@ export async function dbDeleteUserAccountCompletely(userId: string): Promise<voi
   } finally {
     client.release();
   }
+}
+
+// ==================== NOTIFICATIONS HISTORY & ROTATION ====================
+
+export async function dbGetNotifications(userId: string) {
+  const res = await pool.query(
+    'SELECT * FROM user_notifications WHERE user_id = $1 ORDER BY created_at DESC LIMIT 100',
+    [userId]
+  );
+  return res.rows.map(row => ({
+    id: row.id,
+    type: row.type,
+    category: row.category,
+    templateId: row.template_id,
+    title: row.title,
+    message: row.message,
+    orbMood: row.orb_mood,
+    actionRoute: row.action_route,
+    read: row.read,
+    taskId: row.task_id,
+    skillId: row.skill_id,
+    metadata: row.metadata,
+    timestamp: row.created_at ? new Date(row.created_at).toISOString() : new Date().toISOString(),
+  }));
+}
+
+export async function dbSaveNotification(userId: string, notif: any) {
+  const res = await pool.query(
+    `
+    INSERT INTO user_notifications (
+      id, user_id, type, category, template_id, title, message, orb_mood, action_route, read, task_id, skill_id, metadata, created_at
+    ) VALUES (
+      $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, COALESCE($14::timestamptz, NOW())
+    )
+    ON CONFLICT (id) DO UPDATE SET
+      read = EXCLUDED.read,
+      action_route = EXCLUDED.action_route,
+      metadata = EXCLUDED.metadata
+    RETURNING *;
+    `,
+    [
+      notif.id,
+      userId,
+      notif.type || 'system',
+      notif.category || 'system',
+      notif.templateId || null,
+      notif.title,
+      notif.message,
+      notif.orbMood || 'attentive',
+      notif.actionRoute || null,
+      Boolean(notif.read),
+      notif.taskId ? Number(notif.taskId) : null,
+      notif.skillId || null,
+      JSON.stringify(notif.metadata || {}),
+      notif.timestamp || null,
+    ]
+  );
+  return res.rows[0];
+}
+
+export async function dbMarkNotificationRead(userId: string, notificationId: string) {
+  await pool.query('UPDATE user_notifications SET read = true WHERE user_id = $1 AND id = $2', [userId, notificationId]);
+  return { success: true };
+}
+
+export async function dbMarkAllNotificationsRead(userId: string) {
+  await pool.query('UPDATE user_notifications SET read = true WHERE user_id = $1', [userId]);
+  return { success: true };
+}
+
+export async function dbDeleteNotification(userId: string, notificationId: string) {
+  await pool.query('DELETE FROM user_notifications WHERE user_id = $1 AND id = $2', [userId, notificationId]);
+  return { success: true };
+}
+
+export async function dbClearNotifications(userId: string) {
+  await pool.query('DELETE FROM user_notifications WHERE user_id = $1', [userId]);
+  return { success: true };
+}
+
+export async function dbGetRotationStates(userId: string) {
+  const res = await pool.query('SELECT category, bag, last_used_id FROM user_notification_rotation WHERE user_id = $1', [userId]);
+  const result: Record<string, { bag: string[]; lastUsedId: string | null }> = {};
+  for (const row of res.rows) {
+    result[row.category] = {
+      bag: Array.isArray(row.bag) ? row.bag : [],
+      lastUsedId: row.last_used_id || null,
+    };
+  }
+  return result;
+}
+
+export async function dbSaveRotationState(userId: string, category: string, bag: string[], lastUsedId: string | null) {
+  await pool.query(
+    `
+    INSERT INTO user_notification_rotation (user_id, category, bag, last_used_id, updated_at)
+    VALUES ($1, $2, $3, $4, NOW())
+    ON CONFLICT (user_id, category) DO UPDATE SET
+      bag = EXCLUDED.bag,
+      last_used_id = EXCLUDED.last_used_id,
+      updated_at = NOW()
+    `,
+    [userId, category, JSON.stringify(bag), lastUsedId]
+  );
+  return { success: true };
 }

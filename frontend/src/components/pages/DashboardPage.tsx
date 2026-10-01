@@ -22,11 +22,14 @@ import {
   AlertCircle,
   Moon,
   Sun,
+  Bell,
 } from "lucide-react";
 
 import { useAppContext } from "../../context/AppContext";
 import { useAuth } from "../../context/AuthContext";
 import { useTranslation } from "../../hooks/useTranslation";
+import { useNotificationCenter } from "../../hooks/useNotificationCenter";
+import NotificationCenter from "../navigation/NotificationCenter";
 import { getLocalDateString } from "../../services/taskService";
 import { formatTimeRange } from "../../utils/timeUtils";
 import { toggleThemeWithCircularTransition } from "../../utils/themeTransition";
@@ -104,6 +107,8 @@ export default function DashboardPage() {
   const [progressView, setProgressView] = useState<ProgressView>("weekly");
   const [hoveredDay, setHoveredDay] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState<string>(today);
+  const { unreadCount, hasUnread } = useNotificationCenter();
+  const [isNotifOpen, setIsNotifOpen] = useState(false);
 
   // Dynamic user display name
   const userName = useMemo(() => {
@@ -493,21 +498,38 @@ export default function DashboardPage() {
             {state.lang === 'bn' ? "আপনার আজকের মনোযোগ আগামীকালের ভবিষ্যৎ তৈরি করে।" : "Your focus today builds your future tomorrow."}
           </p>
         </div>
-        <div className="flex items-center gap-2 self-start sm:self-auto sm:pt-0.5 md:pt-1">
-          {/* Theme Mode Quick Toggle Button (Visible on PC/Laptop, hidden on Mobile where top bar has it) */}
+        <div className="flex items-center gap-2 sm:gap-2.5 self-start sm:self-auto sm:pt-0.5 md:pt-1">
+          {/* Theme Mode Quick Toggle Button (Brought slightly forward) */}
           <button
             type="button"
             onClick={(e) => toggleTheme(e)}
-            className="hidden sm:flex w-8 h-8 min-w-[32px] min-h-[32px] rounded-lg items-center justify-center transition-colors cursor-pointer bg-transparent border-none text-[#52627A] dark:text-slate-300 hover:text-[#111827] dark:hover:text-white hover:bg-slate-200/50 dark:hover:bg-white/[0.08] shadow-none outline-none active:scale-95"
+            className="hidden sm:flex w-9 h-9 min-w-[36px] min-h-[36px] rounded-xl items-center justify-center transition-colors cursor-pointer bg-transparent border-none text-[#52627A] dark:text-slate-300 hover:text-[#111827] dark:hover:text-white hover:bg-slate-200/50 dark:hover:bg-white/[0.08] shadow-none outline-none active:scale-95"
             title={isLight ? (state.lang === 'bn' ? "ডার্ক মোড চালু করুন" : "Switch to dark mode") : (state.lang === 'bn' ? "লাইট মোড চালু করুন" : "Switch to light mode")}
             aria-label={isLight ? (state.lang === 'bn' ? "ডার্ক মোড চালু করুন" : "Switch to dark mode") : (state.lang === 'bn' ? "লাইট মোড চালু করুন" : "Switch to light mode")}
           >
-            {isLight ? <Moon size={20} strokeWidth={2} /> : <Sun size={20} strokeWidth={2} />}
+            {isLight ? <Moon size={19} strokeWidth={2} /> : <Sun size={19} strokeWidth={2} />}
           </button>
+
+          {/* Desktop Notification Bell Icon */}
+          <button
+            type="button"
+            onClick={() => setIsNotifOpen(true)}
+            className="hidden sm:flex relative w-9 h-9 min-w-[36px] min-h-[36px] rounded-xl items-center justify-center transition-colors cursor-pointer bg-transparent border-none text-[#52627A] dark:text-slate-300 hover:text-[#111827] dark:hover:text-white hover:bg-slate-200/50 dark:hover:bg-white/[0.08] shadow-none outline-none active:scale-95"
+            title={state.lang === 'bn' ? "নোটিফিকেশন" : "Notifications"}
+            aria-label={state.lang === 'bn' ? "নোটিফিকেশন" : "Notifications"}
+          >
+            <Bell size={19} strokeWidth={2} className={hasUnread ? "text-[#2563EB] dark:text-blue-400" : ""} />
+            {unreadCount > 0 && (
+              <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 rounded-full bg-[#1D4ED8] dark:bg-[#3B82F6] text-white text-[10px] font-bold flex items-center justify-center shadow-sm">
+                {unreadCount > 9 ? "9+" : unreadCount}
+              </span>
+            )}
+          </button>
+
           {!isToday && (
             <button
               onClick={() => setSelectedDate(today)}
-              className="px-3 py-1.5 min-h-[32px] rounded-lg bg-blue-600/20 text-blue-400 hover:bg-blue-600/30 border border-blue-500/30 text-xs sm:text-sm font-medium transition-colors cursor-pointer shadow-none flex items-center gap-2"
+              className="px-3 py-1.5 min-h-[34px] rounded-xl bg-blue-600/10 text-blue-600 dark:text-blue-400 hover:bg-blue-600/20 border border-blue-500/20 text-xs sm:text-sm font-medium transition-colors cursor-pointer shadow-none flex items-center gap-2 ml-1"
             >
               {state.lang === 'bn' ? "আজকের দিনে ফিরে যান" : "Back to Today"}
             </button>
@@ -1128,6 +1150,9 @@ export default function DashboardPage() {
           </div>
         )}
       </section>
+
+      {/* Global Notification Center Dropdown */}
+      <NotificationCenter isOpen={isNotifOpen} onClose={() => setIsNotifOpen(false)} />
     </main>
   );
 }

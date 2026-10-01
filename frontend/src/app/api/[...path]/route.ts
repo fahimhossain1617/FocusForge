@@ -55,6 +55,14 @@ import {
   dbUpsertNotificationSettings,
   dbSavePushSubscription,
   dbRemovePushSubscription,
+  dbGetNotifications,
+  dbSaveNotification,
+  dbMarkNotificationRead,
+  dbMarkAllNotificationsRead,
+  dbDeleteNotification,
+  dbClearNotifications,
+  dbGetRotationStates,
+  dbSaveRotationState,
   dbCreateSupportTicket,
   dbGetSupportTickets,
   dbGetSupportTicketById,
@@ -227,6 +235,32 @@ export async function GET(request: NextRequest, context: { params: Promise<{ pat
       return NextResponse.json(settings);
     } catch (err: any) {
       return NextResponse.json({ error: err?.message || 'Failed to fetch notification settings' }, { status: 500 });
+    }
+  }
+
+  // 4.1. Notifications History: GET /api/notifications
+  if (pathStr === 'notifications') {
+    if (!userId || isGuest) {
+      return NextResponse.json([]);
+    }
+    try {
+      const notifs = await dbGetNotifications(userId);
+      return NextResponse.json(notifs);
+    } catch (err: any) {
+      return NextResponse.json({ error: err?.message || 'Failed to fetch notifications' }, { status: 500 });
+    }
+  }
+
+  // 4.2. Notification Rotation State: GET /api/notifications/rotation
+  if (pathStr === 'notifications/rotation') {
+    if (!userId || isGuest) {
+      return NextResponse.json({});
+    }
+    try {
+      const state = await dbGetRotationStates(userId);
+      return NextResponse.json(state);
+    } catch (err: any) {
+      return NextResponse.json({ error: err?.message || 'Failed to fetch rotation state' }, { status: 500 });
     }
   }
 
@@ -834,6 +868,34 @@ export async function POST(request: NextRequest, context: { params: Promise<{ pa
       return NextResponse.json({ success: true });
     } catch (err: any) {
       return NextResponse.json({ error: err?.message || 'Unsubscribe failed' }, { status: 500 });
+    }
+  }
+
+  // 4.1. Notification Ingestion/Sync: POST /api/notifications/sync
+  if (pathStr === 'notifications/sync') {
+    if (!userId || isGuest) {
+      return NextResponse.json({ success: true, guest: true });
+    }
+    try {
+      const notif = body.notification || body;
+      await dbSaveNotification(userId, notif);
+      return NextResponse.json({ success: true });
+    } catch (err: any) {
+      return NextResponse.json({ error: err?.message || 'Failed to sync notification' }, { status: 500 });
+    }
+  }
+
+  // 4.2. Notification Rotation Sync: POST /api/notifications/rotation
+  if (pathStr === 'notifications/rotation') {
+    if (!userId || isGuest) {
+      return NextResponse.json({ success: true, guest: true });
+    }
+    try {
+      const { category, bag, lastUsedId } = body;
+      await dbSaveRotationState(userId, category, bag || [], lastUsedId || null);
+      return NextResponse.json({ success: true });
+    } catch (err: any) {
+      return NextResponse.json({ error: err?.message || 'Failed to save rotation state' }, { status: 500 });
     }
   }
 
@@ -1560,6 +1622,31 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ p
     }
   }
 
+  // 6. Notifications Read State: PATCH /api/notifications/read-all & /api/notifications/:id/read
+  if (pathStr === 'notifications/read-all') {
+    if (!userId || isGuest) return NextResponse.json({ success: true, guest: true });
+    try {
+      await dbMarkAllNotificationsRead(userId);
+      return NextResponse.json({ success: true });
+    } catch (err: any) {
+      return NextResponse.json({ error: err.message || 'Failed to mark all notifications read' }, { status: 500 });
+    }
+  }
+
+  if (pathStr === 'notifications/read' || (pathStr.startsWith('notifications/') && pathStr.endsWith('/read'))) {
+    if (!userId || isGuest) return NextResponse.json({ success: true, guest: true });
+    try {
+      const parts = pathStr.split('/');
+      const notifId = parts.length === 3 ? parts[1] : (body.id || body.notificationId);
+      if (notifId) {
+        await dbMarkNotificationRead(userId, notifId);
+      }
+      return NextResponse.json({ success: true });
+    } catch (err: any) {
+      return NextResponse.json({ error: err.message || 'Failed to mark notification read' }, { status: 500 });
+    }
+  }
+
   return NextResponse.json({ success: true, path: pathStr });
 }
 
@@ -1756,6 +1843,30 @@ export async function DELETE(request: NextRequest, context: { params: Promise<{ 
       return NextResponse.json({ success: true, id: logId });
     } catch (err: any) {
       return NextResponse.json({ error: err.message || 'Failed to delete learning log' }, { status: 500 });
+    }
+  }
+
+  // 9. Notifications: DELETE /api/notifications & /api/notifications/:id
+  if (pathStr === 'notifications') {
+    if (!userId || isGuest) return NextResponse.json({ success: true, guest: true });
+    try {
+      await dbClearNotifications(userId);
+      return NextResponse.json({ success: true });
+    } catch (err: any) {
+      return NextResponse.json({ error: err.message || 'Failed to clear notifications' }, { status: 500 });
+    }
+  }
+
+  if (pathStr.startsWith('notifications/')) {
+    if (!userId || isGuest) return NextResponse.json({ success: true, guest: true });
+    try {
+      const notifId = pathStr.replace('notifications/', '');
+      if (notifId) {
+        await dbDeleteNotification(userId, notifId);
+      }
+      return NextResponse.json({ success: true });
+    } catch (err: any) {
+      return NextResponse.json({ error: err.message || 'Failed to delete notification' }, { status: 500 });
     }
   }
 

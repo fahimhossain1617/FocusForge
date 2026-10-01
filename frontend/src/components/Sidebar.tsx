@@ -158,13 +158,28 @@ export default function Sidebar({
             title={isCollapsed ? "Expand sidebar (FocusForge)" : "Collapse sidebar (FocusForge)"}
             aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
           >
-            {/* FocusForge App Icon */}
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img 
-              src={logoSrc} 
-              alt="FocusForge Logo" 
-              className="w-8 h-8 rounded-xl object-contain shadow-none shrink-0" 
-            />
+            {/* FocusForge App Icon Slot */}
+            <div
+              data-ff-logo-slot="sidebar"
+              className="relative w-8 h-8 rounded-xl shrink-0 overflow-hidden select-none"
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img 
+                src="/logo-light.png" 
+                alt="FocusForge Logo" 
+                className={`absolute inset-0 w-full h-full object-contain transition-opacity duration-600 ease-in-out ${
+                  isLight ? "opacity-100" : "opacity-0 pointer-events-none"
+                }`} 
+              />
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img 
+                src="/icons/icon-192x192.png" 
+                alt="FocusForge Logo" 
+                className={`absolute inset-0 w-full h-full object-contain transition-opacity duration-600 ease-in-out ${
+                  !isLight ? "opacity-100" : "opacity-0 pointer-events-none"
+                }`} 
+              />
+            </div>
 
             {/* Brand Title (Hidden when collapsed on desktop) */}
             <span className={`font-bold text-[17px] tracking-tight text-[#0F172A] dark:text-foreground whitespace-nowrap transition-opacity duration-200 block ${
@@ -174,13 +189,15 @@ export default function Sidebar({
             </span>
           </button>
 
+
+
           {/* Desktop Collapse / Expand Button */}
           {onToggleCollapse && (
             <button
               type="button"
               onClick={onToggleCollapse}
               className={`hidden md:flex items-center justify-center w-7 h-7 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/10 transition-colors cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-[#5B8DEF] ${
-                isCollapsed ? "mx-auto mt-1 mb-1" : "ml-auto"
+                isCollapsed ? "mx-auto mt-1 mb-1" : ""
               }`}
               aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
               title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}

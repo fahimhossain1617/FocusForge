@@ -279,7 +279,28 @@ export interface NotificationPreferences {
   dailyReviewReminder: boolean;
   dailyReviewReminderTime: string; // "21:00"
   focusSessionReminder: boolean;
+  orbReactionsMode?: 'on' | 'reduced_motion' | 'off';
+  quietHoursEnabled?: boolean;
+  quietHoursStart?: string; // "22:00"
+  quietHoursEnd?: string; // "07:00"
+  dailyLimit?: number; // 5
+  skillReminders?: boolean;
+  inactivityReminders?: boolean;
 }
+
+export type NotificationCategory =
+  | 'daily_plan'
+  | 'focus_reminder'
+  | 'inactivity'
+  | 'task_start'
+  | 'task_pre_reminder'
+  | 'task_incomplete'
+  | 'skill_reminder'
+  | 'task_completed'
+  | 'focus_completed'
+  | 'break_time'
+  | 'streak_milestone'
+  | 'system';
 
 export type NotificationType = 
   | 'task' 
@@ -294,11 +315,17 @@ export type NotificationType =
 export interface AppNotification {
   id: string;
   type: NotificationType;
+  category?: NotificationCategory;
+  templateId?: string;
   title: string;
   message: string;
   timestamp: string; // ISO string
   read: boolean;
   actionRoute?: string;
+  orbMood?: string; // OrbMood e.g. 'curious', 'happy', 'proud', 'sleepy', 'concerned', 'focused', 'playful'
+  userId?: string | null;
+  taskId?: number | string;
+  skillId?: string;
   metadata?: Record<string, unknown>;
   expiresAt?: string;
 }

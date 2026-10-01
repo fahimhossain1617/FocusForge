@@ -2,18 +2,31 @@
  * FocusForge Notification Service
  *
  * Responsibilities:
- * 1. Web Notification API wrapper with fallback to Service Worker showNotification.
- * 2. Gentle audio chime via Web Audio API.
- * 3. Robust duplicate prevention using localStorage log.
- * 4. Prepared abstraction layer for future Web Push / Firebase Cloud Messaging (FCM).
+ * 1. Strict Account Isolation:
+ *    - All sent logs, daily limit counters, and notification dispatches are scoped to activeUserId.
+ * 2. Offline-First Local Delivery:
+ *    - In-app banner dispatch via CustomEvent.
+ *    - Gentle audio chime via Web Audio API (works 100% offline).
+ *    - Browser / Service Worker showNotification wrapper.
+ * 3. Intelligent Anti-Spam & Limits:
+ *    - Daily push notification limit (~4-5 max).
+ *    - Quiet hours suppression (10:00 PM - 7:00 AM).
+ *    - Duplicate prevention & idempotency keys.
+ * 4. Completion Cancellation:
+ *    - Instantly suppress stale reminders when task or focus is completed.
  */
 
 import { notificationCenterService } from "./notificationCenterService";
+import { NotificationCategory } from "../types";
+import type { OrbMood } from "../components/ai-agent/useOrbMood";
 
-const SENT_LOG_KEY = "focusforge_notif_sent_log";
+const SENT_LOG_PREFIX = "focusforge_notif_sent_";
+const DAILY_COUNT_PREFIX = "focusforge_notif_daily_count_";
 
 export interface NotificationPayload {
   id?: string;
+  category?: NotificationCategory;
+  templateId?: string;
   title: string;
   body: string;
   icon?: string;
@@ -21,20 +34,48 @@ export interface NotificationPayload {
   tag?: string;
   actionRoute?: string;
   type?: string;
+  orbMood?: OrbMood | string;
+  appTag?: string;
+  taskId?: number | string;
+  skillId?: string;
   data?: Record<string, unknown>;
+  actions?: Array<{ label: string; onClick?: () => void; variant?: "primary" | "secondary" }>;
   requireInteraction?: boolean;
-}
-
-export interface PushNotificationPayload {
-  userId: string;
-  title: string;
-  body: string;
-  scheduledTime: string; // ISO string
-  type: "daily_morning_plan" | "task_reminder";
-  metadata?: Record<string, unknown>;
+  isUrgent?: boolean;
+  silent?: boolean;
 }
 
 class NotificationService {
+  private activeUserId: string | null = null;
+  private dailyLimit: number = 5;
+  private quietHoursEnabled: boolean = true;
+  private quietHoursStart: string = "22:00"; // 10:00 PM
+  private quietHoursEnd: string = "07:00"; // 7:00 AM
+
+  /**
+   * Set active account ID for strict data isolation
+   */
+  public setUserId(userId: string | null | undefined): void {
+    const nextId = userId ? userId.trim() : null;
+    this.activeUserId = nextId;
+    notificationCenterService.setUserId(nextId);
+  }
+
+  /**
+   * Update operational preferences (quiet hours, limits)
+   */
+  public updateConfig(prefs: {
+    dailyLimit?: number;
+    quietHoursEnabled?: boolean;
+    quietHoursStart?: string;
+    quietHoursEnd?: string;
+  }): void {
+    if (typeof prefs.dailyLimit === "number") this.dailyLimit = prefs.dailyLimit;
+    if (typeof prefs.quietHoursEnabled === "boolean") this.quietHoursEnabled = prefs.quietHoursEnabled;
+    if (prefs.quietHoursStart) this.quietHoursStart = prefs.quietHoursStart;
+    if (prefs.quietHoursEnd) this.quietHoursEnd = prefs.quietHoursEnd;
+  }
+
   /**
    * Whether the browser supports the Notifications API.
    */
@@ -67,15 +108,14 @@ class NotificationService {
 
   /**
    * Play an elegant gentle synthesized chime using Web Audio API.
-   * Does not require external audio assets and works offline.
+   * Works 100% offline with zero external audio assets.
    */
   public playChime(): void {
     if (typeof window === "undefined") return;
     try {
       const AudioContextClass =
         window.AudioContext ||
-        (window as unknown as { webkitAudioContext: typeof AudioContext })
-          .webkitAudioContext;
+        (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
       if (!AudioContextClass) return;
 
       const ctx = new AudioContextClass();
@@ -117,19 +157,29 @@ class NotificationService {
       osc3.start(now + 0.24);
       osc3.stop(now + 0.85);
     } catch {
-      // Audio context may be restricted by browser policy before first interaction
+      // Audio policy safe
     }
   }
 
-  // ==================== Duplicate Prevention ====================
+  // ==================== Duplicate & Anti-Spam Controls ====================
+
+  private getSentLogKey(): string {
+    const userScope = this.activeUserId || "guest";
+    return `${SENT_LOG_PREFIX}${userScope}`;
+  }
+
+  private getDailyCountKey(dateStr: string): string {
+    const userScope = this.activeUserId || "guest";
+    return `${DAILY_COUNT_PREFIX}${userScope}_${dateStr}`;
+  }
 
   /**
-   * Check if a specific notification ID has already been sent today.
+   * Check if a specific notification ID has already been sent to this account.
    */
   public hasBeenSent(notificationId: string): boolean {
     if (typeof window === "undefined") return false;
     try {
-      const raw = localStorage.getItem(SENT_LOG_KEY);
+      const raw = localStorage.getItem(this.getSentLogKey());
       if (!raw) return false;
       const map: Record<string, number> = JSON.parse(raw);
       return Boolean(map[notificationId]);
@@ -139,16 +189,16 @@ class NotificationService {
   }
 
   /**
-   * Mark a notification as sent to prevent re-triggering across rerenders or reloads.
+   * Mark a notification as sent for this account.
    */
   public markAsSent(notificationId: string): void {
     if (typeof window === "undefined") return;
     try {
-      const raw = localStorage.getItem(SENT_LOG_KEY);
+      const raw = localStorage.getItem(this.getSentLogKey());
       const map: Record<string, number> = raw ? JSON.parse(raw) : {};
       map[notificationId] = Date.now();
 
-      // Clean up records older than 3 days to prevent unbounded growth
+      // Clean up records older than 3 days
       const threeDaysAgo = Date.now() - 3 * 24 * 60 * 60 * 1000;
       for (const key of Object.keys(map)) {
         if (map[key] < threeDaysAgo) {
@@ -156,83 +206,206 @@ class NotificationService {
         }
       }
 
-      localStorage.setItem(SENT_LOG_KEY, JSON.stringify(map));
+      localStorage.setItem(this.getSentLogKey(), JSON.stringify(map));
+    } catch {}
+  }
+
+  /**
+   * Daily push count check for active account
+   */
+  public getTodaySentCount(): number {
+    if (typeof window === "undefined") return 0;
+    try {
+      const todayStr = new Date().toISOString().split("T")[0];
+      const raw = localStorage.getItem(this.getDailyCountKey(todayStr));
+      return raw ? parseInt(raw, 10) || 0 : 0;
     } catch {
-      // LocalStorage access non-fatal
+      return 0;
+    }
+  }
+
+  private incrementTodaySentCount(): void {
+    if (typeof window === "undefined") return;
+    try {
+      const todayStr = new Date().toISOString().split("T")[0];
+      const current = this.getTodaySentCount();
+      localStorage.setItem(this.getDailyCountKey(todayStr), String(current + 1));
+    } catch {}
+  }
+
+  /**
+   * Check if local time is currently within Quiet Hours
+   */
+  public isQuietHours(): boolean {
+    if (!this.quietHoursEnabled) return false;
+    try {
+      const now = new Date();
+      const currentMinutes = now.getHours() * 60 + now.getMinutes();
+
+      const [startH, startM] = this.quietHoursStart.split(":").map(Number);
+      const [endH, endM] = this.quietHoursEnd.split(":").map(Number);
+      const startMinutes = startH * 60 + (startM || 0);
+      const endMinutes = endH * 60 + (endM || 0);
+
+      if (startMinutes > endMinutes) {
+        // Spans midnight (e.g. 22:00 to 07:00)
+        return currentMinutes >= startMinutes || currentMinutes < endMinutes;
+      } else {
+        return currentMinutes >= startMinutes && currentMinutes < endMinutes;
+      }
+    } catch {
+      return false;
     }
   }
 
   /**
-   * Clear sent log (e.g. for testing or reset).
+   * Cancel / suppress remaining reminders for a specific task
    */
-  public clearSentLog(): void {
+  public cancelTaskReminders(taskId: number | string): void {
     if (typeof window === "undefined") return;
     try {
-      localStorage.removeItem(SENT_LOG_KEY);
+      const todayStr = new Date().toISOString().split("T")[0];
+      // Mark known task reminder keys as sent
+      this.markAsSent(`task_start_${taskId}_${todayStr}`);
+      this.markAsSent(`task_pre_${taskId}_${todayStr}`);
+      this.markAsSent(`task_incomp_${taskId}_${todayStr}`);
     } catch {}
   }
 
   // ==================== Notification Dispatch ====================
 
   /**
-   * Deliver a notification with duplicate protection and sound.
-   * Also automatically records to the in-app Notification Center.
+   * Deliver a notification with account isolation, daily limit, quiet hours, and sound.
+   * Also records into Notification Center and displays the in-app banner.
    */
   public async send(payload: NotificationPayload): Promise<boolean> {
-    // 0. Always record into the in-app Notification Center so it is never missed
+    const notifId = payload.id || `notif_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+    const category: NotificationCategory = payload.category || "system";
+    const orbMood = payload.orbMood || "attentive";
+
+    // 1. Idempotency Check: Don't repeat if already delivered
+    if (payload.id && this.hasBeenSent(payload.id)) {
+      return false;
+    }
+
+    // 2. Always record into the in-app Notification Center so user never misses history
     try {
       notificationCenterService.addNotification({
-        id: payload.id,
+        id: notifId,
+        type: payload.type || "system",
+        category,
+        templateId: payload.templateId,
         title: payload.title,
         message: payload.body,
-        type: payload.type || (payload.data?.type as string) || payload.tag || "system",
-        actionRoute: payload.actionRoute || (payload.data?.actionRoute as string) || (payload.data?.route as string),
+        actionRoute: payload.actionRoute,
+        orbMood: String(orbMood),
+        taskId: payload.taskId,
+        skillId: payload.skillId,
         metadata: payload.data,
       });
     } catch {}
 
-    if (!this.isSupported()) return false;
-    if (this.getPermission() !== "granted") return false;
+    // 3. Mark sent right away
+    this.markAsSent(notifId);
 
-    // Check duplicate prevention if id is provided
-    if (payload.id && this.hasBeenSent(payload.id)) {
-      return false;
+    // 4. Check Quiet Hours
+    const inQuietHours = this.isQuietHours();
+    if (inQuietHours && !payload.isUrgent) {
+      // Quiet hours: Orb sleeps, only urgent alerts show
+      return true;
+    }
+
+    // 5. Check Daily Notification Limit (Push & Banner)
+    const todayCount = this.getTodaySentCount();
+    if (todayCount >= this.dailyLimit && !payload.isUrgent) {
+      // Suppress lower-priority generic reminders when daily limit reached
+      return true;
+    }
+
+    this.incrementTodaySentCount();
+
+    // 6. Trigger in-app popup Banner
+    if (typeof window !== "undefined") {
+      try {
+        const appTag =
+          payload.appTag ||
+          (category === "daily_plan"
+            ? "FOCUSFORCE - DAILY PLAN"
+            : category === "focus_reminder"
+            ? "FOCUSFORCE - FOCUS"
+            : category === "task_start"
+            ? "FOCUSFORCE - TASK START"
+            : category === "task_incomplete"
+            ? "FOCUSFORCE - TASK CHECK-IN"
+            : category === "skill_reminder"
+            ? "FOCUSFORCE - PRACTICE"
+            : category === "task_completed"
+            ? "FOCUSFORCE - COMPLETED"
+            : category === "focus_completed"
+            ? "FOCUSFORCE - FOCUS DONE"
+            : "FOCUSFORCE");
+
+        window.dispatchEvent(
+          new CustomEvent("focusforge:show-banner", {
+            detail: {
+              id: notifId,
+              category,
+              appTag,
+              title: payload.title,
+              message: payload.body,
+              orbMood,
+              actionRoute: payload.actionRoute,
+              actions: payload.actions,
+              taskId: payload.taskId,
+              durationMs: 5000,
+            },
+          })
+        );
+      } catch {}
+    }
+
+    // 7. Play gentle audio chime
+    if (!payload.silent) {
+      this.playChime();
+    }
+
+    // 8. Device / OS Web Notification & Service Worker (works offline!)
+    if (!this.isSupported() || this.getPermission() !== "granted") {
+      return true;
     }
 
     try {
       const iconUrl = payload.icon || "/icons/icon-192x192.png";
       const badgeUrl = payload.badge || "/favicon-32x32.png";
 
-      // 1. Try Service Worker showNotification (preferred on Mobile / PWA)
-      if (
-        "serviceWorker" in navigator &&
-        navigator.serviceWorker.controller
-      ) {
+      if ("serviceWorker" in navigator && navigator.serviceWorker.controller) {
         try {
           const registration = await navigator.serviceWorker.ready;
           await registration.showNotification(payload.title, {
             body: payload.body,
             icon: iconUrl,
             badge: badgeUrl,
-            tag: payload.tag || payload.id || "focusforge-general",
-            data: payload.data,
+            tag: payload.tag || notifId,
+            data: {
+              ...payload.data,
+              actionRoute: payload.actionRoute,
+            },
             requireInteraction: payload.requireInteraction ?? false,
           });
-
-          if (payload.id) this.markAsSent(payload.id);
-          this.playChime();
           return true;
         } catch {
           // Fall through to standard Notification
         }
       }
 
-      // 2. Standard Web Notification API fallback
       const notif = new Notification(payload.title, {
         body: payload.body,
         icon: iconUrl,
-        tag: payload.tag || payload.id || "focusforge-general",
-        data: payload.data,
+        tag: payload.tag || notifId,
+        data: {
+          ...payload.data,
+          actionRoute: payload.actionRoute,
+        },
       });
 
       notif.onclick = () => {
@@ -240,52 +413,17 @@ class NotificationService {
         notif.close();
       };
 
-      if (payload.id) this.markAsSent(payload.id);
-      this.playChime();
       return true;
-    } catch (err) {
-      console.warn("[NotificationService] Send failed:", err);
-      return false;
+    } catch {
+      return true;
     }
   }
 
   /**
-   * Helper to push an in-app notification and optionally trigger device alert.
+   * Helper notify method
    */
   public async notify(payload: NotificationPayload): Promise<boolean> {
     return this.send(payload);
-  }
-
-  // ==================== Future Push Notification Layer ====================
-
-  /**
-   * Prepares push notification subscription for future backend integration (FCM / WebPush).
-   * Note: Requires a VAPID server key configured on the backend.
-   */
-  public async subscribeToPushNotifications(
-    vapidPublicKey?: string
-  ): Promise<PushSubscription | null> {
-    if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
-      console.info("[NotificationService] PushManager not supported in this environment");
-      return null;
-    }
-
-    try {
-      const registration = await navigator.serviceWorker.ready;
-      let subscription = await registration.pushManager.getSubscription();
-
-      if (!subscription && vapidPublicKey) {
-        subscription = await registration.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: vapidPublicKey,
-        });
-      }
-
-      return subscription;
-    } catch (err) {
-      console.warn("[NotificationService] Push subscription registration failed:", err);
-      return null;
-    }
   }
 }
 

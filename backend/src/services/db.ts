@@ -1005,6 +1005,109 @@ export async function dbRemovePushSubscription(userId: string, endpoint: string)
   return { success: true };
 }
 
+export async function dbGetNotifications(userId: string) {
+  const res = await pool.query(
+    'SELECT * FROM user_notifications WHERE user_id = $1 ORDER BY created_at DESC LIMIT 100',
+    [userId]
+  );
+  return res.rows.map((row: any) => ({
+    id: row.id,
+    type: row.type,
+    category: row.category,
+    templateId: row.template_id,
+    title: row.title,
+    message: row.message,
+    orbMood: row.orb_mood,
+    actionRoute: row.action_route,
+    read: row.read,
+    taskId: row.task_id,
+    skillId: row.skill_id,
+    metadata: row.metadata,
+    timestamp: row.created_at ? new Date(row.created_at).toISOString() : new Date().toISOString(),
+  }));
+}
+
+export async function dbSaveNotification(userId: string, notif: any) {
+  const res = await pool.query(
+    `
+    INSERT INTO user_notifications (
+      id, user_id, type, category, template_id, title, message, orb_mood, action_route, read, task_id, skill_id, metadata, created_at
+    ) VALUES (
+      $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, COALESCE($14::timestamptz, NOW())
+    )
+    ON CONFLICT (id) DO UPDATE SET
+      read = EXCLUDED.read,
+      action_route = EXCLUDED.action_route,
+      metadata = EXCLUDED.metadata
+    RETURNING *;
+    `,
+    [
+      notif.id,
+      userId,
+      notif.type || 'system',
+      notif.category || 'system',
+      notif.templateId || null,
+      notif.title,
+      notif.message,
+      notif.orbMood || 'attentive',
+      notif.actionRoute || null,
+      Boolean(notif.read),
+      notif.taskId ? Number(notif.taskId) : null,
+      notif.skillId || null,
+      JSON.stringify(notif.metadata || {}),
+      notif.timestamp || null,
+    ]
+  );
+  return res.rows[0];
+}
+
+export async function dbMarkNotificationRead(userId: string, notificationId: string) {
+  await pool.query('UPDATE user_notifications SET read = true WHERE user_id = $1 AND id = $2', [userId, notificationId]);
+  return { success: true };
+}
+
+export async function dbMarkAllNotificationsRead(userId: string) {
+  await pool.query('UPDATE user_notifications SET read = true WHERE user_id = $1', [userId]);
+  return { success: true };
+}
+
+export async function dbDeleteNotification(userId: string, notificationId: string) {
+  await pool.query('DELETE FROM user_notifications WHERE user_id = $1 AND id = $2', [userId, notificationId]);
+  return { success: true };
+}
+
+export async function dbClearNotifications(userId: string) {
+  await pool.query('DELETE FROM user_notifications WHERE user_id = $1', [userId]);
+  return { success: true };
+}
+
+export async function dbGetRotationStates(userId: string) {
+  const res = await pool.query('SELECT category, bag, last_used_id FROM user_notification_rotation WHERE user_id = $1', [userId]);
+  const result: Record<string, { bag: string[]; lastUsedId: string | null }> = {};
+  for (const row of res.rows) {
+    result[row.category] = {
+      bag: Array.isArray(row.bag) ? row.bag : [],
+      lastUsedId: row.last_used_id || null,
+    };
+  }
+  return result;
+}
+
+export async function dbSaveRotationState(userId: string, category: string, bag: string[], lastUsedId: string | null) {
+  await pool.query(
+    `
+    INSERT INTO user_notification_rotation (user_id, category, bag, last_used_id, updated_at)
+    VALUES ($1, $2, $3, $4, NOW())
+    ON CONFLICT (user_id, category) DO UPDATE SET
+      bag = EXCLUDED.bag,
+      last_used_id = EXCLUDED.last_used_id,
+      updated_at = NOW()
+    `,
+    [userId, category, JSON.stringify(bag), lastUsedId]
+  );
+  return { success: true };
+}
+
 // ==================== SUPPORT TICKETS & SUPERVISOR ====================
 
 export function mapTicketRow(row: any) {

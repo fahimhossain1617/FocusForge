@@ -120,12 +120,28 @@ export default function MobileHeader() {
           aria-label="FocusForge Home"
           title="FocusForge Home"
         >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={logoSrc}
-            alt="FocusForge Logo"
-            className="w-7 h-7 rounded-lg object-contain shadow-none shrink-0"
-          />
+          {/* FocusForge App Icon Slot */}
+          <div
+            data-ff-logo-slot="mobile"
+            className="relative w-7 h-7 rounded-lg shrink-0 overflow-hidden select-none"
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/logo-light.png"
+              alt="FocusForge Logo"
+              className={`absolute inset-0 w-full h-full object-contain transition-opacity duration-600 ease-in-out ${
+                isLight ? "opacity-100" : "opacity-0 pointer-events-none"
+              }`}
+            />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/icons/icon-192x192.png"
+              alt="FocusForge Logo"
+              className={`absolute inset-0 w-full h-full object-contain transition-opacity duration-600 ease-in-out ${
+                !isLight ? "opacity-100" : "opacity-0 pointer-events-none"
+              }`}
+            />
+          </div>
           <span className="font-bold text-[17px] tracking-tight text-[#0F172A] dark:text-foreground whitespace-nowrap">
             FocusForge
           </span>

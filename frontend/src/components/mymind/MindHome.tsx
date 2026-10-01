@@ -258,9 +258,10 @@ export default function MindHome({ navigate, setActiveThoughtId }: MindHomeProps
           </div>
         ) : (
           /* Clean, unboxed empty state */
-          <div 
+          <button
+            type="button"
             onClick={() => textareaRef.current?.focus()}
-            className="flex flex-col items-center justify-center py-10 sm:py-14 cursor-pointer group text-center"
+            className="w-full flex flex-col items-center justify-center py-10 sm:py-14 cursor-pointer group text-center bg-transparent border-0"
           >
             <div className="w-14 h-14 rounded-2xl bg-blue-500/10 dark:bg-blue-500/15 flex items-center justify-center text-blue-500 dark:text-blue-400 mb-3.5 group-hover:scale-105 transition-transform">
               <Inbox size={26} />
@@ -271,7 +272,7 @@ export default function MindHome({ navigate, setActiveThoughtId }: MindHomeProps
             <p className="text-xs sm:text-sm text-muted-foreground text-center max-w-sm">
               {t.myMind.writeYourFirstThought || "Capture your first thought to see it here."}
             </p>
-          </div>
+          </button>
         )}
       </section>
     </div>

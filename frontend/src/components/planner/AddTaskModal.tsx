@@ -20,6 +20,8 @@ interface AddTaskModalProps {
     title: string;
     startTime: string;
     endTime: string;
+    date?: string;
+    targetDate?: string;
   } | null;
 }
 
@@ -71,6 +73,7 @@ export default function AddTaskModal({
 
     if (editingTask) {
       // Update existing task
+      const preservedDate = editingTask.date || editingTask.targetDate;
       if (editingTask.taskId !== undefined) {
         const numId = typeof editingTask.taskId === "number" ? editingTask.taskId : parseInt(String(editingTask.taskId), 10);
         if (!isNaN(numId)) {
@@ -79,8 +82,7 @@ export default function AddTaskModal({
             name: trimmedTitle,
             time: startTime,
             endTime: endTime,
-            targetDate: effectiveDate,
-            date: effectiveDate,
+            ...(preservedDate ? { date: preservedDate, targetDate: preservedDate } : {}),
           });
         }
       }
@@ -90,7 +92,7 @@ export default function AddTaskModal({
           label: trimmedTitle,
           startTime: startTime,
           endTime: endTime,
-          date: effectiveDate,
+          ...(preservedDate ? { date: preservedDate } : {}),
         });
       }
 

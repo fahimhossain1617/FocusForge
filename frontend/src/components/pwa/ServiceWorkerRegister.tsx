@@ -104,6 +104,13 @@ export default function ServiceWorkerRegister() {
         });
     };
 
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data?.type === "NAVIGATE" && event.data.route) {
+        window.location.hash = event.data.route;
+      }
+    };
+    navigator.serviceWorker.addEventListener("message", handleMessage);
+
     if (document.readyState === "complete") {
       register();
     } else {
@@ -112,6 +119,7 @@ export default function ServiceWorkerRegister() {
 
     return () => {
       navigator.serviceWorker.removeEventListener("controllerchange", handleControllerChange);
+      navigator.serviceWorker.removeEventListener("message", handleMessage);
     };
   }, []);
 

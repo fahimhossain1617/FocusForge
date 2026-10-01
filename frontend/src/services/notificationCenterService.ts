@@ -1,31 +1,55 @@
 /**
  * FocusForge Notification Center Service
  *
- * Centralized, reactive notification management service:
- * - In-app notification creation, persistence, read/unread states, dismissal.
- * - Multi-source extensibility (Tasks, Planner, Focus, Diary, Skill Builder, AI Agent, System).
- * - Instant reactive UI synchronization across components and browser tabs.
+ * Responsibilities:
+ * 1. Strict Account Isolation:
+ *    - Keyed by active user ID (`focusforge_app_notifications_${userId || 'guest'}`).
+ *    - Seamlessly switches storage and notifications on account switch without leaking.
+ * 2. In-app notification creation, persistence, read/unread states, and dismissal.
+ * 3. Offline-first local persistence with optional cloud sync when authenticated & online.
+ * 4. Reactive UI synchronization across components, tabs, and windows.
  */
 
-import { AppNotification } from "../types";
+import { AppNotification, NotificationType, NotificationCategory } from "../types";
 
-const NOTIFICATIONS_STORAGE_KEY = "focusforge_app_notifications";
+const NOTIFICATIONS_STORAGE_PREFIX = "focusforge_app_notifications_";
 const NOTIFICATIONS_EVENT_NAME = "focusforge:notifications-updated";
 const MAX_NOTIFICATIONS_HISTORY = 100;
 
 class NotificationCenterService {
   private listeners: Set<() => void> = new Set();
   private cachedNotifications: AppNotification[] | null = null;
+  private activeUserId: string | null = null;
 
   constructor() {
     if (typeof window !== "undefined") {
       window.addEventListener("storage", (event) => {
-        if (event.key === NOTIFICATIONS_STORAGE_KEY) {
+        if (event.key === this.getStorageKey()) {
           this.cachedNotifications = null;
           this.notifyListeners();
         }
       });
     }
+  }
+
+  /**
+   * Set the active user ID for strict account isolation.
+   */
+  public setUserId(userId: string | null | undefined): void {
+    const nextId = userId ? userId.trim() : null;
+    if (this.activeUserId !== nextId) {
+      this.activeUserId = nextId;
+      this.cachedNotifications = null;
+      this.notifyListeners();
+    }
+  }
+
+  /**
+   * Get storage key scoped to current account
+   */
+  private getStorageKey(): string {
+    const userScope = this.activeUserId || "guest";
+    return `${NOTIFICATIONS_STORAGE_PREFIX}${userScope}`;
   }
 
   /**
@@ -55,7 +79,7 @@ class NotificationCenterService {
   }
 
   /**
-   * Reads all notifications from persistence (sorted newest first).
+   * Reads all notifications from persistence for the active account (newest first).
    */
   public getNotifications(): AppNotification[] {
     if (typeof window === "undefined") return [];
@@ -65,9 +89,8 @@ class NotificationCenterService {
     }
 
     try {
-      const raw = localStorage.getItem(NOTIFICATIONS_STORAGE_KEY);
+      const raw = localStorage.getItem(this.getStorageKey());
       if (!raw) {
-        // Initial clean state
         this.cachedNotifications = [];
         return [];
       }
@@ -90,7 +113,7 @@ class NotificationCenterService {
   }
 
   /**
-   * Returns count of unread notifications.
+   * Returns count of unread notifications for active account.
    */
   public getUnreadCount(): number {
     const list = this.getNotifications();
@@ -98,14 +121,14 @@ class NotificationCenterService {
   }
 
   /**
-   * Persists the given notification list to localStorage and notifies subscribers.
+   * Persists the given notification list to account-scoped localStorage and notifies subscribers.
    */
   private saveNotifications(notifications: AppNotification[]): void {
     if (typeof window === "undefined") return;
 
     try {
       const trimmed = notifications.slice(0, MAX_NOTIFICATIONS_HISTORY);
-      localStorage.setItem(NOTIFICATIONS_STORAGE_KEY, JSON.stringify(trimmed));
+      localStorage.setItem(this.getStorageKey(), JSON.stringify(trimmed));
       this.cachedNotifications = trimmed;
       this.notifyListeners();
     } catch (err) {
@@ -114,12 +137,17 @@ class NotificationCenterService {
   }
 
   /**
-   * Adds a new notification to the center.
+   * Adds a new notification to the active account's center.
    * If a notification with the same ID already exists, it updates it.
    */
   public addNotification(
     payload: Omit<AppNotification, "id" | "timestamp" | "read"> & {
       id?: string;
+      category?: NotificationCategory;
+      templateId?: string;
+      orbMood?: string;
+      taskId?: number | string;
+      skillId?: string;
       timestamp?: string;
       read?: boolean;
     }
@@ -134,11 +162,17 @@ class NotificationCenterService {
     const newNotification: AppNotification = {
       id,
       type: payload.type || "system",
+      category: payload.category || "system",
+      templateId: payload.templateId,
       title: payload.title,
       message: payload.message,
       timestamp,
       read,
       actionRoute: payload.actionRoute,
+      orbMood: payload.orbMood || "attentive",
+      userId: this.activeUserId,
+      taskId: payload.taskId,
+      skillId: payload.skillId,
       metadata: payload.metadata,
       expiresAt: payload.expiresAt,
     };
@@ -168,7 +202,7 @@ class NotificationCenterService {
   }
 
   /**
-   * Mark all notifications as read.
+   * Mark all notifications as read for current account.
    */
   public markAllAsRead(): void {
     const list = this.getNotifications();
@@ -188,7 +222,7 @@ class NotificationCenterService {
   }
 
   /**
-   * Clears all notifications.
+   * Clears all notifications for current account.
    */
   public clearAll(): void {
     this.saveNotifications([]);

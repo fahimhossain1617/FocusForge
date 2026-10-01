@@ -236,6 +236,17 @@ export default function LearningHubPage() {
     }, "learning");
   };
 
+  const handleDeleteLog = (logId: string) => {
+    const confirmMsg =
+      (t.learningHub as any).deleteLogConfirm ||
+      (state.lang === "bn"
+        ? "আপনি কি নিশ্চিত যে এই লগটি মুছতে চান?"
+        : "Are you sure you want to delete this log?");
+    if (window.confirm(confirmMsg)) {
+      deleteLearningLog(logId);
+    }
+  };
+
   // Active folder details
   const activeFolder = state.learningFolders.find((f) => f.id === selectedFolderId);
   const activeFolderLogs = useMemo(() => {
@@ -873,7 +884,7 @@ export default function LearningHubPage() {
 
                         <button
                           type="button"
-                          onClick={() => deleteLearningLog(log.id)}
+                          onClick={() => handleDeleteLog(log.id)}
                           title={t.learningHub.deleteLog}
                           aria-label={t.learningHub.deleteLog}
                           className="p-1 rounded-lg text-muted-foreground hover:text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer shrink-0 ml-0.5"
@@ -1190,7 +1201,7 @@ export default function LearningHubPage() {
 
                       <button
                         type="button"
-                        onClick={() => deleteLearningLog(log.id)}
+                        onClick={() => handleDeleteLog(log.id)}
                         title={t.learningHub.deleteLog}
                         aria-label={t.learningHub.deleteLog}
                         className="p-1 rounded-lg text-muted-foreground hover:text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer shrink-0 ml-0.5"
