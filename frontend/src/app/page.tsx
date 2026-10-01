@@ -64,6 +64,36 @@ export default function Home() {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showTour, setShowTour] = useState(false);
   const [onboardingChecked, setOnboardingChecked] = useState(false);
+  const [launchDone, setLaunchDone] = useState<boolean>(() => {
+    if (typeof window === "undefined") return true;
+    if (!document.documentElement.classList.contains("ff-launch")) return true;
+    return Boolean((window as any).__ffLaunchDone);
+  });
+
+  // Signal app readiness once data and auth are settled
+  useEffect(() => {
+    if (isLoaded && !isAuthLoading) {
+      if (typeof window !== "undefined" && typeof (window as any).__ffReady === "function") {
+        (window as any).__ffReady();
+      }
+    }
+  }, [isLoaded, isAuthLoading]);
+
+  // Gate onboarding and modals until launch animation completes + 400ms delay
+  useEffect(() => {
+    if (launchDone) return;
+    const handleLaunchDone = () => {
+      setTimeout(() => {
+        setLaunchDone(true);
+      }, 400);
+    };
+    window.addEventListener("ff:launch-done", handleLaunchDone);
+    const fallbackTimer = setTimeout(handleLaunchDone, 5000);
+    return () => {
+      window.removeEventListener("ff:launch-done", handleLaunchDone);
+      clearTimeout(fallbackTimer);
+    };
+  }, [launchDone]);
 
   // Restore persisted sidebar collapsed state
   useEffect(() => {
@@ -264,10 +294,10 @@ export default function Home() {
 
       {/* First-Time User Onboarding & Interactive Tour */}
       <OnboardingModal
-        isOpen={showOnboarding}
+        isOpen={showOnboarding && launchDone}
         onEnterApp={handleEnterAppFromOnboarding}
       />
-      {showTour && (
+      {showTour && launchDone && (
         <ProductTour
           isOpen={showTour}
           onCompleteTour={handleCompleteTour}
@@ -278,7 +308,7 @@ export default function Home() {
 
       {/* Smart Review & Feedback Modal */}
       <ReviewModal
-        isOpen={showReviewModal && !showOnboarding && !showTour}
+        isOpen={showReviewModal && !showOnboarding && !showTour && launchDone}
         onClose={skipReview}
         onSubmit={submitReview}
         isSubmitting={isReviewSubmitting}

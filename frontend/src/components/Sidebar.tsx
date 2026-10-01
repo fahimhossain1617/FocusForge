@@ -160,25 +160,28 @@ export default function Sidebar({
           >
             {/* FocusForge App Icon Slot */}
             <div
-              data-ff-logo-slot="sidebar"
+              data-ff-launch-slot="sidebar"
               className="relative w-8 h-8 rounded-xl shrink-0 overflow-hidden select-none"
+              style={{ width: "32px", height: "32px", minWidth: "32px", minHeight: "32px" }}
             >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img 
-                src="/logo-light.png" 
-                alt="FocusForge Logo" 
-                className={`absolute inset-0 w-full h-full object-contain transition-opacity duration-600 ease-in-out ${
-                  isLight ? "opacity-100" : "opacity-0 pointer-events-none"
-                }`} 
-              />
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img 
-                src="/icons/icon-192x192.png" 
-                alt="FocusForge Logo" 
-                className={`absolute inset-0 w-full h-full object-contain transition-opacity duration-600 ease-in-out ${
-                  !isLight ? "opacity-100" : "opacity-0 pointer-events-none"
-                }`} 
-              />
+              <div data-ff-launch-mark className="absolute inset-0 w-full h-full flex items-center justify-center">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img 
+                  src="/logo-light.png" 
+                  alt="FocusForge Logo" 
+                  className={`absolute inset-0 w-full h-full object-contain transition-opacity duration-600 ease-in-out ${
+                    isLight ? "opacity-100" : "opacity-0 pointer-events-none"
+                  }`} 
+                />
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img 
+                  src="/icons/icon-192x192.png" 
+                  alt="FocusForge Logo" 
+                  className={`absolute inset-0 w-full h-full object-contain transition-opacity duration-600 ease-in-out ${
+                    !isLight ? "opacity-100" : "opacity-0 pointer-events-none"
+                  }`} 
+                />
+              </div>
             </div>
 
             {/* Brand Title (Hidden when collapsed on desktop) */}

@@ -122,25 +122,28 @@ export default function MobileHeader() {
         >
           {/* FocusForge App Icon Slot */}
           <div
-            data-ff-logo-slot="mobile"
+            data-ff-launch-slot="mobile"
             className="relative w-7 h-7 rounded-lg shrink-0 overflow-hidden select-none"
+            style={{ width: "28px", height: "28px", minWidth: "28px", minHeight: "28px" }}
           >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src="/logo-light.png"
-              alt="FocusForge Logo"
-              className={`absolute inset-0 w-full h-full object-contain transition-opacity duration-600 ease-in-out ${
-                isLight ? "opacity-100" : "opacity-0 pointer-events-none"
-              }`}
-            />
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src="/icons/icon-192x192.png"
-              alt="FocusForge Logo"
-              className={`absolute inset-0 w-full h-full object-contain transition-opacity duration-600 ease-in-out ${
-                !isLight ? "opacity-100" : "opacity-0 pointer-events-none"
-              }`}
-            />
+            <div data-ff-launch-mark className="absolute inset-0 w-full h-full flex items-center justify-center">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/logo-light.png"
+                alt="FocusForge Logo"
+                className={`absolute inset-0 w-full h-full object-contain transition-opacity duration-600 ease-in-out ${
+                  isLight ? "opacity-100" : "opacity-0 pointer-events-none"
+                }`}
+              />
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/icons/icon-192x192.png"
+                alt="FocusForge Logo"
+                className={`absolute inset-0 w-full h-full object-contain transition-opacity duration-600 ease-in-out ${
+                  !isLight ? "opacity-100" : "opacity-0 pointer-events-none"
+                }`}
+              />
+            </div>
           </div>
           <span className="font-bold text-[17px] tracking-tight text-[#0F172A] dark:text-foreground whitespace-nowrap">
             FocusForge
