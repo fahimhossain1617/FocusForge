@@ -37,6 +37,9 @@ export default function SignupPage() {
   const hasNumber = /[0-9]/.test(password);
   const hasSpecial = /[^a-zA-Z0-9]/.test(password);
   const isAllValid = hasMinLength && hasCapital && hasNumber && hasSpecial;
+  const criteriaMetCount = [hasMinLength, hasCapital, hasNumber, hasSpecial].filter(Boolean).length;
+  const strengthLabel = criteriaMetCount === 4 ? "Strong" : criteriaMetCount >= 2 ? "Moderate" : criteriaMetCount > 0 ? "Weak" : "Required";
+  const strengthColor = criteriaMetCount === 4 ? "text-emerald-400" : criteriaMetCount >= 2 ? "text-amber-400" : "text-slate-400";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -104,7 +107,7 @@ export default function SignupPage() {
   };
 
   return (
-    <AuthLayout screen="signup" showBack stepInfo="Step 1 of 2">
+    <AuthLayout screen="signup" stepInfo="Step 1 of 2">
       <h2 className="auth-title">Create your account</h2>
       <p className="auth-lead mb-4">Start tracking your progress today.</p>
 
@@ -169,34 +172,42 @@ export default function SignupPage() {
           </button>
         </div>
 
-        {/* Minimal Non-Glowing Criteria Checklist under password input */}
+        {/* Dynamic Compact Password Strength & Requirement HUD */}
         {(isPasswordFocused || password.length > 0) && (
-          <div className="auth-pass-checklist">
-            <div className="flex items-center justify-between text-[11px] mb-1">
-              <span className="text-slate-400 font-medium">Password Requirements</span>
-              <span className={`font-bold ${isAllValid ? "text-green-400" : "text-slate-400"}`}>
-                {isAllValid ? "Strong" : "Incomplete"}
+          <div className="auth-pass-hud">
+            {/* Step Progress Bar with 4 Animated Segments */}
+            <div className="flex items-center justify-between gap-2 mb-2">
+              <div className="flex items-center gap-1.5 flex-1">
+                {[hasMinLength, hasCapital, hasNumber, hasSpecial].map((valid, idx) => (
+                  <div
+                    key={idx}
+                    className={`auth-pass-ball ${valid ? "active" : ""}`}
+                  />
+                ))}
+              </div>
+              <span className={`text-[11px] font-bold tracking-wide transition-colors ${strengthColor}`}>
+                {strengthLabel}
               </span>
             </div>
 
-            <div className={`auth-pass-item ${hasMinLength ? "valid" : ""}`}>
-              {hasMinLength ? <Check size={12} className="text-green-400" /> : <Circle size={8} className="text-slate-500" />}
-              <span>At least 8 characters</span>
-            </div>
-
-            <div className={`auth-pass-item ${hasCapital ? "valid" : ""}`}>
-              {hasCapital ? <Check size={12} className="text-green-400" /> : <Circle size={8} className="text-slate-500" />}
-              <span>At least 1 uppercase letter (A-Z)</span>
-            </div>
-
-            <div className={`auth-pass-item ${hasNumber ? "valid" : ""}`}>
-              {hasNumber ? <Check size={12} className="text-green-400" /> : <Circle size={8} className="text-slate-500" />}
-              <span>At least 1 number (0-9)</span>
-            </div>
-
-            <div className={`auth-pass-item ${hasSpecial ? "valid" : ""}`}>
-              {hasSpecial ? <Check size={12} className="text-green-400" /> : <Circle size={8} className="text-slate-500" />}
-              <span>At least 1 special character (!@#$%^&*)</span>
+            {/* Compact Criteria Pills in 2x2 Grid */}
+            <div className="grid grid-cols-2 gap-1.5 text-[11px]">
+              <div className={`auth-pass-pill ${hasMinLength ? "met" : ""}`}>
+                <span className="auth-pass-dot" />
+                <span>8+ characters</span>
+              </div>
+              <div className={`auth-pass-pill ${hasCapital ? "met" : ""}`}>
+                <span className="auth-pass-dot" />
+                <span>Uppercase (A-Z)</span>
+              </div>
+              <div className={`auth-pass-pill ${hasNumber ? "met" : ""}`}>
+                <span className="auth-pass-dot" />
+                <span>Number (0-9)</span>
+              </div>
+              <div className={`auth-pass-pill ${hasSpecial ? "met" : ""}`}>
+                <span className="auth-pass-dot" />
+                <span>Symbol (!@#$)</span>
+              </div>
             </div>
           </div>
         )}

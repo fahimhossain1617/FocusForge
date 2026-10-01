@@ -131,9 +131,9 @@ export default function AuthLayout({
         </div>
         <div className="auth-desktop-right">
           <div className="auth-card">
-            {showBack && (
+            {(showBack || stepInfo) && (
               <div className="flex items-center gap-3 mb-4">
-                {backButton}
+                {showBack && backButton}
                 {stepInfo && (
                   <span className="text-xs font-semibold text-slate-400 tracking-wide uppercase">
                     {stepInfo}
@@ -149,9 +149,9 @@ export default function AuthLayout({
 
       {/* Tablet Layout (700px - 1023px) */}
       <div className="hidden sm:flex lg:hidden auth-tablet-layout">
-        {showBack && (
-          <div className="flex items-center gap-3 w-full mb-3">
-            {backButton}
+        {(showBack || stepInfo) && (
+          <div className="flex items-center gap-3 w-full mb-4">
+            {showBack && backButton}
             {stepInfo && (
               <span className="text-xs font-semibold text-slate-400 tracking-wide uppercase">
                 {stepInfo}
@@ -172,32 +172,41 @@ export default function AuthLayout({
 
       {/* Phone Layout (< 700px) */}
       <div className="flex sm:hidden auth-phone-layout">
-        {showBack ? (
-          <div className="flex flex-col items-start gap-1 w-full mb-3">
-            {backButton}
-            {stepInfo && (
-              <span className="text-[11px] font-semibold text-slate-400 tracking-wider uppercase mt-1">
-                {stepInfo}
-              </span>
-            )}
-          </div>
-        ) : screen === "login" ? (
-          <div className="auth-hero-mini mb-4">
-            <div className="auth-hero-group">
-              <span className="auth-hero-lead text-base text-slate-300">Welcome to</span>
-              <h1 className="auth-hero-title text-3xl font-extrabold">Focus Forge</h1>
+        {(showBack || stepInfo) && (
+          <div className="auth-phone-top-bar">
+            <div className="flex items-center gap-2.5">
+              {showBack && backButton}
+              {stepInfo && (
+                <span className="text-[11px] font-semibold text-slate-400 tracking-wider uppercase">
+                  {stepInfo}
+                </span>
+              )}
             </div>
-            <p className="auth-hero-tagline text-xs font-semibold text-slate-200 mt-1 mb-0">
-              Your focus. Your progress. Your future.
-            </p>
           </div>
-        ) : null}
+        )}
 
-        <div className="w-full">
-          {children}
+        <div className={`auth-phone-main ${(showBack || stepInfo) ? "auth-phone-main-top" : ""}`}>
+          {screen === "login" && !showBack && (
+            <div className="auth-hero-mobile">
+              <div className="auth-hero-group">
+                <span className="auth-hero-lead">Welcome to</span>
+                <h1 className="auth-hero-title">Focus Forge</h1>
+              </div>
+              <div className="auth-hero-desc">
+                <p className="auth-hero-tagline">Your focus. Your progress. Your future.</p>
+                <p className="auth-hero-details">
+                  Plan your day, build better habits, track your focus, learn new skills and become the best version of yourself.
+                </p>
+              </div>
+            </div>
+          )}
+
+          <div className="w-full">
+            {children}
+          </div>
+
+          {footerElement}
         </div>
-
-        {footerElement}
       </div>
 
       <LegalModal

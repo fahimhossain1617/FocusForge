@@ -3,11 +3,13 @@
 import React, { useState, useEffect, useRef, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import { motion, AnimatePresence } from "framer-motion";
 import AuthLayout from "../../components/auth/AuthLayout";
 import { AuthIcons } from "../../components/auth/AuthIcons";
 import { authService } from "../../services/authService";
 import { useAuth } from "../../context/AuthContext";
 import { useAppContext } from "../../context/AppContext";
+import { OtpSuccessTransition } from "../../components/auth/OtpSuccessTransition";
 
 
 function VerifyContent() {
@@ -20,6 +22,7 @@ function VerifyContent() {
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [activeIdx, setActiveIdx] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [resendCooldown, setResendCooldown] = useState(0);
   const [resending, setResending] = useState(false);
@@ -31,14 +34,21 @@ function VerifyContent() {
   // Get email from query parameter or sessionStorage
   useEffect(() => {
     const qEmail = searchParams?.get("email");
+    const isDemo = searchParams?.get("demo") === "1";
     if (qEmail) {
       setEmail(qEmail);
       setNewEmail(qEmail);
+    } else if (isDemo) {
+      setEmail("demo@focusforge.app");
+      setNewEmail("demo@focusforge.app");
     } else if (typeof window !== "undefined") {
       const stored = sessionStorage.getItem("focusforge_pending_email");
       if (stored) {
         setEmail(stored);
         setNewEmail(stored);
+      } else {
+        setEmail("demo@focusforge.app");
+        setNewEmail("demo@focusforge.app");
       }
     }
   }, [searchParams]);
@@ -72,6 +82,91 @@ function VerifyContent() {
     return `${name.slice(0, 2)}****@${domain}`;
   };
 
+  const playSuccessSound = () => {
+    try {
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(587.33, ctx.currentTime); // D5
+      osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.12); // A5
+      gain.gain.setValueAtTime(0.08, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.28);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.28);
+    } catch {}
+  };
+
+  const triggerVerify = async (codeToVerify?: string) => {
+    const fullCode = codeToVerify || otp.join("");
+
+    if (fullCode.length < 6) {
+      setError("Please enter the complete 6-digit verification code.");
+      return;
+    }
+
+    // Demo Mode Support (code 123456 or ?demo=1)
+    if (fullCode === "123456" || searchParams?.get("demo") === "1") {
+      setLoading(true);
+      setError(null);
+      setTimeout(() => {
+        setIsSuccess(true);
+        playSuccessSound();
+        showToast("Demo verification successful! Welcome to FocusForge.", "success");
+        setTimeout(() => {
+          router.push("/");
+        }, 2800);
+      }, 100);
+      return;
+    }
+
+    if (!email) {
+      setError("Email address is missing. Please enter your email.");
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const res = await authService.verifyOtp(email, fullCode, "signup");
+
+      if (!res.success) {
+        if (res.isExpired) {
+          setError("Verification code has expired. Please request a new code.");
+        } else {
+          setError(res.error || "Incorrect verification code. Please check and try again.");
+        }
+        setLoading(false);
+        return;
+      }
+
+      setIsSuccess(true);
+      playSuccessSound();
+      showToast("Email verified successfully! Welcome to FocusForge.", "success");
+
+      if (res.user) {
+        onAuthSuccess(res.user, true);
+      }
+
+      setTimeout(() => {
+        router.push("/");
+      }, 2800);
+    } catch (err: any) {
+      setError(err?.message || "Verification failed. Please try again.");
+      setLoading(false);
+    }
+  };
+
+  const handleVerify = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    triggerVerify();
+  };
+
   const handleOtpChange = (index: number, val: string) => {
     const clean = val.replace(/[^0-9]/g, "");
     if (!clean) {
@@ -81,28 +176,14 @@ function VerifyContent() {
       return;
     }
 
-    if (clean.length > 1) {
-      const chars = clean.slice(0, 6).split("");
-      const updated = [...otp];
-      chars.forEach((c, idx) => {
-        if (index + idx < 6) updated[index + idx] = c;
-      });
-      setOtp(updated);
-      const nextPos = Math.min(index + chars.length, 5);
-      inputRefs.current[nextPos]?.focus();
-      inputRefs.current[nextPos]?.select();
-      setActiveIdx(nextPos);
-      return;
-    }
-
-    // Single digit input
-    const digit = clean[clean.length - 1];
+    // Single or Multi character input (handles mobile keyboards & pasting)
+    const latestChar = clean.slice(-1);
     const updated = [...otp];
-    updated[index] = digit;
+    updated[index] = latestChar;
     setOtp(updated);
 
-    // Jump to next input immediately
-    if (index < 5 && digit) {
+    // Instant cursor jump to next box
+    if (index < 5 && latestChar) {
       const nextEl = inputRefs.current[index + 1];
       if (nextEl) {
         nextEl.focus();
@@ -110,12 +191,38 @@ function VerifyContent() {
         setActiveIdx(index + 1);
       }
     }
+
+    if (updated.every(Boolean) && updated.join("").length === 6) {
+      triggerVerify(updated.join(""));
+    }
   };
 
   const handleKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Backspace") {
-      if (!otp[index] && index > 0) {
-        const updated = [...otp];
+    if (e.key >= "0" && e.key <= "9") {
+      e.preventDefault();
+      const updated = [...otp];
+      updated[index] = e.key;
+      setOtp(updated);
+
+      if (index < 5) {
+        const nextEl = inputRefs.current[index + 1];
+        if (nextEl) {
+          nextEl.focus();
+          nextEl.select();
+          setActiveIdx(index + 1);
+        }
+      }
+
+      if (updated.every(Boolean) && updated.join("").length === 6) {
+        triggerVerify(updated.join(""));
+      }
+    } else if (e.key === "Backspace") {
+      e.preventDefault();
+      const updated = [...otp];
+      if (otp[index]) {
+        updated[index] = "";
+        setOtp(updated);
+      } else if (index > 0) {
         updated[index - 1] = "";
         setOtp(updated);
         const prevEl = inputRefs.current[index - 1];
@@ -124,10 +231,6 @@ function VerifyContent() {
           prevEl.select();
           setActiveIdx(index - 1);
         }
-      } else {
-        const updated = [...otp];
-        updated[index] = "";
-        setOtp(updated);
       }
     } else if (e.key === "ArrowLeft" && index > 0) {
       e.preventDefault();
@@ -161,48 +264,9 @@ function VerifyContent() {
       targetEl.select();
       setActiveIdx(nextIndex);
     }
-  };
 
-  const handleVerify = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    const fullCode = otp.join("");
-
-    if (fullCode.length < 6) {
-      setError("Please enter the complete 6-digit verification code.");
-      return;
-    }
-
-    if (!email) {
-      setError("Email address is missing. Please enter your email.");
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-
-    try {
-      const res = await authService.verifyOtp(email, fullCode, "signup");
-
-      if (!res.success) {
-        if (res.isExpired) {
-          setError("Verification code has expired. Please request a new code.");
-        } else {
-          setError(res.error || "Incorrect verification code. Please check and try again.");
-        }
-        setLoading(false);
-        return;
-      }
-
-      showToast("Email verified successfully! Welcome to FocusForge.", "success");
-
-      if (res.user) {
-        onAuthSuccess(res.user, true);
-      }
-
-      router.push("/");
-    } catch (err: any) {
-      setError(err?.message || "Verification failed. Please try again.");
-      setLoading(false);
+    if (updated.every((d) => Boolean(d)) && updated.join("").length === 6) {
+      triggerVerify(updated.join(""));
     }
   };
 
@@ -262,102 +326,147 @@ function VerifyContent() {
 
   return (
     <AuthLayout screen="verify" showBack onBack={() => router.push("/signup")} stepInfo="Step 2 of 2">
-      <h2 className="auth-title">Verify your email</h2>
-      
-      {isEditingEmail ? (
-        <form onSubmit={handleSaveDifferentEmail} className="mt-3 mb-4">
-          <label className="auth-label text-xs">Enter your correct email address:</label>
-          <div className="auth-field" style={{ marginBottom: 8 }}>
-            {AuthIcons.mail}
-            <input
-              type="email"
-              value={newEmail}
-              onChange={(e) => setNewEmail(e.target.value)}
-              placeholder="name@example.com"
-              required
-              autoFocus
-            />
-          </div>
-          <div className="flex gap-2">
-            <button type="submit" className="auth-cta" style={{ height: 40, fontSize: 13 }}>
-              Update & Resend Code
-            </button>
-            <button
-              type="button"
-              onClick={() => setIsEditingEmail(false)}
-              className="text-xs text-slate-400 hover:text-white px-3"
+      <div className="relative" style={{ textAlign: isSuccess ? "center" : "left", marginBottom: isSuccess ? "4px" : "12px" }}>
+        <AnimatePresence mode="wait" initial={false}>
+          {isSuccess ? (
+            <motion.h2
+              key="success-title"
+              className="auth-title"
+              style={{ textAlign: "center", marginBottom: "4px" }}
+              initial={{ opacity: 0, y: -6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 6 }}
+              transition={{ duration: 0.35, ease: "easeOut" }}
             >
-              Cancel
-            </button>
-          </div>
-        </form>
-      ) : (
-        <p className="auth-lead">
-          We sent a 6-digit code to <b style={{ color: "var(--text)" }}>{getMaskedEmail(email)}</b>. Enter it to activate your account.
-        </p>
-      )}
+              Verified successfully
+            </motion.h2>
+          ) : (
+            <motion.h2
+              key="verify-title"
+              className="auth-title"
+              initial={{ opacity: 0, y: -4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 4 }}
+              transition={{ duration: 0.35, ease: "easeOut" }}
+            >
+              Verify your email
+            </motion.h2>
+          )}
+        </AnimatePresence>
+      </div>
+
+      <AnimatePresence>
+        {!isSuccess && (
+          <motion.div
+            key="verify-subtitle-area"
+            initial={{ opacity: 1, height: "auto" }}
+            exit={{
+              opacity: 0,
+              height: 0,
+              overflow: "hidden",
+              marginBottom: 0,
+              transition: { duration: 0.25, ease: "easeOut" },
+            }}
+          >
+            {isEditingEmail ? (
+              <form onSubmit={handleSaveDifferentEmail} className="mt-3 mb-4">
+                <label className="auth-label text-xs">Enter your correct email address:</label>
+                <div className="auth-field" style={{ marginBottom: 8 }}>
+                  {AuthIcons.mail}
+                  <input
+                    type="email"
+                    value={newEmail}
+                    onChange={(e) => setNewEmail(e.target.value)}
+                    placeholder="name@example.com"
+                    required
+                    autoFocus
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <button type="submit" className="auth-cta" style={{ height: 40, fontSize: 13 }}>
+                    Update & Resend Code
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsEditingEmail(false)}
+                    className="text-xs text-slate-400 hover:text-white px-3"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <p className="auth-lead" style={{ marginBottom: "16px" }}>
+                We sent a 6-digit code to <b style={{ color: "var(--text)" }}>{getMaskedEmail(email)}</b>. Enter it to activate your account.
+              </p>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <form onSubmit={handleVerify}>
-        <div className="auth-otp">
-          {otp.map((digit, i) => (
-            <input
-              key={i}
-              ref={(el) => { inputRefs.current[i] = el; }}
-              type="text"
-              inputMode="numeric"
-              pattern="[0-9]*"
-              maxLength={1}
-              value={digit}
-              className={activeIdx === i ? "act" : ""}
-              onChange={(e) => handleOtpChange(i, e.target.value)}
-              onKeyDown={(e) => handleKeyDown(i, e)}
-              onFocus={(e) => {
-                setActiveIdx(i);
-                e.target.select();
-              }}
-              onClick={(e) => (e.target as HTMLInputElement).select()}
-              onPaste={handlePaste}
-              aria-label={`Digit ${i + 1}`}
-              autoComplete="one-time-code"
-            />
-          ))}
-        </div>
+        <OtpSuccessTransition
+          isSuccess={isSuccess}
+          otp={otp}
+          activeIdx={activeIdx}
+          loading={loading}
+          inputRefs={inputRefs}
+          handleOtpChange={handleOtpChange}
+          handleKeyDown={handleKeyDown}
+          handlePaste={handlePaste}
+          setActiveIdx={setActiveIdx}
+        />
 
         {error && <div className="auth-bottom-error">{error}</div>}
 
-        <button type="submit" className="auth-cta" disabled={loading}>
-          {loading ? "Verifying..." : "Verify email"}
-        </button>
-
-        <div className="auth-alt" style={{ marginTop: "18px" }}>
-          {resendCooldown > 0 ? (
-            <>
-              Resend code in <b style={{ color: "var(--text)" }}>{formatTimer(resendCooldown)}</b>
-            </>
-          ) : (
-            <button
-              type="button"
-              onClick={handleResend}
-              disabled={resending}
-              className="hover:underline font-bold text-link"
+        <AnimatePresence>
+          {!isSuccess && (
+            <motion.div
+              key="verify-bottom-actions"
+              initial={{ opacity: 1, height: "auto" }}
+              exit={{
+                opacity: 0,
+                height: 0,
+                overflow: "hidden",
+                transition: { duration: 0.25, ease: "easeOut" },
+              }}
             >
-              {resending ? "Sending code..." : "Resend code"}
-            </button>
+              <button type="submit" className="auth-cta" disabled={loading || isSuccess}>
+                {loading ? "Verifying..." : "Verify email"}
+              </button>
+
+              <div className="auth-alt" style={{ marginTop: "18px" }}>
+                {resendCooldown > 0 ? (
+                  <>
+                    Resend code in <b style={{ color: "var(--text)" }}>{formatTimer(resendCooldown)}</b>
+                  </>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleResend}
+                    disabled={resending}
+                    className="hover:underline font-bold text-link"
+                  >
+                    {resending ? "Sending code..." : "Resend code"}
+                  </button>
+                )}
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setIsEditingEmail(true)}
+                className="auth-guest font-bold"
+                style={{ color: "var(--link)" }}
+              >
+                Use a different email
+              </button>
+
+              <div className="auth-note">
+                Can’t find it? Check your <strong>Spam or Junk</strong> folder. The code expires in 15 minutes.
+              </div>
+            </motion.div>
           )}
-        </div>
-
-        <button
-          type="button"
-          onClick={() => setIsEditingEmail(true)}
-          className="auth-guest font-bold"
-          style={{ color: "var(--link)" }}
-        >
-          Use a different email
-        </button>
-
-        <div className="auth-note">
-          Can’t find it? Check your <strong>Spam or Junk</strong> folder. The code expires in 15 minutes.
-        </div>
+        </AnimatePresence>
       </form>
     </AuthLayout>
   );

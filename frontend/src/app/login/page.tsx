@@ -243,27 +243,28 @@ function LoginContent() {
   // ----------------------------------------------------
   return (
     <AuthLayout screen="login">
-      <div className="flex items-center justify-between mb-1">
+      <div className="hidden lg:block mb-4">
         <h2 className="auth-title">Welcome back</h2>
-        {rememberedAccounts.length > 0 && (
-          <button
-            type="button"
-            onClick={() => setShowSavedSheet(true)}
-            className="text-xs text-blue-400 hover:text-blue-300 font-medium flex items-center gap-1.5 bg-white/5 border border-white/10 px-2.5 py-1 rounded-lg transition-colors cursor-pointer"
-          >
-            <Users size={13} />
-            Saved ({rememberedAccounts.length})
-          </button>
-        )}
+        <p className="auth-lead mt-1">Log in to continue where you left off.</p>
       </div>
-      <p className="auth-lead mb-4">Log in to continue where you left off.</p>
 
       {/* Primary Login Form: Email -> Password -> Remember Me -> Login CTA */}
       <form onSubmit={handleSubmit}>
-        <div className="auth-row">
-          <label htmlFor="login-email" className="auth-label">
+        <div className="auth-row items-center mb-1">
+          <label htmlFor="login-email" className="auth-label mb-0">
             Email address
           </label>
+          {rememberedAccounts.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setShowSavedSheet(true)}
+              className="text-[11px] text-blue-400 hover:text-blue-300 font-medium flex items-center gap-1 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 px-2 py-0.5 rounded-full transition-all cursor-pointer"
+              title={`${rememberedAccounts.length} saved account${rememberedAccounts.length > 1 ? "s" : ""}`}
+            >
+              <Users size={12} className="text-blue-400" />
+              <span>Saved ({rememberedAccounts.length})</span>
+            </button>
+          )}
         </div>
         <div className="auth-field">
           {AuthIcons.mail}
