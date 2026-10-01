@@ -485,7 +485,7 @@ export default function CopyTasksModal({
         taskIds: idsArray,
         sourceDateStr: sourceDate,
         destinationDateStr: destinationDate,
-        skipDuplicates: true,
+        skipDuplicates: false,
       });
 
       if (result.copiedCount > 0) {
@@ -782,7 +782,7 @@ export default function CopyTasksModal({
                     className={`group relative p-2 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-2 ${
                       isSelected
                         ? "bg-[#F0F6FF] dark:bg-blue-500/10 border-[#5B8DEF]/50 dark:border-blue-400/50 shadow-none"
-                        : "bg-white dark:bg-slate-900/50 border-[#DCE5F0] dark:border-white/5 hover:border-[#B8CCE4] dark:hover:border-white/15 hover:bg-[#F7FAFE]"
+                        : "bg-white dark:bg-slate-900/50 border-[#DCE5F0] dark:border-white/5 hover:border-[#B8CCE4] dark:hover:border-white/15 hover:bg-[#F7FAFE] dark:hover:bg-slate-800/60"
                     }`}
                   >
                     <div className="flex items-center gap-2 min-w-0 flex-1">
@@ -814,13 +814,6 @@ export default function CopyTasksModal({
                             <Clock className="w-2.5 h-2.5 text-[#5B8DEF] dark:text-blue-400 shrink-0" />
                             {formatTime12hr(task.startTime)} – {formatTime12hr(task.endTime)}
                           </span>
-
-                          {isDuplicate && (
-                            <span className="text-[9px] text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 px-1.5 py-0.2 rounded flex items-center gap-0.5 font-medium ml-auto shrink-0">
-                              <AlertCircle className="w-2.5 h-2.5" />
-                              Duplicate
-                            </span>
-                          )}
                         </div>
                       </div>
                     </div>

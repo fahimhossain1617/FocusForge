@@ -6,7 +6,7 @@ import { useAppContext } from "../../context/AppContext";
 import { useTranslation } from "../../hooks/useTranslation";
 import EmptyState from "../ui/EmptyState";
 import CalendarWidget from "../ui/CalendarWidget";
-import { ChevronLeft, ChevronRight, Plus, X, AlignLeft, Calendar as CalendarIcon, Clock, Bell, Layers, Sparkles, Copy } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, X, AlignLeft, Calendar as CalendarIcon, Clock, Bell, Layers, Sparkles, Copy, Pencil } from "lucide-react";
 import { useAnimateExit } from "../../hooks/useAnimateExit";
 import FocusForgeTimePicker from "../ui/FocusForgeTimePicker";
 import AddTaskModal from "../planner/AddTaskModal";
@@ -58,6 +58,14 @@ export default function PlannerPage() {
   // Modals State
   const [showAddTaskModal, setShowAddTaskModal] = useState(false);
   const [showCopyTasksModal, setShowCopyTasksModal] = useState(false);
+  const [editingTask, setEditingTask] = useState<{
+    id: string | number;
+    taskId?: number | string;
+    blockId?: string;
+    title: string;
+    startTime: string;
+    endTime: string;
+  } | null>(null);
 
   // Handle cross-navigation from Dashboard (e.g. 3-dots on a task)
   useEffect(() => {
@@ -639,10 +647,21 @@ export default function PlannerPage() {
                       
                       <button 
                         type="button"
-                        onClick={() => { handleOpenDrawer(selectedDateStr); }} 
-                        className="pl-2 text-[11px] font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors flex items-center gap-1 mt-3 cursor-pointer self-start"
+                        onClick={() => {
+                          setEditingTask({
+                            id: item.id,
+                            taskId: item.taskId,
+                            blockId: item.blockId,
+                            title: item.label,
+                            startTime: item.startTime,
+                            endTime: item.endTime,
+                          });
+                          setShowAddTaskModal(true);
+                        }} 
+                        className="pl-2 text-[11px] font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors flex items-center gap-1.5 mt-3 cursor-pointer self-start"
                       >
-                        {t.planner.editDetails} <ChevronRight className="w-3 h-3" />
+                        <Pencil className="w-3 h-3" />
+                        <span>{state.lang === 'bn' ? "এডিট" : "Edit"}</span>
                       </button>
                     </div>
                   );
@@ -704,9 +723,23 @@ export default function PlannerPage() {
             
             {drawerDayItems.map((item) => {
               return (
-                <div key={item.id} className="mb-3 p-3.5 rounded-xl border border-slate-200 dark:border-blue-500/15 bg-slate-50 dark:bg-slate-900/75 flex items-center justify-between gap-3 shadow-none">
+                <div 
+                  key={item.id} 
+                  onClick={() => {
+                    setEditingTask({
+                      id: item.id,
+                      taskId: item.taskId,
+                      blockId: item.blockId,
+                      title: item.label,
+                      startTime: item.startTime,
+                      endTime: item.endTime,
+                    });
+                    setShowAddTaskModal(true);
+                  }}
+                  className="mb-3 p-3.5 rounded-xl border border-slate-200 dark:border-blue-500/15 bg-slate-50 dark:bg-slate-900/75 hover:bg-slate-100 dark:hover:bg-slate-800/80 hover:border-slate-300 dark:hover:border-blue-400/30 transition-all cursor-pointer flex items-center justify-between gap-3 shadow-none group"
+                >
                   <div className="space-y-1 min-w-0 flex-1">
-                    <h4 className={`font-semibold text-sm text-foreground break-words line-clamp-1 ${item.completed ? 'line-through opacity-70' : ''}`} title={item.label}>
+                    <h4 className={`font-semibold text-sm text-foreground group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors break-words line-clamp-1 ${item.completed ? 'line-through opacity-70' : ''}`} title={item.label}>
                       {item.label || "Untitled Task"}
                     </h4>
                     <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 font-mono">
@@ -733,7 +766,10 @@ export default function PlannerPage() {
             <div className="mt-4 flex flex-col sm:flex-row items-center gap-2.5">
               <button 
                 type="button"
-                onClick={() => setShowAddTaskModal(true)} 
+                onClick={() => {
+                  setEditingTask(null);
+                  setShowAddTaskModal(true);
+                }} 
                 className="btn-primary w-full sm:flex-1 py-3 px-3 rounded-xl font-bold text-xs sm:text-sm transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-none active:scale-[0.98]"
               >
                 <Plus className="w-4 h-4 shrink-0" />
@@ -753,11 +789,15 @@ export default function PlannerPage() {
         document.body
       )}
 
-      {/* ADD TASK MODAL POPUP */}
+      {/* ADD / EDIT TASK MODAL POPUP */}
       <AddTaskModal
         isOpen={showAddTaskModal}
-        onClose={() => setShowAddTaskModal(false)}
+        onClose={() => {
+          setShowAddTaskModal(false);
+          setEditingTask(null);
+        }}
         targetDateStr={drawerDateStr || selectedDateStr || realToday}
+        editingTask={editingTask}
       />
 
       {/* COPY TASKS MODAL POPUP */}

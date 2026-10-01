@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import { ArrowLeft, Search, X, Trash2, ArrowUpDown, Brain, Lightbulb, PenLine, Sparkles } from "lucide-react";
+import { useState, useMemo, useEffect } from "react";
+import { ArrowLeft, Search, X, Trash2, ArrowUpDown, Brain, Lightbulb, PenLine, Inbox } from "lucide-react";
 import { useAppContext } from "../../context/AppContext";
 import { useTranslation } from "../../hooks/useTranslation";
 import { getThoughtDisplayData } from "../../utils/mindUtils";
@@ -25,6 +25,10 @@ export default function ReviewAll({ navigate, setActiveThoughtId }: ReviewAllPro
   const [selectedCategory, setSelectedCategory] = useState<CategoryFilter>('all');
   const [sortOrder, setSortOrder] = useState<SortOrder>('newest');
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+  }, []);
 
   const openDetail = (id: string) => {
     setActiveThoughtId(id);
@@ -118,71 +122,71 @@ export default function ReviewAll({ navigate, setActiveThoughtId }: ReviewAllPro
   const hasMore = filteredAndSortedThoughts.length > visibleCount;
 
   return (
-    <div className="motion-page w-full max-w-3xl mx-auto px-4 sm:px-6 pt-1 pb-20 space-y-5">
-      {/* ── Top Navigation Bar ── */}
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        {/* Back Button */}
-        <button 
-          type="button"
-          onClick={() => navigate('home')}
-          className="inline-flex items-center justify-center w-9 h-9 -ml-1.5 rounded-full text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-black/5 dark:hover:bg-white/5 active:scale-95 transition-colors cursor-pointer"
-          aria-label={t.myMind.backToMyMind || "Back to Capture"}
-          title={t.myMind.backToMyMind || "Back to Capture"}
-        >
-          <ArrowLeft className="w-5 h-5" strokeWidth={2} />
-        </button>
+    <div className="motion-page w-full space-y-6 pb-20">
+      {/* ── Top Navigation Bar with Inline Title & Right Search Bar ── */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        {/* Left: Back Button & Page Title */}
+        <div className="flex items-center gap-3">
+          <button 
+            type="button"
+            onClick={() => navigate('home')}
+            className="inline-flex items-center justify-center w-9 h-9 -ml-1.5 rounded-full text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-black/5 dark:hover:bg-white/5 active:scale-95 transition-colors cursor-pointer shrink-0"
+            aria-label={t.myMind.backToMyMind || "Back to Capture"}
+            title={t.myMind.backToMyMind || "Back to Capture"}
+          >
+            <ArrowLeft className="w-5 h-5" strokeWidth={2} />
+          </button>
 
-        {/* Page Title */}
-        <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
-          {t.myMind.reviewAllTitle || "All Thoughts"}
-        </h1>
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
+            {t.myMind.reviewAllTitle || "All Thoughts"}
+          </h1>
+        </div>
 
-        {/* Delete All Action */}
-        <div className="flex justify-end">
+        {/* Right: Search Input & Delete All Action */}
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <div className="relative flex-1 sm:w-64 flex items-center h-9">
+            <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/70 pointer-events-none shrink-0" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setVisibleCount(PAGE_SIZE);
+              }}
+              placeholder={t.myMind.searchPlaceholder || "Search thoughts..."}
+              style={{ paddingLeft: "2.1rem", paddingRight: searchQuery ? "2rem" : "0.85rem" }}
+              className="w-full h-full text-xs rounded-xl border border-slate-200 dark:border-white/10 bg-black/5 dark:bg-white/5 text-foreground placeholder:text-muted-foreground/70 focus:outline-none focus:border-blue-500 transition-colors shadow-none"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery("")}
+                className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-muted-foreground hover:text-foreground cursor-pointer transition-colors flex items-center justify-center"
+                aria-label="Clear search"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+
           {state.mindItems.length > 0 && (
             <button 
               type="button"
               onClick={handleDeleteAll}
-              className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-lg border transition-colors hover:bg-red-500/10 hover:text-red-500 hover:border-red-500/30 cursor-pointer"
+              className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 h-9 rounded-xl border transition-colors hover:bg-red-500/10 hover:text-red-500 hover:border-red-500/30 cursor-pointer shrink-0"
               style={{ borderColor: "var(--color-border-subtle)", color: "var(--color-text-muted)" }}
               title={t.myMind.deleteAllHistory}
             >
-              <Trash2 size={12} />
-              <span>{t.myMind.deleteAll}</span>
+              <Trash2 size={13} />
+              <span className="hidden md:inline">{t.myMind.deleteAll}</span>
             </button>
           )}
         </div>
       </div>
 
-      {/* ── Search, Filters, and Sorting Controls (Compact & Clean) ── */}
-      <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
-        {/* Search Input */}
-        <div className="relative min-w-[160px] flex-1 sm:max-w-xs flex items-center h-9">
-          <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/70 pointer-events-none shrink-0" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => {
-              setSearchQuery(e.target.value);
-              setVisibleCount(PAGE_SIZE);
-            }}
-            placeholder={t.myMind.searchPlaceholder || "Search thoughts..."}
-            style={{ paddingLeft: "2.1rem", paddingRight: searchQuery ? "2rem" : "0.85rem" }}
-            className="w-full h-full text-xs rounded-xl border border-slate-200 dark:border-white/10 bg-black/5 dark:bg-white/5 text-foreground placeholder:text-muted-foreground/70 focus:outline-none focus:border-blue-500 transition-colors shadow-none"
-          />
-          {searchQuery && (
-            <button
-              type="button"
-              onClick={() => setSearchQuery("")}
-              className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-muted-foreground hover:text-foreground cursor-pointer transition-colors flex items-center justify-center"
-              aria-label="Clear search"
-            >
-              <X className="w-3.5 h-3.5" />
-            </button>
-          )}
-        </div>
-
-        {/* Category Filters and Sort Button */}
+      {/* ── Filter Buttons and Sorting Bar ── */}
+      <div className="flex flex-wrap items-center justify-between gap-2.5">
+        {/* Category Filters */}
         <div className="flex flex-wrap items-center gap-1.5">
           {/* All */}
           <button
@@ -191,14 +195,14 @@ export default function ReviewAll({ navigate, setActiveThoughtId }: ReviewAllPro
               setSelectedCategory('all');
               setVisibleCount(PAGE_SIZE);
             }}
-            className={`px-2.5 py-1 text-[11px] font-semibold rounded-lg border transition-all cursor-pointer shadow-none flex items-center gap-1.5 ${
+            className={`px-3 py-1.5 text-xs font-semibold rounded-xl border transition-all cursor-pointer shadow-none flex items-center gap-1.5 ${
               selectedCategory === 'all'
                 ? 'bg-blue-600 text-white border-blue-600'
                 : 'border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 text-slate-700 dark:text-slate-300 hover:border-blue-500/40'
             }`}
           >
             <span>{t.myMind.allFilter || "All"}</span>
-            <span className={`text-[9px] px-1.5 py-0.2 rounded-full ${selectedCategory === 'all' ? 'bg-white/20 text-white' : 'bg-slate-200 dark:bg-white/10 text-slate-600 dark:text-slate-400'}`}>
+            <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${selectedCategory === 'all' ? 'bg-white/20 text-white' : 'bg-slate-200 dark:bg-white/10 text-slate-600 dark:text-slate-400'}`}>
               {counts.all}
             </span>
           </button>
@@ -210,15 +214,15 @@ export default function ReviewAll({ navigate, setActiveThoughtId }: ReviewAllPro
               setSelectedCategory('free_flow');
               setVisibleCount(PAGE_SIZE);
             }}
-            className={`px-2.5 py-1 text-[11px] font-semibold rounded-lg border transition-all cursor-pointer shadow-none flex items-center gap-1.5 ${
+            className={`px-3 py-1.5 text-xs font-semibold rounded-xl border transition-all cursor-pointer shadow-none flex items-center gap-1.5 ${
               selectedCategory === 'free_flow'
                 ? 'bg-purple-600 text-white border-purple-600'
                 : 'border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 text-slate-700 dark:text-slate-300 hover:border-purple-500/40'
             }`}
           >
-            <PenLine size={11} />
+            <PenLine size={12} />
             <span>{t.myMind.freeFlow || "Free Flow"}</span>
-            <span className={`text-[9px] px-1.5 py-0.2 rounded-full ${selectedCategory === 'free_flow' ? 'bg-white/20 text-white' : 'bg-slate-200 dark:bg-white/10 text-slate-600 dark:text-slate-400'}`}>
+            <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${selectedCategory === 'free_flow' ? 'bg-white/20 text-white' : 'bg-slate-200 dark:bg-white/10 text-slate-600 dark:text-slate-400'}`}>
               {counts.free_flow}
             </span>
           </button>
@@ -230,15 +234,15 @@ export default function ReviewAll({ navigate, setActiveThoughtId }: ReviewAllPro
               setSelectedCategory('idea_capture');
               setVisibleCount(PAGE_SIZE);
             }}
-            className={`px-2.5 py-1 text-[11px] font-semibold rounded-lg border transition-all cursor-pointer shadow-none flex items-center gap-1.5 ${
+            className={`px-3 py-1.5 text-xs font-semibold rounded-xl border transition-all cursor-pointer shadow-none flex items-center gap-1.5 ${
               selectedCategory === 'idea_capture'
                 ? 'bg-teal-600 text-white border-teal-600'
                 : 'border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 text-slate-700 dark:text-slate-300 hover:border-teal-500/40'
             }`}
           >
-            <Lightbulb size={11} />
+            <Lightbulb size={12} />
             <span>{t.myMind.captureAnIdea || "Idea Vault"}</span>
-            <span className={`text-[9px] px-1.5 py-0.2 rounded-full ${selectedCategory === 'idea_capture' ? 'bg-white/20 text-white' : 'bg-slate-200 dark:bg-white/10 text-slate-600 dark:text-slate-400'}`}>
+            <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${selectedCategory === 'idea_capture' ? 'bg-white/20 text-white' : 'bg-slate-200 dark:bg-white/10 text-slate-600 dark:text-slate-400'}`}>
               {counts.idea_capture}
             </span>
           </button>
@@ -250,30 +254,30 @@ export default function ReviewAll({ navigate, setActiveThoughtId }: ReviewAllPro
               setSelectedCategory('problem_solver');
               setVisibleCount(PAGE_SIZE);
             }}
-            className={`px-2.5 py-1 text-[11px] font-semibold rounded-lg border transition-all cursor-pointer shadow-none flex items-center gap-1.5 ${
+            className={`px-3 py-1.5 text-xs font-semibold rounded-xl border transition-all cursor-pointer shadow-none flex items-center gap-1.5 ${
               selectedCategory === 'problem_solver'
                 ? 'bg-blue-600 text-white border-blue-600'
                 : 'border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 text-slate-700 dark:text-slate-300 hover:border-blue-500/40'
             }`}
           >
-            <Brain size={11} />
+            <Brain size={12} />
             <span>{t.myMind.problemSolver || "Problem Solver"}</span>
-            <span className={`text-[9px] px-1.5 py-0.2 rounded-full ${selectedCategory === 'problem_solver' ? 'bg-white/20 text-white' : 'bg-slate-200 dark:bg-white/10 text-slate-600 dark:text-slate-400'}`}>
+            <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${selectedCategory === 'problem_solver' ? 'bg-white/20 text-white' : 'bg-slate-200 dark:bg-white/10 text-slate-600 dark:text-slate-400'}`}>
               {counts.problem_solver}
             </span>
           </button>
-
-          {/* Sort Toggle */}
-          <button
-            type="button"
-            onClick={() => setSortOrder(prev => prev === 'newest' ? 'oldest' : 'newest')}
-            className="px-2.5 py-1 text-[11px] font-semibold rounded-lg border transition-all cursor-pointer shadow-none flex items-center gap-1 border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 text-slate-700 dark:text-slate-300 hover:border-slate-400"
-            title="Toggle sort order"
-          >
-            <ArrowUpDown size={11} />
-            <span>{sortOrder === 'newest' ? (t.myMind.newestFirst || "Newest first") : (t.myMind.oldestFirst || "Oldest first")}</span>
-          </button>
         </div>
+
+        {/* Sort Toggle */}
+        <button
+          type="button"
+          onClick={() => setSortOrder(prev => prev === 'newest' ? 'oldest' : 'newest')}
+          className="px-3 py-1.5 text-xs font-semibold rounded-xl border transition-all cursor-pointer shadow-none flex items-center gap-1.5 border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 text-slate-700 dark:text-slate-300 hover:border-slate-400"
+          title="Toggle sort order"
+        >
+          <ArrowUpDown size={12} />
+          <span>{sortOrder === 'newest' ? (t.myMind.newestFirst || "Newest first") : (t.myMind.oldestFirst || "Oldest first")}</span>
+        </button>
       </div>
 
       {/* ── Responsive Paper-Card Grid ── */}
@@ -304,33 +308,25 @@ export default function ReviewAll({ navigate, setActiveThoughtId }: ReviewAllPro
           )}
         </div>
       ) : state.mindItems.length === 0 ? (
-        /* Empty State: No thoughts exist at all */
-        <div className="text-center py-24 px-4 rounded-2xl border border-dashed border-slate-200 dark:border-white/10 bg-black/[0.01] dark:bg-white/[0.01]">
-          <div className="w-12 h-12 rounded-2xl bg-blue-500/10 dark:bg-blue-500/15 flex items-center justify-center text-blue-500 dark:text-blue-400 mx-auto mb-3">
-            <Sparkles size={22} />
+        /* Empty State: No thoughts exist at all (clean & unboxed) */
+        <div className="text-center py-20 sm:py-28 px-4 flex flex-col items-center justify-center">
+          <div className="w-14 h-14 rounded-2xl bg-blue-500/10 dark:bg-blue-500/15 flex items-center justify-center text-blue-500 dark:text-blue-400 mb-3.5">
+            <Inbox size={26} />
           </div>
-          <p className="text-sm font-semibold text-foreground mb-1">
+          <p className="text-base font-semibold text-foreground mb-1">
             {t.myMind.noThoughtsYet || "No thoughts yet. Capture something first."}
           </p>
-          <p className="text-xs text-muted-foreground max-w-sm mx-auto mb-5">
+          <p className="text-xs sm:text-sm text-muted-foreground max-w-sm mx-auto">
             {t.myMind.writeYourFirstThought || "Capture your first thought to see it here."}
           </p>
-          <button
-            type="button"
-            onClick={() => navigate('home')}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold bg-blue-600 text-white shadow-none hover:bg-blue-500 transition-colors cursor-pointer"
-          >
-            <PenLine size={13} />
-            <span>{t.myMind.backToMyMind || "Back to Capture"}</span>
-          </button>
         </div>
       ) : (
         /* Empty State: Filter or Search returned 0 matches */
-        <div className="text-center py-20 px-4 rounded-2xl border border-slate-200 dark:border-white/10 bg-black/[0.01] dark:bg-white/[0.01]">
-          <p className="text-sm font-semibold text-foreground mb-1">
+        <div className="text-center py-16 sm:py-20 px-4 flex flex-col items-center justify-center">
+          <p className="text-base font-semibold text-foreground mb-1">
             {t.myMind.noMatchingThoughts || "No matching thoughts found."}
           </p>
-          <p className="text-xs text-muted-foreground mb-4">
+          <p className="text-xs sm:text-sm text-muted-foreground mb-4">
             Try adjusting your search query or category filters.
           </p>
           <button

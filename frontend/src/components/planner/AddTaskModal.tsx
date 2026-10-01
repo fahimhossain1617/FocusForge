@@ -13,19 +13,28 @@ interface AddTaskModalProps {
   isOpen: boolean;
   onClose: () => void;
   targetDateStr: string; // "YYYY-MM-DD"
+  editingTask?: {
+    id: string | number;
+    taskId?: number | string;
+    blockId?: string;
+    title: string;
+    startTime: string;
+    endTime: string;
+  } | null;
 }
 
 export default function AddTaskModal({
   isOpen,
   onClose,
   targetDateStr,
+  editingTask,
 }: AddTaskModalProps) {
   const [mounted, setMounted] = useState(false);
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  const { addTask, addTimeBlock, showToast, trackMeaningfulAction } = useAppContext();
+  const { addTask, updateTask, addTimeBlock, updateTimeBlock, showToast, trackMeaningfulAction, state } = useAppContext();
   const { t } = useTranslation();
   const { shouldRender, isExiting } = useAnimateExit({ isOpen, durationMs: 200 });
 
@@ -34,15 +43,21 @@ export default function AddTaskModal({
   const [endTime, setEndTime] = useState("11:00");
   const [error, setError] = useState<string | null>(null);
 
-  // Reset form when opened
+  // Sync / Reset form when opened or editingTask changes
   useEffect(() => {
     if (isOpen) {
-      setTitle("");
-      setStartTime("10:00");
-      setEndTime("11:00");
+      if (editingTask) {
+        setTitle(editingTask.title || "");
+        setStartTime(editingTask.startTime || "10:00");
+        setEndTime(editingTask.endTime || "11:00");
+      } else {
+        setTitle("");
+        setStartTime("10:00");
+        setEndTime("11:00");
+      }
       setError(null);
     }
-  }, [isOpen]);
+  }, [isOpen, editingTask]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,8 +67,44 @@ export default function AddTaskModal({
       return;
     }
 
-    const taskId = Date.now();
     const effectiveDate = targetDateStr || new Date().toISOString().split("T")[0];
+
+    if (editingTask) {
+      // Update existing task
+      if (editingTask.taskId !== undefined) {
+        const numId = typeof editingTask.taskId === "number" ? editingTask.taskId : parseInt(String(editingTask.taskId), 10);
+        if (!isNaN(numId)) {
+          updateTask(numId, {
+            title: trimmedTitle,
+            name: trimmedTitle,
+            time: startTime,
+            endTime: endTime,
+            targetDate: effectiveDate,
+            date: effectiveDate,
+          });
+        }
+      }
+      // Update linked timeBlock if exists
+      if (editingTask.blockId) {
+        updateTimeBlock(editingTask.blockId, {
+          label: trimmedTitle,
+          startTime: startTime,
+          endTime: endTime,
+          date: effectiveDate,
+        });
+      }
+
+      if (typeof showToast === "function") {
+        showToast(
+          state.lang === "bn" ? "টাস্ক সফলভাবে আপডেট হয়েছে" : "Task updated successfully",
+          "success"
+        );
+      }
+      onClose();
+      return;
+    }
+
+    const taskId = Date.now();
 
     // Create synchronized task
     addTask({
@@ -117,7 +168,9 @@ export default function AddTaskModal({
         <div className="flex items-center justify-between px-6 py-5 border-b border-slate-200 dark:border-white/[0.08] bg-slate-50/70 dark:bg-white/[0.02]">
           <div>
             <h2 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">
-              {t.planner.addTask || "Add Task"}
+              {editingTask
+                ? (state.lang === "bn" ? "টাস্ক এডিট করুন" : "Edit Task")
+                : (t.planner.addTask || "Add Task")}
             </h2>
             {formattedDate && (
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 font-medium">
@@ -194,7 +247,9 @@ export default function AddTaskModal({
               type="submit"
               className="px-6 py-2.5 rounded-xl bg-[#223A5E] hover:bg-[#2E4E7B] dark:bg-blue-600 dark:hover:bg-blue-500 text-white text-xs font-bold transition-all shadow-none cursor-pointer"
             >
-              Save Task
+              {editingTask
+                ? (state.lang === "bn" ? "আপডেট করুন" : "Update Task")
+                : "Save Task"}
             </button>
           </div>
         </form>

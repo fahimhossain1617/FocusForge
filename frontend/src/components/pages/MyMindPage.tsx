@@ -19,6 +19,7 @@ export default function MyMindPage() {
     if (activeView !== nextView) {
       setPreviousView(activeView);
       setActiveView(nextView);
+      window.scrollTo({ top: 0, left: 0, behavior: "instant" });
     }
   };
 

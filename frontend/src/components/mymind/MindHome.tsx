@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
-import { ArrowRight, PenLine, Sparkles } from "lucide-react";
+import { ArrowRight, Inbox } from "lucide-react";
 import { useAppContext } from "../../context/AppContext";
 import { useAuth } from "../../context/AuthContext";
 import { useTranslation } from "../../hooks/useTranslation";
@@ -237,11 +237,11 @@ export default function MindHome({ navigate, setActiveThoughtId }: MindHomeProps
           <button 
             type="button"
             onClick={() => navigate('review_all')} 
-            className="group inline-flex items-center gap-1.5 text-xs sm:text-sm font-semibold transition-colors hover:opacity-90 cursor-pointer"
+            className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-semibold cursor-pointer"
             style={{ color: "var(--color-purple-primary)" }}
           >
             <span>{t.myMind.reviewAll}</span>
-            <ArrowRight size={14} className="transition-transform group-hover:translate-x-0.5" />
+            <ArrowRight size={14} />
           </button>
         </div>
 
@@ -257,28 +257,20 @@ export default function MindHome({ navigate, setActiveThoughtId }: MindHomeProps
             ))}
           </div>
         ) : (
-          /* Clean, notebook-styled empty state */
+          /* Clean, unboxed empty state */
           <div 
             onClick={() => textareaRef.current?.focus()}
-            className="flex flex-col items-center justify-center p-10 sm:p-14 rounded-2xl border border-dashed transition-all cursor-pointer group hover:border-blue-500/40 hover:bg-black/[0.01] dark:hover:bg-white/[0.01]"
-            style={{
-              borderColor: "var(--color-border-subtle)",
-              background: "var(--color-bg-card)",
-            }}
+            className="flex flex-col items-center justify-center py-10 sm:py-14 cursor-pointer group text-center"
           >
-            <div className="w-12 h-12 rounded-2xl bg-blue-500/10 dark:bg-blue-500/15 flex items-center justify-center text-blue-500 dark:text-blue-400 mb-3 group-hover:scale-105 transition-transform">
-              <PenLine size={22} />
+            <div className="w-14 h-14 rounded-2xl bg-blue-500/10 dark:bg-blue-500/15 flex items-center justify-center text-blue-500 dark:text-blue-400 mb-3.5 group-hover:scale-105 transition-transform">
+              <Inbox size={26} />
             </div>
-            <p className="text-sm font-semibold text-foreground mb-1">
+            <p className="text-base font-semibold text-foreground mb-1">
               {t.myMind.mindEmpty}
             </p>
-            <p className="text-xs text-muted-foreground text-center max-w-sm mb-4">
+            <p className="text-xs sm:text-sm text-muted-foreground text-center max-w-sm">
               {t.myMind.writeYourFirstThought || "Capture your first thought to see it here."}
             </p>
-            <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-3.5 py-1.5 rounded-xl bg-blue-600 text-white shadow-none group-hover:bg-blue-500 transition-colors">
-              <Sparkles size={12} />
-              <span>{t.myMind.freeFlow || "Free Flow"}</span>
-            </span>
           </div>
         )}
       </section>

@@ -20,7 +20,7 @@ export default function DiaryEmptyState({
 }: DiaryEmptyStateProps) {
   if (isSearch) {
     return (
-      <div className="w-full py-16 px-4 text-center rounded-2xl border border-dashed border-border/50 bg-black/[0.015] dark:bg-white/[0.015] my-6">
+      <div className="w-full py-16 px-4 text-center my-4 flex flex-col items-center justify-center">
         <div className="w-12 h-12 rounded-2xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center mx-auto mb-4 text-blue-500">
           <SearchX size={22} />
         </div>
@@ -48,7 +48,7 @@ export default function DiaryEmptyState({
   }
 
   return (
-    <div className="w-full py-16 sm:py-20 px-6 text-center rounded-2xl border border-dashed border-border/50 bg-black/[0.015] dark:bg-white/[0.015] my-4 flex flex-col items-center justify-center">
+    <div className="w-full py-16 sm:py-20 px-6 text-center my-4 flex flex-col items-center justify-center">
       {/* Subtle, minimal diary/notebook icon */}
       <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center mb-5 text-blue-500 shadow-none">
         <BookOpen size={26} strokeWidth={1.8} />
@@ -71,12 +71,12 @@ export default function DiaryEmptyState({
         <button
           type="button"
           onClick={onCreateNew}
-          className="btn-accent-solid mt-6 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-white bg-blue-600 hover:bg-blue-500 shadow-none transition-colors cursor-pointer"
+          className="btn-accent-solid mt-6 inline-flex items-center gap-2 px-4.5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-white bg-blue-600 hover:bg-blue-500 shadow-none transition-colors cursor-pointer"
           style={{ color: "#FFFFFF" }}
         >
-          <Plus size={16} strokeWidth={2.4} style={{ color: "#FFFFFF" }} />
+          <Plus size={15} strokeWidth={2.4} style={{ color: "#FFFFFF" }} />
           <span>
-            {lang === "bn" ? "+ আপনার প্রথম ডায়েরি তৈরি করুন" : "+ Create Your First Diary"}
+            {lang === "bn" ? "আপনার প্রথম ডায়েরি তৈরি করুন" : "Create Your First Diary"}
           </span>
         </button>
       )}
