@@ -230,61 +230,14 @@ export default function RootLayout({
             __html: `(function(){try{var t=localStorage.getItem('focusforge_theme');var isDark=true;if(t){if(t==='light'){isDark=false;}else if(t==='system'){isDark=window.matchMedia('(prefers-color-scheme: dark)').matches;}else{isDark=true;}}else{var d=localStorage.getItem('focusforge_data');if(d){var s=JSON.parse(d);if(s&&s.theme&&s.theme.mode){if(s.theme.mode==='light'){isDark=false;}else if(s.theme.mode==='system'){isDark=window.matchMedia('(prefers-color-scheme: dark)').matches;}else{isDark=true;}}else{isDark=true;}}else{isDark=true;}}var root=document.documentElement;if(isDark){root.dataset.theme='dark';root.classList.add('dark');root.classList.remove('light');root.style.colorScheme='dark';}else{root.dataset.theme='light';root.classList.remove('dark');root.classList.add('light');root.style.colorScheme='light';}}catch(e){}})();`,
           }}
         />
-        <meta name="theme-color" id="ff-theme-color" content="#FFFFFF" />
-        <link rel="manifest" href="/manifest.json" />
-        <meta name="mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-        <meta name="apple-mobile-web-app-title" content="FocusForge" />
-      </head>
-      <body
-        className={`${GeistSans.className} ${notoSansBengali.variable} min-h-screen antialiased bg-background text-foreground relative selection:bg-accent-hover selection:text-white`}
-      >
-        <div 
-          className="top-ambient-glow pointer-events-none fixed top-0 left-0 right-0 h-[480px] bg-[radial-gradient(ellipse_80%_60%_at_50%_-10%,rgba(37,99,235,0.28)_0%,rgba(8,9,12,0)_75%)] z-0 dark:block hidden" 
-          aria-hidden="true" 
-        />
 
-        {/* Static Launch Splash Markup (Sibling of #app-shell directly under <body>) */}
-        <div id="ff-splash" aria-hidden="true">
-          <div id="ff-splash-logo">
-            <svg viewBox="360 320 520 630" style={{ width: "100%", height: "100%", overflow: "visible" }}>
-              <g fill="#061F52">
-                <path id="ff-p1" d="M390 632V548C390 440 470 366 580 366H750C810 366 850 350 870 332C868 400 830 465 740 468H585C548 468 522 495 522 530V632Z" />
-                <path id="ff-p2" d="M853 524L856 600C858 630 845 648 832 656L500 925C490 932 460 936 417 938L497 862C560 848 595 800 598 740C598 715 592 700 585 692C650 650 760 570 853 524Z" />
-              </g>
-              <g id="ff-p3" style={{ transformOrigin: "473px 745px" }}>
-                <circle cx="473" cy="745" r="112" fill="#fff" />
-                <circle id="ff-p3-ring" cx="473" cy="745" r="97" fill="#fff" stroke="#061F52" strokeWidth="15" />
-                <g id="ff-p4" style={{ transformOrigin: "473px 745px" }} stroke="#061F52" strokeWidth="5">
-                  <path d="M473 662v16M473 812v16M390 745h16M540 745h16" />
-                </g>
-                <circle id="ff-p5" cx="473" cy="745" r="45" fill="#061F52" style={{ transformOrigin: "473px 745px" }} />
-                <circle cx="473" cy="745" r="14" fill="#fff" />
-              </g>
-            </svg>
-          </div>
-          <div id="ff-splash-word">FOCUS FORGE</div>
-        </div>
-
-        {/* Vanilla JS Launch Splash Controller (No React/Bundle dependency) */}
+        {/* Vanilla JS Launch Splash Controller (Runs in Head, zero React/Bundle dependency) */}
         <script
           dangerouslySetInnerHTML={{
             __html: `(function() {
   if (!document.documentElement.classList.contains('ff-launch')) return;
 
   var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  var splash = document.getElementById('ff-splash');
-  var logo = document.getElementById('ff-splash-logo');
-  var word = document.getElementById('ff-splash-word');
-  var p1 = document.getElementById('ff-p1');
-  var p2 = document.getElementById('ff-p2');
-  var p3 = document.getElementById('ff-p3');
-  var p3Ring = document.getElementById('ff-p3-ring');
-  var p4 = document.getElementById('ff-p4');
-  var p5 = document.getElementById('ff-p5');
-
-  if (!splash || !logo || !word) return;
 
   var readyResolver;
   var readyPromise = new Promise(function(resolve) {
@@ -343,6 +296,7 @@ export default function RootLayout({
 
   var cleanupAndFinish = function(targetSlot) {
     try {
+      var splash = document.getElementById('ff-splash');
       if (splash && splash.parentNode) {
         splash.parentNode.removeChild(splash);
       }
@@ -363,6 +317,21 @@ export default function RootLayout({
   };
 
   var runLaunch = async function() {
+    var splash = document.getElementById('ff-splash');
+    var logo = document.getElementById('ff-splash-logo');
+    var word = document.getElementById('ff-splash-word');
+    var p1 = document.getElementById('ff-p1');
+    var p2 = document.getElementById('ff-p2');
+    var p3 = document.getElementById('ff-p3');
+    var p3Ring = document.getElementById('ff-p3-ring');
+    var p4 = document.getElementById('ff-p4');
+    var p5 = document.getElementById('ff-p5');
+
+    if (!splash || !logo || !word) {
+      cleanupAndFinish(null);
+      return;
+    }
+
     if (reduce) {
       await Promise.race([readyPromise, wait(1500)]);
       var appShell = document.getElementById('app-shell');
@@ -533,6 +502,43 @@ export default function RootLayout({
 })();`,
           }}
         />
+
+        <meta name="theme-color" id="ff-theme-color" content="#FFFFFF" />
+        <link rel="manifest" href="/manifest.json" />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta name="apple-mobile-web-app-title" content="FocusForge" />
+      </head>
+      <body
+        className={`${GeistSans.className} ${notoSansBengali.variable} min-h-screen antialiased bg-background text-foreground relative selection:bg-accent-hover selection:text-white`}
+      >
+        <div 
+          className="top-ambient-glow pointer-events-none fixed top-0 left-0 right-0 h-[480px] bg-[radial-gradient(ellipse_80%_60%_at_50%_-10%,rgba(37,99,235,0.28)_0%,rgba(8,9,12,0)_75%)] z-0 dark:block hidden" 
+          aria-hidden="true" 
+        />
+
+        {/* Static Launch Splash Markup (Sibling of #app-shell directly under <body>) */}
+        <div id="ff-splash" aria-hidden="true">
+          <div id="ff-splash-logo">
+            <svg viewBox="360 320 520 630" style={{ width: "100%", height: "100%", overflow: "visible" }}>
+              <g fill="#061F52">
+                <path id="ff-p1" d="M390 632V548C390 440 470 366 580 366H750C810 366 850 350 870 332C868 400 830 465 740 468H585C548 468 522 495 522 530V632Z" />
+                <path id="ff-p2" d="M853 524L856 600C858 630 845 648 832 656L500 925C490 932 460 936 417 938L497 862C560 848 595 800 598 740C598 715 592 700 585 692C650 650 760 570 853 524Z" />
+              </g>
+              <g id="ff-p3" style={{ transformOrigin: "473px 745px" }}>
+                <circle cx="473" cy="745" r="112" fill="#fff" />
+                <circle id="ff-p3-ring" cx="473" cy="745" r="97" fill="#fff" stroke="#061F52" strokeWidth="15" />
+                <g id="ff-p4" style={{ transformOrigin: "473px 745px" }} stroke="#061F52" strokeWidth="5">
+                  <path d="M473 662v16M473 812v16M390 745h16M540 745h16" />
+                </g>
+                <circle id="ff-p5" cx="473" cy="745" r="45" fill="#061F52" style={{ transformOrigin: "473px 745px" }} />
+                <circle cx="473" cy="745" r="14" fill="#fff" />
+              </g>
+            </svg>
+          </div>
+          <div id="ff-splash-word">FOCUS FORGE</div>
+        </div>
 
         <AppProvider>
           <AuthProvider>
