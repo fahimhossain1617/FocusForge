@@ -452,7 +452,18 @@ export const TRANSLATIONS = {
         mustDiffer: "New password must differ from your current password.",
         confirmMatch: "Password confirmation does not match.",
         successToast: "Password updated successfully. You remain securely signed in.",
-        errorToast: "Failed to update password. Please check your current password."
+        errorToast: "Failed to update password. Please check your current password.",
+        forgotPassword: "Forgot Password?",
+        forgotPasswordDesc: "Enter your email address to receive a password reset link.",
+        sendResetLink: "Send Reset Link",
+        sendingResetLink: "Sending Link...",
+        resetLinkSentTitle: "Reset Link Sent",
+        resetLinkSentDesc: "We've sent a password reset link to",
+        resetCheckSpam: "Please check your inbox and spam folder to reset your password.",
+        backToChangePassword: "Back to Change Password",
+        resendLink: "Resend Link",
+        emailRequired: "Email address is required.",
+        invalidEmail: "Please enter a valid email address."
       },
       notifications: {
         title: "Notifications",
@@ -1404,7 +1415,18 @@ export const TRANSLATIONS = {
         mustDiffer: "নতুন পাসওয়ার্ড বর্তমান পাসওয়ার্ড থেকে ভিন্ন হতে হবে।",
         confirmMatch: "পাসওয়ার্ড নিশ্চিতকরণ মেলেনি।",
         successToast: "পাসওয়ার্ড সফলভাবে আপডেট করা হয়েছে। আপনি সাইন-ইন অবস্থায় রয়েছেন।",
-        errorToast: "পাসওয়ার্ড পরিবর্তন করা যায়নি। দয়া করে বর্তমান পাসওয়ার্ডটি যাচাই করুন।"
+        errorToast: "পাসওয়ার্ড পরিবর্তন করা যায়নি। দয়া করে বর্তমান পাসওয়ার্ডটি যাচাই করুন।",
+        forgotPassword: "পাসওয়ার্ড ভুলে গেছেন?",
+        forgotPasswordDesc: "পাসওয়ার্ড রিসেট লিঙ্ক পেতে আপনার ইমেইল ঠিকানা দিন।",
+        sendResetLink: "রিসেট লিঙ্ক পাঠান",
+        sendingResetLink: "লিঙ্ক পাঠানো হচ্ছে...",
+        resetLinkSentTitle: "রিসেট লিঙ্ক পাঠানো হয়েছে",
+        resetLinkSentDesc: "আমরা পাসওয়ার্ড রিসেট লিঙ্ক পাঠিয়েছি:",
+        resetCheckSpam: "দয়া করে নতুন পাসওয়ার্ড সেট করতে আপনার ইনবক্স এবং স্প্যাম ফোল্ডার চেক করুন।",
+        backToChangePassword: "পাসওয়ার্ড পরিবর্তনে ফিরে যান",
+        resendLink: "পুনরায় লিঙ্ক পাঠান",
+        emailRequired: "ইমেইল প্রদান করা আবশ্যক।",
+        invalidEmail: "একটি সঠিক ইমেইল প্রদান করুন।"
       },
       notifications: {
         title: "নোটিফিকেশন",

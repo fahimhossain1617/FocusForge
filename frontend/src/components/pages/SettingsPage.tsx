@@ -331,6 +331,46 @@ export default function SettingsPage() {
   const [passwordErrors, setPasswordErrors] = useState<{ current?: string; new?: string; confirm?: string }>({});
   const [isChangingPassword, setIsChangingPassword] = useState(false);
 
+  // Forgot password flow state within Settings
+  const [isForgotPasswordMode, setIsForgotPasswordMode] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [forgotEmailError, setForgotEmailError] = useState("");
+  const [isSendingReset, setIsSendingReset] = useState(false);
+  const [resetSentSuccess, setResetSentSuccess] = useState(false);
+
+  const handleSendForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setForgotEmailError("");
+
+    const targetEmail = (forgotEmail || user?.email || "").trim().toLowerCase();
+    if (!targetEmail) {
+      setForgotEmailError(t.settings.passwordSecurity.emailRequired || "Email address is required.");
+      return;
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(targetEmail)) {
+      setForgotEmailError(t.settings.passwordSecurity.invalidEmail || "Please enter a valid email address.");
+      return;
+    }
+
+    setIsSendingReset(true);
+    try {
+      const res = await authService.sendPasswordResetEmail(targetEmail);
+      if (res.success) {
+        setResetSentSuccess(true);
+        showToast(t.settings.passwordSecurity.resetLinkSentTitle || "Password reset link sent to your email.", "success");
+      } else {
+        setForgotEmailError(res.error || "Failed to send reset link. Please try again.");
+        showToast(res.error || "Failed to send reset link.", "error");
+      }
+    } catch {
+      setForgotEmailError("An unexpected error occurred. Please try again.");
+      showToast("Failed to send reset link.", "error");
+    } finally {
+      setIsSendingReset(false);
+    }
+  };
+
   const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
     const errors: { current?: string; new?: string; confirm?: string } = {};
@@ -342,7 +382,7 @@ export default function SettingsPage() {
     if (!newPassword || newPassword.length < 8) {
       errors.new = t.settings.passwordSecurity.minLength;
     } else if (!/[A-Z]/.test(newPassword) || !/[0-9]/.test(newPassword) || !/[^a-zA-Z0-9]/.test(newPassword)) {
-      errors.new = "Password must include an uppercase letter, a number, and a special character.";
+      errors.new = t.settings.passwordSecurity.letterAndNumber || "New password must include at least one uppercase letter, one number, and one special character.";
     } else if (newPassword === currentPassword) {
       errors.new = t.settings.passwordSecurity.mustDiffer;
     }
@@ -644,6 +684,10 @@ export default function SettingsPage() {
       console.warn("[Feedback submission background error]:", err);
     });
   };
+
+    // AI Privacy & Memory State
+  const [showClearMemoryConfirm, setShowClearMemoryConfirm] = useState(false);
+  const [isClearingMemory, setIsClearingMemory] = useState(false);
 
   // =========================================================================
   // PRIVACY > DELETE ACCOUNT STATE & HANDLERS
@@ -1258,19 +1302,157 @@ export default function SettingsPage() {
                 <div className="text-sm text-[var(--color-text-secondary)] py-2 leading-relaxed">
                   {t.settings.passwordSecurity.googleNotice}
                 </div>
+              ) : isForgotPasswordMode ? (
+                /* Forgot Password Request Mode */
+                <div className="space-y-5 max-w-md animate-fade-in">
+                  <div className="flex items-center gap-2 mb-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsForgotPasswordMode(false);
+                        setForgotEmailError("");
+                        setResetSentSuccess(false);
+                      }}
+                      className="p-1.5 -ml-1.5 rounded-xl text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface)] border border-transparent hover:border-[var(--color-border-subtle)] transition-colors cursor-pointer"
+                      aria-label="Back"
+                    >
+                      <ArrowLeft size={16} />
+                    </button>
+                    <div>
+                      <h2 className="text-sm font-semibold text-[var(--color-text-primary)]">
+                        {t.settings.passwordSecurity.forgotPassword || "Forgot Password?"}
+                      </h2>
+                      <p className="text-xs text-[var(--color-text-secondary)] mt-0.5">
+                        {t.settings.passwordSecurity.forgotPasswordDesc || "Enter your email address to receive a password reset link."}
+                      </p>
+                    </div>
+                  </div>
+
+                  {resetSentSuccess ? (
+                    <div className="space-y-4">
+                      <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/25 space-y-2">
+                        <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 font-semibold text-xs">
+                          <Check size={16} />
+                          <span>{t.settings.passwordSecurity.resetLinkSentTitle || "Reset Link Sent"}</span>
+                        </div>
+                        <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed">
+                          {t.settings.passwordSecurity.resetLinkSentDesc || "We've sent a password reset link to"}{" "}
+                          <strong className="text-[var(--color-text-primary)] font-semibold">{forgotEmail || user?.email}</strong>.
+                        </p>
+                        <p className="text-xs text-[var(--color-text-muted)] leading-relaxed">
+                          {t.settings.passwordSecurity.resetCheckSpam || "Please check your inbox and spam folder to reset your password."}
+                        </p>
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-2 pt-1">
+                        <button
+                          type="button"
+                          onClick={handleSendForgotPassword}
+                          disabled={isSendingReset}
+                          className="px-4 py-2.5 rounded-xl text-xs font-semibold text-blue-600 dark:text-blue-400 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 transition-colors cursor-pointer disabled:opacity-50 min-h-[42px]"
+                        >
+                          {isSendingReset
+                            ? (t.settings.passwordSecurity.sendingResetLink || "Sending...")
+                            : (t.settings.passwordSecurity.resendLink || "Resend Link")}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsForgotPasswordMode(false);
+                            setResetSentSuccess(false);
+                          }}
+                          className="px-4 py-2.5 rounded-xl text-xs font-semibold text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface)] border border-[var(--color-border-subtle)] transition-colors cursor-pointer min-h-[42px]"
+                        >
+                          {t.settings.passwordSecurity.backToChangePassword || "Back to Change Password"}
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <form onSubmit={handleSendForgotPassword} className="space-y-4">
+                      <div>
+                        <label className="block text-xs font-medium text-[var(--color-text-primary)] mb-1.5">
+                          {t.auth.emailAddress || "Email Address"}
+                        </label>
+                        <div className="relative">
+                          <Mail size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] pointer-events-none z-10" />
+                          <input
+                            type="email"
+                            required
+                            value={forgotEmail}
+                            onChange={(e) => {
+                              setForgotEmail(e.target.value);
+                              setForgotEmailError("");
+                            }}
+                            placeholder="name@example.com"
+                            className={`w-full pl-10 pr-3.5 py-2.5 rounded-xl text-sm bg-[var(--color-surface)] border ${
+                              forgotEmailError
+                                ? "border-red-500 focus:border-red-500 ring-1 ring-red-500/20"
+                                : "border-[var(--color-border-subtle)] focus:border-blue-500"
+                            } text-[var(--color-text-primary)] focus:outline-none transition-colors min-h-[44px]`}
+                          />
+                        </div>
+                        {forgotEmailError && (
+                          <p className="text-xs text-red-500 dark:text-red-400 font-medium mt-1.5 flex items-center gap-1" style={{ color: '#EF4444' }}>
+                            {forgotEmailError}
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-2 pt-1">
+                        <button
+                          type="submit"
+                          disabled={isSendingReset}
+                          className="px-5 py-2.5 rounded-xl text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 transition-colors shadow-none cursor-pointer disabled:opacity-50 min-h-[44px]"
+                        >
+                          {isSendingReset
+                            ? (t.settings.passwordSecurity.sendingResetLink || "Sending...")
+                            : (t.settings.passwordSecurity.sendResetLink || "Send Reset Link")}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsForgotPasswordMode(false);
+                            setForgotEmailError("");
+                          }}
+                          className="px-4 py-2.5 rounded-xl text-xs font-semibold text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface)] border border-[var(--color-border-subtle)] transition-colors cursor-pointer min-h-[44px]"
+                        >
+                          {t.settings.passwordSecurity.backToChangePassword || "Cancel"}
+                        </button>
+                      </div>
+                    </form>
+                  )}
+                </div>
               ) : (
                 <form onSubmit={handleChangePassword} className="space-y-4 max-w-md">
                   {/* Current Password */}
                   <div>
-                    <label className="block text-xs font-medium text-[var(--color-text-primary)] mb-1.5">
-                      {t.settings.passwordSecurity.currentPassword}
-                    </label>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="block text-xs font-medium text-[var(--color-text-primary)]">
+                        {t.settings.passwordSecurity.currentPassword}
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsForgotPasswordMode(true);
+                          setForgotEmail(user?.email || "");
+                          setForgotEmailError("");
+                          setResetSentSuccess(false);
+                        }}
+                        className="text-xs text-blue-500 hover:text-blue-600 dark:text-blue-400 font-medium hover:underline cursor-pointer"
+                      >
+                        {t.settings.passwordSecurity.forgotPassword || "Forgot Password?"}
+                      </button>
+                    </div>
                     <div className="relative">
                       <input
                         type={showCurrentPassword ? "text" : "password"}
                         value={currentPassword}
                         onChange={(e) => setCurrentPassword(e.target.value)}
-                        className="w-full pl-3.5 pr-10 py-2.5 rounded-xl text-sm bg-[var(--color-surface)] border border-[var(--color-border-subtle)] text-[var(--color-text-primary)] focus:outline-none focus:border-blue-500 transition-colors min-h-[44px]"
+                        className={`w-full pl-3.5 pr-10 py-2.5 rounded-xl text-sm bg-[var(--color-surface)] border ${
+                          passwordErrors.current
+                            ? "border-red-500 focus:border-red-500 ring-1 ring-red-500/20"
+                            : "border-[var(--color-border-subtle)] focus:border-blue-500"
+                        } text-[var(--color-text-primary)] focus:outline-none transition-colors min-h-[44px]`}
                       />
                       <button
                         type="button"
@@ -1282,7 +1464,23 @@ export default function SettingsPage() {
                       </button>
                     </div>
                     {passwordErrors.current && (
-                      <p className="text-xs text-red-500 mt-1">{passwordErrors.current}</p>
+                      <div className="mt-1.5 flex items-center justify-between gap-2">
+                        <p className="text-xs text-red-500 dark:text-red-400 font-medium" style={{ color: '#EF4444' }}>
+                          {passwordErrors.current}
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsForgotPasswordMode(true);
+                            setForgotEmail(user?.email || "");
+                            setForgotEmailError("");
+                            setResetSentSuccess(false);
+                          }}
+                          className="text-xs text-blue-500 hover:text-blue-600 dark:text-blue-400 font-medium hover:underline cursor-pointer shrink-0"
+                        >
+                          {t.settings.passwordSecurity.forgotPassword || "Forgot Password?"}
+                        </button>
+                      </div>
                     )}
                   </div>
 
@@ -1296,7 +1494,11 @@ export default function SettingsPage() {
                         type={showNewPassword ? "text" : "password"}
                         value={newPassword}
                         onChange={(e) => setNewPassword(e.target.value)}
-                        className="w-full pl-3.5 pr-10 py-2.5 rounded-xl text-sm bg-[var(--color-surface)] border border-[var(--color-border-subtle)] text-[var(--color-text-primary)] focus:outline-none focus:border-blue-500 transition-colors min-h-[44px]"
+                        className={`w-full pl-3.5 pr-10 py-2.5 rounded-xl text-sm bg-[var(--color-surface)] border ${
+                          passwordErrors.new
+                            ? "border-red-500 focus:border-red-500 ring-1 ring-red-500/20"
+                            : "border-[var(--color-border-subtle)] focus:border-blue-500"
+                        } text-[var(--color-text-primary)] focus:outline-none transition-colors min-h-[44px]`}
                       />
                       <button
                         type="button"
@@ -1308,7 +1510,9 @@ export default function SettingsPage() {
                       </button>
                     </div>
                     {passwordErrors.new && (
-                      <p className="text-xs text-red-500 mt-1">{passwordErrors.new}</p>
+                      <p className="text-xs text-red-500 dark:text-red-400 font-medium mt-1.5" style={{ color: '#EF4444' }}>
+                        {passwordErrors.new}
+                      </p>
                     )}
                   </div>
 
@@ -1322,7 +1526,11 @@ export default function SettingsPage() {
                         type={showConfirmPassword ? "text" : "password"}
                         value={confirmPassword}
                         onChange={(e) => setConfirmPassword(e.target.value)}
-                        className="w-full pl-3.5 pr-10 py-2.5 rounded-xl text-sm bg-[var(--color-surface)] border border-[var(--color-border-subtle)] text-[var(--color-text-primary)] focus:outline-none focus:border-blue-500 transition-colors min-h-[44px]"
+                        className={`w-full pl-3.5 pr-10 py-2.5 rounded-xl text-sm bg-[var(--color-surface)] border ${
+                          passwordErrors.confirm
+                            ? "border-red-500 focus:border-red-500 ring-1 ring-red-500/20"
+                            : "border-[var(--color-border-subtle)] focus:border-blue-500"
+                        } text-[var(--color-text-primary)] focus:outline-none transition-colors min-h-[44px]`}
                       />
                       <button
                         type="button"
@@ -1334,7 +1542,9 @@ export default function SettingsPage() {
                       </button>
                     </div>
                     {passwordErrors.confirm && (
-                      <p className="text-xs text-red-500 mt-1">{passwordErrors.confirm}</p>
+                      <p className="text-xs text-red-500 dark:text-red-400 font-medium mt-1.5" style={{ color: '#EF4444' }}>
+                        {passwordErrors.confirm}
+                      </p>
                     )}
                   </div>
 
@@ -2354,10 +2564,7 @@ export default function SettingsPage() {
                 </div>
                 <button
                   type="button"
-                  onClick={async () => {
-                    await aiMemoryService.clearAllMemories(user?.id);
-                    showToast(isBn ? "সকল লোকাল এআই মেমোরি সফলভাবে মুছে ফেলা হয়েছে!" : "Local AI memory cleared!", "success");
-                  }}
+                  onClick={() => setShowClearMemoryConfirm(true)}
                   className="px-4 py-2 rounded-xl text-xs font-medium text-red-500 hover:text-white hover:bg-red-500/90 border border-red-500/30 transition-colors cursor-pointer flex items-center"
                 >
                   <Trash2 size={13} className="mr-1.5" />
@@ -2365,6 +2572,71 @@ export default function SettingsPage() {
                 </button>
               </div>
             </div>
+
+            {/* Clear Memory Confirmation Modal */}
+            {showClearMemoryConfirm && (
+              <div
+                className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/25"
+                onClick={() => {
+                  if (!isClearingMemory) setShowClearMemoryConfirm(false);
+                }}
+              >
+                <div
+                  className="relative w-full max-w-sm rounded-2xl border border-[var(--color-border-subtle)] bg-[var(--color-surface-elevated)] p-6 shadow-none flex flex-col gap-4 text-center items-center"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="w-11 h-11 rounded-xl bg-red-500/10 text-red-500 flex items-center justify-center">
+                    <Trash2 size={20} />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <h3 className="text-base font-semibold text-[var(--color-text-primary)]">
+                      {isBn ? "লোকাল এআই মেমোরি মুছে ফেলতে চান?" : "Clear AI Local Memory?"}
+                    </h3>
+                    <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed">
+                      {isBn
+                        ? "আপনি কি নিশ্চিত যে এই ডিভাইসে সংরক্ষিত সমস্ত ব্যক্তিগত এআই মেমোরি ও পছন্দ মুছে ফেলতে চান? এটি আর ফিরিয়ে আনা যাবে না।"
+                        : "Are you sure you want to erase all learned preferences and local AI memories on this device? This action cannot be undone."}
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3 w-full pt-2">
+                    <button
+                      type="button"
+                      disabled={isClearingMemory}
+                      onClick={() => setShowClearMemoryConfirm(false)}
+                      className="w-full px-4 py-2.5 rounded-xl text-xs font-medium text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-hover)] border border-[var(--color-border-subtle)] transition-colors cursor-pointer disabled:opacity-50"
+                    >
+                      {isBn ? "বাতিল" : "Cancel"}
+                    </button>
+                    <button
+                      type="button"
+                      disabled={isClearingMemory}
+                      onClick={async () => {
+                        setIsClearingMemory(true);
+                        try {
+                          await aiMemoryService.clearAllMemories(user?.id);
+                          showToast(
+                            isBn ? "সকল লোকাল এআই মেমোরি সফলভাবে মুছে ফেলা হয়েছে!" : "Local AI memory cleared!",
+                            "success"
+                          );
+                          setShowClearMemoryConfirm(false);
+                        } finally {
+                          setIsClearingMemory(false);
+                        }
+                      }}
+                      className="w-full px-4 py-2.5 rounded-xl text-xs font-medium text-white bg-red-600 hover:bg-red-700 transition-colors shadow-none cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-50"
+                    >
+                      {isClearingMemory ? (
+                        <span>{isBn ? "মুছে ফেলা হচ্ছে..." : "Clearing..."}</span>
+                      ) : (
+                        <span>{isBn ? "হ্যাঁ, মুছে ফেলুন" : "Yes, Clear"}</span>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         );
       }

@@ -130,7 +130,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         if (session && session.user && isMounted) {
           const isCurrentlyOnline = typeof navigator === "undefined" || navigator.onLine;
-          const u = session.user;
+          const u = session.user as any;
           const meta = u.user_metadata || {};
           let activeUser: User = {
             id: u.id,
@@ -146,7 +146,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             city: meta.city || "",
             bio: meta.bio || "",
             avatarUrl: meta.avatar_url || undefined,
-            createdAt: u.created_at,
+            createdAt: u.created_at || u.createdAt,
           };
 
           if (isCurrentlyOnline) {
