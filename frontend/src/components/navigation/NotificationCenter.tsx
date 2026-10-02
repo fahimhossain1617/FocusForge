@@ -180,14 +180,10 @@ export default function NotificationCenter({ isOpen, onClose }: NotificationCent
     <AnimatePresence>
       {isOpen && (
         <>
-          {/* Backdrop for mobile & desktop outside clicks */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.18 }}
+          {/* Backdrop for mobile & desktop outside clicks (Transparent to keep background completely normal) */}
+          <div
             onClick={onClose}
-            className="fixed inset-0 z-50 bg-black/40 dark:bg-black/60"
+            className="fixed inset-0 z-50 bg-transparent"
             aria-hidden="true"
           />
 
@@ -306,18 +302,18 @@ export default function NotificationCenter({ isOpen, onClose }: NotificationCent
               </div>
             </div>
 
-            {/* 2. Permission Banner (If browser permission is default) */}
+            {/* 2. Permission Banner (Seamless unboxed inline row) */}
             {browserPermission === "default" && activeTab === "history" && (
               <div
-                className={`mx-4 mt-3 px-3.5 py-2.5 rounded-xl border flex items-center justify-between gap-2 shrink-0 ${
+                className={`px-5 py-2.5 border-b flex items-center justify-between gap-3 shrink-0 ${
                   isLight
-                    ? "bg-[#EEF3FB] border-[#D5DEEE] text-[#0B1F54]"
-                    : "bg-[#0A1224] border-[#22346B] text-[#EAF1FF]"
+                    ? "border-[#D5DEEE]/60 text-slate-700 bg-blue-50/40"
+                    : "border-[#22346B]/60 text-slate-200 bg-white/[0.02]"
                 }`}
               >
                 <div className="flex items-center gap-2 min-w-0">
                   <Info size={14} className="text-[#1D4ED8] dark:text-[#3B82F6] shrink-0" />
-                  <p className="text-xs truncate">
+                  <p className="text-xs">
                     {isBn
                       ? "সময়মতো রিমাইন্ডার পেতে ব্রাউজার অনুমতি দিন"
                       : "Allow browser notifications for timely reminders"}
@@ -326,7 +322,7 @@ export default function NotificationCenter({ isOpen, onClose }: NotificationCent
                 <button
                   type="button"
                   onClick={requestBrowserPermission}
-                  className="px-3 py-1 text-[11px] font-bold bg-[#1D4ED8] dark:bg-[#3B82F6] hover:opacity-90 text-white rounded-full transition-all shrink-0 cursor-pointer active:scale-95"
+                  className="px-3 py-1 text-[11px] font-bold bg-[#1D4ED8] dark:bg-[#3B82F6] hover:opacity-90 text-white rounded-lg transition-all shrink-0 cursor-pointer active:scale-95 shadow-none"
                 >
                   {isBn ? "অনুমতি দিন" : "Enable"}
                 </button>

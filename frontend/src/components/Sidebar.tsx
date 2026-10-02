@@ -107,7 +107,7 @@ export default function Sidebar({
 
   const isGuestMode = !user || isGuest;
   const isLight = state.theme?.mode === "light";
-  const logoSrc = isLight ? "/logo-light.png" : "/icons/icon-192x192.png";
+  const logoSrc = isLight ? "/logo-light.png" : "/logo.png";
 
   const rawUserName = user?.fullName || user?.displayName?.replace(/^\+8800/, "+880").replace(/^8800/, "+880") || (user?.identifier ? user.identifier.replace(/^\+8800/, "+880").replace(/^8800/, "+880") : (state.lang === 'bn' ? "গেস্ট" : "Guest"));
   const userName = isGuestMode ? (state.lang === 'bn' ? "গেস্ট ইউজার" : "Guest User") : rawUserName.trim();
@@ -161,27 +161,13 @@ export default function Sidebar({
             {/* FocusForge App Icon Slot */}
             <div
               data-ff-launch-slot="sidebar"
-              className="relative w-8 h-8 rounded-xl shrink-0 overflow-hidden select-none"
+              className="slot relative w-8 h-8 rounded-xl shrink-0 select-none"
               style={{ width: "32px", height: "32px", minWidth: "32px", minHeight: "32px" }}
             >
-              <div data-ff-launch-mark className="absolute inset-0 w-full h-full flex items-center justify-center">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img 
-                  src="/logo-light.png" 
-                  alt="FocusForge Logo" 
-                  className={`absolute inset-0 w-full h-full object-contain transition-opacity duration-600 ease-in-out ${
-                    isLight ? "opacity-100" : "opacity-0 pointer-events-none"
-                  }`} 
-                />
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img 
-                  src="/icons/icon-192x192.png" 
-                  alt="FocusForge Logo" 
-                  className={`absolute inset-0 w-full h-full object-contain transition-opacity duration-600 ease-in-out ${
-                    !isLight ? "opacity-100" : "opacity-0 pointer-events-none"
-                  }`} 
-                />
-              </div>
+              <span className="tile" />
+              <svg data-ff-launch-mark className="mk" viewBox="360 320 520 630">
+                <use href="#ff-mark" />
+              </svg>
             </div>
 
             {/* Brand Title (Hidden when collapsed on desktop) */}

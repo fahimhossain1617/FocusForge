@@ -339,18 +339,9 @@ function NavTabButton({
           />
         )}
 
-        {/* Icon with Selection Tilt/Wiggle Animation */}
-        <motion.div
-          animate={
-            isJustSelected
-              ? { rotate: [0, -14, 7, 0] }
-              : { rotate: 0 }
-          }
-          transition={{ duration: 0.32, ease: "easeInOut" }}
-          onAnimationComplete={() => {
-            if (isJustSelected) onAnimationDone();
-          }}
-          className={`relative z-10 flex items-center justify-center transition-colors duration-250 ${
+        {/* Icon */}
+        <div
+          className={`relative z-10 flex items-center justify-center transition-colors duration-200 ${
             isActive
               ? isLight
                 ? "text-[#223A5E]"
@@ -361,7 +352,7 @@ function NavTabButton({
           }`}
         >
           <Icon size={22} strokeWidth={isActive ? 2.3 : 1.85} />
-        </motion.div>
+        </div>
 
         {/* Tab Label */}
         <span

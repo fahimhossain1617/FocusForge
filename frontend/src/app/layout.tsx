@@ -93,8 +93,6 @@ export default function RootLayout({
         <script
           dangerouslySetInnerHTML={{
             __html: `(function(){
-  var LAUNCH_AWAY_MINUTES = 20;
-  window.LAUNCH_AWAY_MINUTES = LAUNCH_AWAY_MINUTES;
   try {
     var navEntries = (window.performance && typeof performance.getEntriesByType === 'function')
       ? performance.getEntriesByType('navigation')
@@ -103,40 +101,25 @@ export default function RootLayout({
     if (!navType && window.performance && window.performance.navigation) {
       if (window.performance.navigation.type === 1) navType = 'reload';
       else if (window.performance.navigation.type === 2) navType = 'back_forward';
+      else if (window.performance.navigation.type === 0) navType = 'navigate';
     }
+
     var isReload = (navType === 'reload');
     var isBackForward = (navType === 'back_forward');
 
     var sessionPlayed = false;
-    try { sessionPlayed = !!sessionStorage.getItem('ff_launch'); } catch(e) {}
+    try {
+      sessionPlayed = !!sessionStorage.getItem('ff_launch');
+    } catch(e) {}
 
-    var lastActive = 0;
-    try { lastActive = parseInt(localStorage.getItem('ff_last_active') || '0', 10); } catch(e) {}
-
-    var now = Date.now();
-    var isAwayExpired = (lastActive > 0) && ((now - lastActive) > (LAUNCH_AWAY_MINUTES * 60 * 1000));
-
-    var isStandalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || (window.navigator && window.navigator.standalone);
-    if (isStandalone && window.history && window.history.length <= 1 && !isReload && !isBackForward) {
-      sessionPlayed = false;
-    }
-
-    var shouldPlay = (!isReload && !isBackForward) && (!sessionPlayed || isAwayExpired);
+    var shouldPlay = (!isReload && !isBackForward && !sessionPlayed);
 
     if (shouldPlay) {
       document.documentElement.classList.add('ff-launch');
       try {
         sessionStorage.setItem('ff_launch', '1');
-        localStorage.setItem('ff_last_active', String(now));
       } catch(e) {}
     }
-
-    var recordActive = function() {
-      try { localStorage.setItem('ff_last_active', String(Date.now())); } catch(e) {}
-    };
-    window.addEventListener('visibilitychange', recordActive);
-    window.addEventListener('pagehide', recordActive);
-    window.addEventListener('beforeunload', recordActive);
   } catch(e) {}
 })();`,
           }}
@@ -149,13 +132,20 @@ export default function RootLayout({
               @property --logo {
                 syntax: '<color>';
                 inherits: true;
-                initial-value: #061F52;
+                initial-value: #061f52;
               }
-              :root { --logo-ui: #2F5FD0; }
-              [data-theme="dark"] { --logo-ui: #9DB8FF; }
 
-              #ff-splash {
-                display: none;
+              :root {
+                --tile: #eaf0ff;
+                --logo-ui: #2f5fd0;
+                --line: #e6eaf3;
+              }
+
+              [data-theme="dark"],
+              .dark {
+                --tile: #ffffff;
+                --logo-ui: #061f52;
+                --line: #1a2547;
               }
 
               html.ff-launch,
@@ -164,61 +154,115 @@ export default function RootLayout({
                 overflow: hidden !important;
               }
 
+              html.ff-launch #root,
               html.ff-launch #app-shell {
                 visibility: hidden !important;
+              }
+
+              #ff-splash {
+                display: none;
               }
 
               html.ff-launch #ff-splash {
                 position: fixed;
                 inset: 0;
-                z-index: 2147483647;
-                background-color: #FFFFFF;
-                display: grid !important;
-                place-items: center;
-                overflow: hidden;
-                padding-top: env(safe-area-inset-top, 0px);
-                padding-bottom: env(safe-area-inset-bottom, 0px);
-                padding-left: env(safe-area-inset-left, 0px);
-                padding-right: env(safe-area-inset-right, 0px);
                 width: 100vw;
                 height: 100dvh;
-                margin: 0;
-                box-sizing: border-box;
+                background-color: #FFFFFF;
+                z-index: 999990;
+                display: block !important;
+                overflow: hidden;
+                padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
+              }
+
+              #ff-splash-logo {
+                display: none;
               }
 
               html.ff-launch #ff-splash-logo {
-                position: fixed;
-                left: 50%;
-                top: 50%;
-                width: min(40vmin, 220px);
-                aspect-ratio: 520 / 630;
-                transform: translate(-50%, -56%);
-                z-index: 2147483647;
-                transform-origin: 0 0;
-                pointer-events: none;
-              }
-
-              html.ff-launch #ff-splash-word {
+                --w: min(34vmin, 190px);
                 position: fixed;
                 left: 0;
                 right: 0;
-                top: calc(50% + min(24vmin, 130px));
-                text-align: center;
-                z-index: 2147483647;
-                font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-                font-weight: 600;
-                letter-spacing: 0.32em;
-                font-size: clamp(12px, 2.6vmin, 15px);
-                color: #061F52;
-                opacity: 0;
-                padding-left: 0.32em;
-                user-select: none;
+                top: 0;
+                bottom: 0;
+                margin: auto;
+                width: var(--w);
+                height: calc(var(--w) * 1.2115);
+                z-index: 999999;
+                transform-origin: 0 0;
                 pointer-events: none;
+                display: block !important;
               }
 
-              html.ff-launch [data-ff-launch-slot] [data-ff-launch-mark],
-              html.ff-launch [data-ff-launch-slot] img {
-                opacity: 0 !important;
+              #ff-splash-lg {
+                width: 100%;
+                height: 100%;
+                transform-origin: 50% 50%;
+                transform: scale(0.62);
+              }
+
+              #ff-splash-lg svg {
+                width: 100%;
+                height: 100%;
+                overflow: visible;
+                display: block;
+              }
+
+              /* Slot and Mark rules */
+              .slot {
+                --logo: #061f52;
+                position: relative;
+                display: block;
+                flex: none;
+                transition: --logo 0.9s ease;
+              }
+
+              .slot.settled {
+                --logo: var(--logo-ui);
+              }
+
+              .slot .tile {
+                position: absolute;
+                inset: 0;
+                border-radius: inherit;
+                background: var(--tile);
+                box-shadow: 0 1px 0 var(--line);
+                transition: background-color 0.4s ease;
+              }
+
+              .slot .mk {
+                position: absolute;
+                left: 50%;
+                top: 50%;
+                height: 62%;
+                width: auto;
+                aspect-ratio: 520 / 630;
+                transform: translate(-50%, -50%);
+                display: block;
+                overflow: visible;
+              }
+
+              /* During launch: real slot icon is hidden */
+              html.ff-launch .slot .tile {
+                opacity: 0;
+              }
+
+              html.ff-launch .slot .mk {
+                visibility: hidden;
+              }
+
+              /* Outside launch: real slot icon is immediately visible */
+              html:not(.ff-launch) .slot {
+                --logo: var(--logo-ui);
+              }
+
+              html:not(.ff-launch) .slot .tile {
+                opacity: 1;
+              }
+
+              html:not(.ff-launch) .slot .mk {
+                visibility: visible;
               }
             `,
           }}
@@ -238,6 +282,8 @@ export default function RootLayout({
   if (!document.documentElement.classList.contains('ff-launch')) return;
 
   var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var E = 'cubic-bezier(.16,1,.3,1)';
+  var M = 'cubic-bezier(.65,0,.2,1)';
 
   var readyResolver;
   var readyPromise = new Promise(function(resolve) {
@@ -254,10 +300,21 @@ export default function RootLayout({
     return new Promise(function(resolve) { setTimeout(resolve, ms); });
   };
 
+  var frames = function(n) {
+    return new Promise(function(resolve) {
+      var i = 0;
+      function f() {
+        if (++i >= n) resolve();
+        else requestAnimationFrame(f);
+      }
+      requestAnimationFrame(f);
+    });
+  };
+
   var animateHelper = function(el, keyframes, options) {
     if (!el || typeof el.animate !== 'function') return Promise.resolve();
     try {
-      var anim = el.animate(keyframes, Object.assign({ fill: 'both', easing: 'cubic-bezier(.16,1,.3,1)' }, options));
+      var anim = el.animate(keyframes, Object.assign({ fill: 'both', easing: E }, options));
       return anim.finished.catch(function() {});
     } catch(e) {
       return Promise.resolve();
@@ -269,7 +326,7 @@ export default function RootLayout({
     for (var i = 0; i < slots.length; i++) {
       var slot = slots[i];
       if (slot.offsetParent !== null) {
-        var mark = slot.querySelector('[data-ff-launch-mark]') || slot;
+        var mark = slot.querySelector('[data-ff-launch-mark]') || slot.querySelector('.mk') || slot;
         var r = mark.getBoundingClientRect();
         if (r.width > 0 && r.height > 0) {
           return { slot: slot, mark: mark, rect: r };
@@ -297,14 +354,22 @@ export default function RootLayout({
   var cleanupAndFinish = function(targetSlot) {
     try {
       var splash = document.getElementById('ff-splash');
-      if (splash && splash.parentNode) {
-        splash.parentNode.removeChild(splash);
+      if (splash) {
+        splash.style.display = 'none';
+      }
+      var logo = document.getElementById('ff-splash-logo');
+      if (logo) {
+        logo.style.display = 'none';
       }
       document.documentElement.classList.remove('ff-launch');
       var appShell = document.getElementById('app-shell');
       if (appShell) {
         appShell.style.visibility = '';
         appShell.style.clipPath = '';
+        appShell.style.zIndex = '';
+        if (typeof appShell.getAnimations === 'function') {
+          appShell.getAnimations().forEach(function(anim) { anim.cancel(); });
+        }
       }
       var isDark = document.documentElement.classList.contains('dark') || document.documentElement.dataset.theme === 'dark';
       var metaTheme = document.getElementById('ff-theme-color');
@@ -319,172 +384,121 @@ export default function RootLayout({
   var runLaunch = async function() {
     var splash = document.getElementById('ff-splash');
     var logo = document.getElementById('ff-splash-logo');
-    var word = document.getElementById('ff-splash-word');
-    var p1 = document.getElementById('ff-p1');
-    var p2 = document.getElementById('ff-p2');
-    var p3 = document.getElementById('ff-p3');
-    var p3Ring = document.getElementById('ff-p3-ring');
+    var lg = document.getElementById('ff-splash-lg');
     var p4 = document.getElementById('ff-p4');
     var p5 = document.getElementById('ff-p5');
+    var p6 = document.getElementById('ff-p6');
 
-    if (!splash || !logo || !word) {
+    if (!splash || !logo || !lg) {
       cleanupAndFinish(null);
       return;
     }
+
+    var k = 0.62;
+    lg.style.transform = 'scale(' + k + ')';
 
     if (reduce) {
-      await Promise.race([readyPromise, wait(1500)]);
+      await Promise.race([readyPromise, wait(2300)]);
       var appShell = document.getElementById('app-shell');
       if (appShell) appShell.style.visibility = 'visible';
+      document.querySelectorAll('.slot .mk').forEach(function(m) { m.style.visibility = 'visible'; });
+      document.querySelectorAll('.slot .tile').forEach(function(t) { t.style.opacity = '1'; });
+      document.querySelectorAll('.slot').forEach(function(s) { s.classList.add('settled'); });
+      await Promise.all([
+        animateHelper(splash, [{ opacity: 1 }, { opacity: 0 }], { duration: 250 }),
+        animateHelper(logo, [{ opacity: 1 }, { opacity: 0 }], { duration: 250 })
+      ]);
       cleanupAndFinish(null);
       return;
     }
 
-    await wait(200);
+    // Native splash icon handoff
+    await wait(1100);
 
-    // Assembly Part 1: Top hook descends
-    animateHelper(p1, [
-      { transform: 'translateY(-90px)', opacity: 0 },
-      { transform: 'none', opacity: 1 }
-    ], { duration: 900 });
+    lg.style.transform = '';
+    animateHelper(lg, [{ transform: 'scale(' + k + ')' }, { transform: 'scale(1)' }], { duration: 850 });
+    animateHelper(p4, [{ transform: 'rotate(-90deg)' }, { transform: 'rotate(0deg)' }], { duration: 1000, delay: 250, easing: 'cubic-bezier(.34,1.2,.64,1)' });
+    animateHelper(p6, [{ transform: 'scale(1)', opacity: 0.4 }, { transform: 'scale(1.9)', opacity: 0 }], { duration: 1100, delay: 450, fill: 'forwards' });
+    animateHelper(p5, [{ transform: 'scale(1)' }, { transform: 'scale(1.16)' }, { transform: 'scale(1)' }], { duration: 600, delay: 700, easing: 'ease-in-out' });
 
-    // Assembly Part 2: Diagonal blade enters
-    animateHelper(p2, [
-      { transform: 'translate(70px, 90px)', opacity: 0 },
-      { transform: 'none', opacity: 1 }
-    ], { duration: 900, delay: 140 });
-
-    // Assembly Part 3: Target ring scales with overshoot
-    animateHelper(p3, [
-      { transform: 'scale(0)', opacity: 0 },
-      { transform: 'scale(1.12)', opacity: 1, offset: 0.65 },
-      { transform: 'scale(1)', opacity: 1 }
-    ], { duration: 900, delay: 520, easing: 'cubic-bezier(.34,1.3,.64,1)' });
-
-    // Assembly Part 4: Crosshair ticks rotate and lock-on
-    animateHelper(p4, [
-      { transform: 'rotate(-120deg) scale(1.35)', opacity: 0 },
-      { transform: 'rotate(0) scale(1)', opacity: 1 }
-    ], { duration: 1000, delay: 800 });
-
-    // Assembly Part 5: Center dot gentle pulse
-    animateHelper(p5, [
-      { transform: 'scale(1)' },
-      { transform: 'scale(1.18)' },
-      { transform: 'scale(1)' }
-    ], { duration: 500, delay: 1500, easing: 'ease-in-out' });
-
-    // Assembly Part 6: Wordmark fades in
-    animateHelper(word, [
-      { opacity: 0, transform: 'translateY(8px)' },
-      { opacity: 1, transform: 'none' }
-    ], { duration: 700, delay: 1300 });
-
-    // Hold assembled logo
+    // Hold ~2.3s
     await wait(2300);
 
-    // Wait for app ready signal (session/auth + data + layout)
+    // Wait for app ready signal (session/auth + data + layout), max +1.5s
     await Promise.race([readyPromise, wait(1500)]);
 
     if (document.fonts && document.fonts.ready) {
       try { await document.fonts.ready; } catch(e) {}
     }
-    await new Promise(function(r) { requestAnimationFrame(function() { requestAnimationFrame(r); }); });
+    await frames(2);
 
-    var target = await waitForTargetSlot(1000);
     var appShell = document.getElementById('app-shell');
+    var target = await waitForTargetSlot(1000);
 
     if (!target) {
-      if (appShell) {
-        appShell.style.visibility = 'visible';
-        await animateHelper(splash, [{ opacity: 1 }, { opacity: 0 }], { duration: 600 });
-      }
+      // Clean fallback fade
+      if (appShell) appShell.style.visibility = 'visible';
+      document.querySelectorAll('.slot .mk').forEach(function(m) { m.style.visibility = 'visible'; });
+      document.querySelectorAll('.slot .tile').forEach(function(t) { t.style.opacity = '1'; });
+      document.querySelectorAll('.slot').forEach(function(s) { s.classList.add('settled'); });
+      await Promise.all([
+        animateHelper(splash, [{ opacity: 1 }, { opacity: 0 }], { duration: 300 }),
+        animateHelper(logo, [{ opacity: 1 }, { opacity: 0 }], { duration: 300 })
+      ]);
       cleanupAndFinish(null);
       return;
     }
 
-    var tRect = target.rect;
-    var lRect = logo.getBoundingClientRect();
-    var s = tRect.width / lRect.width;
-    var dx = tRect.left - lRect.left;
-    var dy = tRect.top - lRect.top;
+    // Flight to slot + circular reveal
+    if (appShell) {
+      appShell.style.zIndex = '999995';
+    }
 
-    logo.style.left = lRect.left + 'px';
-    logo.style.top = lRect.top + 'px';
-    logo.style.transform = 'none';
+    var t = target.mark.getBoundingClientRect();
+    var r = logo.getBoundingClientRect();
+    var s = t.width / r.width;
+    var dx = t.left - r.left;
+    var dy = t.top - r.top;
+    var cx = t.left + (t.width / 2);
+    var cy = t.top + (t.height / 2);
+    var D = 900;
 
-    var isDark = document.documentElement.classList.contains('dark') || document.documentElement.dataset.theme === 'dark';
-    var themeLogoColor = isDark ? '#9DB8FF' : '#2F5FD0';
-
-    var slotCenterX = tRect.left + (tRect.width / 2);
-    var slotCenterY = tRect.top + (tRect.height / 2);
-
-    // Circular Reveal: Reveal app shell via expanding circle from slot center
     if (appShell) {
       appShell.style.visibility = 'visible';
-      appShell.animate([
-        { clipPath: 'circle(0px at ' + slotCenterX + 'px ' + slotCenterY + 'px)' },
-        { clipPath: 'circle(150vmax at ' + slotCenterX + 'px ' + slotCenterY + 'px)' }
-      ], {
-        duration: 900,
-        easing: 'cubic-bezier(.65,0,.2,1)',
-        fill: 'forwards'
-      });
+      appShell.style.clipPath = 'circle(0px at ' + cx + 'px ' + cy + 'px)';
+      animateHelper(appShell, [
+        { clipPath: 'circle(0px at ' + cx + 'px ' + cy + 'px)' },
+        { clipPath: 'circle(150vmax at ' + cx + 'px ' + cy + 'px)' }
+      ], { duration: D + 150, easing: M, fill: 'forwards' });
     }
 
-    // Wordmark fades out early in flight
-    animateHelper(word, [{ opacity: 1 }, { opacity: 0 }], { duration: 360, fill: 'forwards' });
-
-    // Smooth color change: navy #061F52 -> theme logo color (#2F5FD0 / #9DB8FF)
-    var navy = '#061F52';
-    [p1, p2, p5].forEach(function(el) {
-      if (el) animateHelper(el, [{ fill: navy }, { fill: themeLogoColor }], { duration: 900, easing: 'cubic-bezier(.65,0,.2,1)', fill: 'forwards' });
-    });
-    [p3Ring, p4].forEach(function(el) {
-      if (el) animateHelper(el, [{ stroke: navy }, { stroke: themeLogoColor }], { duration: 900, easing: 'cubic-bezier(.65,0,.2,1)', fill: 'forwards' });
-    });
-
-    // Flight to exact target slot position
     await animateHelper(logo, [
       { transform: 'none' },
-      { transform: 'translate(' + dx + 'px, ' + dy + 'px) scale(' + s + ')' }
-    ], {
-      duration: 900,
-      easing: 'cubic-bezier(.65,0,.2,1)',
-      fill: 'forwards'
+      { transform: 'translate(' + dx + 'px,' + dy + 'px) scale(' + s + ')' }
+    ], { duration: D, easing: M, fill: 'forwards' });
+
+    // Seamless swap: flying mark -> real header icon
+    document.querySelectorAll('.slot .mk').forEach(function(m) {
+      m.style.visibility = 'visible';
     });
-
-    // Landing Morph: Reveal and scale real rounded-square tile seamlessly
-    if (target.slot) {
-      var slotChildren = target.slot.querySelectorAll('*');
-      slotChildren.forEach(function(el) { el.style.opacity = ''; });
-      target.slot.animate([
-        { transform: 'scale(0.86)', opacity: 0 },
-        { transform: 'scale(1)', opacity: 1 }
-      ], {
-        duration: 600,
-        easing: 'ease-out',
-        fill: 'forwards'
-      });
-    }
-
     logo.style.display = 'none';
-    word.style.display = 'none';
-    cleanupAndFinish(target.slot);
 
-    // Stagger dashboard cards entrance (translateY 16px -> 0, 90ms apart)
-    var cards = document.querySelectorAll('main .app-card, main [data-dashboard-card], main .rounded-2xl, main .rounded-xl');
-    cards.forEach(function(card, i) {
-      animateHelper(card, [
-        { opacity: 0, transform: 'translateY(16px)' },
+    document.querySelectorAll('.slot .tile').forEach(function(x) {
+      animateHelper(x, [
+        { opacity: 0, transform: 'scale(.86)' },
         { opacity: 1, transform: 'none' }
-      ], {
-        duration: 700,
-        delay: i * 90,
-        easing: 'cubic-bezier(.16,1,.3,1)',
-        fill: 'both'
-      });
+      ], { duration: 600, easing: 'ease-out', fill: 'forwards' });
     });
+
+    document.querySelectorAll('.slot').forEach(function(x) {
+      x.classList.add('settled');
+    });
+
+    splash.style.display = 'none';
+
+    // Wait for the tile morph to complete before full cleanup
+    await wait(350);
+    cleanupAndFinish(target.slot);
   };
 
   if (document.readyState === 'loading') {
@@ -498,19 +512,20 @@ export default function RootLayout({
     if (document.documentElement.classList.contains('ff-launch')) {
       cleanupAndFinish(null);
     }
-  }, 5500);
+  }, 6500);
 })();`,
           }}
         />
 
         <meta name="theme-color" id="ff-theme-color" content="#FFFFFF" />
-        <link rel="manifest" href="/manifest.json" />
+        <link rel="manifest" href="/manifest.webmanifest" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="apple-mobile-web-app-title" content="FocusForge" />
       </head>
       <body
+        suppressHydrationWarning
         className={`${GeistSans.className} ${notoSansBengali.variable} min-h-screen antialiased bg-background text-foreground relative selection:bg-accent-hover selection:text-white`}
       >
         <div 
@@ -518,27 +533,45 @@ export default function RootLayout({
           aria-hidden="true" 
         />
 
-        {/* Static Launch Splash Markup (Sibling of #app-shell directly under <body>) */}
-        <div id="ff-splash" aria-hidden="true">
-          <div id="ff-splash-logo">
-            <svg viewBox="360 320 520 630" style={{ width: "100%", height: "100%", overflow: "visible" }}>
-              <g fill="#061F52">
-                <path id="ff-p1" d="M390 632V548C390 440 470 366 580 366H750C810 366 850 350 870 332C868 400 830 465 740 468H585C548 468 522 495 522 530V632Z" />
-                <path id="ff-p2" d="M853 524L856 600C858 630 845 648 832 656L500 925C490 932 460 936 417 938L497 862C560 848 595 800 598 740C598 715 592 700 585 692C650 650 760 570 853 524Z" />
-              </g>
-              <g id="ff-p3" style={{ transformOrigin: "473px 745px" }}>
-                <circle cx="473" cy="745" r="112" fill="#fff" />
-                <circle id="ff-p3-ring" cx="473" cy="745" r="97" fill="#fff" stroke="#061F52" strokeWidth="15" />
-                <g id="ff-p4" style={{ transformOrigin: "473px 745px" }} stroke="#061F52" strokeWidth="5">
-                  <path d="M473 662v16M473 812v16M390 745h16M540 745h16" />
-                </g>
-                <circle id="ff-p5" cx="473" cy="745" r="45" fill="#061F52" style={{ transformOrigin: "473px 745px" }} />
-                <circle cx="473" cy="745" r="14" fill="#fff" />
-              </g>
-            </svg>
-          </div>
-          <div id="ff-splash-word">FOCUS FORGE</div>
-        </div>
+        {/* Static Launch Splash Markup (Raw HTML so React does not track internal animation DOM mutations during hydration) */}
+        <div
+          id="ff-splash-container"
+          suppressHydrationWarning
+          dangerouslySetInnerHTML={{
+            __html: `
+              <div id="ff-splash" aria-hidden="true"></div>
+              <div id="ff-splash-logo" aria-hidden="true">
+                <div id="ff-splash-lg">
+                  <svg viewBox="360 320 520 630" style="width: 100%; height: 100%; overflow: visible; display: block">
+                    <g style="fill: #061f52">
+                      <path d="M390 632V548C390 440 470 366 580 366H750C810 366 850 350 870 332C868 400 830 465 740 468H585C548 468 522 495 522 530V632Z" />
+                      <path d="M853 524L856 600C858 630 845 648 832 656L500 925C490 932 460 936 417 938L497 862C560 848 595 800 598 740C598 715 592 700 585 692C650 650 760 570 853 524Z" />
+                    </g>
+                    <circle id="ff-p6" cx="473" cy="745" r="100" fill="none" stroke="#061f52" stroke-width="6" style="opacity: 0; transform-origin: 473px 745px" />
+                    <circle cx="473" cy="745" r="97" fill="#fff" stroke="#061f52" stroke-width="15" />
+                    <g id="ff-p4" style="transform-origin: 473px 745px" stroke="#061f52" stroke-width="5">
+                      <path d="M473 662v16M473 812v16M390 745h16M540 745h16" />
+                    </g>
+                    <circle id="ff-p5" cx="473" cy="745" r="45" fill="#061f52" style="transform-origin: 473px 745px" />
+                    <circle cx="473" cy="745" r="14" fill="#fff" />
+                  </svg>
+                </div>
+              </div>
+              <svg width="0" height="0" style="position: absolute; pointer-events: none; opacity: 0">
+                <defs>
+                  <g id="ff-mark" style="fill: var(--logo, #061f52)">
+                    <path d="M390 632V548C390 440 470 366 580 366H750C810 366 850 350 870 332C868 400 830 465 740 468H585C548 468 522 495 522 530V632Z" />
+                    <path d="M853 524L856 600C858 630 845 648 832 656L500 925C490 932 460 936 417 938L497 862C560 848 595 800 598 740C598 715 592 700 585 692C650 650 760 570 853 524Z" />
+                    <circle cx="473" cy="745" r="97" stroke-width="15" style="fill: var(--tile); stroke: var(--logo, #061f52)" />
+                    <circle cx="473" cy="745" r="45" />
+                    <circle cx="473" cy="745" r="14" style="fill: var(--tile)" />
+                    <path d="M473 662v16M473 812v16M390 745h16M540 745h16" stroke-width="5" fill="none" style="stroke: var(--logo, #061f52)" />
+                  </g>
+                </defs>
+              </svg>
+            `,
+          }}
+        />
 
         <AppProvider>
           <AuthProvider>

@@ -487,7 +487,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <main className="w-full max-w-[1600px] mx-auto pb-16 space-y-6 text-foreground select-none">
+    <main className="w-full max-w-[1600px] mx-auto pb-4 md:pb-6 space-y-4 sm:space-y-6 text-foreground select-none">
       {/* Top Header: Clean, dynamic greeting with NO emojis */}
       <header className="pt-1 px-0.5 flex flex-col sm:flex-row sm:items-start justify-between gap-3 mb-6 md:mb-8">
         <div>
