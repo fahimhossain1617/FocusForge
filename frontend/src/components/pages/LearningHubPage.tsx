@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { useAnimateExit } from "../../hooks/useAnimateExit";
 import confetti from "canvas-confetti";
+import ConfirmDeleteModal from "../ui/ConfirmDeleteModal";
 
 function formatHoursMins(totalMins: number): string {
   const h = Math.floor(totalMins / 60);
@@ -83,6 +84,7 @@ export default function LearningHubPage() {
     deleteLearningLog,
     toggleLearningFolderCompletion,
     showToast,
+    setSubViewActive,
   } = useAppContext();
   const { requireAuth } = useAuth();
   const { t } = useTranslation();
@@ -102,8 +104,14 @@ export default function LearningHubPage() {
   const [practiceDetails, setPracticeDetails] = useState("");
   const [blockers, setBlockers] = useState("");
   const [isViewAllLogsOpen, setIsViewAllLogsOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<{ type: 'folder' | 'log'; id: string } | null>(null);
 
   const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setSubViewActive(Boolean(selectedFolderId));
+    return () => setSubViewActive(false);
+  }, [selectedFolderId, setSubViewActive]);
 
   useEffect(() => {
     setMounted(true);
@@ -237,14 +245,22 @@ export default function LearningHubPage() {
   };
 
   const handleDeleteLog = (logId: string) => {
-    const confirmMsg =
-      (t.learningHub as any).deleteLogConfirm ||
-      (state.lang === "bn"
-        ? "আপনি কি নিশ্চিত যে এই লগটি মুছতে চান?"
-        : "Are you sure you want to delete this log?");
-    if (window.confirm(confirmMsg)) {
-      deleteLearningLog(logId);
+    setDeleteTarget({ type: 'log', id: logId });
+  };
+
+  const handleConfirmDeleteTarget = () => {
+    if (!deleteTarget) return;
+    if (deleteTarget.type === 'folder') {
+      deleteLearningFolder(deleteTarget.id);
+      if (selectedFolderId === deleteTarget.id) {
+        setSelectedFolderId(null);
+      }
+      showToast(t.learningHub.toastFolderDeleted);
+    } else if (deleteTarget.type === 'log') {
+      deleteLearningLog(deleteTarget.id);
+      showToast(state.lang === "bn" ? "লগ সফলভাবে মুছে ফেলা হয়েছে" : "Log deleted successfully");
     }
+    setDeleteTarget(null);
   };
 
   // Active folder details
@@ -471,10 +487,7 @@ export default function LearningHubPage() {
                           <button
                             type="button"
                             onClick={() => {
-                              if (window.confirm(t.learningHub.deleteFolderConfirm)) {
-                                deleteLearningFolder(folder.id);
-                                showToast(t.learningHub.toastFolderDeleted);
-                              }
+                              setDeleteTarget({ type: 'folder', id: folder.id });
                             }}
                             title={t.learningHub.deleteFolder}
                             className="p-1.5 rounded-lg text-muted-foreground hover:text-red-500 hover:bg-red-500/10 transition-colors cursor-pointer"
@@ -601,11 +614,7 @@ export default function LearningHubPage() {
               <button
                 type="button"
                 onClick={() => {
-                  if (window.confirm(t.learningHub.deleteFolderConfirm)) {
-                    deleteLearningFolder(activeFolder.id);
-                    setSelectedFolderId(null);
-                    showToast(t.learningHub.toastFolderDeleted);
-                  }
+                  setDeleteTarget({ type: 'folder', id: activeFolder.id });
                 }}
                 title={t.learningHub.deleteFolder}
                 className="p-1.5 rounded-xl text-muted-foreground hover:text-red-500 hover:bg-red-500/10 border border-transparent hover:border-red-500/20 transition-all cursor-pointer shadow-none"
@@ -810,7 +819,7 @@ export default function LearningHubPage() {
                 </div>
 
                 {/* Submit Button */}
-                <div className="pt-1">
+                <div className="pt-1 flex items-center justify-end">
                   <button
                     type="submit"
                     className="btn-primary py-2.5 px-6 rounded-xl text-sm font-semibold shadow-none cursor-pointer"
@@ -839,7 +848,7 @@ export default function LearningHubPage() {
                   <button
                     type="button"
                     onClick={() => setIsViewAllLogsOpen(true)}
-                    className="text-xs font-semibold text-blue-500 hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer shrink-0"
+                    className="text-xs font-semibold text-[#1E3E7B] hover:text-[#28539E] dark:text-blue-400 dark:hover:text-blue-300 transition-colors cursor-pointer shrink-0"
                   >
                     {state.lang === "bn" ? "সবগুলো দেখুন" : "View All"}
                   </button>
@@ -927,7 +936,7 @@ export default function LearningHubPage() {
                     <button
                       type="button"
                       onClick={() => setIsViewAllLogsOpen(true)}
-                      className="w-full py-2.5 mt-1 rounded-xl text-xs font-semibold text-blue-500 hover:text-blue-600 dark:hover:text-blue-400 bg-blue-500/10 border border-blue-500/20 hover:bg-blue-500/15 transition-all text-center cursor-pointer shadow-none"
+                      className="w-full py-2.5 mt-1 rounded-xl text-xs font-semibold text-[#1E3E7B] dark:text-blue-400 bg-[#EBF3FE] dark:bg-blue-500/10 border border-[#D0E1FD] dark:border-blue-500/20 hover:bg-[#DBEAFE] dark:hover:bg-blue-500/15 transition-all text-center cursor-pointer shadow-none"
                     >
                       {state.lang === "bn"
                         ? `আরও ${activeFolderLogs.length - 5}টি লগ দেখুন (সবগুলো দেখুন)`
@@ -1254,6 +1263,30 @@ export default function LearningHubPage() {
           </div>,
           document.body
         )}
+
+      {/* Custom Delete Confirmation Modal */}
+      <ConfirmDeleteModal
+        isOpen={Boolean(deleteTarget)}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={handleConfirmDeleteTarget}
+        title={
+          deleteTarget?.type === 'folder'
+            ? (state.lang === "bn" ? "স্কিল ফোল্ডার মুছে ফেলতে চান?" : "Delete Skill Folder?")
+            : (state.lang === "bn" ? "লগ মুছে ফেলতে চান?" : "Delete Log?")
+        }
+        message={
+          deleteTarget?.type === 'folder'
+            ? t.learningHub.deleteFolderConfirm ||
+              (state.lang === "bn"
+                ? "আপনি কি নিশ্চিত যে এই ফোল্ডার এবং এর সমস্ত লগ মুছে ফেলতে চান? এটি আর ফিরিয়ে আনা যাবে না।"
+                : "Are you sure you want to delete this folder and all its logs? This action cannot be undone.")
+            : (state.lang === "bn"
+                ? "আপনি কি নিশ্চিত যে এই লগটি মুছতে চান? এটি আর ফিরিয়ে আনা যাবে না।"
+                : "Are you sure you want to delete this log? This action cannot be undone.")
+        }
+        confirmLabel={state.lang === "bn" ? "মুছুন" : "Delete"}
+        cancelLabel={state.lang === "bn" ? "বাতিল" : "Cancel"}
+      />
     </div>
   );
 }

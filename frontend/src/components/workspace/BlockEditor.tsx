@@ -4,16 +4,13 @@ import { useEffect, useMemo, useRef, useState, useCallback, type ChangeEvent, ty
 import type { BlockType, NoteBlock } from "../../types";
 import { useAppContext } from "../../context/AppContext";
 import {
-  Braces, CheckSquare2, Copy, Heading1, Heading2, Heading3, StickyNote, Sigma, Text,
-  Trash2, Palette, Highlighter, Square, RotateCcw, X, PenTool, MousePointer2, Eraser,
-  List, ListOrdered, Quote, Image as ImageIcon, FileText, Link2, ExternalLink, Download, Eye, Paperclip,
-  Undo2, Redo2
+  Braces, Check, CheckSquare2, ChevronDown, Copy, Heading1, Heading2, Heading3, StickyNote, Sigma, Text,
+  Trash2, Palette, Highlighter, Square, RotateCcw, X, PenTool,
+  List, ListOrdered, Quote, Image as ImageIcon, FileText, Link2, ExternalLink, Download, Eye, Paperclip
 } from "lucide-react";
-import * as fabric from "fabric";
 import { HexColorPicker } from "react-colorful";
 import katex from "katex";
 import "katex/dist/katex.min.css";
-import { Editor } from "@monaco-editor/react";
 
 
 /* ───────────── Constants ───────────── */
@@ -540,351 +537,211 @@ function ColorToolbar({ block, onUpdate, onClose }: { block: NoteBlock; onUpdate
   );
 }
 
-/* ───────────── Sticky Block with Drawing ───────────── */
+/* ───────────── Clean Sticky / Quick Note Block ───────────── */
 
-type Point = { x: number; y: number };
-type Stroke = Point[];
+function StickyBlock({ block, control, input, textareaRef, onDelete }: any) {
+  return (
+    <div className="editor-block editor-block--sticky relative group my-3 p-4 rounded-2xl border border-amber-500/20 bg-amber-500/[0.04] dark:bg-amber-500/[0.03]">
+      {control}
+      <div className="flex items-center justify-between mb-2.5">
+        <div className="sticky-label flex items-center gap-1.5 text-xs font-bold text-amber-500 dark:text-amber-400 select-none">
+          <StickyNote size={14} />
+          <span>QUICK NOTE</span>
+        </div>
+        <button
+          type="button"
+          onClick={onDelete}
+          className="text-red-400 hover:text-white bg-red-500/10 hover:bg-red-600 p-1.5 rounded-lg transition-colors cursor-pointer"
+          title="Delete Quick Note"
+        >
+          <Trash2 size={14} />
+        </button>
+      </div>
 
-function StickyBlock({ block, control, input, textareaRef, onDelete, onUpdate }: any) {
-  const [mode, setMode] = useState<"text" | "draw" | "select">("text");
-  const [hasSelection, setHasSelection] = useState(false);
-  const [hasCanvasObjects, setHasCanvasObjects] = useState(false);
-  const [canUndo, setCanUndo] = useState(false);
-  const [canRedo, setCanRedo] = useState(false);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const fabricRef = useRef<fabric.Canvas | null>(null);
-  const redoStackRef = useRef<fabric.Object[]>([]);
-
-  const hasDrawing = useMemo(() => {
-    if (!block.drawingData || block.drawingData === "" || block.drawingData === "[]" || block.drawingData === "{}") {
-      return false;
-    }
-    try {
-      const parsed = JSON.parse(block.drawingData);
-      return Array.isArray(parsed?.objects) ? parsed.objects.length > 0 : false;
-    } catch {
-      return false;
-    }
-  }, [block.drawingData]);
-
-  const hidePlaceholder = mode === "draw" || hasDrawing || hasCanvasObjects;
-
-  // Save on drawing end or object modified
-  const saveState = useCallback(() => {
-    if (!fabricRef.current) return;
-    const json = fabricRef.current.toJSON();
-    const count = json.objects ? json.objects.length : 0;
-    setHasCanvasObjects(count > 0);
-    setCanUndo(count > 0);
-    if (count === 0) {
-      onUpdate({ drawingData: "" });
-    } else {
-      onUpdate({ drawingData: JSON.stringify(json) });
-    }
-  }, [onUpdate]);
-
-  const undoDrawing = useCallback(() => {
-    if (!fabricRef.current) return;
-    const objects = fabricRef.current.getObjects();
-    if (objects.length > 0) {
-      const last = objects[objects.length - 1];
-      redoStackRef.current.push(last);
-      fabricRef.current.remove(last);
-      fabricRef.current.discardActiveObject();
-      fabricRef.current.requestRenderAll();
-      saveState();
-      setCanUndo(fabricRef.current.getObjects().length > 0);
-      setCanRedo(true);
-    } else if (redoStackRef.current.length > 0) {
-      while (redoStackRef.current.length > 0) {
-        const item = redoStackRef.current.pop();
-        if (item) fabricRef.current.add(item);
-      }
-      fabricRef.current.requestRenderAll();
-      saveState();
-      setCanUndo(true);
-      setCanRedo(false);
-    }
-  }, [saveState]);
-
-  const redoDrawing = useCallback(() => {
-    if (!fabricRef.current || redoStackRef.current.length === 0) return;
-    const item = redoStackRef.current.pop();
-    if (item) {
-      fabricRef.current.add(item);
-      fabricRef.current.discardActiveObject();
-      fabricRef.current.requestRenderAll();
-      saveState();
-      setCanUndo(true);
-      setCanRedo(redoStackRef.current.length > 0);
-    }
-  }, [saveState]);
-
-  // Initialize Fabric canvas
-  useEffect(() => {
-    if (!canvasRef.current) return;
-
-    // Only initialize once
-    if (!fabricRef.current) {
-      fabricRef.current = new fabric.Canvas(canvasRef.current, {
-        isDrawingMode: false,
-        width: canvasRef.current.parentElement?.clientWidth || 500,
-        height: Math.max(100, canvasRef.current.parentElement?.clientHeight || 100),
-        backgroundColor: "transparent",
-        selection: true,
-      });
-
-      // Configure brush
-      fabricRef.current.freeDrawingBrush = new fabric.PencilBrush(fabricRef.current);
-      fabricRef.current.freeDrawingBrush.color = "#f3e8ff";
-      fabricRef.current.freeDrawingBrush.width = 3;
-
-      // Load existing drawing data if any
-      if (block.drawingData && block.drawingData !== "[]" && block.drawingData !== "{}") {
-        try {
-          const parsed = JSON.parse(block.drawingData);
-          if (parsed && typeof parsed === "object" && !Array.isArray(parsed) && parsed.objects) {
-            if (parsed.objects.length > 0) {
-              setHasCanvasObjects(true);
-              setCanUndo(true);
-            }
-            fabricRef.current.loadFromJSON(parsed, () => {
-              fabricRef.current?.renderAll();
-            });
+      <textarea
+        ref={textareaRef}
+        {...input}
+        onKeyDown={(e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+          if (e.key === "Enter" && !e.shiftKey) {
+            e.stopPropagation();
+          } else {
+            input.onKeyDown?.(e);
           }
-        } catch (e) {
-          console.error("Failed to parse drawingData", e);
-        }
-      }
+        }}
+        rows={3}
+        placeholder="Write a sticky note..."
+        className="w-full bg-transparent outline-none text-foreground placeholder:text-zinc-500 text-sm leading-relaxed resize-none overflow-hidden"
+        style={{ minHeight: "80px" }}
+      />
+    </div>
+  );
+}
 
-      // Handle window resize to adjust canvas
-      const handleResize = () => {
-        if (!fabricRef.current || !canvasRef.current?.parentElement) return;
-        const parent = canvasRef.current.parentElement;
-        const width = parent.clientWidth;
-        (fabricRef.current as any).setWidth(width);
-        fabricRef.current.renderAll();
-      };
-      window.addEventListener("resize", handleResize as any);
+/* ───────────── Clean Code Block with Dropdown & Full Copy ───────────── */
 
-      fabricRef.current.on("path:created", () => {
-        redoStackRef.current = [];
-        setCanRedo(false);
-        setCanUndo(true);
-        saveState();
-      });
-      fabricRef.current.on("object:modified", saveState);
-      fabricRef.current.on("object:removed", saveState);
-      fabricRef.current.on("object:added", saveState);
+const CODE_LANGUAGES = [
+  { value: "javascript", label: "JavaScript" },
+  { value: "typescript", label: "TypeScript" },
+  { value: "python", label: "Python" },
+  { value: "html", label: "HTML" },
+  { value: "css", label: "CSS" },
+  { value: "json", label: "JSON" },
+  { value: "c", label: "C" },
+  { value: "cpp", label: "C++" },
+  { value: "java", label: "Java" },
+  { value: "sql", label: "SQL" },
+  { value: "bash", label: "Bash" },
+];
 
-      fabricRef.current.on("selection:created", () => setHasSelection(true));
-      fabricRef.current.on("selection:updated", () => setHasSelection(true));
-      fabricRef.current.on("selection:cleared", () => setHasSelection(false));
+function CodeBlockItem({
+  block,
+  control,
+  onLanguage,
+  onInput,
+  onKeyDown,
+  onDelete
+}: {
+  block: NoteBlock;
+  control: React.ReactNode;
+  onLanguage: (lang: any) => void;
+  onInput: (e: any) => void;
+  onKeyDown: (e: any) => void;
+  onDelete: () => void;
+}) {
+  const [copied, setCopied] = useState(false);
+  const [langMenuOpen, setLangMenuOpen] = useState(false);
+  const langMenuRef = useRef<HTMLDivElement>(null);
+  const currentLang = block.language || "javascript";
+  const lines = (block.content || "").split("\n");
+  const lineCount = Math.max(lines.length, 3);
 
-      return () => {
-        window.removeEventListener("resize", handleResize as any);
-        fabricRef.current?.dispose();
-        fabricRef.current = null;
-      };
-    }
-  }, [block.drawingData, saveState]);
-
-  // Update mode
+  // Dismiss language dropdown on click outside
   useEffect(() => {
-    if (!fabricRef.current) return;
-
-    if (mode === "draw") {
-      fabricRef.current.isDrawingMode = true;
-      fabricRef.current.selection = false;
-      fabricRef.current.discardActiveObject();
-      fabricRef.current.requestRenderAll();
-    } else if (mode === "select") {
-      fabricRef.current.isDrawingMode = false;
-      fabricRef.current.selection = true;
-    } else {
-      // Text mode: canvas should not intercept clicks
-      fabricRef.current.isDrawingMode = false;
-      fabricRef.current.selection = false;
-      fabricRef.current.discardActiveObject();
-      fabricRef.current.requestRenderAll();
-    }
-  }, [mode]);
-
-  // Handle keyboard shortcuts (Ctrl+Z Undo, Ctrl+Y Redo, Delete, Copy) for drawing & fabric objects
-  useEffect(() => {
-    const handleKeyDown = (e: globalThis.KeyboardEvent) => {
-      if ((mode !== "draw" && mode !== "select") || !fabricRef.current) return;
-
-      // Undo: Ctrl+Z or Cmd+Z
-      if ((e.ctrlKey || e.metaKey) && (e.key === "z" || e.key === "Z") && !e.shiftKey) {
-        e.preventDefault();
-        e.stopPropagation();
-        undoDrawing();
-        return;
-      }
-
-      // Redo: Ctrl+Y or Ctrl+Shift+Z or Cmd+Shift+Z
-      if ((e.ctrlKey || e.metaKey) && (((e.key === "z" || e.key === "Z") && e.shiftKey) || e.key === "y" || e.key === "Y")) {
-        e.preventDefault();
-        e.stopPropagation();
-        redoDrawing();
-        return;
-      }
-
-      if (mode === "select") {
-        const activeObject = fabricRef.current.getActiveObject();
-        if (!activeObject) return;
-
-        // Delete
-        if (e.key === "Backspace" || e.key === "Delete") {
-          e.preventDefault();
-          const activeObjects = fabricRef.current.getActiveObjects();
-          if (activeObjects.length) {
-            activeObjects.forEach(obj => {
-              redoStackRef.current.push(obj);
-              fabricRef.current?.remove(obj);
-            });
-            fabricRef.current.discardActiveObject();
-            saveState();
-            setCanRedo(true);
-          }
-        }
+    if (!langMenuOpen) return;
+    const handleOutside = (e: MouseEvent | TouchEvent) => {
+      if (langMenuRef.current && !langMenuRef.current.contains(e.target as Node)) {
+        setLangMenuOpen(false);
       }
     };
+    document.addEventListener("mousedown", handleOutside);
+    document.addEventListener("touchstart", handleOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleOutside);
+      document.removeEventListener("touchstart", handleOutside);
+    };
+  }, [langMenuOpen]);
 
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [mode, undoDrawing, redoDrawing, saveState]);
-
-  const clearDrawing = () => {
-    if (fabricRef.current) {
-      const currentObjects = fabricRef.current.getObjects();
-      if (currentObjects.length > 0) {
-        redoStackRef.current = [...currentObjects];
-        setCanRedo(true);
-      }
-      fabricRef.current.clear();
-      (fabricRef.current as any).backgroundColor = "transparent";
-      setHasCanvasObjects(false);
-      setCanUndo(false);
-      onUpdate({ drawingData: "" });
-    }
-  };
-
-  const deleteSelected = () => {
-    if (!fabricRef.current) return;
-    const activeObjects = fabricRef.current.getActiveObjects();
-    if (activeObjects.length) {
-      activeObjects.forEach(obj => {
-        redoStackRef.current.push(obj);
-        fabricRef.current?.remove(obj);
-      });
-      fabricRef.current.discardActiveObject();
-      setHasSelection(false);
-      saveState();
-      setCanRedo(true);
-    }
+  const handleCopyCode = async () => {
+    try {
+      await navigator.clipboard.writeText(block.content || "");
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {}
   };
 
   return (
-    <div className="editor-block editor-block--sticky relative group">
+    <div className="editor-block editor-block--code my-4 relative rounded-2xl border border-white/10 bg-[#0d1117] overflow-hidden">
       {control}
-      <div className="absolute top-2 right-2 flex items-center gap-2 z-30">
-        <div className="flex bg-black/20 p-1 rounded-md border border-white/5">
-          <button
-            type="button"
-            onClick={() => setMode(mode === "text" ? "draw" : "text")}
-            className={`p-1 rounded transition-colors ${mode === "text" ? 'bg-white/10 text-white' : 'text-zinc-500 hover:text-white hover:bg-white/5'}`}
-            title="Text Mode"
-          >
-            <Text size={14} />
-          </button>
-          <button
-            type="button"
-            onClick={() => setMode("draw")}
-            className={`p-1 rounded transition-colors ${mode === "draw" ? 'bg-purple-600 text-white' : 'text-zinc-500 hover:text-purple-400 hover:bg-purple-500/20'}`}
-            title="Draw Mode"
-          >
-            <PenTool size={14} />
-          </button>
-          <button
-            type="button"
-            onClick={() => setMode("select")}
-            className={`p-1 rounded transition-colors ${mode === "select" ? 'bg-blue-600 text-white' : 'text-zinc-500 hover:text-blue-400 hover:bg-blue-500/20'}`}
-            title="Select & Edit Drawing"
-          >
-            <MousePointer2 size={14} />
-          </button>
+      {/* Code Header Toolbar */}
+      <div className="flex items-center justify-between px-3.5 py-2 bg-black/40 border-b border-white/5 select-none">
+        <div className="flex items-center gap-2">
+          <span className="text-[11px] font-bold text-zinc-400 font-mono tracking-wider">CODE</span>
+          
+          {/* Language dropdown button */}
+          <div className="relative" ref={langMenuRef}>
+            <button
+              type="button"
+              onClick={() => setLangMenuOpen((v) => !v)}
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-semibold text-zinc-300 hover:text-white transition-colors cursor-pointer"
+            >
+              <span>{CODE_LANGUAGES.find(l => l.value === currentLang)?.label || currentLang.toUpperCase()}</span>
+              <ChevronDown size={12} className={`transition-transform duration-150 ${langMenuOpen ? "rotate-180" : ""}`} />
+            </button>
+
+            {langMenuOpen && (
+              <div className="absolute left-0 top-full mt-1.5 w-36 max-h-48 overflow-y-auto rounded-xl border border-white/10 bg-[#161b22] py-1 shadow-xl z-50">
+                {CODE_LANGUAGES.map((lang) => (
+                  <button
+                    key={lang.value}
+                    type="button"
+                    onClick={() => {
+                      onLanguage(lang.value);
+                      setLangMenuOpen(false);
+                    }}
+                    className={`w-full text-left px-3 py-1.5 text-xs transition-colors flex items-center justify-between ${
+                      currentLang === lang.value
+                        ? "text-blue-400 bg-blue-500/10 font-bold"
+                        : "text-zinc-300 hover:bg-white/5 hover:text-white"
+                    }`}
+                  >
+                    <span>{lang.label}</span>
+                    {currentLang === lang.value && <Check size={12} />}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
-        {(mode === "draw" || mode === "select") && (
-          <div className="flex bg-black/20 p-1 rounded-md border border-white/5 items-center gap-0.5">
-            <button
-              type="button"
-              onClick={undoDrawing}
-              disabled={!canUndo}
-              className={`p-1 rounded transition-colors ${canUndo ? 'text-zinc-300 hover:text-white hover:bg-white/10' : 'text-zinc-600 cursor-not-allowed opacity-40'}`}
-              title="Undo (Ctrl+Z)"
-            >
-              <Undo2 size={14} />
-            </button>
-            <button
-              type="button"
-              onClick={redoDrawing}
-              disabled={!canRedo}
-              className={`p-1 rounded transition-colors ${canRedo ? 'text-zinc-300 hover:text-white hover:bg-white/10' : 'text-zinc-600 cursor-not-allowed opacity-40'}`}
-              title="Redo (Ctrl+Y)"
-            >
-              <Redo2 size={14} />
-            </button>
-          </div>
-        )}
-
-        {mode === "select" && hasSelection && (
+        <div className="flex items-center gap-1.5">
           <button
             type="button"
-            onClick={deleteSelected}
-            className="text-red-400 hover:text-white bg-red-500/10 hover:bg-red-600 p-1.5 rounded-md transition-colors"
-            title="Delete Selected"
+            onClick={handleCopyCode}
+            className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium text-zinc-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+            title="Copy full code"
           >
-            <Eraser size={14} />
+            {copied ? (
+              <>
+                <Check size={13} className="text-emerald-400" />
+                <span className="text-[11px] text-emerald-400 font-semibold">Copied!</span>
+              </>
+            ) : (
+              <>
+                <Copy size={13} />
+                <span className="text-[11px]">Copy Code</span>
+              </>
+            )}
           </button>
-        )}
-
-        {block.drawingData && block.drawingData !== "" && (
           <button
             type="button"
-            onClick={clearDrawing}
-            className="text-red-400 hover:text-white bg-red-500/10 hover:bg-red-600 p-1.5 rounded-md transition-colors"
-            title="Clear Drawing"
+            onClick={onDelete}
+            className="p-1.5 rounded-lg text-zinc-500 hover:text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer"
+            title="Delete Code Block"
           >
-            <RotateCcw size={14} />
+            <Trash2 size={13} />
           </button>
-        )}
-        <button type="button" onClick={onDelete} className="text-yellow-600/50 hover:text-red-500 bg-yellow-500/10 hover:bg-red-500/10 p-1.5 rounded-md transition-colors" title="Delete Sticky Note"><Trash2 size={14} /></button>
+        </div>
       </div>
 
-      <div className="sticky-label"><StickyNote size={14} /> QUICK NOTE</div>
+      {/* Code Editor Body */}
+      <div className="flex bg-[#0d1117] text-zinc-200 font-mono text-[13.5px] leading-[22px] min-h-[140px] overflow-x-auto">
+        {/* Line numbers gutter */}
+        <div className="select-none py-3.5 px-3 text-right text-zinc-600 bg-black/20 border-r border-white/5 shrink-0 text-xs font-mono min-w-[38px]">
+          {Array.from({ length: lineCount }).map((_, i) => (
+            <div key={i}>{i + 1}</div>
+          ))}
+        </div>
 
-      <div className="relative mt-2" style={{ minHeight: "150px" }}>
-        <textarea
-          ref={textareaRef}
-          {...input}
-          rows={1}
-          placeholder={hidePlaceholder ? "" : "Write a sticky note... (Shift+Enter for new block)"}
-          className={mode !== "text" ? "opacity-30" : ""}
-          style={{ position: "relative", zIndex: 10, minHeight: "150px", width: "100%", background: "transparent" }}
-          disabled={mode !== "text"}
-        />
-        <div
-          className="absolute top-0 left-0 w-full h-full"
-          style={{
-            zIndex: 20,
-            pointerEvents: mode === "text" ? "none" : "auto",
-            touchAction: "none"
-          }}
-        >
-          <canvas ref={canvasRef} />
+        {/* Code Input Area with horizontal scroll, no wrap, tap-select support */}
+        <div className="flex-1 relative min-w-0">
+          <textarea
+            value={block.content || ""}
+            onChange={onInput}
+            onKeyDown={onKeyDown}
+            placeholder="// Paste or write code here..."
+            rows={lineCount}
+            spellCheck={false}
+            autoCapitalize="off"
+            autoComplete="off"
+            autoCorrect="off"
+            className="w-full h-full py-3.5 px-4 bg-transparent outline-none border-none text-zinc-200 font-mono text-[13.5px] leading-[22px] resize-none overflow-x-auto whitespace-pre block selection:bg-blue-600/40"
+            style={{
+              whiteSpace: "pre",
+              wordWrap: "normal",
+              overflowX: "auto",
+              minHeight: "140px",
+            }}
+          />
         </div>
       </div>
     </div>
@@ -985,7 +842,7 @@ function EditorBlock({
       {control}
       {wrapWithBox(
         <div style={highlightStyle}>
-          <input {...input} placeholder={`Heading ${block.type.slice(1)}`} style={textStyle} />
+          <textarea ref={textarea} {...input} rows={1} placeholder={`Heading ${block.type.slice(1)}`} style={textStyle} />
         </div>
       )}
     </div>;
@@ -1069,23 +926,22 @@ function EditorBlock({
             </div>
           )}
         </div>
-        <div className="flex items-center justify-between gap-3 mt-2.5 px-3">
+        <div className={`mt-2.5 px-2 flex ${size === "small" ? "flex-col gap-2 items-stretch" : "flex-row items-center justify-between gap-3"}`}>
           <input
             type="text"
             value={captionValue}
             onChange={(e) => onUpdateColor({ caption: e.target.value })}
             placeholder="Add an image caption..."
-            style={{ textIndent: '8px' }}
-            className="text-xs text-zinc-400 placeholder-zinc-500 bg-black/20 dark:bg-white/5 border border-white/10 rounded-xl outline-none flex-1 py-2 min-w-0 focus:border-blue-500/50 transition-colors"
+            className="text-xs text-zinc-300 placeholder-zinc-500 bg-black/20 dark:bg-white/5 border border-white/10 rounded-xl outline-none py-2 px-3 focus:border-blue-500/50 transition-colors w-full"
           />
-          <div className="flex items-center gap-1.5 shrink-0">
+          <div className={`flex items-center gap-1.5 ${size === "small" ? "justify-between" : "shrink-0"}`}>
             <div className="flex items-center bg-white/5 p-0.5 rounded-lg border border-white/5">
               {(["small", "medium", "large"] as const).map((s) => (
                 <button
                   key={s}
                   type="button"
                   onClick={() => onUpdateColor({ imageSize: s })}
-                  className={`px-1.5 py-0.5 text-[10px] font-bold rounded transition-colors ${(block.imageSize || "medium") === s
+                  className={`px-2 py-0.5 text-[10px] font-bold rounded transition-colors ${(block.imageSize || "medium") === s
                     ? "bg-blue-600 text-white shadow-none"
                     : "text-zinc-400 hover:text-zinc-200 hover:bg-white/5"
                     }`}
@@ -1099,7 +955,7 @@ function EditorBlock({
               <button
                 type="button"
                 onClick={() => onReplaceImage(block.id)}
-                className="text-[11px] font-semibold text-blue-400 hover:text-blue-300 px-2 py-0.5 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 transition-colors cursor-pointer"
+                className="text-[11px] font-semibold text-blue-400 hover:text-blue-300 px-2.5 py-1 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 transition-colors cursor-pointer"
               >
                 Replace
               </button>
@@ -1140,10 +996,10 @@ function EditorBlock({
     };
 
     return (
-      <div className="editor-block editor-block--file my-3 p-3.5 sm:p-4 rounded-2xl border border-white/10 bg-white/[0.03] hover:border-white/20 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 group">
+      <div className="editor-block editor-block--file my-3.5 p-4 rounded-2xl border border-white/10 bg-white/[0.03] hover:border-white/20 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 group">
         {control}
         <div className="flex items-center gap-3.5 min-w-0">
-          <div className={`p-2.5 rounded-xl shrink-0 ${isPdf ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20' : 'bg-blue-500/10 text-blue-400 border border-blue-500/20'}`}>
+          <div className="p-2.5 rounded-xl shrink-0 bg-blue-500/10 text-blue-400 border border-blue-500/20">
             <FileText size={22} />
           </div>
           <div className="min-w-0 flex-1">
@@ -1151,7 +1007,7 @@ function EditorBlock({
               {block.fileName || "Document Resource"}
             </h4>
             <p className="text-xs text-zinc-400 mt-1 flex items-center gap-2">
-              <span className={`px-2 py-0.5 rounded-md text-[11px] font-semibold ${isPdf ? 'bg-rose-500/15 text-rose-300' : 'bg-blue-500/15 text-blue-300'}`}>
+              <span className="px-2 py-0.5 rounded-md text-[11px] font-semibold bg-blue-500/10 text-blue-300 border border-blue-500/20">
                 {fileLabel}
               </span>
               {block.fileSize ? (
@@ -1166,8 +1022,8 @@ function EditorBlock({
               <button
                 type="button"
                 onClick={handleOpenFile}
-                className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-white/10 hover:bg-white/20 text-white flex items-center gap-1.5 transition-colors cursor-pointer"
-                title="View in new tab"
+                className="px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-white/10 hover:bg-white/20 text-white flex items-center gap-1.5 transition-colors cursor-pointer"
+                title="View document"
               >
                 <Eye size={13} />
                 <span>View</span>
@@ -1177,11 +1033,11 @@ function EditorBlock({
                 target="_blank"
                 rel="noopener noreferrer"
                 download={block.fileName || (isPdf ? "document.pdf" : "document")}
-                className="px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-blue-600/80 hover:bg-blue-600 text-white flex items-center gap-1.5 transition-colors cursor-pointer shadow-none"
+                className="p-2 rounded-xl text-white bg-blue-600/80 hover:bg-blue-600 flex items-center justify-center transition-colors cursor-pointer shadow-none"
                 title="Download document"
+                aria-label="Download document"
               >
-                <Download size={13} />
-                <span>Download</span>
+                <Download size={14} />
               </a>
             </>
           )}
@@ -1240,48 +1096,15 @@ function EditorBlock({
 
   // ── Code ──
   if (block.type === "code") {
-    const lines = Math.max(6, (block.content || "").split("\n").length);
-    const editorHeight = Math.max(160, lines * 21 + 32);
-
     return (
-      <div className="editor-block editor-block--code relative">
-        {control}
-        <div className="code-toolbar z-20">
-          <span>CODE</span>
-          <div className="flex items-center gap-2">
-            <select aria-label="Code language" value={block.language ?? "javascript"} onChange={(event) => onLanguage(event.target.value as NonNullable<NoteBlock["language"]>)}>
-              {["javascript", "typescript", "java", "python", "c", "cpp", "html", "css", "json"].map((language) => <option key={language} value={language}>{language === "cpp" ? "C++" : language.toUpperCase()}</option>)}
-            </select>
-            <button type="button" onClick={onDelete} className="text-zinc-500 hover:text-red-400 bg-zinc-800/50 hover:bg-red-500/10 p-1.5 rounded-md transition-colors" title="Delete Code Block"><Trash2 size={14} /></button>
-          </div>
-        </div>
-        <div className="code-editor relative bg-[#1e1e1e] rounded-xl overflow-hidden" style={{ height: `${editorHeight}px` }} onKeyDown={onKeyDown}>
-          {!block.content && (
-            <div className="absolute top-[16px] left-[62px] text-zinc-500 font-mono text-[14px] pointer-events-none z-10 select-none">
-              // Start your code here
-            </div>
-          )}
-          <Editor
-            height="100%"
-            language={block.language ?? "javascript"}
-            theme="vs-dark"
-            value={block.content}
-            onChange={(value) => onInput({ target: { value: value || '' } } as any)}
-            options={{
-              minimap: { enabled: false },
-              fontSize: 14,
-              fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
-              lineHeight: 21,
-              padding: { top: 16, bottom: 16 },
-              scrollBeyondLastLine: false,
-              wordWrap: "on",
-              lineNumbersMinChars: 3,
-              renderLineHighlight: "none",
-              contextmenu: false,
-            }}
-          />
-        </div>
-      </div>
+      <CodeBlockItem
+        block={block}
+        control={control}
+        onLanguage={onLanguage}
+        onInput={onInput}
+        onKeyDown={onKeyDown}
+        onDelete={onDelete}
+      />
     );
   }
 

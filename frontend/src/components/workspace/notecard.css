@@ -305,4 +305,85 @@
   border: none !important;
 }
 
+/* ==========================================================================
+   Mobile 2-Column Responsive Sizing
+   ========================================================================== */
+@media (max-width: 640px) {
+  .folder-card-wrapper {
+    min-height: 175px !important;
+    max-height: 225px !important;
+    border-radius: 14px;
+  }
 
+  .folder-card__back-plate {
+    border-radius: 14px;
+  }
+
+  .folder-card__back-tab {
+    top: -6px;
+    height: 10px;
+    border-radius: 6px 6px 0 0;
+  }
+
+  .folder-card__papers {
+    height: 75px;
+    top: -2px;
+  }
+
+  .folder-paper-sheet--back {
+    width: 75px;
+    height: 68px;
+    padding: 7px 9px;
+    gap: 4px;
+  }
+
+  .folder-paper-sheet--front {
+    width: 82px;
+    height: 70px;
+    padding: 7px 9px;
+    gap: 4px;
+  }
+
+  .sheet-line {
+    height: 2.5px;
+  }
+
+  .sheet-line--header {
+    height: 3.5px;
+  }
+
+  .folder-card__front-flap {
+    margin-top: 32px;
+    padding: 10px 10px 8px 10px;
+    border-radius: 12px 12px 14px 14px;
+  }
+
+  .folder-card__tab-notch {
+    top: -9px;
+    height: 10px;
+    border-radius: 7px 7px 0 0;
+  }
+
+  .folder-card__title {
+    font-size: 13.5px !important;
+    margin-bottom: 2px;
+  }
+
+  .folder-card__subtitle {
+    font-size: 10.5px !important;
+  }
+
+  .folder-card__bottom-row {
+    padding-top: 4px;
+  }
+
+  .folder-card__date {
+    font-size: 10px !important;
+    gap: 3.5px;
+  }
+
+  .folder-card__date svg {
+    width: 11px;
+    height: 11px;
+  }
+}

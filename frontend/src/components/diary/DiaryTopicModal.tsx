@@ -6,6 +6,7 @@ import { useTranslation } from "../../hooks/useTranslation";
 import { DiaryTopic } from "../../types";
 import { useAnimateExit } from "../../hooks/useAnimateExit";
 import { DIARY_THEMES } from "./diaryThemes";
+import ConfirmDeleteModal from "../ui/ConfirmDeleteModal";
 
 interface DiaryTopicModalProps {
   isOpen: boolean;
@@ -26,6 +27,7 @@ export default function DiaryTopicModal({
   const { t } = useTranslation();
   const [title, setTitle] = useState("");
   const [theme, setTheme] = useState<string>("auto");
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const lastTopicRef = useRef<DiaryTopic | null | undefined>(initialTopic);
 
@@ -163,17 +165,7 @@ export default function DiaryTopicModal({
               {isEditing && initialTopic && onDelete && (
                 <button
                   type="button"
-                  onClick={() => {
-                    if (
-                      window.confirm(
-                        t.diary?.deleteTopicConfirm ||
-                          "Are you sure you want to delete this diary and all its pages? This action cannot be undone."
-                      )
-                    ) {
-                      onDelete(initialTopic.id);
-                      onClose();
-                    }
-                  }}
+                  onClick={() => setShowDeleteConfirm(true)}
                   className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-red-500 hover:text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer"
                 >
                   <Trash2 size={14} />
@@ -206,6 +198,26 @@ export default function DiaryTopicModal({
           </div>
         </form>
       </div>
+
+      {/* Custom Delete Confirmation Modal */}
+      {isEditing && initialTopic && onDelete && (
+        <ConfirmDeleteModal
+          isOpen={showDeleteConfirm}
+          onClose={() => setShowDeleteConfirm(false)}
+          onConfirm={() => {
+            setShowDeleteConfirm(false);
+            onDelete(initialTopic.id);
+            onClose();
+          }}
+          title={t.diary?.delete || "Delete Diary?"}
+          message={
+            t.diary?.deleteTopicConfirm ||
+            "Are you sure you want to delete this diary and all its pages? This action cannot be undone."
+          }
+          confirmLabel={t.diary?.delete || "Delete"}
+          cancelLabel={t.diary?.cancel || "Cancel"}
+        />
+      )}
     </div>
   );
 }

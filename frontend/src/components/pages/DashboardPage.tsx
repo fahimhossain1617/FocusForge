@@ -517,10 +517,8 @@ export default function DashboardPage() {
             aria-label={state.lang === 'bn' ? "নোটিফিকেশন" : "Notifications"}
           >
             <Bell size={19} strokeWidth={2} />
-            {unreadCount > 0 && (
-              <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 rounded-full bg-[#1D4ED8] dark:bg-[#3B82F6] text-white text-[10px] font-bold flex items-center justify-center shadow-sm">
-                {unreadCount > 9 ? "9+" : unreadCount}
-              </span>
+            {hasUnread && (
+              <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-blue-600 ring-1.5 ring-white dark:ring-[#0A0E1A] pointer-events-none" />
             )}
           </button>
 
@@ -562,7 +560,7 @@ export default function DashboardPage() {
             </div>
 
             {/* Task Items (Inner box: #F7FAFE, #DCE5F0 border, radius 12, no shadow) */}
-            <div className="mt-2 space-y-2 max-h-[224px] overflow-y-auto pr-1">
+            <div className="mt-2 space-y-2">
               {tasksList.length > 0 ? (
                 tasksList.map((item) => (
                   <div
@@ -595,7 +593,7 @@ export default function DashboardPage() {
                     {/* Right side: Time Chip & Action */}
                     <div className="flex items-center gap-1.5 shrink-0">
                       {item.time && (
-                        <span className="text-[11px] text-[#52627A] dark:text-slate-400 font-mono px-2 py-0.5 rounded-lg bg-white dark:bg-white/[0.04] border border-[#DCE5F0] dark:border-white/[0.06] whitespace-nowrap shadow-none">
+                        <span className="text-[11px] text-[#52627A] dark:text-slate-400 font-mono whitespace-nowrap mr-0.5">
                           {item.time}
                         </span>
                       )}
@@ -766,7 +764,7 @@ export default function DashboardPage() {
             </div>
 
             {/* Skills List: Same-line layout with track #E5EDF7 and Navy #223A5E fill */}
-            <div className="mt-2 space-y-2.5 max-h-[224px] overflow-y-auto pr-1">
+            <div className="mt-2 space-y-2.5">
               {skillsList.length > 0 ? (
                 skillsList.map((skill) => {
                   const IconComponent = skill.icon;

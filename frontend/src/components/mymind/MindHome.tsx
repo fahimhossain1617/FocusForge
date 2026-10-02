@@ -37,11 +37,13 @@ export default function MindHome({ navigate, setActiveThoughtId }: MindHomeProps
         return prev + (needsSpace ? " " : "") + text;
       });
       setInterim("");
-      // Auto-resize
+      // Auto-resize with 200-300 word max height cap
       setTimeout(() => {
         if (textareaRef.current) {
           textareaRef.current.style.height = "auto";
-          textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
+          const newHeight = Math.min(textareaRef.current.scrollHeight, 260);
+          textareaRef.current.style.height = `${newHeight}px`;
+          textareaRef.current.scrollTop = textareaRef.current.scrollHeight;
         }
       }, 0);
     }
@@ -51,10 +53,12 @@ export default function MindHome({ navigate, setActiveThoughtId }: MindHomeProps
     const val = e.target.value;
     setInput(val);
     
-    // Auto-resize
+    // Auto-resize with cap and keep scrolling upwards
     if (textareaRef.current) {
       textareaRef.current.style.height = "auto";
-      textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
+      const newHeight = Math.min(textareaRef.current.scrollHeight, 260);
+      textareaRef.current.style.height = `${newHeight}px`;
+      textareaRef.current.scrollTop = textareaRef.current.scrollHeight;
     }
   };
 
@@ -121,12 +125,12 @@ export default function MindHome({ navigate, setActiveThoughtId }: MindHomeProps
           </p>
         </div>
 
-        {/* Category Tabs */}
-        <div className="flex flex-wrap justify-center gap-2.5 mb-7">
+        {/* Category Tabs - Single row with smooth horizontal scroll if needed */}
+        <div className="flex items-center justify-start sm:justify-center gap-2 sm:gap-2.5 mb-7 overflow-x-auto no-scrollbar py-1 whitespace-nowrap">
           <button 
             type="button"
             onClick={() => setActiveMode('mind')} 
-            className={`px-4 py-2 text-xs font-semibold rounded-xl border transition-all shadow-none cursor-pointer ${
+            className={`px-3 sm:px-4 py-1.5 sm:py-2 text-xs font-semibold rounded-xl border transition-all shadow-none cursor-pointer shrink-0 ${
               activeMode === 'mind' 
                 ? 'bg-blue-600 text-white border-blue-600' 
                 : 'border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 text-slate-700 dark:text-slate-300 hover:border-blue-500/40 hover:text-blue-600 dark:hover:text-white hover:bg-blue-50 dark:hover:bg-white/10'
@@ -137,7 +141,7 @@ export default function MindHome({ navigate, setActiveThoughtId }: MindHomeProps
           <button 
             type="button"
             onClick={() => setActiveMode('idea')} 
-            className={`px-4 py-2 text-xs font-semibold rounded-xl border transition-all shadow-none cursor-pointer ${
+            className={`px-3 sm:px-4 py-1.5 sm:py-2 text-xs font-semibold rounded-xl border transition-all shadow-none cursor-pointer shrink-0 ${
               activeMode === 'idea' 
                 ? 'bg-blue-600 text-white border-blue-600' 
                 : 'border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 text-slate-700 dark:text-slate-300 hover:border-blue-500/40 hover:text-blue-600 dark:hover:text-white hover:bg-blue-50 dark:hover:bg-white/10'
@@ -148,7 +152,7 @@ export default function MindHome({ navigate, setActiveThoughtId }: MindHomeProps
           <button 
             type="button"
             onClick={() => setActiveMode('problem')} 
-            className={`px-4 py-2 text-xs font-semibold rounded-xl border transition-all shadow-none cursor-pointer ${
+            className={`px-3 sm:px-4 py-1.5 sm:py-2 text-xs font-semibold rounded-xl border transition-all shadow-none cursor-pointer shrink-0 ${
               activeMode === 'problem' 
                 ? 'bg-blue-600 text-white border-blue-600' 
                 : 'border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 text-slate-700 dark:text-slate-300 hover:border-blue-500/40 hover:text-blue-600 dark:hover:text-white hover:bg-blue-50 dark:hover:bg-white/10'
@@ -160,7 +164,7 @@ export default function MindHome({ navigate, setActiveThoughtId }: MindHomeProps
 
         {/* Writing Area */}
         <div
-          className="rounded-2xl border transition-all duration-200 relative pb-16 overflow-hidden w-full"
+          className="rounded-2xl border transition-all duration-200 relative pb-16 overflow-hidden w-full flex flex-col"
           style={{
             background: "var(--color-bg-card)",
             borderColor: (isFocused || input.trim()) ? "var(--color-purple-primary)" : "var(--color-border-subtle)",
@@ -186,12 +190,14 @@ export default function MindHome({ navigate, setActiveThoughtId }: MindHomeProps
                 ? (t.myMind.problemSolverPlaceholder || "What problem are you trying to break down?")
                 : (t.myMind.writeFreely || "Write whatever comes to mind...")
             }
-            className="w-full px-6 py-6 text-base sm:text-lg border-0 resize-none no-focus-ring bg-transparent my-mind-textarea"
+            className="w-full px-5 sm:px-6 pt-5 pb-2 text-base sm:text-lg border-0 resize-none no-focus-ring bg-transparent my-mind-textarea custom-mini-scrollbar"
             style={{ 
               background: "transparent", 
               border: "none", 
               outline: "none", 
               minHeight: "120px",
+              maxHeight: "260px",
+              overflowY: "auto",
               color: "var(--color-text-primary)" 
             }}
           />
@@ -246,7 +252,7 @@ export default function MindHome({ navigate, setActiveThoughtId }: MindHomeProps
         </div>
 
         {previewThoughts.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-4.5">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4.5">
             {previewThoughts.map((item, index) => (
               <ThoughtPaperCard
                 key={item.id}

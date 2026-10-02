@@ -41,7 +41,7 @@ export default function ThoughtPaperCard({
   return (
     <article
       onClick={onOpenDetail}
-      className={`relative flex flex-col justify-start rounded-2xl border cursor-pointer select-none text-left overflow-hidden h-[240px] sm:h-[250px] ${
+      className={`relative flex flex-col justify-start rounded-2xl border cursor-pointer select-none text-left overflow-hidden h-[200px] sm:h-[240px] ${
         isAltPaper
           ? "bg-[#F8FAFE] dark:bg-[#0D1522] border-[#DCE5F0] dark:border-slate-800/80"
           : "bg-white dark:bg-[#121A2B] border-[#DCE5F0] dark:border-slate-800/80"
@@ -52,7 +52,7 @@ export default function ThoughtPaperCard({
     >
       {/* ── Top-Right Folded Page Corner (Pure Vector SVG) ── */}
       <svg
-        className="absolute top-0 right-0 w-8 h-8 pointer-events-none z-10"
+        className="absolute top-0 right-0 w-6 h-6 sm:w-8 sm:h-8 pointer-events-none z-10"
         viewBox="0 0 32 32"
         aria-hidden="true"
       >
@@ -95,28 +95,28 @@ export default function ThoughtPaperCard({
       )}
 
       {/* ── Card Content Container ── */}
-      <div className="flex flex-col h-full p-4 sm:p-5 relative z-0">
+      <div className="flex flex-col h-full p-3 sm:p-5 relative z-0">
         {/* Category Icon and Label (with right padding to clear fold) */}
-        <div className="flex items-center gap-1.5 pr-7">
-          <div className={`flex items-center gap-1.5 text-xs font-semibold tracking-wide ${accent.labelClass}`}>
-            <CategoryIcon size={14} className="shrink-0" />
+        <div className="flex items-center gap-1.5 pr-5 sm:pr-7">
+          <div className={`flex items-center gap-1 sm:gap-1.5 text-[11px] sm:text-xs font-semibold tracking-wide ${accent.labelClass}`}>
+            <CategoryIcon size={13} className="shrink-0" />
             <span className="truncate">{displayData.categoryLabel}</span>
           </div>
         </div>
 
         {/* Creation Date (compact date only) */}
-        <div className="flex items-center gap-1.5 text-[11px] font-medium text-slate-500 dark:text-slate-400 mt-1">
-          <Calendar size={12} className="shrink-0 opacity-80" />
+        <div className="flex items-center gap-1 sm:gap-1.5 text-[10px] sm:text-[11px] font-medium text-slate-500 dark:text-slate-400 mt-0.5 sm:mt-1">
+          <Calendar size={11} className="shrink-0 opacity-80" />
           <span className="truncate">{displayData.formattedDate}</span>
         </div>
 
         {/* Prominent Thought Title */}
-        <h3 className="text-[15px] sm:text-base font-bold text-slate-900 dark:text-slate-100 tracking-tight leading-snug line-clamp-2 mt-3 mb-1.5">
+        <h3 className="text-xs sm:text-[15px] font-bold text-slate-900 dark:text-slate-100 tracking-tight leading-snug line-clamp-2 mt-2 sm:mt-3 mb-1">
           {displayData.title}
         </h3>
 
         {/* Readable Truncated Content Preview */}
-        <p className="text-xs sm:text-[13px] text-slate-600 dark:text-slate-300/90 leading-relaxed line-clamp-4 font-normal">
+        <p className="text-[11px] sm:text-[13px] text-slate-600 dark:text-slate-300/90 leading-relaxed line-clamp-3 sm:line-clamp-4 font-normal">
           {displayData.preview || displayData.title}
         </p>
       </div>

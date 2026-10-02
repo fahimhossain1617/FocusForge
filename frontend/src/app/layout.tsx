@@ -401,42 +401,39 @@ export default function RootLayout({
     lg.style.transform = 'scale(' + k + ')';
 
     if (reduce) {
-      await Promise.race([readyPromise, wait(2300)]);
+      await Promise.race([readyPromise, wait(200)]);
       var appShell = document.getElementById('app-shell');
       if (appShell) appShell.style.visibility = 'visible';
       document.querySelectorAll('.slot .mk').forEach(function(m) { m.style.visibility = 'visible'; });
       document.querySelectorAll('.slot .tile').forEach(function(t) { t.style.opacity = '1'; });
       document.querySelectorAll('.slot').forEach(function(s) { s.classList.add('settled'); });
       await Promise.all([
-        animateHelper(splash, [{ opacity: 1 }, { opacity: 0 }], { duration: 250 }),
-        animateHelper(logo, [{ opacity: 1 }, { opacity: 0 }], { duration: 250 })
+        animateHelper(splash, [{ opacity: 1 }, { opacity: 0 }], { duration: 150 }),
+        animateHelper(logo, [{ opacity: 1 }, { opacity: 0 }], { duration: 150 })
       ]);
       cleanupAndFinish(null);
       return;
     }
 
-    // Native splash icon handoff
-    await wait(1100);
+    // Fast, responsive startup (total duration ~0.25s - 0.35s max)
+    await wait(60);
 
     lg.style.transform = '';
-    animateHelper(lg, [{ transform: 'scale(' + k + ')' }, { transform: 'scale(1)' }], { duration: 850 });
-    animateHelper(p4, [{ transform: 'rotate(-90deg)' }, { transform: 'rotate(0deg)' }], { duration: 1000, delay: 250, easing: 'cubic-bezier(.34,1.2,.64,1)' });
-    animateHelper(p6, [{ transform: 'scale(1)', opacity: 0.4 }, { transform: 'scale(1.9)', opacity: 0 }], { duration: 1100, delay: 450, fill: 'forwards' });
-    animateHelper(p5, [{ transform: 'scale(1)' }, { transform: 'scale(1.16)' }, { transform: 'scale(1)' }], { duration: 600, delay: 700, easing: 'ease-in-out' });
+    animateHelper(lg, [{ transform: 'scale(' + k + ')' }, { transform: 'scale(1)' }], { duration: 220 });
+    animateHelper(p4, [{ transform: 'rotate(-90deg)' }, { transform: 'rotate(0deg)' }], { duration: 240, delay: 30, easing: 'cubic-bezier(.34,1.2,.64,1)' });
+    animateHelper(p6, [{ transform: 'scale(1)', opacity: 0.4 }, { transform: 'scale(1.6)', opacity: 0 }], { duration: 240, delay: 50, fill: 'forwards' });
+    animateHelper(p5, [{ transform: 'scale(1)' }, { transform: 'scale(1.1)' }, { transform: 'scale(1)' }], { duration: 180, delay: 70, easing: 'ease-in-out' });
 
-    // Hold ~2.3s
-    await wait(2300);
-
-    // Wait for app ready signal (session/auth + data + layout), max +1.5s
-    await Promise.race([readyPromise, wait(1500)]);
+    // Snappy ready race
+    await Promise.race([readyPromise, wait(120)]);
 
     if (document.fonts && document.fonts.ready) {
       try { await document.fonts.ready; } catch(e) {}
     }
-    await frames(2);
+    await frames(1);
 
     var appShell = document.getElementById('app-shell');
-    var target = await waitForTargetSlot(1000);
+    var target = await waitForTargetSlot(200);
 
     if (!target) {
       // Clean fallback fade
@@ -445,14 +442,14 @@ export default function RootLayout({
       document.querySelectorAll('.slot .tile').forEach(function(t) { t.style.opacity = '1'; });
       document.querySelectorAll('.slot').forEach(function(s) { s.classList.add('settled'); });
       await Promise.all([
-        animateHelper(splash, [{ opacity: 1 }, { opacity: 0 }], { duration: 300 }),
-        animateHelper(logo, [{ opacity: 1 }, { opacity: 0 }], { duration: 300 })
+        animateHelper(splash, [{ opacity: 1 }, { opacity: 0 }], { duration: 150 }),
+        animateHelper(logo, [{ opacity: 1 }, { opacity: 0 }], { duration: 150 })
       ]);
       cleanupAndFinish(null);
       return;
     }
 
-    // Flight to slot + circular reveal
+    // Flight to slot + circular reveal (snappy ~250ms)
     if (appShell) {
       appShell.style.zIndex = '999995';
     }
@@ -464,7 +461,7 @@ export default function RootLayout({
     var dy = t.top - r.top;
     var cx = t.left + (t.width / 2);
     var cy = t.top + (t.height / 2);
-    var D = 900;
+    var D = 260;
 
     if (appShell) {
       appShell.style.visibility = 'visible';
@@ -472,7 +469,7 @@ export default function RootLayout({
       animateHelper(appShell, [
         { clipPath: 'circle(0px at ' + cx + 'px ' + cy + 'px)' },
         { clipPath: 'circle(150vmax at ' + cx + 'px ' + cy + 'px)' }
-      ], { duration: D + 150, easing: M, fill: 'forwards' });
+      ], { duration: D + 60, easing: M, fill: 'forwards' });
     }
 
     await animateHelper(logo, [
@@ -488,9 +485,9 @@ export default function RootLayout({
 
     document.querySelectorAll('.slot .tile').forEach(function(x) {
       animateHelper(x, [
-        { opacity: 0, transform: 'scale(.86)' },
+        { opacity: 0, transform: 'scale(.9)' },
         { opacity: 1, transform: 'none' }
-      ], { duration: 600, easing: 'ease-out', fill: 'forwards' });
+      ], { duration: 200, easing: 'ease-out', fill: 'forwards' });
     });
 
     document.querySelectorAll('.slot').forEach(function(x) {

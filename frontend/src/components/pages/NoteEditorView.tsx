@@ -14,6 +14,7 @@ import { useAuth } from "../../context/AuthContext";
 import { storageService } from "../../services/storageService";
 import { compressImageFile } from "../../services/indexedDBStorage";
 import { useAnimateExit } from "../../hooks/useAnimateExit";
+import ConfirmDeleteModal from "../ui/ConfirmDeleteModal";
 
 
 interface NoteEditorViewProps { 
@@ -447,7 +448,7 @@ export default function NoteEditorView({
 
   return (
     <div 
-      className="note-editor-screen motion-page relative h-full flex flex-col"
+      className="note-editor-screen motion-page max-w-6xl mx-auto w-full pb-14 relative"
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
@@ -471,7 +472,7 @@ export default function NoteEditorView({
       />
 
       {/* Header */}
-      <header className="note-editor-screen__header w-full max-w-6xl mx-auto px-3.5 sm:px-6 md:px-8 pt-3 sm:pt-4 md:pt-5 pb-2 flex items-center justify-between gap-3">
+      <header className="note-editor-screen__header flex items-center justify-between gap-3 mb-4">
         <button 
           type="button" 
           onClick={goBack} 
@@ -528,7 +529,7 @@ export default function NoteEditorView({
       </header>
 
       {/* Editor Main Canvas */}
-      <main className="note-editor-screen__scroll custom-scrollbar flex-1 overflow-y-auto px-3.5 sm:px-6 md:px-8">
+      <div className="note-editor-screen__scroll w-full">
         <div className="note-editor-canvas relative max-w-6xl mx-auto !pt-2">
           
           {/* Print Header (Visible in print/PDF only) */}
@@ -591,12 +592,15 @@ export default function NoteEditorView({
             )}
           </div>
 
-          {/* Note Title Input */}
-          <input 
+          {/* Note Title Input (Auto-wrapping to next line) */}
+          <textarea 
+            rows={1}
             value={title} 
             onChange={(event) => { 
               setTitle(event.target.value); 
               queueSave(event.target.value, blocks); 
+              event.target.style.height = "0px";
+              event.target.style.height = `${event.target.scrollHeight}px`;
             }} 
             onKeyDown={(event) => { 
               if (event.key === "Enter") { 
@@ -605,7 +609,7 @@ export default function NoteEditorView({
               } 
             }} 
             placeholder={isBn ? "শিরোনামহীন নোট..." : "Untitled note..."} 
-            className="note-editor-title w-full text-2xl sm:text-3xl font-bold tracking-tight mb-6 bg-transparent outline-none text-foreground placeholder-zinc-600" 
+            className="note-editor-title w-full text-2xl sm:text-3xl font-bold tracking-tight mb-6 bg-transparent outline-none text-foreground placeholder-zinc-600 resize-none overflow-hidden block break-words" 
             autoFocus 
           />
 
@@ -628,7 +632,7 @@ export default function NoteEditorView({
           />
 
         </div>
-      </main>
+      </div>
 
       {/* Link Insert Modal */}
       <LinkInsertModal
@@ -665,23 +669,16 @@ export default function NoteEditorView({
         </div>
       )}
 
-      {/* Delete Confirmation Modal */}
-      {shouldRenderDelete && (
-        <div className={`note-delete-confirm ${isExitingDelete ? "motion-exit-fade" : "motion-overlay"}`}>
-          <div className={isExitingDelete ? "motion-exit-reveal" : "motion-dialog"}>
-            <h2>{isBn ? "এই নোটটি মুছে ফেলতে চান?" : "Delete this note?"}</h2>
-            <p>{isBn ? "এই কাজটি আর ফেরানো যাবে না।" : "This action cannot be undone."}</p>
-            <section>
-              <button type="button" onClick={() => setConfirmDelete(false)}>
-                {isBn ? "বাতিল" : "Cancel"}
-              </button>
-              <button type="button" className="is-delete" onClick={onDelete}>
-                {isBn ? "মুছে ফেলুন" : "Delete"}
-              </button>
-            </section>
-          </div>
-        </div>
-      )}
+      {/* Custom Delete Confirmation Modal */}
+      <ConfirmDeleteModal
+        isOpen={confirmDelete}
+        onClose={() => setConfirmDelete(false)}
+        onConfirm={onDelete}
+        title={isBn ? "এই নোটটি মুছে ফেলতে চান?" : "Delete this note?"}
+        message={isBn ? "আপনি কি নিশ্চিত যে এই নোটটি মুছে ফেলতে চান? এটি আর ফেরানো যাবে না।" : "Are you sure you want to delete this note? This action cannot be undone."}
+        confirmLabel={isBn ? "মুছুন" : "Delete"}
+        cancelLabel={isBn ? "বাতিল" : "Cancel"}
+      />
     </div>
   );
 }

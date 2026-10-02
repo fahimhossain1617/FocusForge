@@ -6,6 +6,7 @@ import { useAppContext } from "../../context/AppContext";
 import { useTranslation } from "../../hooks/useTranslation";
 import { getThoughtDisplayData } from "../../utils/mindUtils";
 import ThoughtPaperCard from "./ThoughtPaperCard";
+import ConfirmDeleteModal from "../ui/ConfirmDeleteModal";
 
 interface ReviewAllProps {
   navigate: (view: string) => void;
@@ -25,6 +26,7 @@ export default function ReviewAll({ navigate, setActiveThoughtId }: ReviewAllPro
   const [selectedCategory, setSelectedCategory] = useState<CategoryFilter>('all');
   const [sortOrder, setSortOrder] = useState<SortOrder>('newest');
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const [deleteTarget, setDeleteTarget] = useState<'all' | string | null>(null);
 
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: "instant" });
@@ -36,14 +38,15 @@ export default function ReviewAll({ navigate, setActiveThoughtId }: ReviewAllPro
   };
 
   const handleDelete = (id: string) => {
-    if (confirm(t.myMind.confirmDeleteThought)) {
-      deleteMindItem(id);
-      showToast(t.myMind.toastThoughtDeleted, "success");
-    }
+    setDeleteTarget(id);
   };
 
   const handleDeleteAll = () => {
-    if (confirm(t.myMind.confirmDeleteAll)) {
+    setDeleteTarget('all');
+  };
+
+  const handleConfirmDelete = () => {
+    if (deleteTarget === 'all') {
       updateState({
         mindItems: [],
       });
@@ -58,7 +61,11 @@ export default function ReviewAll({ navigate, setActiveThoughtId }: ReviewAllPro
         });
       });
       showToast(t.myMind.toastThoughtDeleted, "success");
+    } else if (deleteTarget) {
+      deleteMindItem(deleteTarget);
+      showToast(t.myMind.toastThoughtDeleted, "success");
     }
+    setDeleteTarget(null);
   };
 
   // Pre-calculate category counts across all saved thoughts
@@ -185,9 +192,9 @@ export default function ReviewAll({ navigate, setActiveThoughtId }: ReviewAllPro
       </div>
 
       {/* ── Filter Buttons and Sorting Bar ── */}
-      <div className="flex flex-wrap items-center justify-between gap-2.5">
+      <div className="flex items-center justify-between gap-2 overflow-x-auto no-scrollbar py-1">
         {/* Category Filters */}
-        <div className="flex flex-wrap items-center gap-1.5">
+        <div className="flex items-center gap-1.5 shrink-0 whitespace-nowrap">
           {/* All */}
           <button
             type="button"
@@ -195,7 +202,7 @@ export default function ReviewAll({ navigate, setActiveThoughtId }: ReviewAllPro
               setSelectedCategory('all');
               setVisibleCount(PAGE_SIZE);
             }}
-            className={`px-3 py-1.5 text-xs font-semibold rounded-xl border transition-all cursor-pointer shadow-none flex items-center gap-1.5 ${
+            className={`px-3 py-1.5 text-xs font-semibold rounded-xl border transition-all cursor-pointer shadow-none flex items-center gap-1.5 shrink-0 ${
               selectedCategory === 'all'
                 ? 'bg-blue-600 text-white border-blue-600'
                 : 'border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 text-slate-700 dark:text-slate-300 hover:border-blue-500/40'
@@ -214,7 +221,7 @@ export default function ReviewAll({ navigate, setActiveThoughtId }: ReviewAllPro
               setSelectedCategory('free_flow');
               setVisibleCount(PAGE_SIZE);
             }}
-            className={`px-3 py-1.5 text-xs font-semibold rounded-xl border transition-all cursor-pointer shadow-none flex items-center gap-1.5 ${
+            className={`px-3 py-1.5 text-xs font-semibold rounded-xl border transition-all cursor-pointer shadow-none flex items-center gap-1.5 shrink-0 ${
               selectedCategory === 'free_flow'
                 ? 'bg-purple-600 text-white border-purple-600'
                 : 'border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 text-slate-700 dark:text-slate-300 hover:border-purple-500/40'
@@ -234,7 +241,7 @@ export default function ReviewAll({ navigate, setActiveThoughtId }: ReviewAllPro
               setSelectedCategory('idea_capture');
               setVisibleCount(PAGE_SIZE);
             }}
-            className={`px-3 py-1.5 text-xs font-semibold rounded-xl border transition-all cursor-pointer shadow-none flex items-center gap-1.5 ${
+            className={`px-3 py-1.5 text-xs font-semibold rounded-xl border transition-all cursor-pointer shadow-none flex items-center gap-1.5 shrink-0 ${
               selectedCategory === 'idea_capture'
                 ? 'bg-teal-600 text-white border-teal-600'
                 : 'border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 text-slate-700 dark:text-slate-300 hover:border-teal-500/40'
@@ -254,7 +261,7 @@ export default function ReviewAll({ navigate, setActiveThoughtId }: ReviewAllPro
               setSelectedCategory('problem_solver');
               setVisibleCount(PAGE_SIZE);
             }}
-            className={`px-3 py-1.5 text-xs font-semibold rounded-xl border transition-all cursor-pointer shadow-none flex items-center gap-1.5 ${
+            className={`px-3 py-1.5 text-xs font-semibold rounded-xl border transition-all cursor-pointer shadow-none flex items-center gap-1.5 shrink-0 ${
               selectedCategory === 'problem_solver'
                 ? 'bg-blue-600 text-white border-blue-600'
                 : 'border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 text-slate-700 dark:text-slate-300 hover:border-blue-500/40'
@@ -272,7 +279,7 @@ export default function ReviewAll({ navigate, setActiveThoughtId }: ReviewAllPro
         <button
           type="button"
           onClick={() => setSortOrder(prev => prev === 'newest' ? 'oldest' : 'newest')}
-          className="px-3 py-1.5 text-xs font-semibold rounded-xl border transition-all cursor-pointer shadow-none flex items-center gap-1.5 border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 text-slate-700 dark:text-slate-300 hover:border-slate-400"
+          className="px-3 py-1.5 text-xs font-semibold rounded-xl border transition-all cursor-pointer shadow-none flex items-center gap-1.5 shrink-0 border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 text-slate-700 dark:text-slate-300 hover:border-slate-400 whitespace-nowrap"
           title="Toggle sort order"
         >
           <ArrowUpDown size={12} />
@@ -280,10 +287,10 @@ export default function ReviewAll({ navigate, setActiveThoughtId }: ReviewAllPro
         </button>
       </div>
 
-      {/* ── Responsive Paper-Card Grid ── */}
+      {/* ── Responsive Paper-Card Grid (2 columns on mobile) ── */}
       {displayedThoughts.length > 0 ? (
         <div className="space-y-8">
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-4.5">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4.5">
             {displayedThoughts.map((item, index) => (
               <ThoughtPaperCard
                 key={item.id}
@@ -342,6 +349,29 @@ export default function ReviewAll({ navigate, setActiveThoughtId }: ReviewAllPro
           </button>
         </div>
       )}
+
+      {/* Custom Delete Confirmation Modal */}
+      <ConfirmDeleteModal
+        isOpen={Boolean(deleteTarget)}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={handleConfirmDelete}
+        title={
+          deleteTarget === 'all'
+            ? (lang === "bn" ? "সব চিন্তা মুছে ফেলতে চান?" : "Delete All Thoughts?")
+            : (lang === "bn" ? "চিন্তাটি মুছে ফেলতে চান?" : "Delete this thought?")
+        }
+        message={
+          deleteTarget === 'all'
+            ? (lang === "bn"
+                ? "আপনি কি নিশ্চিত যে সংরক্ষিত সমস্ত চিন্তা মুছে ফেলতে চান? এটি আর ফিরিয়ে আনা যাবে না।"
+                : "Are you sure you want to delete ALL saved thoughts? This action cannot be undone.")
+            : (lang === "bn"
+                ? "আপনি কি নিশ্চিত যে এই চিন্তাটি মুছে ফেলতে চান? এটি আর ফিরিয়ে আনা যাবে না।"
+                : "Are you sure you want to delete this thought? This action cannot be undone.")
+        }
+        confirmLabel={deleteTarget === 'all' ? (lang === "bn" ? "সব মুছুন" : "Delete All") : (lang === "bn" ? "মুছুন" : "Delete")}
+        cancelLabel={lang === "bn" ? "বাতিল" : "Cancel"}
+      />
     </div>
   );
 }

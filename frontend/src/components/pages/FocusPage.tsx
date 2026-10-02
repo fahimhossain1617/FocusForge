@@ -240,27 +240,39 @@ export default function FocusPage() {
   // Custom Duration State (Hours and Minutes)
   const [customHours, setCustomHours] = useState<number>(0);
   const [customMinutes, setCustomMinutes] = useState<number>(25);
+  const [hoursInputStr, setHoursInputStr] = useState<string>("0");
+  const [minutesInputStr, setMinutesInputStr] = useState<string>("25");
   const [isHoursFocused, setIsHoursFocused] = useState(false);
   const [isMinutesFocused, setIsMinutesFocused] = useState(false);
 
   // Sync custom inputs with timer.workMinutes whenever it changes
   useEffect(() => {
-    if (timer.workMinutes > 0) {
-      setCustomHours(Math.floor(timer.workMinutes / 60));
-      setCustomMinutes(timer.workMinutes % 60);
+    if (timer.workMinutes > 0 && !isHoursFocused && !isMinutesFocused) {
+      const h = Math.floor(timer.workMinutes / 60);
+      const m = timer.workMinutes % 60;
+      setCustomHours(h);
+      setCustomMinutes(m);
+      setHoursInputStr(String(h));
+      setMinutesInputStr(String(m));
     }
-  }, [timer.workMinutes]);
+  }, [timer.workMinutes, isHoursFocused, isMinutesFocused]);
 
   // Default to 25m preset on initial mount if not yet initialized
   useEffect(() => {
     if (timer.workMinutes === 0) {
       timer.setPreset(25);
+      setCustomMinutes(25);
+      setMinutesInputStr("25");
     }
   }, [timer]);
 
   const handleDurationPreset = (mins: number) => {
-    setCustomHours(Math.floor(mins / 60));
-    setCustomMinutes(mins % 60);
+    const h = Math.floor(mins / 60);
+    const m = mins % 60;
+    setCustomHours(h);
+    setCustomMinutes(m);
+    setHoursInputStr(String(h));
+    setMinutesInputStr(String(m));
     timer.setPreset(mins);
     setShowDurationError(false);
   };
@@ -268,14 +280,16 @@ export default function FocusPage() {
   const handleCustomHoursChange = (h: number) => {
     const validH = Math.max(0, Math.min(12, h));
     setCustomHours(validH);
+    setHoursInputStr(String(validH));
     const total = validH * 60 + customMinutes;
     timer.setPreset(total);
     if (total > 0) setShowDurationError(false);
   };
 
   const handleCustomMinutesChange = (m: number) => {
-    const validM = Math.max(0, Math.min(59, m));
+    const validM = Math.max(0, m);
     setCustomMinutes(validM);
+    setMinutesInputStr(String(validM));
     const total = customHours * 60 + validM;
     timer.setPreset(total);
     if (total > 0) setShowDurationError(false);
@@ -376,11 +390,16 @@ export default function FocusPage() {
   };
 
   const handleStartFocus = () => {
-    const hasNoDuration = !timer.workMinutes || timer.workMinutes <= 0;
+    let effectiveDuration = timer.workMinutes;
 
-    if (hasNoDuration) {
-      setShowDurationError(true);
-      return;
+    // If no duration set or left at 0, automatically default to 25 minutes
+    if (!effectiveDuration || effectiveDuration <= 0) {
+      effectiveDuration = 25;
+      timer.setPreset(25);
+      setCustomHours(0);
+      setCustomMinutes(25);
+      setHoursInputStr("0");
+      setMinutesInputStr("25");
     }
 
     setShowDurationError(false);
@@ -655,24 +674,24 @@ export default function FocusPage() {
                   autoFocus
                 />
 
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={handleLogDistraction}
-                    disabled={!distractionText.trim()}
-                    className="flex-1 py-2 px-3 rounded-xl bg-[#223A5E] hover:bg-[#2E4E7B] dark:bg-blue-600 dark:hover:bg-blue-500 disabled:opacity-40 text-white text-xs font-semibold transition-all shadow-none active:scale-98 cursor-pointer"
-                  >
-                    {t.focus.saveReturn}
-                  </button>
+                <div className="flex items-center justify-end gap-2">
                   <button
                     type="button"
                     onClick={() => {
                       setShowDistraction(false);
                       setDistractionText("");
                     }}
-                    className="py-2 px-3 rounded-xl bg-[#F3F7FC] hover:bg-[#EAF1FB] dark:bg-white/5 dark:hover:bg-white/10 text-[#52627A] hover:text-[#111827] dark:text-zinc-300 dark:hover:text-white text-xs font-medium border border-[#DCE5F0] dark:border-white/10 transition-colors cursor-pointer"
+                    className="py-2 px-3.5 rounded-xl bg-[#F3F7FC] hover:bg-[#EAF1FB] dark:bg-white/5 dark:hover:bg-white/10 text-[#52627A] hover:text-[#111827] dark:text-zinc-300 dark:hover:text-white text-xs font-medium border border-[#DCE5F0] dark:border-white/10 transition-colors cursor-pointer"
                   >
                     {t.focus.cancel}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleLogDistraction}
+                    disabled={!distractionText.trim()}
+                    className="py-2 px-4 rounded-xl bg-[#223A5E] hover:bg-[#2E4E7B] dark:bg-blue-600 dark:hover:bg-blue-500 disabled:opacity-40 text-white text-xs font-semibold transition-all shadow-none active:scale-98 cursor-pointer"
+                  >
+                    {t.focus.saveReturn}
                   </button>
                 </div>
 
@@ -775,11 +794,11 @@ export default function FocusPage() {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
             {/* LEFT COLUMN: What will you focus on? */}
             <div className="lg:col-span-6 flex flex-col">
-              <div className="rounded-2xl p-5 sm:p-6 border border-border/70 dark:border-white/10 bg-card/60 shadow-none flex flex-col h-full justify-between gap-5">
+              <div className="card rounded-2xl p-5 sm:p-6 border border-[#DCE5F0] dark:border-white/10 bg-white dark:bg-[#0c1222] dark:bg-[var(--color-bg-card)] shadow-none flex flex-col h-full justify-between gap-5">
                 <div>
                   {/* Card Title (Clean, no icon, no subtitle) */}
                   <div className="mb-4">
-                    <h3 className="text-base font-semibold text-foreground">
+                    <h3 className="text-base font-semibold text-[#111827] dark:text-white">
                       {t.focus.whatToFocus}
                     </h3>
                   </div>
@@ -798,7 +817,7 @@ export default function FocusPage() {
                         }
                       }}
                       placeholder={t.focus.orCustomTask}
-                      className="input-field w-full py-3 px-4 text-sm rounded-xl transition-all"
+                      className="w-full py-3 px-4 text-sm rounded-xl transition-all border bg-[#F7FAFE] dark:bg-white/[0.04] border-[#DCE5F0] dark:border-white/10 text-[#111827] dark:text-white placeholder:text-[#52627A] dark:placeholder:text-slate-400 focus:outline-none focus:border-[#1E3E7B] dark:focus:border-blue-400 shadow-none font-medium"
                     />
                     {selectedTask.name && (
                       <button
@@ -816,14 +835,14 @@ export default function FocusPage() {
                   {taskHistory.length > 0 && (
                     <div className="space-y-2.5">
                       <div className="flex items-center justify-between">
-                        <span className="text-xs font-semibold text-muted-foreground">
+                        <span className="text-xs font-semibold text-[#111827] dark:text-slate-200">
                           {t.focus.recentTasks ||
                             (state.lang === "bn" ? "সাম্প্রতিক টাস্কসমূহ" : "Recent Tasks")}
                         </span>
                         <button
                           type="button"
                           onClick={() => setShowHistoryModal(true)}
-                          className="text-xs text-blue-400 hover:underline cursor-pointer font-medium"
+                          className="text-xs text-[#1E3E7B] dark:text-blue-400 hover:underline cursor-pointer font-semibold"
                         >
                           {state.lang === "bn" ? "ভিউ অল" : "View all"}
                         </button>
@@ -838,16 +857,16 @@ export default function FocusPage() {
                               onClick={() => handleSelectTask({ name: item.name, category: "" })}
                               className={`w-full text-left px-3.5 py-2.5 rounded-xl text-xs sm:text-sm transition-all flex items-center justify-between border cursor-pointer active:scale-[0.99] ${
                                 isSelected
-                                  ? "bg-blue-500/15 border-blue-500 text-blue-400 font-semibold shadow-none"
-                                  : "bg-secondary/40 hover:bg-secondary text-foreground/90 border-border/60 hover:border-border"
+                                  ? "bg-[#EBF3FE] dark:bg-blue-500/20 border-2 border-[#1E3E7B] dark:border-blue-400 text-[#111827] dark:text-white font-semibold shadow-none"
+                                  : "bg-[#F7FAFE] dark:bg-white/[0.02] hover:bg-slate-100 dark:hover:bg-white/[0.05] text-[#111827] dark:text-foreground border-[#DCE5F0] dark:border-white/[0.06]"
                               }`}
                             >
-                              <span className="truncate mr-2 font-medium">{item.name}</span>
+                              <span className="truncate mr-2 font-medium text-[#111827] dark:text-foreground">{item.name}</span>
                               <span
                                 className={`text-[11px] px-2 py-0.5 rounded-md shrink-0 whitespace-nowrap ${
                                   isSelected
-                                    ? "bg-blue-500/25 text-blue-300 font-semibold"
-                                    : "bg-black/20 dark:bg-white/5 text-muted-foreground"
+                                    ? "bg-[#1E3E7B]/15 text-[#1E3E7B] dark:text-blue-300 font-semibold"
+                                    : "bg-slate-200/60 dark:bg-white/5 text-[#52627A] dark:text-muted-foreground font-mono"
                                 }`}
                               >
                                 {item.totalMinutes}m {state.lang === "bn" ? "ফোকাস" : "focused"}
@@ -862,7 +881,7 @@ export default function FocusPage() {
                   {/* Starter Suggestions if no history */}
                   {taskHistory.length === 0 && (
                     <div className="space-y-2.5">
-                      <span className="text-xs font-semibold text-muted-foreground">
+                      <span className="text-xs font-semibold text-[#111827] dark:text-slate-200">
                         {t.focus.popularTopics ||
                           (state.lang === "bn" ? "জনপ্রিয় টপিকসমূহ" : "Popular Topics")}
                       </span>
@@ -882,7 +901,7 @@ export default function FocusPage() {
                                 category: "",
                               })
                             }
-                            className="px-3 py-1.5 rounded-xl text-xs bg-secondary/40 hover:bg-secondary border border-border/60 hover:border-border text-foreground/80 transition-all cursor-pointer active:scale-95"
+                            className="px-3.5 py-2 rounded-xl text-xs bg-[#F7FAFE] dark:bg-white/[0.04] hover:bg-slate-100 dark:hover:bg-white/[0.08] border border-[#DCE5F0] dark:border-white/10 text-[#111827] dark:text-white transition-all cursor-pointer active:scale-95 font-medium"
                           >
                             {state.lang === "bn" ? topic.bn : topic.en}
                           </button>
@@ -918,18 +937,18 @@ export default function FocusPage() {
 
             {/* RIGHT COLUMN: Session Duration & Start Focus */}
             <div className="lg:col-span-6 flex flex-col">
-              <div className="rounded-2xl p-5 sm:p-6 border border-border/70 dark:border-white/10 bg-card/60 shadow-none flex flex-col h-full justify-between gap-5">
+              <div className="card rounded-2xl p-5 sm:p-6 border border-[#DCE5F0] dark:border-white/10 bg-white dark:bg-[#0c1222] dark:bg-[var(--color-bg-card)] shadow-none flex flex-col h-full justify-between gap-5">
                 <div>
                   {/* Card Title (Clean, no icon, no subtitle, no badge) */}
                   <div className="mb-4">
-                    <h3 className="text-base font-semibold text-foreground">
+                    <h3 className="text-base font-semibold text-[#111827] dark:text-white">
                       {t.focus.sessionDuration}
                     </h3>
                   </div>
 
                   {/* Preset Pills: 25m, 50m, 90m */}
                   <div className="mb-5">
-                    <div className="text-xs font-semibold text-muted-foreground mb-2">
+                    <div className="text-xs font-semibold text-[#111827] dark:text-slate-200 mb-2">
                       {t.focus.quickPresets ||
                         (state.lang === "bn" ? "জনপ্রিয় সময়কাল" : "Quick Presets")}
                     </div>
@@ -952,14 +971,14 @@ export default function FocusPage() {
                             onClick={() => handleDurationPreset(preset.mins)}
                             className={`py-2.5 px-2 sm:px-3 rounded-xl border text-center transition-all cursor-pointer flex flex-col items-center justify-center active:scale-95 ${
                               isSelected
-                                ? "bg-blue-600/15 border-blue-500 text-blue-400 shadow-none ring-1 ring-blue-500/30 font-semibold"
-                                : "bg-secondary/40 hover:bg-secondary border-border/60 hover:border-border text-foreground/80"
+                                ? "bg-[#EBF3FE] dark:bg-blue-500/20 border-2 border-[#1E3E7B] dark:border-blue-400 text-[#111827] dark:text-white shadow-none font-semibold"
+                                : "bg-[#F7FAFE] dark:bg-white/[0.02] hover:bg-slate-100 dark:hover:bg-white/[0.05] border-[#DCE5F0] dark:border-white/[0.06] text-[#111827] dark:text-foreground"
                             }`}
                           >
-                            <span className="text-sm font-bold">{preset.label}</span>
+                            <span className="text-sm font-bold text-[#111827] dark:text-white">{preset.label}</span>
                             <span
-                              className={`text-[10px] mt-0.5 truncate max-w-full ${
-                                isSelected ? "text-blue-300 font-medium" : "text-muted-foreground"
+                              className={`text-[10px] mt-0.5 truncate max-w-full font-medium ${
+                                isSelected ? "text-[#1E3E7B] dark:text-blue-300 font-semibold" : "text-[#52627A] dark:text-slate-400"
                               }`}
                             >
                               {state.lang === "bn" ? preset.subBn : preset.subEn}
@@ -972,7 +991,7 @@ export default function FocusPage() {
 
                   {/* Custom Hours & Minutes Controls (Clean, Sleek Steppers) */}
                   <div className="space-y-3">
-                    <div className="text-xs font-semibold text-muted-foreground">
+                    <div className="text-xs font-semibold text-[#111827] dark:text-slate-200">
                       {t.focus.customDuration ||
                         (state.lang === "bn"
                           ? "কাস্টম সময় (ঘণ্টা ও মিনিট)"
@@ -982,41 +1001,55 @@ export default function FocusPage() {
                     <div className="grid grid-cols-2 gap-3">
                       {/* Hours Stepper */}
                       <div className="flex flex-col gap-1.5">
-                        <label className="text-[11px] text-muted-foreground font-medium">
+                        <label className="text-[11px] text-[#52627A] dark:text-slate-300 font-medium">
                           {t.focus.hours || (state.lang === "bn" ? "ঘণ্টা (Hours)" : "Hours")}
                         </label>
-                        <div className="flex items-center rounded-xl bg-secondary/40 border border-border/70 p-1 shadow-none focus-within:border-blue-500/60 focus-within:ring-1 focus-within:ring-blue-500/20 transition-all">
+                        <div className="flex items-center rounded-xl bg-[#F7FAFE] dark:bg-white/[0.04] border border-[#DCE5F0] dark:border-white/10 p-1 shadow-none focus-within:border-[#1E3E7B] dark:focus-within:border-blue-400 focus-within:ring-1 focus-within:ring-[#1E3E7B]/20 transition-all">
                           <button
                             type="button"
                             onClick={() => handleCustomHoursChange(customHours - 1)}
                             disabled={customHours <= 0}
-                            className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-secondary text-muted-foreground hover:text-foreground disabled:opacity-30 disabled:hover:bg-transparent transition-all cursor-pointer active:scale-90"
+                            className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-slate-200/60 dark:hover:bg-white/10 text-[#52627A] dark:text-slate-300 hover:text-[#111827] dark:hover:text-white disabled:opacity-30 disabled:hover:bg-transparent transition-all cursor-pointer active:scale-90"
                             aria-label="Decrease hours"
                           >
                             <Minus className="w-3.5 h-3.5" />
                           </button>
                           <input
-                            type="number"
-                            min={0}
-                            max={12}
-                            value={customHours === 0 && isHoursFocused ? "" : customHours}
-                            onFocus={(e) => {
+                            type="text"
+                            inputMode="numeric"
+                            pattern="[0-9]*"
+                            value={isHoursFocused ? hoursInputStr : customHours}
+                            onFocus={() => {
                               setIsHoursFocused(true);
-                              e.target.select();
+                              setHoursInputStr("");
                             }}
-                            onBlur={() => setIsHoursFocused(false)}
+                            onBlur={() => {
+                              setIsHoursFocused(false);
+                              if (!hoursInputStr || isNaN(parseInt(hoursInputStr, 10))) {
+                                setCustomHours(0);
+                                setHoursInputStr("0");
+                              } else {
+                                const h = Math.max(0, Math.min(12, parseInt(hoursInputStr, 10)));
+                                setCustomHours(h);
+                                setHoursInputStr(String(h));
+                              }
+                            }}
                             onChange={(e) => {
-                              const str = e.target.value.replace(/^0+(?=\d)/, "");
-                              const val = str === "" ? 0 : parseInt(str, 10);
-                              handleCustomHoursChange(isNaN(val) ? 0 : val);
+                              const val = e.target.value.replace(/[^0-9]/g, "");
+                              setHoursInputStr(val);
+                              const num = val === "" ? 0 : Math.min(12, parseInt(val, 10));
+                              setCustomHours(num);
+                              const total = num * 60 + customMinutes;
+                              timer.setPreset(total);
+                              if (total > 0) setShowDurationError(false);
                             }}
-                            className="w-full text-center text-sm font-bold bg-transparent text-foreground outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                            className="w-full text-center text-sm font-bold bg-transparent text-[#111827] dark:text-white outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                           />
                           <button
                             type="button"
                             onClick={() => handleCustomHoursChange(customHours + 1)}
                             disabled={customHours >= 12}
-                            className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-secondary text-muted-foreground hover:text-foreground disabled:opacity-30 disabled:hover:bg-transparent transition-all cursor-pointer active:scale-90"
+                            className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-slate-200/60 dark:hover:bg-white/10 text-[#52627A] dark:text-slate-300 hover:text-[#111827] dark:hover:text-white disabled:opacity-30 disabled:hover:bg-transparent transition-all cursor-pointer active:scale-90"
                             aria-label="Increase hours"
                           >
                             <Plus className="w-3.5 h-3.5" />
@@ -1026,41 +1059,54 @@ export default function FocusPage() {
 
                       {/* Minutes Stepper */}
                       <div className="flex flex-col gap-1.5">
-                        <label className="text-[11px] text-muted-foreground font-medium">
+                        <label className="text-[11px] text-[#52627A] dark:text-slate-300 font-medium">
                           {t.focus.minutes || (state.lang === "bn" ? "মিনিট (Minutes)" : "Minutes")}
                         </label>
-                        <div className="flex items-center rounded-xl bg-secondary/40 border border-border/70 p-1 shadow-none focus-within:border-blue-500/60 focus-within:ring-1 focus-within:ring-blue-500/20 transition-all">
+                        <div className="flex items-center rounded-xl bg-[#F7FAFE] dark:bg-white/[0.04] border border-[#DCE5F0] dark:border-white/10 p-1 shadow-none focus-within:border-[#1E3E7B] dark:focus-within:border-blue-400 focus-within:ring-1 focus-within:ring-[#1E3E7B]/20 transition-all">
                           <button
                             type="button"
                             onClick={() => handleCustomMinutesChange(Math.max(0, customMinutes - 5))}
                             disabled={customMinutes <= 0}
-                            className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-secondary text-muted-foreground hover:text-foreground disabled:opacity-30 disabled:hover:bg-transparent transition-all cursor-pointer active:scale-90"
+                            className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-slate-200/60 dark:hover:bg-white/10 text-[#52627A] dark:text-slate-300 hover:text-[#111827] dark:hover:text-white disabled:opacity-30 disabled:hover:bg-transparent transition-all cursor-pointer active:scale-90"
                             aria-label="Decrease minutes"
                           >
                             <Minus className="w-3.5 h-3.5" />
                           </button>
                           <input
-                            type="number"
-                            min={0}
-                            max={59}
-                            value={customMinutes === 0 && isMinutesFocused ? "" : customMinutes}
-                            onFocus={(e) => {
+                            type="text"
+                            inputMode="numeric"
+                            pattern="[0-9]*"
+                            value={isMinutesFocused ? minutesInputStr : customMinutes}
+                            onFocus={() => {
                               setIsMinutesFocused(true);
-                              e.target.select();
+                              setMinutesInputStr("");
                             }}
-                            onBlur={() => setIsMinutesFocused(false)}
+                            onBlur={() => {
+                              setIsMinutesFocused(false);
+                              if (!minutesInputStr || isNaN(parseInt(minutesInputStr, 10))) {
+                                setCustomMinutes(0);
+                                setMinutesInputStr("0");
+                              } else {
+                                const m = Math.max(0, parseInt(minutesInputStr, 10));
+                                setCustomMinutes(m);
+                                setMinutesInputStr(String(m));
+                              }
+                            }}
                             onChange={(e) => {
-                              const str = e.target.value.replace(/^0+(?=\d)/, "");
-                              const val = str === "" ? 0 : parseInt(str, 10);
-                              handleCustomMinutesChange(isNaN(val) ? 0 : val);
+                              const val = e.target.value.replace(/[^0-9]/g, "");
+                              setMinutesInputStr(val);
+                              const num = val === "" ? 0 : Math.min(120, parseInt(val, 10));
+                              setCustomMinutes(num);
+                              const total = customHours * 60 + num;
+                              timer.setPreset(total);
+                              if (total > 0) setShowDurationError(false);
                             }}
-                            className="w-full text-center text-sm font-bold bg-transparent text-foreground outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                            className="w-full text-center text-sm font-bold bg-transparent text-[#111827] dark:text-white outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                           />
                           <button
                             type="button"
-                            onClick={() => handleCustomMinutesChange(Math.min(59, customMinutes + 5))}
-                            disabled={customMinutes >= 59}
-                            className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-secondary text-muted-foreground hover:text-foreground disabled:opacity-30 disabled:hover:bg-transparent transition-all cursor-pointer active:scale-90"
+                            onClick={() => handleCustomMinutesChange(customMinutes + 5)}
+                            className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-slate-200/60 dark:hover:bg-white/10 text-[#52627A] dark:text-slate-300 hover:text-[#111827] dark:hover:text-white disabled:opacity-30 disabled:hover:bg-transparent transition-all cursor-pointer active:scale-90"
                             aria-label="Increase minutes"
                           >
                             <Plus className="w-3.5 h-3.5" />
@@ -1214,24 +1260,24 @@ export default function FocusPage() {
                       autoFocus
                     />
 
-                    <div className="flex gap-2">
-                      <button
-                        type="button"
-                        onClick={handleLogDistraction}
-                        disabled={!distractionText.trim()}
-                        className="flex-1 py-2 px-3 rounded-xl bg-[#223A5E] hover:bg-[#2E4E7B] dark:bg-blue-600 dark:hover:bg-blue-500 disabled:opacity-40 text-white text-xs font-semibold transition-all shadow-none active:scale-98 cursor-pointer"
-                      >
-                        {t.focus.saveReturn}
-                      </button>
+                    <div className="flex items-center justify-end gap-2">
                       <button
                         type="button"
                         onClick={() => {
                           setShowDistraction(false);
                           setDistractionText("");
                         }}
-                        className="py-2 px-3 rounded-xl bg-[#F3F7FC] hover:bg-[#EAF1FB] dark:bg-white/5 dark:hover:bg-white/10 text-[#52627A] hover:text-[#111827] dark:text-zinc-300 dark:hover:text-white text-xs font-medium border border-[#DCE5F0] dark:border-white/10 transition-colors cursor-pointer"
+                        className="py-2 px-3.5 rounded-xl bg-[#F3F7FC] hover:bg-[#EAF1FB] dark:bg-white/5 dark:hover:bg-white/10 text-[#52627A] hover:text-[#111827] dark:text-zinc-300 dark:hover:text-white text-xs font-medium border border-[#DCE5F0] dark:border-white/10 transition-colors cursor-pointer"
                       >
                         {t.focus.cancel}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleLogDistraction}
+                        disabled={!distractionText.trim()}
+                        className="py-2 px-4 rounded-xl bg-[#223A5E] hover:bg-[#2E4E7B] dark:bg-blue-600 dark:hover:bg-blue-500 disabled:opacity-40 text-white text-xs font-semibold transition-all shadow-none active:scale-98 cursor-pointer"
+                      >
+                        {t.focus.saveReturn}
                       </button>
                     </div>
 

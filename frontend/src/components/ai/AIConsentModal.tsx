@@ -28,18 +28,18 @@ export default function AIConsentModal({ isOpen, userId, lang = "bn", onClose }:
 
   return (
     <div 
-      className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200"
+      className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/15 dark:bg-black/35 animate-in fade-in duration-150"
       onClick={handleSkipOrClose}
     >
       <div 
-        className="bg-card border border-border rounded-2xl max-w-lg w-full p-6 shadow-2xl relative"
+        className="bg-white dark:bg-[#111827] border border-slate-200 dark:border-white/10 rounded-2xl max-w-lg w-full p-6 shadow-xl relative"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Close / Skip button */}
         <button
           type="button"
           onClick={handleSkipOrClose}
-          className="absolute top-4 right-4 p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
+          className="absolute top-4 right-4 p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 transition-colors cursor-pointer"
           title={isBn ? "স্কিপ করুন" : "Skip"}
           aria-label="Close"
         >
@@ -47,27 +47,27 @@ export default function AIConsentModal({ isOpen, userId, lang = "bn", onClose }:
         </button>
 
         <div className="flex items-center gap-3 mb-4 pr-6">
-          <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+          <div className="w-10 h-10 rounded-xl bg-[#EBF3FE] dark:bg-blue-500/15 text-[#1E3E7B] dark:text-blue-400 flex items-center justify-center shrink-0">
             <Shield className="w-5 h-5" />
           </div>
           <div>
-            <h2 className="text-lg font-semibold text-foreground">
+            <h2 className="text-lg font-bold text-[#111827] dark:text-white">
               {isBn ? "এআই ইমপ্রুভমেন্ট ও পারমিশন" : "AI Improvement & Permission"}
             </h2>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
               {isBn ? "আপনার এআই অভিজ্ঞতা পার্সোনালাইজ ও উন্নত করতে অনুমতি দিন" : "Help personalize and improve FocusForge AI responses"}
             </p>
           </div>
         </div>
 
-        <div className="text-sm text-muted-foreground space-y-3 mb-6 bg-muted/30 p-4 rounded-xl border border-border/40">
-          <p>
+        <div className="text-xs sm:text-sm text-slate-700 dark:text-slate-300 space-y-3 mb-6 bg-slate-50 dark:bg-white/[0.03] p-4 rounded-xl border border-slate-200 dark:border-white/10">
+          <p className="leading-relaxed">
             {isBn
               ? "FocusForge AI-কে আপনার সাথে কথা বলার ধরণ ও পছন্দ মনে রেখে ভবিষ্যতে আরও নির্ভুল ও উন্নত উত্তর দেওয়ার অনুমতি দেবেন কি? সম্মতি দিলে এআই স্বয়ংক্রিয়ভাবে প্রয়োজনীয় বিষয় মনে রাখবে।"
               : "Allow FocusForge AI to learn your communication style and preferences to improve future responses? When allowed, AI will remember helpful context across your sessions."}
           </p>
-          <div className="flex items-center gap-2 text-xs text-foreground font-medium">
-            <Lock className="w-4 h-4 text-emerald-500 shrink-0" />
+          <div className="flex items-center gap-2 text-xs text-slate-800 dark:text-slate-200 font-medium">
+            <Lock className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
             <span>
               {isBn
                 ? "সম্মতি না দিলেও সাধারণ চ্যাট সম্পূর্ণভাবে চলবে (কোনো মেমোরি সেভ হবে না)।"
@@ -76,23 +76,21 @@ export default function AIConsentModal({ isOpen, userId, lang = "bn", onClose }:
           </div>
         </div>
 
-        <div className="flex flex-col sm:flex-row gap-3">
+        <div className="flex flex-col gap-2.5">
           <button
             type="button"
-            onClick={() => handleChoice("private")}
-            className="flex-1 px-4 py-2.5 rounded-xl border border-border bg-background hover:bg-muted font-medium text-sm text-foreground transition-all flex items-center justify-center gap-2"
+            onClick={() => handleChoice("granted")}
+            className="w-full py-2.5 px-4 rounded-xl bg-[#1E3E7B] hover:bg-[#28539E] text-white font-semibold text-sm transition-all shadow-none cursor-pointer flex items-center justify-center"
           >
-            <Shield className="w-4 h-4 text-muted-foreground" />
-            {isBn ? "মেমোরি ছাড়া চ্যাট" : "No Memory / Decline"}
+            {isBn ? "অনুমতি দিন (ডিফল্ট)" : "Allow AI Improvement"}
           </button>
 
           <button
             type="button"
-            onClick={() => handleChoice("granted")}
-            className="flex-1 px-4 py-2.5 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 font-medium text-sm transition-all flex items-center justify-center gap-2 shadow-sm ring-1 ring-primary/30"
+            onClick={() => handleChoice("private")}
+            className="w-full py-2.5 px-4 rounded-xl bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 dark:bg-transparent dark:hover:bg-white/5 dark:border-white/20 dark:text-slate-300 font-medium text-sm transition-all shadow-none cursor-pointer flex items-center justify-center"
           >
-            <Sparkles className="w-4 h-4" />
-            {isBn ? "অনুমতি দিন (ডিফল্ট)" : "Allow AI Improvement"}
+            {isBn ? "মেমোরি ছাড়া চ্যাট" : "No Memory / Decline"}
           </button>
         </div>
       </div>

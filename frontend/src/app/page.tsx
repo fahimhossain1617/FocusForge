@@ -257,7 +257,7 @@ export default function Home() {
   const isLight = state.theme?.mode === "light";
 
   return (
-    <div className={`flex min-h-screen ${state.activePage === 'ai-agent' ? 'h-dvh max-h-dvh overflow-hidden' : ''} ${state.lang === 'bn' ? 'font-bengali' : ''} overflow-x-hidden ${isLight ? 'bg-[#F3F7FC]' : 'bg-[#0A0E1A]'}`}>
+    <div className={`flex min-h-screen ${state.activePage === 'ai-agent' ? 'h-dvh max-h-dvh overflow-hidden' : ''} ${state.lang === 'bn' ? 'font-bengali' : ''} ${isLight ? 'bg-[#F3F7FC]' : 'bg-[#0A0E1A]'}`}>
       <Sidebar 
         isOpen={sidebarOpen} 
         onClose={() => setSidebarOpen(false)} 
@@ -268,7 +268,7 @@ export default function Home() {
 
       {/* Main Content */}
       <main className={`flex-1 ${sidebarCollapsed ? 'md:ml-[76px]' : 'md:ml-[260px]'} w-full min-w-0 flex flex-col transition-[margin] duration-200 ease-in-out ${
-        state.activePage === 'ai-agent' ? 'h-dvh max-h-dvh overflow-hidden' : 'min-h-screen overflow-x-hidden'
+        state.activePage === 'ai-agent' ? 'h-dvh max-h-dvh overflow-hidden' : 'min-h-screen'
       }`}>
         {/* Mobile / Compact Header: [ App Icon ] FocusForge ... [ Bell ] */}
         <MobileHeader />

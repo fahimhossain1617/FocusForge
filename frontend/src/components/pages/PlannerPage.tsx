@@ -616,7 +616,7 @@ export default function PlannerPage() {
               <button
                 type="button"
                 onClick={() => setShowAllHighlights(prev => !prev)}
-                className="self-start sm:self-auto text-xs font-bold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors flex items-center gap-1 cursor-pointer px-3 py-1 rounded-lg bg-blue-500/10 hover:bg-blue-500/15"
+                className="self-start sm:self-auto text-xs font-bold text-[#1E3E7B] dark:text-blue-400 hover:text-[#28539E] dark:hover:text-blue-300 transition-colors flex items-center gap-1 cursor-pointer px-3 py-1 rounded-lg bg-[#EBF3FE] dark:bg-blue-500/10 hover:bg-[#DBEAFE] dark:hover:bg-blue-500/15"
               >
                 {showAllHighlights ? (state.lang === 'bn' ? "কম দেখুন" : "Show Less") : (state.lang === 'bn' ? "সবগুলো দেখুন" : "View All")}
               </button>
@@ -658,7 +658,7 @@ export default function PlannerPage() {
                           });
                           setShowAddTaskModal(true);
                         }} 
-                        className="pl-2 text-[11px] font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors flex items-center gap-1.5 mt-3 cursor-pointer self-start"
+                        className="pl-2 text-[11px] font-semibold text-[#1E3E7B] dark:text-blue-400 hover:text-[#28539E] dark:hover:text-blue-300 transition-colors flex items-center gap-1.5 mt-3 cursor-pointer self-start"
                       >
                         <Pencil className="w-3 h-3" />
                         <span>{state.lang === 'bn' ? "এডিট" : "Edit"}</span>
@@ -676,7 +676,7 @@ export default function PlannerPage() {
                     <div className="w-8 h-8 rounded-full bg-blue-500/15 text-blue-500 dark:text-blue-400 flex items-center justify-center font-bold text-xs group-hover:scale-110 transition-transform">
                       +{selectedDayItems.length - 4}
                     </div>
-                    <span className="text-xs font-bold text-blue-600 dark:text-blue-400 group-hover:underline">
+                    <span className="text-xs font-bold text-[#1E3E7B] dark:text-blue-400 group-hover:underline">
                       {state.lang === 'bn' ? "সবগুলো দেখুন" : "View All"}
                     </span>
                   </button>

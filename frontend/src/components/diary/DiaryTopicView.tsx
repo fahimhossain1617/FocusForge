@@ -7,6 +7,7 @@ import { DiaryTopic, DiaryEntry, DiaryImage } from "../../types";
 import { formatDiaryDate } from "../../services/diaryStorageService";
 import DiaryEditor from "./DiaryEditor";
 import DiaryTopicModal from "./DiaryTopicModal";
+import ConfirmDeleteModal from "../ui/ConfirmDeleteModal";
 
 interface DiaryTopicViewProps {
   topic: DiaryTopic;
@@ -38,6 +39,7 @@ export default function DiaryTopicView({
   const { t } = useTranslation();
   const [mode, setMode] = useState<"read" | "edit">(initialMode);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [viewingImage, setViewingImage] = useState<string | null>(null);
 
   // Sync mode whenever topic or initialMode changes
@@ -74,15 +76,13 @@ export default function DiaryTopicView({
   }, [topic]);
 
   const handleDeleteEntireTopic = () => {
-    if (
-      window.confirm(
-        t.diary?.deleteTopicConfirm ||
-          "Are you sure you want to delete this topic and its contents? This action cannot be undone."
-      )
-    ) {
-      onDeleteTopic(topic.id);
-      onBackToTOC();
-    }
+    setShowDeleteModal(true);
+  };
+
+  const handleConfirmDelete = () => {
+    setShowDeleteModal(false);
+    onDeleteTopic(topic.id);
+    onBackToTOC();
   };
 
   const wordCount = continuousEntry.content
@@ -111,7 +111,7 @@ export default function DiaryTopicView({
             <button
               type="button"
               onClick={() => setMode("edit")}
-              className="p-1.5 sm:p-2 rounded-xl text-zinc-400 hover:text-blue-500 hover:bg-black/5 dark:hover:bg-white/5 border border-transparent hover:border-black/10 dark:hover:border-white/10 transition-colors cursor-pointer shrink-0"
+              className="p-1.5 sm:p-2 rounded-xl text-zinc-500 dark:text-zinc-400 hover:text-[#1E3E7B] dark:hover:text-blue-400 hover:bg-black/5 dark:hover:bg-white/5 border border-transparent hover:border-black/10 dark:hover:border-white/10 transition-colors cursor-pointer shrink-0"
               title={t.diary?.edit || "Edit"}
               aria-label={t.diary?.edit || "Edit"}
             >
@@ -121,7 +121,7 @@ export default function DiaryTopicView({
             <button
               type="button"
               onClick={() => setMode("read")}
-              className="p-1.5 sm:p-2 rounded-xl text-zinc-400 hover:text-blue-500 hover:bg-black/5 dark:hover:bg-white/5 border border-transparent hover:border-black/10 dark:hover:border-white/10 transition-colors cursor-pointer shrink-0"
+              className="p-1.5 sm:p-2 rounded-xl text-zinc-500 dark:text-zinc-400 hover:text-[#1E3E7B] dark:hover:text-blue-400 hover:bg-black/5 dark:hover:bg-white/5 border border-transparent hover:border-black/10 dark:hover:border-white/10 transition-colors cursor-pointer shrink-0"
               title={t.diary?.readMode || "Read"}
               aria-label={t.diary?.readMode || "Read"}
             >
@@ -133,7 +133,7 @@ export default function DiaryTopicView({
           <button
             type="button"
             onClick={() => setIsEditModalOpen(true)}
-            className="p-1.5 sm:p-2 rounded-xl text-zinc-400 hover:text-blue-500 hover:bg-black/5 dark:hover:bg-white/5 border border-transparent hover:border-black/10 dark:hover:border-white/10 transition-colors cursor-pointer shrink-0"
+            className="p-1.5 sm:p-2 rounded-xl text-zinc-500 dark:text-zinc-400 hover:text-[#1E3E7B] dark:hover:text-blue-400 hover:bg-black/5 dark:hover:bg-white/5 border border-transparent hover:border-black/10 dark:hover:border-white/10 transition-colors cursor-pointer shrink-0"
             title={t.diary?.editTopic || "Edit Topic Details"}
             aria-label={t.diary?.editTopic || "Edit Topic Details"}
           >
@@ -284,6 +284,21 @@ export default function DiaryTopicView({
           </div>
         </div>
       )}
+
+      {/* Custom Delete Confirmation Modal */}
+      <ConfirmDeleteModal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={handleConfirmDelete}
+        title={lang === "bn" ? "ডায়েরি টপিক মুছে ফেলতে চান?" : "Delete Diary Topic?"}
+        message={
+          lang === "bn"
+            ? "আপনি কি নিশ্চিত যে এই টপিক এবং এর সমস্ত পৃষ্ঠা মুছে ফেলতে চান? এটি আর ফিরিয়ে আনা যাবে না।"
+            : "Are you sure you want to delete this topic and all its contents? This action cannot be undone."
+        }
+        confirmLabel={lang === "bn" ? "মুছুন" : "Delete"}
+        cancelLabel={lang === "bn" ? "বাতিল" : "Cancel"}
+      />
     </div>
   );
 }

@@ -194,6 +194,10 @@ interface AppContextType {
 
   // Review System Meaningful Action Tracking
   trackMeaningfulAction: (actionType: string) => void;
+
+  // Sub-view / folder view active state (hides top header on mobile)
+  isSubViewActive: boolean;
+  setSubViewActive: (active: boolean) => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -202,6 +206,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<AppState>(defaultState);
   const [isLoaded, setIsLoaded] = useState(false);
   const [isPageLoading, setIsPageLoading] = useState(false);
+  const [isSubViewActive, setSubViewActive] = useState(false);
   const [isOnline, setIsOnline] = useState<boolean>(() => {
     if (typeof navigator !== "undefined" && typeof navigator.onLine === "boolean") {
       return navigator.onLine;
@@ -607,6 +612,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     trackMeaningfulAction('feature_' + page);
 
+    setSubViewActive(false);
     setIsPageLoading(true);
     setState((prev) => {
       if (prev.activePage === page) return prev;
@@ -1714,6 +1720,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         isPageLoading,
         setPageLoading: setIsPageLoading,
         isOnline,
+        isSubViewActive,
+        setSubViewActive,
       }}
     >
       {children}

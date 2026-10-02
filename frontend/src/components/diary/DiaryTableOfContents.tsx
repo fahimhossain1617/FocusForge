@@ -7,6 +7,7 @@ import DiaryHeader from "./DiaryHeader";
 import DiaryCard from "./DiaryCard";
 import DiaryEmptyState from "./DiaryEmptyState";
 import DiaryTopicModal from "./DiaryTopicModal";
+import ConfirmDeleteModal from "../ui/ConfirmDeleteModal";
 
 interface DiaryTableOfContentsProps {
   topics: DiaryTopic[];
@@ -33,6 +34,7 @@ export default function DiaryTableOfContents({
   const [searchQuery, setSearchQuery] = useState("");
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [editingTopic, setEditingTopic] = useState<DiaryTopic | null>(null);
+  const [deletingTopicId, setDeletingTopicId] = useState<string | null>(null);
 
   // Filter topics based on search query
   const filteredTopics = useMemo(() => {
@@ -59,13 +61,13 @@ export default function DiaryTableOfContents({
   };
 
   const handleDeleteTopic = (topicId: string) => {
-    if (
-      window.confirm(
-        t.diary?.deleteTopicConfirm ||
-          "Are you sure you want to delete this diary and all its contents? This action cannot be undone."
-      )
-    ) {
-      onDeleteTopic(topicId);
+    setDeletingTopicId(topicId);
+  };
+
+  const handleConfirmDelete = () => {
+    if (deletingTopicId) {
+      onDeleteTopic(deletingTopicId);
+      setDeletingTopicId(null);
     }
   };
 
@@ -131,6 +133,21 @@ export default function DiaryTableOfContents({
         }}
         onDelete={(topicId) => onDeleteTopic(topicId)}
         initialTopic={editingTopic}
+      />
+
+      {/* Custom Delete Confirmation Modal */}
+      <ConfirmDeleteModal
+        isOpen={Boolean(deletingTopicId)}
+        onClose={() => setDeletingTopicId(null)}
+        onConfirm={handleConfirmDelete}
+        title={lang === "bn" ? "ডায়েরি মুছে ফেলতে চান?" : "Delete Diary?"}
+        message={
+          lang === "bn"
+            ? "আপনি কি নিশ্চিত যে এই ডায়েরি এবং এর সমস্ত পৃষ্ঠা মুছে ফেলতে চান? এটি আর ফিরিয়ে আনা যাবে না।"
+            : "Are you sure you want to delete this diary and all its contents? This action cannot be undone."
+        }
+        confirmLabel={lang === "bn" ? "মুছুন" : "Delete"}
+        cancelLabel={lang === "bn" ? "বাতিল" : "Cancel"}
       />
     </div>
   );

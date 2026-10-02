@@ -6,7 +6,7 @@ import { useAppContext } from "../../context/AppContext";
 import { useTranslation } from "../../hooks/useTranslation";
 import VoiceInput from "./VoiceInput";
 import { getMindSourceInfo, formatMindDate } from "../../utils/mindUtils";
-
+import ConfirmDeleteModal from "../ui/ConfirmDeleteModal";
 
 interface ThoughtDetailProps {
   thoughtId: string;
@@ -24,6 +24,7 @@ export default function ThoughtDetail({ thoughtId, navigate, previousView }: Tho
   const [interim, setInterim] = useState("");
   const [isFocused, setIsFocused] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -38,7 +39,9 @@ export default function ThoughtDetail({ thoughtId, navigate, previousView }: Tho
   useEffect(() => {
     if (textareaRef.current) {
       textareaRef.current.style.height = "auto";
-      textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
+      const newHeight = Math.min(Math.max(textareaRef.current.scrollHeight, 220), 380);
+      textareaRef.current.style.height = `${newHeight}px`;
+      textareaRef.current.scrollTop = textareaRef.current.scrollHeight;
     }
   }, [content, interim]);
 
@@ -61,12 +64,11 @@ export default function ThoughtDetail({ thoughtId, navigate, previousView }: Tho
     showToast(t.myMind.toastChangesSaved, "success");
   };
 
-  const handleDelete = () => {
-    if (confirm(t.myMind.confirmDeleteThought)) {
-      deleteMindItem(thoughtId);
-      navigate('review_all');
-      showToast(t.myMind.toastThoughtDeleted, "success");
-    }
+  const handleConfirmDelete = () => {
+    deleteMindItem(thoughtId);
+    setShowDeleteModal(false);
+    navigate('review_all');
+    showToast(t.myMind.toastThoughtDeleted, "success");
   };
 
   if (!thought) return null;
@@ -88,8 +90,8 @@ export default function ThoughtDetail({ thoughtId, navigate, previousView }: Tho
         </button>
         <div className="flex items-center gap-2">
           <button 
-            type="button"
-            onClick={handleDelete}
+            type="button" 
+            onClick={() => setShowDeleteModal(true)}
             title={t.myMind.deleteText || "Delete Thought"}
             className="p-2 rounded-xl text-red-400 hover:text-red-500 hover:bg-red-500/10 border border-transparent hover:border-red-500/20 transition-all cursor-pointer shrink-0"
           >
@@ -116,7 +118,7 @@ export default function ThoughtDetail({ thoughtId, navigate, previousView }: Tho
       </div>
 
       <div
-        className="rounded-2xl border transition-all duration-300 relative pb-16 overflow-hidden"
+        className="rounded-2xl border transition-all duration-300 relative pb-16 overflow-hidden flex flex-col"
         style={{
           background: "var(--color-bg-card)",
           borderColor: (isFocused || isEditing) ? "var(--color-purple-primary)" : "var(--color-border-subtle)",
@@ -133,12 +135,14 @@ export default function ThoughtDetail({ thoughtId, navigate, previousView }: Tho
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
           placeholder={t.myMind.writeFreely}
-          className="w-full px-5 sm:px-7 py-5 sm:py-6 text-base sm:text-lg border-0 resize-none no-focus-ring leading-relaxed bg-transparent my-mind-textarea"
+          className="w-full px-5 sm:px-7 py-5 sm:py-6 text-base sm:text-lg border-0 resize-none no-focus-ring leading-relaxed bg-transparent my-mind-textarea custom-mini-scrollbar"
           style={{ 
             background: "transparent", 
             border: "none",
             outline: "none", 
-            minHeight: "300px",
+            minHeight: "220px",
+            maxHeight: "380px",
+            overflowY: "auto",
             color: "var(--color-text-primary)" 
           }}
         />
@@ -152,7 +156,7 @@ export default function ThoughtDetail({ thoughtId, navigate, previousView }: Tho
                 setContent(thought.content);
                 setIsEditing(false);
               }}
-              className="px-4 py-2 rounded-xl text-sm font-medium transition-colors hover:bg-black/5 dark:hover:bg-white/5"
+              className="px-4 py-2 rounded-xl text-sm font-medium transition-colors hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer"
               style={{ 
                 color: "var(--color-text-secondary)",
                 opacity: (content !== thought.content) ? 1 : 0.5,
@@ -176,6 +180,21 @@ export default function ThoughtDetail({ thoughtId, navigate, previousView }: Tho
           </div>
         </div>
       </div>
+
+      {/* Custom Delete Confirmation Modal */}
+      <ConfirmDeleteModal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={handleConfirmDelete}
+        title={lang === "bn" ? "চিন্তাটি মুছে ফেলতে চান?" : "Delete this thought?"}
+        message={
+          lang === "bn"
+            ? "আপনি কি নিশ্চিত যে এই চিন্তাটি মুছে ফেলতে চান? এটি আর ফিরিয়ে আনা যাবে না।"
+            : "Are you sure you want to delete this thought? This action cannot be undone."
+        }
+        confirmLabel={lang === "bn" ? "মুছুন" : "Delete"}
+        cancelLabel={lang === "bn" ? "বাতিল" : "Cancel"}
+      />
     </div>
   );
 }

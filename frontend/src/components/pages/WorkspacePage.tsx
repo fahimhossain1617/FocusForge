@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
-import { createPortal } from "react-dom";
 import { useAppContext } from "../../context/AppContext";
 import type { Note, NoteBlock } from "../../types";
 import EmptyState from "../ui/EmptyState";
@@ -11,7 +10,7 @@ import { Plus, Search, Filter, X } from "lucide-react";
 
 
 export default function WorkspacePage() {
-  const { state, addNote, updateNote, deleteNote } = useAppContext();
+  const { state, addNote, updateNote, deleteNote, setSubViewActive } = useAppContext();
   const [mounted, setMounted] = useState(false);
   
   // View State: 'grid' or 'editor'
@@ -23,6 +22,11 @@ export default function WorkspacePage() {
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  useEffect(() => {
+    setSubViewActive(view === 'editor');
+    return () => setSubViewActive(false);
+  }, [view, setSubViewActive]);
 
   const isBn = state.lang === 'bn';
 
@@ -79,12 +83,8 @@ export default function WorkspacePage() {
   }, [state.notes, searchQuery, selectedCategory]);
 
   if (view === 'editor') {
-    if (!mounted || typeof document === 'undefined') return null;
-    return createPortal(
-      <div 
-        className="notes-workspace fixed inset-0 md:left-64 z-35 flex flex-col overflow-hidden h-screen bg-[var(--color-bg-base)]"
-        style={{ height: "100vh", top: 0, bottom: 0, right: 0 }}
-      >
+    return (
+      <div className="w-full min-h-[calc(100vh-80px)] motion-page">
         <NoteEditorView 
           key={editingNote?.id || 'new-note'}
           note={editingNote}
@@ -100,8 +100,7 @@ export default function WorkspacePage() {
           }}
           onBack={() => setView('grid')}
         />
-      </div>,
-      document.body
+      </div>
     );
   }
 
@@ -196,7 +195,7 @@ export default function WorkspacePage() {
             }}
           />
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-5 gap-4.5 sm:gap-5 motion-stagger">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-5 gap-3 sm:gap-4.5 md:gap-5 motion-stagger">
             {filteredNotes.map((note) => (
               <NoteCard
                 key={note.id}

@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useAppContext } from "../../context/AppContext";
 import MindHome from "../mymind/MindHome";
 import ReviewAll from "../mymind/ReviewAll";
 import ProblemSolver from "../mymind/ProblemSolver";
@@ -10,9 +11,15 @@ import ThoughtDetail from "../mymind/ThoughtDetail";
 export type MindView = 'home' | 'review_all' | 'problem_solver' | 'idea_capture' | 'detail';
 
 export default function MyMindPage() {
+  const { setSubViewActive } = useAppContext();
   const [activeView, setActiveView] = useState<MindView>('home');
   const [activeThoughtId, setActiveThoughtId] = useState<string | null>(null);
   const [previousView, setPreviousView] = useState<MindView>('home');
+
+  useEffect(() => {
+    setSubViewActive(activeView === 'detail' || activeView === 'review_all');
+    return () => setSubViewActive(false);
+  }, [activeView, setSubViewActive]);
 
   const navigate = (view: string) => {
     const nextView = view as MindView;

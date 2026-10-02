@@ -20,7 +20,7 @@ import {
 import { toggleThemeWithCircularTransition } from "../../utils/themeTransition";
 
 export default function MobileHeader() {
-  const { state, updateState, navigateTo } = useAppContext();
+  const { state, updateState, navigateTo, isSubViewActive } = useAppContext();
   const { user, isGuest, openAuth, promptLogout } = useAuth();
   const { t } = useTranslation();
   const { hasUnread, unreadCount } = useNotificationCenter();
@@ -35,32 +35,6 @@ export default function MobileHeader() {
   const isBn = state.lang === "bn";
   const isGuestMode = !user || isGuest;
   const activePage = state.activePage || "today";
-
-  const toggleTheme = (e?: React.MouseEvent<HTMLElement>) => {
-    const newMode = isLight ? "dark" : "light";
-    toggleThemeWithCircularTransition(e, () => {
-      updateState({
-        theme: {
-          ...state.theme,
-          mode: newMode,
-        },
-      });
-    });
-  };
-
-  // Display user name
-  const rawUserName =
-    user?.fullName ||
-    user?.displayName?.replace(/^\+8800/, "+880").replace(/^8800/, "+880") ||
-    (user?.identifier
-      ? user.identifier.replace(/^\+8800/, "+880").replace(/^8800/, "+880")
-      : isBn
-      ? "গেস্ট"
-      : "Guest");
-  const userName = isGuestMode ? (isBn ? "গেস্ট ইউজার" : "Guest User") : rawUserName.trim();
-  const userSubtitle = isGuestMode
-    ? (isBn ? "লগইন করুন" : "Sign in")
-    : (user?.identifier || (isBn ? "প্রো মেম্বার" : "Pro Member"));
 
   // Close 3-dots menu on click outside
   useEffect(() => {
@@ -91,10 +65,38 @@ export default function MobileHeader() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
+  const toggleTheme = (e?: React.MouseEvent<HTMLElement>) => {
+    const newMode = isLight ? "dark" : "light";
+    toggleThemeWithCircularTransition(e, () => {
+      updateState({
+        theme: {
+          ...state.theme,
+          mode: newMode,
+        },
+      });
+    });
+  };
+
   const handleNav = (pageId: string) => {
     navigateTo(pageId);
     setIsMenuOpen(false);
   };
+
+  const rawUserName =
+    user?.fullName ||
+    user?.displayName?.replace(/^\+8800/, "+880").replace(/^8800/, "+880") ||
+    (user?.identifier
+      ? user.identifier.replace(/^\+8800/, "+880").replace(/^8800/, "+880")
+      : isBn
+      ? "গেস্ট"
+      : "Guest");
+  const userName = isGuestMode ? (isBn ? "গেস্ট ইউজার" : "Guest User") : rawUserName.trim();
+  const userSubtitle = isGuestMode
+    ? (isBn ? "লগইন করুন" : "Sign in")
+    : (user?.identifier || (isBn ? "প্রো মেম্বার" : "Pro Member"));
+
+  // Hide mobile header when inside a sub-interface/folder view to avoid double headers
+  if (isSubViewActive) return null;
 
   return (
     <>
@@ -179,12 +181,9 @@ export default function MobileHeader() {
           >
             <Bell size={20} strokeWidth={2} className="text-current" />
 
-            {/* Subtle Minimal Unread Indicator Dot */}
+            {/* Subtle Minimal Unread Indicator Dot (Static) */}
             {hasUnread && (
-              <span className="absolute top-2 right-2 flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-500 opacity-60" />
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-600 ring-1.5 ring-white dark:ring-[#0A0E1A]" />
-              </span>
+              <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-blue-600 ring-1.5 ring-white dark:ring-[#0A0E1A] pointer-events-none" />
             )}
           </button>
 

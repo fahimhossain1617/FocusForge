@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import "./diary.css";
 import { useAppContext } from "../../context/AppContext";
 import { useAuth } from "../../context/AuthContext";
@@ -24,6 +24,7 @@ export default function DiaryHome({ onOpenSidebar }: DiaryHomeProps) {
     saveDiaryEntryItem,
     deleteDiaryEntryItem,
     showToast,
+    setSubViewActive,
   } = useAppContext();
 
   const { requireAuth } = useAuth();
@@ -33,6 +34,11 @@ export default function DiaryHome({ onOpenSidebar }: DiaryHomeProps) {
   const [activePageIndex, setActivePageIndex] = useState<number>(0);
   const [topicMode, setTopicMode] = useState<"read" | "edit">("read");
   const [isSearchOpen, setIsSearchOpen] = useState<boolean>(false);
+
+  useEffect(() => {
+    setSubViewActive(Boolean(activeTopicId));
+    return () => setSubViewActive(false);
+  }, [activeTopicId, setSubViewActive]);
 
   const topics = state.diaryTopics || [];
 

@@ -93,22 +93,18 @@ export default function LinkInsertModal({ isOpen, onClose, onAddLink }: LinkInse
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between mb-5">
-          <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-xl bg-blue-500/10 text-blue-500 dark:text-blue-400 border border-blue-500/20">
-              <Link2 size={18} />
-            </div>
-            <div>
-              <h3 className="text-base font-bold text-foreground">Add External Link</h3>
-              <p className="text-xs text-muted-foreground">Embed Google Drive, YouTube, Docs, or web resources</p>
-            </div>
+        <div className="flex items-start justify-between mb-5">
+          <div>
+            <h3 className="text-base font-bold text-foreground leading-snug">Add External Link</h3>
+            <p className="text-xs text-muted-foreground mt-0.5">Embed Google Drive, YouTube, Docs, or web resources</p>
           </div>
           <button 
             type="button" 
             onClick={onClose}
-            className="p-1.5 rounded-lg text-slate-500 hover:text-slate-900 dark:text-zinc-400 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 transition-colors cursor-pointer"
+            className="p-1 rounded-lg text-slate-500 hover:text-slate-900 dark:text-zinc-400 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 transition-colors cursor-pointer -mt-0.5"
+            aria-label="Close modal"
           >
-            <X size={16} />
+            <X size={18} />
           </button>
         </div>
 
