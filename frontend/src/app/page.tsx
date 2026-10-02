@@ -39,6 +39,7 @@ import LearningHubPage from "../components/pages/LearningHubPage";
 import ProfilePage from "../components/pages/ProfilePage";
 import SettingsPage from "../components/pages/SettingsPage";
 import AIAgentPage from "../components/ai-agent/AIAgentPage";
+import NotificationsPage from "../components/pages/NotificationsPage";
 import BottomNav from "../components/navigation/BottomNav";
 import MobileHeader from "../components/navigation/MobileHeader";
 import DiaryHome from "../components/diary/DiaryHome";
@@ -54,6 +55,7 @@ const pageComponents: Record<string, React.ComponentType<{ onOpenSidebar?: () =>
   profile: ProfilePage,
   settings: SettingsPage,
   "ai-agent": AIAgentPage,
+  notifications: NotificationsPage,
 };
 
 export default function Home() {

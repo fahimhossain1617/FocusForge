@@ -29,7 +29,6 @@ import { useAppContext } from "../../context/AppContext";
 import { useAuth } from "../../context/AuthContext";
 import { useTranslation } from "../../hooks/useTranslation";
 import { useNotificationCenter } from "../../hooks/useNotificationCenter";
-import NotificationCenter from "../navigation/NotificationCenter";
 import { getLocalDateString } from "../../services/taskService";
 import { formatTimeRange } from "../../utils/timeUtils";
 import { toggleThemeWithCircularTransition } from "../../utils/themeTransition";
@@ -108,7 +107,6 @@ export default function DashboardPage() {
   const [hoveredDay, setHoveredDay] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState<string>(today);
   const { unreadCount, hasUnread } = useNotificationCenter();
-  const [isNotifOpen, setIsNotifOpen] = useState(false);
 
   // Dynamic user display name
   const userName = useMemo(() => {
@@ -513,12 +511,12 @@ export default function DashboardPage() {
           {/* Desktop Notification Bell Icon */}
           <button
             type="button"
-            onClick={() => setIsNotifOpen(true)}
+            onClick={() => navigateTo("notifications")}
             className="hidden sm:flex relative w-9 h-9 min-w-[36px] min-h-[36px] rounded-xl items-center justify-center transition-colors cursor-pointer bg-transparent border-none text-[#52627A] dark:text-slate-300 hover:text-[#111827] dark:hover:text-white hover:bg-slate-200/50 dark:hover:bg-white/[0.08] shadow-none outline-none active:scale-95"
             title={state.lang === 'bn' ? "নোটিফিকেশন" : "Notifications"}
             aria-label={state.lang === 'bn' ? "নোটিফিকেশন" : "Notifications"}
           >
-            <Bell size={19} strokeWidth={2} className={hasUnread ? "text-[#2563EB] dark:text-blue-400" : ""} />
+            <Bell size={19} strokeWidth={2} />
             {unreadCount > 0 && (
               <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 rounded-full bg-[#1D4ED8] dark:bg-[#3B82F6] text-white text-[10px] font-bold flex items-center justify-center shadow-sm">
                 {unreadCount > 9 ? "9+" : unreadCount}
@@ -1150,9 +1148,6 @@ export default function DashboardPage() {
           </div>
         )}
       </section>
-
-      {/* Global Notification Center Dropdown */}
-      <NotificationCenter isOpen={isNotifOpen} onClose={() => setIsNotifOpen(false)} />
     </main>
   );
 }

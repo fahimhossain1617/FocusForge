@@ -6,7 +6,6 @@ import { useAppContext } from "../../context/AppContext";
 import { useAuth } from "../../context/AuthContext";
 import { useTranslation } from "../../hooks/useTranslation";
 import { useNotificationCenter } from "../../hooks/useNotificationCenter";
-import NotificationCenter from "./NotificationCenter";
 import {
   Bell,
   MoreVertical,
@@ -26,7 +25,6 @@ export default function MobileHeader() {
   const { t } = useTranslation();
   const { hasUnread, unreadCount } = useNotificationCenter();
 
-  const [isNotifOpen, setIsNotifOpen] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const menuRef = useRef<HTMLDivElement>(null);
@@ -87,7 +85,6 @@ export default function MobileHeader() {
     function handleKeyDown(e: KeyboardEvent) {
       if (e.key === "Escape") {
         setIsMenuOpen(false);
-        setIsNotifOpen(false);
       }
     }
     window.addEventListener("keydown", handleKeyDown);
@@ -158,16 +155,16 @@ export default function MobileHeader() {
             type="button"
             onClick={() => {
               setIsMenuOpen(false);
-              setIsNotifOpen((prev) => !prev);
+              navigateTo("notifications");
             }}
             className={`relative w-10 h-10 min-w-[40px] min-h-[40px] rounded-xl flex items-center justify-center transition-colors cursor-pointer active:scale-95 ${
-              isNotifOpen
+              activePage === "notifications"
                 ? isLight
-                  ? "text-[#2563EB] bg-blue-50"
-                  : "text-blue-400 bg-white/[0.08]"
+                  ? "text-slate-900 bg-slate-200/60"
+                  : "text-white bg-white/[0.12]"
                 : isLight
-                ? "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
-                : "text-slate-300 hover:text-white hover:bg-white/[0.06]"
+                ? "text-[#52627A] hover:text-[#111827] hover:bg-slate-200/50"
+                : "text-slate-300 hover:text-white hover:bg-white/[0.08]"
             }`}
             aria-label={
               hasUnread
@@ -180,13 +177,13 @@ export default function MobileHeader() {
             }
             title={isBn ? "নোটিফিকেশন" : "Notifications"}
           >
-            <Bell size={20} strokeWidth={2.1} className={hasUnread ? "text-[#2563EB] dark:text-blue-400" : ""} />
+            <Bell size={20} strokeWidth={2} className="text-current" />
 
             {/* Subtle Minimal Unread Indicator Dot */}
             {hasUnread && (
-              <span className="absolute top-1.5 right-1.5 flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#2563EB] dark:bg-blue-400 opacity-60" />
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-[#2563EB] dark:bg-blue-400 ring-1.5 ring-white dark:ring-[#0A0E1A]" />
+              <span className="absolute top-2 right-2 flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-500 opacity-60" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-600 ring-1.5 ring-white dark:ring-[#0A0E1A]" />
               </span>
             )}
           </button>
@@ -197,7 +194,6 @@ export default function MobileHeader() {
               ref={menuBtnRef}
               type="button"
               onClick={() => {
-                setIsNotifOpen(false);
                 setIsMenuOpen((prev) => !prev);
               }}
               aria-expanded={isMenuOpen}
@@ -366,9 +362,6 @@ export default function MobileHeader() {
           </div>
         </div>
       </header>
-
-      {/* Integrated Notification Center Modal / Panel */}
-      <NotificationCenter isOpen={isNotifOpen} onClose={() => setIsNotifOpen(false)} />
     </>
   );
 }
