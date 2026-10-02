@@ -5,6 +5,8 @@ interface StreamState {
   text: string;
   confidence: number;
   isFinal: boolean;
+  start: number;
+  duration: number;
   updatedAt: number;
 }
 
@@ -26,7 +28,11 @@ export function setupWebSocketServer(server: HttpServer) {
       return;
     }
 
-    const dgBaseUrl = 'wss://api.deepgram.com/v1/listen?smart_format=true&interim_results=true&endpointing=300';
+    // High-accuracy continuous speech configuration:
+    // endpointing=650: 650ms natural pause prevents cutting off continuous speech prematurely while keeping latency responsive
+    // utterance_end_ms=1000: fallback speech boundary detection
+    // numerals=true & smart_format=true: formats digits, numbers, currencies, and percentages properly
+    const dgBaseUrl = 'wss://api.deepgram.com/v1/listen?smart_format=true&punctuate=true&numerals=true&interim_results=true&endpointing=650&utterance_end_ms=1000';
 
     // Sessions map: session name -> WebSocket
     const activeSessions: { [key: string]: WebSocket } = {};
@@ -34,11 +40,14 @@ export function setupWebSocketServer(server: HttpServer) {
     let isAnyOpen = false;
     let isClientClosed = false;
 
-    // Track latest recognition state for auto multilingual arbitration
-    const stateBn: StreamState = { text: '', confidence: 0, isFinal: false, updatedAt: 0 };
-    const stateMulti: StreamState = { text: '', confidence: 0, isFinal: false, updatedAt: 0 };
-    let lastSentText = '';
+    // Track arbitration state for automatic bilingual recognition (Bengali / English)
+    const stateBn: StreamState = { text: '', confidence: 0, isFinal: false, start: 0, duration: 0, updatedAt: 0 };
+    const stateEn: StreamState = { text: '', confidence: 0, isFinal: false, start: 0, duration: 0, updatedAt: 0 };
+    
     let activeUtteranceLang: 'bn' | 'en' | null = null;
+    let lastFinalizedAudioTime = -1;
+    let lastSentFinalText = '';
+    let lastSentInterimText = '';
 
     const createDgConnection = (sessionName: string, queryParams: string) => {
       const fullUrl = `${dgBaseUrl}&${queryParams}`;
@@ -54,7 +63,6 @@ export function setupWebSocketServer(server: HttpServer) {
 
         // Flush any audio chunks buffered before this session opened (EBML header & initial audio)
         if (audioBuffer.length > 0) {
-          console.log(`[Deepgram] Flushing ${audioBuffer.length} buffered audio chunks to "${sessionName}"`);
           for (const chunk of audioBuffer) {
             if (dgWs.readyState === WebSocket.OPEN) {
               dgWs.send(chunk);
@@ -75,72 +83,137 @@ export function setupWebSocketServer(server: HttpServer) {
           if (!alt) return;
 
           const transcript = (alt.transcript || '').trim();
-          const confidence = alt.confidence || 0;
+          const confidence = typeof alt.confidence === 'number' ? alt.confidence : 0;
           const isFinal = Boolean(response.is_final);
+          const start = typeof response.start === 'number' ? response.start : 0;
+          const duration = typeof response.duration === 'number' ? response.duration : 0;
+          const endTime = start + duration;
 
+          // Ignore low-confidence noise / empty packets without finalizing
           if (!transcript && !isFinal) return;
+          if (confidence < 0.35 && !isFinal) return;
 
           const now = Date.now();
           if (sessionName === 'bn') {
             stateBn.text = transcript;
             stateBn.confidence = confidence;
             stateBn.isFinal = isFinal;
+            stateBn.start = start;
+            stateBn.duration = duration;
             stateBn.updatedAt = now;
           } else {
-            stateMulti.text = transcript;
-            stateMulti.confidence = confidence;
-            stateMulti.isFinal = isFinal;
-            stateMulti.updatedAt = now;
+            stateEn.text = transcript;
+            stateEn.confidence = confidence;
+            stateEn.isFinal = isFinal;
+            stateEn.start = start;
+            stateEn.duration = duration;
+            stateEn.updatedAt = now;
           }
 
-          // If single session mode (bn-only or en-only requested), pass through directly
+          // Single-session direct pass-through (user explicitly selected bn or en)
           if (Object.keys(activeSessions).length === 1) {
             if (transcript && ws.readyState === WebSocket.OPEN) {
               ws.send(JSON.stringify({
                 type: 'transcript',
                 is_final: isFinal,
                 text: transcript,
-                language: sessionName
+                language: sessionName,
+                confidence: confidence
               }));
             }
             return;
           }
 
-          // Multilingual Arbitration: Bengali script (\u0980-\u09FF) uniquely identifies Bengali speech
-          const hasBnChars = /[\u0980-\u09FF]/.test(stateBn.text);
+          // --- Dual-Session Bilingual Arbitration ---
+          const hasBnScript = /[\u0980-\u09FF]/.test(stateBn.text);
+          const hasEnScript = /[a-zA-Z]/.test(stateEn.text);
 
-          let winningText = '';
-          let winningLang = 'auto';
-
-          if (hasBnChars && (stateBn.confidence >= 0.65 || stateBn.confidence > stateMulti.confidence)) {
-            winningText = stateBn.text;
-            winningLang = 'bn';
-          } else if (stateMulti.text && (stateMulti.confidence >= 0.60 || !hasBnChars)) {
-            winningText = stateMulti.text;
-            winningLang = 'en';
-          } else {
-            winningText = stateBn.text || stateMulti.text;
-            winningLang = hasBnChars ? 'bn' : 'en';
+          // Language arbitration:
+          // 1. If English has high confidence (>= 0.70) and valid English words: speaker spoke English.
+          //    (Deepgram Bengali model on English speech transliterates phonemes into Bengali script with lower confidence).
+          // 2. If Bengali script is present and confidence >= 0.65 while English confidence is lower (< 0.75): speaker spoke Bengali.
+          //    (Deepgram English model on Bengali speech outputs low-confidence garbled phonetic approximations).
+          if (!activeUtteranceLang) {
+            if (hasEnScript && stateEn.confidence >= 0.70 && stateEn.confidence > (stateBn.confidence - 0.05)) {
+              activeUtteranceLang = 'en';
+            } else if (hasBnScript && stateBn.confidence >= 0.60 && (!hasEnScript || stateEn.confidence < 0.70)) {
+              activeUtteranceLang = 'bn';
+            } else if (hasBnScript && stateBn.confidence > stateEn.confidence) {
+              activeUtteranceLang = 'bn';
+            } else if (hasEnScript && stateEn.confidence >= 0.50) {
+              activeUtteranceLang = 'en';
+            }
           }
 
-          if (winningText && winningText !== lastSentText && ws.readyState === WebSocket.OPEN) {
-            lastSentText = isFinal ? '' : winningText;
-            ws.send(JSON.stringify({
-              type: 'transcript',
-              is_final: isFinal,
-              text: winningText,
-              language: winningLang
-            }));
-          }
+          const currentLang = activeUtteranceLang || (hasBnScript ? 'bn' : (hasEnScript ? 'en' : (sessionName as 'bn' | 'en')));
+          const currentText = currentLang === 'bn' ? stateBn.text : stateEn.text;
+          const currentConf = currentLang === 'bn' ? stateBn.confidence : stateEn.confidence;
 
           if (isFinal) {
-            // Unlock utterance language for subsequent speech/sentences
+            // Guard against duplicate finals:
+            // Since both 'bn' and 'en' receive the same audio, they will both finalize for the same segment.
+            // If this audio window has already been finalized by the winning session, discard the duplicate from the other!
+            if (endTime <= lastFinalizedAudioTime + 0.35 && lastFinalizedAudioTime > 0) {
+              if (sessionName === 'bn') {
+                stateBn.text = '';
+                stateBn.confidence = 0;
+                stateBn.isFinal = false;
+              } else {
+                stateEn.text = '';
+                stateEn.confidence = 0;
+                stateEn.isFinal = false;
+              }
+              return;
+            }
+
+            lastFinalizedAudioTime = endTime;
+
+            let winningFinalText = currentText;
+            let winningFinalLang = currentLang;
+
+            // Fallback if the locked language had an empty string in this segment
+            if (!winningFinalText) {
+              if (sessionName === 'bn' && stateBn.text) {
+                winningFinalText = stateBn.text;
+                winningFinalLang = 'bn';
+              } else if (sessionName === 'en' && stateEn.text) {
+                winningFinalText = stateEn.text;
+                winningFinalLang = 'en';
+              }
+            }
+
+            if (winningFinalText && winningFinalText !== lastSentFinalText && ws.readyState === WebSocket.OPEN) {
+              lastSentFinalText = winningFinalText;
+              lastSentInterimText = '';
+              ws.send(JSON.stringify({
+                type: 'transcript',
+                is_final: true,
+                text: winningFinalText,
+                language: winningFinalLang,
+                confidence: currentConf
+              }));
+            }
+
+            // Reset utterance tracking for the subsequent speech / utterance
             activeUtteranceLang = null;
-            lastSentText = '';
             stateBn.text = '';
             stateBn.confidence = 0;
-            stateMulti.text = '';
-            stateMulti.confidence = 0;
+            stateBn.isFinal = false;
+            stateEn.text = '';
+            stateEn.confidence = 0;
+            stateEn.isFinal = false;
+          } else {
+            // Send interim preview updates smoothly matching the active language without cross-session flickering
+            if (currentText && currentText !== lastSentInterimText && ws.readyState === WebSocket.OPEN) {
+              lastSentInterimText = currentText;
+              ws.send(JSON.stringify({
+                type: 'transcript',
+                is_final: false,
+                text: currentText,
+                language: currentLang,
+                confidence: currentConf
+              }));
+            }
           }
         } catch (err) {
           console.warn('[Deepgram] Error parsing message:', err);
@@ -151,7 +224,6 @@ export function setupWebSocketServer(server: HttpServer) {
         console.log(`[Deepgram] Session "${sessionName}" closed: ${code} - ${reason.toString()}`);
         delete activeSessions[sessionName];
 
-        // If all sessions closed unexpectedly and client is still open
         if (Object.keys(activeSessions).length === 0 && !isClientClosed) {
           if (ws.readyState === WebSocket.OPEN) {
             ws.close(1000, 'ASR Provider completed stream');
@@ -181,9 +253,9 @@ export function setupWebSocketServer(server: HttpServer) {
       createDgConnection('en', 'model=nova-3&language=en');
     } else {
       // Automatic Multilingual Mode:
-      // Launch both dedicated Nova-3 Bengali model and Nova-3 Multilingual model
+      // Launch both dedicated Nova-3 Bengali model and Nova-3 English model with real-time arbitration
       createDgConnection('bn', 'model=nova-3&language=bn');
-      createDgConnection('multi', 'model=nova-3&language=multi');
+      createDgConnection('en', 'model=nova-3&language=en');
     }
 
     ws.on('message', (message: any) => {
@@ -191,7 +263,7 @@ export function setupWebSocketServer(server: HttpServer) {
 
       // If no Deepgram sessions are open yet, buffer the chunk (especially the initial WebM header chunk!)
       if (!isAnyOpen) {
-        if (audioBuffer.length < 50) { // Limit buffer to avoid memory leaks
+        if (audioBuffer.length < 50) {
           audioBuffer.push(message);
         }
         return;
@@ -226,3 +298,4 @@ export function setupWebSocketServer(server: HttpServer) {
     });
   });
 }
+
