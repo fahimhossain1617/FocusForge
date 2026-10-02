@@ -105,10 +105,6 @@ router.patch('/profile', async (req: AuthenticatedRequest, res: Response) => {
     if (body.displayName !== undefined && body.displayName.trim() !== '') {
       const v = validateDisplayName(body.displayName);
       if (!v.valid) return res.status(400).json({ error: v.message, code: v.code });
-      const available = await dbCheckUsernameAvailable(body.displayName, userId);
-      if (!available) {
-        return res.status(409).json({ error: 'Username is already taken.', code: ERROR_CODES.USERNAME_TAKEN });
-      }
     }
 
     if (body.phone !== undefined) {

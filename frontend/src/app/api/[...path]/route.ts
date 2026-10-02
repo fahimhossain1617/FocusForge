@@ -1517,10 +1517,6 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ p
     if (body.displayName !== undefined && body.displayName.trim() !== '') {
       const v = validateDisplayName(body.displayName);
       if (!v.valid) return NextResponse.json({ error: v.message, code: v.code }, { status: 400 });
-      const available = await dbCheckUsernameAvailable(body.displayName, userId);
-      if (!available) {
-        return NextResponse.json({ error: 'Username is already taken.', code: ERROR_CODES.USERNAME_TAKEN }, { status: 409 });
-      }
     }
 
     if (body.phone !== undefined) {

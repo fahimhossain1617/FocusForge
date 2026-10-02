@@ -45,7 +45,7 @@ export default function ProfilePage() {
   useEffect(() => {
     if (user) {
       const cleanPhone = sanitizePhone(user.phone || (user.authMethod === 'phone' ? user.identifier : ""));
-      const cleanName = sanitizePhone(user.fullName || user.displayName || "");
+      const cleanName = user.fullName || user.displayName || "";
       setFormData({
         fullName: cleanName,
         displayName: cleanName,
@@ -95,9 +95,13 @@ export default function ProfilePage() {
       const base64 = event.target?.result as string;
       setFormData(prev => ({ ...prev, avatarUrl: base64 }));
       if (user) {
-        const success = await updateUserProfile({ avatarUrl: base64 });
+        const res = await userService.uploadAvatar(base64, file.type);
+        const effectiveAvatarUrl = (res.success && res.avatarUrl) ? res.avatarUrl : base64;
+        const success = await updateUserProfile({ avatarUrl: effectiveAvatarUrl });
         if (success) {
           showToast("Profile photo updated successfully.", "success");
+        } else {
+          showToast("Failed to upload profile photo.", "error");
         }
       } else {
         showToast("Profile photo preview updated (guest mode).", "info");
@@ -110,6 +114,7 @@ export default function ProfilePage() {
   const handleRemovePhoto = async () => {
     setFormData(prev => ({ ...prev, avatarUrl: "" }));
     if (user) {
+      await userService.removeAvatar().catch(() => {});
       const success = await updateUserProfile({ avatarUrl: "" });
       if (success) {
         showToast("Profile photo removed.", "info");
@@ -135,7 +140,7 @@ export default function ProfilePage() {
 
     const success = await updateUserProfile({
       fullName: formData.fullName.trim(),
-      displayName: formData.displayName.trim() || formData.fullName.trim() || user?.displayName || "User",
+      displayName: formData.fullName.trim() || formData.displayName.trim() || user?.displayName || "User",
       email: formData.email.trim(),
       phone: formData.phone.trim(),
       dob: formData.dob,
@@ -288,7 +293,7 @@ export default function ProfilePage() {
                   <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-[#0F172A] dark:text-foreground tracking-tight break-words leading-tight w-full">
                     {isGuest || !user 
                       ? (state.lang === 'bn' ? "গেস্ট মোড" : "Guest Mode") 
-                      : (formData.fullName || sanitizePhone(user?.displayName) || "User")}
+                      : (formData.fullName || user?.displayName || "User")}
                   </h1>
                 </div>
 

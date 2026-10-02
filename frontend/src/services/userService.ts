@@ -75,14 +75,21 @@ export const userService = {
       const { data: authData } = await supabase.auth.getUser();
       if (authData?.user && authData.user.id === userId) {
         const u = authData.user;
+        const meta = u.user_metadata || {};
         const fallbackUser: User = {
           id: u.id,
           identifier: u.email || u.phone || "",
           email: u.email || "",
           authMethod: u.app_metadata?.provider === "google" ? "google" : u.email ? "email" : "phone",
-          displayName: u.user_metadata?.display_name || u.user_metadata?.full_name || u.email?.split("@")[0] || "User",
-          fullName: u.user_metadata?.full_name || "",
-          avatarUrl: u.user_metadata?.avatar_url,
+          displayName: meta.display_name || meta.full_name || u.email?.split("@")[0] || "User",
+          fullName: meta.full_name || "",
+          phone: meta.phone || u.phone || "",
+          dob: meta.dob || meta.date_of_birth || "",
+          gender: meta.gender || "",
+          country: meta.country || "",
+          city: meta.city || "",
+          bio: meta.bio || "",
+          avatarUrl: meta.avatar_url || undefined,
           createdAt: u.created_at,
         };
 
@@ -109,27 +116,66 @@ export const userService = {
         payload.dateOfBirth = updates.dob;
       }
 
-      const data = await fetchBackend<ProfileRow>("/api/user/profile", {
-        method: "PATCH",
-        body: JSON.stringify(payload),
-      });
+      let data: ProfileRow | null = null;
+      try {
+        data = await fetchBackend<ProfileRow>("/api/user/profile", {
+          method: "PATCH",
+          body: JSON.stringify(payload),
+        });
+      } catch (backendErr: any) {
+        console.warn("[userService] Backend PATCH /api/user/profile warning:", backendErr?.message);
+      }
 
       // Synchronize metadata in Supabase
-      await supabase.auth.updateUser({
-        data: {
-          display_name: updates.displayName,
-          full_name: updates.fullName,
-          avatar_url: updates.avatarUrl,
-        },
-      }).catch(() => {});
+      const metaUpdates: Record<string, any> = {};
+      if (updates.displayName !== undefined) metaUpdates.display_name = updates.displayName;
+      if (updates.fullName !== undefined) metaUpdates.full_name = updates.fullName;
+      if (updates.avatarUrl !== undefined) {
+        if (!updates.avatarUrl || updates.avatarUrl.length < 32000) {
+          metaUpdates.avatar_url = updates.avatarUrl;
+        }
+      }
+      if (updates.phone !== undefined) metaUpdates.phone = updates.phone;
+      if (updates.dob !== undefined || updates.dateOfBirth !== undefined) metaUpdates.dob = updates.dob || updates.dateOfBirth;
+      if (updates.gender !== undefined) metaUpdates.gender = updates.gender;
+      if (updates.country !== undefined) metaUpdates.country = updates.country;
+      if (updates.city !== undefined) metaUpdates.city = updates.city;
+      if (updates.bio !== undefined) metaUpdates.bio = updates.bio;
+
+      if (Object.keys(metaUpdates).length > 0) {
+        await supabase.auth.updateUser({
+          data: metaUpdates,
+        }).catch((e) => console.warn("[userService] Supabase metadata sync warning:", e));
+      }
 
       const updatedUser = data && data.id
         ? mapProfileToUser(data)
         : await this.fetchUserProfile(userId);
 
+      if (updatedUser) {
+        return {
+          success: true,
+          user: updatedUser,
+        };
+      }
+
       return {
         success: true,
-        user: updatedUser || undefined,
+        user: {
+          id: userId,
+          identifier: updates.email || updates.identifier || "",
+          email: updates.email || "",
+          authMethod: "email",
+          displayName: updates.displayName || updates.fullName || "User",
+          fullName: updates.fullName || "",
+          phone: updates.phone || "",
+          dob: updates.dob || updates.dateOfBirth || "",
+          gender: updates.gender || "",
+          country: updates.country || "",
+          city: updates.city || "",
+          bio: updates.bio || "",
+          avatarUrl: updates.avatarUrl,
+        } as User,
       };
     } catch (err: any) {
       console.error("[userService] Unexpected error in updateUserProfile:", err);

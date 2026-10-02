@@ -130,7 +130,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         if (session && session.user && isMounted) {
           const isCurrentlyOnline = typeof navigator === "undefined" || navigator.onLine;
-          let activeUser = session.user;
+          const u = session.user;
+          const meta = u.user_metadata || {};
+          let activeUser: User = {
+            id: u.id,
+            identifier: u.email || u.phone || "",
+            email: u.email || "",
+            authMethod: u.app_metadata?.provider === "google" ? "google" : u.email ? "email" : "phone",
+            displayName: meta.display_name || meta.full_name || u.email?.split("@")[0] || "User",
+            fullName: meta.full_name || "",
+            phone: meta.phone || u.phone || "",
+            dob: meta.dob || meta.date_of_birth || "",
+            gender: meta.gender || "",
+            country: meta.country || "",
+            city: meta.city || "",
+            bio: meta.bio || "",
+            avatarUrl: meta.avatar_url || undefined,
+            createdAt: u.created_at,
+          };
 
           if (isCurrentlyOnline) {
             try {
@@ -182,16 +199,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (event === "SIGNED_IN" || event === "INITIAL_SESSION") {
         if (session?.user) {
+          const u = session.user;
+          const meta = u.user_metadata || {};
           let profile = await userService.fetchUserProfile(session.user.id);
-          const authedUser = profile || {
-            id: session.user.id,
-            identifier: session.user.email || session.user.phone || "",
-            email: session.user.email || "",
-            authMethod: session.user.app_metadata?.provider === "google" ? "google" : "email",
-            displayName: session.user.user_metadata?.display_name || session.user.user_metadata?.full_name || "User",
-            fullName: session.user.user_metadata?.full_name,
-            avatarUrl: session.user.user_metadata?.avatar_url,
-            createdAt: session.user.created_at,
+          const authedUser: User = profile || {
+            id: u.id,
+            identifier: u.email || u.phone || "",
+            email: u.email || "",
+            authMethod: u.app_metadata?.provider === "google" ? "google" : u.email ? "email" : "phone",
+            displayName: meta.display_name || meta.full_name || u.email?.split("@")[0] || "User",
+            fullName: meta.full_name || "",
+            phone: meta.phone || u.phone || "",
+            dob: meta.dob || meta.date_of_birth || "",
+            gender: meta.gender || "",
+            country: meta.country || "",
+            city: meta.city || "",
+            bio: meta.bio || "",
+            avatarUrl: meta.avatar_url || undefined,
+            createdAt: u.created_at,
           };
 
           setUser(authedUser);

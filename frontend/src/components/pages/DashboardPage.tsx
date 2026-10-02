@@ -321,7 +321,7 @@ export default function DashboardPage() {
       // Exclude completed skills completely
       const activeFolders = state.learningFolders.filter((folder) => !folder.completed);
 
-      return activeFolders.slice(0, 4).map((folder, idx) => {
+      return activeFolders.map((folder, idx) => {
         const pal = iconPalette[idx % iconPalette.length];
         const logs = (state.learningLogs || []).filter((l) => l.folderId === folder.id);
         const totalMinutes = logs.reduce((acc, l) => acc + l.watchMinutes + l.practiceMinutes, 0);
@@ -564,9 +564,9 @@ export default function DashboardPage() {
             </div>
 
             {/* Task Items (Inner box: #F7FAFE, #DCE5F0 border, radius 12, no shadow) */}
-            <div className="mt-2 space-y-2">
+            <div className="mt-2 space-y-2 max-h-[224px] overflow-y-auto pr-1">
               {tasksList.length > 0 ? (
-                tasksList.slice(0, 5).map((item) => (
+                tasksList.map((item) => (
                   <div
                     key={item.id}
                     onClick={() => handleToggleTask(item)}
@@ -768,7 +768,7 @@ export default function DashboardPage() {
             </div>
 
             {/* Skills List: Same-line layout with track #E5EDF7 and Navy #223A5E fill */}
-            <div className="mt-2 space-y-2.5">
+            <div className="mt-2 space-y-2.5 max-h-[224px] overflow-y-auto pr-1">
               {skillsList.length > 0 ? (
                 skillsList.map((skill) => {
                   const IconComponent = skill.icon;

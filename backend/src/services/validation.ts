@@ -47,13 +47,8 @@ export function validateDisplayName(username: any): ValidationResult {
     return { valid: false, code: ERROR_CODES.INVALID_USERNAME, message: 'Invalid display name format.' };
   }
   const trimmed = username.trim();
-  if (trimmed.length < 3 || trimmed.length > 30) {
-    return { valid: false, code: ERROR_CODES.INVALID_USERNAME, message: 'Display name must be between 3 and 30 characters.' };
-  }
-  // Allow letters, numbers, dots and underscores only
-  const validRegex = /^[a-zA-Z0-9._]+$/;
-  if (!validRegex.test(trimmed)) {
-    return { valid: false, code: ERROR_CODES.INVALID_USERNAME, message: 'Display name can only contain letters, numbers, dots, and underscores.' };
+  if (trimmed.length < 1 || trimmed.length > 60) {
+    return { valid: false, code: ERROR_CODES.INVALID_USERNAME, message: 'Display name must be between 1 and 60 characters.' };
   }
   return { valid: true };
 }
@@ -66,7 +61,7 @@ export function validatePhone(phone: any): ValidationResult {
   const trimmed = phone.trim();
   if (!trimmed) return { valid: true };
   // International format regex e.g. +1234567890 or 01712345678
-  const phoneRegex = /^(\+?[0-9]{7,15}|0[0-9]{9,14})$/;
+  const phoneRegex = /^(\+?[0-9]{6,16}|0[0-9]{8,15})$/;
   if (!phoneRegex.test(trimmed.replace(/[\s-]/g, ''))) {
     return { valid: false, code: ERROR_CODES.INVALID_PHONE, message: 'Please enter a valid international phone number.' };
   }
@@ -99,8 +94,12 @@ export function validateBio(bio: any): ValidationResult {
 
 export function validateGender(gender: any): ValidationResult {
   if (!gender) return { valid: true };
-  const allowed = ['male', 'female', 'other', 'prefer_not_to_say'];
-  if (!allowed.includes(gender)) {
+  if (typeof gender !== 'string') {
+    return { valid: false, code: ERROR_CODES.INVALID_GENDER, message: 'Invalid gender option.' };
+  }
+  const norm = gender.trim().toLowerCase().replace(/[\s-]/g, '_');
+  const allowed = ['male', 'female', 'other', 'non_binary', 'prefer_not_to_say', ''];
+  if (!allowed.includes(norm) && norm.length > 40) {
     return { valid: false, code: ERROR_CODES.INVALID_GENDER, message: 'Invalid gender option.' };
   }
   return { valid: true };
