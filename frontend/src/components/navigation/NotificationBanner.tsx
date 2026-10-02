@@ -128,20 +128,36 @@ export function NotificationBanner() {
           className="fixed top-3 left-0 right-0 z-[9999] flex justify-center px-3 pointer-events-none select-none"
         >
           <div
-            className={`pointer-events-auto relative w-full max-w-[720px] rounded-[18px] p-4 flex flex-col gap-3.5 transition-all shadow-[0_8px_30px_rgb(0,0,0,0.25)] cursor-pointer ${
+            className={`pointer-events-auto relative w-full max-w-[680px] rounded-[18px] p-4 flex flex-col gap-3 transition-all shadow-[0_12px_36px_rgba(0,0,0,0.28)] cursor-pointer ${
               isLight
-                ? "bg-[#FFFFFF] text-[#0B1F54] border border-[#D5DEEE]"
-                : "bg-[#101B35] text-[#EAF1FF] border border-[#22346B]"
+                ? "bg-white text-[#0F172A] border border-[#DCE5F0]"
+                : "bg-[#0c1120] text-[#F1F5F9] border border-white/[0.12]"
             }`}
           >
+            {/* Top Right Close Button */}
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleDismiss();
+              }}
+              className="absolute top-3 right-3 p-1 rounded-lg text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 transition-colors cursor-pointer z-10"
+              aria-label="Dismiss"
+            >
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
+
             {/* Top row: Logo tile + Content + Orb reaction */}
-            <div className="flex items-center gap-3.5 w-full">
-              {/* 1. App Logo Tile (46 x 46, corner radius 13) */}
+            <div className="flex items-center gap-3.5 w-full pr-6">
+              {/* 1. App Logo Tile (44 x 44, corner radius 12) */}
               <div
-                className={`w-[46px] h-[46px] rounded-[13px] shrink-0 flex items-center justify-center border overflow-hidden transition-colors ${
+                className={`w-[44px] h-[44px] rounded-[12px] shrink-0 flex items-center justify-center border overflow-hidden transition-colors ${
                   isLight
-                    ? "bg-[#EEF3FB] border-[#D5DEEE]"
-                    : "bg-[#0A1224] border-[#22346B]"
+                    ? "bg-[#EEF3FB] border-[#DCE5F0]"
+                    : "bg-[#0A0E1A] border-white/[0.08]"
                 }`}
               >
                 <img
@@ -158,21 +174,21 @@ export function NotificationBanner() {
               <div className="flex-1 min-w-0 pr-1">
                 <div
                   className={`text-[9.5px] font-bold uppercase tracking-wider mb-0.5 truncate ${
-                    isLight ? "text-[#1D4ED8]" : "text-[#3B82F6]"
+                    isLight ? "text-blue-600" : "text-blue-400"
                   }`}
                 >
                   {currentNotif.appTag}
                 </div>
                 <h4
-                  className={`text-[14.5px] font-bold leading-tight truncate ${
-                    isLight ? "text-[#0B1F54]" : "text-[#EAF1FF]"
+                  className={`text-[14px] font-bold leading-tight truncate ${
+                    isLight ? "text-[#0F172A]" : "text-[#F1F5F9]"
                   }`}
                 >
                   {currentNotif.title}
                 </h4>
                 <p
-                  className={`text-[11px] leading-snug line-clamp-1 mt-0.5 ${
-                    isLight ? "text-[#5B6B8C]" : "text-[#8DA2CC]"
+                  className={`text-[11.5px] leading-snug line-clamp-1 mt-0.5 ${
+                    isLight ? "text-[#52627A]" : "text-[#94A3B8]"
                   }`}
                 >
                   {currentNotif.message}
@@ -182,15 +198,15 @@ export function NotificationBanner() {
               {/* 3. Orb Reaction Avatar */}
               <NotificationOrbAvatar
                 mood={currentNotif.orbMood}
-                size={62}
+                size={58}
                 isDoneCheering={isDoneCheering}
                 reducedMotion={reducedMotion}
-                className="mr-1 shrink-0"
+                className="shrink-0"
               />
             </div>
 
             {/* 4. Action Buttons (Optional, max 2 buttons per spec) */}
-            <div className="flex items-center gap-2 pt-1 border-t border-black/5 dark:border-white/5">
+            <div className="flex items-center gap-2 pt-2 border-t border-slate-200/60 dark:border-white/[0.08]">
               {currentNotif.actions && currentNotif.actions.length > 0 ? (
                 currentNotif.actions.slice(0, 2).map((action, idx) => (
                   <button
@@ -203,12 +219,10 @@ export function NotificationBanner() {
                     }}
                     className={`h-[30px] px-4 rounded-full text-[11px] font-bold cursor-pointer transition-all active:scale-95 ${
                       action.variant === "primary"
-                        ? isLight
-                          ? "bg-[#1D4ED8] hover:bg-[#1E40AF] text-white"
-                          : "bg-[#3B82F6] hover:bg-[#2563EB] text-white"
+                        ? "bg-blue-600 hover:bg-blue-700 text-white"
                         : isLight
-                        ? "bg-[#EEF3FB] hover:bg-[#E2EAF5] text-[#0B1F54] border border-[#D5DEEE]"
-                        : "bg-[#19274E] hover:bg-[#203264] text-[#EAF1FF] border border-[#22346B]"
+                        ? "bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200"
+                        : "bg-slate-800 hover:bg-slate-700 text-slate-200 border border-white/[0.08]"
                     }`}
                   >
                     {action.label}
@@ -219,11 +233,7 @@ export function NotificationBanner() {
                   <button
                     type="button"
                     onClick={handleTapNotification}
-                    className={`h-[30px] px-4 rounded-full text-[11px] font-bold cursor-pointer transition-all active:scale-95 ${
-                      isLight
-                        ? "bg-[#1D4ED8] hover:bg-[#1E40AF] text-white"
-                        : "bg-[#3B82F6] hover:bg-[#2563EB] text-white"
-                    }`}
+                    className="h-[30px] px-4 rounded-full text-[11px] font-bold cursor-pointer transition-all active:scale-95 bg-blue-600 hover:bg-blue-700 text-white"
                   >
                     {isBn ? "টাস্ক খুলুন" : "Open task"}
                   </button>
@@ -232,8 +242,8 @@ export function NotificationBanner() {
                     onClick={handleTaskDone}
                     className={`h-[30px] px-4 rounded-full text-[11px] font-bold cursor-pointer transition-all active:scale-95 ${
                       isLight
-                        ? "bg-[#EEF3FB] hover:bg-[#E2EAF5] text-[#0B1F54] border border-[#D5DEEE]"
-                        : "bg-[#19274E] hover:bg-[#203264] text-[#EAF1FF] border border-[#22346B]"
+                        ? "bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200"
+                        : "bg-slate-800 hover:bg-slate-700 text-slate-200 border border-white/[0.08]"
                     }`}
                   >
                     {isBn ? "সম্পন্ন" : "Done"}
@@ -243,11 +253,7 @@ export function NotificationBanner() {
                 <button
                   type="button"
                   onClick={handleTapNotification}
-                  className={`h-[30px] px-4 rounded-full text-[11px] font-bold cursor-pointer transition-all active:scale-95 ${
-                    isLight
-                      ? "bg-[#1D4ED8] hover:bg-[#1E40AF] text-white"
-                      : "bg-[#3B82F6] hover:bg-[#2563EB] text-white"
-                  }`}
+                  className="h-[30px] px-4 rounded-full text-[11px] font-bold cursor-pointer transition-all active:scale-95 bg-blue-600 hover:bg-blue-700 text-white"
                 >
                   {isBn ? "দেখুন" : "View"}
                 </button>

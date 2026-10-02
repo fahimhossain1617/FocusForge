@@ -2,10 +2,15 @@
 
 import React, { useEffect, useRef, useState, useMemo } from "react";
 import type { OrbMood } from "./useOrbMood";
+import { getOrbStatusLabel } from "./useOrbMood";
+import type { OrbState } from "@/types/aiAgent";
 import styles from "./ai-orb-face.module.css";
 
 export interface AIOrbFaceProps {
   mood: OrbMood;
+  orbState?: OrbState;
+  statusLabel?: string;
+  reaction?: string | null;
   thoughtText?: string | null;
   speechSide?: "top" | "left" | "right";
   isThinking?: boolean;
@@ -22,6 +27,9 @@ export interface AIOrbFaceProps {
 
 export function AIOrbFace({
   mood,
+  orbState,
+  statusLabel,
+  reaction,
   thoughtText = "",
   speechSide = "top",
   isThinking = false,
@@ -60,19 +68,30 @@ export function AIOrbFace({
 
   const [isBlinking, setIsBlinking] = useState(false);
 
-  // Head tilt angle based on emotion
+  const isBn = language === "bn";
+  const effectiveMood: OrbMood = (orbState as OrbMood) || mood;
+
+  // Head tilt angle based on emotion and active state machine
   const headAngle = useMemo(() => {
-    if (mood === "curious") return 6.5;
-    if (mood === "thinking") return 5.5;
-    if (mood === "sad" || mood === "error") return -4.5;
-    if (mood === "sulky") return -3.0;
-    if (mood === "playful" || mood === "excited" || mood === "celebrating" || isGiggling) return 4.5;
-    if (mood === "proud") return -4.0;
-    if (mood === "caring" || mood === "supportive" || mood === "concerned") return 3.5;
-    if (mood === "focused") return 1.5;
+    if (effectiveMood === "curious") return 6.5;
+    if (effectiveMood === "thinking") return 5.5;
+    if (effectiveMood === "sad" || effectiveMood === "error") return -4.5;
+    if (effectiveMood === "sulky") return -3.0;
+    if (
+      effectiveMood === "playful" ||
+      effectiveMood === "excited" ||
+      effectiveMood === "celebrating" ||
+      effectiveMood === "success" ||
+      isGiggling
+    )
+      return 4.5;
+    if (effectiveMood === "proud") return -4.0;
+    if (effectiveMood === "caring" || effectiveMood === "supportive" || effectiveMood === "concerned") return 3.5;
+    if (effectiveMood === "waiting_confirmation") return 4.0;
+    if (effectiveMood === "focused" || effectiveMood === "working") return 1.5;
     if (isEnjoying) return -2.5;
     return 0;
-  }, [mood, isGiggling, isEnjoying]);
+  }, [effectiveMood, isGiggling, isEnjoying]);
 
   // 1. Natural Blinking Loop
   useEffect(() => {
@@ -107,8 +126,9 @@ export function AIOrbFace({
       let moodBiasY = 0;
       let allowCursorTracking = true;
 
-      switch (mood) {
+      switch (effectiveMood) {
         case "typing":
+        case "composing":
           moodBiasX = 0;
           moodBiasY = 0.55; // eyes cast down towards laptop
           allowCursorTracking = false;
@@ -117,6 +137,23 @@ export function AIOrbFace({
           moodBiasX = 0.42;
           moodBiasY = -0.58; // tilted up-right towards thought cloud
           allowCursorTracking = false;
+          break;
+        case "working":
+          moodBiasX = 0;
+          moodBiasY = -0.1;
+          allowCursorTracking = true;
+          break;
+        case "waiting_confirmation":
+          moodBiasX = 0.25;
+          moodBiasY = -0.18;
+          allowCursorTracking = true;
+          break;
+        case "success":
+        case "celebrating":
+        case "proud":
+          moodBiasX = 0.32;
+          moodBiasY = -0.36; // cheerful high tilt
+          allowCursorTracking = true;
           break;
         case "sleepy":
         case "offline":
@@ -129,12 +166,6 @@ export function AIOrbFace({
           moodBiasX = -0.45;
           moodBiasY = 0; // side-eye glance
           allowCursorTracking = false;
-          break;
-        case "proud":
-        case "celebrating":
-          moodBiasX = 0.32;
-          moodBiasY = -0.36; // cheerful high tilt
-          allowCursorTracking = true;
           break;
         case "excited":
         case "playful":
@@ -162,6 +193,7 @@ export function AIOrbFace({
           break;
         case "focused":
         case "attentive":
+        case "listening":
           moodBiasX = 0;
           moodBiasY = -0.05;
           allowCursorTracking = true;
@@ -340,30 +372,34 @@ export function AIOrbFace({
   const orbMotionClass = useMemo(() => {
     if (isGiggling) return styles.orbGiggling;
     if (isEnjoying) return styles.orbEnjoying;
-    if (mood === "playful" || mood === "excited" || mood === "celebrating") return styles.orbGiggling;
-    if (mood === "typing") return styles.orbTyping;
-    if (mood === "thinking") return styles.orbThinking;
-    if (mood === "sleepy" || mood === "offline" || mood === "usage_limit") return styles.orbSleepy;
+    if (effectiveMood === "playful" || effectiveMood === "excited" || effectiveMood === "celebrating" || effectiveMood === "success") return styles.orbGiggling;
+    if (effectiveMood === "typing" || effectiveMood === "composing") return styles.orbTyping;
+    if (effectiveMood === "thinking") return styles.orbThinking;
+    if (effectiveMood === "sleepy" || effectiveMood === "offline" || effectiveMood === "usage_limit") return styles.orbSleepy;
     return styles.orbFloating;
-  }, [isGiggling, isEnjoying, mood]);
+  }, [isGiggling, isEnjoying, effectiveMood]);
 
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     const isTouch = e.pointerType === "touch" || e.pointerType === "pen";
     onTap?.(isTouch ? "touch" : "mouse");
   };
 
-  const isThinkingActive = mood === "thinking" || isThinking;
+  const isThinkingActive = effectiveMood === "thinking" || isThinking;
+  const isWorkingActive = effectiveMood === "working";
+  const isWaitingActive = effectiveMood === "waiting_confirmation";
+  const isSuccessActive = effectiveMood === "success";
 
   return (
     <div
       className={`${styles.orbContainer} ${speechSide === "left" ? styles.orbContainerSideLeft : ""} ${className}`.trim()}
       data-theme={isLight ? "light" : "dark"}
     >
+
       {/* 1. SINGLE AUTHORITATIVE THINKING STATUS BUBBLE (Strict single-source-of-truth) */}
       {isThinkingActive ? (
         <div className={styles.thoughtCloudWrapper} aria-label="AI is thinking" role="status">
           <div className={styles.thoughtCloud}>
-            <span>{language === "bn" ? "AI ভাবছে" : "AI is thinking"}</span>
+            <span>{isBn ? "AI ভাবছে" : "AI is thinking"}</span>
             <span className={styles.dotPulse1}>.</span>
             <span className={styles.dotPulse2}>.</span>
             <span className={styles.dotPulse3}>.</span>

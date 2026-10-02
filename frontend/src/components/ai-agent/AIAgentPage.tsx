@@ -22,23 +22,19 @@ import {
   Clock,
   Smile,
   ChevronDown,
-  Check,
-  Lock,
-  Unlock,
-  Brain,
-  Shield
+  Check
 } from "lucide-react";
 import { useAppContext } from "@/context/AppContext";
 import { useAuth } from "@/context/AuthContext";
 import { useAIAgent } from "@/hooks/useAIAgent";
-import type { AIAgentLanguage, AIAgentModel } from "@/types/aiAgent";
+import type { AIAgentLanguage, AIAgentModel, ActionRequest, ActionItem } from "@/types/aiAgent";
 import { VoiceAssistantModal } from "@/components/voice";
 import { AIOrbFace } from "./AIOrbFace";
-import { useOrbMood, type OrbMood } from "./useOrbMood";
+import { useOrbMood, getOrbStatusLabel, type OrbMood } from "./useOrbMood";
+import { AIActionCard } from "./AIActionCard";
 import styles from "./ai-agent.module.css";
 import { AIChatAnimatedTypingInput } from "./AIChatAnimatedTypingInput";
 import AIConsentModal from "../ai/AIConsentModal";
-import AIMemoryModal from "../ai/AIMemoryModal";
 
 const moodList: { id: OrbMood; labelBn: string; labelEn: string }[] = [
   { id: "happy", labelBn: "হ্যাপি", labelEn: "Happy" },
@@ -62,6 +58,7 @@ export function AIAgentPage() {
     showToast, 
     navigateTo, 
     addTask, 
+    updateTask,
     addTimeBlock, 
     addMindItem, 
     addNote, 
@@ -148,12 +145,11 @@ export function AIAgentPage() {
     removeSession,
     clearAllSessions,
     guestLimitExceeded,
-    isPrivateMode,
-    togglePrivateMode,
+    orbState,
+    setOrbState,
+    updateActionStatus,
     isConsentOpen,
-    setIsConsentOpen,
-    isMemoryModalOpen,
-    setIsMemoryModalOpen
+    setIsConsentOpen
   } = useAIAgent(context, isSystemBn ? "bn" : "en");
 
   // Cleanly extract user's display name without awkward fallbacks like "there"
@@ -200,10 +196,16 @@ export function AIAgentPage() {
     return userMsgs[userMsgs.length - 1]?.content || "";
   }, [messages]);
 
-  const lastAiMsg = useMemo(() => {
+  const lastAssistantMsg = useMemo(() => {
     const aiMsgs = messages.filter((m) => m.role === "assistant");
-    return aiMsgs[aiMsgs.length - 1]?.content || "";
+    return aiMsgs[aiMsgs.length - 1];
   }, [messages]);
+
+  const lastAiMsg = useMemo(() => {
+    return lastAssistantMsg?.content || "";
+  }, [lastAssistantMsg]);
+
+  const lastAiReaction = lastAssistantMsg?.reaction;
 
   const hasFailedMessage = useMemo(() => {
     if (!messages || messages.length === 0) return false;
@@ -384,6 +386,267 @@ export function AIAgentPage() {
     }
   }, [addTask, addTimeBlock, addNote, addMindItem, addLearningFolder, saveDiaryTopic, showToast, isSystemBn]);
 
+  const handleConfirmAction = useCallback(async (msgId: string, action: ActionRequest) => {
+    updateActionStatus(msgId, action.id, "executing");
+    setOrbState("working");
+
+    try {
+      const p = action.parameters || {};
+
+      switch (action.type) {
+        case "create_task":
+        case "create_planner_task": {
+          const totalMins = p.estimatedMinutes || 45;
+          const taskId = Date.now() + Math.floor(Math.random() * 1000);
+          const taskDate = p.targetDate || new Date().toISOString().split("T")[0];
+          const taskTitle = p.title || (isSystemBn ? "নতুন স্টাডি টাস্ক" : "New Task");
+          const startTime = p.time || "10:00";
+          const startHour = parseInt(startTime.split(":")[0], 10) || 10;
+          const endHour = startHour + Math.max(1, Math.ceil(totalMins / 60));
+          const endTime = `${String(endHour).padStart(2, "0")}:00`;
+
+          addTask({
+            id: taskId,
+            name: taskTitle,
+            title: taskTitle,
+            priority: p.priority || "medium",
+            estHours: Math.floor(totalMins / 60),
+            estMinutes: totalMins % 60,
+            targetDate: taskDate,
+            date: taskDate,
+            time: startTime,
+            category: "Study",
+            status: "not_started",
+            notes: p.enableNotification ? "[Notification Reminders: ON]" : "",
+            tier: "now"
+          });
+
+          addTimeBlock({
+            date: taskDate,
+            startTime,
+            endTime,
+            label: taskTitle,
+            category: "Study",
+            isBreak: false,
+            taskId
+          });
+
+          showToast(isSystemBn ? "টাস্কটি প্ল্যানারে যোগ করা হয়েছে!" : "Task added to Planner!", "success");
+          break;
+        }
+
+        case "create_multiple_tasks": {
+          const tasks = Array.isArray(p.tasks) ? p.tasks : (action.items || []);
+          tasks.forEach((t: any, idx: number) => {
+            const totalMins = t.estimatedMinutes || 45;
+            const taskId = Date.now() + idx + Math.floor(Math.random() * 1000);
+            const taskDate = t.targetDate || new Date().toISOString().split("T")[0];
+            const taskTitle = t.title || t.label || (isSystemBn ? `টাস্ক ${idx + 1}` : `Task ${idx + 1}`);
+            const startHour = 10 + idx * 2;
+            const startTime = t.time || `${String(startHour).padStart(2, "0")}:00`;
+            const endHour = startHour + Math.max(1, Math.ceil(totalMins / 60));
+            const endTime = `${String(endHour).padStart(2, "0")}:00`;
+
+            addTask({
+              id: taskId,
+              name: taskTitle,
+              title: taskTitle,
+              priority: t.priority || "medium",
+              estHours: Math.floor(totalMins / 60),
+              estMinutes: totalMins % 60,
+              targetDate: taskDate,
+              date: taskDate,
+              time: startTime,
+              category: "Study",
+              status: "not_started",
+              tier: "now"
+            });
+
+            addTimeBlock({
+              date: taskDate,
+              startTime,
+              endTime,
+              label: taskTitle,
+              category: "Study",
+              isBreak: false,
+              taskId
+            });
+          });
+
+          showToast(isSystemBn ? `${tasks.length}টি টাস্ক প্ল্যানারে যোগ করা হয়েছে!` : `${tasks.length} tasks added to Planner!`, "success");
+          break;
+        }
+
+        case "create_focus_session": {
+          const mins = p.durationMinutes || 25;
+          const taskName = p.goal || (isSystemBn ? "ডিপ ওয়ার্ক সেশন" : "Deep Work Session");
+          localStorage.setItem(
+            "focusforge_pending_focus_launch",
+            JSON.stringify({
+              taskName,
+              category: "Study",
+              durationMinutes: mins,
+              autoStart: true,
+              timestamp: Date.now()
+            })
+          );
+          showToast(isSystemBn ? `${mins} মিনিটের ফোকাস সেশন প্রস্তুত!` : `${mins}m Focus session ready!`, "success");
+          navigateTo("focus");
+          break;
+        }
+
+        case "create_note": {
+          addNote({
+            title: p.title || (isSystemBn ? "নতুন স্টাডি নোট" : "New Study Note"),
+            blocks: [
+              {
+                id: "block_" + Date.now(),
+                type: "paragraph",
+                content: p.content || ""
+              }
+            ],
+            category: p.category || "AI Generated"
+          });
+          showToast(isSystemBn ? "নোট সেভ করা হয়েছে!" : "Note saved to Notes & Files!", "success");
+          break;
+        }
+
+        case "create_diary_entry": {
+          const diaryTitle = p.title || (isSystemBn ? "আজকের ডায়েরি" : "Today's Diary Entry");
+          const diaryContent = p.content || "";
+          saveDiaryTopic(diaryTitle, diaryContent);
+          showToast(isSystemBn ? "ডায়েরি এন্ট্রি সেভ করা হয়েছে!" : "Diary entry saved to My Diary!", "success");
+          break;
+        }
+
+        case "create_problem": {
+          const content = `[Problem]: ${p.problem || ""}\n\nSteps:\n${(p.solutionSteps || []).map((s: string, idx: number) => `${idx + 1}. ${s}`).join("\n")}`;
+          addMindItem(content, "problem_solver");
+          showToast(isSystemBn ? "সমাধান পরিকল্পনা মাইন্ড ট্র্যাকারে যুক্ত হয়েছে!" : "Solution added to Mind Hub!", "success");
+          break;
+        }
+
+        case "create_idea": {
+          const content = `[Idea]: ${p.idea || ""}\n\nKey Points:\n${(p.keyPoints || []).map((k: string) => `- ${k}`).join("\n")}${p.nextAction ? `\nNext: ${p.nextAction}` : ""}`;
+          addMindItem(content, "idea_capture");
+          showToast(isSystemBn ? "আইডিয়াটি মাইন্ড ট্র্যাকারে যুক্ত হয়েছে!" : "Idea saved to Mind Hub!", "success");
+          break;
+        }
+
+        case "create_skill":
+        case "create_learning_topic": {
+          const folderName = p.folderName || p.skillName || (isSystemBn ? "নতুন বিষয়" : "New Topic");
+          addLearningFolder(folderName);
+          showToast(isSystemBn ? `'${folderName}' টাইম লগে যুক্ত হয়েছে!` : `'${folderName}' added to Time Log!`, "success");
+          break;
+        }
+
+        case "complete_task": {
+          const targetTask = state.tasks.find((t: any) => 
+            t.id === p.taskId || (p.title && t.title?.toLowerCase() === p.title.toLowerCase())
+          );
+          if (targetTask) {
+            updateTask(targetTask.id, { status: "completed" });
+            showToast(isSystemBn ? `'${targetTask.title}' সম্পন্ন হয়েছে!` : `'${targetTask.title}' completed!`, "success");
+          } else {
+            showToast(isSystemBn ? "টাস্কটি খুঁজে পাওয়া যায়নি।" : "Task could not be found.", "info");
+          }
+          break;
+        }
+
+        case "open_focus":
+          navigateTo("focus");
+          break;
+        case "open_planner":
+          navigateTo("planner");
+          break;
+        case "open_diary":
+          navigateTo("mind");
+          break;
+        case "open_notes":
+          navigateTo("tasks");
+          break;
+        case "open_problem_solver":
+        case "open_idea_space":
+          navigateTo("mind");
+          break;
+        case "open_dashboard":
+          navigateTo("today");
+          break;
+        case "open_skill_builder":
+          navigateTo("learning");
+          break;
+      }
+
+      updateActionStatus(msgId, action.id, "completed");
+      setOrbState("success");
+      setTimeout(() => setOrbState("idle"), 3500);
+    } catch (err: any) {
+      console.error("Action execution error:", err);
+      updateActionStatus(msgId, action.id, "failed");
+      setOrbState("error");
+      setTimeout(() => setOrbState("idle"), 3000);
+      showToast(isSystemBn ? "কাজটি সম্পন্ন করতে সমস্যা হয়েছে।" : "Failed to execute action.", "error");
+    }
+  }, [addTask, addTimeBlock, addNote, addMindItem, addLearningFolder, saveDiaryTopic, updateTask, navigateTo, showToast, isSystemBn, state.tasks, updateActionStatus, setOrbState]);
+
+  const handleCancelAction = useCallback((msgId: string, action: ActionRequest) => {
+    updateActionStatus(msgId, action.id, "cancelled");
+    setOrbState("idle");
+  }, [updateActionStatus, setOrbState]);
+
+  const handleExecutePartialAction = useCallback(async (msgId: string, action: ActionRequest, selectedItems: ActionItem[]) => {
+    updateActionStatus(msgId, action.id, "executing");
+    setOrbState("working");
+
+    try {
+      selectedItems.forEach((t: any, idx: number) => {
+        const totalMins = t.estimatedMinutes || 45;
+        const taskId = Date.now() + idx + Math.floor(Math.random() * 1000);
+        const taskDate = t.targetDate || new Date().toISOString().split("T")[0];
+        const taskTitle = t.title || t.label || (isSystemBn ? `টাস্ক ${idx + 1}` : `Task ${idx + 1}`);
+        const startHour = 10 + idx * 2;
+        const startTime = t.time || `${String(startHour).padStart(2, "0")}:00`;
+        const endHour = startHour + Math.max(1, Math.ceil(totalMins / 60));
+        const endTime = `${String(endHour).padStart(2, "0")}:00`;
+
+        addTask({
+          id: taskId,
+          name: taskTitle,
+          title: taskTitle,
+          priority: t.priority || "medium",
+          estHours: Math.floor(totalMins / 60),
+          estMinutes: totalMins % 60,
+          targetDate: taskDate,
+          date: taskDate,
+          time: startTime,
+          category: "Study",
+          status: "not_started",
+          tier: "now"
+        });
+
+        addTimeBlock({
+          date: taskDate,
+          startTime,
+          endTime,
+          label: taskTitle,
+          category: "Study",
+          isBreak: false,
+          taskId
+        });
+      });
+
+      showToast(isSystemBn ? `${selectedItems.length}টি টাস্ক যোগ করা হয়েছে!` : `${selectedItems.length} tasks added!`, "success");
+      updateActionStatus(msgId, action.id, "completed");
+      setOrbState("success");
+      setTimeout(() => setOrbState("idle"), 3500);
+    } catch (err) {
+      updateActionStatus(msgId, action.id, "failed");
+      setOrbState("error");
+      setTimeout(() => setOrbState("idle"), 3000);
+    }
+  }, [addTask, addTimeBlock, showToast, isSystemBn, updateActionStatus, setOrbState]);
+
   const submit = async (value = input) => {
     if (!value.trim() || guestLimitExceeded) return;
     if (!isOnline) {
@@ -397,9 +660,6 @@ export function AIAgentPage() {
     const aiMsg = await send(value, language, aiModel);
     if (aiMsg) {
       trackMeaningfulAction?.("ai_agent_interaction");
-    }
-    if (aiMsg?.payload && aiMsg.intent && aiMsg.intent !== "GREETING_OR_GENERAL") {
-      applyPayloadToApp(aiMsg.id, aiMsg.intent, aiMsg.payload);
     }
   };
 
@@ -472,35 +732,13 @@ export function AIAgentPage() {
       className={styles.agentShell}
       aria-label="FocusForge AI"
     >
-      {/* FULL-WIDTH TOP BAR: Left "FocusForge AI" to the edge, Right Mood / New Chat / 3-dots */}
+      {/* FULL-WIDTH TOP BAR: Left "FocusForge AI" to the edge, Right New Chat / 3-dots */}
       <header className={styles.topBar}>
         <div className={styles.topBarLeft}>
           <span className={styles.brandTitle}>FocusForge AI</span>
         </div>
 
         <div className={styles.topBarRight} ref={menuRef}>
-          {/* Private Chat Mode Toggle */}
-          <button
-            type="button"
-            className={`${styles.iconButton} ${isPrivateMode ? "text-amber-500 bg-amber-500/10 border border-amber-500/30" : ""}`}
-            onClick={togglePrivateMode}
-            aria-label={isPrivateMode ? (isSystemBn ? "প্রাইভেট মোড সক্রিয়" : "Private Mode Active") : (isSystemBn ? "প্রাইভেট মোড চালু করুন" : "Enable Private Mode")}
-            title={isPrivateMode ? (isSystemBn ? "প্রাইভেট চ্যাট চালু আছে (হিস্ট্রি সেভ হবে না)" : "Private Chat Active (No History/Sync)") : (isSystemBn ? "প্রাইভেট চ্যাট মোড" : "Private Chat Mode")}
-          >
-            {isPrivateMode ? <Lock size={18} className="text-amber-500" /> : <Unlock size={18} />}
-          </button>
-
-          {/* AI Memory Manager Button */}
-          <button
-            type="button"
-            className={styles.iconButton}
-            onClick={() => setIsMemoryModalOpen(true)}
-            aria-label={isSystemBn ? "এআই মেমোরি" : "AI Memory"}
-            title={isSystemBn ? "এআই মেমোরি ম্যানেজার" : "AI Memory Manager"}
-          >
-            <Brain size={19} strokeWidth={1.8} />
-          </button>
-
           {/* New Chat Button */}
           <button
             type="button"
@@ -608,27 +846,6 @@ export function AIAgentPage() {
         </div>
       </header>
 
-      {/* Private Mode Banner */}
-      {isPrivateMode && (
-        <div className="mx-4 mt-2 px-3.5 py-2 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-500 text-xs flex items-center justify-between animate-in fade-in duration-150">
-          <div className="flex items-center gap-2">
-            <Lock size={14} className="shrink-0" />
-            <span>
-              {isSystemBn
-                ? "প্রাইভেট মোড চালু: এই চ্যাটটি সম্পূর্ণ সাময়িক। হিস্ট্রি, মেমোরি বা ক্লাউড সিঙ্কে সেভ হবে না।"
-                : "Private Mode Active: This conversation is temporary and will not be saved to history, memory, or synced."}
-            </span>
-          </div>
-          <button
-            type="button"
-            onClick={togglePrivateMode}
-            className="text-[11px] underline font-medium hover:text-amber-400"
-          >
-            {isSystemBn ? "সাধারণ চ্যাটে ফিরুন" : "Exit Private"}
-          </button>
-        </div>
-      )}
-
       {/* CENTERED LAYOUT CONTAINER */}
       {/* CENTERED LAYOUT CONTAINER */}
       <div className={styles.layoutContainer}>
@@ -640,6 +857,7 @@ export function AIAgentPage() {
               <div className={styles.orbHeroWrapper}>
                 <AIOrbFace
                   mood={mood}
+                  orbState={orbState}
                   thoughtText={thoughtText || greetingText}
                   speechSide="top"
                   isThinking={isThinking}
@@ -648,7 +866,6 @@ export function AIAgentPage() {
                   isLight={isLight}
                   language={language}
                   onTap={triggerGiggle}
-                  showStatusBadge={true}
                 />
               </div>
             </div>
@@ -674,8 +891,31 @@ export function AIAgentPage() {
                         <div className={isUser ? styles.userBubble : styles.assistantBubble}>
                           {message.content}
 
-                          {/* Proposals / Action cards */}
-                          {message.payload && message.intent === "PLANNER_CREATE" && (
+                          {/* Interactive Production Action Cards */}
+                          {message.actions && message.actions.length > 0 && (
+                            <div className="flex flex-col gap-2.5 mt-2.5 w-full">
+                              {message.actions.map((action) => (
+                                <AIActionCard
+                                  key={action.id}
+                                  action={action}
+                                  onConfirm={(_actionId, selectedItemIds) => {
+                                    if (selectedItemIds && selectedItemIds.length > 0 && action.items && action.items.length > 0) {
+                                      const selectedItems = action.items.filter((item) => selectedItemIds.includes(item.id));
+                                      handleExecutePartialAction(message.id, action, selectedItems);
+                                    } else {
+                                      handleConfirmAction(message.id, action);
+                                    }
+                                  }}
+                                  onCancel={() => handleCancelAction(message.id, action)}
+                                  onNavigate={(route) => navigateTo(route as any)}
+                                  isBn={isSystemBn}
+                                />
+                              ))}
+                            </div>
+                          )}
+
+                          {/* Fallback proposal cards for legacy historical messages without structured actions */}
+                          {(!message.actions || message.actions.length === 0) && message.payload && message.intent === "PLANNER_CREATE" && (
                             <div className={styles.proposalCard}>
                               <div className={styles.proposalBadge}>
                                 <CheckCircle2 size={13} />
@@ -912,6 +1152,7 @@ export function AIAgentPage() {
                 <div className={styles.bottomOrbInner}>
                   <AIOrbFace
                     mood={mood}
+                    orbState={orbState}
                     thoughtText={isTyping ? streamingText : thoughtText}
                     speechSide="left"
                     isThinking={isThinking}
@@ -921,7 +1162,6 @@ export function AIAgentPage() {
                     isLight={isLight}
                     language={language}
                     onTap={triggerGiggle}
-                    showStatusBadge={false}
                   />
                 </div>
               </div>
@@ -1190,14 +1430,6 @@ export function AIAgentPage() {
           userId={user?.id}
           lang={isSystemBn ? "bn" : "en"}
           onClose={() => setIsConsentOpen(false)}
-        />
-
-        {/* AI Memory Management Modal */}
-        <AIMemoryModal
-          isOpen={isMemoryModalOpen}
-          userId={user?.id || null}
-          lang={isSystemBn ? "bn" : "en"}
-          onClose={() => setIsMemoryModalOpen(false)}
         />
       </div>
     </section>

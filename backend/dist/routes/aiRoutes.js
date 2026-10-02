@@ -248,8 +248,8 @@ async function generateSmartTitle(message) {
 router.post('/agent/chat', async (req, res) => {
     try {
         const { isGuest, userId, guestId, lang } = getRequestClientMeta(req);
+        let { sessionId, message, context, history, model, privacyMode } = req.body;
         const initialTokenStatus = await (0, aiTokenService_1.getUserTokenStatus)(userId, isGuest, guestId, lang);
-        let { sessionId, message, context, history, model } = req.body;
         if (initialTokenStatus.isExhausted || initialTokenStatus.remaining <= 0) {
             const exhaustedMessage = isGuest
                 ? (lang === 'bn'
@@ -329,15 +329,15 @@ router.post('/agent/chat', async (req, res) => {
         // 3. Deduct tokens
         const tokenStatus = await deductTokens(req, req.body, result);
         let sessionTitle = undefined;
-        if (isGuest) {
-            const activeGuestSessionId = sessionId || 'guest_' + Date.now();
+        if (privacyMode === 'disappearing' || isGuest) {
+            const activeGuestSessionId = sessionId || (privacyMode === 'disappearing' ? 'ephemeral_' : 'guest_') + Date.now();
             sessionTitle = await generateSmartTitle(message);
             return res.json({
                 sessionId: activeGuestSessionId,
                 sessionTitle,
                 tokenStatus,
                 aiMessage: {
-                    id: 'guest_msg_' + Date.now(),
+                    id: (privacyMode === 'disappearing' ? 'temp_msg_' : 'guest_msg_') + Date.now(),
                     session_id: activeGuestSessionId,
                     role: 'assistant',
                     content: result.message,

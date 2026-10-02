@@ -2,13 +2,19 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import type { AppState } from "@/types";
+import type { OrbState } from "@/types/aiAgent";
 
 export type OrbMood =
   | "idle"
+  | "listening"
   | "attentive"
   | "thinking"
   | "processing"
+  | "composing"
   | "typing"
+  | "working"
+  | "waiting_confirmation"
+  | "success"
   | "happy"
   | "excited"
   | "concerned"
@@ -27,9 +33,41 @@ export type OrbMood =
   | "usage_limit"
   | "error";
 
+export function getOrbStatusLabel(state: OrbMood | OrbState, isBn: boolean): string {
+  switch (state) {
+    case "thinking":
+      return isBn ? "ভাবছি…" : "Thinking…";
+    case "composing":
+    case "typing":
+      return isBn ? "লিখছি…" : "Typing…";
+    case "working":
+    case "processing":
+      return isBn ? "কাজ করছি…" : "Working…";
+    case "waiting_confirmation":
+      return isBn ? "তোমার অনুমতির অপেক্ষায়…" : "Waiting for confirmation…";
+    case "success":
+    case "celebrating":
+      return isBn ? "হয়ে গেছে" : "Done";
+    case "supportive":
+    case "caring":
+      return isBn ? "পাশে আছি" : "Here for you";
+    case "error":
+      return isBn ? "ত্রুটি হয়েছে" : "Something went wrong";
+    case "sleepy":
+      return isBn ? "বিশ্রামে" : "Resting";
+    case "offline":
+      return isBn ? "অফলাইন" : "Offline";
+    default:
+      return isBn ? "প্রস্তুত" : "Ready";
+  }
+}
+
 interface UseOrbMoodOptions {
+  orbState?: OrbState;
   isThinking: boolean;
   isTyping?: boolean;
+  isWorking?: boolean;
+  isWaitingConfirmation?: boolean;
   userInput?: string;
   lastUserMessage?: string;
   lastAiMessage?: string;
@@ -45,8 +83,11 @@ interface UseOrbMoodOptions {
 }
 
 export function useOrbMood({
+  orbState,
   isThinking,
   isTyping = false,
+  isWorking = false,
+  isWaitingConfirmation = false,
   userInput = "",
   lastUserMessage = "",
   lastAiMessage = "",
@@ -76,7 +117,7 @@ export function useOrbMood({
   const lastProcessedUserMsgRef = useRef<string>("");
   const lastIdleMsgTimeRef = useRef<number>(0);
 
-  // 1. OFFLINE HANDLING: Reliable network connectivity check
+  // 1. OFFLINE HANDLING
   useEffect(() => {
     if (!isOnline) {
       setMood("offline");
@@ -91,7 +132,7 @@ export function useOrbMood({
     }
   }, [isOnline, isBn, mood]);
 
-  // 2. USAGE LIMIT HANDLING: Grounded purely in existing token / guest limit state
+  // 2. USAGE LIMIT HANDLING
   useEffect(() => {
     if (isGuestLimit || isLimitExhausted) {
       setMood("usage_limit");
@@ -106,23 +147,76 @@ export function useOrbMood({
     }
   }, [isGuestLimit, isLimitExhausted, isBn, mood]);
 
-  // 3. THINKING & TYPING LIFECYCLE: One single authoritative communication state
+  // 3. CORE STATE MACHINE TRANSITIONS (Real events, no fake timeouts)
   useEffect(() => {
-    if (isGiggling) return;
+    if (isGiggling || !isOnline || isLimitExhausted || isGuestLimit) return;
+
+    if (orbState) {
+      switch (orbState) {
+        case "thinking":
+          setMood("thinking");
+          setCustomThought(isBn ? "AI ভাবছে..." : "AI is thinking...");
+          return;
+        case "composing":
+          setMood("typing");
+          setCustomThought(null);
+          return;
+        case "working":
+          setMood("working");
+          setCustomThought(isBn ? "কাজ করছি…" : "Working…");
+          return;
+        case "waiting_confirmation":
+          setMood("waiting_confirmation");
+          setCustomThought(isBn ? "তোমার অনুমতির অপেক্ষায়…" : "Waiting for your confirmation…");
+          return;
+        case "success":
+          setMood("success");
+          setCustomThought(isBn ? "হয়ে গেছে" : "Done");
+          return;
+        case "supportive":
+          setMood("supportive");
+          setCustomThought(isBn ? "আমি পাশে আছি" : "I'm right here");
+          return;
+        case "error":
+          setMood("error");
+          setCustomThought(isBn ? "ত্রুটি হয়েছে" : "Something went wrong");
+          return;
+        case "happy":
+          setMood("happy");
+          return;
+        case "curious":
+          setMood("curious");
+          return;
+        case "concerned":
+          setMood("concerned");
+          return;
+        case "encouraging":
+          setMood("caring");
+          return;
+        case "idle":
+          setMood("idle");
+          setCustomThought(null);
+          return;
+      }
+    }
 
     if (isThinking) {
       setMood("thinking");
-      // During thinking, thoughtText is unified: "AI is thinking..."
       setCustomThought(isBn ? "AI ভাবছে..." : "AI is thinking...");
     } else if (isTyping) {
       setMood("typing");
-      // Typing stream renders only in the chat transcript, not duplicating in ORB bubble
       setCustomThought(null);
-    } else if (mood === "thinking" || mood === "typing") {
+    } else if (isWorking) {
+      setMood("working");
+      setCustomThought(isBn ? "কাজ করছি…" : "Working…");
+    } else if (isWaitingConfirmation) {
+      setMood("waiting_confirmation");
+      setCustomThought(isBn ? "তোমার অনুমতির অপেক্ষায়…" : "Waiting for your confirmation…");
+    } else if (mood === "thinking" || mood === "typing" || mood === "working" || mood === "waiting_confirmation") {
       setMood("idle");
       setCustomThought(null);
     }
-  }, [isThinking, isTyping, isGiggling, isBn, mood]);
+  }, [orbState, isThinking, isTyping, isWorking, isWaitingConfirmation, isGiggling, isOnline, isLimitExhausted, isGuestLimit, isBn, mood]);
 
   // 4. TRIGGER GIGGLE / TAP INTERACTION
   const triggerGiggle = useCallback((source: "touch" | "mouse" = "touch") => {
@@ -260,7 +354,7 @@ export function useOrbMood({
       setCustomThought(isBn ? "হেহে! চোখ টিপে দিলাম! চলো দারুণ কিছু করি!" : "Hehe! Wink wink! Let's do something fun!");
     } else if (newMood === "caring" || newMood === "supportive") {
       setCustomThought(isBn ? "আমি সবসময় তোমার পাশে আছি। যেকোনো প্রয়োজনে আমাকে বলো।" : "I'm always here for you. Tell me whenever you need help.");
-    } else if (newMood === "proud" || newMood === "celebrating") {
+    } else if (newMood === "proud" || newMood === "celebrating" || newMood === "success") {
       setCustomThought(isBn ? "ওয়াও! তোমার অগ্রগতি সত্যিই দারুণ! গর্ব হচ্ছে।" : "Wow! Your progress is amazing! Super proud of you.");
     } else if (newMood === "focused") {
       setCustomThought(isBn ? "চলো সম্পূর্ণ ফোকাস দিয়ে কাজ শুরু করি!" : "Laser focused on your goals!");
@@ -274,12 +368,11 @@ export function useOrbMood({
     }, durationMs);
   }, [isBn]);
 
-  // 6. INACTIVITY & NATURAL SLEEP BEHAVIOR
+  // 6. INACTIVITY & SLEEP
   const resetInactivityTimer = useCallback(() => {
     if (inactivityTimerRef.current) clearTimeout(inactivityTimerRef.current);
 
     inactivityTimerRef.current = setTimeout(() => {
-      // 120 seconds of total inactivity -> gentle sleep
       setMood((current) => {
         if (current === "idle" || current === "attentive") {
           setCustomThought(
@@ -294,7 +387,6 @@ export function useOrbMood({
     }, 120000);
   }, [isBn]);
 
-  // User typing resets inactivity and wakes up from sleep
   useEffect(() => {
     if (userInput) {
       if (isGuestLimit || isLimitExhausted || !isOnline) return;
@@ -309,7 +401,7 @@ export function useOrbMood({
     }
   }, [userInput, isGuestLimit, isLimitExhausted, isOnline, resetInactivityTimer]);
 
-  // 7. OCCASIONAL IDLE BEHAVIOR (Sensible cooldown, deduplicated, only when quiet)
+  // 7. OCCASIONAL IDLE BEHAVIOR
   useEffect(() => {
     if (messagesCount > 0 || isThinking || isTyping || !isOnline || isLimitExhausted || isGuestLimit) {
       return;
@@ -317,7 +409,6 @@ export function useOrbMood({
 
     const idleTimer = setTimeout(() => {
       const now = Date.now();
-      // Only show idle ping after 45s and at least 3 minutes between idle messages
       if (now - lastIdleMsgTimeRef.current > 180000 && mood === "idle" && !customThought) {
         lastIdleMsgTimeRef.current = now;
         const idlePromptsBn = [
@@ -358,7 +449,7 @@ export function useOrbMood({
     }
   }, [hasFailedMessage, error, isBn]);
 
-  // 9. CONTEXTUAL REACTION TO USER MESSAGE (Priority 3)
+  // 9. CONTEXTUAL REACTION TO USER MESSAGE
   useEffect(() => {
     if (!lastUserMessage || isThinking || isTyping || isGiggling) return;
     if (lastUserMessage === lastProcessedUserMsgRef.current) return;
@@ -366,17 +457,11 @@ export function useOrbMood({
 
     const lower = lastUserMessage.toLowerCase();
 
-    // A. Problem / Stressed / Bad day
     const problemRegex = /(সমস্যা|পারছি না|কঠিন|মন খারাপ|হতাশ|ব্যর্থ|কান্না|পারব না|উদ্বেগ|স্ট্রেস|খারাপ দিন|মুড অফ|problem|hard|stuck|cannot|can't|sad|unhappy|depressed|struggling|stress|stressed|bad day|difficult|tough)/i;
-    // B. Idea / Discovery
     const ideaRegex = /(আইডিয়া|idea|ভাবনা|চিন্তা|concept|brainstorm|নতুন কিছু|বের করেছি|figured out|guess what|new thought)/i;
-    // C. Task / Planner / Routine Help
     const taskRegex = /(টাস্ক|প্ল্যানার|রুটিন|শিডিউল|গুছিয়ে|লিস্ট|organize|task|planner|schedule|routine|plan|help me|explain|checklist)/i;
-    // D. Focus Session / Motivation
     const focusRegex = /(ফোকাস|focus|deep work|মনোযোগ|পড়ব|স্টাডি)/i;
-    // E. Success / Achievement
     const successRegex = /(শেষ করেছি|হয়ে গেছে|জিতলাম|সফল|অর্জন|finished|done|completed|won|achievement|did it|finished my task)/i;
-    // F. Frustrated / Annoyed
     const frustratedRegex = /(বিরক্ত|রাগ|হচ্ছে না|ধুর|frustrated|annoyed|disappointed|angry)/i;
 
     if (problemRegex.test(lower)) {
@@ -448,7 +533,6 @@ export function useOrbMood({
   }, [lastAiMessage, isThinking, isTyping, isBn]);
 
   // 11. UNIFIED SINGLE THOUGHT TEXT COMPUTATION
-  // STRICT RULE: During active conversation (messagesCount > 0), suppress unsolicited greetings!
   const thoughtText = customThought || (
     messagesCount === 0 && !userInput && !isThinking && !isTyping && isOnline && !isLimitExhausted && !isGuestLimit
       ? (mood === "idle" ? greetingText : null)
@@ -463,7 +547,7 @@ export function useOrbMood({
     triggerGiggle,
     triggerInteract: triggerGiggle,
     setManualMood,
-    resetInactivityTimer
+    resetInactivityTimer,
   };
 }
 

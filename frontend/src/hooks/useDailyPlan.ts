@@ -24,6 +24,7 @@ export function useDailyPlan() {
       quietHoursEnabled: prefs.quietHoursEnabled ?? true,
       quietHoursStart: prefs.quietHoursStart || "22:00",
       quietHoursEnd: prefs.quietHoursEnd || "07:00",
+      soundEnabled: prefs.soundEnabled ?? true,
     });
   }, [userId, prefs]);
 

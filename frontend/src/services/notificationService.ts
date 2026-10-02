@@ -51,6 +51,7 @@ class NotificationService {
   private quietHoursEnabled: boolean = true;
   private quietHoursStart: string = "22:00"; // 10:00 PM
   private quietHoursEnd: string = "07:00"; // 7:00 AM
+  private soundEnabled: boolean = true;
 
   /**
    * Set active account ID for strict data isolation
@@ -62,18 +63,20 @@ class NotificationService {
   }
 
   /**
-   * Update operational preferences (quiet hours, limits)
+   * Update operational preferences (quiet hours, limits, sound)
    */
   public updateConfig(prefs: {
     dailyLimit?: number;
     quietHoursEnabled?: boolean;
     quietHoursStart?: string;
     quietHoursEnd?: string;
+    soundEnabled?: boolean;
   }): void {
     if (typeof prefs.dailyLimit === "number") this.dailyLimit = prefs.dailyLimit;
     if (typeof prefs.quietHoursEnabled === "boolean") this.quietHoursEnabled = prefs.quietHoursEnabled;
     if (prefs.quietHoursStart) this.quietHoursStart = prefs.quietHoursStart;
     if (prefs.quietHoursEnd) this.quietHoursEnd = prefs.quietHoursEnd;
+    if (typeof prefs.soundEnabled === "boolean") this.soundEnabled = prefs.soundEnabled;
   }
 
   /**
@@ -111,6 +114,7 @@ class NotificationService {
    * Works 100% offline with zero external audio assets.
    */
   public playChime(): void {
+    if (!this.soundEnabled) return;
     if (typeof window === "undefined") return;
     try {
       const AudioContextClass =

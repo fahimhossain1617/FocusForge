@@ -1,14 +1,16 @@
 /**
  * FocusForge AI Improvement Consent Service (aiConsentService.ts)
  * 
- * Manages explicit user consent for AI model evaluation & improvement.
+ * Manages explicit user consent for AI personalization & improvement.
  * Guarantees:
- * - Privacy-First default ("Keep My Chats Private").
- * - Shown once on first use; never nags.
- * - Changing preference anytime from Settings.
- * - Functional AI availability regardless of choice.
- * - Does NOT link consent to account creation, login, or sync.
+ * - "Allow AI Improvement" as the default selected option.
+ * - "Keep My Chats Private" as the full-access privacy alternative.
+ * - Persisted locally per user namespace (Account Isolation).
+ * - Full AI availability regardless of choice.
+ * - Changeable anytime from Settings.
  */
+
+import type { PrivacyMode } from "@/types/aiAgent";
 
 export type AIConsentChoice = "granted" | "private" | "unasked";
 
@@ -42,4 +44,12 @@ export const aiConsentService = {
   hasUserDecided(userId?: string | null): boolean {
     return this.getConsent(userId) !== "unasked";
   },
+
+  getEffectivePrivacyMode(userId?: string | null): PrivacyMode {
+    const consent = this.getConsent(userId);
+    if (consent === "private") {
+      return "private";
+    }
+    return "improvement";
+  }
 };

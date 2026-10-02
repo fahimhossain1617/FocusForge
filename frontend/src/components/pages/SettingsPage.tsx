@@ -8,13 +8,15 @@ import {
   User, Lock, Bell, Sliders, HelpCircle, Shield,
   ChevronDown, ChevronRight, Check, ArrowLeft,
   Camera, Trash2, Eye, EyeOff, Upload,
-  Mail, Phone, Calendar, Globe, MapPin, Edit3, X, AlertTriangle
+  Mail, Phone, Calendar, Globe, MapPin, Edit3, X, AlertTriangle, Sparkles
 } from "lucide-react";
 import notificationService from "../../services/notificationService";
 import { userService } from "../../services/userService";
 import { authService } from "../../services/authService";
 import { clearPersistedAppState } from "../../services/indexedDBStorage";
 import { localDb } from "../../services/localDbService";
+import { aiConsentService } from "../../services/aiConsentService";
+import { aiMemoryService } from "../../services/aiMemoryService";
 import FocusForgeDatePicker from "../ui/FocusForgeDatePicker";
 import FocusForgeSelect from "../ui/FocusForgeSelect";
 import { toggleThemeWithCircularTransition } from "../../utils/themeTransition";
@@ -48,6 +50,7 @@ export type SettingsSubItem =
   | "contact-support" 
   | "feedback"
   // Privacy
+  | "ai-privacy"
   | "privacy-policy" 
   | "terms-of-service" 
   | "delete-account";
@@ -387,9 +390,16 @@ export default function SettingsPage() {
   }, []);
 
   const notifMasterEnabled = state.notifPreferences?.enabled ?? true;
+  const soundEnabled = state.notifPreferences?.soundEnabled ?? true;
   const taskReminders = state.notifPreferences?.taskReminders ?? true;
   const focusSessionReminders = state.notifPreferences?.focusSessionReminder ?? true;
+  const dailyMorningPlan = state.notifPreferences?.dailyMorningPlan ?? true;
   const dailyProgressReminders = state.notifPreferences?.dailyProgressReminders ?? true;
+  const skillReminders = state.notifPreferences?.skillReminders ?? true;
+  const inactivityReminders = state.notifPreferences?.inactivityReminders ?? true;
+  const motivationalNotifications = state.notifPreferences?.motivationalNotifications ?? true;
+  const quietHoursEnabled = state.notifPreferences?.quietHoursEnabled ?? true;
+  const orbReactionsMode = state.notifPreferences?.orbReactionsMode || "on";
 
   const handleMasterToggle = async (enabled: boolean) => {
     if (enabled) {
@@ -425,7 +435,7 @@ export default function SettingsPage() {
     }
   };
 
-  const handleSubNotificationToggle = (key: "taskReminders" | "focusSessionReminder" | "dailyProgressReminders", val: boolean) => {
+  const handleSubNotificationToggle = (key: string, val: boolean | string) => {
     updateState({
       notifPreferences: {
         ...state.notifPreferences,
@@ -755,6 +765,7 @@ export default function SettingsPage() {
       label: t.settings.sections.privacy,
       icon: Shield,
       subItems: [
+        { id: "ai-privacy", label: state?.lang === "bn" ? "এআই প্রাইভেসি ও ইমপ্রুভমেন্ট" : "AI Privacy & Improvement", icon: Sparkles },
         { id: "privacy-policy", label: t.settings.privacy.privacyPolicyTitle },
         { id: "terms-of-service", label: t.settings.privacy.termsOfServiceTitle },
         { id: "delete-account", label: t.settings.privacy.deleteAccount.title },
@@ -1386,6 +1397,24 @@ export default function SettingsPage() {
                 />
               </div>
 
+              {/* Notification Sound Toggle (User requirement: On/Off sound control) */}
+              <div className="p-5 sm:p-6 flex items-center justify-between gap-4">
+                <div className={notifMasterEnabled ? "" : "opacity-40"}>
+                  <h3 className="text-sm font-semibold text-[var(--color-text-primary)] flex items-center gap-2">
+                    <span>{t.settings.notifications.sound || (state.lang === "bn" ? "নোটিফিকেশন সাউন্ড" : "Notification Sound")}</span>
+                  </h3>
+                  <p className="text-xs text-[var(--color-text-secondary)] mt-0.5">
+                    {t.settings.notifications.soundDesc || (state.lang === "bn" ? "রিমাইন্ডার বা অ্যালার্ট আসলে মিষ্টি সুর বা শব্দ বাজান।" : "Play an audio chime when a reminder or alert arrives.")}
+                  </p>
+                </div>
+                <Toggle
+                  checked={soundEnabled}
+                  disabled={!notifMasterEnabled}
+                  onChange={(val) => handleSubNotificationToggle("soundEnabled", val)}
+                  ariaLabel={t.settings.notifications.sound || "Notification Sound"}
+                />
+              </div>
+
               {/* Task Reminders */}
               <div className="p-5 sm:p-6 flex items-center justify-between gap-4">
                 <div className={notifMasterEnabled ? "" : "opacity-40"}>
@@ -1422,6 +1451,78 @@ export default function SettingsPage() {
                 />
               </div>
 
+              {/* Daily Morning Plan */}
+              <div className="p-5 sm:p-6 flex items-center justify-between gap-4">
+                <div className={notifMasterEnabled ? "" : "opacity-40"}>
+                  <h3 className="text-sm font-semibold text-[var(--color-text-primary)]">
+                    {t.settings.notifications.dailyMorningPlan || (state.lang === "bn" ? "আজকের সকালের প্ল্যান" : "Daily Morning Plan")}
+                  </h3>
+                  <p className="text-xs text-[var(--color-text-secondary)] mt-0.5">
+                    {t.settings.notifications.dailyMorningPlanDesc || (state.lang === "bn" ? "প্রতিদিন সকালে দিনের লক্ষ্য ও প্ল্যান সাজানোর রিমাইন্ডার পান।" : "Receive a morning reminder to plan and structure your daily goals.")}
+                  </p>
+                </div>
+                <Toggle
+                  checked={dailyMorningPlan}
+                  disabled={!notifMasterEnabled}
+                  onChange={(val) => handleSubNotificationToggle("dailyMorningPlan", val)}
+                  ariaLabel={t.settings.notifications.dailyMorningPlan || "Daily Morning Plan"}
+                />
+              </div>
+
+              {/* Time Log / Skill Reminders */}
+              <div className="p-5 sm:p-6 flex items-center justify-between gap-4">
+                <div className={notifMasterEnabled ? "" : "opacity-40"}>
+                  <h3 className="text-sm font-semibold text-[var(--color-text-primary)]">
+                    {t.settings.notifications.skillReminders || (state.lang === "bn" ? "টাইম লগ ও স্কিল চর্চা" : "Time Log & Skill Practice")}
+                  </h3>
+                  <p className="text-xs text-[var(--color-text-secondary)] mt-0.5">
+                    {t.settings.notifications.skillRemindersDesc || (state.lang === "bn" ? "প্রতিদিনের বিষয়ভিত্তিক পড়ার ও স্কিল চর্চার রিমাইন্ডার।" : "Timely check-ins for your subject learning and skill tracking.")}
+                  </p>
+                </div>
+                <Toggle
+                  checked={skillReminders}
+                  disabled={!notifMasterEnabled}
+                  onChange={(val) => handleSubNotificationToggle("skillReminders", val)}
+                  ariaLabel={t.settings.notifications.skillReminders || "Time Log & Skill Practice"}
+                />
+              </div>
+
+              {/* Inactivity Companion */}
+              <div className="p-5 sm:p-6 flex items-center justify-between gap-4">
+                <div className={notifMasterEnabled ? "" : "opacity-40"}>
+                  <h3 className="text-sm font-semibold text-[var(--color-text-primary)]">
+                    {t.settings.notifications.inactivityReminders || (state.lang === "bn" ? "নিষ্ক্রিয়তার সঙ্গী তাগিদ" : "Inactivity Companion")}
+                  </h3>
+                  <p className="text-xs text-[var(--color-text-secondary)] mt-0.5">
+                    {t.settings.notifications.inactivityRemindersDesc || (state.lang === "bn" ? "অনেকক্ষণ বিরতি থাকলে কাজে ফিরে আসার বন্ধুত্বপূর্ণ তাগিদ।" : "Friendly nudge to return to your goals after extended idle time.")}
+                  </p>
+                </div>
+                <Toggle
+                  checked={inactivityReminders}
+                  disabled={!notifMasterEnabled}
+                  onChange={(val) => handleSubNotificationToggle("inactivityReminders", val)}
+                  ariaLabel={t.settings.notifications.inactivityReminders || "Inactivity Companion"}
+                />
+              </div>
+
+              {/* Streaks & Achievements */}
+              <div className="p-5 sm:p-6 flex items-center justify-between gap-4">
+                <div className={notifMasterEnabled ? "" : "opacity-40"}>
+                  <h3 className="text-sm font-semibold text-[var(--color-text-primary)]">
+                    {t.settings.notifications.motivationalNotifications || (state.lang === "bn" ? "ধারাবাহিকতা ও অর্জন" : "Streaks & Achievements")}
+                  </h3>
+                  <p className="text-xs text-[var(--color-text-secondary)] mt-0.5">
+                    {t.settings.notifications.motivationalNotificationsDesc || (state.lang === "bn" ? "স্ট্রিক ও নতুন অর্জনের মোটিভেশনাল নোটিফিকেশন।" : "Motivational celebrations for habit streaks and completed milestones.")}
+                  </p>
+                </div>
+                <Toggle
+                  checked={motivationalNotifications}
+                  disabled={!notifMasterEnabled}
+                  onChange={(val) => handleSubNotificationToggle("motivationalNotifications", val)}
+                  ariaLabel={t.settings.notifications.motivationalNotifications || "Streaks & Achievements"}
+                />
+              </div>
+
               {/* Daily Progress Reminders */}
               <div className="p-5 sm:p-6 flex items-center justify-between gap-4">
                 <div className={notifMasterEnabled ? "" : "opacity-40"}>
@@ -1438,6 +1539,57 @@ export default function SettingsPage() {
                   onChange={(val) => handleSubNotificationToggle("dailyProgressReminders", val)}
                   ariaLabel={t.settings.notifications.dailyProgressReminders}
                 />
+              </div>
+
+              {/* Quiet Hours */}
+              <div className="p-5 sm:p-6 flex items-center justify-between gap-4">
+                <div className={notifMasterEnabled ? "" : "opacity-40"}>
+                  <h3 className="text-sm font-semibold text-[var(--color-text-primary)]">
+                    {t.settings.notifications.quietHours || (state.lang === "bn" ? "কোয়াইট আওয়ারস (১০:০০ PM - ৭:০০ AM)" : "Quiet Hours (10:00 PM – 7:00 AM)")}
+                  </h3>
+                  <p className="text-xs text-[var(--color-text-secondary)] mt-0.5">
+                    {t.settings.notifications.quietHoursDesc || (state.lang === "bn" ? "এই সময়ে অর্ব ঘুমাবে, শুধু জরুরি অ্যালার্ট ছাড়া অন্য রিমাইন্ডার বন্ধ থাকবে।" : "Orb sleeps during this window, silencing non-urgent alerts.")}
+                  </p>
+                </div>
+                <Toggle
+                  checked={quietHoursEnabled}
+                  disabled={!notifMasterEnabled}
+                  onChange={(val) => handleSubNotificationToggle("quietHoursEnabled", val)}
+                  ariaLabel={t.settings.notifications.quietHours || "Quiet Hours"}
+                />
+              </div>
+
+              {/* Orb Reactions Mode */}
+              <div className="p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className={notifMasterEnabled ? "" : "opacity-40"}>
+                  <h3 className="text-sm font-semibold text-[var(--color-text-primary)]">
+                    {t.settings.notifications.orbReactions || (state.lang === "bn" ? "অর্ব রিঅ্যাকশন মোড" : "Orb Reactions Mode")}
+                  </h3>
+                  <p className="text-xs text-[var(--color-text-secondary)] mt-0.5">
+                    {t.settings.notifications.orbReactionsDesc || (state.lang === "bn" ? "নোটিফিকেশনে ৩ডি অর্বের অভিব্যক্তি ও অ্যানিমেশন নিয়ন্ত্রণ করুন।" : "Choose interactive 3D orb expression animations in notifications.")}
+                  </p>
+                </div>
+                <div className="flex items-center gap-1.5 p-1 rounded-xl bg-[var(--color-surface)] border border-[var(--color-border-subtle)] shrink-0">
+                  {(["on", "reduced_motion", "off"] as const).map((mode) => (
+                    <button
+                      key={mode}
+                      type="button"
+                      disabled={!notifMasterEnabled}
+                      onClick={() => handleSubNotificationToggle("orbReactionsMode", mode)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                        orbReactionsMode === mode
+                          ? "bg-blue-600 text-white shadow-none"
+                          : "text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-hover)]"
+                      }`}
+                    >
+                      {mode === "on"
+                        ? (state.lang === "bn" ? "চালু" : "On")
+                        : mode === "reduced_motion"
+                        ? (state.lang === "bn" ? "সীমিত গতি" : "Reduced")
+                        : (state.lang === "bn" ? "বন্ধ" : "Off")}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
@@ -2101,6 +2253,117 @@ export default function SettingsPage() {
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        );
+      }
+
+      // ---------------------------------------------------------------------
+      // PRIVACY > AI PRIVACY & IMPROVEMENT
+      // ---------------------------------------------------------------------
+      case "ai-privacy": {
+        const isBn = state?.lang === "bn";
+        const currentConsent = aiConsentService.getConsent(user?.id);
+        const isImprovementAllowed = currentConsent === "granted";
+
+        return (
+          <div className="space-y-6">
+            <div>
+              <h1 className="text-2xl font-bold text-[var(--color-text-primary)] tracking-tight">
+                {isBn ? "এআই প্রাইভেসি ও ইমপ্রুভমেন্ট" : "AI Privacy & Improvement"}
+              </h1>
+              <p className="text-xs text-[var(--color-text-muted)] mt-1">
+                {isBn 
+                  ? "FocusForge AI কীভাবে আপনার ডেটা পরিচালনা করে এবং আপনার গোপনীয়তা রক্ষা করে তা নিয়ন্ত্রণ করুন" 
+                  : "Control how FocusForge AI handles your data and personalizes interactions"}
+              </p>
+            </div>
+
+            <div className="rounded-2xl border border-[var(--color-border-subtle)] bg-[var(--color-surface-elevated)] p-6 space-y-6 shadow-none max-w-2xl">
+              {/* Allow AI Improvement Toggle Card */}
+              <div className="flex items-start justify-between gap-4 pb-6 border-b border-[var(--color-border-subtle)]">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-blue-500" />
+                    <h3 className="text-sm font-semibold text-[var(--color-text-primary)]">
+                      {isBn ? "এআই ইমপ্রুভমেন্ট ও লোকাল মেমোরি" : "Allow AI Improvement & Local Personalization"}
+                    </h3>
+                  </div>
+                  <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed">
+                    {isBn
+                      ? "চালু থাকলে AI আপনার কথা বলার পছন্দ ও কাজের ধরন শুধুমাত্র আপনার এই ডিভাইসে লোকালি মনে রাখে, যাতে পরবর্তীতে আরও উপযোগী উত্তর দিতে পারে। এটি চালু রাখা ডিফল্ট ও সুপারিশকৃত।"
+                      : "When enabled, the AI securely learns non-sensitive preferences and workflow habits locally on this device to provide smarter, tailored assistance."}
+                  </p>
+                </div>
+                <Toggle
+                  checked={isImprovementAllowed}
+                  onChange={(val) => {
+                    const newConsent = val ? "granted" : "private";
+                    aiConsentService.setConsent(user?.id, newConsent);
+                    showToast(
+                      isBn 
+                        ? (val ? "এআই ইমপ্রুভমেন্ট সক্রিয় করা হয়েছে।" : "চ্যাট প্রাইভেট মোডে সেট করা হয়েছে।")
+                        : (val ? "AI Improvement enabled." : "Chats set to private mode."),
+                      "info"
+                    );
+                    updateState({});
+                  }}
+                  ariaLabel="Toggle AI Improvement"
+                />
+              </div>
+
+              {/* Private Mode Notice */}
+              <div className="flex items-start gap-3 p-4 rounded-xl bg-blue-500/5 border border-blue-500/20 text-xs text-[var(--color-text-secondary)]">
+                <Lock className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" />
+                <div className="space-y-1">
+                  <p className="font-medium text-[var(--color-text-primary)]">
+                    {isBn ? "পূর্ণ নিয়ন্ত্রণ ও কোনো বাধ্যতামূলক বাধা নেই" : "Full Control & Zero Feature Penalties"}
+                  </p>
+                  <p>
+                    {isBn
+                      ? "চ্যাট প্রাইভেট রাখলেও আপনি FocusForge-এর সব এআই ফিচার ও অ্যাসিস্ট্যান্ট সুবিধা সম্পূর্ণভাবে ব্যবহার করতে পারবেন।"
+                      : "Even if you choose to keep chats private, you retain 100% full access to all FocusForge features and tools."}
+                  </p>
+                </div>
+              </div>
+
+              {/* Disappearing Messages Guide */}
+              <div className="flex items-start gap-3 p-4 rounded-xl bg-rose-500/5 border border-rose-500/20 text-xs text-[var(--color-text-secondary)]">
+                <EyeOff className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
+                <div className="space-y-1">
+                  <p className="font-medium text-[var(--color-text-primary)]">
+                    {isBn ? "ডিজঅ্যাপিয়ারিং বার্তা (Disappearing Messages)" : "Disappearing Message Mode"}
+                  </p>
+                  <p>
+                    {isBn
+                      ? "চ্যাটের উপরের চোখের আইকনে ট্যাপ করে যেকোনো সময় সাময়িক চ্যাট করতে পারেন—যা কোনো হিস্ট্রি, মেমোরি বা ক্লাউড স্টোরেজে সেভ হয় না।"
+                      : "Tap the eye icon inside the AI chat interface to toggle temporary, zero-persistence messaging anytime."}
+                  </p>
+                </div>
+              </div>
+
+              {/* Clear Memory Button */}
+              <div className="pt-2 flex items-center justify-between">
+                <div>
+                  <h4 className="text-xs font-semibold text-[var(--color-text-primary)]">
+                    {isBn ? "লোকাল এআই মেমোরি মুছুন" : "Clear AI Local Memory"}
+                  </h4>
+                  <p className="text-[11px] text-[var(--color-text-muted)]">
+                    {isBn ? "ডিভাইসে সংরক্ষিত সকল ব্যক্তিগত এআই পছন্দ মুছে ফেলুন" : "Erase all learned preferences and corrections on this device"}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    await aiMemoryService.clearAllMemories(user?.id);
+                    showToast(isBn ? "সকল লোকাল এআই মেমোরি সফলভাবে মুছে ফেলা হয়েছে!" : "Local AI memory cleared!", "success");
+                  }}
+                  className="px-4 py-2 rounded-xl text-xs font-medium text-red-500 hover:text-white hover:bg-red-500/90 border border-red-500/30 transition-colors cursor-pointer flex items-center"
+                >
+                  <Trash2 size={13} className="mr-1.5" />
+                  {isBn ? "মেমোরি মুছুন" : "Clear Memories"}
+                </button>
+              </div>
             </div>
           </div>
         );

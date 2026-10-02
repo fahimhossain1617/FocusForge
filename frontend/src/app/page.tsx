@@ -143,6 +143,11 @@ export default function Home() {
       root.classList.toggle("dark", !isLight);
       root.classList.toggle("light", isLight);
       root.style.colorScheme = isLight ? "light" : "dark";
+      const themeHex = isLight ? "#F3F7FC" : "#0A0E1A";
+      const metaTags = document.querySelectorAll('meta[name="theme-color"]');
+      metaTags.forEach((tag) => tag.setAttribute("content", themeHex));
+      const ffTheme = document.getElementById("ff-theme-color");
+      if (ffTheme) ffTheme.setAttribute("content", themeHex);
     };
 
     if (mode === "system") {

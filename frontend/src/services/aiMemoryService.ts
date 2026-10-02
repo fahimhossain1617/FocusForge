@@ -1,23 +1,24 @@
 /**
  * FocusForge AI Agent Local Memory Service (aiMemoryService.ts)
  * 
- * Manages user-owned AI long-term memory stored exclusively in IndexedDB.
+ * Manages user-owned AI long-term memory stored exclusively in local IndexedDB.
  * Guarantees:
  * - Scoped strictly to authenticated account (Account Isolation).
- * - Synchronized across authorized devices via E2EE sync layer.
- * - Deletable & Editable by user directly.
- * - Excluded entirely when Private Chat Mode is active.
- * - Instant purge when user deletes memory or wipes account.
+ * - Least-context retrieval (minimal tokens, relevant memories only).
+ * - Zero memory retrieval or persistence when Private or Disappearing Mode is active.
+ * - Captures explicit user corrections & preferences when AI Improvement is enabled.
+ * - Instant purge when user deletes memory.
  */
 
 import { localDb } from "./localDbService";
+import type { PrivacyMode } from "@/types/aiAgent";
 
 export interface AIMemoryItem {
   id: string;
   userId: string;
   content: string;
   category: "preference" | "goal" | "habit" | "fact" | "work" | "general";
-  source?: string; // e.g. "conversation" | "user_added"
+  source?: string; // e.g. "correction" | "conversation" | "user_added"
   createdAt?: string;
   updatedAt?: string;
   isDeleted?: boolean;
@@ -39,13 +40,59 @@ export const aiMemoryService = {
   },
 
   /**
+   * Retrieves only relevant memories matching the user query (Least-Context minimization).
+   * Keeps token usage low and latency fast.
+   */
+  async getRelevantMemories(userId: string, query: string): Promise<AIMemoryItem[]> {
+    const all = await this.getMemories(userId);
+    if (!all || all.length === 0) return [];
+
+    const q = (query || "").toLowerCase();
+    
+    // Categorize query intent for smart matching
+    const isPlanner = /(task|plan|routine|schedule|টাস্ক|প্ল্যান|রুটিন)/i.test(q);
+    const isFocus = /(focus|timer|pomodoro|ফোকাস|টাইমার)/i.test(q);
+    const isLanguage = /(bangla|bengali|english|বাংল|ইংরেজি|ভাষা)/i.test(q);
+    const isStyle = /(short|brief|detailed|সংক্ষেপ|ছোট|বড়)/i.test(q);
+
+    const scored = all.map((m) => {
+      let score = 0;
+      const content = m.content.toLowerCase();
+      
+      // Explicit keyword matches
+      const words = q.split(/\s+/).filter((w) => w.length > 2);
+      words.forEach((w) => {
+        if (content.includes(w)) score += 3;
+      });
+
+      // Contextual relevance
+      if (isPlanner && (m.category === "work" || m.category === "habit" || content.includes("task") || content.includes("plan"))) score += 5;
+      if (isFocus && (content.includes("focus") || content.includes("timer") || content.includes("session"))) score += 5;
+      if (isLanguage && (content.includes("bangla") || content.includes("english") || content.includes("language"))) score += 6;
+      if (isStyle && (content.includes("short") || content.includes("concise") || content.includes("brief"))) score += 6;
+      if (m.category === "preference") score += 2;
+
+      return { item: m, score };
+    });
+
+    // Take top 4 relevant memories with score > 0, fallback to top 2 general preferences if none matched
+    const filtered = scored.filter((s) => s.score > 0).sort((a, b) => b.score - a.score).map((s) => s.item);
+    if (filtered.length > 0) {
+      return filtered.slice(0, 4);
+    }
+
+    return all.filter((m) => m.category === "preference").slice(0, 2);
+  },
+
+  /**
    * Saves or updates an AI memory item in the local-first database.
    */
   async saveMemory(
     userId: string,
     content: string,
     category: AIMemoryItem["category"] = "general",
-    id?: string
+    id?: string,
+    source?: string
   ): Promise<AIMemoryItem | null> {
     if (!userId || userId === "guest" || !content.trim()) return null;
 
@@ -57,6 +104,7 @@ export const aiMemoryService = {
       userId,
       content: content.trim(),
       category,
+      source: source || "user_added",
       updatedAt: now,
       createdAt: now,
       isDeleted: false,
@@ -72,7 +120,7 @@ export const aiMemoryService = {
   },
 
   /**
-   * Deletes a specific memory item locally and records tombstone for E2EE sync.
+   * Deletes a specific memory item locally.
    */
   async deleteMemory(userId: string, memoryId: string): Promise<boolean> {
     if (!userId || !memoryId) return false;
@@ -86,14 +134,91 @@ export const aiMemoryService = {
   },
 
   /**
-   * Generates a context injection string for the AI prompt based on active memories.
+   * Clears all memories for the user from local storage.
    */
-  async buildMemoryContext(userId: string | null): Promise<string> {
-    if (!userId || userId === "guest") return "";
-    const memories = await this.getMemories(userId);
-    if (!memories || memories.length === 0) return "";
+  async clearAllMemories(userId?: string | null): Promise<boolean> {
+    if (!userId || userId === "guest") return true;
+    try {
+      const records = await this.getMemories(userId);
+      for (const rec of records) {
+        await localDb.softDelete("ai_memory", userId, rec.id);
+      }
+      return true;
+    } catch (err) {
+      console.error("[aiMemoryService] Error clearing all memories:", err);
+      return false;
+    }
+  },
 
-    const lines = memories.slice(0, 15).map((m) => `- [${m.category.toUpperCase()}] ${m.content}`);
-    return `\n\n--- USER RELEVANT PERSONAL MEMORY (Local User-Owned Context) ---\n${lines.join("\n")}\n--------------------------------------------------------------\n`;
+  /**
+   * Automatically detects explicit user corrections and preferences, saving them
+   * ONLY when AI Improvement is enabled (never in private or disappearing mode).
+   */
+  async detectAndSaveCorrection(
+    userId: string | null,
+    userMessage: string,
+    privacyMode: PrivacyMode
+  ): Promise<AIMemoryItem | null> {
+    if (!userId || userId === "guest" || privacyMode !== "improvement") {
+      return null;
+    }
+
+    const text = (userMessage || "").trim();
+    if (!text || text.length < 8) return null;
+
+    // Detect explicit correction patterns
+    const englishPatterns = [
+      /remember that\s+(.+)/i,
+      /always\s+(?:answer|reply|respond|talk)\s+(?:me\s+)?in\s+(.+)/i,
+      /i prefer\s+(.+)/i,
+      /don't\s+(?:ever\s+)?(.+)\s+again/i,
+      /please\s+remember\s+(.+)/i,
+    ];
+
+    const banglaPatterns = [
+      /মনে রেখো\s+(.+)/i,
+      /আমাকে সবসময়\s+(.+)\s+(?:উত্তর দাও|বলবে|লিখবে)/i,
+      /আমার পছন্দ\s+(.+)/i,
+      /আর কখনও\s+(.+)\s+করবে না/i,
+      /মনে রাখবে\s+(.+)/i,
+    ];
+
+    for (const pattern of [...englishPatterns, ...banglaPatterns]) {
+      const match = text.match(pattern);
+      if (match && match[1]) {
+        const preference = match[1].replace(/[.!?]+$/, "").trim();
+        if (preference.length > 3 && preference.length < 150) {
+          return await this.saveMemory(
+            userId,
+            `User preference: ${preference}`,
+            "preference",
+            undefined,
+            "correction"
+          );
+        }
+      }
+    }
+
+    return null;
+  },
+
+  /**
+   * Generates a context injection string for the AI prompt based on active memories.
+   * STRICT ENFORCEMENT: Empty string in Private or Disappearing Mode.
+   */
+  async buildMemoryContext(
+    userId: string | null,
+    query: string = "",
+    privacyMode: PrivacyMode = "improvement"
+  ): Promise<string> {
+    if (!userId || userId === "guest" || privacyMode !== "improvement") {
+      return "";
+    }
+
+    const relevant = await this.getRelevantMemories(userId, query);
+    if (!relevant || relevant.length === 0) return "";
+
+    const lines = relevant.map((m) => `- [${m.category.toUpperCase()}] ${m.content}`);
+    return `\n\n--- RELEVANT USER PREFERENCES & MEMORY (Local User-Owned) ---\n${lines.join("\n")}\n--------------------------------------------------------------\n`;
   },
 };

@@ -268,6 +268,7 @@ export interface DailyBig3 {
 
 export interface NotificationPreferences {
   enabled: boolean;
+  soundEnabled?: boolean;
   taskReminders: boolean;
   taskReminderTime: number; // minutes before
   dailyMorningPlan: boolean;
