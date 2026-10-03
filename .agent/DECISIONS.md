@@ -159,9 +159,9 @@
 
 - **Date:** October 2026
 - **Status:** Accepted
-- **Decision:** Android PWA WebAPK startup sequence is fully unified with `#090c19` background across `manifest.json`, `manifest.webmanifest`, `<meta name="theme-color">`, and an inline pre-CSS `<style>` tag to eliminate all white flicker. An inline, vanilla HTML/CSS boot layer (`#ff-boot-layer`) reproduces the Android splash icon (`width: min(47vw, 193px)`, 38% radius, real `#061f52` SVG mark at 62% proportion) at dead center, which seamlessly executes an ~850ms GPU-accelerated shared-element sequence:
+- **Decision:** Android PWA WebAPK startup sequence is fully unified with `#090c19` background across `manifest.json`, `manifest.webmanifest`, `<meta name="theme-color">`, and an inline pre-CSS `<style>` tag to eliminate all white flicker. An inline, vanilla HTML/CSS boot layer (`#ff-boot-layer`) reproduces the Android splash icon using the exact 512x512 splash icon asset (`/icons/icon-512x512.png` at 192px CSS centered, no artificial squircle border) at dead center, which seamlessly executes an ~850ms GPU-accelerated shared-element sequence:
   1. 0–100ms: Center hold matching splash state.
-  2. 100–700ms: Straight-line GPU flight (`transform: translate + scale`, `cubic-bezier(.32, .72, 0, 1)`) morphing border-radius to match target header slot. Target slot is measured with `#app-shell` transforms neutralized.
+  2. 100–700ms: Straight-line GPU flight (`transform: translate + scale`, `cubic-bezier(.32, .72, 0, 1)`) from badge center to target header slot center. Target slot is resolved via strict viewport/hierarchy checks (MobileHeader on mobile, Sidebar on desktop) with `#app-shell` transforms neutralized. Supports `?ffdebug=1` for 3000ms diagnostic slow motion.
   3. 250–550ms: Dark skeleton/dashboard fades in (`opacity: 0 -> 1`, `translateY: 10px -> 0px`).
   4. Landing (~700ms): Same-frame handoff displaying real header logo tile/mark, removing `#ff-boot-layer` and `ff-launch`, followed by a 250ms fade-in of the brand title.
 - **Reason:** Eliminates dark -> white -> dark screen flashing on Android PWA cold launch and creates a smooth native-quality transition with zero size jumps or logo gaps.

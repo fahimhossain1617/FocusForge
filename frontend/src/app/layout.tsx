@@ -175,27 +175,26 @@ export default function RootLayout({
               }
 
               #ff-boot-badge {
-                width: min(47vw, 193px);
-                height: min(47vw, 193px);
+                width: 192px;
+                height: 192px;
+                max-width: 48vw;
+                max-height: 48vw;
                 aspect-ratio: 1 / 1;
-                background: #ffffff;
-                border-radius: 38%;
+                background: transparent;
+                border-radius: 0;
                 position: relative;
                 flex: none;
-                transform-origin: 0 0;
-                will-change: transform, opacity, border-radius;
+                transform-origin: center center;
+                will-change: transform;
               }
 
-              #ff-boot-badge svg {
-                position: absolute;
-                left: 50%;
-                top: 50%;
-                height: 62%;
-                width: auto;
-                aspect-ratio: 520 / 630;
-                transform: translate(-50%, -50%);
+              #ff-boot-badge img {
+                width: 100%;
+                height: 100%;
+                object-fit: contain;
                 display: block;
-                overflow: visible;
+                pointer-events: none;
+                user-select: none;
               }
 
               /* Hide slot mark and tile during active launch flight */
@@ -284,8 +283,12 @@ export default function RootLayout({
     return;
   }
 
-  // Ensure ff-launch class is maintained if React hydration attempts to overwrite class
+  // Guard against double invocation
+  if (window.__ffLaunchRunning) return;
+  window.__ffLaunchRunning = true;
   window.__ffIsLaunching = true;
+
+  // Ensure ff-launch class is maintained if React hydration attempts to overwrite class
   var classObserver;
   try {
     classObserver = new MutationObserver(function() {
@@ -297,6 +300,7 @@ export default function RootLayout({
   } catch(e) {}
 
   var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var isSlowDebug = window.location.search.indexOf('ffdebug=1') !== -1;
   var readyResolver;
   var readyPromise = new Promise(function(resolve) {
     readyResolver = resolve;
@@ -313,15 +317,52 @@ export default function RootLayout({
   };
 
   var findTargetSlot = function() {
+    var isMobile = window.innerWidth < 768;
     var slots = Array.from(document.querySelectorAll('[data-ff-launch-slot]'));
-    for (var i = 0; i < slots.length; i++) {
-      var slot = slots[i];
-      if (slot.offsetParent !== null || slot.getBoundingClientRect().width > 0) {
-        var mark = slot.querySelector('[data-ff-launch-mark]') || slot.querySelector('.mk') || slot;
-        var r = mark.getBoundingClientRect();
-        if (r.width > 0 && r.height > 0) {
-          return { slot: slot, mark: mark, rect: r };
+    var preferredName = isMobile ? 'mobile' : 'sidebar';
+
+    var candidateSlots = slots.sort(function(a, b) {
+      var aName = a.getAttribute('data-ff-launch-slot') || '';
+      var bName = b.getAttribute('data-ff-launch-slot') || '';
+      var aPref = aName.indexOf(preferredName) !== -1 ? 0 : 1;
+      var bPref = bName.indexOf(preferredName) !== -1 ? 0 : 1;
+      return aPref - bPref;
+    });
+
+    for (var i = 0; i < candidateSlots.length; i++) {
+      var slot = candidateSlots[i];
+      var style = window.getComputedStyle(slot);
+      if (style.display === 'none' || style.visibility === 'hidden' || parseFloat(style.opacity) === 0) {
+        continue;
+      }
+
+      var parent = slot.parentElement;
+      var parentHidden = false;
+      while (parent && parent !== document.body) {
+        var pStyle = window.getComputedStyle(parent);
+        if (pStyle.display === 'none' || pStyle.visibility === 'hidden') {
+          parentHidden = true;
+          break;
         }
+        parent = parent.parentElement;
+      }
+      if (parentHidden) continue;
+
+      var r = slot.getBoundingClientRect();
+      var vw = window.innerWidth || document.documentElement.clientWidth;
+      var vh = window.innerHeight || document.documentElement.clientHeight;
+
+      if (r.width > 0 && r.height > 0 && r.left >= -5 && r.top >= -5 && r.right <= vw + 10 && r.top < vh * 0.5) {
+        var mark = slot.querySelector('[data-ff-launch-mark]') || slot.querySelector('.mk') || slot;
+        var markRect = mark.getBoundingClientRect();
+        var finalRect = (markRect.width > 0 && markRect.height > 0) ? markRect : r;
+        console.log('[FF Target Selected]', slot.getAttribute('data-ff-launch-slot'), finalRect);
+        return {
+          slot: slot,
+          mark: mark,
+          rect: finalRect,
+          name: slot.getAttribute('data-ff-launch-slot')
+        };
       }
     }
     return null;
@@ -334,21 +375,10 @@ export default function RootLayout({
       appShell.style.transform = 'none';
     }
     var target = findTargetSlot();
-    var result = null;
-    if (target) {
-      var r = target.mark.getBoundingClientRect();
-      var radius = parseFloat(window.getComputedStyle(target.slot).borderRadius) || 8;
-      result = {
-        slot: target.slot,
-        mark: target.mark,
-        rect: r,
-        radius: radius
-      };
-    }
     if (appShell) {
       appShell.style.transform = prevTransform;
     }
-    return result;
+    return target;
   };
 
   var waitForTargetSlot = function(maxWaitMs) {
@@ -402,12 +432,17 @@ export default function RootLayout({
     // Wait for React ready signal (first mount) with safety timeout 2.5s
     await Promise.race([readyPromise, wait(2500)]);
 
-    // Wait for fonts/layout to settle
+    // Wait for fonts and stable layout (document.fonts.ready + two RAF ticks)
     if (document.fonts && document.fonts.ready) {
       try {
         await Promise.race([document.fonts.ready, wait(300)]);
       } catch(e) {}
     }
+    await new Promise(function(resolve) {
+      requestAnimationFrame(function() {
+        requestAnimationFrame(resolve);
+      });
+    });
 
     var appShell = document.getElementById('app-shell');
 
@@ -425,7 +460,7 @@ export default function RootLayout({
       return;
     }
 
-    // 0-100ms: Badge holds still at center
+    // Hold still at center for initial handoff
     await wait(100);
 
     // Measure target slot accurately with appShell transform neutralized
@@ -445,14 +480,19 @@ export default function RootLayout({
       return;
     }
 
-    // 100-700ms (600ms flight):
-    // Calculate translate and scale
+    // Center-to-center motion calculation
     var r = bootBadge.getBoundingClientRect();
-    var s = target.rect.width / r.width;
-    var dx = target.rect.left - r.left;
-    var dy = target.rect.top - r.top;
-    var targetRadius = target.radius || 8;
-    var finalBorderRadius = (targetRadius / s) + 'px';
+    var badgeCenterX = r.left + r.width / 2;
+    var badgeCenterY = r.top + r.height / 2;
+    var slotCenterX = target.rect.left + target.rect.width / 2;
+    var slotCenterY = target.rect.top + target.rect.height / 2;
+    var scale = target.rect.width / r.width;
+    var dx = slotCenterX - badgeCenterX;
+    var dy = slotCenterY - badgeCenterY;
+
+    var flightDuration = isSlowDebug ? 3000 : 650;
+    var appShellDelay = isSlowDebug ? 1000 : 250;
+    var appShellDuration = isSlowDebug ? 1000 : 300;
 
     // Transition boot layer background to transparent so app shell behind shows
     bootLayer.style.background = 'transparent';
@@ -464,25 +504,31 @@ export default function RootLayout({
     var logFrame = function(time) {
       if (!isFlying) return;
       var currentRect = bootBadge.getBoundingClientRect();
-      window.__ffFlightTrajectory.push({
+      var curCenterX = currentRect.left + currentRect.width / 2;
+      var curCenterY = currentRect.top + currentRect.height / 2;
+      var frameData = {
         t: Math.round(time),
-        x: Math.round(currentRect.left * 10) / 10,
-        y: Math.round(currentRect.top * 10) / 10,
+        centerX: Math.round(curCenterX * 10) / 10,
+        centerY: Math.round(curCenterY * 10) / 10,
         w: Math.round(currentRect.width * 10) / 10,
         h: Math.round(currentRect.height * 10) / 10
-      });
+      };
+      window.__ffFlightTrajectory.push(frameData);
+      if (isSlowDebug) {
+        console.log('[FF Flight Frame]', frameData);
+      }
       requestAnimationFrame(logFrame);
     };
     requestAnimationFrame(logFrame);
 
-    // Badge flight animation: 100ms to 700ms (duration 600ms), easing cubic-bezier(.32, .72, 0, 1)
+    // Badge flight animation: straight-line translate + scale
     var flightAnim;
     try {
       flightAnim = bootBadge.animate([
-        { transform: 'translate(0px, 0px) scale(1)', borderRadius: '38%' },
-        { transform: 'translate(' + dx + 'px, ' + dy + 'px) scale(' + s + ')', borderRadius: finalBorderRadius }
+        { transform: 'translate(0px, 0px) scale(1)' },
+        { transform: 'translate(' + dx + 'px, ' + dy + 'px) scale(' + scale + ')' }
       ], {
-        duration: 600,
+        duration: flightDuration,
         easing: 'cubic-bezier(.32, .72, 0, 1)',
         fill: 'forwards'
       });
@@ -491,34 +537,33 @@ export default function RootLayout({
       return;
     }
 
-    // 250-550ms: Dark skeleton/dashboard fades in (opacity 0 -> 1, translateY 10px -> 0px)
-    // Starts at 250ms (which is 150ms after the flight begins at 100ms)
-    await wait(150);
+    // Fade in dark skeleton/dashboard (opacity 0 -> 1, translateY 10px -> 0px)
+    await wait(appShellDelay);
     if (appShell) {
       try {
         appShell.animate([
           { opacity: 0, transform: 'translateY(10px)' },
           { opacity: 1, transform: 'translateY(0px)' }
         ], {
-          duration: 300,
+          duration: appShellDuration,
           easing: 'ease-out',
           fill: 'forwards'
         });
       } catch(e) {}
     }
 
-    // Await full completion of badge flight animation (until ~700ms mark)
+    // Await full completion of badge flight animation
     try {
       await flightAnim.finished;
     } catch(e) {}
 
     isFlying = false;
     try {
-      console.log('[FF Flight Trajectory] Total frames captured:', window.__ffFlightTrajectory.length, window.__ffFlightTrajectory);
+      console.log('[FF Flight Complete] Total frames recorded:', window.__ffFlightTrajectory.length, 'Target:', target.name, target.rect);
     } catch(e) {}
 
     // At landing: in the SAME frame, show real header logo tile and remove badge (no gap, no flash)
-    // Then fade in "FocusForge" title beside it (250ms)
+    // Then fade in "FocusForge" title beside it
     cleanupAndFinish();
   };
 
@@ -529,11 +574,12 @@ export default function RootLayout({
   }
 
   // Safety fallback
+  var safetyTimeoutMs = isSlowDebug ? 10000 : 3500;
   setTimeout(function() {
     if (document.getElementById('ff-boot-layer')) {
       cleanupAndFinish();
     }
-  }, 3500);
+  }, safetyTimeoutMs);
 })();`,
           }}
         />
@@ -554,21 +600,18 @@ export default function RootLayout({
           aria-hidden="true" 
         />
 
-        {/* Inline Boot Layer matching Android Splash (Plain HTML + CSS, zero framework dependency) */}
+        {/* Inline Boot Layer matching Android Splash (Uses same 512x512 manifest splash icon) */}
         <div id="ff-boot-layer" aria-hidden="true">
           <div id="ff-boot-badge">
-            <svg viewBox="360 320 520 630">
-              <g style={{ fill: "#061f52" }}>
-                <path d="M390 632V548C390 440 470 366 580 366H750C810 366 850 350 870 332C868 400 830 465 740 468H585C548 468 522 495 522 530V632Z" />
-                <path d="M853 524L856 600C858 630 845 648 832 656L500 925C490 932 460 936 417 938L497 862C560 848 595 800 598 740C598 715 592 700 585 692C650 650 760 570 853 524Z" />
-              </g>
-              <circle cx="473" cy="745" r="97" fill="#fff" stroke="#061f52" strokeWidth="15" />
-              <circle cx="473" cy="745" r="45" fill="#061f52" />
-              <circle cx="473" cy="745" r="14" fill="#fff" />
-              <g stroke="#061f52" strokeWidth="5">
-                <path d="M473 662v16M473 812v16M390 745h16M540 745h16" />
-              </g>
-            </svg>
+            <img
+              id="ff-boot-badge-img"
+              src="/icons/icon-512x512.png"
+              width="192"
+              height="192"
+              alt="FocusForge"
+              loading="eager"
+              decoding="sync"
+            />
           </div>
         </div>
 

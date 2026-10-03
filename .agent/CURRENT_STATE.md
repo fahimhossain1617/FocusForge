@@ -206,10 +206,10 @@ Foscentia is an active, functional productivity suite built with Next.js 16 App 
 ---
 
 ### Frontend (App Shell, PWA Startup & Navigation)
-- **Current Implementation:** Next.js 16 App Router. `frontend/src/app/page.tsx` acts as SPA shell switching between 11 view components with sidebar navigation, bottom navigation bar on mobile, dark skeleton loaders, and launch animation gating. Android PWA startup is fully dark (`#090c19`) with inline boot layer matching the Android splash icon (`min(47vw, 193px)` width, 38% radius, 62% centered SVG) seamlessly executing an 850ms sequence (0-100ms center hold, 100-700ms straight-line GPU flight with cubic-bezier(.32,.72,0,1) easing and border-radius morphing, 250-550ms dark skeleton fade-in, same-frame landing swap to real header logo tile and 250ms title fade-in).
+- **Current Implementation:** Next.js 16 App Router. `frontend/src/app/page.tsx` acts as SPA shell switching between 11 view components with sidebar navigation, bottom navigation bar on mobile, dark skeleton loaders, and launch animation gating. Android PWA startup is fully dark (`#090c19`) with inline boot layer using the exact 512x512 splash icon asset (`/icons/icon-512x512.png` at 192px CSS centered) seamlessly executing an ~850ms sequence (100ms center hold, straight-line GPU flight with cubic-bezier(.32,.72,0,1) easing towards the visible device header slot resolved via strict hierarchy/viewport checks, 250-550ms dark skeleton fade-in, and same-frame landing swap to real header logo tile).
 - **Verified Status:** **VERIFIED**
 - **Known Problems:** None.
-- **Important Files:** `frontend/src/app/page.tsx`, `frontend/src/app/layout.tsx`, `frontend/src/components/ui/skeleton/AppShellSkeleton.tsx`, `frontend/public/manifest.json`, `frontend/public/manifest.webmanifest`, `frontend/public/sw.js`, `frontend/src/components/Sidebar.tsx`, `frontend/src/context/AppContext.tsx`.
+- **Important Files:** `frontend/src/app/page.tsx`, `frontend/src/app/layout.tsx`, `frontend/src/components/ui/skeleton/AppShellSkeleton.tsx`, `frontend/public/manifest.json`, `frontend/public/manifest.webmanifest`, `frontend/public/sw.js`, `frontend/src/components/Sidebar.tsx`, `frontend/src/components/navigation/MobileHeader.tsx`, `frontend/src/context/AppContext.tsx`.
 - **Dependencies:** `react` 19, `next` 16, `framer-motion`.
 - **Unknowns:** None.
 
