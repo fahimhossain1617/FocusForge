@@ -159,10 +159,14 @@
 
 - **Date:** October 2026
 - **Status:** Accepted
-- **Decision:** Android PWA WebAPK startup sequence is fully unified with `#090c19` background across `manifest.json`, `manifest.webmanifest`, `<meta name="theme-color">`, and an inline pre-CSS `<style>` tag to eliminate all white flicker. An inline, vanilla HTML/CSS boot layer (`#ff-boot-layer`) reproduces the Android splash icon (white rounded badge with real `#061f52` SVG mark) at dead center, which seamlessly executes a GPU-accelerated shared-element flight (`transform: translate + scale`, ~650ms, `cubic-bezier(.2, .8, .2, 1)`) directly into the header logo position while the dark skeleton/dashboard fades in with 10px translateY. The boot layer is then permanently removed from the DOM.
-- **Reason:** Eliminates dark -> white -> dark screen flashing on Android PWA cold launch and creates a smooth native-quality transition.
-- **Impact:** `frontend/public/manifest.json`, `frontend/public/manifest.webmanifest`, `frontend/src/app/layout.tsx`, `frontend/src/app/page.tsx`, `frontend/public/sw.js`.
-- **Do Not Change Without Approval:** Never add white backgrounds to the startup boot layer or remove the pre-CSS inline dark baseline.
+- **Decision:** Android PWA WebAPK startup sequence is fully unified with `#090c19` background across `manifest.json`, `manifest.webmanifest`, `<meta name="theme-color">`, and an inline pre-CSS `<style>` tag to eliminate all white flicker. An inline, vanilla HTML/CSS boot layer (`#ff-boot-layer`) reproduces the Android splash icon (`width: min(47vw, 193px)`, 38% radius, real `#061f52` SVG mark at 62% proportion) at dead center, which seamlessly executes an ~850ms GPU-accelerated shared-element sequence:
+  1. 0–100ms: Center hold matching splash state.
+  2. 100–700ms: Straight-line GPU flight (`transform: translate + scale`, `cubic-bezier(.32, .72, 0, 1)`) morphing border-radius to match target header slot. Target slot is measured with `#app-shell` transforms neutralized.
+  3. 250–550ms: Dark skeleton/dashboard fades in (`opacity: 0 -> 1`, `translateY: 10px -> 0px`).
+  4. Landing (~700ms): Same-frame handoff displaying real header logo tile/mark, removing `#ff-boot-layer` and `ff-launch`, followed by a 250ms fade-in of the brand title.
+- **Reason:** Eliminates dark -> white -> dark screen flashing on Android PWA cold launch and creates a smooth native-quality transition with zero size jumps or logo gaps.
+- **Impact:** `frontend/public/manifest.json`, `frontend/public/manifest.webmanifest`, `frontend/src/app/layout.tsx`, `frontend/src/app/page.tsx`, `frontend/src/components/ui/skeleton/AppShellSkeleton.tsx`, `frontend/public/sw.js`.
+- **Do Not Change Without Approval:** Never add white backgrounds to the startup boot layer, alter the 850ms flight timeline without testing, or remove the pre-CSS inline dark baseline.
 
 
 

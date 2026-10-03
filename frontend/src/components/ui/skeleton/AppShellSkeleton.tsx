@@ -33,7 +33,16 @@ export default function AppShellSkeleton({ page = "today" }: AppShellSkeletonPro
       >
         {/* User Profile Header Placeholder */}
         <div className="px-3 mb-6 min-h-[40px] flex items-center gap-2.5">
-          <SkeletonCircle size={32} />
+          <div
+            data-ff-launch-slot="sidebar-skeleton"
+            className="slot relative w-8 h-8 rounded-xl shrink-0 select-none"
+            style={{ width: "32px", height: "32px", minWidth: "32px", minHeight: "32px" }}
+          >
+            <span className="tile" />
+            <svg data-ff-launch-mark className="mk" viewBox="360 320 520 630">
+              <use href="#ff-mark" />
+            </svg>
+          </div>
           <div className="space-y-1 flex-1">
             <Skeleton variant="rounded" className="h-4 w-28" />
             <Skeleton variant="rounded" className="h-2.5 w-16" />
@@ -107,7 +116,16 @@ export default function AppShellSkeleton({ page = "today" }: AppShellSkeletonPro
           }}
         >
           <div className="flex items-center gap-3">
-            <Skeleton variant="rounded" className="w-9 h-9 rounded-xl" />
+            <div
+              data-ff-launch-slot="mobile-skeleton"
+              className="slot relative w-7 h-7 rounded-lg shrink-0 select-none"
+              style={{ width: "28px", height: "28px", minWidth: "28px", minHeight: "28px" }}
+            >
+              <span className="tile" />
+              <svg data-ff-launch-mark className="mk" viewBox="360 320 520 630">
+                <use href="#ff-mark" />
+              </svg>
+            </div>
             <Skeleton variant="rounded" className="h-4 w-28" />
           </div>
 

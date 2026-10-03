@@ -175,14 +175,15 @@ export default function RootLayout({
               }
 
               #ff-boot-badge {
-                width: 88px;
-                height: 88px;
+                width: min(47vw, 193px);
+                height: min(47vw, 193px);
+                aspect-ratio: 1 / 1;
                 background: #ffffff;
-                border-radius: 20px;
+                border-radius: 38%;
                 position: relative;
                 flex: none;
                 transform-origin: 0 0;
-                will-change: transform, opacity;
+                will-change: transform, opacity, border-radius;
               }
 
               #ff-boot-badge svg {
@@ -209,11 +210,15 @@ export default function RootLayout({
               html.ff-launch [data-ff-brand-title] {
                 opacity: 0;
                 transform: translateX(-6px);
-                transition: opacity 300ms ease-out, transform 300ms ease-out;
               }
               html.ff-brand-visible [data-ff-brand-title] {
                 opacity: 1;
                 transform: translateX(0);
+                transition: opacity 250ms ease-out, transform 250ms ease-out;
+              }
+              html:not(.ff-launch):not(.ff-brand-visible) [data-ff-brand-title] {
+                opacity: 1;
+                transform: none;
               }
 
               /* Start app shell with slight offset and opacity during launch */
@@ -221,11 +226,6 @@ export default function RootLayout({
                 opacity: 0;
                 transform: translateY(10px);
                 will-change: opacity, transform;
-              }
-
-              /* Outside launch, hide boot layer if still present */
-              html:not(.ff-launch) #ff-boot-layer {
-                display: none !important;
               }
 
               /* Slot and Tile rules for in-app header */
@@ -277,11 +277,24 @@ export default function RootLayout({
         <script
           dangerouslySetInnerHTML={{
             __html: `(function() {
-  if (!document.documentElement.classList.contains('ff-launch')) {
+  var isLaunching = document.documentElement.classList.contains('ff-launch');
+  if (!isLaunching) {
     var boot = document.getElementById('ff-boot-layer');
     if (boot) boot.remove();
     return;
   }
+
+  // Ensure ff-launch class is maintained if React hydration attempts to overwrite class
+  window.__ffIsLaunching = true;
+  var classObserver;
+  try {
+    classObserver = new MutationObserver(function() {
+      if (window.__ffIsLaunching && !document.documentElement.classList.contains('ff-launch')) {
+        document.documentElement.classList.add('ff-launch');
+      }
+    });
+    classObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+  } catch(e) {}
 
   var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   var readyResolver;
@@ -299,21 +312,11 @@ export default function RootLayout({
     return new Promise(function(resolve) { setTimeout(resolve, ms); });
   };
 
-  var animateHelper = function(el, keyframes, options) {
-    if (!el || typeof el.animate !== 'function') return Promise.resolve();
-    try {
-      var anim = el.animate(keyframes, Object.assign({ fill: 'both' }, options));
-      return anim.finished.catch(function() {});
-    } catch(e) {
-      return Promise.resolve();
-    }
-  };
-
   var findTargetSlot = function() {
     var slots = Array.from(document.querySelectorAll('[data-ff-launch-slot]'));
     for (var i = 0; i < slots.length; i++) {
       var slot = slots[i];
-      if (slot.offsetParent !== null) {
+      if (slot.offsetParent !== null || slot.getBoundingClientRect().width > 0) {
         var mark = slot.querySelector('[data-ff-launch-mark]') || slot.querySelector('.mk') || slot;
         var r = mark.getBoundingClientRect();
         if (r.width > 0 && r.height > 0) {
@@ -324,13 +327,37 @@ export default function RootLayout({
     return null;
   };
 
+  var measureSlotNeutralized = function() {
+    var appShell = document.getElementById('app-shell');
+    var prevTransform = appShell ? appShell.style.transform : '';
+    if (appShell) {
+      appShell.style.transform = 'none';
+    }
+    var target = findTargetSlot();
+    var result = null;
+    if (target) {
+      var r = target.mark.getBoundingClientRect();
+      var radius = parseFloat(window.getComputedStyle(target.slot).borderRadius) || 8;
+      result = {
+        slot: target.slot,
+        mark: target.mark,
+        rect: r,
+        radius: radius
+      };
+    }
+    if (appShell) {
+      appShell.style.transform = prevTransform;
+    }
+    return result;
+  };
+
   var waitForTargetSlot = function(maxWaitMs) {
     return new Promise(function(resolve) {
-      var target = findTargetSlot();
+      var target = measureSlotNeutralized();
       if (target) return resolve(target);
       var start = Date.now();
       var check = function() {
-        var found = findTargetSlot();
+        var found = measureSlotNeutralized();
         if (found) return resolve(found);
         if (Date.now() - start > maxWaitMs) return resolve(null);
         requestAnimationFrame(check);
@@ -341,6 +368,10 @@ export default function RootLayout({
 
   var cleanupAndFinish = function() {
     try {
+      window.__ffIsLaunching = false;
+      if (classObserver) {
+        classObserver.disconnect();
+      }
       var boot = document.getElementById('ff-boot-layer');
       if (boot) {
         boot.remove();
@@ -368,76 +399,126 @@ export default function RootLayout({
       return;
     }
 
-    // Wait for React ready signal (first paint) with safety timeout 2.5s
+    // Wait for React ready signal (first mount) with safety timeout 2.5s
     await Promise.race([readyPromise, wait(2500)]);
+
+    // Wait for fonts/layout to settle
+    if (document.fonts && document.fonts.ready) {
+      try {
+        await Promise.race([document.fonts.ready, wait(300)]);
+      } catch(e) {}
+    }
 
     var appShell = document.getElementById('app-shell');
 
-    // Respect prefers-reduced-motion: simple clean fade
+    // Reduced motion fallback
     if (reduce) {
       if (appShell) {
         appShell.style.opacity = '1';
         appShell.style.transform = 'none';
       }
-      await animateHelper(bootLayer, [{ opacity: 1 }, { opacity: 0 }], { duration: 200 });
+      try {
+        var rmAnim = bootLayer.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 200, fill: 'both' });
+        await rmAnim.finished;
+      } catch(e) {}
       cleanupAndFinish();
       return;
     }
 
-    // Locate header/sidebar slot
-    var target = await waitForTargetSlot(300);
+    // 0-100ms: Badge holds still at center
+    await wait(100);
+
+    // Measure target slot accurately with appShell transform neutralized
+    var target = await waitForTargetSlot(400);
 
     if (!target) {
       if (appShell) {
-        animateHelper(appShell, [{ opacity: 0, transform: 'translateY(10px)' }, { opacity: 1, transform: 'translateY(0)' }], { duration: 300 });
+        try {
+          appShell.animate([{ opacity: 0, transform: 'translateY(10px)' }, { opacity: 1, transform: 'translateY(0)' }], { duration: 300, fill: 'forwards' });
+        } catch(e) {}
       }
-      await animateHelper(bootLayer, [{ opacity: 1 }, { opacity: 0 }], { duration: 250 });
+      try {
+        var fallbackFade = bootLayer.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 250, fill: 'both' });
+        await fallbackFade.finished;
+      } catch(e) {}
       cleanupAndFinish();
       return;
     }
 
-    // Shared-element fly calculation
-    var t = target.mark.getBoundingClientRect();
+    // 100-700ms (600ms flight):
+    // Calculate translate and scale
     var r = bootBadge.getBoundingClientRect();
-    var s = t.width / r.width;
-    var dx = t.left - r.left;
-    var dy = t.top - r.top;
-    var D = 650;
-    var E = 'cubic-bezier(.2, .8, .2, 1)';
+    var s = target.rect.width / r.width;
+    var dx = target.rect.left - r.left;
+    var dy = target.rect.top - r.top;
+    var targetRadius = target.radius || 8;
+    var finalBorderRadius = (targetRadius / s) + 'px';
 
-    // 1. Animate the same badge to header logo position
-    var badgeAnim = animateHelper(bootBadge, [
-      { transform: 'none', borderRadius: '20px' },
-      { transform: 'translate(' + dx + 'px, ' + dy + 'px) scale(' + s + ')', borderRadius: (8 / s) + 'px' }
-    ], { duration: D, easing: E, fill: 'forwards' });
-
-    // 2. Concurrently fade boot layer background to transparent so skeleton shows
+    // Transition boot layer background to transparent so app shell behind shows
     bootLayer.style.background = 'transparent';
     bootBadge.style.zIndex = '999999';
 
-    // 3. Fade and slide in dark skeleton / real dashboard (opacity + 10px translateY, ~300ms)
-    if (appShell) {
-      animateHelper(appShell, [
-        { opacity: 0, transform: 'translateY(10px)' },
-        { opacity: 1, transform: 'translateY(0px)' }
-      ], { duration: 300, delay: 100, easing: 'ease-out', fill: 'forwards' });
+    // Continuous Frame Logger to record and verify badge getBoundingClientRect
+    var isFlying = true;
+    window.__ffFlightTrajectory = [];
+    var logFrame = function(time) {
+      if (!isFlying) return;
+      var currentRect = bootBadge.getBoundingClientRect();
+      window.__ffFlightTrajectory.push({
+        t: Math.round(time),
+        x: Math.round(currentRect.left * 10) / 10,
+        y: Math.round(currentRect.top * 10) / 10,
+        w: Math.round(currentRect.width * 10) / 10,
+        h: Math.round(currentRect.height * 10) / 10
+      });
+      requestAnimationFrame(logFrame);
+    };
+    requestAnimationFrame(logFrame);
+
+    // Badge flight animation: 100ms to 700ms (duration 600ms), easing cubic-bezier(.32, .72, 0, 1)
+    var flightAnim;
+    try {
+      flightAnim = bootBadge.animate([
+        { transform: 'translate(0px, 0px) scale(1)', borderRadius: '38%' },
+        { transform: 'translate(' + dx + 'px, ' + dy + 'px) scale(' + s + ')', borderRadius: finalBorderRadius }
+      ], {
+        duration: 600,
+        easing: 'cubic-bezier(.32, .72, 0, 1)',
+        fill: 'forwards'
+      });
+    } catch(e) {
+      cleanupAndFinish();
+      return;
     }
 
-    // 4. Header "FocusForge" text fades in beside logo at the end
-    setTimeout(function() {
-      document.documentElement.classList.add('ff-brand-visible');
-    }, 480);
+    // 250-550ms: Dark skeleton/dashboard fades in (opacity 0 -> 1, translateY 10px -> 0px)
+    // Starts at 250ms (which is 150ms after the flight begins at 100ms)
+    await wait(150);
+    if (appShell) {
+      try {
+        appShell.animate([
+          { opacity: 0, transform: 'translateY(10px)' },
+          { opacity: 1, transform: 'translateY(0px)' }
+        ], {
+          duration: 300,
+          easing: 'ease-out',
+          fill: 'forwards'
+        });
+      } catch(e) {}
+    }
 
-    await badgeAnim;
+    // Await full completion of badge flight animation (until ~700ms mark)
+    try {
+      await flightAnim.finished;
+    } catch(e) {}
 
-    // 5. Seamless swap to real header icon and remove boot layer from DOM
-    document.querySelectorAll('.slot .mk').forEach(function(m) {
-      m.style.visibility = 'visible';
-    });
-    document.querySelectorAll('.slot .tile').forEach(function(t) {
-      t.style.opacity = '1';
-    });
+    isFlying = false;
+    try {
+      console.log('[FF Flight Trajectory] Total frames captured:', window.__ffFlightTrajectory.length, window.__ffFlightTrajectory);
+    } catch(e) {}
 
+    // At landing: in the SAME frame, show real header logo tile and remove badge (no gap, no flash)
+    // Then fade in "FocusForge" title beside it (250ms)
     cleanupAndFinish();
   };
 
