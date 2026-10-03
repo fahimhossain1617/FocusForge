@@ -9,19 +9,21 @@ const initSyncTable = async () => {
   try {
     await pool.query(`
       CREATE TABLE IF NOT EXISTS encrypted_sync_records (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         user_id UUID NOT NULL,
-        item_id TEXT NOT NULL,
-        collection TEXT NOT NULL,
+        store_name TEXT NOT NULL,
+        record_id TEXT NOT NULL,
         ciphertext TEXT NOT NULL,
         iv TEXT NOT NULL,
         salt TEXT DEFAULT '',
         version INTEGER DEFAULT 1,
         is_deleted BOOLEAN DEFAULT false,
         device_id TEXT,
-        updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-        PRIMARY KEY (user_id, collection, item_id)
+        client_updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+        server_synced_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+        CONSTRAINT unique_user_store_record UNIQUE (user_id, store_name, record_id)
       );
-      CREATE INDEX IF NOT EXISTS idx_enc_sync_user_time ON encrypted_sync_records(user_id, updated_at DESC);
+      CREATE INDEX IF NOT EXISTS idx_enc_sync_user_time ON encrypted_sync_records(user_id, server_synced_at DESC);
     `);
   } catch (err: any) {
     console.warn('[SyncRoutes] Auto-init sync table notice:', err?.message);
@@ -57,21 +59,22 @@ router.post('/push', requireAuth, async (req: AuthenticatedRequest, res: Respons
       await pool.query(
         `
         INSERT INTO encrypted_sync_records (
-          user_id, item_id, collection, ciphertext, iv, salt, version, is_deleted, device_id, updated_at
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-        ON CONFLICT (user_id, collection, item_id) DO UPDATE SET
+          user_id, store_name, record_id, ciphertext, iv, salt, version, is_deleted, device_id, client_updated_at, server_synced_at
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW())
+        ON CONFLICT (user_id, store_name, record_id) DO UPDATE SET
           ciphertext = EXCLUDED.ciphertext,
           iv = EXCLUDED.iv,
           salt = EXCLUDED.salt,
           version = EXCLUDED.version,
           is_deleted = EXCLUDED.is_deleted,
           device_id = EXCLUDED.device_id,
-          updated_at = EXCLUDED.updated_at
+          client_updated_at = EXCLUDED.client_updated_at,
+          server_synced_at = NOW()
         `,
         [
           userId,
-          String(id),
           collection,
+          String(id),
           ciphertext,
           iv,
           salt || '',
@@ -106,18 +109,18 @@ router.post('/pull', requireAuth, async (req: AuthenticatedRequest, res: Respons
 
   try {
     let query = `
-      SELECT item_id as id, collection, ciphertext, iv, salt, version, is_deleted as "isDeleted", updated_at as "updatedAt", device_id as "deviceId"
+      SELECT record_id as id, store_name as collection, ciphertext, iv, salt, version, is_deleted as "isDeleted", client_updated_at as "updatedAt", device_id as "deviceId"
       FROM encrypted_sync_records
       WHERE user_id = $1
     `;
     const params: any[] = [userId];
 
     if (since && !isNaN(Date.parse(since))) {
-      query += ` AND updated_at > $2`;
+      query += ` AND server_synced_at > $2`;
       params.push(new Date(since).toISOString());
     }
 
-    query += ` ORDER BY updated_at ASC LIMIT 500`;
+    query += ` ORDER BY server_synced_at ASC LIMIT 500`;
 
     const { rows } = await pool.query(query, params);
     res.json({

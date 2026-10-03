@@ -47,9 +47,10 @@ export const aiConsentService = {
 
   getEffectivePrivacyMode(userId?: string | null): PrivacyMode {
     const consent = this.getConsent(userId);
-    if (consent === "private") {
-      return "private";
+    if (consent === "granted") {
+      return "improvement";
     }
-    return "improvement";
+    // Privacy-First Default: "private" unless explicitly granted
+    return "private";
   }
 };

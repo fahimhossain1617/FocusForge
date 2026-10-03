@@ -157,7 +157,7 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
       memoryUserId = currentUserId;
 
       try {
-        if (activeSessionId && loadedSessionRef.current === activeSessionId && messages.length > 0) {
+        if (!isPrivateMode && activeSessionId && loadedSessionRef.current === activeSessionId && messages.length > 0) {
           const msgKey = getMsgCacheKey(currentUserId, activeSessionId);
           if (isGuest || !user) {
             sessionStorage.setItem(msgKey, JSON.stringify(messages));

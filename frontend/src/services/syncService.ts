@@ -25,7 +25,7 @@ export interface EncryptedSyncItem {
   deviceId?: string;
 }
 
-function getDeviceId(): string {
+export function getDeviceId(): string {
   if (typeof window === "undefined") return "server";
   let did = localStorage.getItem("focusforge_device_id");
   if (!did) {
@@ -50,10 +50,9 @@ export const syncService = {
       return { success: false, pushedCount: 0, pulledCount: 0 };
     }
 
-    // Auto-unlock encryption key from active session if needed
+    // Auto-unlock encryption key using device recovery key or initialize one
     if (!cryptoSyncService.isUnlocked(userId)) {
-      // If user hasn't set an explicit passphrase, use default account token derivation
-      await cryptoSyncService.unlockEncryption(userId, `user_secret_${userId}`);
+      await cryptoSyncService.ensureKeyInitialized(userId);
     }
 
     this.isSyncing = true;

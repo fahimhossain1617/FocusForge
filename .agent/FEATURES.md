@@ -32,7 +32,10 @@
 | **Settings & Profile Management** | **VERIFIED** | `frontend/src/components/pages/SettingsPage.tsx` | `profiles` table, `userService.ts` | None. Unique display names, avatar upload, atomic account deletion. |
 | **Local-First Storage (IndexedDB)** | **VERIFIED** | `frontend/src/services/localDbService.ts` | Browser IndexedDB (`focusforge_local_v3`) | None. 15 object stores with user-scoped indices. |
 | **Cross-Device Sync & Relay** | **VERIFIED** | `frontend/src/services/syncService.ts` | `/api/sync/push`, `/api/sync/pull` | None. Drains local `sync_queue` to cloud relay. |
-| **Zero-Knowledge Encryption (E2EE)** | **PARTIAL** | `frontend/src/services/cryptoSyncService.ts` | Web Crypto API (`AES-256-GCM`), `encrypted_sync_records` | Default key derivation used unless custom recovery key is configured by user. |
+| **Zero-Knowledge Encryption (E2EE)** | **VERIFIED** | `frontend/src/services/cryptoSyncService.ts`, `SettingsPage.tsx` | Web Crypto API (`AES-256-GCM`), `encrypted_sync_records` | None. Full recovery key (`FF-XXXX-...`) management and multi-device authorization. |
+| **Private Chat Mode (Ephemeral)** | **VERIFIED** | `frontend/src/components/ai-agent/AIAgentPage.tsx`, `aiAgentService.ts` | Ephemeral React state | None. Zero persistence in local storage or cloud with amber banner. |
+| **Privacy-First AI Consent** | **VERIFIED** | `frontend/src/services/aiConsentService.ts`, `AIConsentModal.tsx` | `localStorage` | None. "Keep My Chats Private" default; improvement is strict opt-in. |
+| **Auth-Only Cloud DB** | **VERIFIED** | `frontend/src/lib/server/db.ts`, `supabase/migrations/` | Supabase pooler, `025_encrypted_sync_and_auth_only_cleanup.sql` | None. Zero plaintext personal data in cloud DB. |
 
 ---
 

@@ -152,10 +152,10 @@ Content-Type: application/json
 - `GET /api/ai/tokens` -> Returns user token quota status.
 
 ### AI Agent Chat Sessions
-- `GET /api/ai/agent/sessions` -> Lists chat sessions.
-- `POST /api/ai/agent/sessions` -> Creates a chat session.
-- `DELETE /api/ai/agent/sessions/:id` -> Deletes a chat session.
-- `POST /api/ai/agent/chat` -> Sends message to agent, evaluates intent, and returns assistant response with tool actions.
+- `GET /api/ai/agent/sessions` -> Client-side managed via IndexedDB.
+- `POST /api/ai/agent/sessions` -> Client-side managed via IndexedDB.
+- `DELETE /api/ai/agent/sessions/:id` -> Client-side managed via IndexedDB.
+- `POST /api/ai/agent/chat` -> Stateless Gemini proxy: receives `{ message, history, context, preferredLanguage, privacyMode }`, prompts Google Gemini, extracts tool action intents, and returns `{ message, action, actionPayload }`. Zero database storage on server; sessions persist strictly in client IndexedDB (`ai_sessions`, `ai_messages`, `ai_memory`) when not in Private Chat mode.
 
 ### Speech-to-Text (STT) Endpoints
 - `POST /api/ai/transcribe` -> Accepts `{ audio: base64, mimeType: string, language: string }` and returns transcribed text via Gemini multimodal audio.
@@ -177,13 +177,17 @@ Content-Type: application/json
 
 ### `POST /api/sync/push`
 - **Auth Required:** Yes
-- **Request Body:** `{ items: EncryptedSyncItem[], deviceId: string }`
-- **Behavior:** Upserts opaque ciphertext blobs into `public.encrypted_sync_records`.
+- **Request Body:** `{ items: Array<{ storeName, recordId, ciphertext, iv, salt, version, isDeleted, clientUpdatedAt }>, deviceId: string }`
+- **Behavior:** Upserts opaque ciphertext blobs into `public.encrypted_sync_records`. Never receives plaintext or encryption keys.
 
 ### `POST /api/sync/pull`
 - **Auth Required:** Yes
-- **Request Body:** `{ since: string, deviceId: string }`
+- **Request Body:** `{ since?: string, deviceId: string, limit?: number }`
 - **Behavior:** Returns array of encrypted records updated since the specified timestamp from other devices.
+
+### `DELETE /api/sync/purge`
+- **Auth Required:** Yes
+- **Behavior:** Permanently purges all encrypted sync records for the authenticated user from `public.encrypted_sync_records`.
 
 ---
 

@@ -1349,60 +1349,28 @@ export async function dbDeleteUserAccountCompletely(userId: string): Promise<voi
   try {
     await client.query('BEGIN');
 
-    // 1. Delete AI chat messages and sessions
-    await client.query(
-      'DELETE FROM ai_chat_messages WHERE session_id IN (SELECT id FROM ai_chat_sessions WHERE user_id = $1)',
-      [userId]
-    );
-    await client.query('DELETE FROM ai_chat_sessions WHERE user_id = $1', [userId]);
-    await client.query('DELETE FROM ai_tokens WHERE user_id = $1', [userId]);
+    // 1. Delete zero-knowledge encrypted sync records
+    await client.query('DELETE FROM public.encrypted_sync_records WHERE user_id = $1', [userId]);
 
-    // 2. Delete tasks and routine templates
-    await client.query('DELETE FROM tasks WHERE user_id = $1', [userId]);
-    await client.query('DELETE FROM routine_templates WHERE user_id = $1', [userId]);
+    // 2. Delete notification configs, push subscriptions, and roles
+    await client.query('DELETE FROM public.user_notification_settings WHERE user_id = $1', [userId]).catch(() => {});
+    await client.query('DELETE FROM public.push_subscriptions WHERE user_id = $1', [userId]).catch(() => {});
+    await client.query('DELETE FROM public.sent_notifications_log WHERE user_id = $1', [userId]).catch(() => {});
+    await client.query('DELETE FROM public.user_roles WHERE user_id = $1', [userId]).catch(() => {});
+    await client.query('DELETE FROM public.review_prompt_state WHERE user_id = $1', [userId]).catch(() => {});
 
-    // 3. Delete notes and mind items
-    await client.query('DELETE FROM note_blocks WHERE note_id IN (SELECT id FROM notes WHERE user_id = $1)', [userId]);
-    await client.query('DELETE FROM notes WHERE user_id = $1', [userId]);
-    await client.query('DELETE FROM mind_items WHERE user_id = $1', [userId]);
-
-    // 4. Delete focus sessions and distractions
-    await client.query('DELETE FROM focus_sessions WHERE user_id = $1', [userId]);
-
-    // 5. Delete diary entries and topics
-    await client.query('DELETE FROM diary_entries WHERE user_id = $1', [userId]);
-    await client.query('DELETE FROM diary_topics WHERE user_id = $1', [userId]);
-
-    // 6. Delete learning logs and folders
-    await client.query('DELETE FROM learning_logs WHERE user_id = $1', [userId]);
-    await client.query('DELETE FROM learning_folders WHERE user_id = $1', [userId]);
-
-    // 7. Delete review prompt states and reviews
-    await client.query('DELETE FROM review_prompt_state WHERE user_id = $1', [userId]);
-    await client.query('DELETE FROM reviews WHERE user_id = $1', [userId]);
-
-    // 8. Delete user cloud state, notification settings, push subscriptions, encrypted sync records
-    await client.query('DELETE FROM user_cloud_state WHERE id = $1', [userId]);
-    await client.query('DELETE FROM user_notification_settings WHERE user_id = $1', [userId]);
-    await client.query('DELETE FROM push_subscriptions WHERE user_id = $1', [userId]);
-    await client.query('DELETE FROM sent_notifications_log WHERE user_id = $1', [userId]).catch(() => {});
-    await client.query('DELETE FROM user_notifications WHERE user_id = $1', [userId]).catch(() => {});
-    await client.query('DELETE FROM user_notification_rotation WHERE user_id = $1', [userId]).catch(() => {});
-    await client.query('DELETE FROM user_roles WHERE user_id = $1', [userId]);
-    await client.query('DELETE FROM encrypted_sync_records WHERE user_id = $1', [userId]).catch(() => {});
-
-    // 9. Anonymize any support tickets linked to this user
+    // 3. Anonymize any customer support tickets
     await client.query(
       `
-      UPDATE support_tickets 
+      UPDATE public.support_tickets 
       SET user_id = NULL, name = 'Deleted User', email = 'deleted@focusforge.app' 
       WHERE user_id = $1
       `,
       [userId]
-    );
+    ).catch(() => {});
 
-    // 10. Delete profile row
-    await client.query('DELETE FROM profiles WHERE id = $1', [userId]);
+    // 4. Delete profile row
+    await client.query('DELETE FROM public.profiles WHERE id = $1', [userId]);
 
     await client.query('COMMIT');
   } catch (err) {

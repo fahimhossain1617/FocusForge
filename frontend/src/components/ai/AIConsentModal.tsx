@@ -22,8 +22,8 @@ export default function AIConsentModal({ isOpen, userId, lang = "bn", onClose }:
   };
 
   const handleSkipOrClose = () => {
-    // If skipped or closed, default to granted as per requirement
-    handleChoice("granted");
+    // Privacy-First Default: keep chats private if skipped
+    handleChoice("private");
   };
 
   return (
@@ -52,10 +52,10 @@ export default function AIConsentModal({ isOpen, userId, lang = "bn", onClose }:
           </div>
           <div>
             <h2 className="text-lg font-bold text-[#111827] dark:text-white">
-              {isBn ? "এআই ইমপ্রুভমেন্ট ও পারমিশন" : "AI Improvement & Permission"}
+              {isBn ? "এআই ইমপ্রুভমেন্ট ও প্রাইভেসি" : "AI Improvement & Privacy"}
             </h2>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              {isBn ? "আপনার এআই অভিজ্ঞতা পার্সোনালাইজ ও উন্নত করতে অনুমতি দিন" : "Help personalize and improve FocusForge AI responses"}
+              {isBn ? "আপনার এআই অভিজ্ঞতা ও গোপনীয়তা নিয়ন্ত্রণ করুন" : "Manage your AI privacy and improvement preferences"}
             </p>
           </div>
         </div>
@@ -63,15 +63,15 @@ export default function AIConsentModal({ isOpen, userId, lang = "bn", onClose }:
         <div className="text-xs sm:text-sm text-slate-700 dark:text-slate-300 space-y-3 mb-6 bg-slate-50 dark:bg-white/[0.03] p-4 rounded-xl border border-slate-200 dark:border-white/10">
           <p className="leading-relaxed">
             {isBn
-              ? "FocusForge AI-কে আপনার সাথে কথা বলার ধরণ ও পছন্দ মনে রেখে ভবিষ্যতে আরও নির্ভুল ও উন্নত উত্তর দেওয়ার অনুমতি দেবেন কি? সম্মতি দিলে এআই স্বয়ংক্রিয়ভাবে প্রয়োজনীয় বিষয় মনে রাখবে।"
-              : "Allow FocusForge AI to learn your communication style and preferences to improve future responses? When allowed, AI will remember helpful context across your sessions."}
+              ? "FocusForge সম্পূর্ণ গোপনীয়তা মেনে চলে। আপনি কি চান এআই আপনার পছন্দ মনে রেখে উত্তর আরও পার্সোনালাইজ করুক? আপনি যেকোনো সময় সেটিংস থেকে এটি পরিবর্তন করতে পারবেন।"
+              : "FocusForge is privacy-first. Would you like the AI to remember preferences to personalize future answers? You can change this at any time in Settings."}
           </p>
           <div className="flex items-center gap-2 text-xs text-slate-800 dark:text-slate-200 font-medium">
             <Lock className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
             <span>
               {isBn
-                ? "সম্মতি না দিলেও সাধারণ চ্যাট সম্পূর্ণভাবে চলবে (কোনো মেমোরি সেভ হবে না)।"
-                : "Standard chat works fully even if you opt out (AI will not retain memory)."}
+                ? "ডিফল্টভাবে চ্যাট সম্পূর্ণ নিরাপদ ও মেমোরি ছাড়া চলে।"
+                : "By default, your chats remain completely private without memory retention."}
             </span>
           </div>
         </div>
@@ -79,18 +79,18 @@ export default function AIConsentModal({ isOpen, userId, lang = "bn", onClose }:
         <div className="flex flex-col gap-2.5">
           <button
             type="button"
-            onClick={() => handleChoice("granted")}
+            onClick={() => handleChoice("private")}
             className="w-full py-2.5 px-4 rounded-xl bg-[#1E3E7B] hover:bg-[#28539E] text-white font-semibold text-sm transition-all shadow-none cursor-pointer flex items-center justify-center"
           >
-            {isBn ? "অনুমতি দিন (ডিফল্ট)" : "Allow AI Improvement"}
+            {isBn ? "মেমোরি ছাড়া চ্যাট (ডিফল্ট - প্রাইভেট)" : "Keep My Chats Private (Default)"}
           </button>
 
           <button
             type="button"
-            onClick={() => handleChoice("private")}
+            onClick={() => handleChoice("granted")}
             className="w-full py-2.5 px-4 rounded-xl bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 dark:bg-transparent dark:hover:bg-white/5 dark:border-white/20 dark:text-slate-300 font-medium text-sm transition-all shadow-none cursor-pointer flex items-center justify-center"
           >
-            {isBn ? "মেমোরি ছাড়া চ্যাট" : "No Memory / Decline"}
+            {isBn ? "অনুমতি দিন (এআই ইমপ্রুভমেন্ট)" : "Allow AI Improvement (Opt-in)"}
           </button>
         </div>
       </div>

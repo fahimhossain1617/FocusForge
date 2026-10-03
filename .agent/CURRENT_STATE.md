@@ -8,7 +8,12 @@
 
 ## 1. Overall Status
 
-Foscentia is an active, functional productivity suite built with Next.js 16 App Router, PostgreSQL (Supabase), a companion Express backend engine, and Google Gemini AI. The application implements local-first offline storage via IndexedDB alongside direct cloud database synchronization and zero-knowledge E2EE sync relays.
+Foscentia is an active, functional productivity suite built with Next.js 16 App Router, PostgreSQL (Supabase), a companion Express backend engine, and Google Gemini AI. The application implements a pure **Local-First + Privacy-First + Auth-Only Supabase + Zero-Knowledge E2EE Cross-Device Sync** architecture.
+
+- **Auth-Only Cloud Database:** Supabase stores ONLY authentication, account identity, supervisor support tickets, push subscriptions, and opaque AES-256-GCM encrypted sync blobs (`encrypted_sync_records`). Zero plaintext personal data is ever stored in or transmitted to the cloud database.
+- **Local-First Personal Storage:** All user personal data (tasks, routines, notes, diary entries, mind dumps, focus logs, learning tracking, and AI memory) is stored locally on the user's device in IndexedDB (`focusforge_local_v3`).
+- **End-to-End Encrypted Relay:** Synchronization across user devices operates via client-side AES-256-GCM encryption with 12-byte IVs and PBKDF2 key derivation using the user's master recovery key (`FF-XXXX-...`).
+- **Private Chat & Privacy-First AI:** Ephemeral Private Chat mode guarantees zero persistence in local storage or cloud. AI consent defaults to "Keep My Chats Private" unless explicitly opted into improvements.
 
 ---
 
@@ -167,23 +172,23 @@ Foscentia is an active, functional productivity suite built with Next.js 16 App 
 
 ---
 
-### Cloud Database (Supabase PostgreSQL)
-- **Current Implementation:** PostgreSQL instance on Supabase connected via parameterized `pg.Pool` (`db.ts`). 24 schema migrations with foreign key cascades, unique indexes, and RLS policies.
+### Cloud Database (Auth-Only Supabase PostgreSQL)
+- **Current Implementation:** PostgreSQL instance on Supabase connected via parameterized `pg.Pool` (`db.ts`) targeting connection pooler `aws-0-ap-northeast-2.pooler.supabase.com:6543`. Stores ONLY authentication/identity tables (`auth.users`, `public.profiles`, `public.user_roles`, `public.pending_signups`, `public.pending_password_resets`, `public.support_tickets`, `public.ticket_replies`, `public.push_subscriptions`) and the zero-knowledge ciphertext relay `public.encrypted_sync_records`. All obsolete personal tables have been safely removed. 25 schema migrations with migration `025_encrypted_sync_and_auth_only_cleanup.sql`.
 - **Verified Status:** **VERIFIED**
-- **Known Problems:** None.
-- **Important Files:** `supabase/migrations/` (001 to 023), `frontend/src/lib/server/db.ts`, `backend/src/services/db.ts`.
+- **Known Problems:** None. Pre-cleanup audit data backed up in `backups/pre_cleanup_audit/`.
+- **Important Files:** `supabase/migrations/` (001 to 025), `frontend/src/lib/server/db.ts`, `backend/src/services/db.ts`.
 - **Dependencies:** `pg`, Supabase connection pooler.
 - **Unknowns:** None.
 
 ---
 
 ### Cross-Device Sync & Encryption (E2EE)
-- **Current Implementation:** `cryptoSyncService.ts` provides client-side Web Crypto AES-256-GCM encryption with 12-byte IVs and PBKDF2 key derivation. `syncService.ts` drains `sync_queue` to `/api/sync/push` and `/api/sync/pull`.
-- **Verified Status:** **PARTIAL** (Local crypto and sync relay endpoints are verified; automatic key exchange between multiple physical devices uses default derivation unless user enters recovery key).
-- **Known Problems:** Multi-device passphrase pairing UX is simplified to deterministic per-user seed for seamless baseline operation.
-- **Important Files:** `frontend/src/services/cryptoSyncService.ts`, `frontend/src/services/syncService.ts`, `supabase/migrations/021_e2ee_sync_and_personal_data_cleanup.sql`.
+- **Current Implementation:** `cryptoSyncService.ts` provides client-side Web Crypto AES-256-GCM encryption with 12-byte IVs and PBKDF2 key derivation using the user's master recovery key (`FF-XXXX-...`). `syncService.ts` drains `sync_queue` to `/api/sync/push` and `/api/sync/pull`. Settings page (`SettingsPage.tsx`) provides complete Recovery Key display, copy-to-clipboard, authorization on new devices, and instant manual sync triggers.
+- **Verified Status:** **VERIFIED**
+- **Known Problems:** None. Cross-device syncing is fully zero-knowledge; Supabase never possesses plaintext or decryption keys.
+- **Important Files:** `frontend/src/services/cryptoSyncService.ts`, `frontend/src/services/syncService.ts`, `frontend/src/components/pages/SettingsPage.tsx`, `supabase/migrations/025_encrypted_sync_and_auth_only_cleanup.sql`.
 - **Dependencies:** `window.crypto.subtle`, `encrypted_sync_records` table.
-- **Unknowns:** Cross-device conflict resolution behavior on high-frequency simultaneous edits across 3+ devices.
+- **Unknowns:** None.
 
 ---
 

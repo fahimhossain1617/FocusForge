@@ -8,7 +8,8 @@ import {
   User, Lock, Bell, Sliders, HelpCircle, Shield,
   ChevronDown, ChevronRight, Check, ArrowLeft,
   Camera, Trash2, Eye, EyeOff, Upload,
-  Mail, Phone, Calendar, Globe, MapPin, Edit3, X, AlertTriangle, Sparkles
+  Mail, Phone, Calendar, Globe, MapPin, Edit3, X, AlertTriangle, Sparkles,
+  Key, RefreshCw, Copy, CheckCircle2
 } from "lucide-react";
 import notificationService from "../../services/notificationService";
 import { userService } from "../../services/userService";
@@ -17,6 +18,8 @@ import { clearPersistedAppState } from "../../services/indexedDBStorage";
 import { localDb } from "../../services/localDbService";
 import { aiConsentService } from "../../services/aiConsentService";
 import { aiMemoryService } from "../../services/aiMemoryService";
+import { cryptoSyncService } from "../../services/cryptoSyncService";
+import { syncService } from "../../services/syncService";
 import FocusForgeDatePicker from "../ui/FocusForgeDatePicker";
 import FocusForgeSelect from "../ui/FocusForgeSelect";
 import { toggleThemeWithCircularTransition } from "../../utils/themeTransition";
@@ -50,6 +53,7 @@ export type SettingsSubItem =
   | "contact-support" 
   | "feedback"
   // Privacy
+  | "e2ee-sync"
   | "ai-privacy"
   | "privacy-policy" 
   | "terms-of-service" 
@@ -689,6 +693,73 @@ export default function SettingsPage() {
   const [showClearMemoryConfirm, setShowClearMemoryConfirm] = useState(false);
   const [isClearingMemory, setIsClearingMemory] = useState(false);
 
+  // E2EE Sync & Recovery Key State
+  const [activeRecoveryKey, setActiveRecoveryKey] = useState<string>("");
+  const [deviceAuthInputKey, setDeviceAuthInputKey] = useState<string>("");
+  const [isSyncingNow, setIsSyncingNow] = useState<boolean>(false);
+  const [syncResultNote, setSyncResultNote] = useState<string | null>(null);
+  const [keyCopied, setKeyCopied] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && user?.id) {
+      const key = cryptoSyncService.getRecoveryKey(user.id);
+      setActiveRecoveryKey(key || "");
+    }
+  }, [activeSubItem, user?.id]);
+
+  const handleCopyRecoveryKey = () => {
+    if (!activeRecoveryKey) return;
+    navigator.clipboard.writeText(activeRecoveryKey);
+    setKeyCopied(true);
+    showToast(state?.lang === "bn" ? "রিকভারি কি ক্লিপবোর্ডে কপি করা হয়েছে!" : "Recovery key copied to clipboard!", "success");
+    setTimeout(() => setKeyCopied(false), 2500);
+  };
+
+  const handleAuthorizeWithKey = async () => {
+    if (!deviceAuthInputKey.trim() || !user?.id) return;
+    const ok = await cryptoSyncService.setRecoveryKey(user.id, deviceAuthInputKey.trim());
+    if (ok) {
+      setActiveRecoveryKey(cryptoSyncService.getRecoveryKey(user.id) || "");
+      setDeviceAuthInputKey("");
+      showToast(state?.lang === "bn" ? "ডিভাইস অথোরাইজেশন সফল হয়েছে!" : "Device successfully authorized with recovery key!", "success");
+      setIsSyncingNow(true);
+      try {
+        const res = await syncService.syncNow(user.id);
+        setSyncResultNote(
+          state?.lang === "bn"
+            ? `সিঙ্ক সম্পন্ন! ${res.pulledCount} টি রেকর্ড আনা হয়েছে, ${res.pushedCount} টি রেকর্ড পাঠানো হয়েছে।`
+            : `Sync complete! Pulled ${res.pulledCount} records, pushed ${res.pushedCount} records.`
+        );
+      } catch (e: any) {
+        setSyncResultNote(e?.message || "Sync failed");
+      } finally {
+        setIsSyncingNow(false);
+      }
+    } else {
+      showToast(state?.lang === "bn" ? "ভুল রিকভারি কি ফরম্যাট।" : "Invalid recovery key format.", "error");
+    }
+  };
+
+  const handleTriggerSyncNow = async () => {
+    if (!user?.id || isGuest) return;
+    setIsSyncingNow(true);
+    setSyncResultNote(null);
+    try {
+      const res = await syncService.syncNow(user.id);
+      setSyncResultNote(
+        state?.lang === "bn"
+          ? `সিঙ্ক সম্পন্ন! (${res.pushedCount} টি পাঠানো হয়েছে, ${res.pulledCount} টি আনা হয়েছে)`
+          : `Sync complete! (${res.pushedCount} pushed, ${res.pulledCount} pulled)`
+      );
+      showToast(state?.lang === "bn" ? "সিঙ্ক সফলভাবে সম্পন্ন হয়েছে!" : "Sync completed successfully!", "success");
+    } catch (err: any) {
+      setSyncResultNote(err?.message || "Sync failed");
+      showToast(state?.lang === "bn" ? "সিঙ্ক সম্পন্ন করা যায়নি।" : "Sync failed.", "error");
+    } finally {
+      setIsSyncingNow(false);
+    }
+  };
+
   // =========================================================================
   // PRIVACY > DELETE ACCOUNT STATE & HANDLERS
   // =========================================================================
@@ -809,6 +880,7 @@ export default function SettingsPage() {
       label: t.settings.sections.privacy,
       icon: Shield,
       subItems: [
+        { id: "e2ee-sync", label: state?.lang === "bn" ? "E2EE সিঙ্ক ও রিকভারি কি" : "E2EE Sync & Recovery Key", icon: Key },
         { id: "ai-privacy", label: state?.lang === "bn" ? "এআই প্রাইভেসি ও ইমপ্রুভমেন্ট" : "AI Privacy & Improvement", icon: Sparkles },
         { id: "privacy-policy", label: t.settings.privacy.privacyPolicyTitle },
         { id: "terms-of-service", label: t.settings.privacy.termsOfServiceTitle },
@@ -2447,6 +2519,150 @@ export default function SettingsPage() {
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        );
+      }
+
+      // ---------------------------------------------------------------------
+      // PRIVACY > E2EE SYNC & RECOVERY KEY
+      // ---------------------------------------------------------------------
+      case "e2ee-sync": {
+        const isBn = state?.lang === "bn";
+
+        if (isGuest || !user) {
+          return (
+            <div className="space-y-6">
+              <GuestPromptCard
+                heading={isBn ? "এন্ড-টু-এন্ড এনক্রিপ্টেড সিঙ্ক" : "End-to-End Encrypted Sync"}
+                text={isBn 
+                  ? "সকল ডিভাইসে এনক্রিপ্ট করা ডেটা স্বয়ংক্রিয়ভাবে সিঙ্ক করতে একটি অ্যাকাউন্টে লগইন বা সাইন আপ করুন।" 
+                  : "Sign up or log in to sync your encrypted data across your phone, tablet, laptop, and PC."}
+              />
+            </div>
+          );
+        }
+
+        return (
+          <div className="space-y-6 max-w-2xl">
+            <div>
+              <h1 className="text-2xl font-bold text-[var(--color-text-primary)] tracking-tight">
+                {isBn ? "E2EE সিঙ্ক ও রিকভারি কি" : "E2EE Sync & Recovery Key"}
+              </h1>
+              <p className="text-xs text-[var(--color-text-muted)] mt-1">
+                {isBn 
+                  ? "আপনার ডেটা ডিভাইস থেকে বের হওয়ার আগেই AES-256-GCM দ্বারা এনক্রিপ্ট হয়। সার্ভার কখনোই আপনার ডেটা দেখতে পায় না।" 
+                  : "Your personal data is encrypted with AES-256-GCM before leaving this device. Zero-knowledge relay protects your privacy."}
+              </p>
+            </div>
+
+            {/* Architecture Badge */}
+            <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-4 flex items-start gap-3">
+              <Shield className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+              <div className="space-y-1">
+                <p className="text-xs font-semibold text-[var(--color-text-primary)]">
+                  {isBn ? "প্রাইভেসি-ফার্স্ট আর্কিটেকচার সক্রিয়" : "Privacy-First Architecture Active"}
+                </p>
+                <p className="text-[11px] text-[var(--color-text-secondary)] leading-relaxed">
+                  {isBn
+                    ? "Supabase সার্ভারে কোনো প্লেইনটেক্সট পার্সোনাল ডেটা জমা থাকে না। শুধুমাত্র আপনার ডিভাইসসমূহে থাকা রিকভারি কি ডেটা ডিক্রিপ্ট করতে পারে।"
+                    : "Zero personal plaintext is stored in Supabase. Only your authorized devices holding your recovery key can decrypt your notes, diary, tasks, and memory."}
+                </p>
+              </div>
+            </div>
+
+            {/* Recovery Key Display Card */}
+            <div className="rounded-2xl border border-[var(--color-border-subtle)] bg-[var(--color-surface-elevated)] p-6 space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Key className="w-4 h-4 text-blue-500" />
+                  <h3 className="text-sm font-semibold text-[var(--color-text-primary)]">
+                    {isBn ? "আপনার সিক্রেট রিকভারি কি" : "Your Secret Recovery Key"}
+                  </h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleCopyRecoveryKey}
+                  className="px-3 py-1.5 rounded-lg text-xs font-medium text-blue-600 dark:text-blue-400 hover:bg-blue-500/10 border border-blue-500/20 transition-colors flex items-center gap-1.5 cursor-pointer"
+                >
+                  {keyCopied ? <CheckCircle2 size={13} /> : <Copy size={13} />}
+                  <span>{keyCopied ? (isBn ? "কপি হয়েছে!" : "Copied!") : (isBn ? "কপি করুন" : "Copy Key")}</span>
+                </button>
+              </div>
+
+              <p className="text-[11px] text-[var(--color-text-muted)]">
+                {isBn
+                  ? "নতুন ফোন, ট্যাবলেট বা কম্পিউটারে লগইন করার পর ডেটা অ্যাক্সেস করতে এই কি-টি প্রয়োজন হবে। এটি নিরাপদে সংরক্ষণ করুন।"
+                  : "Save this key securely. You will need it to authorize new devices or restore data after app reinstall."}
+              </p>
+
+              <div className="p-3.5 rounded-xl bg-[var(--color-surface)] border border-[var(--color-border-subtle)] font-mono text-xs text-[var(--color-text-primary)] break-all select-all tracking-wider text-center">
+                {activeRecoveryKey || "Generating key..."}
+              </div>
+            </div>
+
+            {/* Authorize New Device Card */}
+            <div className="rounded-2xl border border-[var(--color-border-subtle)] bg-[var(--color-surface-elevated)] p-6 space-y-4">
+              <div className="flex items-center gap-2">
+                <Shield className="w-4 h-4 text-purple-500" />
+                <h3 className="text-sm font-semibold text-[var(--color-text-primary)]">
+                  {isBn ? "অন্য ডিভাইস থেকে রিকভারি কি দিয়ে যুক্ত করুন" : "Authorize Device with Existing Key"}
+                </h3>
+              </div>
+              <p className="text-[11px] text-[var(--color-text-muted)]">
+                {isBn
+                  ? "আপনি যদি অন্য ডিভাইসে ইতিমধ্যে FocusForge ব্যবহার করে থাকেন, তবে সেই ডিভাইসের রিকভারি কি এখানে পেস্ট করে এই ডিভাইসটি লিঙ্ক করুন।"
+                  : "If you already have FocusForge set up on another device, paste its recovery key here to link this device."}
+              </p>
+
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={deviceAuthInputKey}
+                  onChange={(e) => setDeviceAuthInputKey(e.target.value)}
+                  placeholder="FF-XXXX-XXXX-XXXX..."
+                  className="flex-1 px-3.5 py-2.5 rounded-xl bg-[var(--color-surface)] border border-[var(--color-border-subtle)] text-xs text-[var(--color-text-primary)] font-mono focus:outline-none focus:border-blue-500"
+                />
+                <button
+                  type="button"
+                  onClick={handleAuthorizeWithKey}
+                  disabled={!deviceAuthInputKey.trim()}
+                  className="px-4 py-2.5 rounded-xl text-xs font-semibold text-white bg-[#1E3E7B] hover:bg-[#28539E] transition-colors cursor-pointer disabled:opacity-40"
+                >
+                  {isBn ? "অথোরাইজ" : "Authorize"}
+                </button>
+              </div>
+            </div>
+
+            {/* Trigger Sync Now Card */}
+            <div className="rounded-2xl border border-[var(--color-border-subtle)] bg-[var(--color-surface-elevated)] p-6 space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm font-semibold text-[var(--color-text-primary)]">
+                    {isBn ? "ম্যানুয়াল সিঙ্ক" : "Manual Synchronization"}
+                  </h3>
+                  <p className="text-[11px] text-[var(--color-text-muted)] mt-0.5">
+                    {isBn
+                      ? "সাধারণত পরিবর্তন হলে স্বয়ংক্রিয়ভাবে সিঙ্ক হয়। আপনি চাইলে এখনই জোরপূর্বক সিঙ্ক করতে পারেন।"
+                      : "Sync happens automatically on changes. You can also trigger an immediate full sync."}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleTriggerSyncNow}
+                  disabled={isSyncingNow}
+                  className="px-4 py-2 rounded-xl text-xs font-semibold text-white bg-[#1E3E7B] hover:bg-[#28539E] transition-colors flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                >
+                  <RefreshCw size={13} className={isSyncingNow ? "animate-spin" : ""} />
+                  <span>{isSyncingNow ? (isBn ? "সিঙ্ক হচ্ছে..." : "Syncing...") : (isBn ? "এখনই সিঙ্ক করুন" : "Sync Now")}</span>
+                </button>
+              </div>
+
+              {syncResultNote && (
+                <div className="p-3 rounded-xl bg-blue-500/10 border border-blue-500/20 text-xs text-blue-700 dark:text-blue-300">
+                  {syncResultNote}
+                </div>
+              )}
             </div>
           </div>
         );

@@ -120,4 +120,38 @@
 - **Impact:** `frontend/src/components/pages/SettingsPage.tsx`, `frontend/src/components/auth/ForgotPasswordModal.tsx`, `frontend/src/app/reset-password/page.tsx`.
 - **Do Not Change Without Approval:** Do not place absolute icons over inputs without matching left padding.
 
+---
+
+## ADR-011: Auth-Only Supabase & Local-First Personal Storage Architecture
+
+- **Date:** October 2026
+- **Status:** Accepted
+- **Decision:** Supabase cloud database is strictly restricted to storing authentication, account identity, supervisor support tickets, and push subscriptions. All personal user data (notes, diary, tasks, mind maps, focus logs, learning tracks, AI chats, and AI memory) is stored locally on the client in IndexedDB (`focusforge_local_v3`). All legacy plaintext personal tables on Supabase have been removed and backed up.
+- **Reason:** Enforces zero-knowledge privacy, eliminates central server honeypots of personal reflections, complies with strict privacy-first principles, and guarantees lightning-fast local performance.
+- **Impact:** `frontend/src/lib/server/db.ts`, `frontend/src/app/api/[...path]/route.ts`, `supabase/migrations/025_encrypted_sync_and_auth_only_cleanup.sql`.
+- **Do Not Change Without Approval:** Never reintroduce plaintext personal data tables to Supabase.
+
+---
+
+## ADR-012: Zero-Knowledge E2EE Sync Relay & User Recovery Keys
+
+- **Date:** October 2026
+- **Status:** Accepted
+- **Decision:** Cross-device synchronization operates via client-side Web Crypto AES-256-GCM encryption with 12-byte random IVs and PBKDF2 key derivation. The cloud database (`public.encrypted_sync_records`) serves solely as a zero-knowledge ciphertext relay. Users manage their 16-character recovery key (`FF-XXXX-...`) to link multiple physical devices (laptop, mobile, tablet). Supabase never receives the recovery key or plaintext content.
+- **Reason:** Enables seamless multi-device productivity without sacrificing zero-knowledge privacy.
+- **Impact:** `frontend/src/services/cryptoSyncService.ts`, `frontend/src/services/syncService.ts`, `frontend/src/components/pages/SettingsPage.tsx`, `backend/src/routes/syncRoutes.ts`.
+- **Do Not Change Without Approval:** Never send user recovery keys or unencrypted sync blobs to any server or API.
+
+---
+
+## ADR-013: Privacy-First AI Consent & Ephemeral Private Chat Mode
+
+- **Date:** October 2026
+- **Status:** Accepted
+- **Decision:** The AI Agent defaults to strict privacy ("Keep My Chats Private" / "মেমোরি ছাড়া চ্যাট"). Consent for product improvement is strictly opt-in. A dedicated "Private Chat" toggle allows temporary conversational interactions with zero persistence in IndexedDB, `sessionStorage`, or `localStorage`, clearly indicated by an amber disclaimer banner.
+- **Reason:** Guarantees that sensitive or fleeting thoughts shared with the AI are never cached or inadvertently persisted.
+- **Impact:** `frontend/src/services/aiConsentService.ts`, `frontend/src/components/ai/AIConsentModal.tsx`, `frontend/src/services/aiAgentService.ts`, `frontend/src/components/ai-agent/AIAgentPage.tsx`.
+- **Do Not Change Without Approval:** Never default AI consent to opt-in or persist Private Chat sessions to disk.
+
+
 

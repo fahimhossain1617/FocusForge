@@ -1223,62 +1223,65 @@ export async function sendAgentMessage(
   }
 
   if (isAuth && userId) {
-    // Authenticated User: Persist to local-first IndexedDB (zero plaintext to Supabase)
-    try {
-      const nowStr = new Date().toISOString();
-
-      // 1. Upsert session locally
-      await localDb.put("ai_sessions", {
-        id: resData.sessionId,
-        title: finalTitle,
-        userId,
-        updatedAt: nowStr,
-        createdAt: nowStr,
-      } as any);
-
-      // 2. Insert user message locally
-      await localDb.put("ai_messages", {
-        id: crypto.randomUUID(),
-        sessionId: resData.sessionId,
-        userId,
-        role: 'user',
-        content: message,
-        createdAt: nowStr,
-      } as any);
-
-      // 3. Insert assistant message locally
-      await localDb.put("ai_messages", {
-        id: isUuid.test(resData.aiMessage.id) ? resData.aiMessage.id : crypto.randomUUID(),
-        sessionId: resData.sessionId,
-        userId,
-        role: 'assistant',
-        content: resData.aiMessage.content,
-        intent: resData.aiMessage.intent || null,
-        payload: (resData.aiMessage as any).payload || (resData.aiMessage as any).payload_json || null,
-        createdAt: nowStr,
-      } as any);
-    } catch (saveErr) {
-      console.warn("[aiAgentService] LocalDb message save error:", saveErr);
-    }
-
-    if (typeof window !== "undefined") {
+    // If privacyMode is "private", ZERO persistent storage writes!
+    // Messages stay in React memory only and are never saved to IndexedDB or localStorage.
+    if (privacyMode !== "private") {
       try {
-        const cachedSessions = localStorage.getItem("focusforge_active_sessions_cache") || "[]";
-        const parsed: ChatSession[] = JSON.parse(cachedSessions);
-        const existingIdx = parsed.findIndex(s => s.id === resData.sessionId);
-        let updatedList: ChatSession[];
-        if (existingIdx >= 0) {
-          updatedList = [...parsed];
-          updatedList[existingIdx] = {
-            ...updatedList[existingIdx],
-            title: finalTitle,
-            updated_at: new Date().toISOString()
-          };
-        } else {
-          updatedList = [{ id: resData.sessionId, title: finalTitle, updated_at: new Date().toISOString() }, ...parsed];
-        }
-        localStorage.setItem("focusforge_active_sessions_cache", JSON.stringify(updatedList));
-      } catch {}
+        const nowStr = new Date().toISOString();
+
+        // 1. Upsert session locally
+        await localDb.put("ai_sessions", {
+          id: resData.sessionId,
+          title: finalTitle,
+          userId,
+          updatedAt: nowStr,
+          createdAt: nowStr,
+        } as any);
+
+        // 2. Insert user message locally
+        await localDb.put("ai_messages", {
+          id: crypto.randomUUID(),
+          sessionId: resData.sessionId,
+          userId,
+          role: 'user',
+          content: message,
+          createdAt: nowStr,
+        } as any);
+
+        // 3. Insert assistant message locally
+        await localDb.put("ai_messages", {
+          id: isUuid.test(resData.aiMessage.id) ? resData.aiMessage.id : crypto.randomUUID(),
+          sessionId: resData.sessionId,
+          userId,
+          role: 'assistant',
+          content: resData.aiMessage.content,
+          intent: resData.aiMessage.intent || null,
+          payload: (resData.aiMessage as any).payload || (resData.aiMessage as any).payload_json || null,
+          createdAt: nowStr,
+        } as any);
+      } catch (saveErr) {
+        console.warn("[aiAgentService] LocalDb message save error:", saveErr);
+      }
+
+      if (typeof window !== "undefined") {
+        try {
+          const cachedSessions = localStorage.getItem("focusforge_active_sessions_cache") || "[]";
+          const parsed: ChatSession[] = JSON.parse(cachedSessions);
+          const existingIdx = parsed.findIndex(s => s.id === resData.sessionId);
+          let updatedList: ChatSession[];
+          if (existingIdx >= 0) {
+            updatedList = [...parsed];
+            updatedList[existingIdx] = {
+              ...updatedList[existingIdx],
+              title: finalTitle,
+              updated_at: new Date().toISOString()
+            };
+          } else {
+            updatedList = [{ id: resData.sessionId, title: finalTitle, updated_at: new Date().toISOString() }, ...parsed];
+          }
+          localStorage.setItem("focusforge_active_sessions_cache", JSON.stringify(updatedList));
+        } catch {}
+      }
     }
   } else {
     // Guest Mode: ZERO database writes! Temporary sessionStorage only!

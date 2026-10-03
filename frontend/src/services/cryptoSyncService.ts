@@ -130,6 +130,52 @@ export const cryptoSyncService = {
   },
 
   /**
+   * Gets the stored device recovery key if available.
+   */
+  getRecoveryKey(userId: string): string | null {
+    if (typeof window === "undefined" || !userId || userId === "guest") return null;
+    try {
+      return localStorage.getItem(`focusforge_recovery_key_${userId.trim()}`);
+    } catch {
+      return null;
+    }
+  },
+
+  /**
+   * Sets the recovery key for this device and derives the active encryption key.
+   */
+  async setRecoveryKey(userId: string, key: string): Promise<boolean> {
+    if (typeof window === "undefined" || !userId || userId === "guest" || !key) return false;
+    const cleanUserId = userId.trim();
+    const cleanKey = key.trim();
+    try {
+      localStorage.setItem(`focusforge_recovery_key_${cleanUserId}`, cleanKey);
+      return await this.unlockEncryption(cleanUserId, cleanKey);
+    } catch (err) {
+      console.error("[cryptoSyncService] Failed to set recovery key:", err);
+      return false;
+    }
+  },
+
+  /**
+   * Ensures the encryption key is initialized for the active account.
+   * If no recovery key exists on this device, generates a secure one and initializes it.
+   */
+  async ensureKeyInitialized(userId: string): Promise<boolean> {
+    if (!userId || userId === "guest") return false;
+    if (this.isUnlocked(userId)) return true;
+
+    const existingKey = this.getRecoveryKey(userId);
+    if (existingKey) {
+      return await this.unlockEncryption(userId, existingKey);
+    }
+
+    // Generate a new secure recovery key for this user
+    const newKey = this.generateRecoveryKey();
+    return await this.setRecoveryKey(userId, newKey);
+  },
+
+  /**
    * Checks if encryption is currently unlocked in memory.
    */
   isUnlocked(userId: string): boolean {

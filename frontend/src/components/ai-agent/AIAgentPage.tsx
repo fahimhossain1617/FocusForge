@@ -22,7 +22,9 @@ import {
   Clock,
   Smile,
   ChevronDown,
-  Check
+  Check,
+  Shield,
+  Lock
 } from "lucide-react";
 import { useAppContext } from "@/context/AppContext";
 import { useAuth } from "@/context/AuthContext";
@@ -149,7 +151,9 @@ export function AIAgentPage() {
     setOrbState,
     updateActionStatus,
     isConsentOpen,
-    setIsConsentOpen
+    setIsConsentOpen,
+    isPrivateMode,
+    togglePrivateMode
   } = useAIAgent(context, isSystemBn ? "bn" : "en");
 
   // Cleanly extract user's display name without awkward fallbacks like "there"
@@ -739,6 +743,22 @@ export function AIAgentPage() {
         </div>
 
         <div className={styles.topBarRight} ref={menuRef}>
+          {/* Private Chat Toggle Button */}
+          <button
+            type="button"
+            className={`${styles.iconButton} ${isPrivateMode ? "text-amber-500 bg-amber-500/10 border border-amber-500/30" : ""}`}
+            onClick={() => {
+              togglePrivateMode();
+              if (!isPrivateMode) {
+                handleNewChat();
+              }
+            }}
+            aria-label={isPrivateMode ? (isSystemBn ? "প্রাইভেট চ্যাট চালু" : "Private Chat Active") : (isSystemBn ? "প্রাইভেট চ্যাট" : "Private Chat")}
+            title={isPrivateMode ? (isSystemBn ? "প্রাইভেট চ্যাট চালু (মেমোরি ছাড়া)" : "Private Chat Active (No Memory)") : (isSystemBn ? "প্রাইভেট চ্যাট চালু করুন" : "Enable Private Chat")}
+          >
+            <Shield size={19} strokeWidth={isPrivateMode ? 2.2 : 1.8} className={isPrivateMode ? "text-amber-500" : ""} />
+          </button>
+
           {/* New Chat Button */}
           <button
             type="button"
@@ -846,7 +866,27 @@ export function AIAgentPage() {
         </div>
       </header>
 
-      {/* CENTERED LAYOUT CONTAINER */}
+      {/* PRIVATE CHAT BANNER */}
+      {isPrivateMode && (
+        <div className="w-full bg-amber-500/10 dark:bg-amber-500/15 border-b border-amber-500/20 px-4 py-2 flex items-center justify-between text-xs text-amber-800 dark:text-amber-300 transition-colors">
+          <div className="flex items-center gap-2">
+            <Lock size={14} className="shrink-0 text-amber-600 dark:text-amber-400" />
+            <span className="font-medium">
+              {isSystemBn
+                ? "প্রাইভেট চ্যাট চালু: কথোপকথনটি সম্পূর্ণ সাময়িক—কোনো মেমোরি, লোকাল স্টোরেজ বা ক্লাউডে সেভ হবে না।"
+                : "Private Chat Active: Messages are temporary and will not be saved locally, in memory, or in the cloud."}
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={togglePrivateMode}
+            className="underline hover:text-amber-950 dark:hover:text-amber-100 font-semibold cursor-pointer shrink-0 ml-3"
+          >
+            {isSystemBn ? "সাধারণ মোড" : "Switch to Standard"}
+          </button>
+        </div>
+      )}
+
       {/* CENTERED LAYOUT CONTAINER */}
       <div className={styles.layoutContainer}>
         {/* MAIN CONTENT / CHAT AREA */}
