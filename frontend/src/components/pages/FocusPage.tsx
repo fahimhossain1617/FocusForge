@@ -863,13 +863,13 @@ export default function FocusPage() {
                             >
                               <span className="truncate mr-2 font-medium text-[#111827] dark:text-foreground">{item.name}</span>
                               <span
-                                className={`text-[11px] px-2 py-0.5 rounded-md shrink-0 whitespace-nowrap ${
+                                className={`text-xs shrink-0 whitespace-nowrap font-medium ${
                                   isSelected
-                                    ? "bg-[#1E3E7B]/15 text-[#1E3E7B] dark:text-blue-300 font-semibold"
-                                    : "bg-slate-200/60 dark:bg-white/5 text-[#52627A] dark:text-muted-foreground font-mono"
+                                    ? "text-[#1E3E7B] dark:text-blue-300 font-semibold"
+                                    : "text-[#52627A] dark:text-muted-foreground font-mono"
                                 }`}
                               >
-                                {item.totalMinutes}m {state.lang === "bn" ? "ফোকাস" : "focused"}
+                                {item.totalMinutes}m
                               </span>
                             </button>
                           );
@@ -1004,7 +1004,7 @@ export default function FocusPage() {
                         <label className="text-[11px] text-[#52627A] dark:text-slate-300 font-medium">
                           {t.focus.hours || (state.lang === "bn" ? "ঘণ্টা (Hours)" : "Hours")}
                         </label>
-                        <div className="flex items-center rounded-xl bg-[#F7FAFE] dark:bg-white/[0.04] border border-[#DCE5F0] dark:border-white/10 p-1 shadow-none focus-within:border-[#1E3E7B] dark:focus-within:border-blue-400 focus-within:ring-1 focus-within:ring-[#1E3E7B]/20 transition-all">
+                        <div className="flex items-center rounded-xl bg-[#F7FAFE] dark:bg-white/[0.04] border border-[#DCE5F0] dark:border-white/10 p-1 shadow-none transition-all">
                           <button
                             type="button"
                             onClick={() => handleCustomHoursChange(customHours - 1)}
@@ -1043,7 +1043,7 @@ export default function FocusPage() {
                               timer.setPreset(total);
                               if (total > 0) setShowDurationError(false);
                             }}
-                            className="w-full text-center text-sm font-bold bg-transparent text-[#111827] dark:text-white outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                            className="w-full text-center text-sm font-bold bg-transparent text-[#111827] dark:text-white outline-none border-0 shadow-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                           />
                           <button
                             type="button"
@@ -1062,7 +1062,7 @@ export default function FocusPage() {
                         <label className="text-[11px] text-[#52627A] dark:text-slate-300 font-medium">
                           {t.focus.minutes || (state.lang === "bn" ? "মিনিট (Minutes)" : "Minutes")}
                         </label>
-                        <div className="flex items-center rounded-xl bg-[#F7FAFE] dark:bg-white/[0.04] border border-[#DCE5F0] dark:border-white/10 p-1 shadow-none focus-within:border-[#1E3E7B] dark:focus-within:border-blue-400 focus-within:ring-1 focus-within:ring-[#1E3E7B]/20 transition-all">
+                        <div className="flex items-center rounded-xl bg-[#F7FAFE] dark:bg-white/[0.04] border border-[#DCE5F0] dark:border-white/10 p-1 shadow-none transition-all">
                           <button
                             type="button"
                             onClick={() => handleCustomMinutesChange(Math.max(0, customMinutes - 5))}
@@ -1101,7 +1101,7 @@ export default function FocusPage() {
                               timer.setPreset(total);
                               if (total > 0) setShowDurationError(false);
                             }}
-                            className="w-full text-center text-sm font-bold bg-transparent text-[#111827] dark:text-white outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                            className="w-full text-center text-sm font-bold bg-transparent text-[#111827] dark:text-white outline-none border-0 shadow-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                           />
                           <button
                             type="button"
@@ -1158,8 +1158,8 @@ export default function FocusPage() {
             </button>
 
             <div className="flex items-center">
-              <div className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-xs font-semibold text-blue-400 shadow-none">
-                <span className={`w-2 h-2 rounded-full ${timer.isRunning ? "bg-blue-400 animate-pulse" : "bg-zinc-500"}`} />
+              <div className="flex items-center gap-1.5 text-xs font-semibold text-[#5B8DEF] dark:text-blue-400">
+                <span className={`w-2 h-2 rounded-full ${timer.isRunning ? "bg-[#5B8DEF] dark:bg-blue-400 animate-pulse" : "bg-zinc-500"}`} />
                 <span>
                   {timer.isRunning
                     ? (state.lang === "bn" ? "চলমান" : "Active")
@@ -1388,8 +1388,8 @@ export default function FocusPage() {
             </button>
 
             <div className="flex items-center">
-              <div className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-xs font-semibold text-emerald-400 shadow-none">
-                <span className={`w-2 h-2 rounded-full ${timer.isRunning ? "bg-emerald-400 animate-pulse" : "bg-zinc-500"}`} />
+              <div className="flex items-center gap-1.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+                <span className={`w-2 h-2 rounded-full ${timer.isRunning ? "bg-emerald-500 animate-pulse" : "bg-zinc-500"}`} />
                 <span>{state.lang === "bn" ? "বিরতি" : "Break"}</span>
               </div>
             </div>

@@ -25,7 +25,7 @@ export default function DashboardSkeleton() {
         <div
           className="dashboard-card card rounded-2xl p-5 flex flex-col justify-between border"
           style={{
-            background: "var(--dashboard-card-bg, linear-gradient(145deg, rgba(16, 22, 36, 0.95), rgba(11, 15, 26, 0.98)))",
+            background: "var(--dashboard-card-bg, #111827)",
             borderColor: "var(--dashboard-card-border, rgba(59, 130, 246, 0.12))",
           }}
         >
@@ -61,7 +61,7 @@ export default function DashboardSkeleton() {
         <div
           className="dashboard-card card rounded-2xl p-5 flex flex-col justify-between border"
           style={{
-            background: "var(--dashboard-card-bg, linear-gradient(145deg, rgba(16, 22, 36, 0.95), rgba(11, 15, 26, 0.98)))",
+            background: "var(--dashboard-card-bg, #111827)",
             borderColor: "var(--dashboard-card-border, rgba(59, 130, 246, 0.12))",
           }}
         >
@@ -115,7 +115,7 @@ export default function DashboardSkeleton() {
         <div
           className="dashboard-card card rounded-2xl p-5 flex flex-col justify-between border"
           style={{
-            background: "var(--dashboard-card-bg, linear-gradient(145deg, rgba(16, 22, 36, 0.95), rgba(11, 15, 26, 0.98)))",
+            background: "var(--dashboard-card-bg, #111827)",
             borderColor: "var(--dashboard-card-border, rgba(59, 130, 246, 0.12))",
           }}
         >
@@ -148,7 +148,7 @@ export default function DashboardSkeleton() {
       <div
         className="dashboard-card card rounded-2xl p-5 sm:p-7 border space-y-6"
         style={{
-          background: "var(--dashboard-card-bg, linear-gradient(145deg, rgba(16, 22, 36, 0.95), rgba(11, 15, 26, 0.98)))",
+          background: "var(--dashboard-card-bg, #111827)",
           borderColor: "var(--dashboard-card-border, rgba(59, 130, 246, 0.12))",
         }}
       >

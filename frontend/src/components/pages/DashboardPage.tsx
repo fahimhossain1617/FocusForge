@@ -551,11 +551,11 @@ export default function DashboardPage() {
               </div>
               <button
                 onClick={() => navigateTo("planner")}
-                className="w-9 h-9 min-w-[36px] min-h-[36px] rounded-xl bg-[#EBF3FE] hover:bg-[#DBEAFE] dark:bg-blue-500/20 dark:hover:bg-blue-500/30 text-[#1D4ED8] dark:text-blue-300 border border-[#D0E1FD] dark:border-blue-500/30 flex items-center justify-center transition-all cursor-pointer shrink-0 mt-0.5 shadow-none outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors p-1 cursor-pointer shrink-0 mt-0.5"
                 title={state.lang === 'bn' ? "প্ল্যানারে কাজ যোগ করুন" : "Add task in Planner"}
                 aria-label={state.lang === 'bn' ? "প্ল্যানারে কাজ যোগ করুন" : "Add task in Planner"}
               >
-                <Plus size={17} strokeWidth={2.5} />
+                <Plus size={20} strokeWidth={2.2} />
               </button>
             </div>
 
@@ -633,11 +633,11 @@ export default function DashboardPage() {
               </div>
               <button
                 onClick={() => navigateTo("focus")}
-                className="w-9 h-9 min-w-[36px] min-h-[36px] rounded-xl bg-[#EBF3FE] hover:bg-[#DBEAFE] dark:bg-blue-500/20 dark:hover:bg-blue-500/30 text-[#1D4ED8] dark:text-blue-300 border border-[#D0E1FD] dark:border-blue-500/30 flex items-center justify-center transition-all cursor-pointer shrink-0 mt-0.5 shadow-none outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors p-1 cursor-pointer shrink-0 mt-0.5"
                 title={state.lang === 'bn' ? "ফোকাস সেশন শুরু করুন" : "Start a Focus session"}
                 aria-label={state.lang === 'bn' ? "ফোকাস সেশন শুরু করুন" : "Start a Focus session"}
               >
-                <Plus size={17} strokeWidth={2.5} />
+                <Plus size={20} strokeWidth={2.2} />
               </button>
             </div>
 
@@ -755,11 +755,11 @@ export default function DashboardPage() {
               </div>
               <button
                 onClick={() => navigateTo("learning")}
-                className="w-9 h-9 min-w-[36px] min-h-[36px] rounded-xl bg-[#EBF3FE] hover:bg-[#DBEAFE] dark:bg-blue-500/20 dark:hover:bg-blue-500/30 text-[#1D4ED8] dark:text-blue-300 border border-[#D0E1FD] dark:border-blue-500/30 flex items-center justify-center transition-all cursor-pointer shrink-0 mt-0.5 shadow-none outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors p-1 cursor-pointer shrink-0 mt-0.5"
                 title={state.lang === 'bn' ? "টাইম লগে পরিচালনা করুন" : "Manage in Time Log"}
                 aria-label={state.lang === 'bn' ? "টাইম লগে পরিচালনা করুন" : "Manage in Time Log"}
               >
-                <Plus size={17} strokeWidth={2.5} />
+                <Plus size={20} strokeWidth={2.2} />
               </button>
             </div>
 
@@ -997,33 +997,27 @@ export default function DashboardPage() {
               })}
             </div>
 
-            {/* Bottom 3 Summary Metric Cards (Inner Box: #F7FAFE, border #DCE5F0, radius 12) */}
+            {/* Bottom 3 Summary Metrics (Normal flat layout without boxes) */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
-              <div className="p-4 rounded-xl bg-[#F7FAFE] dark:bg-slate-900/60 border border-[#DCE5F0] dark:border-white/[0.06] shadow-none">
-                <div>
-                  <p className="text-xs text-[#52627A] dark:text-muted-foreground font-medium">
-                    {state.lang === 'bn' ? "সাপ্তাহিক মোট ফোকাস টাইম" : "Total Weekly Focus Time"}
-                  </p>
-                  <p className="mt-1 text-xl font-bold text-[#111827] dark:text-foreground tracking-tight">{weeklySummary.focusTime}</p>
-                </div>
+              <div className="py-2">
+                <p className="text-xs text-[#52627A] dark:text-muted-foreground font-medium">
+                  {state.lang === 'bn' ? "সাপ্তাহিক মোট ফোকাস টাইম" : "Total Weekly Focus Time"}
+                </p>
+                <p className="mt-1 text-xl font-bold text-[#111827] dark:text-foreground tracking-tight">{weeklySummary.focusTime}</p>
               </div>
 
-              <div className="p-4 rounded-xl bg-[#F7FAFE] dark:bg-slate-900/60 border border-[#DCE5F0] dark:border-white/[0.06] shadow-none">
-                <div>
-                  <p className="text-xs text-[#52627A] dark:text-muted-foreground font-medium">
-                    {state.lang === 'bn' ? "সাপ্তাহিক সম্পন্ন টাস্ক" : "Weekly Tasks Completed"}
-                  </p>
-                  <p className="mt-1 text-xl font-bold text-[#111827] dark:text-foreground tracking-tight">{weeklySummary.tasksDoneRatio}</p>
-                </div>
+              <div className="py-2">
+                <p className="text-xs text-[#52627A] dark:text-muted-foreground font-medium">
+                  {state.lang === 'bn' ? "সাপ্তাহিক সম্পন্ন টাস্ক" : "Weekly Tasks Completed"}
+                </p>
+                <p className="mt-1 text-xl font-bold text-[#111827] dark:text-foreground tracking-tight">{weeklySummary.tasksDoneRatio}</p>
               </div>
 
-              <div className="p-4 rounded-xl bg-[#F7FAFE] dark:bg-slate-900/60 border border-[#DCE5F0] dark:border-white/[0.06] shadow-none">
-                <div>
-                  <p className="text-xs text-[#52627A] dark:text-muted-foreground font-medium">
-                    {state.lang === 'bn' ? "সাপ্তাহিক মিস হওয়া টাস্ক" : "Weekly Missed Tasks"}
-                  </p>
-                  <p className="mt-1 text-xl font-bold text-[#111827] dark:text-foreground tracking-tight">{weeklySummary.totalMissed}</p>
-                </div>
+              <div className="py-2">
+                <p className="text-xs text-[#52627A] dark:text-muted-foreground font-medium">
+                  {state.lang === 'bn' ? "সাপ্তাহিক মিস হওয়া টাস্ক" : "Weekly Missed Tasks"}
+                </p>
+                <p className="mt-1 text-xl font-bold text-[#111827] dark:text-foreground tracking-tight">{weeklySummary.totalMissed}</p>
               </div>
             </div>
           </div>

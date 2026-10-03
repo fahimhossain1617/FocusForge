@@ -214,9 +214,9 @@ export default function MobileHeader() {
             <AnimatePresence>
               {isMenuOpen && (
                 <>
-                  {/* Backdrop (no blur, clean click catcher) */}
+                  {/* Backdrop (clean transparent click catcher, no blur/darkening) */}
                   <div
-                    className="fixed inset-0 z-40 bg-black/20 dark:bg-black/40"
+                    className="fixed inset-0 z-40 bg-transparent"
                     onClick={() => setIsMenuOpen(false)}
                     aria-hidden="true"
                   />

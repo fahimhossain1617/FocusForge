@@ -51,10 +51,53 @@ function getApiUrl(): string {
   return base ? `${base}/api` : "/api";
 }
 
+export function formatClientResetTime(resetDate: Date, lang: string = 'bn'): { formattedDate: string; formattedTimeRemaining: string } {
+  const now = Date.now();
+  const diffMs = Math.max(0, resetDate.getTime() - now);
+  const totalMinutes = Math.floor(diffMs / (1000 * 60));
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+
+  const toBnDigits = (num: number): string => {
+    const bnNums = ['০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯'];
+    return num.toString().split('').map((d) => bnNums[parseInt(d, 10)] ?? d).join('');
+  };
+
+  if (lang === 'bn') {
+    const timeRemainingStr = hours > 0
+      ? `${toBnDigits(hours)} ঘণ্টা ${toBnDigits(minutes)} মিনিট`
+      : `${toBnDigits(minutes)} মিনিট`;
+
+    const options: Intl.DateTimeFormatOptions = {
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    };
+    const dateStr = resetDate.toLocaleDateString('bn-BD', options);
+    return { formattedDate: dateStr, formattedTimeRemaining: timeRemainingStr };
+  }
+
+  const timeRemainingStr = hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
+  const dateStr = resetDate.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  });
+
+  return { formattedDate: dateStr, formattedTimeRemaining: timeRemainingStr };
+}
+
 export async function getAITokenStatus(lang: string = "bn"): Promise<TokenStatus> {
   const token = await getToken();
   const isAuth = !!token;
   const targetTotal = isAuth ? 5000 : 1000;
+  const quotaKey = isAuth ? "focusforge_auth_token_quota" : "focusforge_guest_token_quota";
 
   try {
     const guestId = getGuestId();
@@ -66,29 +109,70 @@ export async function getAITokenStatus(lang: string = "bn"): Promise<TokenStatus
       },
     });
     if (res.ok) {
-      return await res.json();
+      const serverStatus: TokenStatus = await res.json();
+      if (typeof window !== "undefined") {
+        try {
+          localStorage.setItem(quotaKey, JSON.stringify({
+            total: serverStatus.total,
+            used: serverStatus.used,
+            resetAt: serverStatus.resetAt,
+            isExhausted: serverStatus.isExhausted
+          }));
+        } catch {}
+      }
+      return serverStatus;
     }
   } catch {}
 
-  let usedTokens = 0;
+  // Local persistent quota check across browser refresh / app restarts
+  let quotaRecord: { total: number; used: number; resetAt: string; isExhausted?: boolean } | null = null;
   if (typeof window !== "undefined") {
     try {
-      const key = isAuth ? "focusforge_auth_tokens_used" : "focusforge_guest_tokens_used";
-      const stored = isAuth ? localStorage.getItem(key) : sessionStorage.getItem(key);
-      usedTokens = stored ? parseInt(stored, 10) : 0;
+      const stored = localStorage.getItem(quotaKey);
+      if (stored) {
+        quotaRecord = JSON.parse(stored);
+      }
     } catch {}
   }
 
+  const now = new Date();
+  let usedTokens = 0;
+  let resetAtDate = new Date(Date.now() + 86400000);
+
+  if (quotaRecord && quotaRecord.resetAt) {
+    const recordReset = new Date(quotaRecord.resetAt);
+    if (recordReset > now) {
+      usedTokens = quotaRecord.used || 0;
+      resetAtDate = recordReset;
+    }
+  }
+
   const remaining = Math.max(0, targetTotal - usedTokens);
-  return {
+  const isExhausted = remaining <= 0;
+  const { formattedDate, formattedTimeRemaining } = formatClientResetTime(resetAtDate, lang);
+
+  const finalStatus: TokenStatus = {
     total: targetTotal,
     used: usedTokens,
     remaining,
-    resetAt: new Date(Date.now() + 86400000).toISOString(),
-    isExhausted: remaining <= 0,
-    formattedResetDate: "",
-    formattedRemainingTime: "24h",
+    resetAt: resetAtDate.toISOString(),
+    isExhausted,
+    formattedResetDate: formattedDate,
+    formattedRemainingTime: formattedTimeRemaining,
   };
+
+  if (typeof window !== "undefined") {
+    try {
+      localStorage.setItem(quotaKey, JSON.stringify({
+        total: targetTotal,
+        used: usedTokens,
+        resetAt: resetAtDate.toISOString(),
+        isExhausted
+      }));
+    } catch {}
+  }
+
+  return finalStatus;
 }
 
 export function estimateClientTokenUsage(

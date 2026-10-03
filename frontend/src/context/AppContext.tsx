@@ -618,6 +618,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       try {
         sessionStorage.setItem('focusforge_active_page', page);
       } catch { }
+
+      try {
+        const currentHash = window.location.hash.replace(/^#\/?/, '').split('?')[0];
+        if (!isBack && currentHash !== page) {
+          window.history.pushState({ page }, '', '#' + page);
+        }
+      } catch { }
     }
 
     trackMeaningfulAction('feature_' + page);
@@ -641,6 +648,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [trackMeaningfulAction]);
 
   const navigateBack = useCallback(() => {
+    if (typeof window !== 'undefined' && window.history.length > 1) {
+      window.history.back();
+      return;
+    }
     const prevPage = pageHistoryRef.current.pop();
     if (prevPage) {
       navigateTo(prevPage, true);
@@ -667,6 +678,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     const validPages = new Set(['today', 'mind', 'diary', 'tasks', 'planner', 'focus', 'learning', 'profile', 'settings', 'ai-agent', 'notifications']);
 
+    // Set initial history state if not set
+    try {
+      const initialHash = window.location.hash.replace(/^#\/?/, '').split('?')[0];
+      const initialPage = (initialHash && validPages.has(initialHash)) ? initialHash : (sessionStorage.getItem('focusforge_active_page') || 'today');
+      window.history.replaceState({ page: initialPage }, '', '#' + initialPage);
+    } catch { }
+
     const handleNavigateEvent = (event: Event) => {
       const customEvent = event as CustomEvent<{ route?: string; taskId?: string | number }>;
       const route = customEvent.detail?.route;
@@ -675,18 +693,27 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }
     };
 
+    const handlePopState = (event: PopStateEvent) => {
+      const targetPage = event.state?.page || window.location.hash.replace(/^#\/?/, '').split('?')[0] || 'today';
+      if (validPages.has(targetPage)) {
+        navigateTo(targetPage, true);
+      }
+    };
+
     const handleHashChange = () => {
       const cleanHash = window.location.hash.replace(/^#\/?/, '').split('?')[0];
       if (cleanHash && validPages.has(cleanHash)) {
-        navigateTo(cleanHash);
+        navigateTo(cleanHash, true);
       }
     };
 
     window.addEventListener('focusforge:navigate', handleNavigateEvent as EventListener);
+    window.addEventListener('popstate', handlePopState);
     window.addEventListener('hashchange', handleHashChange);
 
     return () => {
       window.removeEventListener('focusforge:navigate', handleNavigateEvent as EventListener);
+      window.removeEventListener('popstate', handlePopState);
       window.removeEventListener('hashchange', handleHashChange);
     };
   }, [navigateTo]);

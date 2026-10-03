@@ -89,12 +89,7 @@ export default function ProblemSolver({ navigate }: ProblemSolverProps) {
           </h2>
           
           <div
-            className="rounded-2xl border transition-all duration-300 relative pb-16 overflow-hidden"
-            style={{
-              background: "var(--color-bg-card)",
-              borderColor: (isFocused || currentVal.trim()) ? "var(--color-purple-primary)" : "var(--color-border-subtle)",
-              boxShadow: (isFocused || currentVal.trim()) ? "0 0 12px rgba(59, 130, 246, 0.1)" : "none",
-            }}
+            className="rounded-2xl border border-slate-200 dark:border-white/10 bg-white dark:bg-[#111827] relative pb-16 shadow-none"
           >
             <textarea
               ref={textareaRef}

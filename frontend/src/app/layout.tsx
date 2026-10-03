@@ -410,8 +410,14 @@ export default function RootLayout({
       document.documentElement.classList.add('ff-brand-visible');
       var appShell = document.getElementById('app-shell');
       if (appShell) {
+        if (typeof appShell.getAnimations === 'function') {
+          appShell.getAnimations().forEach(function(anim) {
+            anim.cancel();
+          });
+        }
         appShell.style.opacity = '';
         appShell.style.transform = '';
+        appShell.style.willChange = 'auto';
       }
       document.querySelectorAll('.slot .mk').forEach(function(m) { m.style.visibility = 'visible'; });
       document.querySelectorAll('.slot .tile').forEach(function(t) { t.style.opacity = '1'; });
@@ -593,7 +599,7 @@ export default function RootLayout({
       </head>
       <body
         suppressHydrationWarning
-        className={`${GeistSans.className} ${notoSansBengali.variable} min-h-screen antialiased bg-background text-foreground relative selection:bg-accent-hover selection:text-white`}
+        className={`${GeistSans.className} ${notoSansBengali.variable} h-screen h-dvh max-h-screen max-h-dvh overflow-hidden antialiased bg-background text-foreground relative selection:bg-accent-hover selection:text-white`}
       >
         <div 
           className="top-ambient-glow pointer-events-none fixed top-0 left-0 right-0 h-[480px] bg-[radial-gradient(ellipse_80%_60%_at_50%_-10%,rgba(37,99,235,0.28)_0%,rgba(8,9,12,0)_75%)] z-0 dark:block hidden" 
@@ -632,7 +638,7 @@ export default function RootLayout({
         <AppProvider>
           <AuthProvider>
             <ServiceWorkerRegister />
-            <div id="app-shell" className="relative z-10 min-h-screen">
+            <div id="app-shell" className="relative z-10 h-screen h-dvh max-h-screen max-h-dvh overflow-hidden w-full">
               {children}
             </div>
           </AuthProvider>

@@ -164,12 +164,7 @@ export default function MindHome({ navigate, setActiveThoughtId }: MindHomeProps
 
         {/* Writing Area */}
         <div
-          className="rounded-2xl border transition-all duration-200 relative pb-16 overflow-hidden w-full flex flex-col"
-          style={{
-            background: "var(--color-bg-card)",
-            borderColor: (isFocused || input.trim()) ? "var(--color-purple-primary)" : "var(--color-border-subtle)",
-            boxShadow: (isFocused || input.trim()) ? "0 4px 14px rgba(0, 0, 0, 0.08)" : "none",
-          }}
+          className="rounded-2xl border border-slate-200 dark:border-white/10 bg-white dark:bg-[#111827] relative pb-16 w-full flex flex-col shadow-none"
         >
           <textarea
             ref={textareaRef}
@@ -269,7 +264,7 @@ export default function MindHome({ navigate, setActiveThoughtId }: MindHomeProps
             onClick={() => textareaRef.current?.focus()}
             className="w-full flex flex-col items-center justify-center py-10 sm:py-14 cursor-pointer group text-center bg-transparent border-0"
           >
-            <div className="w-14 h-14 rounded-2xl bg-blue-500/10 dark:bg-blue-500/15 flex items-center justify-center text-blue-500 dark:text-blue-400 mb-3.5 group-hover:scale-105 transition-transform">
+            <div className="w-14 h-14 rounded-2xl bg-blue-500/10 dark:bg-blue-500/15 flex items-center justify-center text-blue-500 dark:text-blue-400 mb-3.5">
               <Inbox size={26} />
             </div>
             <p className="text-base font-semibold text-foreground mb-1">

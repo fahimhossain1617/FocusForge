@@ -162,7 +162,7 @@ export default function ReviewAll({ navigate, setActiveThoughtId }: ReviewAllPro
               }}
               placeholder={t.myMind.searchPlaceholder || "Search thoughts..."}
               style={{ paddingLeft: "2.1rem", paddingRight: searchQuery ? "2rem" : "0.85rem" }}
-              className="w-full h-full text-xs rounded-xl border border-slate-200 dark:border-white/10 bg-black/5 dark:bg-white/5 text-foreground placeholder:text-muted-foreground/70 focus:outline-none focus:border-blue-500 transition-colors shadow-none"
+              className="w-full h-full text-xs rounded-xl border border-slate-200 dark:border-white/10 bg-black/5 dark:bg-white/5 text-foreground placeholder:text-muted-foreground/70 focus:outline-none focus:border-slate-400 dark:focus:border-white/20 transition-colors shadow-none"
             />
             {searchQuery && (
               <button

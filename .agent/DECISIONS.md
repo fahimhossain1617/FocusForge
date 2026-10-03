@@ -167,6 +167,90 @@
 - **Reason:** Eliminates dark -> white -> dark screen flashing on Android PWA cold launch and creates a smooth native-quality transition with zero size jumps or logo gaps.
 - **Impact:** `frontend/public/manifest.json`, `frontend/public/manifest.webmanifest`, `frontend/src/app/layout.tsx`, `frontend/src/app/page.tsx`, `frontend/src/components/ui/skeleton/AppShellSkeleton.tsx`, `frontend/public/sw.js`.
 - **Do Not Change Without Approval:** Never add white backgrounds to the startup boot layer, alter the 850ms flight timeline without testing, or remove the pre-CSS inline dark baseline.
+---
 
+## ADR-015: Glory AI Rebrand, Hardware Back Navigation, and Zero-Backdrop UI Polish
 
+- **Date:** October 2026
+- **Status:** Accepted
+- **Decision:** 
+  1. Rebrand the AI Agent system to **Glory AI** (`গ্লোরি এআই`) featuring the custom SVG `GloryOrbIcon` in sidebar and mobile bottom navigation.
+  2. Deprecate the ephemeral "Private Chat" toggle and banner. The system defaults to client-side IndexedDB isolation with global AI consent preferences (`aiConsentService.ts`).
+  3. Relocate the AI accuracy disclaimer to appear subtly below assistant messages during conversation, and only below the text composer on empty chat screens.
+  4. Enforce strict, persistent 5,000 token daily quota caching in `localStorage` (`focusforge_auth_token_quota`) with automatic midnight countdown formatter to prevent bypass on chat refresh or tab re-opening.
+  5. Intercept browser and hardware `popstate` back navigation in `AppContext.tsx` using synthetic URL state (`?view=...`) so pressing back navigates between dashboard and subviews rather than quitting the PWA.
+  6. Eliminate dark/blurry backdrops on header dropdown menus (`MobileHeader.tsx`), replacing them with transparent click-catchers.
+  7. Polish the Focus timer view by removing nested boxes from duration steppers and recent task items.
+- **Reason:** Satisfies user requirements for high-polish responsive UI, instant theme toggles, native-like gesture navigation, clean Focus tracking, and persistent Glory AI token governance.
+- **Impact:** `frontend/src/context/AppContext.tsx`, `frontend/src/components/ai-agent/AIAgentPage.tsx`, `frontend/src/services/aiAgentService.ts`, `frontend/src/components/navigation/MobileHeader.tsx`, `frontend/src/components/navigation/BottomNav.tsx`, `frontend/src/components/Sidebar.tsx`, `frontend/src/components/pages/FocusPage.tsx`, `frontend/src/components/icons/GloryOrbIcon.tsx`.
+- **Do Not Change Without Approval:** Do not reintroduce ephemeral private chat toggles, remove the `popstate` history handler, or bypass token quota persistence.
+
+---
+
+## ADR-016: UI/UX De-boxing, Header Alignment, and Gradient Removal
+
+- **Date:** October 2026
+- **Status:** Accepted
+- **Decision:**
+  1. **Notifications Page (`NotificationsPage.tsx`):**
+     - Removed the pill/border container from the unread counter badge ("3 new"), rendering it as clean inline text beside the title.
+     - Removed outer segmented switch container box and sliding pill animations from the "All" / "Unread" filters, rendering them as standalone tab buttons.
+     - Converted "Select All" and "Delete" bulk action triggers into clean text/icon buttons matching "Mark Read" (no boxed button wrappers).
+     - Removed the bordered card wrapper around the browser notification banner so it sits directly on the main interface.
+     - Removed the square box wrapper around the Settings button and vertically aligned it directly with the "Notifications" title text on the header row.
+     - Removed all extra animations/scale effects from notification action buttons.
+  2. **Dashboard Plus Buttons (`DashboardPage.tsx`):**
+     - Removed boxed pill container and borders from '+' buttons in Today's Tasks, Today's Focus, and Time Log, converting them to clean icon buttons with subtle hover color.
+  3. **Solid Uniform Background on Cards (`globals.css`, `DashboardSkeleton.tsx`):**
+     - Replaced `linear-gradient` on `.dashboard-card` with solid uniform `#111827`, eliminating two-color split cuts.
+  4. **Performance Section Summary Metrics (`DashboardPage.tsx`):**
+     - Removed individual card box containers around "Total Weekly Focus Time", "Weekly Tasks Completed", and "Weekly Missed Tasks", displaying them as clean, flat metrics directly on the Performance card.
+- **Reason:** Direct user request for a cleaner, unified, non-boxed interface without intrusive animations or card gradients.
+- **Impact:** `frontend/src/components/pages/NotificationsPage.tsx`, `frontend/src/components/pages/DashboardPage.tsx`, `frontend/src/app/globals.css`, `frontend/src/components/ui/skeleton/pages/DashboardSkeleton.tsx`.
+- **Do Not Change Without Approval:** Do not re-add boxed containers to the Notifications header/controls, plus buttons, or summary metrics without user direction.
+
+---
+
+## ADR-017: Snappy Navigation Switching, AI Border Beam, Luxury Emblem, and Disclaimer Relocation
+
+- **Date:** October 2026
+- **Status:** Superseded by ADR-018 for navigation transitions and Glory AI icon
+- **Decision:**
+  1. **Snappy Navigation Switching (`Sidebar.tsx`, `BottomNav.tsx`):**
+     - Increased spring physics stiffness (`stiffness: 750, damping: 40`) for active sliding indicators across both Desktop Sidebar and Mobile Bottom Navigation to make tab-to-tab switching instant and snappy without lag.
+  2. **AI Input Border Beam (`AIAgentPage.tsx`):**
+     - Integrated `BorderBeam` on the Glory AI chat composer capsule pill input bar (`.composerPillBox`).
+  3. **AI Accuracy Disclaimer Relocation (`AIAgentPage.tsx`):**
+     - Removed the inner disclaimer text from within message bubble boxes.
+     - Moved the disclaimer outside the message bubble and restricted it to appear strictly under the single latest AI response message in the thread.
+  4. **Luxury AI Sparkle Icon (`GloryOrbIcon.tsx`):**
+     - Replaced the smiley emoji icon with a sleek, luxury, dual-sparkle AI emblem.
+- **Reason:** Satisfies user requirements for high-performance navigation transitions, glowing text bar effects, clean single-instance AI disclaimer rendering, and luxury branding.
+- **Impact:** `frontend/src/components/Sidebar.tsx`, `frontend/src/components/navigation/BottomNav.tsx`, `frontend/src/components/ai-agent/AIAgentPage.tsx`, `frontend/src/components/icons/GloryOrbIcon.tsx`.
+- **Do Not Change Without Approval:** Do not repeat the disclaimer on all previous AI messages or degrade navigation spring responsiveness.
+
+---
+
+## ADR-018: Eye-Soothing Navigation Transitions, Glory AI Mascot Face Icon, and Clean Mind/Focus/Notes Polish
+
+- **Date:** October 2026
+- **Status:** Accepted
+- **Decision:**
+  1. **Smooth, Eye-Soothing Navigation Sliding Indicator (`Sidebar.tsx`, `BottomNav.tsx`):**
+     - Tuned spring physics from overly abrupt `stiffness: 750, damping: 40` to an organic, swift yet eye-soothing `stiffness: 350, damping: 30` across both desktop sidebar and mobile bottom navigation.
+  2. **Glory AI Mascot Face Icon (`GloryOrbIcon.tsx`):**
+     - Updated `GloryOrbIcon` to render Glory AI's spherical mascot face with crisp eyes, eyebrows, sweet smile/lips, and blush marks.
+  3. **Mind Space Empty State & Textarea Polish (`MindHome.tsx`, `ReviewAll.tsx`, `ThoughtDetail.tsx`, `IdeaCapture.tsx`, `ProblemSolver.tsx`):**
+     - Removed hover pop/scale animation from Recent Thoughts empty state icon.
+     - Removed bright blue borders and blue focus shadows from textareas and cards across Mind Space (MindHome, ReviewAll search, ThoughtDetail, IdeaCapture, ProblemSolver), preserving normal cursor focus without blue outline.
+  4. **Notes & Files UI Polish (`EmptyState.tsx`, `WorkspacePage.tsx`):**
+     - Matched empty state icon container background and color to Mind Space (`bg-blue-500/10 dark:bg-blue-500/15 text-blue-500 dark:text-blue-400`).
+     - Removed the pill box container around the notes counter badge, displaying it as clean inline text.
+  5. **Focus Custom Duration Steppers (`FocusPage.tsx`):**
+     - Removed blue focus-within border glow and ring on Hours and Minutes steppers, keeping them clean, single rounded boxes with no nested inner box styling.
+  6. **Mind Space Card Background Uniformity (`MindHome.tsx`, `ThoughtDetail.tsx`, `IdeaCapture.tsx`, `ProblemSolver.tsx`):**
+     - Replaced translucent `var(--color-bg-card)` with solid, uniform `bg-white dark:bg-[#111827] border border-[#DCE5F0] dark:border-white/10 shadow-none` on textarea cards to eliminate dark corner contrast artifacts.
+- **Reason:** Direct user request for eye-soothing navigation transitions, Glory AI mascot face representation, removal of intrusive blue focus borders, clean non-boxed UI elements, and uniform solid card backgrounds.
+- **Impact:** `frontend/src/components/Sidebar.tsx`, `frontend/src/components/navigation/BottomNav.tsx`, `frontend/src/components/icons/GloryOrbIcon.tsx`, `frontend/src/components/mymind/*`, `frontend/src/components/pages/WorkspacePage.tsx`, `frontend/src/components/pages/FocusPage.tsx`, `frontend/src/components/ui/EmptyState.tsx`.
+- **Do Not Change Without Approval:** Do not reintroduce abrupt navigation spring values, re-box notes count badges, add blue focus rings to non-AI text inputs, or use translucent background tokens causing card corner disparity.
 

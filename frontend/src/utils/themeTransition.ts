@@ -2,19 +2,44 @@ import React from "react";
 import { flushSync } from "react-dom";
 
 /**
- * Executes a smooth, premium circular clip-path ripple transition when toggling theme.
- * Expands a circle from the click event's coordinates to seamlessly reveal the new theme.
+ * Executes a smooth, snappy circular clip-path ripple transition when toggling theme.
+ * Synchronously toggles the root DOM classes and metadata to eliminate staggered repaints.
  */
 export function toggleThemeWithCircularTransition(
   e: React.MouseEvent<any> | MouseEvent | any,
-  applyChange: () => void
+  applyChange: () => void,
+  explicitTargetMode?: "dark" | "light"
 ) {
+  if (typeof document === "undefined") {
+    applyChange();
+    return;
+  }
+
+  const root = document.documentElement;
+  const currentIsLight = root.classList.contains("light") || root.dataset.theme === "light";
+  const nextIsLight = explicitTargetMode ? explicitTargetMode === "light" : !currentIsLight;
+
+  const syncDomTheme = () => {
+    root.dataset.theme = nextIsLight ? "light" : "dark";
+    root.classList.toggle("dark", !nextIsLight);
+    root.classList.toggle("light", nextIsLight);
+    root.style.colorScheme = nextIsLight ? "light" : "dark";
+    const themeHex = nextIsLight ? "#F3F7FC" : "#090c19";
+    const metaTags = document.querySelectorAll('meta[name="theme-color"]');
+    metaTags.forEach((tag) => tag.setAttribute("content", themeHex));
+    const ffTheme = document.getElementById("ff-theme-color");
+    if (ffTheme) ffTheme.setAttribute("content", themeHex);
+    try {
+      localStorage.setItem("focusforge_theme", nextIsLight ? "light" : "dark");
+    } catch {}
+    applyChange();
+  };
+
   if (
-    typeof document === "undefined" ||
     !(document as any).startViewTransition ||
     window.matchMedia("(prefers-reduced-motion: reduce)").matches
   ) {
-    applyChange();
+    syncDomTheme();
     return;
   }
 
@@ -26,27 +51,34 @@ export function toggleThemeWithCircularTransition(
     Math.max(y, window.innerHeight - y)
   );
 
-  const transition = (document as any).startViewTransition(() => {
-    flushSync(() => {
-      applyChange();
+  try {
+    const transition = (document as any).startViewTransition(() => {
+      flushSync(() => {
+        syncDomTheme();
+      });
     });
-  });
 
-  transition.ready.then(() => {
-    const clipPath = [
-      `circle(0px at ${x}px ${y}px)`,
-      `circle(${endRadius}px at ${x}px ${y}px)`,
-    ];
+    transition.ready.then(() => {
+      const clipPath = [
+        `circle(0px at ${x}px ${y}px)`,
+        `circle(${endRadius}px at ${x}px ${y}px)`,
+      ];
 
-    document.documentElement.animate(
-      {
-        clipPath: clipPath,
-      },
-      {
-        duration: 520,
-        easing: "cubic-bezier(0.22, 1, 0.36, 1)",
-        pseudoElement: "::view-transition-new(root)",
-      }
-    );
-  });
+      document.documentElement.animate(
+        {
+          clipPath: clipPath,
+        },
+        {
+          duration: 280,
+          easing: "cubic-bezier(0.16, 1, 0.3, 1)",
+          pseudoElement: "::view-transition-new(root)",
+        }
+      );
+    }).catch(() => {
+      // Fallback if animation promise gets interrupted
+    });
+  } catch {
+    syncDomTheme();
+  }
 }
+

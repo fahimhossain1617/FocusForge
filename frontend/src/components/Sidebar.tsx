@@ -25,6 +25,7 @@ import {
   BookOpenText
 } from "lucide-react";
 import { MindSpaceIcon } from "./icons/MindSpaceIcon";
+import { GloryOrbIcon } from "./icons/GloryOrbIcon";
 import { useAuth } from "../context/AuthContext";
 import { useAnimateExit } from "../hooks/useAnimateExit";
 
@@ -37,7 +38,7 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { id: "today", label: "Dashboard", tagline: "Your day at a glance", icon: LayoutDashboard },
-  { id: "ai-agent", label: "AI Agent", tagline: "Productivity AI copilot", icon: Bot },
+  { id: "ai-agent", label: "Glory AI", tagline: "Productivity AI copilot", icon: GloryOrbIcon },
   { id: "tasks", label: "Notes & files", tagline: "Your notes, docs, and attachments", icon: Files },
   { id: "planner", label: "Planner", tagline: "Plan your day and week", icon: CalendarDays },
   { id: "mind", label: "Mind Space", tagline: "Capture, solve, and reflect", icon: MindSpaceIcon },
@@ -130,7 +131,7 @@ export default function Sidebar({
 
       {/* Sidebar Drawer / Desktop Rail */}
       <aside
-        className={`sidebar fixed left-0 top-0 bottom-0 min-h-screen flex flex-col py-4 bg-white dark:bg-[#070a14] text-[#52627A] dark:text-muted-foreground border-r border-[#DCE5F0] dark:border-border transition-all duration-200 ease-in-out select-none shadow-none w-[78%] max-w-[300px] px-3.5 ${
+        className={`sidebar fixed left-0 top-0 bottom-0 h-screen max-h-screen h-dvh max-h-dvh overflow-hidden flex flex-col py-4 bg-white dark:bg-[#070a14] text-[#52627A] dark:text-muted-foreground border-r border-[#DCE5F0] dark:border-border transition-all duration-200 ease-in-out select-none shadow-none w-[78%] max-w-[300px] px-3.5 ${
           isTourActive ? "z-[9999]" : "z-50"
         } ${
           isOpen ? "open translate-x-0 !translate-x-0 shadow-none" : "-translate-x-full md:translate-x-0"
@@ -141,7 +142,7 @@ export default function Sidebar({
         {/* ============================================================ */}
         {/* 1. TOP BRANDING ROW & COLLAPSE CONTROL                       */}
         {/* ============================================================ */}
-        <div className="flex items-center justify-between mb-4 px-1 min-h-[40px]">
+        <div className="flex items-center justify-between mb-4 px-1 min-h-[40px] shrink-0">
           {/* Logo & Name (Toggles sidebar collapse/expand on desktop, navigates to today on mobile) */}
           <button
             type="button"
@@ -209,7 +210,7 @@ export default function Sidebar({
         {/* ============================================================ */}
         {/* 2. NAVIGATION ITEMS                                         */}
         {/* ============================================================ */}
-        <nav className="flex-1 flex flex-col gap-1 overflow-y-auto overflow-x-hidden py-1">
+        <nav className="flex-1 min-h-0 flex flex-col gap-1 overflow-y-auto overflow-x-hidden py-1">
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = state.activePage === item.id;
@@ -254,7 +255,7 @@ export default function Sidebar({
                     <motion.div
                       layoutId="active-sidebar-pill"
                       className="sidebar-active-pill absolute inset-0 rounded-xl overflow-hidden pointer-events-none"
-                      transition={{ type: "spring", stiffness: 420, damping: 35, duration: 0.2 }}
+                      transition={{ type: "spring", stiffness: 350, damping: 30 }}
                     >
                       <div className="sidebar-active-pill-bg absolute inset-0 rounded-xl bg-[#E7F0FF] dark:bg-blue-950/40" />
                     </motion.div>
@@ -299,7 +300,7 @@ export default function Sidebar({
         {/* ============================================================ */}
         {/* 3. BOTTOM USER PROFILE & SETTINGS AREA                      */}
         {/* ============================================================ */}
-        <div className="mt-auto pt-3 border-t border-[#DCE5F0] dark:border-white/[0.06] relative" ref={profileRef}>
+        <div className="mt-auto pt-3 border-t border-[#DCE5F0] dark:border-white/[0.06] relative shrink-0" ref={profileRef}>
           {/* Profile Dropdown Popover (Box Card Style) */}
           <AnimatePresence>
             {isProfileMenuOpen && (
@@ -400,13 +401,13 @@ export default function Sidebar({
             )}
           </AnimatePresence>
 
-          {/* Expanded State Bottom Section (Always full on mobile, responsive on desktop) */}
-          <div className={`items-center gap-2 p-1.5 rounded-2xl bg-slate-50 dark:bg-white/[0.02] border border-slate-200/60 dark:border-white/[0.05] flex ${isCollapsed ? "md:hidden" : "md:flex"}`}>
+          {/* Expanded State Bottom Section (Seamlessly integrated with sidebar, no box container) */}
+          <div className={`items-center gap-1.5 px-0.5 py-0.5 flex ${isCollapsed ? "md:hidden" : "md:flex"}`}>
             {/* Clickable Profile Area (Avatar + Name) */}
             <button
               type="button"
               onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
-              className="flex items-center gap-2.5 min-w-0 flex-1 p-1 rounded-xl hover:bg-slate-200/50 dark:hover:bg-white/[0.06] transition-colors cursor-pointer text-left outline-none focus-visible:ring-2 focus-visible:ring-[#5B8DEF] group"
+              className="flex items-center gap-2.5 min-w-0 flex-1 p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-white/[0.04] transition-colors cursor-pointer text-left outline-none focus-visible:ring-2 focus-visible:ring-[#5B8DEF] group"
               aria-label="User Profile Menu"
               title={userName}
             >
@@ -417,14 +418,14 @@ export default function Sidebar({
                   <img 
                     src={user.avatarUrl} 
                     alt={userName} 
-                    className="w-9 h-9 rounded-full object-cover ring-2 ring-[#5B8DEF]/30 group-hover:ring-[#5B8DEF]/60 transition-all shadow-none" 
+                    className="w-9 h-9 rounded-full object-cover ring-1 ring-slate-200 dark:ring-white/10 group-hover:ring-[#5B8DEF]/60 transition-all shadow-none" 
                   />
                 ) : isGuestMode ? (
-                  <div className="w-9 h-9 rounded-full flex items-center justify-center bg-[#E8F1FC] dark:bg-blue-950/60 border border-[#D0E1FD] dark:border-blue-900/40 shadow-none text-[#0F172A] dark:text-blue-300 transition-colors">
+                  <div className="w-9 h-9 rounded-full flex items-center justify-center bg-[#E8F1FC] dark:bg-white/[0.06] border border-[#D0E1FD] dark:border-white/[0.08] shadow-none text-[#0F172A] dark:text-blue-300 transition-colors">
                     <ProfileIcon size={18} strokeWidth={2.2} />
                   </div>
                 ) : (
-                  <div className="w-9 h-9 rounded-full flex items-center justify-center bg-[#223A5E] text-white font-bold text-sm shadow-none ring-2 ring-[#5B8DEF]/30 group-hover:ring-[#5B8DEF]/60 transition-all uppercase">
+                  <div className="w-9 h-9 rounded-full flex items-center justify-center bg-[#223A5E] text-white font-bold text-sm shadow-none ring-1 ring-[#5B8DEF]/30 group-hover:ring-[#5B8DEF]/60 transition-all uppercase">
                     {userName ? userName[0].toUpperCase() : <ProfileIcon size={18} strokeWidth={2.2} />}
                   </div>
                 )}
@@ -450,7 +451,7 @@ export default function Sidebar({
                 e.stopPropagation();
                 handleNav("settings");
               }}
-              className="p-2 rounded-xl text-[#52627A] dark:text-muted-foreground hover:text-[#0F172A] dark:hover:text-foreground hover:bg-slate-200/60 dark:hover:bg-white/10 transition-colors shrink-0 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-[#5B8DEF]"
+              className="p-2 rounded-xl text-[#52627A] dark:text-muted-foreground hover:text-[#0F172A] dark:hover:text-foreground hover:bg-slate-100 dark:hover:bg-white/[0.04] transition-colors shrink-0 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-[#5B8DEF]"
               aria-label={t.sidebar.settings || "Settings"}
               title={t.sidebar.settings || "Settings"}
             >

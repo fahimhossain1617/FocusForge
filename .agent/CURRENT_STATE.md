@@ -109,13 +109,13 @@ Foscentia is an active, functional productivity suite built with Next.js 16 App 
 
 ---
 
-### AI Agent
-- **Current Implementation:** `AIAgentPage.tsx`, `AIOrbFace.tsx`, `aiAgentService.ts`, `frontend/src/lib/server/aiService.ts`. Google Gemini engine supporting chat sessions, smart auto-titling, token quota management (`ai_tokens`), and 23+ intent actions with validation (`aiActionValidator.ts`).
+### AI Agent (Glory AI)
+- **Current Implementation:** `AIAgentPage.tsx`, `AIOrbFace.tsx`, `GloryOrbIcon.tsx`, `aiAgentService.ts`, `frontend/src/lib/server/aiService.ts`. Rebranded as **Glory AI** (গ্লোরি এআই) with dedicated monochromatic Orb Face icon. Google Gemini engine supporting chat sessions, smart auto-titling, strict persistent 5,000 token quota management with reset-at timers, and 23+ intent actions with validation (`aiActionValidator.ts`). Ephemeral private chat toggle removed in favor of permanent user-scoped local storage privacy consent. AI disclaimer renders conditionally under assistant messages during conversation and under composer for empty chats.
 - **Verified Status:** **VERIFIED**
-- **Known Problems:** Candidate model list in `aiService.ts` references preview model names (`gemini-3.6-flash`, etc.) which cascade to `gemini-flash-latest` or rule-based fallback if unavailable.
-- **Important Files:** `frontend/src/components/ai-agent/AIAgentPage.tsx`, `frontend/src/services/aiAgentService.ts`, `frontend/src/lib/server/aiService.ts`.
+- **Known Problems:** None.
+- **Important Files:** `frontend/src/components/ai-agent/AIAgentPage.tsx`, `frontend/src/components/icons/GloryOrbIcon.tsx`, `frontend/src/services/aiAgentService.ts`, `frontend/src/lib/server/aiService.ts`.
 - **Dependencies:** `@google/genai`, `ai_chat_sessions`, `ai_tokens`.
-- **Unknowns:** Gemini API token quotas in high-volume production use.
+- **Unknowns:** None.
 
 ---
 
@@ -206,10 +206,10 @@ Foscentia is an active, functional productivity suite built with Next.js 16 App 
 ---
 
 ### Frontend (App Shell, PWA Startup & Navigation)
-- **Current Implementation:** Next.js 16 App Router. `frontend/src/app/page.tsx` acts as SPA shell switching between 11 view components with sidebar navigation, bottom navigation bar on mobile, dark skeleton loaders, and launch animation gating. Android PWA startup is fully dark (`#090c19`) with inline boot layer using the exact 512x512 splash icon asset (`/icons/icon-512x512.png` at 192px CSS centered) seamlessly executing an ~850ms sequence (100ms center hold, straight-line GPU flight with cubic-bezier(.32,.72,0,1) easing towards the visible device header slot resolved via strict hierarchy/viewport checks, 250-550ms dark skeleton fade-in, and same-frame landing swap to real header logo tile).
+- **Current Implementation:** Next.js 16 App Router. `frontend/src/app/page.tsx` acts as SPA shell switching between 11 view components with sidebar navigation, bottom navigation bar on mobile, dark skeleton loaders, and launch animation gating. Includes comprehensive history & hardware back-button navigation integration (`popstate`), instant circular theme transition (`themeTransition.ts`), clean transparent popover backdrops, fixed bottom nav, and refined Focus UI.
 - **Verified Status:** **VERIFIED**
 - **Known Problems:** None.
-- **Important Files:** `frontend/src/app/page.tsx`, `frontend/src/app/layout.tsx`, `frontend/src/components/ui/skeleton/AppShellSkeleton.tsx`, `frontend/public/manifest.json`, `frontend/public/manifest.webmanifest`, `frontend/public/sw.js`, `frontend/src/components/Sidebar.tsx`, `frontend/src/components/navigation/MobileHeader.tsx`, `frontend/src/context/AppContext.tsx`.
+- **Important Files:** `frontend/src/app/page.tsx`, `frontend/src/app/layout.tsx`, `frontend/src/components/Sidebar.tsx`, `frontend/src/components/navigation/MobileHeader.tsx`, `frontend/src/components/navigation/BottomNav.tsx`, `frontend/src/components/icons/GloryOrbIcon.tsx`, `frontend/src/context/AppContext.tsx`, `frontend/src/utils/themeTransition.ts`.
 - **Dependencies:** `react` 19, `next` 16, `framer-motion`.
 - **Unknowns:** None.
 

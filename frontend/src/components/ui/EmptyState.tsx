@@ -14,14 +14,14 @@ interface EmptyStateProps {
 }
 
 export default function EmptyState({
-  icon = <FolderOpen className="w-7 h-7 text-[#5B8DEF] dark:text-indigo-400" />,
+  icon = <FolderOpen className="w-7 h-7 text-blue-500 dark:text-blue-400" />,
   title,
   description,
   action,
 }: EmptyStateProps) {
   return (
     <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
-      <div className="mb-4 flex items-center justify-center w-14 h-14 rounded-2xl bg-[#E7F0FF] dark:bg-white/5 border border-[#DCE5F0] dark:border-white/10 shadow-none text-[#5B8DEF] dark:text-blue-400">
+      <div className="mb-4 flex items-center justify-center w-14 h-14 rounded-2xl bg-blue-500/10 dark:bg-blue-500/15 shadow-none text-blue-500 dark:text-blue-400">
         {icon}
       </div>
       <h3

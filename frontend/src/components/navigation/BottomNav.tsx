@@ -7,15 +7,13 @@ import {
   Home as HomeIcon,
   Target as FocusIcon,
   Plus,
-  Bot as BotIcon,
   CalendarDays as PlannerIcon,
   Files,
-  PencilLine,
   Clock,
-  Brain,
   BookOpenText,
 } from "lucide-react";
 import { MindSpaceIcon } from "../icons/MindSpaceIcon";
+import { GloryOrbIcon } from "../icons/GloryOrbIcon";
 
 export default function BottomNav() {
   const { state, navigateTo } = useAppContext();
@@ -70,7 +68,7 @@ export default function BottomNav() {
     setIsActionsOpen((prev) => !prev);
   };
 
-  // Secondary features in (+) Action popup (AI Agent moved to bottom bar)
+  // Secondary features in (+) Action popup
   const secondaryFeatures = [
     {
       id: "tasks",
@@ -97,7 +95,7 @@ export default function BottomNav() {
   return (
     <>
       {/* ============================================================ */}
-      {/* BACKDROP OVERLAY WHEN EXPANDED MENU IS OPEN                  */}
+      {/* BACKDROP OVERLAY WHEN EXPANDED MENU IS OPEN (Transparent)   */}
       {/* ============================================================ */}
       <AnimatePresence>
         {isActionsOpen && (
@@ -107,7 +105,7 @@ export default function BottomNav() {
             exit={{ opacity: 0 }}
             transition={{ duration: 0.16 }}
             onClick={() => setIsActionsOpen(false)}
-            className="fixed inset-0 z-40 bg-black/20 dark:bg-black/40 md:hidden"
+            className="fixed inset-0 z-40 bg-transparent md:hidden"
             aria-hidden="true"
           />
         )}
@@ -187,12 +185,12 @@ export default function BottomNav() {
       </AnimatePresence>
 
       {/* ============================================================ */}
-      {/* FULL EDGE-TO-EDGE MOBILE ANIMATED BOTTOM NAVIGATION BAR       */}
+      {/* FULL EDGE-TO-EDGE MOBILE PERMANENT FIXED BOTTOM NAV BAR      */}
       {/* ============================================================ */}
       <nav
         ref={navRef}
         aria-label="Mobile Bottom Navigation"
-        className={`fixed bottom-0 left-0 w-full z-50 border-t backdrop-blur-xl select-none md:hidden transition-colors ${
+        className={`fixed bottom-0 left-0 right-0 w-full z-50 border-t backdrop-blur-xl select-none md:hidden transition-colors ${
           isLight
             ? "bg-white/95 border-[#DCE5F0] text-slate-700 shadow-none"
             : "bg-[#0A0E1A]/95 border-white/[0.08] text-slate-200 shadow-none"
@@ -254,11 +252,11 @@ export default function BottomNav() {
               </button>
             </div>
 
-            {/* 4. AI AGENT TAB (Moved to where Planner was) */}
+            {/* 4. GLORY AI TAB */}
             <NavTabButton
               id="ai-agent"
-              label={isBn ? "AI এজেন্ট" : "AI Agent"}
-              icon={BotIcon}
+              label={isBn ? "গ্লোরি এআই" : "Glory AI"}
+              icon={GloryOrbIcon}
               isActive={activePage === "ai-agent"}
               isJustSelected={justSelectedTab === "ai-agent"}
               onAnimationDone={() => setJustSelectedTab(null)}
@@ -266,7 +264,7 @@ export default function BottomNav() {
               onClick={() => handleNav("ai-agent")}
             />
 
-            {/* 5. PLANNER TAB (Moved to where Profile was) */}
+            {/* 5. PLANNER TAB */}
             <NavTabButton
               id="planner"
               label={isBn ? "প্ল্যানার" : "Planner"}
@@ -333,8 +331,8 @@ function NavTabButton({
             }`}
             transition={{
               type: "spring",
-              stiffness: 450,
-              damping: 32,
+              stiffness: 350,
+              damping: 30,
             }}
           />
         )}

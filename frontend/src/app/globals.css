@@ -2126,14 +2126,14 @@ html.dark:not([data-theme="light"]) .note-card {
 
 html:not([data-theme="light"]):not(.light) .planner-highlight-card,
 html.dark:not([data-theme="light"]) .planner-highlight-card {
-  background: linear-gradient(145deg, rgba(16, 22, 36, 0.95), rgba(11, 15, 26, 0.98)) !important;
+  background: #111827 !important;
   border: 1px solid rgba(59, 130, 246, 0.14) !important;
   box-shadow: none !important;
 }
 
 html:not([data-theme="light"]):not(.light) .planner-calendar,
 html.dark:not([data-theme="light"]) .planner-calendar {
-  background: linear-gradient(145deg, rgba(16, 22, 36, 0.95), rgba(11, 15, 26, 0.98)) !important;
+  background: #111827 !important;
   border: 1px solid rgba(59, 130, 246, 0.14) !important;
   box-shadow: none !important;
 }
@@ -2161,7 +2161,7 @@ html.dark:not([data-theme="light"]) .planner-day-cell.is-selected {
 
 html:not([data-theme="light"]):not(.light) .planner-toolbar,
 html.dark:not([data-theme="light"]) .planner-toolbar {
-  background: linear-gradient(145deg, rgba(16, 22, 36, 0.95), rgba(11, 15, 26, 0.98)) !important;
+  background: #111827 !important;
   border: 1px solid rgba(59, 130, 246, 0.14) !important;
   box-shadow: none !important;
 }
@@ -3918,7 +3918,7 @@ button, input, select, textarea, a {
 }
 
 .dashboard-card {
-  background: linear-gradient(145deg, rgba(16, 22, 36, 0.95), rgba(11, 15, 26, 0.98));
+  background: #111827;
   border: 1px solid rgba(59, 130, 246, 0.12);
   box-shadow: none !important;
 }

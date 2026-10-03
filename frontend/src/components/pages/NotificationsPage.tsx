@@ -238,175 +238,124 @@ export default function NotificationsPage() {
   };
 
   return (
-    <div className="w-full max-w-[1200px] mx-auto pb-8 md:pb-12 space-y-4 sm:space-y-5 select-none animate-fadeIn">
+    <div className="w-full max-w-[1200px] mx-auto pb-8 md:pb-12 space-y-4 sm:space-y-5 select-none">
       {/* 1. Main Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
-        <div className="flex items-center gap-3">
-          {/* Back Navigation Button */}
-          <button
-            type="button"
-            onClick={navigateBack}
-            className="inline-flex items-center justify-center w-9 h-9 -ml-1 rounded-xl text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/60 dark:hover:bg-white/10 active:scale-95 transition-all cursor-pointer"
-            aria-label={isBn ? "ফিরে যান" : "Back"}
-            title={isBn ? "ফিরে যান" : "Back"}
-          >
-            <ArrowLeft className="w-5 h-5" strokeWidth={2.2} />
-          </button>
+      <div className="pt-1">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            {/* Back Navigation Button */}
+            <button
+              type="button"
+              onClick={navigateBack}
+              className="inline-flex items-center justify-center w-8 h-8 -ml-1 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors cursor-pointer"
+              aria-label={isBn ? "ফিরে যান" : "Back"}
+              title={isBn ? "ফিরে যান" : "Back"}
+            >
+              <ArrowLeft className="w-5 h-5" strokeWidth={2.2} />
+            </button>
 
-          <div>
-            <div className="flex items-center gap-2.5">
+            <div className="flex items-baseline gap-2.5">
               <h1 className="text-2xl sm:text-[28px] md:text-3xl font-bold tracking-tight text-foreground leading-[1.2]">
                 {isBn ? "নোটিফিকেশন" : "Notifications"}
               </h1>
               {unreadCount > 0 && (
-                <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-slate-200/80 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-300/50 dark:border-white/10">
+                <span className="text-xs sm:text-sm font-medium text-slate-500 dark:text-slate-400">
                   {unreadCount} {isBn ? "নতুন" : "new"}
                 </span>
               )}
             </div>
-            <p className="mt-1 text-xs sm:text-sm text-muted-foreground font-normal leading-relaxed">
-              {isBn
-                ? "আপনার কাজের রিমাইন্ডার, ফোকাস সেশন এবং দৈনিক প্ল্যানের সকল আপডেট।"
-                : "Your task reminders, focus sessions, and daily schedule updates."}
-            </p>
           </div>
-        </div>
 
-        {/* Top Right Action: Settings Link */}
-        <div className="flex items-center gap-2 self-end sm:self-center">
+          {/* Top Right Action: Settings (Clean icon button aligned with title, no box) */}
           <button
             type="button"
             onClick={handleOpenSettings}
-            className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer border ${
-              isLight
-                ? "bg-white border-[#DCE5F0] text-slate-700 hover:bg-slate-50 hover:text-slate-900"
-                : "bg-[#141B2D] border-white/[0.08] text-slate-300 hover:bg-white/[0.06] hover:text-white"
-            }`}
+            className="p-1.5 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors cursor-pointer"
             title={isBn ? "নোটিফিকেশন সেটিংস" : "Notification Settings"}
+            aria-label={isBn ? "নোটিফিকেশন সেটিংস" : "Notification Settings"}
           >
-            <Settings size={14} className="text-slate-500 dark:text-slate-400" />
-            <span className="hidden xs:inline">
-              {isBn ? "সেটিংস" : "Settings"}
-            </span>
+            <Settings size={20} />
           </button>
         </div>
+
+        <p className="mt-1 ml-10 text-xs sm:text-sm text-muted-foreground font-normal leading-relaxed">
+          {isBn
+            ? "আপনার কাজের রিমাইন্ডার, ফোকাস সেশন এবং দৈনিক প্ল্যানের সকল আপডেট।"
+            : "Your task reminders, focus sessions, and daily schedule updates."}
+        </p>
       </div>
 
       {/* 2. Top Interface Controls Toolbar (Open on page, NOT inside any big outer card box) */}
       <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
-        {/* Left: Filter Tabs (All / Unread) with Apple Switch Toggle Animation */}
-        <div className="relative flex items-center p-1 rounded-[12px] bg-black/5 dark:bg-white/5 border border-black/[0.04] dark:border-white/[0.06] select-none">
+        {/* Left: Filter Tabs (All / Unread) - Simple separate tabs, NO outer switch box, NO animations */}
+        <div className="flex items-center gap-2 select-none">
           <button
             type="button"
             onClick={() => setFilterMode("all")}
-            className={`relative px-3.5 py-1.5 rounded-[9px] text-xs font-semibold transition-colors duration-200 cursor-pointer z-10 ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer transition-colors ${
               filterMode === "all"
                 ? isLight
-                  ? "text-slate-900"
-                  : "text-white"
-                : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+                  ? "bg-slate-200 text-slate-900"
+                  : "bg-slate-800 text-white"
+                : "text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
             }`}
           >
-            {filterMode === "all" && (
-              <motion.div
-                layoutId="appleSegmentedPill"
-                className={`absolute inset-0 rounded-[9px] shadow-sm z-[-1] ${
-                  isLight
-                    ? "bg-white shadow-[0_2px_8px_rgba(0,0,0,0.08)]"
-                    : "bg-[#1E273E] shadow-[0_2px_8px_rgba(0,0,0,0.4)] border border-white/[0.08]"
-                }`}
-                transition={{ type: "spring", stiffness: 500, damping: 35 }}
-              />
-            )}
             <span>{isBn ? "সকল" : "All"} ({notifications.length})</span>
           </button>
 
           <button
             type="button"
             onClick={() => setFilterMode("unread")}
-            className={`relative px-3.5 py-1.5 rounded-[9px] text-xs font-semibold transition-colors duration-200 cursor-pointer z-10 ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer transition-colors ${
               filterMode === "unread"
                 ? isLight
-                  ? "text-slate-900"
-                  : "text-white"
-                : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+                  ? "bg-slate-200 text-slate-900"
+                  : "bg-slate-800 text-white"
+                : "text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
             }`}
           >
-            {filterMode === "unread" && (
-              <motion.div
-                layoutId="appleSegmentedPill"
-                className={`absolute inset-0 rounded-[9px] shadow-sm z-[-1] ${
-                  isLight
-                    ? "bg-white shadow-[0_2px_8px_rgba(0,0,0,0.08)]"
-                    : "bg-[#1E273E] shadow-[0_2px_8px_rgba(0,0,0,0.4)] border border-white/[0.08]"
-                }`}
-                transition={{ type: "spring", stiffness: 500, damping: 35 }}
-              />
-            )}
             <span>{isBn ? "অপঠিত" : "Unread"} ({unreadCount})</span>
           </button>
         </div>
 
         {/* Right: Actions strictly on RIGHT (Mark All Read, Select All, Delete) */}
         {filteredNotifications.length > 0 && (
-          <div className="flex items-center gap-2 sm:gap-2.5 ml-auto">
+          <div className="flex items-center gap-3 ml-auto">
             {/* 1. Mark All as Read Button */}
             {unreadCount > 0 && (
               <button
                 type="button"
                 onClick={markAllAsRead}
-                className={`px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
-                  isLight
-                    ? "text-slate-700 hover:text-slate-900 hover:bg-slate-200/60 active:scale-95"
-                    : "text-slate-300 hover:text-white hover:bg-white/[0.08] active:scale-95"
-                }`}
+                className="px-2.5 py-1.5 text-xs font-semibold flex items-center gap-1.5 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer"
                 title={isBn ? "সব পড়া হয়েছে মার্ক করুন" : "Mark all as read"}
                 aria-label={isBn ? "সব পড়া হয়েছে মার্ক করুন" : "Mark all as read"}
               >
-                <CheckCheck size={16} className="text-slate-600 dark:text-slate-400" />
+                <CheckCheck size={16} />
                 <span className="hidden sm:inline">
                   {isBn ? "পড়া হয়েছে" : "Mark Read"}
                 </span>
               </button>
             )}
 
-            {/* 2. Select All Checkbox Button (on the right) */}
+            {/* 2. Select All Checkbox Button (Clean text & checkbox, NO outer box) */}
             <button
               type="button"
               onClick={handleToggleSelectAll}
-              className={`px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-2 transition-all cursor-pointer border ${
-                isAllSelected
-                  ? isLight
-                    ? "bg-slate-100 border-slate-300 text-slate-900"
-                    : "bg-white/10 border-white/20 text-white"
-                  : selectedIds.size > 0
-                  ? isLight
-                    ? "bg-slate-100/80 border-slate-300 text-slate-900"
-                    : "bg-white/10 border-white/20 text-white"
-                  : isLight
-                  ? "bg-white border-[#DCE5F0] text-slate-700 hover:bg-slate-50 hover:text-slate-900"
-                  : "bg-[#141B2D] border-white/[0.08] text-slate-300 hover:bg-white/[0.06] hover:text-white"
-              }`}
+              className="px-2.5 py-1.5 text-xs font-semibold flex items-center gap-1.5 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer"
               title={isBn ? "সবগুলো নির্বাচন করুন" : "Select all"}
             >
               <div
-                className={`w-4 h-4 rounded-[5px] border flex items-center justify-center transition-all ${
+                className={`w-4 h-4 rounded-[4px] border flex items-center justify-center transition-colors ${
                   isAllSelected
-                    ? isLight
-                      ? "bg-slate-800 border-slate-800 text-white"
-                      : "bg-slate-200 border-slate-200 text-slate-900"
+                    ? "bg-blue-600 border-blue-600 text-white"
                     : selectedIds.size > 0
-                    ? isLight
-                      ? "bg-slate-200 border-slate-400 text-slate-800"
-                      : "bg-slate-700 border-slate-500 text-white"
-                    : isLight
-                    ? "border-slate-300 bg-white"
-                    : "border-slate-600 bg-slate-800"
+                    ? "bg-blue-600/20 border-blue-500 text-blue-500"
+                    : "border-slate-400 dark:border-slate-500"
                 }`}
               >
                 {isAllSelected && <Check size={11} strokeWidth={3} />}
                 {!isAllSelected && selectedIds.size > 0 && (
-                  <span className="w-1.5 h-1.5 rounded-sm bg-slate-700 dark:bg-slate-200" />
+                  <span className="w-1.5 h-1.5 rounded-sm bg-blue-500" />
                 )}
               </div>
               <span>
@@ -415,15 +364,15 @@ export default function NotificationsPage() {
               </span>
             </button>
 
-            {/* 3. Delete Icon Button: Disabled when 0 selected, Active when >= 1 selected */}
+            {/* 3. Delete Button: Clean text button like Mark Read, NO box */}
             <button
               type="button"
               onClick={handleDeleteSelected}
               disabled={selectedIds.size === 0}
-              className={`p-2 sm:px-3 sm:py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all ${
+              className={`px-2.5 py-1.5 text-xs font-semibold flex items-center gap-1.5 transition-colors ${
                 selectedIds.size > 0
-                  ? "bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-400 border border-red-500/30 cursor-pointer active:scale-95 shadow-sm"
-                  : "opacity-35 cursor-not-allowed text-slate-400 dark:text-slate-600 border border-transparent"
+                  ? "text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300 cursor-pointer"
+                  : "opacity-35 cursor-not-allowed text-slate-400 dark:text-slate-600"
               }`}
               title={
                 selectedIds.size > 0
@@ -446,16 +395,10 @@ export default function NotificationsPage() {
         )}
       </div>
 
-      {/* 3. Browser Permission Banner (Standalone bar if needed) */}
+      {/* 3. Browser Permission Notice (Clean, flat directly on interface, NO enclosing box) */}
       {browserPermission === "default" && (
-        <div
-          className={`px-4 sm:px-5 py-3 rounded-2xl border flex items-center justify-between gap-3 ${
-            isLight
-              ? "border-[#DCE5F0] text-slate-700 bg-white"
-              : "border-white/[0.08] text-slate-200 bg-[#141B2D]"
-          }`}
-        >
-          <div className="flex items-center gap-2.5 min-w-0">
+        <div className="py-2 flex items-center justify-between gap-3 text-slate-600 dark:text-slate-300">
+          <div className="flex items-center gap-2 min-w-0">
             <Info size={16} className="text-slate-500 dark:text-slate-400 shrink-0" />
             <p className="text-xs sm:text-sm">
               {isBn
@@ -466,11 +409,7 @@ export default function NotificationsPage() {
           <button
             type="button"
             onClick={requestBrowserPermission}
-            className={`px-3.5 py-1.5 text-xs font-bold rounded-xl transition-all shrink-0 cursor-pointer active:scale-95 shadow-sm ${
-              isLight
-                ? "bg-slate-900 hover:bg-slate-800 text-white"
-                : "bg-white hover:bg-slate-100 text-slate-900"
-            }`}
+            className="px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-blue-600 hover:bg-blue-700 text-white shrink-0 cursor-pointer transition-colors"
           >
             {isBn ? "অনুমতি দিন" : "Enable"}
           </button>

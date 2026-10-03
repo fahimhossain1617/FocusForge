@@ -110,12 +110,12 @@ export default function WorkspacePage() {
       {/* Header section */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5">
         <div className="flex flex-col">
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2">
             <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
               {isBn ? "নোটস ও ফাইলস" : "Notes & Files"}
             </h1>
-            <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-500/10 text-blue-400 border border-blue-500/20">
-              {state.notes.length} {isBn ? "টি নোট" : (state.notes.length === 1 ? "note" : "notes")}
+            <span className="text-xs sm:text-sm font-semibold text-muted-foreground ml-1">
+              ({state.notes.length} {isBn ? "টি নোট" : (state.notes.length === 1 ? "note" : "notes")})
             </span>
           </div>
           <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 font-normal">
@@ -134,7 +134,7 @@ export default function WorkspacePage() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               style={{ paddingLeft: '2.25rem', paddingRight: searchQuery ? '2rem' : '0.85rem' }}
-              className="w-full h-full text-xs sm:text-sm rounded-xl border border-slate-200 dark:border-white/10 bg-black/5 dark:bg-white/5 text-foreground placeholder:text-muted-foreground/70 focus:outline-none focus:border-blue-500 transition-colors shadow-none"
+              className="w-full h-full text-xs sm:text-sm rounded-xl border border-slate-200 dark:border-white/10 bg-black/5 dark:bg-white/5 text-foreground placeholder:text-muted-foreground/70 focus:outline-none focus:border-slate-400 dark:focus:border-white/20 transition-colors shadow-none"
             />
             {searchQuery && (
               <button

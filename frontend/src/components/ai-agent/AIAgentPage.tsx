@@ -22,9 +22,7 @@ import {
   Clock,
   Smile,
   ChevronDown,
-  Check,
-  Shield,
-  Lock
+  Check
 } from "lucide-react";
 import { useAppContext } from "@/context/AppContext";
 import { useAuth } from "@/context/AuthContext";
@@ -37,6 +35,7 @@ import { AIActionCard } from "./AIActionCard";
 import styles from "./ai-agent.module.css";
 import { AIChatAnimatedTypingInput } from "./AIChatAnimatedTypingInput";
 import AIConsentModal from "../ai/AIConsentModal";
+import BorderBeam from "../ui/BorderBeam";
 
 const moodList: { id: OrbMood; labelBn: string; labelEn: string }[] = [
   { id: "happy", labelBn: "হ্যাপি", labelEn: "Happy" },
@@ -734,31 +733,15 @@ export function AIAgentPage() {
   return (
     <section
       className={styles.agentShell}
-      aria-label="FocusForge AI"
+      aria-label="Glory AI"
     >
-      {/* FULL-WIDTH TOP BAR: Left "FocusForge AI" to the edge, Right New Chat / 3-dots */}
+      {/* FULL-WIDTH TOP BAR: Left Glory AI brand, Right New Chat & 3-dots */}
       <header className={styles.topBar}>
         <div className={styles.topBarLeft}>
-          <span className={styles.brandTitle}>FocusForge AI</span>
+          <span className={styles.brandTitle}>{isSystemBn ? "গ্লোরি এআই" : "Glory AI"}</span>
         </div>
 
         <div className={styles.topBarRight} ref={menuRef}>
-          {/* Private Chat Toggle Button */}
-          <button
-            type="button"
-            className={`${styles.iconButton} ${isPrivateMode ? "text-amber-500 bg-amber-500/10 border border-amber-500/30" : ""}`}
-            onClick={() => {
-              togglePrivateMode();
-              if (!isPrivateMode) {
-                handleNewChat();
-              }
-            }}
-            aria-label={isPrivateMode ? (isSystemBn ? "প্রাইভেট চ্যাট চালু" : "Private Chat Active") : (isSystemBn ? "প্রাইভেট চ্যাট" : "Private Chat")}
-            title={isPrivateMode ? (isSystemBn ? "প্রাইভেট চ্যাট চালু (মেমোরি ছাড়া)" : "Private Chat Active (No Memory)") : (isSystemBn ? "প্রাইভেট চ্যাট চালু করুন" : "Enable Private Chat")}
-          >
-            <Shield size={19} strokeWidth={isPrivateMode ? 2.2 : 1.8} className={isPrivateMode ? "text-amber-500" : ""} />
-          </button>
-
           {/* New Chat Button */}
           <button
             type="button"
@@ -866,27 +849,6 @@ export function AIAgentPage() {
         </div>
       </header>
 
-      {/* PRIVATE CHAT BANNER */}
-      {isPrivateMode && (
-        <div className="w-full bg-amber-500/10 dark:bg-amber-500/15 border-b border-amber-500/20 px-4 py-2 flex items-center justify-between text-xs text-amber-800 dark:text-amber-300 transition-colors">
-          <div className="flex items-center gap-2">
-            <Lock size={14} className="shrink-0 text-amber-600 dark:text-amber-400" />
-            <span className="font-medium">
-              {isSystemBn
-                ? "প্রাইভেট চ্যাট চালু: কথোপকথনটি সম্পূর্ণ সাময়িক—কোনো মেমোরি, লোকাল স্টোরেজ বা ক্লাউডে সেভ হবে না।"
-                : "Private Chat Active: Messages are temporary and will not be saved locally, in memory, or in the cloud."}
-            </span>
-          </div>
-          <button
-            type="button"
-            onClick={togglePrivateMode}
-            className="underline hover:text-amber-950 dark:hover:text-amber-100 font-semibold cursor-pointer shrink-0 ml-3"
-          >
-            {isSystemBn ? "সাধারণ মোড" : "Switch to Standard"}
-          </button>
-        </div>
-      )}
-
       {/* CENTERED LAYOUT CONTAINER */}
       <div className={styles.layoutContainer}>
         {/* MAIN CONTENT / CHAT AREA */}
@@ -913,16 +875,25 @@ export function AIAgentPage() {
             /* CONVERSATION THREAD + BOTTOM INTERACTIVE ORB STAGE */
             <>
               <div className={styles.conversation} aria-live="polite">
-                {messages
-                  .filter(
+                {(() => {
+                  const validMessages = messages.filter(
                     (message) =>
                       message.intent !== "FAILED_TO_SEND" &&
                       !message.id?.startsWith("failed_") &&
                       message.content !== "Failed to send" &&
                       message.content !== "ফেইল্ড টু সেন্ড"
-                  )
-                  .map((message) => {
+                  );
+                  let lastAiMessageId: string | null = null;
+                  for (let i = validMessages.length - 1; i >= 0; i--) {
+                    if (validMessages[i].role !== "user") {
+                      lastAiMessageId = validMessages[i].id;
+                      break;
+                    }
+                  }
+
+                  return validMessages.map((message) => {
                     const isUser = message.role === "user";
+                    const isLatestAiMessage = !isUser && message.id === lastAiMessageId;
                     return (
                       <div
                         key={message.id}
@@ -1182,9 +1153,17 @@ export function AIAgentPage() {
                             </div>
                           )}
                         </div>
+
+                        {/* AI accuracy disclaimer placed OUTSIDE the message bubble, and ONLY under the latest AI response */}
+                        {isLatestAiMessage && (
+                          <div className="text-[11px] text-slate-400 dark:text-muted-foreground/70 mt-1 pl-1 select-none">
+                            {isSystemBn ? "এআই ভুল করতে পারে। গুরুত্বপূর্ণ তথ্য যাচাই করুন।" : "AI can make mistakes. Check important details."}
+                          </div>
+                        )}
                       </div>
                     );
-                  })}
+                  });
+                })()}
               </div>
 
               {/* BOTTOM INTERACTIVE ORB: Displays Thinking Reaction (hand on chin + thought cloud) or Typing (mini laptop + live typewriter) */}
@@ -1248,6 +1227,13 @@ export function AIAgentPage() {
                 }
               }}
             >
+              {/* Border Beam around the capsule pill text bar */}
+              <BorderBeam
+                borderWidth={2}
+                borderRadius={9999}
+                duration={10}
+                beamLength={300}
+              />
               {/* Left Companion Emoji / Mood Button */}
               <div className={styles.moodMenuWrapper} ref={moodMenuRef}>
                 <button
@@ -1449,10 +1435,12 @@ export function AIAgentPage() {
               </div>
             </div>
 
-            {/* Below it, centered 11.5px muted text */}
-            <p className={styles.disclaimerText}>
-              AI can make mistakes. Check important details.
-            </p>
+            {/* Below it, centered 11.5px muted text only when chat is fresh/empty */}
+            {messages.length === 0 && (
+              <p className={styles.disclaimerText}>
+                {isSystemBn ? "এআই ভুল করতে পারে। গুরুত্বপূর্ণ তথ্য যাচাই করুন।" : "AI can make mistakes. Check important details."}
+              </p>
+            )}
           </div>
         </div>
 

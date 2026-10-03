@@ -118,12 +118,7 @@ export default function ThoughtDetail({ thoughtId, navigate, previousView }: Tho
       </div>
 
       <div
-        className="rounded-2xl border transition-all duration-300 relative pb-16 overflow-hidden flex flex-col"
-        style={{
-          background: "var(--color-bg-card)",
-          borderColor: (isFocused || isEditing) ? "var(--color-purple-primary)" : "var(--color-border-subtle)",
-          boxShadow: (isFocused || isEditing) ? "0 4px 14px rgba(0, 0, 0, 0.08)" : "none",
-        }}
+        className="rounded-2xl border border-slate-200 dark:border-white/10 bg-white dark:bg-[#111827] relative pb-16 flex flex-col shadow-none"
       >
         <textarea
           ref={textareaRef}
