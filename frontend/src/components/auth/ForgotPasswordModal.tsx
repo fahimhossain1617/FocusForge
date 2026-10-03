@@ -101,7 +101,7 @@ export default function ForgotPasswordModal({
               <input
                 id="forgot-email"
                 type="email"
-                placeholder="name@example.com"
+                placeholder="Enter your email address"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required

@@ -1,0 +1,219 @@
+# CURRENT_STATE.md — Current Verified State of Foscentia
+
+**Document Version:** 1.0.0  
+**Last Updated:** October 2026  
+**Status:** Authoritative Current State Baseline
+
+---
+
+## 1. Overall Status
+
+Foscentia is an active, functional productivity suite built with Next.js 16 App Router, PostgreSQL (Supabase), a companion Express backend engine, and Google Gemini AI. The application implements local-first offline storage via IndexedDB alongside direct cloud database synchronization and zero-knowledge E2EE sync relays.
+
+---
+
+## 2. Detailed Subsystem Status Inventory
+
+### Authentication & Password Reset
+- **Current Implementation:** Supabase Auth SDK (`authService.ts`, `AuthContext.tsx`) for session management; custom Pre-Verification Signup flow (`/api/auth/pre-signup`, `/api/auth/verify-signup`) with 6-digit OTP stored in `public.pending_signups`; dedicated Two-Step Password Reset flow (`/reset-password`, `/auth/callback?type=recovery`, `/api/auth/request-reset-otp`, `/api/auth/verify-reset-otp`) with 6-digit OTP staged in `public.pending_password_resets` and delivered via Nodemailer.
+- **Verified Status:** **VERIFIED**
+- **Known Problems:** None currently identified. Recovery link redirects seamlessly to `/reset-password` without landing on home page. Auto-confirm triggers on `auth.users` were dropped in migration `019`/`022` to prevent dirty unverified user records.
+- **Important Files:** `frontend/src/context/AuthContext.tsx`, `frontend/src/services/authService.ts`, `frontend/src/app/reset-password/page.tsx`, `frontend/src/app/auth/callback/page.tsx`, `frontend/src/app/api/[...path]/route.ts`.
+- **Important Dependencies:** `@supabase/supabase-js`, `nodemailer`, `crypto`, `framer-motion`.
+- **Unknowns:** Rate limiting in pure serverless multi-instance environments uses in-memory Map (effective per-instance, but not globally distributed across edge regions).
+
+---
+
+### Guest Mode
+- **Current Implementation:** Unauthenticated visitors operate seamlessly in Guest Mode with full local storage access in IndexedDB and `sessionStorage`. Upon first authenticated login, `accountManager.setGuestModePermanentlyDisabled()` locks guest mode, wipes temporary guest keys (`clearGuestData()`), and offers one-time guest-to-cloud data migration.
+- **Verified Status:** **VERIFIED**
+- **Known Problems:** None.
+- **Important Files:** `frontend/src/services/accountManager.ts`, `frontend/src/services/indexedDBStorage.ts`, `frontend/src/components/auth/GuestTransitionModal.tsx`.
+- **Dependencies:** `localDbService.ts`.
+- **Unknowns:** None.
+
+---
+
+### Dashboard
+- **Current Implementation:** `DashboardPage.tsx` aggregates metrics from Tasks, Focus Sessions, and Learning logs; calculates daily productivity scores, streak counters, and upcoming calendar schedules (`CalendarWidget.tsx`).
+- **Verified Status:** **VERIFIED**
+- **Known Problems:** None.
+- **Important Files:** `frontend/src/components/pages/DashboardPage.tsx`, `frontend/src/components/ui/CalendarWidget.tsx`.
+- **Dependencies:** `AppContext.tsx`, `taskService.ts`, `focusDbService.ts`.
+- **Unknowns:** None.
+
+---
+
+### Planner & Routines
+- **Current Implementation:** `PlannerPage.tsx`, `AddTaskModal.tsx`, `RoutineLibraryModal.tsx`, `ImportRoutineModal.tsx`. Supports task creation, priority tiers (now/next/later), estimated duration, time slots, reminder flags, weekday routine templates, and batch copy-to-date.
+- **Verified Status:** **VERIFIED**
+- **Known Problems:** None. Direct SQL handlers (`tasks`, `routine_templates`) and local IndexedDB stores operate with full synchronization.
+- **Important Files:** `frontend/src/components/pages/PlannerPage.tsx`, `frontend/src/services/taskService.ts`, `backend/src/routes/taskRoutes.ts`.
+- **Dependencies:** `AppContext.tsx`, `localDbService.ts`, `db.ts`.
+- **Unknowns:** None.
+
+---
+
+### Focus Mode & Timer
+- **Current Implementation:** `FocusPage.tsx`, `useFocusTimer.ts`, `RealisticHourglass.tsx`. Supports Pomodoro interval mode, Stopwatch mode, customizable countdowns, ambient audio tracks, distraction logging, and historical focus logging.
+- **Verified Status:** **VERIFIED**
+- **Known Problems:** None.
+- **Important Files:** `frontend/src/components/pages/FocusPage.tsx`, `frontend/src/components/ui/RealisticHourglass.tsx`, `frontend/src/services/focusDbService.ts`.
+- **Dependencies:** `AppContext.tsx`, `focus_sessions` table.
+- **Unknowns:** None.
+
+---
+
+### Notes & Files (Workspace)
+- **Current Implementation:** `WorkspacePage.tsx`, `NoteEditorView.tsx`, `BlockEditor.tsx`. Modular block-based note editor supporting headings, todos, quotes, code blocks with syntax highlighting (`prismjs`), mathematical formulas (`KaTeX`), sticky notes, drawing canvases (`fabric.js`), and file attachments.
+- **Verified Status:** **VERIFIED**
+- **Known Problems:** None. Notes persist as JSONB structures locally in IndexedDB and in PostgreSQL `notes` table.
+- **Important Files:** `frontend/src/components/pages/WorkspacePage.tsx`, `frontend/src/components/workspace/BlockEditor.tsx`, `frontend/src/services/noteService.ts`.
+- **Dependencies:** `AppContext.tsx`, `localDbService.ts`.
+- **Unknowns:** Large binary attachments (>10MB) depend on local browser storage capacity when offline.
+
+---
+
+### My Mind / Mind Space
+- **Current Implementation:** `MyMindPage.tsx`, `MindHome.tsx`, `IdeaCapture.tsx`, `ProblemSolver.tsx`. Provides fast unstructured brain dump, idea grouping, structured problem solving, and quick capture modals (`QuickCapture.tsx`).
+- **Verified Status:** **VERIFIED**
+- **Known Problems:** None.
+- **Important Files:** `frontend/src/components/pages/MyMindPage.tsx`, `frontend/src/services/mindService.ts`.
+- **Dependencies:** `AppContext.tsx`, `mind_items` table.
+- **Unknowns:** None.
+
+---
+
+### Personal Diary
+- **Current Implementation:** `DiaryHome.tsx`, `DiaryEditor.tsx`, `DiaryTopicView.tsx`. Multi-topic journaling with rich theme presets, cover styling, search modal (`DiarySearchModal.tsx`), voice input, and table of contents.
+- **Verified Status:** **VERIFIED**
+- **Known Problems:** None.
+- **Important Files:** `frontend/src/components/diary/DiaryHome.tsx`, `frontend/src/services/diaryStorageService.ts`, `frontend/src/services/diaryDbService.ts`.
+- **Dependencies:** `AppContext.tsx`, `diary_topics`, `diary_entries` tables.
+- **Unknowns:** None.
+
+---
+
+### Learning / Skill Features
+- **Current Implementation:** `LearningHubPage.tsx`, `learningDbService.ts`. Folder-based topic structures, daily practice logs, duration tracking, date-based streak calculations, and topic roadmaps.
+- **Verified Status:** **VERIFIED**
+- **Known Problems:** None.
+- **Important Files:** `frontend/src/components/pages/LearningHubPage.tsx`, `frontend/src/services/learningDbService.ts`.
+- **Dependencies:** `AppContext.tsx`, `learning_folders`, `learning_logs` tables.
+- **Unknowns:** None.
+
+---
+
+### AI Agent
+- **Current Implementation:** `AIAgentPage.tsx`, `AIOrbFace.tsx`, `aiAgentService.ts`, `frontend/src/lib/server/aiService.ts`. Google Gemini engine supporting chat sessions, smart auto-titling, token quota management (`ai_tokens`), and 23+ intent actions with validation (`aiActionValidator.ts`).
+- **Verified Status:** **VERIFIED**
+- **Known Problems:** Candidate model list in `aiService.ts` references preview model names (`gemini-3.6-flash`, etc.) which cascade to `gemini-flash-latest` or rule-based fallback if unavailable.
+- **Important Files:** `frontend/src/components/ai-agent/AIAgentPage.tsx`, `frontend/src/services/aiAgentService.ts`, `frontend/src/lib/server/aiService.ts`.
+- **Dependencies:** `@google/genai`, `ai_chat_sessions`, `ai_tokens`.
+- **Unknowns:** Gemini API token quotas in high-volume production use.
+
+---
+
+### Voice / Speech-to-Text (STT)
+- **Current Implementation:** Dual-mode ASR architecture:
+  1. Real-time streaming via WebSocket to `/api/ai/transcribe-stream` on Express backend (`webSocketService.ts`).
+  2. Batch audio POST to `/api/ai/transcribe` (Next.js serverless route invoking Gemini audio generation).
+  - Both modes feed into `useSpeechRecognition.ts` with overlap deduplication.
+- **Verified Status:** **PARTIAL** (Batch HTTP transcription is VERIFIED; Streaming WebSocket requires the companion Express server and is unavailable on pure Vercel serverless).
+- **Known Problems:** WebSocket connection fails on pure Vercel deployments; client gracefully falls back to batch HTTP transcription.
+- **Important Files:** `frontend/src/hooks/useSpeechRecognition.ts`, `frontend/src/app/api/ai/transcribe/route.ts`, `backend/src/services/webSocketService.ts`.
+- **Dependencies:** `MediaRecorder`, `@google/genai`, `ws`.
+- **Unknowns:** None.
+
+---
+
+### Notifications
+- **Current Implementation:** `NotificationsPage.tsx`, `notificationService.ts`, `notificationCenterService.ts`. In-app notification center, shuffle-bag rotation state per user/category (`user_notification_rotation`), quiet hours filters, Web Push subscription endpoints (`push_subscriptions`), and service worker (`sw.js`).
+- **Verified Status:** **PARTIAL** (In-app center, rotation bags, and user preferences are VERIFIED; Automated background Web Push cron when browser is closed is IMPLEMENTED — NOT VERIFIED due to lack of configured external cron trigger).
+- **Known Problems:** Background push alerts require an active browser tab or external trigger mechanism.
+- **Important Files:** `frontend/src/services/notificationService.ts`, `frontend/src/services/notificationCenterService.ts`, `frontend/public/sw.js`.
+- **Dependencies:** `user_notification_settings`, `user_notifications`, `user_notification_rotation`.
+- **Unknowns:** Production Web Push VAPID key delivery rate across iOS/Android PWA browsers.
+
+---
+
+### Supervisor Portal
+- **Current Implementation:** `/supervisor` route (`supervisor/page.tsx`) protected by RBAC check (`user_roles.role IN ('supervisor', 'admin')`). Provides ticket management (`support_tickets` with `FF-XXXXXX` numbering), two-way thread replies (`ticket_replies`), internal supervisor notes, and audit logging (`supervisor_audit_logs`).
+- **Verified Status:** **VERIFIED**
+- **Known Problems:** None. Strict privacy boundary prevents supervisors from viewing user personal productivity data (notes, diary, tasks).
+- **Important Files:** `frontend/src/app/supervisor/page.tsx`, `backend/src/routes/supervisorRoutes.ts`, `frontend/src/app/api/[...path]/route.ts`.
+- **Dependencies:** `user_roles`, `support_tickets`, `ticket_replies`, `supervisor_audit_logs`.
+- **Unknowns:** None.
+
+---
+
+### Settings & Account Management
+- **Current Implementation:** `SettingsPage.tsx`, `ProfilePage.tsx`, `userService.ts`. Includes profile editing with unique case-insensitive display names, avatar upload/removal, password change with re-authentication and security alert email, theme and language persistence, and atomic user account deletion with ticket anonymization.
+- **Verified Status:** **VERIFIED**
+- **Known Problems:** None.
+- **Important Files:** `frontend/src/components/pages/SettingsPage.tsx`, `frontend/src/components/pages/ProfilePage.tsx`, `frontend/src/services/userService.ts`.
+- **Dependencies:** `profiles`, `auth.users`, `nodemailer`.
+- **Unknowns:** None.
+
+---
+
+### Local Storage (IndexedDB & LocalStorage)
+- **Current Implementation:** `localDbService.ts` manages IndexedDB `focusforge_local_v3` with 15 stores. `indexedDBStorage.ts` provides user-scoped key partitioning (`getUserStorageKey`).
+- **Verified Status:** **VERIFIED**
+- **Known Problems:** None.
+- **Important Files:** `frontend/src/services/localDbService.ts`, `frontend/src/services/indexedDBStorage.ts`.
+- **Dependencies:** Browser `indexedDB`, `localStorage`.
+- **Unknowns:** Storage quota limits on restrictive mobile WebKit environments.
+
+---
+
+### Cloud Database (Supabase PostgreSQL)
+- **Current Implementation:** PostgreSQL instance on Supabase connected via parameterized `pg.Pool` (`db.ts`). 24 schema migrations with foreign key cascades, unique indexes, and RLS policies.
+- **Verified Status:** **VERIFIED**
+- **Known Problems:** None.
+- **Important Files:** `supabase/migrations/` (001 to 023), `frontend/src/lib/server/db.ts`, `backend/src/services/db.ts`.
+- **Dependencies:** `pg`, Supabase connection pooler.
+- **Unknowns:** None.
+
+---
+
+### Cross-Device Sync & Encryption (E2EE)
+- **Current Implementation:** `cryptoSyncService.ts` provides client-side Web Crypto AES-256-GCM encryption with 12-byte IVs and PBKDF2 key derivation. `syncService.ts` drains `sync_queue` to `/api/sync/push` and `/api/sync/pull`.
+- **Verified Status:** **PARTIAL** (Local crypto and sync relay endpoints are verified; automatic key exchange between multiple physical devices uses default derivation unless user enters recovery key).
+- **Known Problems:** Multi-device passphrase pairing UX is simplified to deterministic per-user seed for seamless baseline operation.
+- **Important Files:** `frontend/src/services/cryptoSyncService.ts`, `frontend/src/services/syncService.ts`, `supabase/migrations/021_e2ee_sync_and_personal_data_cleanup.sql`.
+- **Dependencies:** `window.crypto.subtle`, `encrypted_sync_records` table.
+- **Unknowns:** Cross-device conflict resolution behavior on high-frequency simultaneous edits across 3+ devices.
+
+---
+
+### Backend (Dual Paths)
+- **Current Implementation:**
+  1. Next.js Serverless Catch-All API (`frontend/src/app/api/[...path]/route.ts`) — 1,873 lines implementing all REST routes.
+  2. Companion Express Backend (`backend/src/server.ts`) on port 5000 with 12 route modules and WebSocket ASR engine.
+  - Client `apiClient.ts` dynamically resolves target and fails over automatically.
+- **Verified Status:** **VERIFIED**
+- **Known Problems:** Developers must maintain parity between Express routes and Next.js serverless route handlers when altering backend endpoints.
+- **Important Files:** `frontend/src/app/api/[...path]/route.ts`, `backend/src/server.ts`, `frontend/src/lib/apiClient.ts`.
+- **Dependencies:** `express`, `next`, `pg`, `ws`.
+- **Unknowns:** None.
+
+---
+
+### Frontend (App Shell & Navigation)
+- **Current Implementation:** Next.js 16 App Router. `frontend/src/app/page.tsx` acts as SPA shell switching between 11 view components with sidebar navigation, bottom navigation bar on mobile, skeleton loaders, and launch animation gating.
+- **Verified Status:** **VERIFIED**
+- **Known Problems:** None.
+- **Important Files:** `frontend/src/app/page.tsx`, `frontend/src/app/layout.tsx`, `frontend/src/components/Sidebar.tsx`, `frontend/src/context/AppContext.tsx`.
+- **Dependencies:** `react` 19, `next` 16, `framer-motion`.
+- **Unknowns:** None.
+
+---
+
+### Deployment
+- **Current Implementation:** Vercel deployment configured via `frontend/vercel.json` and `frontend/next.config.ts`.
+- **Verified Status:** **VERIFIED**
+- **Known Problems:** WebSocket streaming ASR requires separate persistent hosting if real-time audio streaming is preferred over HTTP batch STT.
+- **Important Files:** `frontend/vercel.json`, `frontend/next.config.ts`, `scripts/deploy.js`.
+- **Dependencies:** Vercel platform.
+- **Unknowns:** None.

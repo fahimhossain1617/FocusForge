@@ -18,7 +18,12 @@ function AuthCallbackContent() {
 
     async function handleAuthRedirect() {
       try {
+        const type = searchParams.get("type");
+        const next = searchParams.get("next");
         const code = searchParams.get("code");
+        const hash = typeof window !== "undefined" ? window.location.hash : "";
+        const isRecovery = type === "recovery" || next?.includes("reset-password") || hash.includes("type=recovery");
+
         if (code) {
           await supabase.auth.exchangeCodeForSession(code);
         }
@@ -27,6 +32,17 @@ function AuthCallbackContent() {
 
         if (error) {
           if (isMounted) setErrorMsg(error.message);
+          return;
+        }
+
+        if (isRecovery) {
+          const userEmail = data?.session?.user?.email || "";
+          if (userEmail && typeof window !== "undefined") {
+            sessionStorage.setItem("focusforge_pending_reset_email", userEmail);
+          }
+          if (isMounted) {
+            router.replace(`/reset-password${userEmail ? `?email=${encodeURIComponent(userEmail)}` : ""}`);
+          }
           return;
         }
 

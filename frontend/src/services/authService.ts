@@ -286,7 +286,7 @@ export const authService = {
   // ==========================================
   async sendPasswordResetEmail(email: string): Promise<{ success: boolean; error?: string }> {
     const cleanEmail = email.trim().toLowerCase();
-    const redirectUrl = getAuthRedirectUrl('/auth/callback?type=recovery');
+    const redirectUrl = getAuthRedirectUrl('/reset-password');
 
     const { error } = await supabase.auth.resetPasswordForEmail(cleanEmail, {
       redirectTo: redirectUrl,
@@ -297,6 +297,79 @@ export const authService = {
     }
 
     return { success: true };
+  },
+
+  async requestPasswordResetOtp(email: string, newPassword?: string): Promise<{ success: boolean; error?: string; message?: string }> {
+    const cleanEmail = email.trim().toLowerCase();
+    try {
+      const resp = await fetch('/api/auth/request-reset-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: cleanEmail, newPassword }),
+      });
+      const data = await resp.json();
+      if (!resp.ok || !data.success) {
+        return { success: false, error: data.error || 'Failed to request password reset code.' };
+      }
+      return { success: true, message: data.message };
+    } catch (err: any) {
+      return { success: false, error: err?.message || 'Network error requesting reset code.' };
+    }
+  },
+
+  async resendPasswordResetOtp(email: string): Promise<{ success: boolean; error?: string; message?: string }> {
+    const cleanEmail = email.trim().toLowerCase();
+    try {
+      const resp = await fetch('/api/auth/resend-reset-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: cleanEmail }),
+      });
+      const data = await resp.json();
+      if (!resp.ok || !data.success) {
+        return { success: false, error: data.error || 'Failed to resend reset code.' };
+      }
+      return { success: true, message: data.message };
+    } catch (err: any) {
+      return { success: false, error: err?.message || 'Network error resending reset code.' };
+    }
+  },
+
+  async verifyPasswordResetOtp(
+    email: string,
+    otp: string,
+    newPassword?: string
+  ): Promise<{ success: boolean; error?: string; isExpired?: boolean; message?: string }> {
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanOtp = otp.trim();
+
+    try {
+      const resp = await fetch('/api/auth/verify-reset-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: cleanEmail, otp: cleanOtp, newPassword }),
+      });
+      const data = await resp.json();
+
+      if (!resp.ok || !data.success) {
+        return {
+          success: false,
+          error: data.error || 'Failed to verify reset code.',
+          isExpired: data.isExpired,
+        };
+      }
+
+      // If user is currently in a Supabase session or if newPassword passed, also update client Supabase session
+      if (newPassword) {
+        try {
+          await supabase.auth.updateUser({ password: newPassword });
+        } catch {}
+      }
+
+      return { success: true, message: data.message };
+    } catch (err: any) {
+      return { success: false, error: err?.message || 'Network error verifying reset code.' };
+    }
   },
 
   async resetPassword(newPassword: string): Promise<{ success: boolean; error?: string }> {

@@ -1055,17 +1055,12 @@ export default function SettingsPage() {
                         Verified
                       </span>
                     </div>
-                    <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[var(--color-text-muted)]">
-                        <Mail size={14} />
-                      </div>
-                      <input
-                        type="email"
-                        readOnly
-                        value={profileForm.email || user?.identifier || ""}
-                        className="w-full pl-9 pr-3.5 py-2.5 rounded-xl text-sm bg-[var(--color-surface)] border border-[var(--color-border-subtle)] text-[var(--color-text-secondary)] opacity-80 cursor-not-allowed min-h-[44px]"
-                      />
-                    </div>
+                    <input
+                      type="email"
+                      readOnly
+                      value={profileForm.email || user?.identifier || ""}
+                      className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-[var(--color-surface)] border border-[var(--color-border-subtle)] text-[var(--color-text-secondary)] opacity-80 cursor-not-allowed min-h-[44px]"
+                    />
                   </div>
 
                   <div>
@@ -1074,18 +1069,13 @@ export default function SettingsPage() {
                     </label>
                     {isEditingProfile ? (
                       <div>
-                        <div className="relative">
-                          <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[var(--color-text-muted)]">
-                            <Phone size={14} />
-                          </div>
-                          <input
-                            type="tel"
-                            value={profileForm.phone}
-                            onChange={(e) => setProfileForm({ ...profileForm, phone: sanitizePhone(e.target.value) })}
-                            placeholder="+880 1712345678"
-                            className="w-full pl-9 pr-3.5 py-2.5 rounded-xl text-sm bg-[var(--color-surface)] border border-[var(--color-border-subtle)] text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:border-blue-500 transition-colors min-h-[44px]"
-                          />
-                        </div>
+                        <input
+                          type="tel"
+                          value={profileForm.phone}
+                          onChange={(e) => setProfileForm({ ...profileForm, phone: sanitizePhone(e.target.value) })}
+                          placeholder="e.g. +880 1712345678"
+                          className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-[var(--color-surface)] border border-[var(--color-border-subtle)] text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:border-blue-500 transition-colors min-h-[44px]"
+                        />
                         {profileErrors.phone && (
                           <p className="text-xs text-red-500 mt-1">{profileErrors.phone}</p>
                         )}
@@ -1159,16 +1149,13 @@ export default function SettingsPage() {
                       Country / Region <span className="text-[var(--color-text-muted)] font-normal">(Optional)</span>
                     </label>
                     {isEditingProfile ? (
-                      <div className="relative">
-                        <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[var(--color-text-muted)]">
-                          <Globe size={14} />
-                        </div>
+                      <div>
                         <input
                           type="text"
                           value={profileForm.country}
                           onChange={(e) => setProfileForm({ ...profileForm, country: e.target.value })}
                           placeholder="e.g. Bangladesh"
-                          className="w-full pl-9 pr-3.5 py-2.5 rounded-xl text-sm bg-[var(--color-surface)] border border-[var(--color-border-subtle)] text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:border-blue-500 transition-colors min-h-[44px]"
+                          className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-[var(--color-surface)] border border-[var(--color-border-subtle)] text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:border-blue-500 transition-colors min-h-[44px]"
                         />
                       </div>
                     ) : (
@@ -1184,16 +1171,13 @@ export default function SettingsPage() {
                       City <span className="text-[var(--color-text-muted)] font-normal">(Optional)</span>
                     </label>
                     {isEditingProfile ? (
-                      <div className="relative">
-                        <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[var(--color-text-muted)]">
-                          <MapPin size={14} />
-                        </div>
+                      <div>
                         <input
                           type="text"
                           value={profileForm.city}
                           onChange={(e) => setProfileForm({ ...profileForm, city: e.target.value })}
                           placeholder="e.g. Dhaka"
-                          className="w-full pl-9 pr-3.5 py-2.5 rounded-xl text-sm bg-[var(--color-surface)] border border-[var(--color-border-subtle)] text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:border-blue-500 transition-colors min-h-[44px]"
+                          className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-[var(--color-surface)] border border-[var(--color-border-subtle)] text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:border-blue-500 transition-colors min-h-[44px]"
                         />
                       </div>
                     ) : (
@@ -1373,24 +1357,21 @@ export default function SettingsPage() {
                         <label className="block text-xs font-medium text-[var(--color-text-primary)] mb-1.5">
                           {t.auth.emailAddress || "Email Address"}
                         </label>
-                        <div className="relative">
-                          <Mail size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] pointer-events-none z-10" />
-                          <input
-                            type="email"
-                            required
-                            value={forgotEmail}
-                            onChange={(e) => {
-                              setForgotEmail(e.target.value);
-                              setForgotEmailError("");
-                            }}
-                            placeholder="name@example.com"
-                            className={`w-full pl-10 pr-3.5 py-2.5 rounded-xl text-sm bg-[var(--color-surface)] border ${
-                              forgotEmailError
-                                ? "border-red-500 focus:border-red-500 ring-1 ring-red-500/20"
-                                : "border-[var(--color-border-subtle)] focus:border-blue-500"
-                            } text-[var(--color-text-primary)] focus:outline-none transition-colors min-h-[44px]`}
-                          />
-                        </div>
+                        <input
+                          type="email"
+                          required
+                          value={forgotEmail}
+                          onChange={(e) => {
+                            setForgotEmail(e.target.value);
+                            setForgotEmailError("");
+                          }}
+                          placeholder="Enter your email address"
+                          className={`w-full px-3.5 py-2.5 rounded-xl text-sm bg-[var(--color-surface)] border ${
+                            forgotEmailError
+                              ? "border-red-500 focus:border-red-500 ring-1 ring-red-500/20"
+                              : "border-[var(--color-border-subtle)] focus:border-blue-500"
+                          } text-[var(--color-text-primary)] focus:outline-none transition-colors min-h-[44px]`}
+                        />
                         {forgotEmailError && (
                           <p className="text-xs text-red-500 dark:text-red-400 font-medium mt-1.5 flex items-center gap-1" style={{ color: '#EF4444' }}>
                             {forgotEmailError}
@@ -1448,6 +1429,7 @@ export default function SettingsPage() {
                         type={showCurrentPassword ? "text" : "password"}
                         value={currentPassword}
                         onChange={(e) => setCurrentPassword(e.target.value)}
+                        placeholder="Enter current password"
                         className={`w-full pl-3.5 pr-10 py-2.5 rounded-xl text-sm bg-[var(--color-surface)] border ${
                           passwordErrors.current
                             ? "border-red-500 focus:border-red-500 ring-1 ring-red-500/20"
@@ -1494,6 +1476,7 @@ export default function SettingsPage() {
                         type={showNewPassword ? "text" : "password"}
                         value={newPassword}
                         onChange={(e) => setNewPassword(e.target.value)}
+                        placeholder="Enter new password (min. 6 characters)"
                         className={`w-full pl-3.5 pr-10 py-2.5 rounded-xl text-sm bg-[var(--color-surface)] border ${
                           passwordErrors.new
                             ? "border-red-500 focus:border-red-500 ring-1 ring-red-500/20"
@@ -1526,6 +1509,7 @@ export default function SettingsPage() {
                         type={showConfirmPassword ? "text" : "password"}
                         value={confirmPassword}
                         onChange={(e) => setConfirmPassword(e.target.value)}
+                        placeholder="Re-enter new password"
                         className={`w-full pl-3.5 pr-10 py-2.5 rounded-xl text-sm bg-[var(--color-surface)] border ${
                           passwordErrors.confirm
                             ? "border-red-500 focus:border-red-500 ring-1 ring-red-500/20"

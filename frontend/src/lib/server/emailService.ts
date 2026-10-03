@@ -549,3 +549,72 @@ FocusForge Team
   });
 }
 
+// 7. 6-Digit Password Reset OTP Email
+export async function sendPasswordResetOtpEmail(to: string, otpCode: string, recipientName?: string): Promise<boolean> {
+  if (!to) return false;
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="utf-8" />
+        <style>
+          body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #1e293b; background-color: #f8fafc; padding: 24px; margin: 0; }
+          .card { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; max-width: 540px; margin: 0 auto; padding: 32px 24px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05); }
+          .brand { font-size: 22px; font-weight: 800; color: #0356C5; margin-bottom: 20px; display: inline-block; letter-spacing: -0.02em; }
+          .title { font-size: 20px; font-weight: 700; color: #0f172a; margin: 0 0 12px; }
+          .sub { font-size: 15px; color: #475569; margin: 0 0 24px; line-height: 1.5; }
+          .otp-box { background: #f0f6ff; border: 1.5px dashed #0356C5; border-radius: 10px; padding: 20px; text-align: center; margin: 24px 0; }
+          .otp-code { font-size: 36px; font-weight: 800; letter-spacing: 8px; color: #0356C5; font-family: monospace, sans-serif; }
+          .expire-note { font-size: 13px; color: #64748b; margin-top: 10px; }
+          .warning-box { background: #fff7ed; border-left: 4px solid #f97316; padding: 12px 16px; border-radius: 6px; margin: 20px 0; font-size: 13px; color: #9a3412; }
+          .footer { font-size: 12px; color: #94a3b8; margin-top: 28px; border-top: 1px solid #e2e8f0; padding-top: 16px; text-align: center; }
+        </style>
+      </head>
+      <body>
+        <div class="card">
+          <div class="brand">FocusForge</div>
+          <h2 class="title">Reset your password</h2>
+          <p class="sub">Hello ${escapeHtml(recipientName || 'there')},<br />We received a request to reset your FocusForge account password. Enter the 6-digit confirmation code below to proceed.</p>
+          
+          <div class="otp-box">
+            <div class="otp-code">${escapeHtml(otpCode)}</div>
+            <div class="expire-note">This code expires in 15 minutes.</div>
+          </div>
+
+          <div class="warning-box">
+            <strong>Security Notice:</strong> If you did not request a password reset, please secure your account immediately or ignore this message.
+          </div>
+          
+          <div class="footer">
+            &copy; 2026 FocusForge &bull; Secure Authentication System
+          </div>
+        </div>
+      </body>
+    </html>
+  `;
+
+  const text = `
+FocusForge Password Reset
+
+Hello ${recipientName || 'there'},
+
+Your 6-digit password reset code is: ${otpCode}
+
+This code expires in 15 minutes.
+
+If you did not request a password reset, please ignore this email.
+
+Best regards,
+FocusForge Security Team
+  `.trim();
+
+  return await emailQueue.sendDirect({
+    to,
+    subject: `${otpCode} is your FocusForge password reset code`,
+    html,
+    text,
+  });
+}
+
+

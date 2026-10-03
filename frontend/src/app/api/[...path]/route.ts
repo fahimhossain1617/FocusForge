@@ -93,6 +93,7 @@ import {
   sendPasswordChangedEmail,
   sendAccountDeletedEmail,
   sendVerificationOtpEmail,
+  sendPasswordResetOtpEmail,
 } from '@/lib/server/emailService';
 import { sendToGoogleAppsScript } from '@/lib/server/googleSheetsService';
 import { supabase } from '@/lib/supabaseClient';
@@ -653,6 +654,218 @@ export async function POST(request: NextRequest, context: { params: Promise<{ pa
       return NextResponse.json({ success: true, message: 'A fresh verification code has been dispatched to your email.' });
     } catch (err: any) {
       return NextResponse.json({ error: err.message || 'Failed to resend code' }, { status: 500 });
+    }
+  }
+
+  // ==========================================
+  // AUTH: PASSWORD RESET OTP FLOW
+  // ==========================================
+  if (pathStr === 'auth/request-reset-otp') {
+    const { email, newPassword } = body;
+    if (!email?.trim() || !email.includes('@')) {
+      return NextResponse.json({ error: 'Please enter a valid email address.' }, { status: 400 });
+    }
+
+    const cleanEmail = email.trim().toLowerCase();
+
+    if (newPassword) {
+      const vPass = validatePassword(newPassword);
+      if (!vPass.valid) {
+        return NextResponse.json({ error: vPass.message, code: vPass.code }, { status: 400 });
+      }
+    }
+
+    // Rate limit: 5 requests per 10 minutes per IP
+    const rateCheck = checkRateLimit(`reset_otp:${cleanEmail}:${clientIp}`, 5, 600000);
+    if (!rateCheck.allowed) {
+      return NextResponse.json({ error: 'Too many reset requests. Please wait a few minutes.', code: ERROR_CODES.TOO_MANY_ATTEMPTS }, { status: 429 });
+    }
+
+    try {
+      // Ensure pending_password_resets table exists
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS public.pending_password_resets (
+          email TEXT PRIMARY KEY,
+          new_password_hash TEXT,
+          otp_code TEXT NOT NULL,
+          attempts INT DEFAULT 0,
+          created_at TIMESTAMPTZ DEFAULT NOW(),
+          expires_at TIMESTAMPTZ NOT NULL
+        )
+      `);
+
+      // Check if user exists in auth.users or profiles
+      const userRes = await pool.query('SELECT id, email, raw_user_meta_data FROM auth.users WHERE LOWER(email) = LOWER($1)', [cleanEmail]);
+      if (userRes.rows.length === 0) {
+        return NextResponse.json({ error: 'No account found with this email address. Please check and try again.' }, { status: 404 });
+      }
+
+      const userRow = userRes.rows[0];
+      const meta = userRow.raw_user_meta_data || {};
+      const recipientName = meta.full_name || meta.display_name || meta.name || cleanEmail.split('@')[0];
+
+      // Generate cryptographically secure 6-digit OTP
+      const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+      const encryptedPassword = newPassword ? encryptPassword(newPassword) : null;
+
+      // Store in pending_password_resets with 15 minutes expiry
+      await pool.query(
+        `INSERT INTO public.pending_password_resets (email, new_password_hash, otp_code, created_at, expires_at)
+         VALUES ($1, $2, $3, NOW(), NOW() + INTERVAL '15 minutes')
+         ON CONFLICT (email) DO UPDATE SET
+           new_password_hash = EXCLUDED.new_password_hash,
+           otp_code = EXCLUDED.otp_code,
+           attempts = 0,
+           created_at = NOW(),
+           expires_at = NOW() + INTERVAL '15 minutes'`,
+        [cleanEmail, encryptedPassword, otpCode]
+      );
+
+      // Send OTP via email
+      await sendPasswordResetOtpEmail(cleanEmail, otpCode, recipientName);
+
+      console.log(`[FocusForge Reset OTP] OTP for ${cleanEmail}: ${otpCode}`);
+
+      return NextResponse.json({
+        success: true,
+        message: 'A verification code has been dispatched to your email.',
+        email: cleanEmail,
+      });
+    } catch (err: any) {
+      console.error('[auth/request-reset-otp] Error:', err);
+      return NextResponse.json({ error: err.message || 'Failed to initiate password reset' }, { status: 500 });
+    }
+  }
+
+  if (pathStr === 'auth/resend-reset-otp') {
+    const { email } = body;
+    if (!email?.trim()) {
+      return NextResponse.json({ error: 'Email is required.' }, { status: 400 });
+    }
+
+    const cleanEmail = email.trim().toLowerCase();
+
+    // Check rate limit: 1 per 60 seconds
+    const rateCheck = checkRateLimit(`resend_reset_otp:${cleanEmail}`, 1, 60000);
+    if (!rateCheck.allowed) {
+      return NextResponse.json({ error: `Please wait ${rateCheck.retryAfterSeconds} seconds before requesting a new code.` }, { status: 429 });
+    }
+
+    try {
+      const res = await pool.query('SELECT * FROM public.pending_password_resets WHERE LOWER(email) = LOWER($1)', [cleanEmail]);
+      if (res.rows.length === 0) {
+        return NextResponse.json({ error: 'No pending reset request found for this email. Please request a new reset.' }, { status: 404 });
+      }
+
+      const pending = res.rows[0];
+      const newOtpCode = Math.floor(100000 + Math.random() * 900000).toString();
+
+      await pool.query(
+        `UPDATE public.pending_password_resets 
+         SET otp_code = $1, attempts = 0, expires_at = NOW() + INTERVAL '15 minutes'
+         WHERE LOWER(email) = LOWER($2)`,
+        [newOtpCode, cleanEmail]
+      );
+
+      // Fetch name
+      const userRes = await pool.query('SELECT raw_user_meta_data FROM auth.users WHERE LOWER(email) = LOWER($1)', [cleanEmail]);
+      const meta = userRes.rows[0]?.raw_user_meta_data || {};
+      const recipientName = meta.full_name || meta.display_name || cleanEmail.split('@')[0];
+
+      await sendPasswordResetOtpEmail(cleanEmail, newOtpCode, recipientName);
+      console.log(`[FocusForge Resend Reset OTP] New OTP for ${cleanEmail}: ${newOtpCode}`);
+
+      return NextResponse.json({ success: true, message: 'A fresh verification code has been dispatched to your email.' });
+    } catch (err: any) {
+      return NextResponse.json({ error: err.message || 'Failed to resend code' }, { status: 500 });
+    }
+  }
+
+  if (pathStr === 'auth/verify-reset-otp') {
+    const { email, otp, newPassword } = body;
+    if (!email?.trim() || !otp?.trim()) {
+      return NextResponse.json({ error: 'Email and verification code are required.' }, { status: 400 });
+    }
+
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanOtp = otp.trim();
+
+    try {
+      const res = await pool.query('SELECT * FROM public.pending_password_resets WHERE LOWER(email) = LOWER($1)', [cleanEmail]);
+      if (res.rows.length === 0) {
+        return NextResponse.json({ error: 'No pending reset request found for this email. Please initiate a new password reset.' }, { status: 404 });
+      }
+
+      const pending = res.rows[0];
+
+      // Check expiry
+      if (new Date(pending.expires_at).getTime() < Date.now()) {
+        return NextResponse.json({ error: 'Verification code has expired. Please request a new code.', isExpired: true }, { status: 400 });
+      }
+
+      // Check OTP code
+      if (pending.otp_code !== cleanOtp) {
+        await pool.query('UPDATE public.pending_password_resets SET attempts = attempts + 1 WHERE email = $1', [cleanEmail]);
+        return NextResponse.json({ error: 'Incorrect verification code. Please check and try again.' }, { status: 400 });
+      }
+
+      // Determine target new password
+      let targetPassword = newPassword;
+      if (!targetPassword && pending.new_password_hash) {
+        try {
+          targetPassword = decryptPassword(pending.new_password_hash);
+        } catch {
+          targetPassword = null;
+        }
+      }
+
+      if (!targetPassword) {
+        return NextResponse.json({
+          success: true,
+          verified: true,
+          message: 'Code verified. Please provide your new password.',
+        });
+      }
+
+      const vPass = validatePassword(targetPassword);
+      if (!vPass.valid) {
+        return NextResponse.json({ error: vPass.message, code: vPass.code }, { status: 400 });
+      }
+
+      // 1. Update password in PostgreSQL auth.users
+      try {
+        await pool.query(
+          `UPDATE auth.users 
+           SET encrypted_password = extensions.crypt($1, extensions.gen_salt('bf')),
+               updated_at = NOW()
+           WHERE LOWER(email) = LOWER($2)`,
+          [targetPassword, cleanEmail]
+        );
+      } catch (sqlErr) {
+        // Fallback without extensions prefix if installed in public schema
+        await pool.query(
+          `UPDATE auth.users 
+           SET encrypted_password = crypt($1, gen_salt('bf')),
+               updated_at = NOW()
+           WHERE LOWER(email) = LOWER($2)`,
+          [targetPassword, cleanEmail]
+        );
+      }
+
+      // 2. Remove pending reset record
+      await pool.query('DELETE FROM public.pending_password_resets WHERE LOWER(email) = LOWER($1)', [cleanEmail]);
+
+      // 3. Send security alert email
+      sendPasswordChangedEmail(cleanEmail);
+
+      return NextResponse.json({
+        success: true,
+        message: 'Password has been updated successfully! You can now log in with your new password.',
+        email: cleanEmail,
+      });
+    } catch (err: any) {
+      console.error('[auth/verify-reset-otp] Error:', err);
+      return NextResponse.json({ error: err.message || 'Verification failed.' }, { status: 500 });
     }
   }
 

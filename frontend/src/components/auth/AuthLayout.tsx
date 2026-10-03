@@ -10,7 +10,7 @@ import { useAppContext } from "../../context/AppContext";
 
 interface AuthLayoutProps {
   children: React.ReactNode;
-  screen: "login" | "signup" | "verify";
+  screen: "login" | "signup" | "verify" | "reset";
   showBack?: boolean;
   onBack?: () => void;
   stepInfo?: string;
@@ -30,7 +30,14 @@ export default function AuthLayout({
   const [legalModalTab, setLegalModalTab] = useState<"terms" | "privacy">("terms");
 
   useEffect(() => {
-    const isLight = state?.theme?.mode === "light";
+    // Check saved theme in localStorage or state or document
+    let isLight = state?.theme?.mode === "light";
+    if (typeof window !== "undefined") {
+      const storedTheme = localStorage.getItem("focusforge_theme") || localStorage.getItem("theme");
+      if (storedTheme === "light") isLight = true;
+      else if (storedTheme === "dark") isLight = false;
+      else if (document.documentElement.classList.contains("light")) isLight = true;
+    }
     setThemeMode(isLight ? "light" : "dark");
   }, [state?.theme?.mode]);
 

@@ -257,3 +257,24 @@ export function sendAccountDeletedEmail(userEmail: string, userName?: string) {
     text,
   });
 }
+
+export function sendPasswordResetOtpEmail(to: string, otpCode: string, recipientName?: string) {
+  if (!to) return;
+  const html = `
+    <div style="font-family: sans-serif; line-height: 1.6; padding: 20px;">
+      <h2>FocusForge Password Reset</h2>
+      <p>Hello ${escapeHtml(recipientName || 'there')},</p>
+      <p>Your 6-digit password reset code is: <strong>${escapeHtml(otpCode)}</strong></p>
+      <p>This code expires in 15 minutes. If you did not request a password reset, please ignore this email.</p>
+    </div>
+  `;
+  const text = `FocusForge Password Reset\n\nYour 6-digit password reset code is: ${otpCode}\n\nThis code expires in 15 minutes.`;
+
+  emailQueue.enqueue({
+    to,
+    subject: `${otpCode} is your FocusForge password reset code`,
+    html,
+    text,
+  });
+}
+
