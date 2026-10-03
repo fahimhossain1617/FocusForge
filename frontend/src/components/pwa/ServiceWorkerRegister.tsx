@@ -106,7 +106,20 @@ export default function ServiceWorkerRegister() {
 
     const handleMessage = (event: MessageEvent) => {
       if (event.data?.type === "NAVIGATE" && event.data.route) {
-        window.location.hash = event.data.route;
+        try {
+          window.dispatchEvent(
+            new CustomEvent("focusforge:navigate", {
+              detail: {
+                route: event.data.route,
+                taskId: event.data.taskId,
+                action: event.data.action,
+              },
+            })
+          );
+        } catch {}
+        try {
+          window.location.hash = event.data.route;
+        } catch {}
       }
     };
     navigator.serviceWorker.addEventListener("message", handleMessage);

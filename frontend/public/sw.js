@@ -1,5 +1,5 @@
 // FocusForge Progressive Web App Service Worker
-const CACHE_NAME = 'focusforge-v5';
+const CACHE_NAME = 'focusforge-v6';
 
 const STATIC_ASSETS = [
   '/',
@@ -12,6 +12,9 @@ const STATIC_ASSETS = [
   '/icons/icon-512x512.png',
   '/icons/icon-maskable-192x192.png',
   '/icons/icon-maskable-512x512.png',
+  '/icons/badge-96x96.png',
+  '/icons/badge-72x72.png',
+  '/icons/badge-monochrome.png',
   '/logo.png'
 ];
 
@@ -141,27 +144,56 @@ self.addEventListener('fetch', (event) => {
 
 // ==================== Notification & Push Listeners ====================
 
-self.addEventListener('notificationclick', (event) => {
-  event.notification.close();
-  const actionRoute = event.notification.data?.actionRoute;
+/**
+ * Maps notification category to default native Web Notification actions for Android / Chromium PWA
+ */
+function getDefaultActions(category, actionRoute) {
+  switch (category) {
+    case 'daily_plan':
+      return [
+        { action: 'view_plan', title: 'View Plan' },
+        { action: 'dismiss', title: 'Dismiss' }
+      ];
+    case 'focus_reminder':
+    case 'focus':
+      return [
+        { action: 'start_focus', title: 'Start Focus' },
+        { action: 'dismiss', title: 'Dismiss' }
+      ];
+    case 'task_start':
+    case 'task_pre_reminder':
+    case 'task_incomplete':
+    case 'task':
+      return [
+        { action: 'open_task', title: 'Open Task' },
+        { action: 'dismiss', title: 'Dismiss' }
+      ];
+    case 'skill_reminder':
+    case 'learning':
+      return [
+        { action: 'open_learning', title: 'Practice' },
+        { action: 'dismiss', title: 'Dismiss' }
+      ];
+    case 'task_completed':
+    case 'focus_completed':
+    case 'streak_milestone':
+      return [
+        { action: 'view_stats', title: 'View Progress' }
+      ];
+    case 'break_time':
+      return [
+        { action: 'dismiss', title: 'Dismiss' }
+      ];
+    default:
+      return actionRoute
+        ? [{ action: 'open_route', title: 'Open' }, { action: 'dismiss', title: 'Dismiss' }]
+        : [];
+  }
+}
 
-  event.waitUntil(
-    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
-      for (const client of clientList) {
-        if (client.url && 'focus' in client) {
-          if (actionRoute && 'postMessage' in client) {
-            client.postMessage({ type: 'NAVIGATE', route: actionRoute });
-          }
-          return client.focus();
-        }
-      }
-      if (self.clients.openWindow) {
-        return self.clients.openWindow(actionRoute ? `/#${actionRoute}` : '/');
-      }
-    })
-  );
-});
-
+/**
+ * Handle push events from Web Push server
+ */
 self.addEventListener('push', (event) => {
   let data = {};
   if (event.data) {
@@ -172,14 +204,132 @@ self.addEventListener('push', (event) => {
     }
   }
 
-  const title = data.title || 'FocusForge Notification';
+  const category = data.category || data.type || 'system';
+  const actionRoute = data.actionRoute || (data.data && data.data.actionRoute) || '';
+  const notifId = data.id || `push_${Date.now()}`;
+  const todayStr = new Date().toISOString().split('T')[0];
+
+  // Deterministic tag to group/replace logically identical alerts
+  let deterministicTag = data.tag;
+  if (!deterministicTag) {
+    if (category === 'daily_plan') deterministicTag = `focusforge-daily-plan-${todayStr}`;
+    else if (category === 'focus_reminder' || category === 'focus_completed') deterministicTag = `focusforge-focus-${todayStr}`;
+    else if (data.taskId) deterministicTag = `focusforge-task-${data.taskId}`;
+    else if (data.skillId) deterministicTag = `focusforge-skill-${data.skillId}-${todayStr}`;
+    else deterministicTag = `focusforge-${category}`;
+  }
+
+  const title = data.title || 'FocusForge';
+  const body = data.body || data.message || 'You have an update.';
+  const icon = data.icon || '/icons/icon-192x192.png';
+  const badge = data.badge || '/icons/badge-96x96.png';
+  const vibrate = data.vibrate || [100, 50, 100];
+  const timestamp = data.timestamp ? new Date(data.timestamp).getTime() : Date.now();
+
+  const actions = Array.isArray(data.actions) && data.actions.length > 0
+    ? data.actions.slice(0, 2).map((a) => ({
+        action: a.action || a.label || 'view',
+        title: a.title || a.label || 'View',
+        icon: a.icon
+      }))
+    : getDefaultActions(category, actionRoute);
+
   const options = {
-    body: data.body || 'You have an update.',
-    icon: data.icon || '/icons/icon-192x192.png',
-    badge: '/favicon-32x32.png',
-    tag: data.tag || 'focusforge-push',
-    data: data.data || {},
+    body,
+    icon,
+    badge,
+    tag: deterministicTag,
+    renotify: data.renotify !== false,
+    requireInteraction: Boolean(data.requireInteraction),
+    silent: Boolean(data.silent),
+    vibrate,
+    timestamp,
+    data: {
+      ...data.data,
+      id: notifId,
+      actionRoute,
+      targetUrl: data.targetUrl || (actionRoute ? `/?page=${actionRoute}` : '/'),
+      category,
+      taskId: data.taskId,
+      skillId: data.skillId,
+      templateId: data.templateId
+    }
   };
+
+  if (data.image) {
+    options.image = data.image;
+  }
+
+  if (actions.length > 0) {
+    options.actions = actions;
+  }
 
   event.waitUntil(self.registration.showNotification(title, options));
 });
+
+/**
+ * Handle notification clicks & action button clicks
+ */
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+
+  const clickedAction = event.action;
+  const notifData = event.notification.data || {};
+
+  // If user tapped native "Dismiss" button, close notification and return
+  if (clickedAction === 'dismiss') {
+    return;
+  }
+
+  // Resolve target route from clicked action button or payload route
+  let targetRoute = 'today';
+  if (clickedAction === 'start_focus') {
+    targetRoute = 'focus';
+  } else if (clickedAction === 'view_plan') {
+    targetRoute = 'planner';
+  } else if (clickedAction === 'open_task') {
+    targetRoute = 'tasks';
+  } else if (clickedAction === 'open_learning') {
+    targetRoute = 'learning';
+  } else if (clickedAction === 'view_stats') {
+    targetRoute = 'today';
+  } else if (clickedAction === 'open_route' && notifData.actionRoute) {
+    targetRoute = notifData.actionRoute;
+  } else if (notifData.actionRoute) {
+    targetRoute = notifData.actionRoute;
+  }
+
+  const targetUrl = notifData.targetUrl || (targetRoute ? `/?page=${encodeURIComponent(targetRoute)}` : '/');
+
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      // 1. If an existing FocusForge PWA window is open, focus it and navigate
+      for (const client of clientList) {
+        if ('focus' in client) {
+          if ('postMessage' in client) {
+            client.postMessage({
+              type: 'NAVIGATE',
+              route: targetRoute,
+              taskId: notifData.taskId,
+              action: clickedAction
+            });
+          }
+          return client.focus();
+        }
+      }
+
+      // 2. If app is closed/backgrounded, open a new window to target route
+      if (self.clients.openWindow) {
+        return self.clients.openWindow(targetUrl);
+      }
+    })
+  );
+});
+
+/**
+ * Handle notification dismiss / close event
+ */
+self.addEventListener('notificationclose', (event) => {
+  // Graceful event handling for analytics or logging
+});
+

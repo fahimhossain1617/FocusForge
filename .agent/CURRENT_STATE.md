@@ -128,12 +128,12 @@ Foscentia is an active, functional productivity suite built with Next.js 16 App 
 ---
 
 ### Notifications
-- **Current Implementation:** `NotificationsPage.tsx`, `notificationService.ts`, `notificationCenterService.ts`. In-app notification center, shuffle-bag rotation state per user/category (`user_notification_rotation`), quiet hours filters, Web Push subscription endpoints (`push_subscriptions`), and service worker (`sw.js`).
-- **Verified Status:** **PARTIAL** (In-app center, rotation bags, and user preferences are VERIFIED; Automated background Web Push cron when browser is closed is IMPLEMENTED — NOT VERIFIED due to lack of configured external cron trigger).
-- **Known Problems:** Background push alerts require an active browser tab or external trigger mechanism.
-- **Important Files:** `frontend/src/services/notificationService.ts`, `frontend/src/services/notificationCenterService.ts`, `frontend/public/sw.js`.
-- **Dependencies:** `user_notification_settings`, `user_notifications`, `user_notification_rotation`.
-- **Unknowns:** Production Web Push VAPID key delivery rate across iOS/Android PWA browsers.
+- **Current Implementation:** `NotificationsPage.tsx`, `notificationService.ts`, `notificationCenterService.ts`, `notificationTemplates.ts`, `sw.js`. Unified shared notification model between custom in-app notification center/banners and Android / Chromium Web Notifications API. Features crisp monochrome status bar badges (`badge-96x96.png`), full brand icon, native Web Notification action buttons (`[Start Focus]`, `[View Plan]`, `[Open Task]`, `[Practice]`, `[Dismiss]`), deterministic tag grouping (`focusforge-daily-plan-YYYY-MM-DD`, `focusforge-task-ID`), vibration patterns, and single-window client navigation routing (`focusforge:navigate`).
+- **Verified Status:** **VERIFIED** (In-app center, banner triggers, shuffle-bag rotation, offline chime, ServiceWorker showNotification, deterministic deduplication, deep-link navigation, and native action dispatch).
+- **Known Problems:** None. System container appearance (borders, shade background) is natively managed by Android/Chrome OS shell while all content, branding, icons, badges, tags, and action hooks are fully controlled by FocusForge.
+- **Important Files:** `frontend/src/services/notificationService.ts`, `frontend/src/services/notificationCenterService.ts`, `frontend/public/sw.js`, `frontend/src/components/pwa/ServiceWorkerRegister.tsx`, `frontend/src/context/AppContext.tsx`.
+- **Dependencies:** `user_notification_settings`, `user_notifications`, `user_notification_rotation`, Service Worker API.
+- **Unknowns:** None.
 
 ---
 

@@ -75,11 +75,27 @@ export function useNotifications() {
       if (!granted) return false;
     }
 
+    const isBn = state.lang === "bn";
     const success = await notificationService.send({
       id: `test_notif_${Date.now()}`,
-      title: "FocusForge Notification Active",
-      body: "You will receive your Daily Morning Plan and scheduled task reminders on time!",
-      tag: "test-notification",
+      category: "system",
+      title: isBn ? "FocusForge নোটিফিকেশন সক্রিয়" : "FocusForge Notification Active",
+      body: isBn
+        ? "আপনার নোটিফিকেশন সিস্টেম সম্পূর্ণ সক্রিয়। সময়মতো আপনার প্ল্যান ও টাস্ক রিমাইন্ডার পাবেন।"
+        : "You will receive your Daily Morning Plan and scheduled task reminders on time!",
+      tag: "focusforge-test-notification",
+      actionRoute: "today",
+      actions: [
+        {
+          action: "view_today",
+          title: isBn ? "ড্যাশবোর্ড খুলুন" : "Open Dashboard",
+          label: isBn ? "ড্যাশবোর্ড খুলুন" : "Open Dashboard",
+          onClick: () => {
+            updateState({ activePage: "today" });
+          },
+          variant: "primary",
+        },
+      ],
     });
 
     if (success) {

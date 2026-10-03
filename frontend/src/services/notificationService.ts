@@ -23,6 +23,15 @@ import type { OrbMood } from "../components/ai-agent/useOrbMood";
 const SENT_LOG_PREFIX = "focusforge_notif_sent_";
 const DAILY_COUNT_PREFIX = "focusforge_notif_daily_count_";
 
+export interface NotificationActionItem {
+  action?: string;
+  label?: string;
+  title?: string;
+  onClick?: () => void;
+  variant?: "primary" | "secondary";
+  icon?: string;
+}
+
 export interface NotificationPayload {
   id?: string;
   category?: NotificationCategory;
@@ -31,18 +40,23 @@ export interface NotificationPayload {
   body: string;
   icon?: string;
   badge?: string;
+  image?: string;
   tag?: string;
   actionRoute?: string;
+  targetUrl?: string;
   type?: string;
   orbMood?: OrbMood | string;
   appTag?: string;
   taskId?: number | string;
   skillId?: string;
   data?: Record<string, unknown>;
-  actions?: Array<{ label: string; onClick?: () => void; variant?: "primary" | "secondary" }>;
+  actions?: NotificationActionItem[];
   requireInteraction?: boolean;
   isUrgent?: boolean;
   silent?: boolean;
+  renotify?: boolean;
+  vibrate?: number[];
+  timestamp?: number;
 }
 
 class NotificationService {
@@ -276,10 +290,92 @@ class NotificationService {
     } catch {}
   }
 
+  /**
+   * Generate deterministic notification tag for OS grouping and replacement
+   */
+  private generateDeterministicTag(payload: NotificationPayload, notifId: string): string {
+    if (payload.tag) return payload.tag;
+    const category = payload.category || "system";
+    const todayStr = new Date().toISOString().split("T")[0];
+
+    if (category === "daily_plan") {
+      return `focusforge-daily-plan-${todayStr}`;
+    }
+    if (category === "focus_reminder" || category === "focus_completed") {
+      return `focusforge-focus-${todayStr}`;
+    }
+    if (payload.taskId) {
+      return `focusforge-task-${payload.taskId}-${category}`;
+    }
+    if (payload.skillId) {
+      return `focusforge-skill-${payload.skillId}-${todayStr}`;
+    }
+    if (category === "break_time") {
+      return "focusforge-break";
+    }
+    if (category === "streak_milestone") {
+      return `focusforge-streak-${todayStr}`;
+    }
+    return `focusforge-${notifId}`;
+  }
+
+  /**
+   * Build native Android/Web Notification Actions matching the semantic category
+   */
+  private buildNativeActions(payload: NotificationPayload): Array<{ action: string; title: string; icon?: string }> {
+    if (payload.actions && payload.actions.length > 0) {
+      return payload.actions.slice(0, 2).map((a) => ({
+        action: a.action || a.label || "view",
+        title: a.title || a.label || "View",
+        icon: a.icon,
+      }));
+    }
+
+    const category = payload.category || "system";
+    switch (category) {
+      case "daily_plan":
+        return [
+          { action: "view_plan", title: "View Plan" },
+          { action: "dismiss", title: "Dismiss" },
+        ];
+      case "focus_reminder":
+        return [
+          { action: "start_focus", title: "Start Focus" },
+          { action: "dismiss", title: "Dismiss" },
+        ];
+      case "task_start":
+      case "task_pre_reminder":
+      case "task_incomplete":
+        return [
+          { action: "open_task", title: "Open Task" },
+          { action: "dismiss", title: "Dismiss" },
+        ];
+      case "skill_reminder":
+        return [
+          { action: "open_learning", title: "Practice" },
+          { action: "dismiss", title: "Dismiss" },
+        ];
+      case "task_completed":
+      case "focus_completed":
+      case "streak_milestone":
+        return [
+          { action: "view_stats", title: "View Progress" },
+        ];
+      case "break_time":
+        return [
+          { action: "dismiss", title: "Dismiss" },
+        ];
+      default:
+        return payload.actionRoute
+          ? [{ action: "open_route", title: "Open" }, { action: "dismiss", title: "Dismiss" }]
+          : [];
+    }
+  }
+
   // ==================== Notification Dispatch ====================
 
   /**
-   * Deliver a notification with account isolation, daily limit, quiet hours, and sound.
+   * Deliver a notification with account isolation, daily limit, quiet hours, sound, and Android PWA system presentation.
    * Also records into Notification Center and displays the in-app banner.
    */
   public async send(payload: NotificationPayload): Promise<boolean> {
@@ -373,47 +469,76 @@ class NotificationService {
       this.playChime();
     }
 
-    // 8. Device / OS Web Notification & Service Worker (works offline!)
+    // 8. Device / OS Web Notification & Service Worker (Android PWA System Notification)
     if (!this.isSupported() || this.getPermission() !== "granted") {
       return true;
     }
 
     try {
       const iconUrl = payload.icon || "/icons/icon-192x192.png";
-      const badgeUrl = payload.badge || "/favicon-32x32.png";
+      const badgeUrl = payload.badge || "/icons/badge-96x96.png";
+      const deterministicTag = this.generateDeterministicTag(payload, notifId);
+      const nativeActions = this.buildNativeActions(payload);
+      const vibratePattern = payload.vibrate || (payload.isUrgent ? [150, 80, 150, 80, 200] : [100, 50, 100]);
+      const timestamp = payload.timestamp || Date.now();
 
-      if ("serviceWorker" in navigator && navigator.serviceWorker.controller) {
+      const notificationOptions: Record<string, any> = {
+        body: payload.body,
+        icon: iconUrl,
+        badge: badgeUrl,
+        tag: deterministicTag,
+        renotify: payload.renotify ?? true,
+        requireInteraction: payload.requireInteraction ?? false,
+        silent: payload.silent ?? false,
+        vibrate: vibratePattern,
+        timestamp,
+        data: {
+          ...payload.data,
+          id: notifId,
+          actionRoute: payload.actionRoute,
+          targetUrl: payload.targetUrl || (payload.actionRoute ? `/?page=${payload.actionRoute}` : "/"),
+          category,
+          taskId: payload.taskId,
+          skillId: payload.skillId,
+          templateId: payload.templateId,
+          orbMood: String(orbMood),
+        },
+      };
+
+      if (payload.image) {
+        notificationOptions.image = payload.image;
+      }
+
+      if (nativeActions.length > 0) {
+        notificationOptions.actions = nativeActions;
+      }
+
+      if ("serviceWorker" in navigator) {
         try {
           const registration = await navigator.serviceWorker.ready;
-          await registration.showNotification(payload.title, {
-            body: payload.body,
-            icon: iconUrl,
-            badge: badgeUrl,
-            tag: payload.tag || notifId,
-            data: {
-              ...payload.data,
-              actionRoute: payload.actionRoute,
-            },
-            requireInteraction: payload.requireInteraction ?? false,
-          });
+          await registration.showNotification(payload.title, notificationOptions);
           return true;
-        } catch {
-          // Fall through to standard Notification
+        } catch (swErr) {
+          console.warn("[NotificationService] ServiceWorker showNotification fallback:", swErr);
         }
       }
 
+      // Desktop / Non-Service Worker fallback
       const notif = new Notification(payload.title, {
         body: payload.body,
         icon: iconUrl,
-        tag: payload.tag || notifId,
-        data: {
-          ...payload.data,
-          actionRoute: payload.actionRoute,
-        },
+        badge: badgeUrl,
+        tag: deterministicTag,
+        data: notificationOptions.data,
       });
 
       notif.onclick = () => {
         window.focus();
+        if (payload.actionRoute && typeof window !== "undefined") {
+          window.dispatchEvent(
+            new CustomEvent("focusforge:navigate", { detail: { route: payload.actionRoute } })
+          );
+        }
         notif.close();
       };
 

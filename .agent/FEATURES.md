@@ -27,7 +27,7 @@
 | **Voice / STT (Batch HTTP)** | **VERIFIED** | `frontend/src/app/api/ai/transcribe/route.ts` | `@google/genai` audio multimodal | None. Works reliably across all browsers. |
 | **Voice / STT (Streaming WS)** | **PARTIAL** | `frontend/src/hooks/useSpeechRecognition.ts` | `backend/src/services/webSocketService.ts` | Requires running Express server (port 5000); unavailable on Vercel serverless. |
 | **In-App Notifications & Rotation** | **VERIFIED** | `frontend/src/components/pages/NotificationsPage.tsx` | `user_notifications`, `user_notification_rotation` | None. Implements shuffle-bag rotation and quiet hours. |
-| **Web Push Notifications** | **PARTIAL** | `frontend/public/sw.js`, `push_subscriptions` | Web Push API, Service Worker | Background cron requires active browser session or external webhook. |
+| **Web Push & PWA Notifications** | **VERIFIED** | `frontend/public/sw.js`, `notificationService.ts` | Web Push API, Service Worker v6 | Full Android Web Notification capabilities (monochrome badge, native actions, deterministic tags, deep-linking). |
 | **Supervisor Portal (/supervisor)** | **VERIFIED** | `frontend/src/app/supervisor/page.tsx` | `user_roles`, `support_tickets`, `ticket_replies` | Strict privacy boundary prevents supervisors from viewing user personal data. |
 | **Settings & Profile Management** | **VERIFIED** | `frontend/src/components/pages/SettingsPage.tsx` | `profiles` table, `userService.ts` | None. Unique display names, avatar upload, atomic account deletion. |
 | **Local-First Storage (IndexedDB)** | **VERIFIED** | `frontend/src/services/localDbService.ts` | Browser IndexedDB (`focusforge_local_v3`) | None. 15 object stores with user-scoped indices. |

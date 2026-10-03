@@ -256,13 +256,23 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         } catch {}
       }
 
+      const validPages = new Set(['today', 'mind', 'diary', 'tasks', 'planner', 'focus', 'learning', 'profile', 'settings', 'ai-agent', 'notifications']);
+      let urlActivePage: string | null = null;
       let sessionActivePage: string | null = null;
       if (typeof window !== 'undefined') {
         try {
+          const urlParams = new URLSearchParams(window.location.search);
+          const pageParam = urlParams.get('page');
+          const hashParam = window.location.hash.replace(/^#\/?/, '').split('?')[0];
+          if (pageParam && validPages.has(pageParam)) {
+            urlActivePage = pageParam;
+          } else if (hashParam && validPages.has(hashParam)) {
+            urlActivePage = hashParam;
+          }
           sessionActivePage = sessionStorage.getItem('focusforge_active_page');
         } catch {}
       }
-      const initialActivePage = sessionActivePage || 'today';
+      const initialActivePage = urlActivePage || sessionActivePage || 'today';
 
       // Guest session check
       let guestData: AppState | null = null;
@@ -650,6 +660,36 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setToasts((prev) => prev.filter((t) => t.id !== id));
     }, 3000);
   }, []);
+
+  // ==================== Service Worker & Push Navigation Synchronization ====================
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const validPages = new Set(['today', 'mind', 'diary', 'tasks', 'planner', 'focus', 'learning', 'profile', 'settings', 'ai-agent', 'notifications']);
+
+    const handleNavigateEvent = (event: Event) => {
+      const customEvent = event as CustomEvent<{ route?: string; taskId?: string | number }>;
+      const route = customEvent.detail?.route;
+      if (route && validPages.has(route)) {
+        navigateTo(route);
+      }
+    };
+
+    const handleHashChange = () => {
+      const cleanHash = window.location.hash.replace(/^#\/?/, '').split('?')[0];
+      if (cleanHash && validPages.has(cleanHash)) {
+        navigateTo(cleanHash);
+      }
+    };
+
+    window.addEventListener('focusforge:navigate', handleNavigateEvent as EventListener);
+    window.addEventListener('hashchange', handleHashChange);
+
+    return () => {
+      window.removeEventListener('focusforge:navigate', handleNavigateEvent as EventListener);
+      window.removeEventListener('hashchange', handleHashChange);
+    };
+  }, [navigateTo]);
 
   // Network online/offline event handlers & automatic cloud resynchronization
   useEffect(() => {
