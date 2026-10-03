@@ -171,7 +171,7 @@ export default function Sidebar({
             </div>
 
             {/* Brand Title (Hidden when collapsed on desktop) */}
-            <span className={`font-bold text-[17px] tracking-tight text-[#0F172A] dark:text-foreground whitespace-nowrap transition-opacity duration-200 block ${
+            <span data-ff-brand-title className={`font-bold text-[17px] tracking-tight text-[#0F172A] dark:text-foreground whitespace-nowrap transition-opacity duration-200 block ${
               isCollapsed ? "md:hidden" : "md:block"
             }`}>
               FocusForge

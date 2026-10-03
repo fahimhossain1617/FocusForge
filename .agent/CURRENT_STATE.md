@@ -205,11 +205,11 @@ Foscentia is an active, functional productivity suite built with Next.js 16 App 
 
 ---
 
-### Frontend (App Shell & Navigation)
-- **Current Implementation:** Next.js 16 App Router. `frontend/src/app/page.tsx` acts as SPA shell switching between 11 view components with sidebar navigation, bottom navigation bar on mobile, skeleton loaders, and launch animation gating.
+### Frontend (App Shell, PWA Startup & Navigation)
+- **Current Implementation:** Next.js 16 App Router. `frontend/src/app/page.tsx` acts as SPA shell switching between 11 view components with sidebar navigation, bottom navigation bar on mobile, dark skeleton loaders, and launch animation gating. Android PWA startup is fully dark (`#090c19`) with inline boot layer continuing the Android splash seamlessly into a shared-element logo flight (`transform: translate + scale`, ~650ms) to the top-left header.
 - **Verified Status:** **VERIFIED**
 - **Known Problems:** None.
-- **Important Files:** `frontend/src/app/page.tsx`, `frontend/src/app/layout.tsx`, `frontend/src/components/Sidebar.tsx`, `frontend/src/context/AppContext.tsx`.
+- **Important Files:** `frontend/src/app/page.tsx`, `frontend/src/app/layout.tsx`, `frontend/public/manifest.json`, `frontend/public/manifest.webmanifest`, `frontend/public/sw.js`, `frontend/src/components/Sidebar.tsx`, `frontend/src/context/AppContext.tsx`.
 - **Dependencies:** `react` 19, `next` 16, `framer-motion`.
 - **Unknowns:** None.
 

@@ -153,5 +153,16 @@
 - **Impact:** `frontend/src/services/aiConsentService.ts`, `frontend/src/components/ai/AIConsentModal.tsx`, `frontend/src/services/aiAgentService.ts`, `frontend/src/components/ai-agent/AIAgentPage.tsx`.
 - **Do Not Change Without Approval:** Never default AI consent to opt-in or persist Private Chat sessions to disk.
 
+---
+
+## ADR-014: Seamless Android PWA Startup & Shared-Element Splash Continuation
+
+- **Date:** October 2026
+- **Status:** Accepted
+- **Decision:** Android PWA WebAPK startup sequence is fully unified with `#090c19` background across `manifest.json`, `manifest.webmanifest`, `<meta name="theme-color">`, and an inline pre-CSS `<style>` tag to eliminate all white flicker. An inline, vanilla HTML/CSS boot layer (`#ff-boot-layer`) reproduces the Android splash icon (white rounded badge with real `#061f52` SVG mark) at dead center, which seamlessly executes a GPU-accelerated shared-element flight (`transform: translate + scale`, ~650ms, `cubic-bezier(.2, .8, .2, 1)`) directly into the header logo position while the dark skeleton/dashboard fades in with 10px translateY. The boot layer is then permanently removed from the DOM.
+- **Reason:** Eliminates dark -> white -> dark screen flashing on Android PWA cold launch and creates a smooth native-quality transition.
+- **Impact:** `frontend/public/manifest.json`, `frontend/public/manifest.webmanifest`, `frontend/src/app/layout.tsx`, `frontend/src/app/page.tsx`, `frontend/public/sw.js`.
+- **Do Not Change Without Approval:** Never add white backgrounds to the startup boot layer or remove the pre-CSS inline dark baseline.
+
 
 

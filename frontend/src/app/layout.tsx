@@ -17,7 +17,7 @@ const notoSansBengali = Noto_Sans_Bengali({
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: dark)", color: "#0A0E1A" },
+    { media: "(prefers-color-scheme: dark)", color: "#090c19" },
     { media: "(prefers-color-scheme: light)", color: "#F3F7FC" },
   ],
   width: "device-width",
@@ -92,6 +92,21 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark" suppressHydrationWarning>
       <head>
+        {/* Anti-Flicker Inline Dark Baseline & Pre-CSS Style - Placed BEFORE any CSS/JS */}
+        <style
+          dangerouslySetInnerHTML={{
+            __html: `
+              html, body {
+                background: #090c19 !important;
+                background-color: #090c19 !important;
+                color-scheme: dark;
+                margin: 0;
+                padding: 0;
+              }
+            `,
+          }}
+        />
+
         {/* Launch Animation Gating & Session Storage Check (Runs Synchronously in Head) */}
         <script
           dangerouslySetInnerHTML={{
@@ -128,7 +143,7 @@ export default function RootLayout({
           }}
         />
 
-        {/* Critical Inline CSS for Launch Screen & Layout Transitions */}
+        {/* Critical Inline CSS for Seamless Android Splash Continuation & Shared-Element Transition */}
         <style
           dangerouslySetInnerHTML={{
             __html: `
@@ -139,99 +154,94 @@ export default function RootLayout({
               }
 
               :root {
-                --tile: #eaf0ff;
-                --logo-ui: #2f5fd0;
-                --line: #e6eaf3;
-              }
-
-              [data-theme="dark"],
-              .dark {
                 --tile: #ffffff;
                 --logo-ui: #061f52;
                 --line: #1a2547;
               }
 
-              html.ff-launch,
-              html.ff-launch body {
-                background-color: #FFFFFF !important;
-                overflow: hidden !important;
-              }
-
-              html.ff-launch #root,
-              html.ff-launch #app-shell {
-                visibility: hidden !important;
-              }
-
-              #ff-splash {
-                display: none;
-              }
-
-              html.ff-launch #ff-splash {
+              #ff-boot-layer {
                 position: fixed;
                 inset: 0;
                 width: 100vw;
                 height: 100dvh;
-                background-color: #FFFFFF;
-                z-index: 999990;
-                display: block !important;
+                background-color: #090c19;
+                z-index: 999999;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                pointer-events: none;
                 overflow: hidden;
                 padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
               }
 
-              #ff-splash-logo {
-                display: none;
-              }
-
-              html.ff-launch #ff-splash-logo {
-                --w: min(34vmin, 190px);
-                position: fixed;
-                left: 0;
-                right: 0;
-                top: 0;
-                bottom: 0;
-                margin: auto;
-                width: var(--w);
-                height: calc(var(--w) * 1.2115);
-                z-index: 999999;
+              #ff-boot-badge {
+                width: 88px;
+                height: 88px;
+                background: #ffffff;
+                border-radius: 20px;
+                position: relative;
+                flex: none;
                 transform-origin: 0 0;
-                pointer-events: none;
-                display: block !important;
+                will-change: transform, opacity;
               }
 
-              #ff-splash-lg {
-                width: 100%;
-                height: 100%;
-                transform-origin: 50% 50%;
-                transform: scale(0.62);
-              }
-
-              #ff-splash-lg svg {
-                width: 100%;
-                height: 100%;
-                overflow: visible;
+              #ff-boot-badge svg {
+                position: absolute;
+                left: 50%;
+                top: 50%;
+                height: 62%;
+                width: auto;
+                aspect-ratio: 520 / 630;
+                transform: translate(-50%, -50%);
                 display: block;
+                overflow: visible;
               }
 
-              /* Slot and Mark rules */
+              /* Hide slot mark and tile during active launch flight */
+              html.ff-launch .slot .tile {
+                opacity: 0;
+              }
+              html.ff-launch .slot .mk {
+                visibility: hidden;
+              }
+
+              /* Header brand title fades in beside logo at the end */
+              html.ff-launch [data-ff-brand-title] {
+                opacity: 0;
+                transform: translateX(-6px);
+                transition: opacity 300ms ease-out, transform 300ms ease-out;
+              }
+              html.ff-brand-visible [data-ff-brand-title] {
+                opacity: 1;
+                transform: translateX(0);
+              }
+
+              /* Start app shell with slight offset and opacity during launch */
+              html.ff-launch #app-shell {
+                opacity: 0;
+                transform: translateY(10px);
+                will-change: opacity, transform;
+              }
+
+              /* Outside launch, hide boot layer if still present */
+              html:not(.ff-launch) #ff-boot-layer {
+                display: none !important;
+              }
+
+              /* Slot and Tile rules for in-app header */
               .slot {
                 --logo: #061f52;
                 position: relative;
                 display: block;
                 flex: none;
-                transition: --logo 0.9s ease;
-              }
-
-              .slot.settled {
-                --logo: var(--logo-ui);
               }
 
               .slot .tile {
                 position: absolute;
                 inset: 0;
                 border-radius: inherit;
-                background: var(--tile);
-                box-shadow: 0 1px 0 var(--line);
-                transition: background-color 0.4s ease;
+                background: #ffffff;
+                transition: opacity 0.2s ease;
               }
 
               .slot .mk {
@@ -246,24 +256,9 @@ export default function RootLayout({
                 overflow: visible;
               }
 
-              /* During launch: real slot icon is hidden */
-              html.ff-launch .slot .tile {
-                opacity: 0;
-              }
-
-              html.ff-launch .slot .mk {
-                visibility: hidden;
-              }
-
-              /* Outside launch: real slot icon is immediately visible */
-              html:not(.ff-launch) .slot {
-                --logo: var(--logo-ui);
-              }
-
               html:not(.ff-launch) .slot .tile {
                 opacity: 1;
               }
-
               html:not(.ff-launch) .slot .mk {
                 visibility: visible;
               }
@@ -274,7 +269,7 @@ export default function RootLayout({
         {/* Theme Pre-Hydration Init Script */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var t=localStorage.getItem('focusforge_theme');var isDark=true;if(t){if(t==='light'){isDark=false;}else if(t==='system'){isDark=window.matchMedia('(prefers-color-scheme: dark)').matches;}else{isDark=true;}}else{var d=localStorage.getItem('focusforge_data');if(d){var s=JSON.parse(d);if(s&&s.theme&&s.theme.mode){if(s.theme.mode==='light'){isDark=false;}else if(s.theme.mode==='system'){isDark=window.matchMedia('(prefers-color-scheme: dark)').matches;}else{isDark=true;}}else{isDark=true;}}else{isDark=true;}}var root=document.documentElement;var themeHex=isDark?'#0A0E1A':'#F3F7FC';if(isDark){root.dataset.theme='dark';root.classList.add('dark');root.classList.remove('light');root.style.colorScheme='dark';}else{root.dataset.theme='light';root.classList.remove('dark');root.classList.add('light');root.style.colorScheme='light';}var metaTheme=document.getElementById('ff-theme-color');if(metaTheme){metaTheme.setAttribute('content',themeHex);}}catch(e){}})();`,
+            __html: `(function(){try{var t=localStorage.getItem('focusforge_theme');var isDark=true;if(t){if(t==='light'){isDark=false;}else if(t==='system'){isDark=window.matchMedia('(prefers-color-scheme: dark)').matches;}else{isDark=true;}}else{var d=localStorage.getItem('focusforge_data');if(d){var s=JSON.parse(d);if(s&&s.theme&&s.theme.mode){if(s.theme.mode==='light'){isDark=false;}else if(s.theme.mode==='system'){isDark=window.matchMedia('(prefers-color-scheme: dark)').matches;}else{isDark=true;}}else{isDark=true;}}else{isDark=true;}}var root=document.documentElement;var themeHex=isDark?'#090c19':'#F3F7FC';if(isDark){root.dataset.theme='dark';root.classList.add('dark');root.classList.remove('light');root.style.colorScheme='dark';}else{root.dataset.theme='light';root.classList.remove('dark');root.classList.add('light');root.style.colorScheme='light';}var metaTheme=document.getElementById('ff-theme-color');if(metaTheme){metaTheme.setAttribute('content',themeHex);}}catch(e){}})();`,
           }}
         />
 
@@ -282,12 +277,13 @@ export default function RootLayout({
         <script
           dangerouslySetInnerHTML={{
             __html: `(function() {
-  if (!document.documentElement.classList.contains('ff-launch')) return;
+  if (!document.documentElement.classList.contains('ff-launch')) {
+    var boot = document.getElementById('ff-boot-layer');
+    if (boot) boot.remove();
+    return;
+  }
 
   var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  var E = 'cubic-bezier(.16,1,.3,1)';
-  var M = 'cubic-bezier(.65,0,.2,1)';
-
   var readyResolver;
   var readyPromise = new Promise(function(resolve) {
     readyResolver = resolve;
@@ -303,21 +299,10 @@ export default function RootLayout({
     return new Promise(function(resolve) { setTimeout(resolve, ms); });
   };
 
-  var frames = function(n) {
-    return new Promise(function(resolve) {
-      var i = 0;
-      function f() {
-        if (++i >= n) resolve();
-        else requestAnimationFrame(f);
-      }
-      requestAnimationFrame(f);
-    });
-  };
-
   var animateHelper = function(el, keyframes, options) {
     if (!el || typeof el.animate !== 'function') return Promise.resolve();
     try {
-      var anim = el.animate(keyframes, Object.assign({ fill: 'both', easing: E }, options));
+      var anim = el.animate(keyframes, Object.assign({ fill: 'both' }, options));
       return anim.finished.catch(function() {});
     } catch(e) {
       return Promise.resolve();
@@ -354,151 +339,106 @@ export default function RootLayout({
     });
   };
 
-  var cleanupAndFinish = function(targetSlot) {
+  var cleanupAndFinish = function() {
     try {
-      var splash = document.getElementById('ff-splash');
-      if (splash) {
-        splash.style.display = 'none';
-      }
-      var logo = document.getElementById('ff-splash-logo');
-      if (logo) {
-        logo.style.display = 'none';
+      var boot = document.getElementById('ff-boot-layer');
+      if (boot) {
+        boot.remove();
       }
       document.documentElement.classList.remove('ff-launch');
+      document.documentElement.classList.add('ff-brand-visible');
       var appShell = document.getElementById('app-shell');
       if (appShell) {
-        appShell.style.visibility = '';
-        appShell.style.clipPath = '';
-        appShell.style.zIndex = '';
-        if (typeof appShell.getAnimations === 'function') {
-          appShell.getAnimations().forEach(function(anim) { anim.cancel(); });
-        }
+        appShell.style.opacity = '';
+        appShell.style.transform = '';
       }
-      var isDark = document.documentElement.classList.contains('dark') || document.documentElement.dataset.theme === 'dark';
-      var metaTheme = document.getElementById('ff-theme-color');
-      if (metaTheme) {
-        metaTheme.setAttribute('content', isDark ? '#0A0E1A' : '#F3F7FC');
-      }
+      document.querySelectorAll('.slot .mk').forEach(function(m) { m.style.visibility = 'visible'; });
+      document.querySelectorAll('.slot .tile').forEach(function(t) { t.style.opacity = '1'; });
       window.__ffLaunchDone = true;
       window.dispatchEvent(new Event('ff:launch-done'));
     } catch(e) {}
   };
 
   var runLaunch = async function() {
-    var splash = document.getElementById('ff-splash');
-    var logo = document.getElementById('ff-splash-logo');
-    var lg = document.getElementById('ff-splash-lg');
-    var p4 = document.getElementById('ff-p4');
-    var p5 = document.getElementById('ff-p5');
-    var p6 = document.getElementById('ff-p6');
+    var bootLayer = document.getElementById('ff-boot-layer');
+    var bootBadge = document.getElementById('ff-boot-badge');
 
-    if (!splash || !logo || !lg) {
-      cleanupAndFinish(null);
+    if (!bootLayer || !bootBadge) {
+      cleanupAndFinish();
       return;
     }
 
-    var k = 0.62;
-    lg.style.transform = 'scale(' + k + ')';
-
-    if (reduce) {
-      await Promise.race([readyPromise, wait(200)]);
-      var appShell = document.getElementById('app-shell');
-      if (appShell) appShell.style.visibility = 'visible';
-      document.querySelectorAll('.slot .mk').forEach(function(m) { m.style.visibility = 'visible'; });
-      document.querySelectorAll('.slot .tile').forEach(function(t) { t.style.opacity = '1'; });
-      document.querySelectorAll('.slot').forEach(function(s) { s.classList.add('settled'); });
-      await Promise.all([
-        animateHelper(splash, [{ opacity: 1 }, { opacity: 0 }], { duration: 150 }),
-        animateHelper(logo, [{ opacity: 1 }, { opacity: 0 }], { duration: 150 })
-      ]);
-      cleanupAndFinish(null);
-      return;
-    }
-
-    // Fast, responsive startup (total duration ~0.25s - 0.35s max)
-    await wait(60);
-
-    lg.style.transform = '';
-    animateHelper(lg, [{ transform: 'scale(' + k + ')' }, { transform: 'scale(1)' }], { duration: 220 });
-    animateHelper(p4, [{ transform: 'rotate(-90deg)' }, { transform: 'rotate(0deg)' }], { duration: 240, delay: 30, easing: 'cubic-bezier(.34,1.2,.64,1)' });
-    animateHelper(p6, [{ transform: 'scale(1)', opacity: 0.4 }, { transform: 'scale(1.6)', opacity: 0 }], { duration: 240, delay: 50, fill: 'forwards' });
-    animateHelper(p5, [{ transform: 'scale(1)' }, { transform: 'scale(1.1)' }, { transform: 'scale(1)' }], { duration: 180, delay: 70, easing: 'ease-in-out' });
-
-    // Snappy ready race
-    await Promise.race([readyPromise, wait(120)]);
-
-    if (document.fonts && document.fonts.ready) {
-      try { await document.fonts.ready; } catch(e) {}
-    }
-    await frames(1);
+    // Wait for React ready signal (first paint) with safety timeout 2.5s
+    await Promise.race([readyPromise, wait(2500)]);
 
     var appShell = document.getElementById('app-shell');
-    var target = await waitForTargetSlot(200);
 
-    if (!target) {
-      // Clean fallback fade
-      if (appShell) appShell.style.visibility = 'visible';
-      document.querySelectorAll('.slot .mk').forEach(function(m) { m.style.visibility = 'visible'; });
-      document.querySelectorAll('.slot .tile').forEach(function(t) { t.style.opacity = '1'; });
-      document.querySelectorAll('.slot').forEach(function(s) { s.classList.add('settled'); });
-      await Promise.all([
-        animateHelper(splash, [{ opacity: 1 }, { opacity: 0 }], { duration: 150 }),
-        animateHelper(logo, [{ opacity: 1 }, { opacity: 0 }], { duration: 150 })
-      ]);
-      cleanupAndFinish(null);
+    // Respect prefers-reduced-motion: simple clean fade
+    if (reduce) {
+      if (appShell) {
+        appShell.style.opacity = '1';
+        appShell.style.transform = 'none';
+      }
+      await animateHelper(bootLayer, [{ opacity: 1 }, { opacity: 0 }], { duration: 200 });
+      cleanupAndFinish();
       return;
     }
 
-    // Flight to slot + circular reveal (snappy ~250ms)
-    if (appShell) {
-      appShell.style.zIndex = '999995';
+    // Locate header/sidebar slot
+    var target = await waitForTargetSlot(300);
+
+    if (!target) {
+      if (appShell) {
+        animateHelper(appShell, [{ opacity: 0, transform: 'translateY(10px)' }, { opacity: 1, transform: 'translateY(0)' }], { duration: 300 });
+      }
+      await animateHelper(bootLayer, [{ opacity: 1 }, { opacity: 0 }], { duration: 250 });
+      cleanupAndFinish();
+      return;
     }
 
+    // Shared-element fly calculation
     var t = target.mark.getBoundingClientRect();
-    var r = logo.getBoundingClientRect();
+    var r = bootBadge.getBoundingClientRect();
     var s = t.width / r.width;
     var dx = t.left - r.left;
     var dy = t.top - r.top;
-    var cx = t.left + (t.width / 2);
-    var cy = t.top + (t.height / 2);
-    var D = 260;
+    var D = 650;
+    var E = 'cubic-bezier(.2, .8, .2, 1)';
 
+    // 1. Animate the same badge to header logo position
+    var badgeAnim = animateHelper(bootBadge, [
+      { transform: 'none', borderRadius: '20px' },
+      { transform: 'translate(' + dx + 'px, ' + dy + 'px) scale(' + s + ')', borderRadius: (8 / s) + 'px' }
+    ], { duration: D, easing: E, fill: 'forwards' });
+
+    // 2. Concurrently fade boot layer background to transparent so skeleton shows
+    bootLayer.style.background = 'transparent';
+    bootBadge.style.zIndex = '999999';
+
+    // 3. Fade and slide in dark skeleton / real dashboard (opacity + 10px translateY, ~300ms)
     if (appShell) {
-      appShell.style.visibility = 'visible';
-      appShell.style.clipPath = 'circle(0px at ' + cx + 'px ' + cy + 'px)';
       animateHelper(appShell, [
-        { clipPath: 'circle(0px at ' + cx + 'px ' + cy + 'px)' },
-        { clipPath: 'circle(150vmax at ' + cx + 'px ' + cy + 'px)' }
-      ], { duration: D + 60, easing: M, fill: 'forwards' });
+        { opacity: 0, transform: 'translateY(10px)' },
+        { opacity: 1, transform: 'translateY(0px)' }
+      ], { duration: 300, delay: 100, easing: 'ease-out', fill: 'forwards' });
     }
 
-    await animateHelper(logo, [
-      { transform: 'none' },
-      { transform: 'translate(' + dx + 'px,' + dy + 'px) scale(' + s + ')' }
-    ], { duration: D, easing: M, fill: 'forwards' });
+    // 4. Header "FocusForge" text fades in beside logo at the end
+    setTimeout(function() {
+      document.documentElement.classList.add('ff-brand-visible');
+    }, 480);
 
-    // Seamless swap: flying mark -> real header icon
+    await badgeAnim;
+
+    // 5. Seamless swap to real header icon and remove boot layer from DOM
     document.querySelectorAll('.slot .mk').forEach(function(m) {
       m.style.visibility = 'visible';
     });
-    logo.style.display = 'none';
-
-    document.querySelectorAll('.slot .tile').forEach(function(x) {
-      animateHelper(x, [
-        { opacity: 0, transform: 'scale(.9)' },
-        { opacity: 1, transform: 'none' }
-      ], { duration: 200, easing: 'ease-out', fill: 'forwards' });
+    document.querySelectorAll('.slot .tile').forEach(function(t) {
+      t.style.opacity = '1';
     });
 
-    document.querySelectorAll('.slot').forEach(function(x) {
-      x.classList.add('settled');
-    });
-
-    splash.style.display = 'none';
-
-    // Wait for the tile morph to complete before full cleanup
-    await wait(350);
-    cleanupAndFinish(target.slot);
+    cleanupAndFinish();
   };
 
   if (document.readyState === 'loading') {
@@ -509,15 +449,15 @@ export default function RootLayout({
 
   // Safety fallback
   setTimeout(function() {
-    if (document.documentElement.classList.contains('ff-launch')) {
-      cleanupAndFinish(null);
+    if (document.getElementById('ff-boot-layer')) {
+      cleanupAndFinish();
     }
-  }, 6500);
+  }, 3500);
 })();`,
           }}
         />
 
-        <meta name="theme-color" id="ff-theme-color" content="#0A0E1A" />
+        <meta name="theme-color" id="ff-theme-color" content="#090c19" />
         <link rel="manifest" href="/manifest.webmanifest" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -533,45 +473,37 @@ export default function RootLayout({
           aria-hidden="true" 
         />
 
-        {/* Static Launch Splash Markup (Raw HTML so React does not track internal animation DOM mutations during hydration) */}
-        <div
-          id="ff-splash-container"
-          suppressHydrationWarning
-          dangerouslySetInnerHTML={{
-            __html: `
-              <div id="ff-splash" aria-hidden="true"></div>
-              <div id="ff-splash-logo" aria-hidden="true">
-                <div id="ff-splash-lg">
-                  <svg viewBox="360 320 520 630" style="width: 100%; height: 100%; overflow: visible; display: block">
-                    <g style="fill: #061f52">
-                      <path d="M390 632V548C390 440 470 366 580 366H750C810 366 850 350 870 332C868 400 830 465 740 468H585C548 468 522 495 522 530V632Z" />
-                      <path d="M853 524L856 600C858 630 845 648 832 656L500 925C490 932 460 936 417 938L497 862C560 848 595 800 598 740C598 715 592 700 585 692C650 650 760 570 853 524Z" />
-                    </g>
-                    <circle id="ff-p6" cx="473" cy="745" r="100" fill="none" stroke="#061f52" stroke-width="6" style="opacity: 0; transform-origin: 473px 745px" />
-                    <circle cx="473" cy="745" r="97" fill="#fff" stroke="#061f52" stroke-width="15" />
-                    <g id="ff-p4" style="transform-origin: 473px 745px" stroke="#061f52" stroke-width="5">
-                      <path d="M473 662v16M473 812v16M390 745h16M540 745h16" />
-                    </g>
-                    <circle id="ff-p5" cx="473" cy="745" r="45" fill="#061f52" style="transform-origin: 473px 745px" />
-                    <circle cx="473" cy="745" r="14" fill="#fff" />
-                  </svg>
-                </div>
-              </div>
-              <svg width="0" height="0" style="position: absolute; pointer-events: none; opacity: 0">
-                <defs>
-                  <g id="ff-mark" style="fill: var(--logo, #061f52)">
-                    <path d="M390 632V548C390 440 470 366 580 366H750C810 366 850 350 870 332C868 400 830 465 740 468H585C548 468 522 495 522 530V632Z" />
-                    <path d="M853 524L856 600C858 630 845 648 832 656L500 925C490 932 460 936 417 938L497 862C560 848 595 800 598 740C598 715 592 700 585 692C650 650 760 570 853 524Z" />
-                    <circle cx="473" cy="745" r="97" stroke-width="15" style="fill: var(--tile); stroke: var(--logo, #061f52)" />
-                    <circle cx="473" cy="745" r="45" />
-                    <circle cx="473" cy="745" r="14" style="fill: var(--tile)" />
-                    <path d="M473 662v16M473 812v16M390 745h16M540 745h16" stroke-width="5" fill="none" style="stroke: var(--logo, #061f52)" />
-                  </g>
-                </defs>
-              </svg>
-            `,
-          }}
-        />
+        {/* Inline Boot Layer matching Android Splash (Plain HTML + CSS, zero framework dependency) */}
+        <div id="ff-boot-layer" aria-hidden="true">
+          <div id="ff-boot-badge">
+            <svg viewBox="360 320 520 630">
+              <g style={{ fill: "#061f52" }}>
+                <path d="M390 632V548C390 440 470 366 580 366H750C810 366 850 350 870 332C868 400 830 465 740 468H585C548 468 522 495 522 530V632Z" />
+                <path d="M853 524L856 600C858 630 845 648 832 656L500 925C490 932 460 936 417 938L497 862C560 848 595 800 598 740C598 715 592 700 585 692C650 650 760 570 853 524Z" />
+              </g>
+              <circle cx="473" cy="745" r="97" fill="#fff" stroke="#061f52" strokeWidth="15" />
+              <circle cx="473" cy="745" r="45" fill="#061f52" />
+              <circle cx="473" cy="745" r="14" fill="#fff" />
+              <g stroke="#061f52" strokeWidth="5">
+                <path d="M473 662v16M473 812v16M390 745h16M540 745h16" />
+              </g>
+            </svg>
+          </div>
+        </div>
+
+        {/* Global SVG Symbol Definition for Header Icon */}
+        <svg width="0" height="0" style={{ position: "absolute", pointerEvents: "none", opacity: 0 }} aria-hidden="true">
+          <defs>
+            <g id="ff-mark" style={{ fill: "var(--logo, #061f52)" }}>
+              <path d="M390 632V548C390 440 470 366 580 366H750C810 366 850 350 870 332C868 400 830 465 740 468H585C548 468 522 495 522 530V632Z" />
+              <path d="M853 524L856 600C858 630 845 648 832 656L500 925C490 932 460 936 417 938L497 862C560 848 595 800 598 740C598 715 592 700 585 692C650 650 760 570 853 524Z" />
+              <circle cx="473" cy="745" r="97" strokeWidth="15" style={{ fill: "#ffffff", stroke: "var(--logo, #061f52)" }} />
+              <circle cx="473" cy="745" r="45" />
+              <circle cx="473" cy="745" r="14" style={{ fill: "#ffffff" }} />
+              <path d="M473 662v16M473 812v16M390 745h16M540 745h16" strokeWidth="5" fill="none" style={{ stroke: "var(--logo, #061f52)" }} />
+            </g>
+          </defs>
+        </svg>
 
         <AppProvider>
           <AuthProvider>

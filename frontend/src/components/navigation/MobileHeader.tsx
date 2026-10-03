@@ -130,7 +130,7 @@ export default function MobileHeader() {
               <use href="#ff-mark" />
             </svg>
           </div>
-          <span className="font-bold text-[17px] tracking-tight text-[#0F172A] dark:text-foreground whitespace-nowrap">
+          <span data-ff-brand-title className="font-bold text-[17px] tracking-tight text-[#0F172A] dark:text-foreground whitespace-nowrap">
             FocusForge
           </span>
         </button>

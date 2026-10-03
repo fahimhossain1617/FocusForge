@@ -72,21 +72,24 @@ export default function Home() {
     return Boolean((window as any).__ffLaunchDone);
   });
 
-  // Signal app readiness once data and auth are settled (or 2.5s passed)
+  // Signal app readiness once first real render mounts and data/auth are settled
   useEffect(() => {
+    const frameId = requestAnimationFrame(() => {
+      if (typeof window !== "undefined" && typeof (window as any).__ffReady === "function") {
+        (window as any).__ffReady();
+      }
+    });
+
     const readyTimer = setTimeout(() => {
       if (typeof window !== "undefined" && typeof (window as any).__ffReady === "function") {
         (window as any).__ffReady();
       }
     }, 2500);
 
-    if (isLoaded && !isAuthLoading) {
-      if (typeof window !== "undefined" && typeof (window as any).__ffReady === "function") {
-        (window as any).__ffReady();
-      }
-    }
-
-    return () => clearTimeout(readyTimer);
+    return () => {
+      cancelAnimationFrame(frameId);
+      clearTimeout(readyTimer);
+    };
   }, [isLoaded, isAuthLoading]);
 
   // Gate onboarding and modals until launch animation completes + 400ms delay
@@ -145,7 +148,7 @@ export default function Home() {
       root.classList.toggle("dark", !isLight);
       root.classList.toggle("light", isLight);
       root.style.colorScheme = isLight ? "light" : "dark";
-      const themeHex = isLight ? "#F3F7FC" : "#0A0E1A";
+      const themeHex = isLight ? "#F3F7FC" : "#090c19";
       const metaTags = document.querySelectorAll('meta[name="theme-color"]');
       metaTags.forEach((tag) => tag.setAttribute("content", themeHex));
       const ffTheme = document.getElementById("ff-theme-color");
