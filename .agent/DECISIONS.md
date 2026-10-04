@@ -295,4 +295,28 @@
 - **Impact:** `frontend/src/app/*`, `frontend/src/context/AppContext.tsx`, `frontend/src/utils/themeTransition.ts`, `frontend/src/components/pages/*`, `frontend/src/components/workspace/*`, `frontend/src/components/ui/*`.
 - **Do Not Change Without Approval:** Do not reintroduce artificial loading delays on SPA navigation, remove modal portaling to `document.body`, or re-introduce CPU canvas loops in `BorderBeam`.
 
+---
+
+## ADR-020: Glory AI Constant-Speed Border Beam, Permanent Pearl White Orb, Mobile Gesture Tracking & Ultra-Fast Response Latency
+
+- **Date:** October 2026
+- **Status:** Accepted
+- **Decision:**
+  1. **Constant-Velocity SVG Perimeter Border Beam (`BorderBeam.tsx`, `BorderBeam.module.css`):**
+     - Replaced center-origin angular `conic-gradient` with an SVG `<rect rx="9999" ... pathLength="100">` stroke offset animation (`strokeDashoffset` animating from `0` to `-100` with `linear infinite`).
+     - Eliminates trigonometry-induced velocity distortion along long rectangular capsules, ensuring uniform, constant-speed, smooth, limitless perimeter motion with zero pauses or stuttering.
+  2. **Permanent Silky Pearl White AI Orb Face (`AIOrbFace.tsx`):**
+     - Standardized the 3D Orb sphere main body, specular sheen, hands, and facial features to permanently use the elegant silky white pearl palette across both dark mode and light mode.
+     - Preserves high-contrast slate details (`#334155` / `#0f172a`) and soft ambient glow for optimal visibility and visual luxury in all themes.
+  3. **Mobile Touch Gesture Tracking (`AIOrbFace.tsx`):**
+     - Added comprehensive `touchstart`, `touchmove`, `touchend`, and `touchcancel` window listeners extracting `e.touches[0]` client coordinates.
+     - Enables natural, real-time 3D head tilt, specular sheen movement, and pupil tracking when dragging/swiping fingers anywhere across mobile touch screens without requiring clicks.
+  4. **Ultra-Fast Gemini 3.5 Flash Lite Engine Prioritization (`frontend/src/lib/server/aiService.ts`, `backend/src/services/aiService.ts`, `frontend/src/services/aiAgentService.ts`, `frontend/src/hooks/useAIAgent.ts`):**
+     - Prioritized `gemini-3.5-flash-lite` (~1000ms latency) as the primary candidate model across both client and server AI execution pipelines, backed by `gemini-3.8-flash` and `gemini-3.6-flash`.
+     - Streamlined typing animation in `useAIAgent.ts` to reveal short casual replies almost instantly (<20ms) and fluidly stream long responses without artificial latency.
+- **Reason:** Direct user request to eliminate border beam pauses on the AI input bar, permanently maintain the white silky pearl mascot orb in dark and light modes, allow smooth mobile touch drag interaction, and achieve lightning-fast AI replies on normal messages.
+- **Impact:** `frontend/src/components/ui/BorderBeam.*`, `frontend/src/components/ai-agent/AIOrbFace.tsx`, `frontend/src/lib/server/aiService.ts`, `backend/src/services/aiService.ts`, `frontend/src/services/aiAgentService.ts`, `frontend/src/hooks/useAIAgent.ts`.
+- **Do Not Change Without Approval:** Do not replace SVG perimeter stroke animation with center-rotating conic gradients on elongated pills, reintroduce theme-dependent dark blue body colors for the mascot orb, or de-prioritize `gemini-3.5-flash-lite` for fast agent responses.
+
+
 

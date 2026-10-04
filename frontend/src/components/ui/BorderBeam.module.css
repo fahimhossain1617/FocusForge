@@ -1,49 +1,34 @@
-/* ── High-Performance GPU CSS Border Beam ── */
+/* ── Pure SVG Perimeter Border Beam (Zero Fill, 100% Perimeter Tracking) ── */
 
-.borderBeamContainer {
+.borderBeamSvg {
   pointer-events: none;
   position: absolute;
   inset: 0;
+  width: 100%;
+  height: 100%;
   border-radius: inherit;
-  z-index: 10;
-  overflow: hidden;
-  box-sizing: border-box;
-  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-  -webkit-mask-composite: xor;
-  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-  mask-composite: exclude;
+  z-index: 2;
+  overflow: visible;
 }
 
-.rotatingBeam {
-  position: absolute;
-  inset: -150%;
-  margin: auto;
-  aspect-ratio: 1 / 1;
-  background: conic-gradient(
-    from 0deg,
-    transparent 0deg,
-    transparent 280deg,
-    rgba(56, 189, 248, 0.15) 315deg,
-    rgba(56, 189, 248, 0.6) 345deg,
-    #38bdf8 360deg
-  );
-  animation: spinBeam var(--beam-duration, 10s) linear infinite;
-  transform-origin: center center;
-  will-change: transform;
+.beamRect {
+  stroke-dasharray: var(--beam-dash, 25 75);
+  animation: moveBorderBeam var(--beam-duration, 6s) linear infinite;
+  will-change: stroke-dashoffset;
 }
 
-@keyframes spinBeam {
-  from {
-    transform: rotate(0deg);
+@keyframes moveBorderBeam {
+  0% {
+    stroke-dashoffset: 0;
   }
-  to {
-    transform: rotate(360deg);
+  100% {
+    stroke-dashoffset: -100;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .rotatingBeam {
+  .beamRect {
     animation: none;
-    opacity: 0.4;
+    opacity: 0.6;
   }
 }

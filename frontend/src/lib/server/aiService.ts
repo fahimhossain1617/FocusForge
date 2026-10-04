@@ -236,21 +236,11 @@ function parseJson(text: string): JsonObject | JsonObject[] {
 
 function getCandidateModelsForMode(modelMode: string = 'smart'): string[] {
   const configured = process.env.GEMINI_MODEL;
-  const list = [
-    configured,
-    'gemini-3.6-flash',
-    'gemini-3.8-flash',
-    'gemini-3.5-flash',
-    'gemini-3.5-flash-lite',
-    'gemini-flash-latest'
-  ].filter((m, i, arr): m is string => Boolean(m) && arr.indexOf(m) === i);
-
   if (modelMode === 'planning') {
-    return list;
-  } else if (modelMode === 'fast') {
-    return [configured, 'gemini-3.6-flash', 'gemini-3.5-flash-lite', 'gemini-3.5-flash'].filter((m, i, arr): m is string => Boolean(m) && arr.indexOf(m) === i);
+    return [configured, 'gemini-3.8-flash', 'gemini-3.6-flash', 'gemini-3.5-flash-lite'].filter((m, i, arr): m is string => Boolean(m) && arr.indexOf(m) === i);
   }
-  return list;
+  // For both fast and smart modes, prioritize the ultra-low-latency ~1s model
+  return [configured, 'gemini-3.5-flash-lite', 'gemini-3.8-flash', 'gemini-3.6-flash'].filter((m, i, arr): m is string => Boolean(m) && arr.indexOf(m) === i);
 }
 
 export async function executeAIAction(action: string, payload: unknown): Promise<JsonObject | JsonObject[]> {
@@ -575,11 +565,9 @@ export async function transcribeAudio(
   const configured = process.env.GEMINI_MODEL;
   const audioModels = [
     configured,
-    'gemini-3.6-flash',
-    'gemini-3.8-flash',
-    'gemini-3.5-flash',
     'gemini-3.5-flash-lite',
-    'gemini-flash-latest'
+    'gemini-3.8-flash',
+    'gemini-3.6-flash',
   ].filter((m, i, arr): m is string => Boolean(m) && arr.indexOf(m) === i);
 
   let lastError: any = null;

@@ -530,32 +530,38 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
       // Grapheme/Token-safe streaming (NEVER splits multi-byte Bengali characters or vowel diacritics!)
       const fullText = normalizedAiMessage.content || "";
       if (fullText.length > 0) {
-        setIsTyping(true);
-        setStreamingText("");
+        const tokens = fullText.match(/\S+|\s+/g) || [fullText];
+        // Short messages appear almost instantly (<20ms), longer messages stream at high FPS
+        if (tokens.length <= 12) {
+          setIsTyping(false);
+          setStreamingText("");
+        } else {
+          setIsTyping(true);
+          setStreamingText("");
 
-        await new Promise<void>((resolve) => {
-          const tokens = fullText.match(/\S+|\s+/g) || [fullText];
-          let tokenIndex = 0;
-          const step = Math.max(1, Math.ceil(tokens.length / 16));
+          await new Promise<void>((resolve) => {
+            let tokenIndex = 0;
+            const step = Math.max(2, Math.ceil(tokens.length / 10));
 
-          typingIntervalRef.current = setInterval(() => {
-            tokenIndex += step;
-            if (tokenIndex >= tokens.length) {
-              if (typingIntervalRef.current) {
-                clearInterval(typingIntervalRef.current);
-                typingIntervalRef.current = null;
+            typingIntervalRef.current = setInterval(() => {
+              tokenIndex += step;
+              if (tokenIndex >= tokens.length) {
+                if (typingIntervalRef.current) {
+                  clearInterval(typingIntervalRef.current);
+                  typingIntervalRef.current = null;
+                }
+                setStreamingText(fullText);
+                setTimeout(() => {
+                  setIsTyping(false);
+                  setStreamingText("");
+                  resolve();
+                }, 20);
+              } else {
+                setStreamingText(tokens.slice(0, tokenIndex).join(''));
               }
-              setStreamingText(fullText);
-              setTimeout(() => {
-                setIsTyping(false);
-                setStreamingText("");
-                resolve();
-              }, 60);
-            } else {
-              setStreamingText(tokens.slice(0, tokenIndex).join(''));
-            }
-          }, 18);
-        });
+            }, 12);
+          });
+        }
       }
 
       // Transition Orb state after response output

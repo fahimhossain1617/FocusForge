@@ -1229,10 +1229,11 @@ export function AIAgentPage() {
             >
               {/* Border Beam around the capsule pill text bar */}
               <BorderBeam
-                borderWidth={2}
-                borderRadius={9999}
-                duration={10}
-                beamLength={300}
+                borderWidth={1.5}
+                duration={6}
+                beamPercentage={25}
+                colorFrom="#38bdf8"
+                colorTo="#818cf8"
               />
               {/* Left Companion Emoji / Mood Button */}
               <div className={styles.moodMenuWrapper} ref={moodMenuRef}>

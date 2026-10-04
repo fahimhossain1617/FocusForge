@@ -318,19 +318,19 @@ export function AIOrbFace({
 
   // 3. Pointer Move, Touch, & Window Blur Listeners
   useEffect(() => {
-    const handlePointerMove = (e: PointerEvent) => {
+    const updateTargetFromCoords = (clientX: number, clientY: number) => {
       const stage = stageRef.current;
       if (!stage) return;
       const rect = stage.getBoundingClientRect();
       const centerX = rect.left + rect.width / 2;
       const centerY = rect.top + rect.height / 2;
 
-      const dx = e.clientX - centerX;
-      const dy = e.clientY - centerY;
+      const dx = clientX - centerX;
+      const dy = clientY - centerY;
       const dist = Math.hypot(dx, dy);
 
-      // Interactive tracking boundary (within 700px radius)
-      if (dist < 700) {
+      // Interactive tracking boundary (e.g. within 950px radius for full screen mobile & desktop reach)
+      if (dist < 950) {
         const radius = Math.min(rect.width, rect.height) * 1.8;
         const normX = Math.max(-1, Math.min(1, dx / radius));
         const normY = Math.max(-1, Math.min(1, dy / radius));
@@ -344,12 +344,32 @@ export function AIOrbFace({
       }
     };
 
+    const handlePointerMove = (e: PointerEvent) => {
+      updateTargetFromCoords(e.clientX, e.clientY);
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (e.touches && e.touches.length > 0) {
+        updateTargetFromCoords(e.touches[0].clientX, e.touches[0].clientY);
+      }
+    };
+
+    const handleTouchStart = (e: TouchEvent) => {
+      if (e.touches && e.touches.length > 0) {
+        updateTargetFromCoords(e.touches[0].clientX, e.touches[0].clientY);
+      }
+    };
+
     const handlePointerLeave = () => {
       targetRef.current = { x: 0, y: 0, active: false };
     };
 
     window.addEventListener("pointermove", handlePointerMove, { passive: true });
     window.addEventListener("pointerup", handlePointerLeave, { passive: true });
+    window.addEventListener("touchstart", handleTouchStart, { passive: true });
+    window.addEventListener("touchmove", handleTouchMove, { passive: true });
+    window.addEventListener("touchend", handlePointerLeave, { passive: true });
+    window.addEventListener("touchcancel", handlePointerLeave, { passive: true });
     document.addEventListener("mouseleave", handlePointerLeave);
     window.addEventListener("blur", handlePointerLeave);
 
@@ -363,6 +383,10 @@ export function AIOrbFace({
     return () => {
       window.removeEventListener("pointermove", handlePointerMove);
       window.removeEventListener("pointerup", handlePointerLeave);
+      window.removeEventListener("touchstart", handleTouchStart);
+      window.removeEventListener("touchmove", handleTouchMove);
+      window.removeEventListener("touchend", handlePointerLeave);
+      window.removeEventListener("touchcancel", handlePointerLeave);
       document.removeEventListener("mouseleave", handlePointerLeave);
       window.removeEventListener("blur", handlePointerLeave);
       document.removeEventListener("visibilitychange", checkVisibility);
@@ -622,7 +646,7 @@ export function AIOrbFace({
               cy="214"
               rx="64"
               ry="9"
-              fill={isLight ? "rgba(100, 116, 139, 0.15)" : "rgba(0, 0, 0, 0.45)"}
+              fill="rgba(100, 116, 139, 0.22)"
             />
 
             {/* 2. Soft Ambient Halo Glow */}
@@ -630,7 +654,7 @@ export function AIOrbFace({
               cx="140"
               cy="126"
               r="105"
-              fill={isLight ? "url(#sphereAuraLight)" : "url(#sphereAuraDark)"}
+              fill="url(#sphereAuraLight)"
             />
 
             {/* Processing Orbital Rings (Only shown when mood === 'processing') */}
@@ -642,7 +666,7 @@ export function AIOrbFace({
                   rx="98"
                   ry="36"
                   fill="none"
-                  stroke={isLight ? "#3b82f6" : "#38bdf8"}
+                  stroke="#38bdf8"
                   strokeWidth="2"
                   strokeDasharray="14 10"
                   opacity="0.8"
@@ -654,7 +678,7 @@ export function AIOrbFace({
                   rx="102"
                   ry="32"
                   fill="none"
-                  stroke={isLight ? "#60a5fa" : "#60a5fa"}
+                  stroke="#60a5fa"
                   strokeWidth="1.6"
                   strokeDasharray="10 8"
                   opacity="0.7"
@@ -663,37 +687,37 @@ export function AIOrbFace({
               </g>
             )}
 
-            {/* 3. Luxury Cobalt / Pearl Sphere Body & Head Group with Natural Head Movement */}
+            {/* 3. Luxury Silky Pearl Sphere Body & Head Group with Natural Head Movement */}
             <g
               ref={headGroupRef}
               transform={`rotate(${headAngle}, 140, 126)`}
               className={styles.headGroup}
             >
-              {/* 3D Sphere Main Body */}
+              {/* 3D Sphere Main Body (Permanent Silky Pearl White) */}
               <circle
                 cx="140"
                 cy="126"
                 r="78"
-                fill={isLight ? "url(#vibrantCobaltLight)" : "url(#vibrantCobaltDark)"}
-                stroke={isLight ? "rgba(148, 163, 184, 0.45)" : "rgba(96, 165, 250, 0.3)"}
+                fill="url(#vibrantCobaltLight)"
+                stroke="rgba(148, 163, 184, 0.45)"
                 strokeWidth="1.5"
               />
 
-              {/* Top-Left Glossy Specular Sheen (Clean white in light mode, cobalt in dark mode) */}
+              {/* Top-Left Glossy Specular Sheen (Pure clean silky white shine) */}
               <g ref={specularRef} transform="translate(0, 0)">
                 <path
                   d="M 88 78 C 100 54, 140 48, 184 62 C 148 55, 108 62, 88 78 Z"
-                  fill={isLight ? "url(#softSpecularLight)" : "url(#softSpecularDark)"}
+                  fill="url(#softSpecularLight)"
                 />
                 <ellipse
                   cx="106"
                   cy="78"
                   rx="16"
                   ry="10"
-                  fill={isLight ? "url(#softSpecularLight)" : "url(#softSpecularDark)"}
+                  fill="url(#softSpecularLight)"
                   transform="rotate(-28, 106, 78)"
                 />
-                <circle cx="102" cy="74" r="5" fill="#ffffff" opacity="0.6" filter="url(#softGlow)" />
+                <circle cx="102" cy="74" r="5" fill="#ffffff" opacity="0.7" filter="url(#softGlow)" />
               </g>
 
               {/* 4. FACIAL FEATURES WRAPPER */}
@@ -705,10 +729,10 @@ export function AIOrbFace({
                 {/* REALISTIC EYEBROWS */}
                 <g
                   className={styles.faceFeaturesGroup}
-                  stroke={isLight ? "#334155" : "#93c5fd"}
+                  stroke="#334155"
                   strokeWidth="2.2"
                   strokeLinecap="round"
-                  opacity={isLight ? "0.8" : "0.9"}
+                  opacity="0.85"
                 >
                   {mood === "sad" || mood === "error" ? (
                     /* Sad / Error: Worried/apologetic inverted upward slanted brows */
@@ -791,12 +815,12 @@ export function AIOrbFace({
                     <path
                       d="M 152 114 Q 166 126 180 114"
                       fill="none"
-                      stroke={isLight ? "#0f172a" : "#38bdf8"}
+                      stroke="#0f172a"
                       strokeWidth="3.8"
                       strokeLinecap="round"
                     />
-                    <line x1="180" y1="114" x2="186" y2="108" stroke={isLight ? "#0f172a" : "#38bdf8"} strokeWidth="2.5" strokeLinecap="round" />
-                    <line x1="178" y1="117" x2="185" y2="117" stroke={isLight ? "#0f172a" : "#38bdf8"} strokeWidth="2.2" strokeLinecap="round" />
+                    <line x1="180" y1="114" x2="186" y2="108" stroke="#0f172a" strokeWidth="2.5" strokeLinecap="round" />
+                    <line x1="178" y1="117" x2="185" y2="117" stroke="#0f172a" strokeWidth="2.2" strokeLinecap="round" />
                   </g>
                 ) : mood === "sleepy" || mood === "offline" || mood === "usage_limit" ? (
                   /* B. Sleepy / Offline / Usage Limit: Peaceful Closed Sleeping Lines */
@@ -804,19 +828,19 @@ export function AIOrbFace({
                     <path
                       d="M 98 114 Q 112 122 126 114"
                       fill="none"
-                      stroke={isLight ? "#0f172a" : "#38bdf8"}
+                      stroke="#0f172a"
                       strokeWidth="3.5"
                       strokeLinecap="round"
                     />
-                    <line x1="98" y1="114" x2="95" y2="111" stroke={isLight ? "#0f172a" : "#38bdf8"} strokeWidth="2.2" strokeLinecap="round" />
+                    <line x1="98" y1="114" x2="95" y2="111" stroke="#0f172a" strokeWidth="2.2" strokeLinecap="round" />
                     <path
                       d="M 154 114 Q 168 122 182 114"
                       fill="none"
-                      stroke={isLight ? "#0f172a" : "#38bdf8"}
+                      stroke="#0f172a"
                       strokeWidth="3.5"
                       strokeLinecap="round"
                     />
-                    <line x1="182" y1="114" x2="185" y2="111" stroke={isLight ? "#0f172a" : "#38bdf8"} strokeWidth="2.2" strokeLinecap="round" />
+                    <line x1="182" y1="114" x2="185" y2="111" stroke="#0f172a" strokeWidth="2.2" strokeLinecap="round" />
                   </g>
                 ) : mood === "happy" || mood === "excited" || mood === "celebrating" || isEnjoying ? (
                   /* C. Happy / Excited / Celebrating / Enjoying: Arched Joyful Curved Eyes ^ ^ */
@@ -824,14 +848,14 @@ export function AIOrbFace({
                     <path
                       d="M 98 114 Q 112 98 126 114"
                       fill="none"
-                      stroke={isLight ? "#0f172a" : "#38bdf8"}
+                      stroke="#0f172a"
                       strokeWidth="4"
                       strokeLinecap="round"
                     />
                     <path
                       d="M 154 114 Q 168 98 182 114"
                       fill="none"
-                      stroke={isLight ? "#0f172a" : "#38bdf8"}
+                      stroke="#0f172a"
                       strokeWidth="4"
                       strokeLinecap="round"
                     />
@@ -840,12 +864,12 @@ export function AIOrbFace({
                   /* D. Sulky / Bombastic: Half-lidded Side-Glance */
                   <g>
                     <ellipse cx="112" cy="112" rx="13.5" ry="15" fill="url(#cuteEyeGrad)" clipPath="url(#sulkyLidClipL)" />
-                    <line x1="97" y1="107" x2="127" y2="107" stroke={isLight ? "#0f172a" : "#38bdf8"} strokeWidth="2.4" />
+                    <line x1="97" y1="107" x2="127" y2="107" stroke="#0f172a" strokeWidth="2.4" />
                     <circle cx="116" cy="113" r="5" fill="#0284c7" />
                     <circle cx="118" cy="111" r="2.8" fill="#ffffff" filter="url(#softGlow)" />
 
                     <ellipse cx="168" cy="112" rx="13.5" ry="15" fill="url(#cuteEyeGrad)" clipPath="url(#sulkyLidClipR)" />
-                    <line x1="153" y1="107" x2="183" y2="107" stroke={isLight ? "#0f172a" : "#38bdf8"} strokeWidth="2.4" />
+                    <line x1="153" y1="107" x2="183" y2="107" stroke="#0f172a" strokeWidth="2.4" />
                     <circle cx="172" cy="113" r="5" fill="#0284c7" />
                     <circle cx="174" cy="111" r="2.8" fill="#ffffff" filter="url(#softGlow)" />
                   </g>
@@ -901,13 +925,13 @@ export function AIOrbFace({
                 <g className={styles.faceFeaturesGroup}>
                   {mood === "curious" ? (
                     /* Curious: Tiny cute open 'o' mouth */
-                    <ellipse cx="140" cy="128" rx="3.5" ry="4" fill="#0b1328" stroke={isLight ? "#0f172a" : "#60a5fa"} strokeWidth="1.2" />
+                    <ellipse cx="140" cy="128" rx="3.5" ry="4" fill="#0b1328" stroke="#0f172a" strokeWidth="1.2" />
                   ) : mood === "sulky" ? (
                     /* Sulky: Downturned pouty frown */
                     <path
                       d="M 132 133 Q 140 125 148 133"
                       fill="none"
-                      stroke={isLight ? "#0f172a" : "#60a5fa"}
+                      stroke="#0f172a"
                       strokeWidth="2.5"
                       strokeLinecap="round"
                     />
@@ -917,7 +941,7 @@ export function AIOrbFace({
                       <path
                         d="M 131 123 Q 140 133 149 123"
                         fill="none"
-                        stroke={isLight ? "#0f172a" : "#38bdf8"}
+                        stroke="#0f172a"
                         strokeWidth="2.4"
                         strokeLinecap="round"
                       />
@@ -931,7 +955,7 @@ export function AIOrbFace({
                   ) : mood === "sleepy" || mood === "offline" || mood === "usage_limit" ? (
                     /* Sleepy / Offline: Yawning or peaceful mouth */
                     <g>
-                      <ellipse cx="140" cy="129" rx="6.5" ry="8" fill="#090e21" stroke={isLight ? "#0f172a" : "#60a5fa"} strokeWidth="1.5" />
+                      <ellipse cx="140" cy="129" rx="6.5" ry="8" fill="#090e21" stroke="#0f172a" strokeWidth="1.5" />
                       <ellipse cx="140" cy="133.5" rx="4.2" ry="2.8" fill="#ff4d79" />
                     </g>
                   ) : mood === "thinking" ? (
@@ -939,7 +963,7 @@ export function AIOrbFace({
                     <path
                       d="M 134 130 Q 140 126 146 130"
                       fill="none"
-                      stroke={isLight ? "#0f172a" : "#60a5fa"}
+                      stroke="#0f172a"
                       strokeWidth="2.2"
                       strokeLinecap="round"
                     />
@@ -948,7 +972,7 @@ export function AIOrbFace({
                     <path
                       d="M 132 125 Q 140 138 148 125 Z"
                       fill="#ff4d79"
-                      stroke={isLight ? "#0f172a" : "#38bdf8"}
+                      stroke="#0f172a"
                       strokeWidth="1.8"
                     />
                   ) : mood === "proud" ? (
@@ -956,7 +980,7 @@ export function AIOrbFace({
                     <path
                       d="M 133 125 Q 140 132 149 124"
                       fill="none"
-                      stroke={isLight ? "#0f172a" : "#38bdf8"}
+                      stroke="#0f172a"
                       strokeWidth="2.4"
                       strokeLinecap="round"
                     />
@@ -965,7 +989,7 @@ export function AIOrbFace({
                     <path
                       d="M 134 125 Q 140 131 146 125"
                       fill="none"
-                      stroke={isLight ? "#0f172a" : "#93c5fd"}
+                      stroke="#0f172a"
                       strokeWidth="2.2"
                       strokeLinecap="round"
                     />
@@ -974,7 +998,7 @@ export function AIOrbFace({
                     <path
                       d="M 134 126 L 140 130 L 146 126"
                       fill="none"
-                      stroke={isLight ? "#0f172a" : "#38bdf8"}
+                      stroke="#0f172a"
                       strokeWidth="2.5"
                       strokeLinecap="round"
                     />
@@ -984,7 +1008,7 @@ export function AIOrbFace({
                       <path
                         d="M 133 133 Q 140 126 147 133"
                         fill="none"
-                        stroke={isLight ? "#0f172a" : "#60a5fa"}
+                        stroke="#0f172a"
                         strokeWidth="2.4"
                         strokeLinecap="round"
                       />
@@ -996,7 +1020,7 @@ export function AIOrbFace({
                     <path
                       d="M 133 125 Q 140 131 147 125"
                       fill="none"
-                      stroke={isLight ? "#0f172a" : "#93c5fd"}
+                      stroke="#0f172a"
                       strokeWidth="2.4"
                       strokeLinecap="round"
                     />
@@ -1010,7 +1034,7 @@ export function AIOrbFace({
                     <text
                       x="0"
                       y="0"
-                      fill={isLight ? "#2563eb" : "#38bdf8"}
+                      fill="#2563eb"
                       fontSize="22"
                       fontWeight="bold"
                       fontFamily="sans-serif"
@@ -1023,7 +1047,7 @@ export function AIOrbFace({
 
                 {/* Sulky: Floating Comic Puff */}
                 {mood === "sulky" && (
-                  <g transform="translate(192, 52)" stroke={isLight ? "#2563eb" : "#38bdf8"} strokeWidth="1.8" fill="none">
+                  <g transform="translate(192, 52)" stroke="#2563eb" strokeWidth="1.8" fill="none">
                     <path d="M 0 4 Q 4 0 8 4 Q 12 0 16 4 Q 20 8 16 12 Q 20 16 16 20 Q 12 16 8 20 Q 4 16 0 20 Q -4 16 0 12 Z" opacity="0.85" />
                   </g>
                 )}
@@ -1031,7 +1055,7 @@ export function AIOrbFace({
                 {/* Playful / Tickle: Floating Radiating Energy */}
                 {(mood === "playful" || isGiggling) && (
                   <g
-                    stroke={isLight ? "#0284c7" : "#38bdf8"}
+                    stroke="#0284c7"
                     strokeWidth="3.2"
                     strokeLinecap="round"
                     filter="url(#softGlow)"
@@ -1046,13 +1070,13 @@ export function AIOrbFace({
                 {/* Sleepy / Offline / Usage Limit: Floating Zzz */}
                 {(mood === "sleepy" || mood === "offline" || mood === "usage_limit") && (
                   <g className={styles.sleepyZzzWrapper} transform="translate(196, 68)">
-                    <text x="0" y="0" fill={isLight ? "#2563eb" : "#38bdf8"} fontSize="13" fontWeight="bold" className={styles.zzz1}>
+                    <text x="0" y="0" fill="#2563eb" fontSize="13" fontWeight="bold" className={styles.zzz1}>
                       z
                     </text>
-                    <text x="7" y="-8" fill={isLight ? "#3b82f6" : "#60a5fa"} fontSize="16" fontWeight="bold" className={styles.zzz2}>
+                    <text x="7" y="-8" fill="#3b82f6" fontSize="16" fontWeight="bold" className={styles.zzz2}>
                       Z
                     </text>
-                    <text x="16" y="-18" fill={isLight ? "#60a5fa" : "#93c5fd"} fontSize="20" fontWeight="bold" className={styles.zzz3}>
+                    <text x="16" y="-18" fill="#60a5fa" fontSize="20" fontWeight="bold" className={styles.zzz3}>
                       Z
                     </text>
                   </g>
@@ -1107,16 +1131,16 @@ export function AIOrbFace({
                     cy="152"
                     rx="10"
                     ry="7"
-                    fill={isLight ? "url(#cuteHandGradLight)" : "url(#cuteHandGradDark)"}
-                    stroke={isLight ? "#94a3b8" : "#38bdf8"}
+                    fill="url(#cuteHandGradLight)"
+                    stroke="#94a3b8"
                     strokeWidth="1.2"
-                    opacity={isLight ? "0.7" : "0.6"}
+                    opacity="0.7"
                     transform="rotate(-15, 94, 152)"
                   />
                   <path
                     d="M 194 162 C 206 148, 198 132, 172 134"
                     fill="none"
-                    stroke={isLight ? "url(#cuteHandGradLight)" : "url(#cuteHandGradDark)"}
+                    stroke="url(#cuteHandGradLight)"
                     strokeWidth="15"
                     strokeLinecap="round"
                     filter="url(#softGlow)"
@@ -1124,23 +1148,23 @@ export function AIOrbFace({
                   <path
                     d="M 194 162 C 206 148, 198 132, 172 134"
                     fill="none"
-                    stroke={isLight ? "#94a3b8" : "#38bdf8"}
+                    stroke="#94a3b8"
                     strokeWidth="1.6"
                     strokeLinecap="round"
-                    opacity={isLight ? "0.6" : "0.85"}
+                    opacity="0.6"
                   />
                   <g transform="translate(162, 136)">
                     <circle
                       cx="0"
                       cy="0"
                       r="11"
-                      fill={isLight ? "url(#cuteHandGradLight)" : "url(#cuteHandGradDark)"}
-                      stroke={isLight ? "#94a3b8" : "#38bdf8"}
+                      fill="url(#cuteHandGradLight)"
+                      stroke="#94a3b8"
                       strokeWidth="1.6"
                       filter="url(#softGlow)"
                     />
-                    <path d="M -5 -4 Q 0 -7 5 -4" fill="none" stroke={isLight ? "#94a3b8" : "#60a5fa"} strokeWidth="1.4" strokeLinecap="round" />
-                    <path d="M -5 1 Q 0 -2 5 1" fill="none" stroke={isLight ? "#94a3b8" : "#60a5fa"} strokeWidth="1.4" strokeLinecap="round" />
+                    <path d="M -5 -4 Q 0 -7 5 -4" fill="none" stroke="#94a3b8" strokeWidth="1.4" strokeLinecap="round" />
+                    <path d="M -5 1 Q 0 -2 5 1" fill="none" stroke="#94a3b8" strokeWidth="1.4" strokeLinecap="round" />
                   </g>
                 </g>
               )}
@@ -1155,8 +1179,8 @@ export function AIOrbFace({
                       filter="url(#softGlow)"
                     />
                     <ellipse cx="-6" cy="-7" rx="4.5" ry="2.6" fill="#ffffff" opacity="0.65" transform="rotate(-30, -6, -7)" />
-                    <circle cx="-16" cy="3" r="8" fill={isLight ? "url(#cuteHandGradLight)" : "url(#cuteHandGradDark)"} stroke={isLight ? "#94a3b8" : "#38bdf8"} strokeWidth="1.4" />
-                    <circle cx="16" cy="3" r="8" fill={isLight ? "url(#cuteHandGradLight)" : "url(#cuteHandGradDark)"} stroke={isLight ? "#94a3b8" : "#38bdf8"} strokeWidth="1.4" />
+                    <circle cx="-16" cy="3" r="8" fill="url(#cuteHandGradLight)" stroke="#94a3b8" strokeWidth="1.4" />
+                    <circle cx="16" cy="3" r="8" fill="url(#cuteHandGradLight)" stroke="#94a3b8" strokeWidth="1.4" />
                   </g>
                 </g>
               )}
@@ -1167,9 +1191,9 @@ export function AIOrbFace({
               <g transform="translate(0, 8)">
                 {/* Floating typing wave dots (...) */}
                 <g transform="translate(122, 122)">
-                  <circle cx="8" cy="0" r="3.2" fill={isLight ? "#2563eb" : "#38bdf8"} className={styles.typingDot1} />
-                  <circle cx="18" cy="0" r="3.2" fill={isLight ? "#2563eb" : "#38bdf8"} className={styles.typingDot2} />
-                  <circle cx="28" cy="0" r="3.2" fill={isLight ? "#2563eb" : "#38bdf8"} className={styles.typingDot3} />
+                  <circle cx="8" cy="0" r="3.2" fill="#2563eb" className={styles.typingDot1} />
+                  <circle cx="18" cy="0" r="3.2" fill="#2563eb" className={styles.typingDot2} />
+                  <circle cx="28" cy="0" r="3.2" fill="#2563eb" className={styles.typingDot3} />
                 </g>
 
                 {/* Floor ring under laptop */}
@@ -1179,9 +1203,9 @@ export function AIOrbFace({
                   rx="58"
                   ry="10"
                   fill="none"
-                  stroke={isLight ? "rgba(148, 163, 184, 0.4)" : "#38bdf8"}
+                  stroke="rgba(148, 163, 184, 0.4)"
                   strokeWidth="1.5"
-                  opacity={isLight ? "0.4" : "0.6"}
+                  opacity="0.4"
                   filter="url(#softGlow)"
                 />
 
@@ -1193,8 +1217,8 @@ export function AIOrbFace({
                     width="84"
                     height="44"
                     rx="7"
-                    fill={isLight ? "url(#cuteLaptopLidLight)" : "url(#cuteLaptopLidDark)"}
-                    stroke={isLight ? "#94a3b8" : "#38bdf8"}
+                    fill="url(#cuteLaptopLidLight)"
+                    stroke="#94a3b8"
                     strokeWidth="1.8"
                   />
 
@@ -1205,14 +1229,14 @@ export function AIOrbFace({
                     height="38"
                     rx="5"
                     fill="none"
-                    stroke={isLight ? "rgba(148, 163, 184, 0.3)" : "rgba(56, 189, 248, 0.35)"}
+                    stroke="rgba(148, 163, 184, 0.3)"
                     strokeWidth="1"
                   />
 
                   {/* FocusForge 'F' Logo on Laptop Lid */}
                   <path
                     d="M 39 14 L 47 14 C 48 14 49 14.8 49 15.8 L 49 16.5 C 49 17.5 48.2 18 47.2 18 L 42.5 18 L 42.5 20.5 L 46 20.5 C 46.8 20.5 47.5 21.2 47.5 22 L 47.5 22.5 C 47.5 23.3 46.8 24 46 24 L 42.5 24 L 42.5 29 C 42.5 29.8 41.8 30.5 41 30.5 L 40 30.5 C 39.2 30.5 38.5 29.8 38.5 29 Z"
-                    fill={isLight ? "#2563eb" : "#38bdf8"}
+                    fill="#2563eb"
                     filter="url(#softGlow)"
                   />
                 </g>
@@ -1220,8 +1244,8 @@ export function AIOrbFace({
                 {/* Laptop Base */}
                 <path
                   d="M 90 204 L 190 204 L 182 210 L 98 210 Z"
-                  fill={isLight ? "#e2e8f0" : "#0b1329"}
-                  stroke={isLight ? "#94a3b8" : "#38bdf8"}
+                  fill="#e2e8f0"
+                  stroke="#94a3b8"
                   strokeWidth="1.5"
                 />
 
@@ -1229,17 +1253,17 @@ export function AIOrbFace({
                 <path
                   d="M 82 152 Q 86 172 96 172"
                   fill="none"
-                  stroke={isLight ? "#94a3b8" : "#38bdf8"}
+                  stroke="#94a3b8"
                   strokeWidth="4"
                   strokeLinecap="round"
-                  opacity={isLight ? "0.65" : "0.8"}
+                  opacity="0.65"
                 />
                 <circle
                   cx="96"
                   cy="172"
                   r="8.5"
-                  fill={isLight ? "url(#cuteHandGradLight)" : "url(#cuteHandGradDark)"}
-                  stroke={isLight ? "#94a3b8" : "#38bdf8"}
+                  fill="url(#cuteHandGradLight)"
+                  stroke="#94a3b8"
                   strokeWidth="1.5"
                   className={styles.pawLeft}
                 />
@@ -1248,17 +1272,17 @@ export function AIOrbFace({
                 <path
                   d="M 198 152 Q 194 172 184 172"
                   fill="none"
-                  stroke={isLight ? "#94a3b8" : "#38bdf8"}
+                  stroke="#94a3b8"
                   strokeWidth="4"
                   strokeLinecap="round"
-                  opacity={isLight ? "0.65" : "0.8"}
+                  opacity="0.65"
                 />
                 <circle
                   cx="184"
                   cy="172"
                   r="8.5"
-                  fill={isLight ? "url(#cuteHandGradLight)" : "url(#cuteHandGradDark)"}
-                  stroke={isLight ? "#94a3b8" : "#38bdf8"}
+                  fill="url(#cuteHandGradLight)"
+                  stroke="#94a3b8"
                   strokeWidth="1.5"
                   className={styles.pawRight}
                 />
