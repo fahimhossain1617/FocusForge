@@ -147,6 +147,7 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
   }, [initialLang]);
   
   const loadedSessionRef = useRef<string | null>(activeSessionId);
+  const prevUserIdRef = useRef<string | null>(currentUserId);
 
   // Persist current active messages & activeSessionId to memory / session safely scoped by user ID
   useEffect(() => {
@@ -157,7 +158,7 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
       memoryUserId = currentUserId;
 
       try {
-        if (!isPrivateMode && activeSessionId && loadedSessionRef.current === activeSessionId && messages.length > 0) {
+        if (!isPrivateMode && activeSessionId && messages.length > 0) {
           const msgKey = getMsgCacheKey(currentUserId, activeSessionId);
           if (isGuest || !user) {
             sessionStorage.setItem(msgKey, JSON.stringify(messages));
@@ -167,7 +168,7 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
         }
       } catch {}
     }
-  }, [messages, activeSessionId, guestCount, isGuest, user, currentUserId]);
+  }, [messages, activeSessionId, guestCount, isGuest, user, currentUserId, isPrivateMode]);
 
   // Refresh token status
   const refreshTokenStatus = useCallback(async (lang: string = initialLang) => {
@@ -179,16 +180,21 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
     }
   }, [initialLang]);
 
-  // Load sessions and initial conversation on mount / user change
+  // Load sessions and token status on mount / user change
   useEffect(() => {
     let isCancelled = false;
 
     const fetchInitialData = async () => {
       try {
-        // Reset state on user switch
-        setMessages([]);
-        setActiveSessionId(null);
-        loadedSessionRef.current = null;
+        // Reset state ONLY when user actually switches (e.g. login/logout)
+        if (prevUserIdRef.current !== currentUserId) {
+          prevUserIdRef.current = currentUserId;
+          setMessages([]);
+          setActiveSessionId(null);
+          loadedSessionRef.current = null;
+          clearAIGlobals();
+          memoryUserId = currentUserId;
+        }
 
         const [sessionsData, tokensData] = await Promise.all([
           getChatSessions(),
@@ -244,6 +250,9 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
     setMessages([]);
     setGuestCount(0);
     setError(null);
+    memoryMessages = null;
+    memoryActiveSessionId = null;
+    memoryGuestCount = 0;
   }, []);
 
   const selectSession = useCallback(async (sessionId: string) => {
@@ -251,6 +260,7 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
     setError(null);
     loadedSessionRef.current = sessionId;
     setActiveSessionId(sessionId);
+    memoryActiveSessionId = sessionId;
 
     // 1. Try instant load from user-scoped storage cache
     let foundInCache = false;
@@ -264,11 +274,13 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
         if (savedMsgs) {
           const parsed = JSON.parse(savedMsgs);
           if (Array.isArray(parsed) && parsed.length > 0) {
-            setMessages(parsed.map((m: any) => ({
+            const loaded = parsed.map((m: any) => ({
               ...m,
               createdAt: new Date(m.createdAt || m.created_at || Date.now()),
               payload: m.payload || m.payload_json
-            })));
+            }));
+            setMessages(loaded);
+            memoryMessages = loaded;
             foundInCache = true;
           }
         }
@@ -289,6 +301,7 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
           payload: m.payload || m.payload_json,
         }));
         setMessages(normalized);
+        memoryMessages = normalized;
         if (typeof window !== "undefined") {
           try {
             const msgKey = getMsgCacheKey(currentUserId, sessionId);
@@ -301,6 +314,7 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
         }
       } else if (!foundInCache) {
         setMessages([]);
+        memoryMessages = [];
       }
     } catch (err) {
       console.error("Failed to load messages", err);
@@ -496,6 +510,8 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
 
       if (privacyMode === "improvement" && result.sessionId && !activeSessionId) {
         setActiveSessionId(result.sessionId);
+        loadedSessionRef.current = result.sessionId;
+        memoryActiveSessionId = result.sessionId;
         const returnedTitle = result.sessionTitle || content.substring(0, 30);
         setSessions((prevSessions) => {
           const updated = [

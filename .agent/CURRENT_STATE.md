@@ -110,10 +110,10 @@ Foscentia is an active, functional productivity suite built with Next.js 16 App 
 ---
 
 ### AI Agent (Glory AI)
-- **Current Implementation:** `AIAgentPage.tsx`, `AIOrbFace.tsx`, `GloryOrbIcon.tsx`, `BorderBeam.tsx`, `aiAgentService.ts`, `frontend/src/lib/server/aiService.ts`. Rebranded as **Glory AI** (গ্লোরি এআই) with dedicated monochromatic Orb Face icon. Constant-speed SVG perimeter BorderBeam on composer pill. Permanent silky pearl white Orb face across dark and light modes with full mobile touch drag tracking. Powered by ultra-low latency `gemini-3.5-flash-lite` engine (~1000ms response time) with instant streaming reveals, supporting chat sessions, smart auto-titling, strict persistent 5,000 token quota management with reset-at timers, and 23+ intent actions with validation (`aiActionValidator.ts`).
+- **Current Implementation:** `AIAgentPage.tsx`, `AIOrbFace.tsx`, `GloryOrbIcon.tsx`, `BorderBeam.tsx`, `aiAgentService.ts`, `frontend/src/lib/server/aiService.ts`. Rebranded as **Glory AI** (গ্লোরি এআই) with dedicated monochromatic Orb Face icon. Constant-speed SVG perimeter BorderBeam on composer pill. Permanent silky pearl white Orb face across dark and light modes with full mobile touch drag tracking. Powered by ultra-low latency `gemini-3.5-flash-lite` engine (~1000ms response time) with instant streaming reveals, persistent active in-memory chat conversation across internal feature navigation (Planner, Today, Focus, etc.), explicit "New Chat" reset controls, smart auto-titling, strict persistent 5,000 token quota management with reset-at timers, and 23+ intent actions with validation (`aiActionValidator.ts`).
 - **Verified Status:** **VERIFIED**
 - **Known Problems:** None.
-- **Important Files:** `frontend/src/components/ai-agent/AIAgentPage.tsx`, `frontend/src/components/ai-agent/AIOrbFace.tsx`, `frontend/src/components/ui/BorderBeam.tsx`, `frontend/src/components/icons/GloryOrbIcon.tsx`, `frontend/src/services/aiAgentService.ts`, `frontend/src/lib/server/aiService.ts`.
+- **Important Files:** `frontend/src/components/ai-agent/AIAgentPage.tsx`, `frontend/src/hooks/useAIAgent.ts`, `frontend/src/components/ai-agent/AIOrbFace.tsx`, `frontend/src/components/ui/BorderBeam.tsx`, `frontend/src/components/icons/GloryOrbIcon.tsx`, `frontend/src/services/aiAgentService.ts`, `frontend/src/lib/server/aiService.ts`.
 - **Dependencies:** `@google/genai`, `ai_chat_sessions`, `ai_tokens`.
 - **Unknowns:** None.
 

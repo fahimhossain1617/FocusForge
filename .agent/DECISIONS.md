@@ -318,5 +318,24 @@
 - **Impact:** `frontend/src/components/ui/BorderBeam.*`, `frontend/src/components/ai-agent/AIOrbFace.tsx`, `frontend/src/lib/server/aiService.ts`, `backend/src/services/aiService.ts`, `frontend/src/services/aiAgentService.ts`, `frontend/src/hooks/useAIAgent.ts`.
 - **Do Not Change Without Approval:** Do not replace SVG perimeter stroke animation with center-rotating conic gradients on elongated pills, reintroduce theme-dependent dark blue body colors for the mascot orb, or de-prioritize `gemini-3.5-flash-lite` for fast agent responses.
 
+---
+
+## ADR-021: Persistent Glory AI Chat State Across In-App Feature Navigation
+
+- **Date:** October 2026
+- **Status:** Accepted
+- **Decision:**
+  1. **In-Memory & Scoped Cache Chat State Preservation (`frontend/src/hooks/useAIAgent.ts`):**
+     - Fixed `useAIAgent` initial data fetching so that navigating between internal app tabs (e.g. from Glory AI to Planner, Focus, Today, Notes, etc. and back) does NOT reset active messages or the active session ID.
+     - State reset logic is strictly guarded to execute ONLY when the authenticated user identity actually switches (`prevUserIdRef.current !== currentUserId`), preserving strict multi-account isolation while maintaining continuous conversation flow during SPA navigation.
+  2. **Explicit "New Chat" Lifecycle Control (`frontend/src/hooks/useAIAgent.ts`, `frontend/src/components/ai-agent/AIAgentPage.tsx`):**
+     - Retained instant session reset whenever the user explicitly clicks the "New Chat" button, clearing in-memory message history and creating a fresh conversation ready for input.
+  3. **Real-time Session Cache Synchronization:**
+     - Synchronized `loadedSessionRef.current` and user-scoped storage caches upon new session creation and message exchange to prevent stale state regressions.
+- **Reason:** Direct user requirement ensuring that switching to other features to check plans, tasks, or settings while chatting with Glory AI does not wipe the active conversation.
+- **Impact:** `frontend/src/hooks/useAIAgent.ts`, `frontend/src/components/ai-agent/AIAgentPage.tsx`.
+- **Do Not Change Without Approval:** Do not reintroduce unconditional `setMessages([])` on component mount in `useAIAgent.ts`.
+
+
 
 
