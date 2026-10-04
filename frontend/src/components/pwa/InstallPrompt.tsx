@@ -86,7 +86,7 @@ export default function InstallPrompt({ variant = "sidebar" }: InstallPromptProp
     const handleAppInstalled = () => {
       setIsInstalled(true);
       setDeferredPrompt(null);
-      showToast("FocusForge installed successfully!", "success");
+      showToast("Focentia installed successfully!", "success");
     };
 
     window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
@@ -118,14 +118,14 @@ export default function InstallPrompt({ variant = "sidebar" }: InstallPromptProp
       // If browser doesn't expose beforeinstallprompt (e.g., iOS Safari or already promptable via browser menu)
       const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as unknown as { MSStream?: unknown }).MSStream;
       if (isIOS) {
-        showToast("To install FocusForge: Tap the Share button in Safari, then select 'Add to Home Screen'.", "info");
+        showToast("To install Focentia: Tap the Share button in Safari, then select 'Add to Home Screen'.", "info");
       } else {
-        showToast("To install FocusForge: Click the install icon in your browser address bar or menu (⋮).", "info");
+        showToast("To install Focentia: Click the install icon in your browser address bar or menu (⋮).", "info");
       }
     }
   };
 
-  // Do not render before mount (SSR safety) or if FocusForge IS INSTALLED
+  // Do not render before mount (SSR safety) or if Focentia IS INSTALLED
   if (!mounted || isInstalled) {
     return null;
   }
@@ -139,7 +139,7 @@ export default function InstallPrompt({ variant = "sidebar" }: InstallPromptProp
         <div className="flex items-center gap-2 min-w-0">
           <img 
             src="/icons/icon-72x72.png" 
-            alt="FocusForge" 
+            alt="Focentia" 
             className="w-6 h-6 rounded-md shadow-none border border-blue-500/30 object-cover shrink-0" 
           />
           <div className="min-w-0">
@@ -147,7 +147,7 @@ export default function InstallPrompt({ variant = "sidebar" }: InstallPromptProp
               className="text-[11px] font-bold tracking-tight truncate leading-tight transition-colors" 
               style={{ color: "var(--color-text-primary)" }}
             >
-              FocusForge
+              Focentia
             </h4>
             <p 
               className="text-[9px] truncate leading-tight mt-0.5 transition-colors" 
@@ -177,7 +177,7 @@ export default function InstallPrompt({ variant = "sidebar" }: InstallPromptProp
       type="button"
       onClick={handleInstallClick}
       className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold text-blue-300 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 transition-all cursor-pointer"
-      title={state?.lang === 'bn' ? "FocusForge অ্যাপ ইনস্টল করুন" : "Install FocusForge App"}
+      title={state?.lang === 'bn' ? "Focentia অ্যাপ ইনস্টল করুন" : "Install Focentia App"}
     >
       <Download size={13} className="text-blue-400" />
       <span>{state?.lang === 'bn' ? "অ্যাপ ইনস্টল করুন" : "Install App"}</span>

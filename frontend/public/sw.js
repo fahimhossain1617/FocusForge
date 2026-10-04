@@ -1,5 +1,5 @@
-// FocusForge Progressive Web App Service Worker
-const CACHE_NAME = 'focusforge-v7';
+// Focentia Progressive Web App Service Worker
+const CACHE_NAME = 'focentia-v8';
 
 const STATIC_ASSETS = [
   '/',
@@ -200,7 +200,7 @@ self.addEventListener('push', (event) => {
     try {
       data = event.data.json();
     } catch {
-      data = { title: 'FocusForge', body: event.data.text() };
+      data = { title: 'Focentia', body: event.data.text() };
     }
   }
 
@@ -212,14 +212,14 @@ self.addEventListener('push', (event) => {
   // Deterministic tag to group/replace logically identical alerts
   let deterministicTag = data.tag;
   if (!deterministicTag) {
-    if (category === 'daily_plan') deterministicTag = `focusforge-daily-plan-${todayStr}`;
-    else if (category === 'focus_reminder' || category === 'focus_completed') deterministicTag = `focusforge-focus-${todayStr}`;
-    else if (data.taskId) deterministicTag = `focusforge-task-${data.taskId}`;
-    else if (data.skillId) deterministicTag = `focusforge-skill-${data.skillId}-${todayStr}`;
-    else deterministicTag = `focusforge-${category}`;
+    if (category === 'daily_plan') deterministicTag = `focentia-daily-plan-${todayStr}`;
+    else if (category === 'focus_reminder' || category === 'focus_completed') deterministicTag = `focentia-focus-${todayStr}`;
+    else if (data.taskId) deterministicTag = `focentia-task-${data.taskId}`;
+    else if (data.skillId) deterministicTag = `focentia-skill-${data.skillId}-${todayStr}`;
+    else deterministicTag = `focentia-${category}`;
   }
 
-  const title = data.title || 'FocusForge';
+  const title = data.title || 'Focentia';
   const body = data.body || data.message || 'You have an update.';
   const icon = data.icon || '/icons/icon-192x192.png';
   const badge = data.badge || '/icons/badge-96x96.png';

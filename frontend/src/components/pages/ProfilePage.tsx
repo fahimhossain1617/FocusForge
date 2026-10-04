@@ -63,13 +63,13 @@ export default function ProfilePage() {
       setFormData({
         fullName: "Guest Explorer",
         displayName: "Guest",
-        email: "guest@focusforge.app",
+        email: "guest@focentia.app",
         phone: "",
         dob: "",
         gender: "",
         country: "",
         city: "",
-        bio: "Exploring FocusForge in guest mode.",
+        bio: "Exploring Focentia in guest mode.",
         avatarUrl: "",
       });
     }

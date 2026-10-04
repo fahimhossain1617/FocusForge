@@ -39,16 +39,16 @@ function VerifyContent() {
       setEmail(qEmail);
       setNewEmail(qEmail);
     } else if (isDemo) {
-      setEmail("demo@focusforge.app");
-      setNewEmail("demo@focusforge.app");
+      setEmail("demo@focentia.app");
+      setNewEmail("demo@focentia.app");
     } else if (typeof window !== "undefined") {
       const stored = sessionStorage.getItem("focusforge_pending_email");
       if (stored) {
         setEmail(stored);
         setNewEmail(stored);
       } else {
-        setEmail("demo@focusforge.app");
-        setNewEmail("demo@focusforge.app");
+        setEmail("demo@focentia.app");
+        setNewEmail("demo@focentia.app");
       }
     }
   }, [searchParams]);
@@ -116,7 +116,7 @@ function VerifyContent() {
       setTimeout(() => {
         setIsSuccess(true);
         playSuccessSound();
-        showToast("Demo verification successful! Welcome to FocusForge.", "success");
+        showToast("Demo verification successful! Welcome to Focentia.", "success");
         setTimeout(() => {
           router.push("/");
         }, 2800);
@@ -147,7 +147,7 @@ function VerifyContent() {
 
       setIsSuccess(true);
       playSuccessSound();
-      showToast("Email verified successfully! Welcome to FocusForge.", "success");
+      showToast("Email verified successfully! Welcome to Focentia.", "success");
 
       if (res.user) {
         onAuthSuccess(res.user, true);

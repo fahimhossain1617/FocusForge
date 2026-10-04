@@ -1014,7 +1014,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ pa
     }
 
     const type = pathStr.includes('report') ? 'report' : pathStr.includes('contact') ? 'contact' : 'feedback';
-    const senderName = body.name || (userId ? 'FocusForge User' : 'Guest User');
+    const senderName = body.name || (userId ? 'Focentia User' : 'Guest User');
     const senderEmail = body.email || userEmail || '';
     const subject = body.subject || body.title || `${type.toUpperCase()} Submission`;
     const message = body.message || body.description || '';
@@ -1227,7 +1227,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ pa
 
       return NextResponse.json({
         sessionId: requestedSessionId || (isGuest ? 'guest-session' : `session_${Date.now()}`),
-        sessionTitle: userMsg ? userMsg.substring(0, 25) : 'FocusForge AI',
+        sessionTitle: userMsg ? userMsg.substring(0, 25) : 'Focentia AI',
         aiMessage: exhaustedAiMsg,
         tokenStatus,
         isExhausted: true,
@@ -1250,7 +1250,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ pa
         intent: 'GREETING_OR_GENERAL',
         message: lang === 'bn'
           ? 'দুঃখিত, এআই সার্ভার সাময়িক একটু ব্যস্ত ছিল। তোমার পড়াশোনা, কাজ বা যেকোনো বিষয়ে কিছু জানার থাকলে বলো, আমি শুনছি!'
-          : "FocusForge AI is temporarily busy. Please let me know if you need help with anything else, I'm here!",
+          : "Focentia AI is temporarily busy. Please let me know if you need help with anything else, I'm here!",
         payload: null
       };
     }
@@ -1274,7 +1274,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ pa
 
     return NextResponse.json({
       sessionId: activeSessionId,
-      sessionTitle: userMsg ? userMsg.substring(0, 30) : 'FocusForge AI',
+      sessionTitle: userMsg ? userMsg.substring(0, 30) : 'Focentia AI',
       aiMessage,
       tokenStatus: updatedTokens,
     });
@@ -1318,7 +1318,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ pa
     pathStr === 'learning/folders' ||
     pathStr === 'learning/logs'
   ) {
-    return NextResponse.json({ success: true, message: 'FocusForge is local-first; data stored locally' });
+    return NextResponse.json({ success: true, message: 'Focentia is local-first; data stored locally' });
   }
 
   // 17. Reviews & Prompt State
@@ -1499,7 +1499,7 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ p
     (pathStr.startsWith('focus/sessions/') && pathStr.endsWith('/end')) ||
     pathStr.startsWith('learning/folders/')
   ) {
-    return NextResponse.json({ success: true, message: 'FocusForge is local-first; data updated locally' });
+    return NextResponse.json({ success: true, message: 'Focentia is local-first; data updated locally' });
   }
 
   // 6. Notifications Read State: PATCH /api/notifications/read-all & /api/notifications/:id/read
@@ -1635,7 +1635,7 @@ export async function DELETE(request: NextRequest, context: { params: Promise<{ 
     pathStr.startsWith('learning/folders/') ||
     pathStr.startsWith('learning/logs/')
   ) {
-    return NextResponse.json({ success: true, message: 'FocusForge is local-first; data deleted locally' });
+    return NextResponse.json({ success: true, message: 'Focentia is local-first; data deleted locally' });
   }
 
   // 9. Notifications: DELETE /api/notifications & /api/notifications/:id

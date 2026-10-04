@@ -28,30 +28,30 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://focusforge.app"),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://focentia.app"),
   title: {
-    default: "FocusForge — Personal External Brain & Deep Productivity",
-    template: "%s | FocusForge",
+    default: "Focentia — Personal External Brain & Deep Productivity",
+    template: "%s | Focentia",
   },
   description:
     "A personal external brain. Capture thoughts, organize tasks, plan your day, focus deeply, and track where your time goes.",
   manifest: "/manifest.json",
-  applicationName: "FocusForge",
+  applicationName: "Focentia",
   alternates: {
     canonical: "/",
   },
   openGraph: {
-    title: "FocusForge — Personal External Brain & Deep Productivity",
+    title: "Focentia — Personal External Brain & Deep Productivity",
     description:
       "Capture thoughts, organize tasks, plan your day, focus deeply, and master your time.",
-    url: "https://focusforge.app",
-    siteName: "FocusForge",
+    url: "https://focentia.app",
+    siteName: "Focentia",
     locale: "en_US",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "FocusForge — Personal External Brain",
+    title: "Focentia — Personal External Brain",
     description:
       "A personal external brain. Capture thoughts, organize tasks, plan your day, and focus deeply.",
   },
@@ -69,7 +69,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "FocusForge",
+    title: "Focentia",
   },
   icons: {
     icon: [
@@ -570,7 +570,7 @@ export default function RootLayout({
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-        <meta name="apple-mobile-web-app-title" content="FocusForge" />
+        <meta name="apple-mobile-web-app-title" content="Focentia" />
       </head>
       <body
         suppressHydrationWarning

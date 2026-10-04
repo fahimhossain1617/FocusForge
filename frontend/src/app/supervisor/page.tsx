@@ -277,7 +277,7 @@ export default function SupervisorPortal() {
           </div>
           <h1 className="text-2xl font-bold mb-2">Supervisor Access Required</h1>
           <p className="text-sm text-[var(--color-text-muted)] mb-6">
-            This management console is restricted to designated FocusForge Supervisors and Administrators.
+            This management console is restricted to designated Focentia Supervisors and Administrators.
           </p>
           <a
             href="/"
@@ -309,7 +309,7 @@ export default function SupervisorPortal() {
             <div className="flex items-center gap-2">
               <h1 className="font-bold text-lg leading-none">Supervisor Portal</h1>
               <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-primary/15 text-primary">
-                FocusForge Support Engine
+                Focentia Support Engine
               </span>
             </div>
             <p className="text-xs text-[var(--color-text-muted)] mt-1">Real-time support ticket operations and customer reply</p>

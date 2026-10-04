@@ -64,7 +64,7 @@ class EmailQueue {
       }
 
       if (this.transporter) {
-        const fromAddress = process.env.SMTP_FROM || `"FocusForge" <${process.env.SMTP_USER || SUPPORT_EMAIL}>`;
+        const fromAddress = process.env.SMTP_FROM || `"Focentia" <${process.env.SMTP_USER || SUPPORT_EMAIL}>`;
         await this.transporter.sendMail({
           from: fromAddress,
           to: job.to,
@@ -101,7 +101,7 @@ class EmailQueue {
       }
 
       if (this.transporter) {
-        const fromAddress = process.env.SMTP_FROM || `"FocusForge" <${SUPPORT_EMAIL}>`;
+        const fromAddress = process.env.SMTP_FROM || `"Focentia" <${SUPPORT_EMAIL}>`;
         await this.transporter.sendMail({
           from: fromAddress,
           to: currentJob.to,
@@ -214,7 +214,7 @@ export function sendSupportNotificationToOwner(ticket: {
           <p style="margin-top: 16px;">You can reply directly to this email to reach the user, or manage the ticket in the Supervisor portal:</p>
           <a href="${supervisorTicketUrl}" class="btn">Open in Supervisor Dashboard</a>
           <div class="footer">
-            FocusForge Support System &bull; Inbox: ${SUPPORT_INBOX_EMAIL}
+            Focentia Support System &bull; Inbox: ${SUPPORT_INBOX_EMAIL}
           </div>
         </div>
       </body>
@@ -222,7 +222,7 @@ export function sendSupportNotificationToOwner(ticket: {
   `;
 
   const text = `
-FocusForge ${ticket.type.toUpperCase()} Notification
+Focentia ${ticket.type.toUpperCase()} Notification
 Ticket: ${ticket.ticketNumber}
 Type: ${ticket.type}
 Category: ${ticket.category || 'General'}
@@ -273,16 +273,16 @@ export function sendSupportConfirmationToUser(ticket: {
         <div class="card">
           <h2 class="title">We have received your message</h2>
           <p>Hello ${escapeHtml(ticket.senderName || 'there')},</p>
-          <p>Thank you for reaching out to FocusForge support. Your submission has been registered with our team.</p>
+          <p>Thank you for reaching out to Focentia support. Your submission has been registered with our team.</p>
           <div class="ticket-info">
             <div><strong>Ticket Number:</strong> ${escapeHtml(ticket.ticketNumber)}</div>
             <div><strong>Subject:</strong> ${escapeHtml(ticket.subject)}</div>
             <div><strong>Status:</strong> Received</div>
           </div>
           <p>Our team reviews all inquiries promptly and we usually reply within two business days. Please keep your ticket number for reference.</p>
-          <p>Best regards,<br />The FocusForge Team</p>
+          <p>Best regards,<br />The Focentia Team</p>
           <div class="footer">
-            This is an automated confirmation from FocusForge Support (${SUPPORT_EMAIL}).
+            This is an automated confirmation from Focentia Support (${SUPPORT_EMAIL}).
           </div>
         </div>
       </body>
@@ -299,12 +299,12 @@ Subject: ${ticket.subject}
 Our team reviews all inquiries promptly and we usually reply within two business days.
 
 Best regards,
-The FocusForge Team
+The Focentia Team
   `.trim();
 
   emailQueue.enqueue({
     to: ticket.senderEmail,
-    subject: `[${ticket.ticketNumber}] Support Request Received - FocusForge`,
+    subject: `[${ticket.ticketNumber}] Support Request Received - Focentia`,
     html,
     text,
   });
@@ -341,9 +341,9 @@ export function sendSupervisorReplyToUser(ticket: {
           <p>Our team has sent a response regarding your ticket <strong>${escapeHtml(ticket.subject)}</strong>:</p>
           <div class="message-box">${escapeHtml(ticket.replyMessage)}</div>
           <p>If you have any further questions, you can reply directly to this email.</p>
-          <p>Best regards,<br />${escapeHtml(ticket.supervisorName)} &bull; FocusForge Team</p>
+          <p>Best regards,<br />${escapeHtml(ticket.supervisorName)} &bull; Focentia Team</p>
           <div class="footer">
-            FocusForge Support &bull; Ticket ${escapeHtml(ticket.ticketNumber)}
+            Focentia Support &bull; Ticket ${escapeHtml(ticket.ticketNumber)}
           </div>
         </div>
       </body>
@@ -360,7 +360,7 @@ ${ticket.replyMessage}
 You can reply directly to this email if you need more assistance.
 
 Best regards,
-${ticket.supervisorName} - FocusForge Team
+${ticket.supervisorName} - Focentia Team
   `.trim();
 
   emailQueue.enqueue({
@@ -393,13 +393,13 @@ export function sendPasswordChangedEmail(userEmail: string, userName?: string) {
         <div class="card">
           <h2 class="title">Security Notice: Password Changed</h2>
           <p>Hello ${escapeHtml(userName || 'there')},</p>
-          <p>Your FocusForge account password was recently changed.</p>
+          <p>Your Focentia account password was recently changed.</p>
           <div class="warning">
             If you made this change, no further action is required. If you did not make this change, please reset your password immediately or contact our support team at ${SUPPORT_EMAIL}.
           </div>
-          <p>Best regards,<br />FocusForge Security Team</p>
+          <p>Best regards,<br />Focentia Security Team</p>
           <div class="footer">
-            FocusForge Security Notification &bull; ${new Date().toUTCString()}
+            Focentia Security Notification &bull; ${new Date().toUTCString()}
           </div>
         </div>
       </body>
@@ -411,17 +411,17 @@ Security Notice: Password Changed
 
 Hello ${userName || 'there'},
 
-Your FocusForge account password was recently changed.
+Your Focentia account password was recently changed.
 
 If you made this change, no further action is required. If you did not make this change, please reset your password immediately or contact support at ${SUPPORT_EMAIL}.
 
 Best regards,
-FocusForge Security Team
+Focentia Security Team
   `.trim();
 
   emailQueue.enqueue({
     to: userEmail,
-    subject: `Security Alert: FocusForge Password Changed`,
+    subject: `Security Alert: Focentia Password Changed`,
     html,
     text,
   });
@@ -445,13 +445,13 @@ export function sendAccountDeletedEmail(userEmail: string, userName?: string) {
       </head>
       <body>
         <div class="card">
-          <h2 class="title">FocusForge Account Deleted</h2>
+          <h2 class="title">Focentia Account Deleted</h2>
           <p>Hello ${escapeHtml(userName || 'there')},</p>
-          <p>Your FocusForge account and all associated personal data (tasks, notes, diary entries, focus sessions, and preferences) have been permanently deleted as requested.</p>
-          <p>Thank you for having been a part of FocusForge. If you wish to use the app again in the future, you are welcome to create a new account anytime.</p>
-          <p>Best regards,<br />FocusForge Team</p>
+          <p>Your Focentia account and all associated personal data (tasks, notes, diary entries, focus sessions, and preferences) have been permanently deleted as requested.</p>
+          <p>Thank you for having been a part of Focentia. If you wish to use the app again in the future, you are welcome to create a new account anytime.</p>
+          <p>Best regards,<br />Focentia Team</p>
           <div class="footer">
-            FocusForge &bull; Account Deletion Confirmation
+            Focentia &bull; Account Deletion Confirmation
           </div>
         </div>
       </body>
@@ -459,21 +459,21 @@ export function sendAccountDeletedEmail(userEmail: string, userName?: string) {
   `;
 
   const text = `
-FocusForge Account Deleted
+Focentia Account Deleted
 
 Hello ${userName || 'there'},
 
-Your FocusForge account and all associated personal data have been permanently deleted as requested.
+Your Focentia account and all associated personal data have been permanently deleted as requested.
 
-Thank you for using FocusForge.
+Thank you for using Focentia.
 
 Best regards,
-FocusForge Team
+Focentia Team
   `.trim();
 
   emailQueue.enqueue({
     to: userEmail,
-    subject: `FocusForge Account Deleted`,
+    subject: `Focentia Account Deleted`,
     html,
     text,
   });
@@ -503,9 +503,9 @@ export async function sendVerificationOtpEmail(to: string, otpCode: string, reci
       </head>
       <body>
         <div class="card">
-          <div class="brand">FocusForge</div>
+          <div class="brand">Focentia</div>
           <h2 class="title">Verify your email address</h2>
-          <p class="sub">Hello ${escapeHtml(recipientName || 'there')},<br />Use the 6-digit verification code below to complete your FocusForge account registration.</p>
+          <p class="sub">Hello ${escapeHtml(recipientName || 'there')},<br />Use the 6-digit verification code below to complete your Focentia account registration.</p>
           
           <div class="otp-box">
             <div class="otp-code">${escapeHtml(otpCode)}</div>
@@ -519,7 +519,7 @@ export async function sendVerificationOtpEmail(to: string, otpCode: string, reci
           <p style="font-size: 13px; color: #64748b; margin: 0;">If you did not request this verification code, please ignore this email.</p>
           
           <div class="footer">
-            &copy; 2026 FocusForge &bull; Secure Authentication System
+            &copy; 2026 Focentia &bull; Secure Authentication System
           </div>
         </div>
       </body>
@@ -527,7 +527,7 @@ export async function sendVerificationOtpEmail(to: string, otpCode: string, reci
   `;
 
   const text = `
-FocusForge Email Verification
+Focentia Email Verification
 
 Hello ${recipientName || 'there'},
 
@@ -538,12 +538,12 @@ This code expires in 15 minutes.
 If you did not request this code, you can safely ignore this email.
 
 Best regards,
-FocusForge Team
+Focentia Team
   `.trim();
 
   return await emailQueue.sendDirect({
     to,
-    subject: `${otpCode} is your FocusForge verification code`,
+    subject: `${otpCode} is your Focentia verification code`,
     html,
     text,
   });
@@ -573,9 +573,9 @@ export async function sendPasswordResetOtpEmail(to: string, otpCode: string, rec
       </head>
       <body>
         <div class="card">
-          <div class="brand">FocusForge</div>
+          <div class="brand">Focentia</div>
           <h2 class="title">Reset your password</h2>
-          <p class="sub">Hello ${escapeHtml(recipientName || 'there')},<br />We received a request to reset your FocusForge account password. Enter the 6-digit confirmation code below to proceed.</p>
+          <p class="sub">Hello ${escapeHtml(recipientName || 'there')},<br />We received a request to reset your Focentia account password. Enter the 6-digit confirmation code below to proceed.</p>
           
           <div class="otp-box">
             <div class="otp-code">${escapeHtml(otpCode)}</div>
@@ -587,7 +587,7 @@ export async function sendPasswordResetOtpEmail(to: string, otpCode: string, rec
           </div>
           
           <div class="footer">
-            &copy; 2026 FocusForge &bull; Secure Authentication System
+            &copy; 2026 Focentia &bull; Secure Authentication System
           </div>
         </div>
       </body>
@@ -595,7 +595,7 @@ export async function sendPasswordResetOtpEmail(to: string, otpCode: string, rec
   `;
 
   const text = `
-FocusForge Password Reset
+Focentia Password Reset
 
 Hello ${recipientName || 'there'},
 
@@ -606,12 +606,12 @@ This code expires in 15 minutes.
 If you did not request a password reset, please ignore this email.
 
 Best regards,
-FocusForge Security Team
+Focentia Security Team
   `.trim();
 
   return await emailQueue.sendDirect({
     to,
-    subject: `${otpCode} is your FocusForge password reset code`,
+    subject: `${otpCode} is your Focentia password reset code`,
     html,
     text,
   });

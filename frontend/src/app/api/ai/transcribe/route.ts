@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
     const ai = new GoogleGenAI({ apiKey });
 
     const prompt = [
-      "You are an expert, multilingual speech-to-text transcriber for the FocusForge app.",
+      "You are an expert, multilingual speech-to-text transcriber for the Focentia app.",
       "The speaker may speak in Bengali (বাংলা), English, or Banglish (Bengali spoken using colloquial or English mixed words).",
       "AUTOMATIC MULTILINGUAL TRANSCRIPTION RULES:",
       "1. If the speaker speaks in Bengali or Banglish (e.g. 'ami ajke routine banate chai', 'amar physics pora dorkar'):",

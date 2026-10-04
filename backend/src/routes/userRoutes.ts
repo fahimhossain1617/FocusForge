@@ -348,7 +348,7 @@ async function handleSupportSubmission(req: AuthenticatedRequest, res: Response,
     }
 
     const body = req.body;
-    const senderName = body.name || (userId ? 'FocusForge User' : 'Guest User');
+    const senderName = body.name || (userId ? 'Focentia User' : 'Guest User');
     const senderEmail = body.email || req.user?.email || '';
     const subject = body.subject || body.title || `${type.toUpperCase()} Submission`;
     const message = body.message || body.description || '';
@@ -408,7 +408,7 @@ async function handleSupportSubmission(req: AuthenticatedRequest, res: Response,
         type: ticket.type,
         category: ticket.category,
         senderName: ticket.name || 'Anonymous',
-        senderEmail: ticket.email || 'noreply@focusforge.app',
+        senderEmail: ticket.email || 'noreply@focentia.app',
         subject: ticket.subject,
         message: ticket.message,
         appVersion: ticket.appVersion || '1.0.0',

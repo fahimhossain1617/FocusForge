@@ -61,29 +61,29 @@ function getAppTag(notif: AppNotification, isBn: boolean): string {
   const cat = notif.category || notif.type;
   switch (cat) {
     case "daily_plan":
-      return isBn ? "ফোকাসফোর্স • আজকের প্ল্যান" : "FOCUSFORCE • DAILY PLAN";
+      return isBn ? "ফোসেন্টিয়া • আজকের প্ল্যান" : "FOCENTIA • DAILY PLAN";
     case "focus_reminder":
     case "focus":
-      return isBn ? "ফোকাসফোর্স • ফোকাস" : "FOCUSFORCE • FOCUS";
+      return isBn ? "ফোসেন্টিয়া • ফোকাস" : "FOCENTIA • FOCUS";
     case "task_start":
-      return isBn ? "ফোকাসফোর্স • টাস্ক শুরু" : "FOCUSFORCE • TASK START";
+      return isBn ? "ফোসেন্টিয়া • টাস্ক শুরু" : "FOCENTIA • TASK START";
     case "task_pre_reminder":
-      return isBn ? "ফোকাসফোর্স • আসন্ন টাস্ক" : "FOCUSFORCE • TASK DUE SOON";
+      return isBn ? "ফোসেন্টিয়া • আসন্ন টাস্ক" : "FOCENTIA • TASK DUE SOON";
     case "task_incomplete":
-      return isBn ? "ফোকাসফোর্স • কাজের খবর" : "FOCUSFORCE • TASK CHECK-IN";
+      return isBn ? "ফোসেন্টিয়া • কাজের খবর" : "FOCENTIA • TASK CHECK-IN";
     case "skill_reminder":
     case "learning":
-      return isBn ? "ফোকাসফোর্স • চর্চা" : "FOCUSFORCE • PRACTICE";
+      return isBn ? "ফোসেন্টিয়া • চর্চা" : "FOCENTIA • PRACTICE";
     case "task_completed":
-      return isBn ? "ফোকাসফোর্স • সম্পন্ন" : "FOCUSFORCE • COMPLETED";
+      return isBn ? "ফোসেন্টিয়া • সম্পন্ন" : "FOCENTIA • COMPLETED";
     case "focus_completed":
-      return isBn ? "ফোকাসফোর্স • ফোকাস সম্পন্ন" : "FOCUSFORCE • FOCUS DONE";
+      return isBn ? "ফোসেন্টিয়া • ফোকাস সম্পন্ন" : "FOCENTIA • FOCUS DONE";
     case "break_time":
-      return isBn ? "ফোকাসফোর্স • বিরতি" : "FOCUSFORCE • BREAK";
+      return isBn ? "ফোসেন্টিয়া • বিরতি" : "FOCENTIA • BREAK";
     case "streak_milestone":
-      return isBn ? "ফোকাসফোর্স • স্ট্রিক" : "FOCUSFORCE • STREAK";
+      return isBn ? "ফোসেন্টিয়া • স্ট্রিক" : "FOCENTIA • STREAK";
     default:
-      return isBn ? "ফোকাসফোর্স" : "FOCUSFORCE";
+      return isBn ? "ফোসেন্টিয়া" : "FOCENTIA";
   }
 }
 
@@ -604,7 +604,7 @@ function NotificationCard({
       >
         <img
           src="/icons/icon-192x192.png"
-          alt="FocusForge"
+          alt="Focentia"
           className="w-full h-full object-cover scale-110"
           onError={(e) => {
             (e.currentTarget as HTMLImageElement).src = "/logo.png";

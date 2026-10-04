@@ -941,7 +941,7 @@ export default function SettingsPage() {
                 </p>
               </div>
               <GuestPromptCard
-                heading="You are using FocusForge as a guest"
+                heading="You are using Focentia as a guest"
                 text="Log in or create an account to set up your profile and keep your data in sync."
               />
             </div>
@@ -1335,7 +1335,7 @@ export default function SettingsPage() {
                 </p>
               </div>
               <GuestPromptCard
-                heading="You are using FocusForge as a guest"
+                heading="You are using Focentia as a guest"
                 text="Log in to manage your password and account security."
               />
             </div>
@@ -2043,7 +2043,7 @@ export default function SettingsPage() {
             </div>
 
             <div className="rounded-2xl border border-[var(--color-border-subtle)] bg-[var(--color-surface-elevated)] p-6 sm:p-8 space-y-6 shadow-none">
-              {/* What is FocusForge */}
+              {/* What is Focentia */}
               <div>
                 <h3 className="text-sm font-semibold text-[var(--color-text-primary)] mb-2">
                   {t.settings.about.whatIsTitle}
@@ -2611,8 +2611,8 @@ export default function SettingsPage() {
               </div>
               <p className="text-[11px] text-[var(--color-text-muted)]">
                 {isBn
-                  ? "আপনি যদি অন্য ডিভাইসে ইতিমধ্যে FocusForge ব্যবহার করে থাকেন, তবে সেই ডিভাইসের রিকভারি কি এখানে পেস্ট করে এই ডিভাইসটি লিঙ্ক করুন।"
-                  : "If you already have FocusForge set up on another device, paste its recovery key here to link this device."}
+                  ? "আপনি যদি অন্য ডিভাইসে ইতিমধ্যে Focentia ব্যবহার করে থাকেন, তবে সেই ডিভাইসের রিকভারি কি এখানে পেস্ট করে এই ডিভাইসটি লিঙ্ক করুন।"
+                  : "If you already have Focentia set up on another device, paste its recovery key here to link this device."}
               </p>
 
               <div className="flex gap-2">
@@ -2684,8 +2684,8 @@ export default function SettingsPage() {
               </h1>
               <p className="text-xs text-[var(--color-text-muted)] mt-1">
                 {isBn 
-                  ? "FocusForge AI কীভাবে আপনার ডেটা পরিচালনা করে এবং আপনার গোপনীয়তা রক্ষা করে তা নিয়ন্ত্রণ করুন" 
-                  : "Control how FocusForge AI handles your data and personalizes interactions"}
+                  ? "Focentia AI কীভাবে আপনার ডেটা পরিচালনা করে এবং আপনার গোপনীয়তা রক্ষা করে তা নিয়ন্ত্রণ করুন" 
+                  : "Control how Focentia AI handles your data and personalizes interactions"}
               </p>
             </div>
 
@@ -2731,8 +2731,8 @@ export default function SettingsPage() {
                   </p>
                   <p>
                     {isBn
-                      ? "চ্যাট প্রাইভেট রাখলেও আপনি FocusForge-এর সব এআই ফিচার ও অ্যাসিস্ট্যান্ট সুবিধা সম্পূর্ণভাবে ব্যবহার করতে পারবেন।"
-                      : "Even if you choose to keep chats private, you retain 100% full access to all FocusForge features and tools."}
+                      ? "চ্যাট প্রাইভেট রাখলেও আপনি Focentia-এর সব এআই ফিচার ও অ্যাসিস্ট্যান্ট সুবিধা সম্পূর্ণভাবে ব্যবহার করতে পারবেন।"
+                      : "Even if you choose to keep chats private, you retain 100% full access to all Focentia features and tools."}
                   </p>
                 </div>
               </div>
@@ -3042,7 +3042,7 @@ export default function SettingsPage() {
                 </p>
               </div>
               <GuestPromptCard
-                heading="You are using FocusForge as a guest"
+                heading="You are using Focentia as a guest"
                 text="There is no account to delete. Log in to manage your account."
               />
             </div>

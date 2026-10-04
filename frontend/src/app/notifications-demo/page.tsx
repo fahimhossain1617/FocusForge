@@ -94,7 +94,7 @@ export default function NotificationsDemoPage() {
               F
             </div>
             <div>
-              <h1 className="text-base font-bold leading-none">FocusForge Notification System</h1>
+              <h1 className="text-base font-bold leading-none">Focentia Notification System</h1>
               <p className="text-[11px] opacity-70 mt-0.5">{isBn ? "লাইভ ডিজাইন ও ফিচার টেস্ট ল্যাব" : "Live Design & Feature Test Lab"}</p>
             </div>
           </div>
@@ -324,7 +324,7 @@ export default function NotificationsDemoPage() {
                 }`}>
                   <img
                     src="/icons/icon-192x192.png"
-                    alt="FocusForge"
+                    alt="Focentia"
                     className="w-full h-full object-cover scale-110"
                     onError={(e) => {
                       (e.currentTarget as HTMLImageElement).src = "/logo.png";
@@ -335,7 +335,7 @@ export default function NotificationsDemoPage() {
                 {/* 2. Text Area */}
                 <div className="flex-1 min-w-0 pr-1">
                   <div className={`text-[9.5px] font-bold uppercase tracking-wider mb-0.5 ${isDark ? "text-[#3B82F6]" : "text-[#1D4ED8]"}`}>
-                    {isBn ? "ফোকাসফোর্স - টাস্ক ডিউ" : "FOCUSFORCE - TASK DUE"}
+                    {isBn ? "ফোসেন্টিয়া - টাস্ক ডিউ" : "FOCENTIA - TASK DUE"}
                   </div>
                   <h4 className={`text-[14.5px] font-bold leading-tight truncate ${isDark ? "text-[#EAF1FF]" : "text-[#0B1F54]"}`}>
                     {isBn ? "ডিবিএমএস অ্যাসাইনমেন্ট জমা দিন" : "Submit DBMS assignment"}

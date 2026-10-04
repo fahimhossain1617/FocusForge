@@ -352,9 +352,21 @@
   3. **Bottom Navigation Responsive Premium Glass Indicator (`BottomNav.tsx`):**
      - Replaced rigid fixed-pixel box with a responsive, proportional premium glass squircle (`w-full max-w-[70px] h-[52px] rounded-2xl`).
      - Scales smoothly across mobile screen widths (320px–430px+), providing subtle glass highlight and tactile icon micro-interactions (`scale-[1.04]`) with calibrated spring physics (`stiffness: 380, damping: 32`) in both dark and light modes.
-- **Reason:** User request to fix transparent delete confirmation dialogs across the app, eliminate messy folder card spacing in Notes & Files by matching Mind Space's grid, and turn the stretched bottom nav selection pill into a clean box shape.
-- **Impact:** `frontend/src/app/globals.css`, `frontend/src/components/ui/ConfirmDeleteModal.tsx`, `frontend/src/components/workspace/notecard.css`, `frontend/src/components/pages/WorkspacePage.tsx`, `frontend/src/components/navigation/BottomNav.tsx`.
-- **Do Not Change Without Approval:** Do not remove `--color-surface-elevated` tokens or reintroduce stretched wide pills to mobile bottom navigation.
+---
+
+## ADR-023: Comprehensive Project-wide Brand Migration to Focentia
+
+- **Date:** October 2026
+- **Status:** Accepted
+- **Decision:**
+  1. **Application Brand Renaming:** Officially migrated application branding from "Focus Force" / "FocusForge" to **"Focentia"** (Bengali: **"ফোসেন্টিয়া"**).
+  2. **Metadata & PWA Alignment:** Updated `<title>`, OpenGraph, Twitter meta, Web App Manifests (`name` & `short_name`: `Focentia`), Service Worker cache identifiers (`focentia-v8`), sitemaps, robots, and canonical URLs (`focentia.app`).
+  3. **UI, Layouts & Legal:** Updated all navigation headers (`Sidebar.tsx`, `MobileHeader.tsx`), Auth layouts (`AuthLayout.tsx`), Legal documents (`terms/page.tsx`, `privacy/page.tsx`), About & Help modals, onboarding tour, feedback prompts, and Notifications center.
+  4. **Email & AI Prompts:** Updated transactional email templates, subject lines, AI Agent identity instructions, greetings, voice transcription prompts, and supervisor support engine tags.
+  5. **Safety & Technical Identifier Preservation:** Kept internal storage keys (e.g. `focusforge_theme`, `focusforge_local_v3`), database tables, and route API contracts intact to prevent data loss or migration breaks for existing users.
+- **Reason:** Complete official brand name transition requested by user.
+- **Impact:** `frontend/src/config.ts`, `frontend/src/app/layout.tsx`, `frontend/public/manifest.json`, `frontend/src/services/notificationTemplates.ts`, `frontend/src/services/emailService.ts`, `frontend/src/services/aiAgentService.ts`, `frontend/src/lib/server/aiService.ts`, all pages and components.
+
 
 
 

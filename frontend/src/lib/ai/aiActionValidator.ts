@@ -365,7 +365,7 @@ export function validateAndSanitizeAction(name: string, rawArgs: any): Validated
     name: name as ActionType,
     args: {},
     isAllowed: false,
-    reason: `Action '${name}' is not recognized in Focus Forge.`,
+    reason: `Action '${name}' is not recognized in Focentia.`,
     isDestructive: false,
     requiresConfirmation: false,
   };

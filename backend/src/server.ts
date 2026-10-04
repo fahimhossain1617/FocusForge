@@ -65,5 +65,5 @@ const server = createServer(app);
 setupWebSocketServer(server);
 
 server.listen(Number(port), host, () => {
-  console.log(`FocusForge Backend running on http://${host}:${port}`);
+  console.log(`Focentia Backend running on http://${host}:${port}`);
 });

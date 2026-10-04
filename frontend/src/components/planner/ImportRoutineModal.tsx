@@ -315,7 +315,7 @@ export default function ImportRoutineModal({
                   {duplicateAnalysis.duplicateCount} of {templateTasks.length} tasks already exist on this date.
                 </p>
                 <p className="text-amber-700/90 dark:text-amber-200/80 leading-relaxed">
-                  Focus Forge prevents accidental duplicates. You can choose to import only the remaining missing tasks, or re-import all tasks.
+                  Focentia prevents accidental duplicates. You can choose to import only the remaining missing tasks, or re-import all tasks.
                 </p>
               </div>
             </div>

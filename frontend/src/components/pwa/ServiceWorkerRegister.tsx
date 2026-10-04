@@ -70,7 +70,7 @@ export default function ServiceWorkerRegister() {
             if (installingWorker) {
               installingWorker.onstatechange = () => {
                 if (installingWorker.state === "installed" && navigator.serviceWorker.controller) {
-                  console.log("[PWA] New FocusForge version downloaded. Activating now...");
+                  console.log("[PWA] New Focentia version downloaded. Activating now...");
                   // Tell new worker to skip waiting and activate immediately
                   installingWorker.postMessage({ type: "SKIP_WAITING" });
                 }

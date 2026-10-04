@@ -1,6 +1,6 @@
-# FocusForge - High-Performance Productivity & AI Workspace
+# Focentia - High-Performance Productivity & AI Workspace
 
-FocusForge is an intelligent, high-performance daily planner, habit builder, notes editor, focus timer, and AI-driven productivity workspace built with Next.js 16 App Router, PostgreSQL (Supabase Pooler & Auth), and Google Gemini AI.
+Focentia is an intelligent, high-performance daily planner, habit builder, notes editor, focus timer, and AI-driven productivity workspace built with Next.js 16 App Router, PostgreSQL (Supabase Pooler & Auth), and Google Gemini AI.
 
 ---
 
@@ -21,7 +21,7 @@ cp .env.example backend/.env
 | `NEXT_PUBLIC_SUPABASE_URL` | Supabase API endpoint | `https://[PROJECT_REF].supabase.co` |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Public client API key | `eyJhbGciOi...` |
 | `SUPABASE_SERVICE_ROLE_KEY` | Admin service role key | `eyJhbGciOi...` |
-| `SUPPORT_EMAIL` | Public customer support address | `support@focusforge.app` |
+| `SUPPORT_EMAIL` | Public customer support address | `support@focentia.app` |
 | `SUPPORT_INBOX_EMAIL` | Private owner inbox for tickets | `focentia13@gmail.com` |
 | `SMTP_HOST` | Transactional email SMTP host | `smtp.gmail.com` |
 | `SMTP_PORT` | SMTP port (587 TLS / 465 SSL) | `587` |

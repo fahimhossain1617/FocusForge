@@ -5,7 +5,7 @@ import { AuthIcons } from "../../components/auth/AuthIcons";
 
 export const metadata: Metadata = {
   title: "Privacy Policy",
-  description: "Learn how FocusForge protects your personal data, ensures data ownership, and maintains end-to-end privacy for your notes and tasks.",
+  description: "Learn how Focentia protects your personal data, ensures data ownership, and maintains end-to-end privacy for your notes and tasks.",
   alternates: {
     canonical: "/privacy",
   },
@@ -23,13 +23,13 @@ export default function PrivacyPage() {
           <span className="text-xs text-slate-400">September 2026</span>
         </div>
 
-        <h1 className="text-2xl sm:text-3xl font-bold font-['Sora'] text-white mb-2">FocusForge Privacy Policy</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold font-['Sora'] text-white mb-2">Focentia Privacy Policy</h1>
         <p className="text-sm text-slate-400 mb-6">Your privacy and data ownership are our core priorities.</p>
 
         <div className="space-y-5 text-sm text-slate-300 leading-relaxed">
           <section className="space-y-1.5">
             <h2 className="text-base font-semibold text-white">1. Information We Collect</h2>
-            <p>We collect information necessary to provide the FocusForge service, including your name, email address, authentication credentials, and user preferences. For guest users, data remains stored locally on your device unless you choose to sign up.</p>
+            <p>We collect information necessary to provide the Focentia service, including your name, email address, authentication credentials, and user preferences. For guest users, data remains stored locally on your device unless you choose to sign up.</p>
           </section>
 
           <section className="space-y-1.5">
@@ -49,12 +49,12 @@ export default function PrivacyPage() {
 
           <section className="space-y-1.5">
             <h2 className="text-base font-semibold text-white">5. Your Data Rights</h2>
-            <p>You have the right to access, export, update, or permanently delete your account and all associated data at any time directly through the FocusForge Settings menu.</p>
+            <p>You have the right to access, export, update, or permanently delete your account and all associated data at any time directly through the Focentia Settings menu.</p>
           </section>
         </div>
 
         <div className="mt-8 pt-6 border-t border-white/10 flex justify-between items-center text-xs text-slate-400">
-          <span>© 2026 FocusForge</span>
+          <span>© 2026 Focentia</span>
           <Link href="/terms" className="text-blue-400 hover:underline">Terms of Service</Link>
         </div>
       </div>

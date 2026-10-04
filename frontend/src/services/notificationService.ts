@@ -430,20 +430,20 @@ class NotificationService {
         const appTag =
           payload.appTag ||
           (category === "daily_plan"
-            ? "FOCUSFORCE - DAILY PLAN"
+            ? "FOCENTIA - DAILY PLAN"
             : category === "focus_reminder"
-            ? "FOCUSFORCE - FOCUS"
+            ? "FOCENTIA - FOCUS"
             : category === "task_start"
-            ? "FOCUSFORCE - TASK START"
+            ? "FOCENTIA - TASK START"
             : category === "task_incomplete"
-            ? "FOCUSFORCE - TASK CHECK-IN"
+            ? "FOCENTIA - TASK CHECK-IN"
             : category === "skill_reminder"
-            ? "FOCUSFORCE - PRACTICE"
+            ? "FOCENTIA - PRACTICE"
             : category === "task_completed"
-            ? "FOCUSFORCE - COMPLETED"
+            ? "FOCENTIA - COMPLETED"
             : category === "focus_completed"
-            ? "FOCUSFORCE - FOCUS DONE"
-            : "FOCUSFORCE");
+            ? "FOCENTIA - FOCUS DONE"
+            : "FOCENTIA");
 
         window.dispatchEvent(
           new CustomEvent("focusforge:show-banner", {

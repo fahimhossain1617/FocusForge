@@ -1,6 +1,6 @@
 import nodemailer, { type Transporter } from 'nodemailer';
 
-export const SUPPORT_EMAIL = process.env.SUPPORT_EMAIL || 'support@focusforge.app';
+export const SUPPORT_EMAIL = process.env.SUPPORT_EMAIL || 'support@focentia.app';
 export const SUPPORT_INBOX_EMAIL = process.env.SUPPORT_INBOX_EMAIL || 'focentia13@gmail.com';
 export const APP_URL = process.env.APP_URL || 'http://localhost:3000';
 
@@ -67,7 +67,7 @@ class EmailQueue {
       if (!this.transporter) this.initTransporter();
 
       if (this.transporter) {
-        const fromAddress = process.env.SMTP_FROM || `"FocusForge" <${SUPPORT_EMAIL}>`;
+        const fromAddress = process.env.SMTP_FROM || `"Focentia" <${SUPPORT_EMAIL}>`;
         await this.transporter.sendMail({
           from: fromAddress,
           to: currentJob.to,
@@ -180,11 +180,11 @@ export function sendSupportConfirmationToUser(ticket: {
       <p>Your support request <strong>${escapeHtml(ticket.ticketNumber)}</strong> has been received. Our team will review it shortly.</p>
     </div>
   `;
-  const text = `Hello ${ticket.senderName || 'there'},\n\nYour support request ${ticket.ticketNumber} (${ticket.subject}) has been received.\n\nBest regards,\nFocusForge Team`;
+  const text = `Hello ${ticket.senderName || 'there'},\n\nYour support request ${ticket.ticketNumber} (${ticket.subject}) has been received.\n\nBest regards,\nFocentia Team`;
 
   emailQueue.enqueue({
     to: ticket.senderEmail,
-    subject: `[${ticket.ticketNumber}] Support Request Received - FocusForge`,
+    subject: `[${ticket.ticketNumber}] Support Request Received - Focentia`,
     html,
     text,
   });
@@ -206,10 +206,10 @@ export function sendSupervisorReplyToUser(ticket: {
       <div style="background: #f8fafc; border-left: 4px solid #10b981; padding: 16px; margin: 16px 0;">
         ${escapeHtml(ticket.replyMessage)}
       </div>
-      <p>Best regards,<br />${escapeHtml(ticket.supervisorName)} - FocusForge Team</p>
+      <p>Best regards,<br />${escapeHtml(ticket.supervisorName)} - Focentia Team</p>
     </div>
   `;
-  const text = `Hello ${ticket.recipientName || 'there'},\n\nUpdate on ticket ${ticket.ticketNumber}:\n\n${ticket.replyMessage}\n\nBest regards,\n${ticket.supervisorName} - FocusForge Team`;
+  const text = `Hello ${ticket.recipientName || 'there'},\n\nUpdate on ticket ${ticket.ticketNumber}:\n\n${ticket.replyMessage}\n\nBest regards,\n${ticket.supervisorName} - Focentia Team`;
 
   emailQueue.enqueue({
     to: ticket.recipientEmail,
@@ -226,14 +226,14 @@ export function sendPasswordChangedEmail(userEmail: string, userName?: string) {
     <div style="font-family: sans-serif; line-height: 1.6; padding: 20px;">
       <h2>Security Alert: Password Changed</h2>
       <p>Hello ${escapeHtml(userName || 'there')},</p>
-      <p>Your FocusForge account password was recently changed. If you did not make this change, please contact support immediately.</p>
+      <p>Your Focentia account password was recently changed. If you did not make this change, please contact support immediately.</p>
     </div>
   `;
-  const text = `Security Alert: Your FocusForge password was recently changed. If you did not make this change, please contact support immediately.`;
+  const text = `Security Alert: Your Focentia password was recently changed. If you did not make this change, please contact support immediately.`;
 
   emailQueue.enqueue({
     to: userEmail,
-    subject: `Security Alert: FocusForge Password Changed`,
+    subject: `Security Alert: Focentia Password Changed`,
     html,
     text,
   });
@@ -243,16 +243,16 @@ export function sendAccountDeletedEmail(userEmail: string, userName?: string) {
   if (!userEmail) return;
   const html = `
     <div style="font-family: sans-serif; line-height: 1.6; padding: 20px;">
-      <h2>FocusForge Account Deleted</h2>
+      <h2>Focentia Account Deleted</h2>
       <p>Hello ${escapeHtml(userName || 'there')},</p>
-      <p>Your FocusForge account and all associated personal data have been permanently deleted.</p>
+      <p>Your Focentia account and all associated personal data have been permanently deleted.</p>
     </div>
   `;
-  const text = `Your FocusForge account and all associated data have been permanently deleted.`;
+  const text = `Your Focentia account and all associated data have been permanently deleted.`;
 
   emailQueue.enqueue({
     to: userEmail,
-    subject: `FocusForge Account Deleted`,
+    subject: `Focentia Account Deleted`,
     html,
     text,
   });
@@ -262,17 +262,17 @@ export function sendPasswordResetOtpEmail(to: string, otpCode: string, recipient
   if (!to) return;
   const html = `
     <div style="font-family: sans-serif; line-height: 1.6; padding: 20px;">
-      <h2>FocusForge Password Reset</h2>
+      <h2>Focentia Password Reset</h2>
       <p>Hello ${escapeHtml(recipientName || 'there')},</p>
       <p>Your 6-digit password reset code is: <strong>${escapeHtml(otpCode)}</strong></p>
       <p>This code expires in 15 minutes. If you did not request a password reset, please ignore this email.</p>
     </div>
   `;
-  const text = `FocusForge Password Reset\n\nYour 6-digit password reset code is: ${otpCode}\n\nThis code expires in 15 minutes.`;
+  const text = `Focentia Password Reset\n\nYour 6-digit password reset code is: ${otpCode}\n\nThis code expires in 15 minutes.`;
 
   emailQueue.enqueue({
     to,
-    subject: `${otpCode} is your FocusForge password reset code`,
+    subject: `${otpCode} is your Focentia password reset code`,
     html,
     text,
   });

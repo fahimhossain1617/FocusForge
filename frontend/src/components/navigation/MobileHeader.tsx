@@ -116,10 +116,10 @@ export default function MobileHeader() {
           type="button"
           onClick={() => navigateTo("today")}
           className="flex items-center gap-2.5 cursor-pointer rounded-xl p-1 -ml-1 transition-transform active:scale-95 outline-none focus-visible:ring-2 focus-visible:ring-[#2563EB] border-none text-left min-h-[44px]"
-          aria-label="FocusForge Home"
-          title="FocusForge Home"
+          aria-label="Focentia Home"
+          title="Focentia Home"
         >
-          {/* FocusForge App Icon Slot */}
+          {/* Focentia App Icon Slot */}
           <div
             data-ff-launch-slot="mobile"
             className="slot relative w-7 h-7 rounded-full shrink-0 select-none"
@@ -132,7 +132,7 @@ export default function MobileHeader() {
             </svg>
           </div>
           <span data-ff-brand-title className="font-bold text-[17px] tracking-tight text-[#0F172A] dark:text-foreground whitespace-nowrap">
-            FocusForge
+            Focentia
           </span>
         </button>
 

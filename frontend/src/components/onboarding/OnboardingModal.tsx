@@ -99,7 +99,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
       className={styles.onboardingOverlay}
       role="dialog"
       aria-modal="true"
-      aria-label="FocusForge Onboarding"
+      aria-label="Focentia Onboarding"
     >
       <div className={styles.ambientGlowPrimary} />
       <div className={styles.ambientGlowSecondary} />

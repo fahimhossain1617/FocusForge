@@ -156,10 +156,10 @@ export default function Sidebar({
             className={`flex items-center gap-2.5 cursor-pointer rounded-xl p-1 transition-colors hover:bg-slate-100 dark:hover:bg-white/[0.04] outline-none focus-visible:ring-2 focus-visible:ring-[#5B8DEF] border-none text-left ${
               isCollapsed ? "md:w-full md:justify-center" : ""
             }`}
-            title={isCollapsed ? "Expand sidebar (FocusForge)" : "Collapse sidebar (FocusForge)"}
+            title={isCollapsed ? "Expand sidebar (Focentia)" : "Collapse sidebar (Focentia)"}
             aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
           >
-            {/* FocusForge App Icon Slot */}
+            {/* Focentia App Icon Slot */}
             <div
               data-ff-launch-slot="sidebar"
               className="slot relative w-8 h-8 rounded-full shrink-0 select-none"
@@ -176,7 +176,7 @@ export default function Sidebar({
             <span data-ff-brand-title className={`font-bold text-[17px] tracking-tight text-[#0F172A] dark:text-foreground whitespace-nowrap transition-opacity duration-200 block ${
               isCollapsed ? "md:hidden" : "md:block"
             }`}>
-              FocusForge
+              Focentia
             </span>
           </button>
 
@@ -342,7 +342,7 @@ export default function Sidebar({
                       {userName}
                     </p>
                     <p className="text-[11px] text-[#52627A] dark:text-muted-foreground truncate leading-tight mt-0.5">
-                      {user?.identifier || (isGuestMode ? (state.lang === 'bn' ? 'গেস্ট অ্যাকাউন্ট' : 'Guest Account') : 'user@focusforge.app')}
+                      {user?.identifier || (isGuestMode ? (state.lang === 'bn' ? 'গেস্ট অ্যাকাউন্ট' : 'Guest Account') : 'user@focentia.app')}
                     </p>
                   </div>
                 </div>

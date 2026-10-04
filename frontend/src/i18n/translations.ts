@@ -469,7 +469,7 @@ export const TRANSLATIONS = {
         title: "Notifications",
         desc: "Choose the reminders, sounds, and updates you want to receive.",
         pushMaster: "Push Notifications",
-        pushMasterDesc: "Master switch for all FocusForge device alerts and reminders.",
+        pushMasterDesc: "Master switch for all Focentia device alerts and reminders.",
         sound: "Notification Sound",
         soundDesc: "Play a gentle audio chime when a reminder or alert arrives.",
         taskReminders: "Task Reminders",
@@ -515,12 +515,12 @@ export const TRANSLATIONS = {
         toastLanguage: "Language updated successfully."
       },
       about: {
-        title: "About FocusForge",
+        title: "About Focentia",
         tagline: "Plan with purpose. Focus with clarity. Grow every day.",
-        whatIsTitle: "What is FocusForge",
-        whatIsContent: "FocusForge is your personal productivity and growth companion, designed to help you plan your days, build meaningful habits, stay focused, and reflect on your progress. From intelligent planning and focused work sessions to personal journaling, skill development and AI-powered assistance, FocusForge brings the essential tools for personal growth into one organized space.",
+        whatIsTitle: "What is Focentia",
+        whatIsContent: "Focentia is your personal productivity and growth companion, designed to help you plan your days, build meaningful habits, stay focused, and reflect on your progress. From intelligent planning and focused work sessions to personal journaling, skill development and AI-powered assistance, Focentia brings the essential tools for personal growth into one organized space.",
         purposeTitle: "Our Purpose",
-        purposeContent: "Most productivity tools ask you to manage more. FocusForge is built to help you manage less and finish more. Our purpose is to give students and self-driven learners one calm, distraction-free place to decide what matters, do the work, and understand how they are growing over time.",
+        purposeContent: "Most productivity tools ask you to manage more. Focentia is built to help you manage less and finish more. Our purpose is to give students and self-driven learners one calm, distraction-free place to decide what matters, do the work, and understand how they are growing over time.",
         coreFeaturesTitle: "Core Features",
         features: {
           dashboard: "Dashboard: A daily overview of your tasks, focus time, distractions, skills and weekly performance.",
@@ -530,10 +530,10 @@ export const TRANSLATIONS = {
           capture: "Capture: Write down thoughts and ideas quickly, and solve problems with a guided reflection flow.",
           diary: "My Diary: A private space for your thoughts, memories and daily reflections.",
           skillBuilder: "Time Log: Track your study, teaching & practice hours with daily logs, streaks, time spent and weak topics.",
-          aiAgent: "FocusForge AI: An assistant that helps you plan study schedules, capture ideas and stay productive."
+          aiAgent: "Glory AI: An assistant that helps you plan study schedules, capture ideas and stay productive."
         },
         versionTitle: "Version Information",
-        appName: "FocusForge",
+        appName: "Focentia",
         version: "Version",
         copyright: "All rights reserved."
       },
@@ -541,7 +541,7 @@ export const TRANSLATIONS = {
         title: "Support",
         desc: "Find answers, read feature guides, or contact our support team.",
         gettingStartedTitle: "Getting Started",
-        gettingStartedContent: "Welcome to FocusForge. Begin in three steps. First, open the Planner and add your tasks for today. Second, open Focus, choose a task and a session length, and start your session. Third, visit your Dashboard at the end of the day to review your progress. As you settle in, explore Notes, Capture, Diary and Time Log to make FocusForge your own.",
+        gettingStartedContent: "Welcome to Focentia. Begin in three steps. First, open the Planner and add your tasks for today. Second, open Focus, choose a task and a session length, and start your session. Third, visit your Dashboard at the end of the day to review your progress. As you settle in, explore Notes, Capture, Diary and Time Log to make Focentia your own.",
         faqTitle: "Frequently Asked Questions",
         faqs: [
           {
@@ -553,7 +553,7 @@ export const TRANSLATIONS = {
             a: "No. Language settings change only the app interface. Your tasks, notes, diary entries and file names always stay exactly as you wrote them."
           },
           {
-            q: "Can I use FocusForge in Light and Dark mode?",
+            q: "Can I use Focentia in Light and Dark mode?",
             a: "Yes. Choose your theme in Preferences. Your choice is remembered every time you return."
           },
           {
@@ -562,7 +562,7 @@ export const TRANSLATIONS = {
           },
           {
             q: "Why did I not receive a reminder?",
-            a: "Check that Push Notifications and the specific reminder are turned on in Settings, and that your browser allows notifications for FocusForge."
+            a: "Check that Push Notifications and the specific reminder are turned on in Settings, and that your browser allows notifications for Focentia."
           },
           {
             q: "How do I delete my account?",
@@ -596,8 +596,8 @@ export const TRANSLATIONS = {
             desc: "Time Log helps you track study, teaching, and practice hours across different subjects. Record study hours and video tuition time, monitor your active day streaks, and note weak topics for targeted review."
           },
           aiAgent: {
-            title: "FocusForge AI",
-            desc: "FocusForge AI acts as your personal productivity assistant. Ask questions to break down complex goals, draft study timetables, synthesize concepts, and optimize your routine with intelligent guidance."
+            title: "Glory AI",
+            desc: "Glory AI acts as your personal productivity assistant. Ask questions to break down complex goals, draft study timetables, synthesize concepts, and optimize your routine with intelligent guidance."
           }
         },
         reportProblemTitle: "Report a Problem",
@@ -634,7 +634,7 @@ export const TRANSLATIONS = {
         sending: "Sending...",
         contactSuccess: "Your message has been sent. We will get back to you shortly.",
         feedbackTitle: "Feedback & Suggestions",
-        feedbackDesc: "Share your ideas and feature requests to help us improve FocusForge.",
+        feedbackDesc: "Share your ideas and feature requests to help us improve Focentia.",
         feedbackType: "Feedback Type",
         feedbackTypes: {
           feature: "Feature suggestion",
@@ -654,56 +654,56 @@ export const TRANSLATIONS = {
         termsOfServiceTitle: "Terms of Service",
         lastUpdated: "Last updated:",
         policyText: {
-          intro: "At FocusForge, your privacy matters. This policy explains what information we collect, how we use it and the choices you have.",
+          intro: "At Focentia, your privacy matters. This policy explains what information we collect, how we use it and the choices you have.",
           sec1Title: "Information we collect",
           sec1List: [
             "Account information: your name, email address and optional profile picture, provided when you create an account or sign in with Google.",
-            "Content you create: tasks, planner entries, routines, notes, captured thoughts, diary entries, skill logs, focus session history and conversations with FocusForge AI.",
+            "Content you create: tasks, planner entries, routines, notes, captured thoughts, diary entries, skill logs, focus session history and conversations with Glory AI.",
             "Usage information: preferences such as theme and language, and basic technical information needed to keep the app secure and working."
           ],
           sec2Title: "How we use your information",
-          sec2Text: "We use your information only to provide and improve FocusForge: to keep your data in sync, personalize your experience, deliver the reminders you enable, power features such as FocusForge AI, and maintain the security of your account.",
+          sec2Text: "We use your information only to provide and improve Focentia: to keep your data in sync, personalize your experience, deliver the reminders you enable, power features such as Glory AI, and maintain the security of your account.",
           sec3Title: "Your diary and personal content",
           sec3Text: "Your diary, notes and personal entries are private to your account. We do not publish them or share them with other users.",
           sec4Title: "Sharing",
-          sec4Text: "We do not sell your personal information. We share data only with service providers that help us run FocusForge (for example, hosting, authentication and AI processing), and only as needed to deliver the service, or when required by law.",
+          sec4Text: "We do not sell your personal information. We share data only with service providers that help us run Focentia (for example, hosting, authentication and AI processing), and only as needed to deliver the service, or when required by law.",
           sec5Title: "Security",
           sec5Text: "We use reasonable technical and organizational measures to protect your information. No system is completely secure, so we encourage you to use a strong, unique password.",
           sec6Title: "Your choices",
-          sec6Text: "You can update your profile, change your password, control notifications and delete your account at any time from Settings. Deleting your account permanently removes your personal data from FocusForge.",
+          sec6Text: "You can update your profile, change your password, control notifications and delete your account at any time from Settings. Deleting your account permanently removes your personal data from Focentia.",
           sec7Title: "Children",
-          sec7Text: "FocusForge is not intended for children under 13.",
+          sec7Text: "Focentia is not intended for children under 13.",
           sec8Title: "Changes to this policy",
           sec8Text: "If we make important changes, we will update the date above and, where appropriate, notify you in the app.",
           sec9Title: "Contact",
           sec9Text: "Questions about privacy? Reach us at the support email listed in Settings, under Support."
         },
         termsText: {
-          intro: "Welcome to FocusForge. By creating an account or using the app, you agree to these terms.",
-          sec1Title: "Using FocusForge",
-          sec1Text: "You may use FocusForge for personal productivity, learning and self-development. You agree to use it lawfully and not to misuse, disrupt or attempt to gain unauthorized access to the service.",
+          intro: "Welcome to Focentia. By creating an account or using the app, you agree to these terms.",
+          sec1Title: "Using Focentia",
+          sec1Text: "You may use Focentia for personal productivity, learning and self-development. You agree to use it lawfully and not to misuse, disrupt or attempt to gain unauthorized access to the service.",
           sec2Title: "Your account",
           sec2Text: "You are responsible for the accuracy of your account information and for keeping your password secure. Please tell us if you suspect unauthorized use of your account.",
           sec3Title: "Your content",
-          sec3Text: "You own the content you create in FocusForge. You grant us the limited permission needed to store, process and display it so that we can provide the service to you.",
+          sec3Text: "You own the content you create in Focentia. You grant us the limited permission needed to store, process and display it so that we can provide the service to you.",
           sec4Title: "AI features",
-          sec4Text: "FocusForge AI provides suggestions to support your planning and learning. Responses may not always be accurate or complete, so please use your own judgment before acting on them.",
+          sec4Text: "Glory AI provides suggestions to support your planning and learning. Responses may not always be accurate or complete, so please use your own judgment before acting on them.",
           sec5Title: "Acceptable use",
           sec5Text: "You agree not to upload unlawful or harmful content, interfere with other users, or attempt to reverse engineer or overload the service.",
           sec6Title: "Availability and changes",
-          sec6Text: "We work to keep FocusForge reliable but cannot guarantee uninterrupted service. We may improve, change or remove features over time.",
+          sec6Text: "We work to keep Focentia reliable but cannot guarantee uninterrupted service. We may improve, change or remove features over time.",
           sec7Title: "Termination",
           sec7Text: "You may delete your account at any time. We may suspend or close accounts that violate these terms.",
           sec8Title: "Limitation of liability",
-          sec8Text: "FocusForge is provided as is. To the extent permitted by law, we are not liable for indirect or consequential losses arising from use of the app.",
+          sec8Text: "Focentia is provided as is. To the extent permitted by law, we are not liable for indirect or consequential losses arising from use of the app.",
           sec9Title: "Changes to these terms",
-          sec9Text: "We may update these terms from time to time. Continued use of FocusForge after changes means you accept the updated terms.",
+          sec9Text: "We may update these terms from time to time. Continued use of Focentia after changes means you accept the updated terms.",
           sec10Title: "Contact",
           sec10Text: "For questions about these terms, use Contact Support in Settings."
         },
         deleteAccount: {
           title: "Delete Account",
-          desc: "Permanently remove your account and all associated data from FocusForge. This action is immediate and cannot be undone.",
+          desc: "Permanently remove your account and all associated data from Focentia. This action is immediate and cannot be undone.",
           buttonLabel: "Delete Account",
           modalTitle: "Delete Account Permanently",
           modalWarning: "This action is permanent and irreversible. The following data will be permanently erased:",
@@ -714,7 +714,7 @@ export const TRANSLATIONS = {
             "Your private diary topics and pages",
             "Time Log topic folders, logs, and streaks",
             "All focus timer history and recorded distractions",
-            "Conversations and history with FocusForge AI"
+            "Conversations and history with Glory AI"
           ],
           typePrompt: "Type DELETE below to confirm:",
           passwordPrompt: "Enter your current password to authorize deletion:",
@@ -733,7 +733,7 @@ export const TRANSLATIONS = {
       signUp: "Create Account",
       continueWithGoogle: "Continue with Google",
       orDivider: "OR",
-      welcomeTitle: "Welcome to FocusForge",
+      welcomeTitle: "Welcome to Focentia",
       welcomeSubtitle: "Sign in to continue your journey, or create an account to save your progress.",
       createAccountTitle: "Create your account",
       createAccountSubtitle: "Use your email address or phone number to get started.",
@@ -747,8 +747,8 @@ export const TRANSLATIONS = {
       continue: "Continue",
       alreadyHaveAccount: "Already have an account? Log In",
       createPasswordTitle: "Create a password",
-      createPasswordSubtitle: "Choose a password for your FocusForge account.",
-      passwordNotice: "Note: This password is only for FocusForge, not your email account.",
+      createPasswordSubtitle: "Choose a password for your Focentia account.",
+      passwordNotice: "Note: This password is only for Focentia, not your email account.",
       password: "Password",
       passwordPlaceholder: "Enter your password",
       showPassword: "Show",
@@ -791,7 +791,7 @@ export const TRANSLATIONS = {
       confirmNewPassword: "Confirm New Password",
       resetSuccessTitle: "Password updated successfully",
       resetSuccessSubtitle: "You can now log in with your new password.",
-      authGuardTitle: "Save your progress with FocusForge",
+      authGuardTitle: "Save your progress with Focentia",
       authGuardDesc: "Create an account or sign in to save your data and access your personal workspace from any device.",
       maybeLater: "Maybe Later",
       notNow: "Not Now",
@@ -799,11 +799,11 @@ export const TRANSLATIONS = {
       myData: "My Data",
       settings: "Settings",
       logOut: "Log Out",
-      logOutConfirmTitle: "Log out of FocusForge?",
+      logOutConfirmTitle: "Log out of Focentia?",
       logOutConfirmDesc: "You can log back in anytime to access your saved data.",
       cancel: "Cancel",
       welcomeToastReturning: "Welcome back!",
-      welcomeToastNew: "Welcome to FocusForge! Your workspace is ready.",
+      welcomeToastNew: "Welcome to Focentia! Your workspace is ready.",
       loggedOutToast: "Logged out successfully."
     },
     diary: {
@@ -867,12 +867,12 @@ export const TRANSLATIONS = {
       back: "Back",
       welcome: {
         tagline: "",
-        title: "Welcome to FocusForge",
+        title: "Welcome to Focentia",
         description: "Your intelligent space to organize your work, manage your priorities, stay focused, and make meaningful progress every day.",
         getStarted: "Get Started",
       },
       language: {
-        title: "How would you like to use FocusForge?",
+        title: "How would you like to use Focentia?",
         subtitle: "Choose your preferred language. You can change this anytime.",
         bnLabel: "বাংলা",
         enLabel: "English",
@@ -902,9 +902,9 @@ export const TRANSLATIONS = {
       },
       account: {
         title: "How would you like to continue?",
-        subtitle: "Choose how you'd like to access FocusForge.",
+        subtitle: "Choose how you'd like to access Focentia.",
         guestTitle: "Continue as Guest",
-        guestDesc: "Jump straight into FocusForge. No registration needed.",
+        guestDesc: "Jump straight into Focentia. No registration needed.",
         authTitle: "Login / Create Account",
         authDesc: "Sync your tasks, notes, planner, and AI history securely across all devices.",
       },
@@ -943,12 +943,12 @@ export const TRANSLATIONS = {
         },
         installGuide: {
           badge: "App Installation",
-          title: "Install FocusForge App",
-          desc: "For quick access and a full-screen experience, you can install FocusForge on your device:",
+          title: "Install Focentia App",
+          desc: "For quick access and a full-screen experience, you can install Focentia on your device:",
           step1Title: "Click 3 dots (⋮)",
           step1Desc: "Click the Chrome 3-dot menu icon in the top-right corner of your browser.",
           step2Title: "Add to Home screen",
-          step2Desc: "Select 'Add to Home screen' or 'Install FocusForge' from the menu.",
+          step2Desc: "Select 'Add to Home screen' or 'Install Focentia' from the menu.",
           skip: "Skip",
           continue: "Continue",
           installNow: "Install App",
@@ -956,7 +956,7 @@ export const TRANSLATIONS = {
         },
         ready: {
           title: "You're ready.",
-          desc: "FocusForge is here to help you focus, organize, and move forward — one step at a time.",
+          desc: "Focentia is here to help you focus, organize, and move forward — one step at a time.",
           button: "Get Started",
         },
       },
@@ -1432,7 +1432,7 @@ export const TRANSLATIONS = {
         title: "নোটিফিকেশন",
         desc: "আপনি কোন রিমাইন্ডার, সাউন্ড এবং আপডেট পেতে চান তা নির্বাচন করুন।",
         pushMaster: "পুশ নোটিফিকেশন",
-        pushMasterDesc: "FocusForge-এর সকল ডিভাইস অ্যালার্ট ও রিমাইন্ডারের মাস্টার সুইচ।",
+        pushMasterDesc: "Focentia-এর সকল ডিভাইস অ্যালার্ট ও রিমাইন্ডারের মাস্টার সুইচ।",
         sound: "নোটিফিকেশন সাউন্ড",
         soundDesc: "রিমাইন্ডার বা অ্যালার্ট আসলে একটি মিষ্টি সুর বা মৃদু শব্দ বাজান।",
         taskReminders: "টাস্ক রিমাইন্ডার",
@@ -1478,12 +1478,12 @@ export const TRANSLATIONS = {
         toastLanguage: "ভাষা সফলভাবে আপডেট করা হয়েছে।"
       },
       about: {
-        title: "About FocusForge",
+        title: "About Focentia",
         tagline: "Plan with purpose. Focus with clarity. Grow every day.",
-        whatIsTitle: "FocusForge কী",
-        whatIsContent: "FocusForge হলো আপনার ব্যক্তিগত প্রোডাক্টিভিটি ও আত্মউন্নয়ন সঙ্গী, যা আপনার দিন পরিকল্পনা করতে, অর্থপূর্ণ অভ্যাস গড়তে, কাজে মনোযোগী থাকতে এবং আপনার অগ্রগতি পর্যালোচনা করতে সাহায্য করার জন্য তৈরি। বুদ্ধিমান পরিকল্পনা ও ফোকাস সেশন থেকে শুরু করে ব্যক্তিগত ডায়েরি, স্কিল ডেভেলপমেন্ট এবং এআই সহায়তা—FocusForge ব্যক্তিগত অগ্রগতির প্রয়োজনীয় সমস্ত টুলকে একটি পরিপাটি স্থানে নিয়ে আসে।",
+        whatIsTitle: "Focentia কী",
+        whatIsContent: "Focentia (ফোসেন্টিয়া) হলো আপনার ব্যক্তিগত প্রোডাক্টিভিটি ও আত্মউন্নয়ন সঙ্গী, যা আপনার দিন পরিকল্পনা করতে, অর্থপূর্ণ অভ্যাস গড়তে, কাজে মনোযোগী থাকতে এবং আপনার অগ্রগতি পর্যালোচনা করতে সাহায্য করার জন্য তৈরি। বুদ্ধিমান পরিকল্পনা ও ফোকাস সেশন থেকে শুরু করে ব্যক্তিগত ডায়েরি, স্কিল ডেভেলপমেন্ট এবং এআই সহায়তা—Focentia ব্যক্তিগত অগ্রগতির প্রয়োজনীয় সমস্ত টুলকে একটি পরিপাটি স্থানে নিয়ে আসে।",
         purposeTitle: "আমাদের উদ্দেশ্য",
-        purposeContent: "অধিকাংশ প্রোডাক্টিভিটি টুল আপনাকে আরও বেশি কিছু ম্যানেজ করতে বলে। FocusForge তৈরি করা হয়েছে যাতে আপনি কম জটিলতায় বেশি কাজ শেষ করতে পারেন। আমাদের উদ্দেশ্য হলো শিক্ষার্থী এবং স্ব-উদ্যোগী শিক্ষার্থীদের এমন একটি শান্ত, বিভ্রান্তিমুক্ত পরিবেশ উপহার দেওয়া যেখানে তারা গুরুত্বপূর্ণ বিষয় নির্ধারণ করতে পারে, কাজটি সম্পন্ন করতে পারে এবং সময়ের সাথে সাথে তাদের নিজস্ব উন্নতি অনুভব করতে পারে।",
+        purposeContent: "অধিকাংশ প্রোডাক্টিভিটি টুল আপনাকে আরও বেশি কিছু ম্যানেজ করতে বলে। Focentia তৈরি করা হয়েছে যাতে আপনি কম জটিলতায় বেশি কাজ শেষ করতে পারেন। আমাদের উদ্দেশ্য হলো শিক্ষার্থী এবং স্ব-উদ্যোগী শিক্ষার্থীদের এমন একটি শান্ত, বিভ্রান্তিমুক্ত পরিবেশ উপহার দেওয়া যেখানে তারা গুরুত্বপূর্ণ বিষয় নির্ধারণ করতে পারে, কাজটি সম্পন্ন করতে পারে এবং সময়ের সাথে সাথে তাদের নিজস্ব উন্নতি অনুভব করতে পারে।",
         coreFeaturesTitle: "প্রধান বৈশিষ্ট্যসমূহ",
         features: {
           dashboard: "ড্যাশবোর্ড: আপনার টাস্ক, ফোকাস টাইম, বিভ্রান্তি, স্কিল এবং সাপ্তাহিক পারফরম্যান্সের দৈনন্দিন সারসংক্ষেপ।",
@@ -1493,10 +1493,10 @@ export const TRANSLATIONS = {
           capture: "ক্যাপচার: চিন্তা ও ধারণা দ্রুত লিখে ফেলুন এবং নির্দেশিত প্রতিফলন প্রবাহের মাধ্যমে সমস্যার সমাধান করুন।",
           diary: "মাই ডায়েরি: আপনার ব্যক্তিগত চিন্তা, স্মৃতি এবং দৈনন্দিন আত্মপ্রতিফলনের জন্য সম্পূর্ণ গোপন স্থান।",
           skillBuilder: "টাইম লগ: পড়ার ও টিউশনের সময়, দৈনিক লগ, স্ট্রিক এবং দুর্বল টপিকসহ আপনার সময় ট্র্যাক করুন।",
-          aiAgent: "FocusForge AI: একটি সহায়ক যা আপনাকে অধ্যয়নের সময়সূচী পরিকল্পনা করতে, ধারণা সঞ্চয় করতে এবং উৎপাদনশীল থাকতে সাহায্য করে।"
+          aiAgent: "Glory AI: একটি সহায়ক যা আপনাকে অধ্যয়নের সময়সূচী পরিকল্পনা করতে, ধারণা সঞ্চয় করতে এবং উৎপাদনশীল থাকতে সাহায্য করে।"
         },
         versionTitle: "ভার্সন তথ্য",
-        appName: "FocusForge",
+        appName: "Focentia",
         version: "ভার্সন",
         copyright: "সর্বস্বত্ব সংরক্ষিত।"
       },
@@ -1504,7 +1504,7 @@ export const TRANSLATIONS = {
         title: "সহায়তা",
         desc: "উত্তর খুঁজুন, ফিচার গাইড পড়ুন, অথবা আমাদের সাপোর্ট টিমের সাথে যোগাযোগ করুন।",
         gettingStartedTitle: "শুরু করার নির্দেশিকা",
-        gettingStartedContent: "FocusForge-এ আপনাকে স্বাগতম। তিনটি সহজ ধাপে শুরু করুন। প্রথমত, Planner খুলুন এবং আজকের কাজের তালিকা যোগ করুন। দ্বিতীয়ত, Focus খুলুন, একটি কাজ ও সেশনের সময়সীমা নির্বাচন করুন এবং আপনার সেশন শুরু করুন। তৃতীয়ত, দিন শেষে আপনার অগ্রগতি পর্যালোচনা করতে Dashboard দেখুন। অভ্যস্ত হয়ে ওঠার সাথে সাথে Notes, Capture, Diary এবং Time Log এক্সপ্লোর করে FocusForge-কে আপনার মতো করে সাজিয়ে নিন।",
+        gettingStartedContent: "Focentia-তে আপনাকে স্বাগতম। তিনটি সহজ ধাপে শুরু করুন। প্রথমত, Planner খুলুন এবং আজকের কাজের তালিকা যোগ করুন। দ্বিতীয়ত, Focus খুলুন, একটি কাজ ও সেশনের সময়সীমা নির্বাচন করুন এবং আপনার সেশন শুরু করুন। তৃতীয়ত, দিন শেষে আপনার অগ্রগতি পর্যালোচনা করতে Dashboard দেখুন। অভ্যস্ত হয়ে ওঠার সাথে সাথে Notes, Capture, Diary এবং Time Log এক্সপ্লোর করে Focentia-কে আপনার মতো করে সাজিয়ে নিন।",
         faqTitle: "সাধারণ জিজ্ঞাসাসমূহ (FAQ)",
         faqs: [
           {
@@ -1516,7 +1516,7 @@ export const TRANSLATIONS = {
             a: "না। ভাষার সেটিংস শুধুমাত্র অ্যাপ্লিকেশনের ইন্টারফেস পরিবর্তন করে। আপনার টাস্ক, নোট, ডায়েরি ও ফাইলের নাম সবসময় হুবহু আপনার লেখার মতোই সংরক্ষিত থাকে।"
           },
           {
-            q: "আমি কি FocusForge লাইট ও ডার্ক উভয় মোডে ব্যবহার করতে পারব?",
+            q: "আমি কি Focentia লাইট ও ডার্ক উভয় মোডে ব্যবহার করতে পারব?",
             a: "হ্যাঁ। Preferences থেকে আপনার পছন্দের থিম বেছে নিন। প্রতিবার ফিরে আসার সময় আপনার পছন্দ মনে রাখা হবে।"
           },
           {
@@ -1525,7 +1525,7 @@ export const TRANSLATIONS = {
           },
           {
             q: "আমি কেন রিমাইন্ডার নোটিফিকেশন পাইনি?",
-            a: "যাচাই করুন যে Settings-এ পুশ নোটিফিকেশন এবং নির্দিষ্ট রিমাইন্ডারটি চালু আছে এবং আপনার ব্রাউজারে FocusForge-এর জন্য নোটিফিকেশন অনুমতি দেওয়া আছে।"
+            a: "যাচাই করুন যে Settings-এ পুশ নোটিফিকেশন এবং নির্দিষ্ট রিমাইন্ডারটি চালু আছে এবং আপনার ব্রাউজারে Focentia-এর জন্য নোটিফিকেশন অনুমতি দেওয়া আছে।"
           },
           {
             q: "আমি কীভাবে আমার অ্যাকাউন্ট মুছে ফেলব?",
@@ -1559,8 +1559,8 @@ export const TRANSLATIONS = {
             desc: "Time Log বিভিন্ন বিষয় বা স্কিলে আপনার পড়াশোনা, টিউশন এবং প্র্যাকটিসের সময় ট্র্যাক করতে সাহায্য করে। পড়ার সময় এবং ভিডিও টিউটোরিয়াল দেখার সময় রেকর্ড করুন, স্ট্রিক পর্যবেক্ষণ করুন এবং দুর্বল বিষয়গুলো নোট করুন।"
           },
           aiAgent: {
-            title: "FocusForge AI",
-            desc: "FocusForge AI আপনার ব্যক্তিগত প্রোডাক্টিভিটি সহকারী হিসেবে কাজ করে। জটিল লক্ষ্যগুলো ভেঙে নেওয়া, রুটিন অপ্টিমাইজ করা এবং নতুন বিষয়গুলো দ্রুত বোঝার জন্য বুদ্ধিমান নির্দেশনা নিন।"
+            title: "Glory AI",
+            desc: "Glory AI আপনার ব্যক্তিগত প্রোডাক্টিভিটি সহকারী হিসেবে কাজ করে। জটিল লক্ষ্যগুলো ভেঙে নেওয়া, রুটিন অপ্টিমাইজ করা এবং নতুন বিষয়গুলো দ্রুত বোঝার জন্য বুদ্ধিমান নির্দেশনা নিন।"
           }
         },
         reportProblemTitle: "সমস্যা রিপোর্ট করুন",
@@ -1597,7 +1597,7 @@ export const TRANSLATIONS = {
         sending: "পাঠানো হচ্ছে...",
         contactSuccess: "আপনার বার্তা পাঠানো হয়েছে। আমরা শীঘ্রই আপনার সাথে যোগাযোগ করব।",
         feedbackTitle: "মতামত ও পরামর্শ",
-        feedbackDesc: "FocusForge-কে আরও উন্নত করতে আপনার মূল্যবান ধারণা এবং পরামর্শ শেয়ার করুন।",
+        feedbackDesc: "Focentia-কে আরও উন্নত করতে আপনার মূল্যবান ধারণা এবং পরামর্শ শেয়ার করুন।",
         feedbackType: "মতামতের ধরন",
         feedbackTypes: {
           feature: "নতুন ফিচারের প্রস্তাবনা",
@@ -1617,56 +1617,56 @@ export const TRANSLATIONS = {
         termsOfServiceTitle: "ব্যবহারের শর্তাবলী (Terms of Service)",
         lastUpdated: "সর্বশেষ আপডেট:",
         policyText: {
-          intro: "FocusForge-এ আপনার গোপনীয়তা অত্যন্ত গুরুত্বপূর্ণ। এই নীতিতে ব্যাখ্যা করা হয়েছে আমরা কী তথ্য সংগ্রহ করি, কীভাবে তা ব্যবহার করি এবং আপনার কী অধিকার রয়েছে।",
+          intro: "Focentia-তে আপনার গোপনীয়তা অত্যন্ত গুরুত্বপূর্ণ। এই নীতিতে ব্যাখ্যা করা হয়েছে আমরা কী তথ্য সংগ্রহ করি, কীভাবে তা ব্যবহার করি এবং আপনার কী অধিকার রয়েছে।",
           sec1Title: "আমরা যে তথ্য সংগ্রহ করি",
           sec1List: [
             "অ্যাকাউন্টের তথ্য: আপনার নাম, ইমেইল ঠিকানা এবং ঐচ্ছিক প্রোফাইল ছবি, যা আপনি অ্যাকাউন্ট তৈরি বা গুগলে সাইন ইন করার সময় প্রদান করেন।",
-            "আপনার তৈরি করা কনটেন্ট: টাস্ক, প্ল্যানার এন্ট্রি, রুটিন, নোট, ক্যাপচার করা ভাবনা, ডায়েরি এন্ট্রি, স্কিল লগ, ফোকাস সেশনের ইতিহাস এবং FocusForge AI-এর সাথে কথোপকথন।",
+            "আপনার তৈরি করা কনটেন্ট: টাস্ক, প্ল্যানার এন্ট্রি, রুটিন, নোট, ক্যাপচার করা ভাবনা, ডায়েরি এন্ট্রি, স্কিল লগ, ফোকাস সেশনের ইতিহাস এবং Glory AI-এর সাথে কথোপকথন।",
             "ব্যবহারের তথ্য: আপনার পছন্দের থিম ও ভাষার মতো পছন্দসমূহ এবং অ্যাপ্লিকেশনটিকে সুরক্ষিত ও সচল রাখার জন্য প্রয়োজনীয় মৌলিক প্রযুক্তিগত তথ্য।"
           ],
           sec2Title: "আমরা কীভাবে আপনার তথ্য ব্যবহার করি",
-          sec2Text: "আমরা শুধুমাত্র FocusForge প্রদান ও উন্নত করার উদ্দেশ্যে আপনার তথ্য ব্যবহার করি: আপনার ডেটা সিঙ্ক রাখা, আপনার অভিজ্ঞতা ব্যক্তিগতকৃত করা, আপনার নির্ধারিত রিমাইন্ডার পাঠানো, FocusForge AI-এর মতো ফিচার পরিচালনা করা এবং আপনার অ্যাকাউন্টের নিরাপত্তা রক্ষা করা।",
+          sec2Text: "আমরা শুধুমাত্র Focentia প্রদান ও উন্নত করার উদ্দেশ্যে আপনার তথ্য ব্যবহার করি: আপনার ডেটা সিঙ্ক রাখা, আপনার অভিজ্ঞতা ব্যক্তিগতকৃত করা, আপনার নির্ধারিত রিমাইন্ডার পাঠানো, Glory AI-এর মতো ফিচার পরিচালনা করা এবং আপনার অ্যাকাউন্টের নিরাপত্তা রক্ষা করা।",
           sec3Title: "আপনার ডায়েরি ও ব্যক্তিগত কনটেন্ট",
           sec3Text: "আপনার ডায়েরি, নোট এবং ব্যক্তিগত লেখাগুলো আপনার অ্যাকাউন্টের জন্য সম্পূর্ণ গোপনীয়। আমরা এগুলো প্রকাশ করি না বা অন্য কোনো ব্যবহারকারীর সাথে শেয়ার করি না।",
           sec4Title: "তথ্য শেয়ারিং",
-          sec4Text: "আমরা আপনার ব্যক্তিগত তথ্য বিক্রি করি না। আমরা শুধুমাত্র সেইসব সেবা প্রদানকারীদের সাথে ডেটা শেয়ার করি যারা FocusForge পরিচালনায় সহায়তা করে (উদাহরণস্বরূপ হোস্টিং, প্রমাণীকরণ এবং এআই প্রসেসিং) এবং শুধুমাত্র সেবা প্রদানের জন্য প্রয়োজনীয় সীমার মধ্যে বা আইন অনুযায়ী বাধ্য হলে।",
+          sec4Text: "আমরা আপনার ব্যক্তিগত তথ্য বিক্রি করি না। আমরা শুধুমাত্র সেইসব সেবা প্রদানকারীদের সাথে ডেটা শেয়ার করি যারা Focentia পরিচালনায় সহায়তা করে (উদাহরণস্বরূপ হোস্টিং, প্রমাণীকরণ এবং এআই প্রসেসিং) এবং শুধুমাত্র সেবা প্রদানের জন্য প্রয়োজনীয় সীমার মধ্যে বা আইন অনুযায়ী বাধ্য হলে।",
           sec5Title: "নিরাপত্তা",
           sec5Text: "আমরা আপনার তথ্য সুরক্ষিত রাখতে যুক্তিসঙ্গত প্রযুক্তিগত ও প্রাতিষ্ঠানিক ব্যবস্থা গ্রহণ করি। কোনো সিস্টেমই শতভাগ ঝুঁকিমুক্ত নয়, তাই আমরা আপনাকে একটি শক্তিশালী ও অনন্য পাসওয়ার্ড ব্যবহারের পরামর্শ দিই।",
           sec6Title: "আপনার পছন্দ ও নিয়ন্ত্রণ",
-          sec6Text: "আপনি সেটিংস থেকে যেকোনো সময় আপনার প্রোফাইল আপডেট করতে পারেন, পাসওয়ার্ড পরিবর্তন করতে পারেন, নোটিফিকেশন নিয়ন্ত্রণ করতে পারেন এবং আপনার অ্যাকাউন্ট মুছে ফেলতে পারেন। আপনার অ্যাকাউন্ট মুছে ফেললে FocusForge থেকে আপনার ব্যক্তিগত সমস্ত ডেটা স্থায়ীভাবে মুছে যায়।",
+          sec6Text: "আপনি সেটিংস থেকে যেকোনো সময় আপনার প্রোফাইল আপডেট করতে পারেন, পাসওয়ার্ড পরিবর্তন করতে পারেন, নোটিফিকেশন নিয়ন্ত্রণ করতে পারেন এবং আপনার অ্যাকাউন্ট মুছে ফেলতে পারেন। আপনার অ্যাকাউন্ট মুছে ফেললে Focentia থেকে আপনার ব্যক্তিগত সমস্ত ডেটা স্থায়ীভাবে মুছে যায়।",
           sec7Title: "শিশু",
-          sec7Text: "FocusForge ১৩ বছরের কম বয়সী শিশুদের জন্য তৈরি করা হয়নি।",
+          sec7Text: "Focentia ১৩ বছরের কম বয়সী শিশুদের জন্য তৈরি করা হয়নি।",
           sec8Title: "এই নীতিমালার পরিবর্তন",
           sec8Text: "যদি আমরা গুরুত্বপূর্ণ কোনো পরিবর্তন করি, তবে আমরা উপরের তারিখটি আপডেট করব এবং উপযুক্ত ক্ষেত্রে অ্যাপে আপনাকে অবহিত করব।",
           sec9Title: "যোগাযোগ",
           sec9Text: "গোপনীয়তা সম্পর্কিত প্রশ্ন থাকলে সেটিংসে সাপোর্ট বিভাগে উল্লেখিত সাপোর্ট ইমেইলে আমাদের সাথে যোগাযোগ করুন।"
         },
         termsText: {
-          intro: "FocusForge-এ স্বাগতম। একটি অ্যাকাউন্ট তৈরি করে বা অ্যাপ ব্যবহার করে আপনি এই শর্তাবলীতে সম্মত হচ্ছেন।",
-          sec1Title: "FocusForge ব্যবহার",
-          sec1Text: "আপনি ব্যক্তিগত উৎপাদনশীলতা, শিক্ষা এবং আত্মউন্নয়নের জন্য FocusForge ব্যবহার করতে পারেন। আপনি এটি আইনানুগভাবে ব্যবহার করতে এবং সেবার অপব্যবহার, বিঘ্ন সৃষ্টি বা অননুমোদিত অ্যাক্সেসের চেষ্টা না করতে সম্মত হচ্ছেন।",
+          intro: "Focentia-তে স্বাগতম। একটি অ্যাকাউন্ট তৈরি করে বা অ্যাপ ব্যবহার করে আপনি এই শর্তাবলীতে সম্মত হচ্ছেন।",
+          sec1Title: "Focentia ব্যবহার",
+          sec1Text: "আপনি ব্যক্তিগত উৎপাদনশীলতা, শিক্ষা এবং আত্মউন্নয়নের জন্য Focentia ব্যবহার করতে পারেন। আপনি এটি আইনানুগভাবে ব্যবহার করতে এবং সেবার অপব্যবহার, বিঘ্ন সৃষ্টি বা অননুমোদিত অ্যাক্সেসের চেষ্টা না করতে সম্মত হচ্ছেন।",
           sec2Title: "আপনার অ্যাকাউন্ট",
           sec2Text: "আপনার অ্যাকাউন্টের তথ্যের সঠিকতা এবং আপনার পাসওয়ার্ড সুরক্ষিত রাখার দায়িত্ব আপনার। আপনার অ্যাকাউন্টে অননুমোদিত ব্যবহারের সন্দেহ হলে দয়া করে আমাদের জানান।",
           sec3Title: "আপনার কনটেন্ট",
-          sec3Text: "FocusForge-এ আপনার তৈরি করা সমস্ত কনটেন্টের মালিক আপনি। আপনাকে সেবাটি প্রদান করার সুবিধার্থে এগুলো সংরক্ষণ, প্রক্রিয়াকরণ ও প্রদর্শনের জন্য প্রয়োজনীয় সীমিত অনুমতি আপনি আমাদের প্রদান করছেন।",
+          sec3Text: "Focentia-এ আপনার তৈরি করা সমস্ত কনটেন্টের মালিক আপনি। আপনাকে সেবাটি প্রদান করার সুবিধার্থে এগুলো সংরক্ষণ, প্রক্রিয়াকরণ ও প্রদর্শনের জন্য প্রয়োজনীয় সীমিত অনুমতি আপনি আমাদের প্রদান করছেন।",
           sec4Title: "এআই ফিচারসমূহ",
-          sec4Text: "FocusForge AI আপনার পরিকল্পনা ও শিক্ষাকে সহায়তা করতে পরামর্শ প্রদান করে। প্রতিক্রিয়াগুলো সর্বদা নির্ভুল বা সম্পূর্ণ নাও হতে পারে, তাই সেগুলোর ওপর কাজ করার আগে দয়া করে আপনার নিজস্ব বিচারবুদ্ধি প্রয়োগ করুন।",
+          sec4Text: "Glory AI আপনার পরিকল্পনা ও শিক্ষাকে সহায়তা করতে পরামর্শ প্রদান করে। প্রতিক্রিয়াগুলো সর্বদা নির্ভুল বা সম্পূর্ণ নাও হতে পারে, তাই সেগুলোর ওপর কাজ করার আগে দয়া করে আপনার নিজস্ব বিচারবুদ্ধি প্রয়োগ করুন।",
           sec5Title: "গ্রহণযোগ্য ব্যবহার",
           sec5Text: "আপনি বেআইনি বা ক্ষতিকারক কোনো কনটেন্ট আপলোড না করতে, অন্য ব্যবহারকারীদের কাজে বাধা সৃষ্টি না করতে, অথবা সেবার রিভার্স ইঞ্জিনিয়ারিং বা অতিরিক্ত চাপ সৃষ্টির চেষ্টা না করতে সম্মত হচ্ছেন।",
           sec6Title: "লভ্যতা ও পরিবর্তন",
-          sec6Text: "আমরা FocusForge-কে নিরবচ্ছিন্ন ও নির্ভরযোগ্য রাখতে কাজ করি তবে নিরবচ্ছিন্ন সেবার কোনো গ্যারান্টি দিতে পারি না। সময়ের সাথে সাথে আমরা ফিচারসমূহের উন্নতি, পরিবর্তন বা অপসারণ করতে পারি।",
+          sec6Text: "আমরা Focentia-কে নিরবচ্ছিন্ন ও নির্ভরযোগ্য রাখতে কাজ করি তবে নিরবচ্ছিন্ন সেবার কোনো গ্যারান্টি দিতে পারি না। সময়ের সাথে সাথে আমরা ফিচারসমূহের উন্নতি, পরিবর্তন বা অপসারণ করতে পারি।",
           sec7Title: "সমাপ্তি",
           sec7Text: "আপনি যেকোনো সময় আপনার অ্যাকাউন্ট মুছে ফেলতে পারেন। এই শর্তাবলী লঙ্ঘনকারী অ্যাকাউন্টগুলো আমরা স্থগিত বা বন্ধ করার অধিকার রাখি।",
           sec8Title: "দায়বদ্ধতার সীমাবদ্ধতা",
-          sec8Text: "FocusForge 'যেমন আছে' (as is) ভিত্তিতে প্রদান করা হয়। আইন দ্বারা অনুমোদিত সর্বোচ্চ সীমা পর্যন্ত, অ্যাপ ব্যবহারের ফলে উদ্ভূত কোনো পরোক্ষ বা আনুষঙ্গিক ক্ষতির জন্য আমরা দায়ী থাকব না।",
+          sec8Text: "Focentia 'যেমন আছে' (as is) ভিত্তিতে প্রদান করা হয়। আইন দ্বারা অনুমোদিত সর্বোচ্চ সীমা পর্যন্ত, অ্যাপ ব্যবহারের ফলে উদ্ভূত কোনো পরোক্ষ বা আনুষঙ্গিক ক্ষতির জন্য আমরা দায়ী থাকব না।",
           sec9Title: "শর্তাবলীর পরিবর্তন",
-          sec9Text: "আমরা সময়ে সময়ে এই শর্তাবলী আপডেট করতে পারি। পরিবর্তনের পর FocusForge ব্যবহার অব্যাহত রাখলে আপনি নতুন শর্তাবলী গ্রহণ করেছেন বলে গণ্য হবে।",
+          sec9Text: "আমরা সময়ে সময়ে এই শর্তাবলী আপডেট করতে পারি। পরিবর্তনের পর Focentia ব্যবহার অব্যাহত রাখলে আপনি নতুন শর্তাবলী গ্রহণ করেছেন বলে গণ্য হবে।",
           sec10Title: "যোগাযোগ",
           sec10Text: "এই শর্তাবলী সংক্রান্ত যেকোনো প্রশ্নের জন্য সেটিংসে 'সাপোর্টে যোগাযোগ করুন' ব্যবহার করুন।"
         },
         deleteAccount: {
           title: "অ্যাকাউন্ট মুছে ফেলুন",
-          desc: "FocusForge থেকে আপনার অ্যাকাউন্ট এবং সমস্ত ডেটা স্থায়ীভাবে সরিয়ে ফেলুন। এই কাজটি তাৎক্ষণিক এবং আর কখনো ফিরিয়ে আনা সম্ভব নয়।",
+          desc: "Focentia থেকে আপনার অ্যাকাউন্ট এবং সমস্ত ডেটা স্থায়ীভাবে সরিয়ে ফেলুন। এই কাজটি তাৎক্ষণিক এবং আর কখনো ফিরিয়ে আনা সম্ভব নয়।",
           buttonLabel: "অ্যাকাউন্ট মুছে ফেলুন",
           modalTitle: "অ্যাকাউন্ট স্থায়ীভাবে মুছে ফেলবেন?",
           modalWarning: "এই কাজটি সম্পূর্ণ স্থায়ী এবং অপরিবর্তনীয়। নিচের সমস্ত ডেটা চিরতরে মুছে ফেলা হবে:",
@@ -1677,7 +1677,7 @@ export const TRANSLATIONS = {
             "আপনার ব্যক্তিগত ডায়েরির অধ্যায় ও পেজসমূহ",
             "Time Log-এর সমস্ত ফোল্ডার, লগ এবং ধারাবাহিকতা (স্ট্রিক)",
             "সকল ফোকাস টাইমার ইতিহাস এবং রেকর্ডকৃত বিভ্রান্তি",
-            "FocusForge AI-এর সাথে সমস্ত কথোপকথন ও ইতিহাস"
+            "Glory AI-এর সাথে সমস্ত কথোপকথন ও ইতিহাস"
           ],
           typePrompt: "নিশ্চিত করতে নিচে DELETE লিখুন:",
           passwordPrompt: "অ্যাকাউন্ট মোছা নিশ্চিত করতে আপনার বর্তমান পাসওয়ার্ড প্রদান করুন:",
@@ -1696,7 +1696,7 @@ export const TRANSLATIONS = {
       signUp: "অ্যাকাউন্ট তৈরি করুন",
       continueWithGoogle: "গুগল দিয়ে চালিয়ে যান",
       orDivider: "অথবা",
-      welcomeTitle: "FocusForge-এ স্বাগতম",
+      welcomeTitle: "Focentia-তে স্বাগতম",
       welcomeSubtitle: "আপনার কাজ অব্যাহত রাখতে সাইন ইন করুন, অথবা অগ্রগতি সেভ করতে একটি অ্যাকাউন্ট তৈরি করুন।",
       createAccountTitle: "আপনার অ্যাকাউন্ট তৈরি করুন",
       createAccountSubtitle: "শুরু করতে আপনার ইমেইল ঠিকানা বা ফোন নম্বর ব্যবহার করুন।",
@@ -1710,8 +1710,8 @@ export const TRANSLATIONS = {
       continue: "এগিয়ে যান",
       alreadyHaveAccount: "ইতিমধ্যে অ্যাকাউন্ট আছে? লগইন করুন",
       createPasswordTitle: "একটি পাসওয়ার্ড তৈরি করুন",
-      createPasswordSubtitle: "আপনার FocusForge অ্যাকাউন্টের জন্য একটি পাসওয়ার্ড বেছে নিন।",
-      passwordNotice: "দৃষ্টি আকর্ষণ: এই পাসওয়ার্ডটি শুধুমাত্র FocusForge-এর জন্য, আপনার জিমেইল পাসওয়ার্ড নয়।",
+      createPasswordSubtitle: "আপনার Focentia অ্যাকাউন্টের জন্য একটি পাসওয়ার্ড বেছে নিন।",
+      passwordNotice: "দৃষ্টি আকর্ষণ: এই পাসওয়ার্ডটি শুধুমাত্র Focentia-এর জন্য, আপনার জিমেইল পাসওয়ার্ড নয়।",
       password: "পাসওয়ার্ড",
       passwordPlaceholder: "আপনার পাসওয়ার্ড লিখুন",
       showPassword: "দেখান",
@@ -1754,7 +1754,7 @@ export const TRANSLATIONS = {
       confirmNewPassword: "পাসওয়ার্ড নিশ্চিত করুন",
       resetSuccessTitle: "পাসওয়ার্ড সফলভাবে আপডেট হয়েছে",
       resetSuccessSubtitle: "এখন আপনি আপনার নতুন পাসওয়ার্ড দিয়ে লগইন করতে পারবেন।",
-      authGuardTitle: "FocusForge-এ আপনার অগ্রগতি সেভ করুন",
+      authGuardTitle: "Focentia-এ আপনার অগ্রগতি সেভ করুন",
       authGuardDesc: "আপনার ডেটা সুরক্ষিত রাখতে এবং যেকোনো ডিভাইস থেকে ব্যক্তিগত ওয়ার্কস্পেস অ্যাক্সেস করতে সাইন ইন করুন।",
       maybeLater: "পরে করব",
       notNow: "এখন নয়",
@@ -1762,11 +1762,11 @@ export const TRANSLATIONS = {
       myData: "আমার ডেটা",
       settings: "সেটিংস",
       logOut: "লগআউট",
-      logOutConfirmTitle: "FocusForge থেকে লগআউট করবেন?",
+      logOutConfirmTitle: "Focentia থেকে লগআউট করবেন?",
       logOutConfirmDesc: "আপনার সেভ করা ডেটা অ্যাক্সেস করতে আপনি যেকোনো সময় পুনরায় লগইন করতে পারবেন।",
       cancel: "ক্যান্সেল",
       welcomeToastReturning: "স্বাগতম!",
-      welcomeToastNew: "FocusForge-এ স্বাগতম! আপনার ওয়ার্কস্পেস প্রস্তুত।",
+      welcomeToastNew: "Focentia-এ স্বাগতম! আপনার ওয়ার্কস্পেস প্রস্তুত।",
       loggedOutToast: "সফলভাবে লগআউট হয়েছে।"
     },
     diary: {
@@ -1830,12 +1830,12 @@ export const TRANSLATIONS = {
       back: "পেছনে যান",
       welcome: {
         tagline: "",
-        title: "FocusForge-এ স্বাগতম",
+        title: "Focentia-তে স্বাগতম",
         description: "তোমার কাজ গুছিয়ে রাখা, প্রায়োরিটি নির্ধারণ, ফোকাস ধরে রাখা এবং প্রতিদিন কার্যকর অগ্রগতি অর্জনের এক বুদ্ধিমান প্ল্যাটফর্ম।",
         getStarted: "শুরু করুন",
       },
       language: {
-        title: "তুমি কোন ভাষায় FocusForge ব্যবহার করতে চাও?",
+        title: "তুমি কোন ভাষায় Focentia ব্যবহার করতে চাও?",
         subtitle: "তোমার পছন্দের ভাষা নির্বাচন করো। এটি পরবর্তীতে যেকোনো সময় পরিবর্তন করা যাবে।",
         bnLabel: "বাংলা",
         enLabel: "English",
@@ -1865,9 +1865,9 @@ export const TRANSLATIONS = {
       },
       account: {
         title: "তুমি কীভাবে শুরু করতে চাও?",
-        subtitle: "FocusForge কীভাবে অ্যাক্সেস করতে চাও বেছে নাও।",
+        subtitle: "Focentia কীভাবে অ্যাক্সেস করতে চাও বেছে নাও।",
         guestTitle: "গেস্ট হিসেবে শুরু করুন",
-        guestDesc: "কোনো অ্যাকাউন্ট ছাড়াই সরাসরি FocusForge-এ প্রবেশ করুন।",
+        guestDesc: "কোনো অ্যাকাউন্ট ছাড়াই সরাসরি Focentia-এ প্রবেশ করুন।",
         authTitle: "লগইন / নতুন অ্যাকাউন্ট",
         authDesc: "সকল ডিভাইসে তোমার টাস্ক, নোটস ও AI হিস্ট্রি নিরাপদে সিঙ্ক করে রাখো।",
       },
@@ -1906,12 +1906,12 @@ export const TRANSLATIONS = {
         },
         installGuide: {
           badge: "অ্যাপ ইনস্টলেশন গাইড",
-          title: "FocusForge অ্যাপটি ইনস্টল করুন",
-          desc: "আরও দ্রুত ও ফুল-স্ক্রিন ব্যবহারের সুবিধার্থে তোমার ডিভাইসে FocusForge ইনস্টল করে নিতে পারো:",
+          title: "Focentia অ্যাপটি ইনস্টল করুন",
+          desc: "আরও দ্রুত ও ফুল-স্ক্রিন ব্যবহারের সুবিধার্থে তোমার ডিভাইসে Focentia ইনস্টল করে নিতে পারো:",
           step1Title: "৩ ডট (⋮) এ ক্লিক করুন",
           step1Desc: "ব্রাউজার বা Chrome-এর ওপরের ডানপাশের ৩ ডট (⋮) মেনু আইকনে ক্লিক করো।",
           step2Title: "Add to Home screen চাপুন",
-          step2Desc: "মেনু থেকে 'Add to Home screen' বা 'Install FocusForge' সিলেক্ট করো।",
+          step2Desc: "মেনু থেকে 'Add to Home screen' বা 'Install Focentia' সিলেক্ট করো।",
           skip: "স্কিপ করুন",
           continue: "চালিয়ে যান",
           installNow: "এখনই ইনস্টল করুন",
@@ -1919,7 +1919,7 @@ export const TRANSLATIONS = {
         },
         ready: {
           title: "তুমি এখন প্রস্তুত।",
-          desc: "FocusForge তোমাকে focus করতে, কাজ গুছিয়ে নিতে এবং ধাপে ধাপে এগিয়ে যেতে সাহায্য করবে।",
+          desc: "Focentia তোমাকে focus করতে, কাজ গুছিয়ে নিতে এবং ধাপে ধাপে এগিয়ে যেতে সাহায্য করবে।",
           button: "শুরু করি",
         },
       },

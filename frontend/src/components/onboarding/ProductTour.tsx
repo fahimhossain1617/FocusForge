@@ -61,7 +61,7 @@ export const ProductTour: React.FC<ProductTourProps> = ({
         if (choice.outcome === "accepted") {
           setDeferredPrompt(null);
           showToast(
-            state.lang === "bn" ? "FocusForge ইনস্টল হচ্ছে..." : "FocusForge is installing...",
+            state.lang === "bn" ? "Focentia ইনস্টল হচ্ছে..." : "Focentia is installing...",
             "success"
           );
         }
@@ -81,7 +81,7 @@ export const ProductTour: React.FC<ProductTourProps> = ({
         showToast(
           state.lang === "bn"
             ? "ব্রাউজারের ৩ ডট (⋮) মেনু থেকে 'Add to Home screen' বা 'Install app' সিলেক্ট করুন।"
-            : "Click the 3-dot menu (⋮) in Chrome and select 'Add to Home screen' or 'Install FocusForge'.",
+            : "Click the 3-dot menu (⋮) in Chrome and select 'Add to Home screen' or 'Install Focentia'.",
           "info"
         );
       }
@@ -436,7 +436,7 @@ export const ProductTour: React.FC<ProductTourProps> = ({
                 {isFinalStep ? (
                   <span className="inline-flex items-center gap-1 text-emerald-400">
                     <CheckCircle2 size={13} />
-                    FocusForge
+                    Focentia
                   </span>
                 ) : (
                   stepCountText

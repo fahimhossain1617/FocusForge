@@ -117,14 +117,14 @@ export function ReviewModal({
         <div className={styles.header}>
           <div className={styles.badge}>
             <Star size={12} />
-            <span>{isBn ? "ফিডব্যাক" : "FocusForge Feedback"}</span>
+            <span>{isBn ? "ফিডব্যাক" : "Focentia Feedback"}</span>
           </div>
           <h2 className={styles.title} id="review-title">
-            {isBn ? "FocusForge-এ আপনার অভিজ্ঞতা কেমন?" : "How is your FocusForge experience?"}
+            {isBn ? "Focentia-তে আপনার অভিজ্ঞতা কেমন?" : "How is your Focentia experience?"}
           </h2>
           <p className={styles.subtitle}>
             {isBn
-              ? "আপনার মূল্যবান মতামত ও পরামর্শ FocusForge-কে আরও চমৎকার ও কার্যকর করতে সাহায্য করবে।"
+              ? "আপনার মূল্যবান মতামত ও পরামর্শ Focentia-কে আরও চমৎকার ও কার্যকর করতে সাহায্য করবে।"
               : "Your honest feedback directly helps us shape future productivity features."}
           </p>
         </div>

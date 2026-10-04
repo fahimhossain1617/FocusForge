@@ -57,7 +57,7 @@ export default function AuthLayout({
   const heroHeadline = (
     <div className="auth-hero-group">
       <span className="auth-hero-lead">Welcome to</span>
-      <h1 className="auth-hero-title">Focus Forge</h1>
+      <h1 className="auth-hero-title">Focentia</h1>
     </div>
   );
 
@@ -72,7 +72,7 @@ export default function AuthLayout({
 
   const footerElement = (
     <div className="auth-foot">
-      © 2026 FocusForge ·{" "}
+      © 2026 Focentia ·{" "}
       <button
         type="button"
         onClick={() => openLegal("privacy")}
@@ -197,7 +197,7 @@ export default function AuthLayout({
             <div className="auth-hero-mobile">
               <div className="auth-hero-group">
                 <span className="auth-hero-lead">Welcome to</span>
-                <h1 className="auth-hero-title">Focus Forge</h1>
+                <h1 className="auth-hero-title">Focentia</h1>
               </div>
               <div className="auth-hero-desc">
                 <p className="auth-hero-tagline">Your focus. Your progress. Your future.</p>

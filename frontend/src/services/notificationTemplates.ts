@@ -1,5 +1,5 @@
 /**
- * FocusForge Notification Templates & Randomized Rotation Engine
+ * Focentia Notification Templates & Randomized Rotation Engine
  *
  * Requirements:
  * - NO AI-generated text. Predefined, developer-controlled templates only.
@@ -36,8 +36,8 @@ export interface CategoryConfig {
 export const NOTIFICATION_TEMPLATES: Record<NotificationCategory, CategoryConfig> = {
   daily_plan: {
     orbMood: "curious",
-    appTagEn: "FOCUSFORCE - DAILY PLAN",
-    appTagBn: "ফোকাসফোর্স - আজকের প্ল্যান",
+    appTagEn: "FOCENTIA - DAILY PLAN",
+    appTagBn: "ফোসেন্টিয়া - আজকের প্ল্যান",
     defaultTitleEn: "Your plan for today",
     defaultTitleBn: "আজকের দিনের প্ল্যান",
     templates: [
@@ -81,8 +81,8 @@ export const NOTIFICATION_TEMPLATES: Record<NotificationCategory, CategoryConfig
 
   focus_reminder: {
     orbMood: "concerned",
-    appTagEn: "FOCUSFORCE - FOCUS SESSION",
-    appTagBn: "ফোকাসফোর্স - ফোকাস সেশন",
+    appTagEn: "FOCENTIA - FOCUS SESSION",
+    appTagBn: "ফোসেন্টিয়া - ফোকাস সেশন",
     defaultTitleEn: "Focus Session Waiting",
     defaultTitleBn: "ফোকাস সেশন বাকি আছে",
     templates: [
@@ -126,8 +126,8 @@ export const NOTIFICATION_TEMPLATES: Record<NotificationCategory, CategoryConfig
 
   inactivity: {
     orbMood: "thinking",
-    appTagEn: "FOCUSFORCE - GENTLE NUDGE",
-    appTagBn: "ফোকাসফোর্স - আলতো তাগিদ",
+    appTagEn: "FOCENTIA - GENTLE NUDGE",
+    appTagBn: "ফোসেন্টিয়া - আলতো তাগিদ",
     defaultTitleEn: "Ready to pick up?",
     defaultTitleBn: "কাজে ফিরবে কি?",
     templates: [
@@ -171,8 +171,8 @@ export const NOTIFICATION_TEMPLATES: Record<NotificationCategory, CategoryConfig
 
   task_start: {
     orbMood: "attentive",
-    appTagEn: "FOCUSFORCE - TASK STARTING",
-    appTagBn: "ফোকাসফোর্স - টাস্ক শুরু হচ্ছে",
+    appTagEn: "FOCENTIA - TASK STARTING",
+    appTagBn: "ফোসেন্টিয়া - টাস্ক শুরু হচ্ছে",
     defaultTitleEn: "Time to start",
     defaultTitleBn: "শুরু করার সময় হয়েছে",
     templates: [
@@ -216,8 +216,8 @@ export const NOTIFICATION_TEMPLATES: Record<NotificationCategory, CategoryConfig
 
   task_pre_reminder: {
     orbMood: "curious",
-    appTagEn: "FOCUSFORCE - TASK DUE SOON",
-    appTagBn: "ফোকাসফোর্স - আসন্ন টাস্ক",
+    appTagEn: "FOCENTIA - TASK DUE SOON",
+    appTagBn: "ফোসেন্টিয়া - আসন্ন টাস্ক",
     defaultTitleEn: "Coming up soon",
     defaultTitleBn: "শীঘ্রই শুরু হচ্ছে",
     templates: [
@@ -261,8 +261,8 @@ export const NOTIFICATION_TEMPLATES: Record<NotificationCategory, CategoryConfig
 
   task_incomplete: {
     orbMood: "concerned",
-    appTagEn: "FOCUSFORCE - TASK CHECK-IN",
-    appTagBn: "ফোকাসফোর্স - কাজের খবর",
+    appTagEn: "FOCENTIA - TASK CHECK-IN",
+    appTagBn: "ফোসেন্টিয়া - কাজের খবর",
     defaultTitleEn: "How is it going?",
     defaultTitleBn: "কাজের খবর কি?",
     templates: [
@@ -306,8 +306,8 @@ export const NOTIFICATION_TEMPLATES: Record<NotificationCategory, CategoryConfig
 
   skill_reminder: {
     orbMood: "attentive",
-    appTagEn: "FOCUSFORCE - PRACTICE REMINDER",
-    appTagBn: "ফোকাসফোর্স - চর্চার রিমাইন্ডার",
+    appTagEn: "FOCENTIA - PRACTICE REMINDER",
+    appTagBn: "ফোসেন্টিয়া - চর্চার রিমাইন্ডার",
     defaultTitleEn: "Time Log / Skill Practice",
     defaultTitleBn: "দক্ষতা চর্চার সময়",
     templates: [
@@ -351,8 +351,8 @@ export const NOTIFICATION_TEMPLATES: Record<NotificationCategory, CategoryConfig
 
   task_completed: {
     orbMood: "happy",
-    appTagEn: "FOCUSFORCE - COMPLETED",
-    appTagBn: "ফোকাসফোর্স - সম্পন্ন হয়েছে",
+    appTagEn: "FOCENTIA - COMPLETED",
+    appTagBn: "ফোসেন্টিয়া - সম্পন্ন হয়েছে",
     defaultTitleEn: "Task Done!",
     defaultTitleBn: "কাজ শেষ!",
     templates: [
@@ -396,8 +396,8 @@ export const NOTIFICATION_TEMPLATES: Record<NotificationCategory, CategoryConfig
 
   focus_completed: {
     orbMood: "proud",
-    appTagEn: "FOCUSFORCE - FOCUS COMPLETED",
-    appTagBn: "ফোকাসফোর্স - ফোকাস সম্পন্ন",
+    appTagEn: "FOCENTIA - FOCUS COMPLETED",
+    appTagBn: "ফোসেন্টিয়া - ফোকাস সম্পন্ন",
     defaultTitleEn: "Focus Session Done!",
     defaultTitleBn: "ফোকাস সেশন সমাপ্ত!",
     templates: [
@@ -441,8 +441,8 @@ export const NOTIFICATION_TEMPLATES: Record<NotificationCategory, CategoryConfig
 
   break_time: {
     orbMood: "sleepy",
-    appTagEn: "FOCUSFORCE - BREAK TIME",
-    appTagBn: "ফোকাসফোর্স - বিরতির সময়",
+    appTagEn: "FOCENTIA - BREAK TIME",
+    appTagBn: "ফোসেন্টিয়া - বিরতির সময়",
     defaultTitleEn: "Take a break",
     defaultTitleBn: "বিরতি নাও",
     templates: [
@@ -486,8 +486,8 @@ export const NOTIFICATION_TEMPLATES: Record<NotificationCategory, CategoryConfig
 
   streak_milestone: {
     orbMood: "proud",
-    appTagEn: "FOCUSFORCE - STREAK",
-    appTagBn: "ফোকাসফোর্স - স্ট্রিক",
+    appTagEn: "FOCENTIA - STREAK",
+    appTagBn: "ফোসেন্টিয়া - স্ট্রিক",
     defaultTitleEn: "Streak Milestone",
     defaultTitleBn: "ধারাবাহিকতার মাইলফলক",
     templates: [
@@ -531,10 +531,10 @@ export const NOTIFICATION_TEMPLATES: Record<NotificationCategory, CategoryConfig
 
   system: {
     orbMood: "attentive",
-    appTagEn: "FOCUSFORCE - SYSTEM",
-    appTagBn: "ফোকাসফোর্স - সিস্টেম",
-    defaultTitleEn: "FocusForge Update",
-    defaultTitleBn: "ফোকাসফোর্স আপডেট",
+    appTagEn: "FOCENTIA - SYSTEM",
+    appTagBn: "ফোসেন্টিয়া - সিস্টেম",
+    defaultTitleEn: "Focentia Update",
+    defaultTitleBn: "ফোসেন্টিয়া আপডেট",
     templates: [
       {
         id: "sys_1",

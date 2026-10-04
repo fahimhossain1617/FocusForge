@@ -410,7 +410,7 @@ function ResetPasswordContent() {
             onClick={() => router.push("/login")}
             className="auth-cta mb-3"
           >
-            Log in to FocusForge
+            Log in to Focentia
           </button>
 
           <div className="auth-alt mt-3">

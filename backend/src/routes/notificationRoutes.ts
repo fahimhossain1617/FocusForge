@@ -278,7 +278,7 @@ router.post('/test', async (req: AuthenticatedRequest, res: Response) => {
     const isBengali = lang === 'bn';
 
     const payload = {
-      title: isBengali ? 'FocusForge নোটিফিকেশন সফল' : 'FocusForge Notification Active',
+      title: isBengali ? 'Focentia নোটিফিকেশন সফল' : 'Focentia Notification Active',
       body: isBengali 
         ? 'আপনার নোটিফিকেশন সিস্টেম সম্পূর্ণ সক্রিয় রয়েছে। সময়মতো আপনার কাজের রিমাইন্ডার পাবেন।' 
         : 'Your notification system is fully active. You will receive your scheduled task reminders on time.',

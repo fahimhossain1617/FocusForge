@@ -4,7 +4,7 @@ const configuredSupabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const configuredSupabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 if (!configuredSupabaseUrl || !configuredSupabaseAnonKey) {
-  console.warn('[FocusForge Auth] Supabase URL or Anon Key is missing from .env.local');
+  console.warn('[Focentia Auth] Supabase URL or Anon Key is missing from .env.local');
 }
 
 // createClient throws during module initialization for an empty URL, which
