@@ -122,7 +122,7 @@ export default function MobileHeader() {
           {/* FocusForge App Icon Slot */}
           <div
             data-ff-launch-slot="mobile"
-            className="slot relative w-7 h-7 rounded-lg shrink-0 select-none"
+            className="slot relative w-7 h-7 rounded-full shrink-0 select-none"
             style={{ width: "28px", height: "28px", minWidth: "28px", minHeight: "28px" }}
             suppressHydrationWarning
           >

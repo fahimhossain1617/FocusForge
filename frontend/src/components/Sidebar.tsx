@@ -162,7 +162,7 @@ export default function Sidebar({
             {/* FocusForge App Icon Slot */}
             <div
               data-ff-launch-slot="sidebar"
-              className="slot relative w-8 h-8 rounded-xl shrink-0 select-none"
+              className="slot relative w-8 h-8 rounded-full shrink-0 select-none"
               style={{ width: "32px", height: "32px", minWidth: "32px", minHeight: "32px" }}
               suppressHydrationWarning
             >

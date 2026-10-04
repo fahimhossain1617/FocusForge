@@ -186,7 +186,7 @@ export default function RootLayout({
                 max-height: 34vw;
                 aspect-ratio: 1 / 1;
                 background: #ffffff;
-                border-radius: 28px;
+                border-radius: 50%;
                 position: relative;
                 flex: none;
                 transform-origin: center center;
@@ -202,7 +202,7 @@ export default function RootLayout({
                 position: absolute;
                 left: 50%;
                 top: 50%;
-                height: 62%;
+                height: 74%;
                 width: auto;
                 aspect-ratio: 520 / 630;
                 transform: translate(-50%, -50%);
@@ -246,12 +246,13 @@ export default function RootLayout({
                 position: relative;
                 display: block;
                 flex: none;
+                border-radius: 50%;
               }
 
               .slot .tile {
                 position: absolute;
                 inset: 0;
-                border-radius: inherit;
+                border-radius: 50%;
                 background: #ffffff;
                 transition: opacity 0.2s ease;
               }
@@ -260,7 +261,7 @@ export default function RootLayout({
                 position: absolute;
                 left: 50%;
                 top: 50%;
-                height: 62%;
+                height: 74%;
                 width: auto;
                 aspect-ratio: 520 / 630;
                 transform: translate(-50%, -50%);
@@ -506,12 +507,12 @@ export default function RootLayout({
       flightAnim = bootBadge.animate([
         { 
           transform: 'translate(0px, 0px) scale(1)',
-          borderRadius: '28px',
+          borderRadius: '50%',
           boxShadow: '0 12px 36px rgba(0, 0, 0, 0.35)'
         },
         { 
           transform: 'translate(' + dx + 'px, ' + dy + 'px) scale(' + scale + ')',
-          borderRadius: targetRadius + 'px',
+          borderRadius: '50%',
           boxShadow: '0 0px 0px rgba(0, 0, 0, 0)'
         }
       ], {

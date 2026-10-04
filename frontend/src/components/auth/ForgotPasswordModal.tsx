@@ -57,7 +57,7 @@ export default function ForgotPasswordModal({
       >
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2.5">
-            <div className="auth-mark overflow-hidden" style={{ width: 34, height: 34, borderRadius: 10 }}>
+            <div className="auth-mark overflow-hidden" style={{ width: 34, height: 34, borderRadius: 9999 }}>
               <img src="/logo.png" alt="FocusForge" className="w-full h-full object-cover" />
             </div>
             <h3 className="text-xl font-bold font-['Sora'] text-white">Reset Password</h3>

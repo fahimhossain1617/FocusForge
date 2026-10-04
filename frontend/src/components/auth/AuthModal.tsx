@@ -493,7 +493,7 @@ export default function AuthModal() {
           <img 
             src="/logo.png" 
             alt="FocusForge" 
-            className="w-8 h-8 rounded-xl object-cover  border border-blue-500/30"
+            className="w-8 h-8 rounded-full object-cover"
           />
           <span className="font-bold tracking-tight text-white text-base">FocusForge</span>
         </div>
