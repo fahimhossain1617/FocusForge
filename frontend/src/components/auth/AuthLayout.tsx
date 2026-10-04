@@ -179,10 +179,10 @@ export default function AuthLayout({
 
       {/* Phone Layout (< 700px) */}
       <div className="flex sm:hidden auth-phone-layout">
-        {(showBack || stepInfo) && (
+        {showBack && (
           <div className="auth-phone-top-bar">
             <div className="flex items-center gap-2.5">
-              {showBack && backButton}
+              {backButton}
               {stepInfo && (
                 <span className="text-[11px] font-semibold text-slate-400 tracking-wider uppercase">
                   {stepInfo}
@@ -192,7 +192,7 @@ export default function AuthLayout({
           </div>
         )}
 
-        <div className={`auth-phone-main ${(showBack || stepInfo) ? "auth-phone-main-top" : ""}`}>
+        <div className={`auth-phone-main ${showBack ? "auth-phone-main-top" : ""}`}>
           {screen === "login" && !showBack && (
             <div className="auth-hero-mobile">
               <div className="auth-hero-group">
@@ -205,6 +205,14 @@ export default function AuthLayout({
                   Plan your day, build better habits, track your focus, learn new skills and become the best version of yourself.
                 </p>
               </div>
+            </div>
+          )}
+
+          {!showBack && stepInfo && (
+            <div className="flex items-center justify-between mb-3 w-full">
+              <span className="text-[11px] font-bold text-blue-400 tracking-widest uppercase">
+                {stepInfo}
+              </span>
             </div>
           )}
 

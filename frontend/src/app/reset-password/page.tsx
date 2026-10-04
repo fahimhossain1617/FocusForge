@@ -29,6 +29,7 @@ function ResetPasswordContent() {
   const [activeIdx, setActiveIdx] = useState(0);
   const [loading, setLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [isAlreadyReset, setIsAlreadyReset] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [resendCooldown, setResendCooldown] = useState(0);
   const [resending, setResending] = useState(false);
@@ -45,7 +46,16 @@ function ResetPasswordContent() {
     }
 
     if (resolvedEmail) {
-      setEmail(resolvedEmail);
+      const clean = resolvedEmail.trim().toLowerCase();
+      setEmail(clean);
+
+      // Check if this reset link was already used to set the new password
+      if (typeof window !== "undefined") {
+        const resetDone = localStorage.getItem(`focusforge_reset_completed_${clean}`);
+        if (resetDone) {
+          setIsAlreadyReset(true);
+        }
+      }
     }
 
     // Also check active Supabase recovery session if present
@@ -53,7 +63,14 @@ function ResetPasswordContent() {
       try {
         const { data } = await supabase.auth.getSession();
         if (data?.session?.user?.email) {
-          setEmail(data.session.user.email);
+          const sEmail = data.session.user.email.trim().toLowerCase();
+          setEmail(sEmail);
+          if (typeof window !== "undefined") {
+            const resetDone = localStorage.getItem(`focusforge_reset_completed_${sEmail}`);
+            if (resetDone) {
+              setIsAlreadyReset(true);
+            }
+          }
         }
       } catch {}
     }
@@ -179,6 +196,9 @@ function ResetPasswordContent() {
     if (fullCode === "123456" || searchParams?.get("demo") === "1") {
       setLoading(true);
       setError(null);
+      if (email && typeof window !== "undefined") {
+        localStorage.setItem(`focusforge_reset_completed_${email.toLowerCase()}`, Date.now().toString());
+      }
       setTimeout(() => {
         setIsSuccess(true);
         playSuccessSound();
@@ -209,6 +229,11 @@ function ResetPasswordContent() {
         }
         setLoading(false);
         return;
+      }
+
+      // Mark link as consumed/completed for one-time protection
+      if (typeof window !== "undefined") {
+        localStorage.setItem(`focusforge_reset_completed_${email.toLowerCase()}`, Date.now().toString());
       }
 
       setIsSuccess(true);
@@ -370,10 +395,48 @@ function ResetPasswordContent() {
 
   const strength = getPasswordStrength(password);
 
+  // VIEW: LINK ALREADY USED / PASSWORD ALREADY SET
+  if (isAlreadyReset) {
+    return (
+      <AuthLayout screen="reset" showBack={false}>
+        <div className="text-center py-1">
+          <h2 className="auth-title mb-2">Password already set</h2>
+          <p className="auth-lead mb-6" style={{ maxWidth: 360, margin: "0 auto 22px" }}>
+            You have already set a new password with this reset link. For your security, each link can only be used once.
+          </p>
+
+          <button
+            type="button"
+            onClick={() => router.push("/login")}
+            className="auth-cta mb-3"
+          >
+            Log in to FocusForge
+          </button>
+
+          <div className="auth-alt mt-3">
+            Need to reset again?{" "}
+            <button
+              type="button"
+              onClick={() => {
+                if (email && typeof window !== "undefined") {
+                  localStorage.removeItem(`focusforge_reset_completed_${email.toLowerCase()}`);
+                }
+                router.push("/login");
+              }}
+              className="text-blue-400 hover:underline font-semibold bg-transparent border-0 p-0 cursor-pointer"
+            >
+              Request a new link
+            </button>
+          </div>
+        </div>
+      </AuthLayout>
+    );
+  }
+
   // STEP 2: VERIFY OTP SCREEN
   if (step === 2) {
     return (
-      <AuthLayout screen="reset" showBack onBack={() => { setStep(1); setError(null); }} stepInfo="Step 2 of 2">
+      <AuthLayout screen="reset" showBack={false} stepInfo="Step 2 of 2">
         <div className="relative" style={{ textAlign: isSuccess ? "center" : "left", marginBottom: isSuccess ? "4px" : "12px" }}>
           <AnimatePresence mode="wait" initial={false}>
             {isSuccess ? (
@@ -493,7 +556,7 @@ function ResetPasswordContent() {
 
   // STEP 1: SET NEW PASSWORD
   return (
-    <AuthLayout screen="reset" showBack onBack={() => router.push("/login")} stepInfo="Step 1 of 2">
+    <AuthLayout screen="reset" showBack={false} stepInfo="Step 1 of 2">
       <h2 className="auth-title">Reset password</h2>
       <p className="auth-lead mb-4">
         Enter your new password below to update your account security.

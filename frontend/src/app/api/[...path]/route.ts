@@ -617,7 +617,11 @@ export async function POST(request: NextRequest, context: { params: Promise<{ pa
       });
     } catch (err: any) {
       console.error('[auth/request-reset-otp] Error:', err);
-      return NextResponse.json({ error: err.message || 'Failed to initiate password reset' }, { status: 500 });
+      let errorMsg = err?.message || 'Failed to initiate password reset.';
+      if (errorMsg.includes('ENOTFOUND') || errorMsg.includes('ECONNREFUSED') || errorMsg.includes('getaddrinfo')) {
+        errorMsg = 'Database connection error. Please verify your Supabase database connection pooler settings in Vercel.';
+      }
+      return NextResponse.json({ error: errorMsg }, { status: 500 });
     }
   }
 
@@ -749,7 +753,11 @@ export async function POST(request: NextRequest, context: { params: Promise<{ pa
       });
     } catch (err: any) {
       console.error('[auth/verify-reset-otp] Error:', err);
-      return NextResponse.json({ error: err.message || 'Verification failed.' }, { status: 500 });
+      let errorMsg = err?.message || 'Verification failed.';
+      if (errorMsg.includes('ENOTFOUND') || errorMsg.includes('ECONNREFUSED') || errorMsg.includes('getaddrinfo')) {
+        errorMsg = 'Database connection error. Please verify your Supabase database connection pooler settings in Vercel.';
+      }
+      return NextResponse.json({ error: errorMsg }, { status: 500 });
     }
   }
 

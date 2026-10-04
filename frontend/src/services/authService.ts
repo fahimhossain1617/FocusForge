@@ -286,6 +286,11 @@ export const authService = {
   // ==========================================
   async sendPasswordResetEmail(email: string): Promise<{ success: boolean; error?: string }> {
     const cleanEmail = email.trim().toLowerCase();
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.removeItem(`focusforge_reset_completed_${cleanEmail}`);
+      } catch {}
+    }
     const redirectUrl = getAuthRedirectUrl('/reset-password');
 
     const { error } = await supabase.auth.resetPasswordForEmail(cleanEmail, {
@@ -301,6 +306,11 @@ export const authService = {
 
   async requestPasswordResetOtp(email: string, newPassword?: string): Promise<{ success: boolean; error?: string; message?: string }> {
     const cleanEmail = email.trim().toLowerCase();
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.removeItem(`focusforge_reset_completed_${cleanEmail}`);
+      } catch {}
+    }
     try {
       const resp = await fetch('/api/auth/request-reset-otp', {
         method: 'POST',
