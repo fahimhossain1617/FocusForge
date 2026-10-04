@@ -43,21 +43,20 @@ export default function ConfirmDeleteModal({
       role="dialog"
       aria-modal="true"
       aria-labelledby="confirm-delete-title"
-      className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/20 backdrop-blur-none select-none transition-none"
+      className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-none select-none"
       onClick={() => {
         if (!isLoading) onClose();
       }}
     >
       <div
-        className="relative w-full max-w-sm rounded-2xl border border-[var(--color-border-subtle)] bg-[var(--color-surface-elevated)] p-6 shadow-none flex flex-col gap-4 text-center items-center"
+        className="relative w-full max-w-sm rounded-2xl border border-[#DCE5F0] dark:border-white/10 bg-white dark:bg-[#0F1729] p-6 shadow-2xl flex flex-col gap-4 text-center items-center"
         onClick={(e) => e.stopPropagation()}
         style={{
-          boxShadow: "none",
-          filter: "none",
+          backgroundColor: "var(--color-surface-elevated, #0F1729)",
         }}
       >
         {/* Red Icon Badge */}
-        <div className="w-11 h-11 rounded-xl bg-red-500/10 text-red-500 flex items-center justify-center shrink-0">
+        <div className="w-11 h-11 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 flex items-center justify-center shrink-0">
           <Trash2 size={20} strokeWidth={2.2} />
         </div>
 
@@ -65,11 +64,11 @@ export default function ConfirmDeleteModal({
         <div className="space-y-1.5 w-full">
           <h3
             id="confirm-delete-title"
-            className="text-base font-semibold text-[var(--color-text-primary)] tracking-tight"
+            className="text-base font-semibold text-slate-900 dark:text-[#F5F7FA] tracking-tight"
           >
             {title}
           </h3>
-          <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed px-1">
+          <p className="text-xs text-slate-600 dark:text-[#94A3B8] leading-relaxed px-1">
             {message}
           </p>
         </div>
@@ -80,7 +79,7 @@ export default function ConfirmDeleteModal({
             type="button"
             disabled={isLoading}
             onClick={onClose}
-            className="w-full px-4 py-2.5 rounded-xl text-xs font-semibold text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-hover)] border border-[var(--color-border-subtle)] transition-colors cursor-pointer disabled:opacity-50 shadow-none outline-none"
+            className="w-full px-4 py-2.5 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white bg-slate-100 hover:bg-slate-200 dark:bg-white/5 dark:hover:bg-white/10 border border-[#DCE5F0] dark:border-white/10 transition-colors cursor-pointer disabled:opacity-50 shadow-none outline-none"
           >
             {cancelLabel}
           </button>

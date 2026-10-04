@@ -8,12 +8,10 @@
   position: relative;
   display: flex;
   flex-direction: column;
-  height: 100%;
-  aspect-ratio: 1 / 1.18;
-  min-height: auto;
-  max-height: 320px;
+  height: 230px;
+  width: 100%;
   cursor: pointer;
-  padding: 0;
+  padding: 8px 0 0 0;
   border-radius: 18px;
   background: transparent;
   overflow: visible;
@@ -310,8 +308,8 @@
    ========================================================================== */
 @media (max-width: 640px) {
   .folder-card-wrapper {
-    min-height: 175px !important;
-    max-height: 225px !important;
+    height: 195px !important;
+    padding: 6px 0 0 0;
     border-radius: 14px;
   }
 

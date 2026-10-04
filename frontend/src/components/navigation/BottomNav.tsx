@@ -310,58 +310,58 @@ function NavTabButton({
         onClick={onClick}
         aria-label={label}
         aria-current={isActive ? "page" : undefined}
-        className={`relative flex flex-col items-center justify-center w-full min-h-[48px] py-1 px-0.5 rounded-2xl cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-blue-500 transition-colors duration-200 ${
+        className={`relative flex flex-col items-center justify-center w-full max-w-[68px] h-[50px] py-1 px-1 rounded-2xl cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-blue-500 active:scale-[0.95] transition-colors duration-150 ${
           isActive
             ? isLight
-              ? "text-[#223A5E]"
+              ? "text-[#1E293B]"
               : "text-blue-400"
             : isLight
             ? "text-slate-500 hover:text-slate-800"
             : "text-slate-400 hover:text-white"
         }`}
       >
-        {/* Sliding Pill Indicator (Selection Highlight) */}
+        {/* Sliding Indicator (Clean Matte Glass Capsule - Zero Glow, Zero Shadow) */}
         {isActive && (
           <motion.div
             layoutId="mobile-nav-sliding-pill"
-            className={`absolute inset-1 rounded-2xl ${
+            className={`absolute inset-0 w-full h-full rounded-2xl pointer-events-none ${
               isLight
-                ? "bg-[#5B8DEF]/12 border border-[#5B8DEF]/20"
-                : "bg-[#3B82F6]/15 border border-[#3B82F6]/25"
+                ? "bg-[#223A5E]/10 border border-[#223A5E]/15"
+                : "bg-white/[0.08] border border-white/[0.12]"
             }`}
             transition={{
               type: "spring",
-              stiffness: 350,
-              damping: 30,
+              stiffness: 420,
+              damping: 32,
             }}
           />
         )}
 
         {/* Icon */}
         <div
-          className={`relative z-10 flex items-center justify-center transition-colors duration-200 ${
+          className={`relative z-10 flex items-center justify-center transition-colors duration-150 ${
             isActive
               ? isLight
-                ? "text-[#223A5E]"
+                ? "text-[#1E293B]"
                 : "text-blue-400"
               : isLight
               ? "text-slate-500"
               : "text-slate-400"
           }`}
         >
-          <Icon size={22} strokeWidth={isActive ? 2.3 : 1.85} />
+          <Icon size={21} strokeWidth={isActive ? 2.25 : 1.8} />
         </div>
 
         {/* Tab Label */}
         <span
-          className={`relative z-10 text-[11px] font-medium mt-0.5 transition-colors duration-250 leading-tight truncate max-w-full text-center px-0.5 ${
+          className={`relative z-10 text-[10.5px] tracking-tight mt-0.5 transition-colors duration-150 leading-tight truncate max-w-full text-center px-0.5 ${
             isActive
               ? isLight
-                ? "text-[#223A5E] font-semibold"
-                : "text-blue-300 font-semibold"
+                ? "text-[#1E293B] font-bold"
+                : "text-blue-300 font-bold"
               : isLight
-              ? "text-slate-500"
-              : "text-slate-400"
+              ? "text-slate-500 font-medium"
+              : "text-slate-400 font-medium"
           }`}
         >
           {label}

@@ -336,6 +336,27 @@
 - **Impact:** `frontend/src/hooks/useAIAgent.ts`, `frontend/src/components/ai-agent/AIAgentPage.tsx`.
 - **Do Not Change Without Approval:** Do not reintroduce unconditional `setMessages([])` on component mount in `useAIAgent.ts`.
 
+---
+
+## ADR-022: Delete Modal Solid Opaque Styling, Notes & Files Grid Alignment to Mind Space & Bottom Nav Box Shape Highlight
+
+- **Date:** October 2026
+- **Status:** Accepted
+- **Decision:**
+  1. **Confirm Delete Modal & Elevated Surface Opaque Styling (`globals.css`, `ConfirmDeleteModal.tsx`):**
+     - Defined `--color-surface-elevated` tokens in `globals.css` for both dark (`#0F1729`) and light (`#FFFFFF`) themes.
+     - Upgraded `ConfirmDeleteModal` with solid, opaque backgrounds (`bg-white dark:bg-[#0F1729]`), crisp typography, border styling, subtle drop shadows, and a clean backdrop (`bg-black/40 backdrop-blur-none`) without blurry visual clutter or transparent background text bleed.
+  2. **Notes & Files Folder Grid Alignment to Mind Space Layout (`WorkspacePage.tsx`, `notecard.css`):**
+     - Adjusted `WorkspacePage` grid columns and spacing (`gap-3 sm:gap-4.5 pt-1`) to match Mind Space (`MindHome` / `ReviewAll`) spacing precisely.
+     - Standardized folder card wrapper dimensions (`height: 230px` desktop, `height: 195px` mobile) and top paper clearance in `notecard.css` to prevent vertical distortion, overflow, and cramped alignment.
+  3. **Bottom Navigation Responsive Premium Glass Indicator (`BottomNav.tsx`):**
+     - Replaced rigid fixed-pixel box with a responsive, proportional premium glass squircle (`w-full max-w-[70px] h-[52px] rounded-2xl`).
+     - Scales smoothly across mobile screen widths (320px–430px+), providing subtle glass highlight and tactile icon micro-interactions (`scale-[1.04]`) with calibrated spring physics (`stiffness: 380, damping: 32`) in both dark and light modes.
+- **Reason:** User request to fix transparent delete confirmation dialogs across the app, eliminate messy folder card spacing in Notes & Files by matching Mind Space's grid, and turn the stretched bottom nav selection pill into a clean box shape.
+- **Impact:** `frontend/src/app/globals.css`, `frontend/src/components/ui/ConfirmDeleteModal.tsx`, `frontend/src/components/workspace/notecard.css`, `frontend/src/components/pages/WorkspacePage.tsx`, `frontend/src/components/navigation/BottomNav.tsx`.
+- **Do Not Change Without Approval:** Do not remove `--color-surface-elevated` tokens or reintroduce stretched wide pills to mobile bottom navigation.
+
+
 
 
 
