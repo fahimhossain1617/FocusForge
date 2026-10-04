@@ -277,12 +277,6 @@ export default function NotificationsPage() {
             <Settings size={20} />
           </button>
         </div>
-
-        <p className="mt-1 ml-10 text-xs sm:text-sm text-muted-foreground font-normal leading-relaxed">
-          {isBn
-            ? "আপনার কাজের রিমাইন্ডার, ফোকাস সেশন এবং দৈনিক প্ল্যানের সকল আপডেট।"
-            : "Your task reminders, focus sessions, and daily schedule updates."}
-        </p>
       </div>
 
       {/* 2. Top Interface Controls Toolbar (Open on page, NOT inside any big outer card box) */}
@@ -488,7 +482,7 @@ export default function NotificationsPage() {
               <div className="space-y-2.5 pt-2">
                 <div className="flex items-center gap-2 px-1">
                   <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                    {isBn ? "পূর্ববর্তী নোটিফিকেশন" : "EARLIER"}
+                    {isBn ? "পূর্ববর্তী" : "Previous"}
                   </span>
                   <span className="text-[11px] font-semibold text-slate-400">
                     ({earlierList.length})

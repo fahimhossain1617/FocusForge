@@ -61,10 +61,10 @@ export default function WorkspacePage() {
     return Array.from(cats);
   }, [state.categories, state.notes]);
 
-  // Filter notes based on search & category
+  // Filter notes based on search & category and sort recent-first
   const filteredNotes = useMemo(() => {
     const query = searchQuery.toLowerCase().trim();
-    return state.notes.filter(note => {
+    const list = state.notes.filter(note => {
       // Category filter
       if (selectedCategory !== "All" && (note.category || "Personal") !== selectedCategory) {
         return false;
@@ -79,6 +79,12 @@ export default function WorkspacePage() {
         (b.caption && b.caption.toLowerCase().includes(query)) ||
         (b.linkTitle && b.linkTitle.toLowerCase().includes(query))
       );
+    });
+
+    return list.slice().sort((a, b) => {
+      const timeA = new Date(a.updatedAt || a.createdAt || 0).getTime();
+      const timeB = new Date(b.updatedAt || b.createdAt || 0).getTime();
+      return timeB - timeA;
     });
   }, [state.notes, searchQuery, selectedCategory]);
 

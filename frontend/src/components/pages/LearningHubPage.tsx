@@ -304,6 +304,7 @@ export default function LearningHubPage() {
         watchMins: number;
         practiceMins: number;
         streak: number;
+        gapDays: number;
         topicsList: string[];
       }
     >();
@@ -326,11 +327,14 @@ export default function LearningHubPage() {
         }
       });
 
+      const gapDays = getGapDays(logs);
+
       map.set(folder.id, {
         totalMins: watch + practice,
         watchMins: watch,
         practiceMins: practice,
         streak,
+        gapDays,
         topicsList: Array.from(topicSet),
       });
     });
@@ -434,6 +438,7 @@ export default function LearningHubPage() {
                   watchMins: 0,
                   practiceMins: 0,
                   streak: 0,
+                  gapDays: 0,
                   topicsList: [],
                 };
                 // Up to 6 topics (even number as requested)
@@ -464,8 +469,13 @@ export default function LearningHubPage() {
                               </span>
                             )}
                           </div>
-                          <p className="text-xs text-muted-foreground mt-0.5">
-                            {new Date(folder.createdAt).toLocaleDateString()}
+                          <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1.5 flex-wrap">
+                            <span>{new Date(folder.createdAt).toLocaleDateString()}</span>
+                            {stats.gapDays >= 2 && (
+                              <span className="text-amber-500/90 dark:text-amber-400/90 font-normal text-[11px]">
+                                • {stats.gapDays} {t.learningHub.days} {t.learningHub.inactivityGap}
+                              </span>
+                            )}
                           </p>
                         </div>
 
@@ -558,7 +568,7 @@ export default function LearningHubPage() {
       {/* VIEW 2: SKILL DETAIL INTERFACE                                */}
       {/* ───────────────────────────────────────────────────────────── */}
       {selectedFolderId && activeFolder && (
-        <div className="flex flex-col gap-6">
+        <div className="flex flex-col gap-5 pt-1 sm:pt-2 px-0.5 sm:px-1">
           {/* Top Bar: Back Button (Left) | Mark Complete, Current Streak, Delete (Right) */}
           <div className="flex items-center justify-between gap-3">
             {/* Left: Back Button */}
@@ -639,14 +649,11 @@ export default function LearningHubPage() {
                   </span>
                 )}
               </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                {t.learningHub.created} {new Date(activeFolder.createdAt).toLocaleDateString()}
+              <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1.5 flex-wrap">
+                <span>{t.learningHub.created} {new Date(activeFolder.createdAt).toLocaleDateString()}</span>
                 {activeGapDays >= 2 && (
-                  <span className="ml-2 inline-flex items-center gap-1 text-[11px] text-red-400 font-medium bg-red-500/10 px-2 py-0.5 rounded-md">
-                    <AlertTriangle className="w-3 h-3" />
-                    <span>
-                      {activeGapDays} {t.learningHub.days} {t.learningHub.inactivityGap}
-                    </span>
+                  <span className="text-amber-500/90 dark:text-amber-400/90 font-normal text-xs">
+                    • {activeGapDays} {t.learningHub.days} {t.learningHub.inactivityGap}
                   </span>
                 )}
               </p>

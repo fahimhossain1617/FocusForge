@@ -448,7 +448,7 @@ export default function NoteEditorView({
 
   return (
     <div 
-      className="note-editor-screen motion-page max-w-6xl mx-auto w-full pb-14 relative"
+      className="note-editor-screen motion-page max-w-5xl mx-auto w-full pb-14 px-3 sm:px-6 md:px-8 relative"
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
@@ -472,7 +472,7 @@ export default function NoteEditorView({
       />
 
       {/* Header */}
-      <header className="note-editor-screen__header flex items-center justify-between gap-3 mb-4">
+      <header className="note-editor-screen__header flex items-center justify-between gap-3 pt-2.5 sm:pt-4 md:pt-5 pb-2 mb-4">
         <button 
           type="button" 
           onClick={goBack} 

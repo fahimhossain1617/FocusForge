@@ -630,7 +630,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     trackMeaningfulAction('feature_' + page);
 
     setSubViewActive(false);
-    setIsPageLoading(true);
     setState((prev) => {
       if (prev.activePage === page) return prev;
       if (!isBack && prev.activePage && prev.activePage !== page) {
@@ -641,18 +640,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }
       return { ...prev, activePage: page };
     });
-
-    setTimeout(() => {
-      setIsPageLoading(false);
-    }, 180);
   }, [trackMeaningfulAction]);
 
   const navigateBack = useCallback(() => {
-    if (typeof window !== 'undefined' && window.history.length > 1) {
-      window.history.back();
-      return;
+    let prevPage: string | undefined;
+    while (pageHistoryRef.current.length > 0) {
+      const candidate = pageHistoryRef.current.pop();
+      if (candidate && candidate !== stateRef.current.activePage) {
+        prevPage = candidate;
+        break;
+      }
     }
-    const prevPage = pageHistoryRef.current.pop();
+
     if (prevPage) {
       navigateTo(prevPage, true);
     } else {

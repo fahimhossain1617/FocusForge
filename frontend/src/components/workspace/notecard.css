@@ -10,7 +10,7 @@
   flex-direction: column;
   height: 100%;
   aspect-ratio: 1 / 1.18;
-  min-height: 265px;
+  min-height: auto;
   max-height: 320px;
   cursor: pointer;
   padding: 0;

@@ -60,30 +60,30 @@ Foscentia is an active, functional productivity suite built with Next.js 16 App 
 ---
 
 ### Focus Mode & Timer
-- **Current Implementation:** `FocusPage.tsx`, `useFocusTimer.ts`, `RealisticHourglass.tsx`. Supports Pomodoro interval mode, Stopwatch mode, customizable countdowns, ambient audio tracks, distraction logging, and historical focus logging.
+- **Current Implementation:** `FocusPage.tsx`, `useFocusTimer.ts`, `HourglassTimer.tsx`. Supports Pomodoro interval mode, Stopwatch mode, customizable countdowns, ambient audio tracks, distraction logging, and historical focus logging. Unboxed natural recent task presentation; Pause Friction Modal, Early Exit Guard Modal, and History Modal portaled to `document.body` via `createPortal` for true responsive viewport centering without clipping or parent transform traps.
 - **Verified Status:** **VERIFIED**
 - **Known Problems:** None.
-- **Important Files:** `frontend/src/components/pages/FocusPage.tsx`, `frontend/src/components/ui/RealisticHourglass.tsx`, `frontend/src/services/focusDbService.ts`.
+- **Important Files:** `frontend/src/components/pages/FocusPage.tsx`, `frontend/src/components/ui/HourglassTimer.tsx`, `frontend/src/services/focusDbService.ts`.
 - **Dependencies:** `AppContext.tsx`, `focus_sessions` table.
 - **Unknowns:** None.
 
 ---
 
 ### Notes & Files (Workspace)
-- **Current Implementation:** `WorkspacePage.tsx`, `NoteEditorView.tsx`, `BlockEditor.tsx`. Modular block-based note editor supporting headings, todos, quotes, code blocks with syntax highlighting (`prismjs`), mathematical formulas (`KaTeX`), sticky notes, drawing canvases (`fabric.js`), and file attachments.
+- **Current Implementation:** `WorkspacePage.tsx`, `NoteEditorView.tsx`, `BlockEditor.tsx`. Modular block-based note editor supporting headings, todos, quotes, code blocks, mathematical formulas (`KaTeX`), sticky notes, and file attachments. Filtered notes sorted recent-first (`updatedAt || createdAt` descending) matching Mind Space. Mobile folder cards dynamically proportioned (`aspect-ratio: 1 / 1.18`). Code block line numbers removed for direct editing; Quick Note padded with `p-5 sm:p-6`; CommandMenu anchored to triggering block without viewport jumps. Folder detail header equipped with safe-area spacing matching My Diary.
 - **Verified Status:** **VERIFIED**
-- **Known Problems:** None. Notes persist as JSONB structures locally in IndexedDB and in PostgreSQL `notes` table.
-- **Important Files:** `frontend/src/components/pages/WorkspacePage.tsx`, `frontend/src/components/workspace/BlockEditor.tsx`, `frontend/src/services/noteService.ts`.
+- **Known Problems:** None.
+- **Important Files:** `frontend/src/components/pages/WorkspacePage.tsx`, `frontend/src/components/workspace/BlockEditor.tsx`, `frontend/src/components/pages/NoteEditorView.tsx`, `frontend/src/components/workspace/NoteCard.tsx`, `frontend/src/components/workspace/notecard.css`.
 - **Dependencies:** `AppContext.tsx`, `localDbService.ts`.
-- **Unknowns:** Large binary attachments (>10MB) depend on local browser storage capacity when offline.
+- **Unknowns:** None.
 
 ---
 
 ### My Mind / Mind Space
-- **Current Implementation:** `MyMindPage.tsx`, `MindHome.tsx`, `IdeaCapture.tsx`, `ProblemSolver.tsx`. Provides fast unstructured brain dump, idea grouping, structured problem solving, and quick capture modals (`QuickCapture.tsx`).
+- **Current Implementation:** `MyMindPage.tsx`, `MindHome.tsx`, `IdeaCapture.tsx`, `ProblemSolver.tsx`. Provides fast unstructured brain dump, idea grouping, structured problem solving, and quick capture modals (`QuickCapture.tsx`). Category selector tabs row ("Free Flow", "Idea Vault", "Problem Solver") centered across all screen sizes.
 - **Verified Status:** **VERIFIED**
 - **Known Problems:** None.
-- **Important Files:** `frontend/src/components/pages/MyMindPage.tsx`, `frontend/src/services/mindService.ts`.
+- **Important Files:** `frontend/src/components/pages/MyMindPage.tsx`, `frontend/src/components/mymind/MindHome.tsx`, `frontend/src/services/mindService.ts`.
 - **Dependencies:** `AppContext.tsx`, `mind_items` table.
 - **Unknowns:** None.
 
@@ -99,8 +99,8 @@ Foscentia is an active, functional productivity suite built with Next.js 16 App 
 
 ---
 
-### Learning / Skill Features
-- **Current Implementation:** `LearningHubPage.tsx`, `learningDbService.ts`. Folder-based topic structures, daily practice logs, duration tracking, date-based streak calculations, and topic roadmaps.
+### Learning / Skill Features (Time Log)
+- **Current Implementation:** `LearningHubPage.tsx`, `learningDbService.ts`. Folder-based topic structures, daily practice logs, duration tracking, date-based streak calculations, and topic roadmaps. Inactivity gaps displayed as clean, unboxed normal text in both main skill cards and skill detail hero header.
 - **Verified Status:** **VERIFIED**
 - **Known Problems:** None.
 - **Important Files:** `frontend/src/components/pages/LearningHubPage.tsx`, `frontend/src/services/learningDbService.ts`.

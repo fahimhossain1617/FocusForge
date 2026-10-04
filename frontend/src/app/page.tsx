@@ -84,7 +84,7 @@ export default function Home() {
       if (typeof window !== "undefined" && typeof (window as any).__ffReady === "function") {
         (window as any).__ffReady();
       }
-    }, 2500);
+    }, 1000);
 
     return () => {
       cancelAnimationFrame(frameId);

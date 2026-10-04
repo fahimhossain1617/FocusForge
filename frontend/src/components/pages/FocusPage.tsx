@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { useAppContext } from "../../context/AppContext";
 import { useFocusTimer } from "../../hooks/useFocusTimer";
 import { useTranslation } from "../../hooks/useTranslation";
@@ -709,18 +710,19 @@ export default function FocusPage() {
         <div className="w-full max-w-2xl h-6" />
 
         {/* Pause Friction Modal inside Deep Focus */}
-        {pauseAnim.shouldRender && (
+        {pauseAnim.shouldRender && typeof document !== "undefined" && createPortal(
           <div
-            className={`fixed inset-0 z-[130] flex items-center justify-center p-4 ${
+            className={`fixed inset-0 z-[150] flex items-center justify-center p-4 sm:p-6 overflow-y-auto ${
               pauseAnim.isExiting ? "motion-exit-fade" : "motion-overlay"
             }`}
+            style={{ minHeight: "100dvh" }}
           >
             <div
-              className="absolute inset-0 bg-black/25 backdrop-blur-[2px]"
+              className="fixed inset-0 bg-black/50 backdrop-blur-sm"
               onClick={() => setShowPauseModal(false)}
             ></div>
             <div
-              className={`focus-dialog relative w-full max-w-md border rounded-2xl p-8 shadow-none text-center ${
+              className={`focus-dialog relative w-full max-w-sm sm:max-w-md my-auto border rounded-2xl p-6 sm:p-8 shadow-2xl text-center ${
                 pauseAnim.isExiting ? "motion-exit-reveal" : "motion-reveal"
               }`}
             >
@@ -731,13 +733,13 @@ export default function FocusPage() {
                   <div className="flex flex-col gap-3">
                     <button
                       onClick={() => setShowPauseModal(false)}
-                      className="w-full py-3 rounded-xl font-bold text-white btn-primary"
+                      className="w-full py-3 rounded-xl font-bold text-white btn-primary cursor-pointer"
                     >
                       {t.focus.resumeFocus}
                     </button>
                     <button
                       onClick={() => setShowPauseModal(false)}
-                      className="w-full py-3 rounded-xl font-medium text-zinc-400 bg-white/5 border border-white/10 hover:bg-white/10 hover:text-white transition-colors"
+                      className="w-full py-3 rounded-xl font-medium text-zinc-400 bg-white/5 border border-white/10 hover:bg-white/10 hover:text-white transition-colors cursor-pointer"
                     >
                       {t.focus.stillPause}
                     </button>
@@ -753,13 +755,13 @@ export default function FocusPage() {
                         setShowPauseModal(false);
                         setPauseAttemptCount(0);
                       }}
-                      className="w-full py-3 rounded-xl font-bold text-white btn-primary"
+                      className="w-full py-3 rounded-xl font-bold text-white btn-primary cursor-pointer"
                     >
                       {t.focus.resumeFocus}
                     </button>
                     <button
                       onClick={handleConfirmPause}
-                      className="w-full py-3 rounded-xl font-medium text-zinc-400 bg-white/5 border border-white/10 hover:bg-white/10 hover:text-white transition-colors"
+                      className="w-full py-3 rounded-xl font-medium text-zinc-400 bg-white/5 border border-white/10 hover:bg-white/10 hover:text-white transition-colors cursor-pointer"
                     >
                       {t.focus.pauseTimer}
                     </button>
@@ -767,7 +769,8 @@ export default function FocusPage() {
                 </>
               )}
             </div>
-          </div>
+          </div>,
+          document.body
         )}
       </div>
     );
@@ -847,7 +850,7 @@ export default function FocusPage() {
                           {state.lang === "bn" ? "ভিউ অল" : "View all"}
                         </button>
                       </div>
-                      <div className="flex flex-col gap-2">
+                      <div className="flex flex-col divide-y divide-slate-100 dark:divide-white/[0.06] pt-0.5">
                         {taskHistory.slice(0, 3).map((item, idx) => {
                           const isSelected = selectedTask.name === item.name;
                           return (
@@ -855,15 +858,15 @@ export default function FocusPage() {
                               key={idx}
                               type="button"
                               onClick={() => handleSelectTask({ name: item.name, category: "" })}
-                              className={`w-full text-left px-3.5 py-2.5 rounded-xl text-xs sm:text-sm transition-all flex items-center justify-between border cursor-pointer active:scale-[0.99] ${
+                              className={`w-full text-left py-2 px-1 text-xs sm:text-sm transition-colors flex items-center justify-between cursor-pointer rounded-lg ${
                                 isSelected
-                                  ? "bg-[#EBF3FE] dark:bg-blue-500/20 border-2 border-[#1E3E7B] dark:border-blue-400 text-[#111827] dark:text-white font-semibold shadow-none"
-                                  : "bg-[#F7FAFE] dark:bg-white/[0.02] hover:bg-slate-100 dark:hover:bg-white/[0.05] text-[#111827] dark:text-foreground border-[#DCE5F0] dark:border-white/[0.06]"
+                                  ? "text-[#1E3E7B] dark:text-blue-400 font-semibold"
+                                  : "text-[#111827] dark:text-foreground hover:text-[#1E3E7B] dark:hover:text-blue-400"
                               }`}
                             >
-                              <span className="truncate mr-2 font-medium text-[#111827] dark:text-foreground">{item.name}</span>
+                              <span className="truncate mr-2 font-medium">{item.name}</span>
                               <span
-                                className={`text-xs shrink-0 whitespace-nowrap font-medium ${
+                                className={`text-xs shrink-0 whitespace-nowrap ${
                                   isSelected
                                     ? "text-[#1E3E7B] dark:text-blue-300 font-semibold"
                                     : "text-[#52627A] dark:text-muted-foreground font-mono"
@@ -1492,14 +1495,14 @@ export default function FocusPage() {
       {/* --- MODALS --- */}
 
       {/* Pause Friction Modal */}
-      {pauseAnim.shouldRender && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+      {pauseAnim.shouldRender && typeof document !== "undefined" && createPortal(
+        <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 sm:p-6 overflow-y-auto" style={{ minHeight: "100dvh" }}>
           <div
-            className="fixed inset-0 bg-transparent"
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm"
             onClick={() => setShowPauseModal(false)}
           ></div>
           <div
-            className={`focus-dialog relative w-full max-w-md border rounded-2xl p-8 shadow-none text-center ${
+            className={`focus-dialog relative w-full max-w-sm sm:max-w-md my-auto border rounded-2xl p-6 sm:p-8 shadow-2xl text-center ${
               pauseAnim.isExiting ? "motion-exit-reveal" : "motion-reveal"
             }`}
           >
@@ -1512,14 +1515,14 @@ export default function FocusPage() {
                 <div className="flex flex-col gap-3">
                   <button
                     onClick={() => setShowPauseModal(false)}
-                    className="w-full py-3 rounded-xl font-bold text-white transition-all hover:scale-[1.01] relative overflow-hidden group btn-primary"
+                    className="w-full py-3 rounded-xl font-bold text-white transition-all hover:scale-[1.01] relative overflow-hidden group btn-primary cursor-pointer"
                   >
                     <span className="relative z-10">{t.focus.resumeFocus}</span>
                     <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out"></div>
                   </button>
                   <button
                     onClick={() => setShowPauseModal(false)}
-                    className="w-full py-3 rounded-xl font-medium text-zinc-400 bg-white/5 border border-white/10 hover:bg-white/10 hover:text-white transition-colors backdrop-blur-sm"
+                    className="w-full py-3 rounded-xl font-medium text-zinc-400 bg-white/5 border border-white/10 hover:bg-white/10 hover:text-white transition-colors backdrop-blur-sm cursor-pointer"
                   >
                     {t.focus.stillPause}
                   </button>
@@ -1537,14 +1540,14 @@ export default function FocusPage() {
                       setShowPauseModal(false);
                       setPauseAttemptCount(0);
                     }}
-                    className="w-full py-3 rounded-xl font-bold text-white transition-all hover:scale-[1.01] relative overflow-hidden group btn-primary"
+                    className="w-full py-3 rounded-xl font-bold text-white transition-all hover:scale-[1.01] relative overflow-hidden group btn-primary cursor-pointer"
                   >
                     <span className="relative z-10">{t.focus.resumeFocus}</span>
                     <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out"></div>
                   </button>
                   <button
                     onClick={handleConfirmPause}
-                    className="w-full py-3 rounded-xl font-medium text-zinc-400 bg-white/5 border border-white/10 hover:bg-white/10 hover:text-white transition-colors backdrop-blur-sm"
+                    className="w-full py-3 rounded-xl font-medium text-zinc-400 bg-white/5 border border-white/10 hover:bg-white/10 hover:text-white transition-colors backdrop-blur-sm cursor-pointer"
                   >
                     {t.focus.pauseTimer}
                   </button>
@@ -1552,7 +1555,8 @@ export default function FocusPage() {
               </>
             )}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Early Exit Motivational Guard Modal (3-Attempt Friction System) */}
@@ -1588,11 +1592,11 @@ export default function FocusPage() {
             ? t.focus.attempt2BtnKeep
             : t.focus.attempt3BtnKeep;
 
-        return (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-            <div className="fixed inset-0 bg-transparent" onClick={handleKeepFocusing}></div>
+        const modalJSX = (
+          <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 sm:p-6 overflow-y-auto" style={{ minHeight: "100dvh" }}>
+            <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={handleKeepFocusing}></div>
             <div
-              className={`focus-dialog relative w-full max-w-sm border border-amber-500/20 rounded-2xl p-6 shadow-none text-center ${
+              className={`focus-dialog relative w-full max-w-sm sm:max-w-md my-auto border border-amber-500/20 rounded-2xl p-6 sm:p-8 shadow-2xl text-center ${
                 earlyExitAnim.isExiting ? "motion-exit-reveal" : "motion-reveal"
               }`}
               style={{
@@ -1647,7 +1651,7 @@ export default function FocusPage() {
               <div className="flex items-center gap-3">
                 <button
                   onClick={handleSecondaryModalAction}
-                  className={`flex-1 py-2.5 px-3 rounded-xl text-xs sm:text-sm font-bold transition-all text-center border ${
+                  className={`flex-1 py-2.5 px-3 rounded-xl text-xs sm:text-sm font-bold transition-all text-center border cursor-pointer ${
                     isExitUnlocked
                       ? "btn-danger"
                       : "btn-outline"
@@ -1658,7 +1662,7 @@ export default function FocusPage() {
 
                 <button
                   onClick={handleKeepFocusing}
-                  className="btn-primary flex-1 py-2.5 px-3 rounded-xl text-xs sm:text-sm font-bold text-white transition-all text-center flex items-center justify-center gap-1.5 shadow-none"
+                  className="btn-primary flex-1 py-2.5 px-3 rounded-xl text-xs sm:text-sm font-bold text-white transition-all text-center flex items-center justify-center gap-1.5 shadow-none cursor-pointer"
                 >
                   {modalPrimaryText}
                 </button>
@@ -1666,20 +1670,23 @@ export default function FocusPage() {
             </div>
           </div>
         );
+
+        return typeof document !== "undefined" ? createPortal(modalJSX, document.body) : null;
       })()}
 
       {/* History Modal */}
-      {historyModalAnim.shouldRender && (
+      {historyModalAnim.shouldRender && typeof document !== "undefined" && createPortal(
         <div
           onClick={(e) => {
             if (e.target === e.currentTarget) setShowHistoryModal(false);
           }}
-          className={`fixed inset-0 z-[100] flex items-center justify-center p-4 ${
+          className={`fixed inset-0 z-[150] flex items-center justify-center p-4 sm:p-6 overflow-y-auto ${
             historyModalAnim.isExiting ? "motion-exit-fade" : "motion-overlay"
           }`}
+          style={{ minHeight: "100dvh" }}
         >
           <div
-            className={`w-full max-w-md p-0 rounded-2xl bg-[#121624] dark:bg-[#0c101b] border border-border/80 shadow-none overflow-hidden flex flex-col max-h-[80vh] ${
+            className={`w-full max-w-sm sm:max-w-md my-auto p-0 rounded-2xl bg-[#121624] dark:bg-[#0c101b] border border-border/80 shadow-2xl overflow-hidden flex flex-col max-h-[80vh] ${
               historyModalAnim.isExiting ? "motion-exit-reveal" : "motion-reveal"
             }`}
           >
@@ -1738,7 +1745,8 @@ export default function FocusPage() {
               )}
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

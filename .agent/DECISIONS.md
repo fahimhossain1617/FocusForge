@@ -254,3 +254,45 @@
 - **Impact:** `frontend/src/components/Sidebar.tsx`, `frontend/src/components/navigation/BottomNav.tsx`, `frontend/src/components/icons/GloryOrbIcon.tsx`, `frontend/src/components/mymind/*`, `frontend/src/components/pages/WorkspacePage.tsx`, `frontend/src/components/pages/FocusPage.tsx`, `frontend/src/components/ui/EmptyState.tsx`.
 - **Do Not Change Without Approval:** Do not reintroduce abrupt navigation spring values, re-box notes count badges, add blue focus rings to non-AI text inputs, or use translucent background tokens causing card corner disparity.
 
+---
+
+## ADR-019: System-Wide UI/UX, Performance, Responsiveness & Startup Polish
+
+- **Date:** October 2026
+- **Status:** Accepted
+- **Decision:**
+  1. **Synchronized Theme Transition (`themeTransition.ts`, `globals.css`):**
+     - Synchronized `<meta name="theme-color">` update with the ViewTransition midpoint and finish rather than immediate pre-trigger, eliminating top-first/body-later status bar flashing.
+     - Added unified ViewTransition CSS rules (`mix-blend-mode: normal`, `animation: none`) to prevent snapshot background conflicts.
+  2. **Refresh & Boot Layer Trap Fix (`layout.tsx`):**
+     - Added `html:not(.ff-launch) #ff-boot-layer { display: none !important; }` inline CSS rule to ensure the full-viewport `#ff-boot-layer` never blocks the screen on desktop/laptop browser reloads.
+     - Added both immediate DOM removal and `DOMContentLoaded` cleanup handler to prevent trapped overlay when DOM parses after `<head>`.
+  3. **Instant In-Memory Navigation Performance (`AppContext.tsx`):**
+     - Removed the synthetic 180ms `setIsPageLoading(true)` timeout on `navigateTo()`, making SPA tab switching instantaneous (0ms perceived lag).
+     - Fixed `navigateBack()` to pop `pageHistoryRef` reliably and return to `'today'` (Dashboard), preventing user from getting stuck inside Notifications or sub-interfaces.
+  4. **PWA Startup Acceleration (`AppShellSkeleton.tsx`, `layout.tsx`, `page.tsx`):**
+     - Added `useEffect` in `AppShellSkeleton` to signal `window.__ffReady()` on first paint, bypassing the previous 2.5-second safety timeout and accelerating launch flight.
+  5. **Dialog Viewport Centering & Focus Modals (`FocusPage.tsx`):**
+     - Portaled Pause Friction Modal, Early Exit Guard Modal, and Task History Modal to `document.body` via `createPortal()` with `z-[150] fixed inset-0 flex items-center justify-center p-4 sm:p-6 overflow-y-auto`.
+     - Removed trapped fixed layout caused by parent CSS `transform` on `.app-page-transition` / `.motion-page`.
+  6. **Focus Recent Tasks Unboxed (`FocusPage.tsx`):**
+     - Replaced nested card boxes (`bg-[#F7FAFE] border-[#DCE5F0]`) with clean, natural divider list presentation under "What will you focus on?".
+  7. **Notes & Files Recent-First Order & Grid Proportions (`WorkspacePage.tsx`, `notecard.css`):**
+     - Sorted `filteredNotes` by newest `updatedAt || createdAt` descending, matching Mind Space's Recent Thoughts.
+     - Removed rigid `min-height: 265px` on mobile cards, restoring balanced `aspect-ratio: 1 / 1.18`.
+  8. **Notes Editor Spacing & Block Positioning (`BlockEditor.tsx`, `NoteEditorView.tsx`):**
+     - Replaced viewport jumping in `CommandMenu` with spatial attachment to the triggering block.
+     - Increased internal padding in Quick Note (`StickyBlock`) to `p-5 sm:p-6` with safe trash icon margins.
+     - Removed code block line numbers column (`{i + 1}`).
+     - Added safe-area top padding and My Diary-aligned margins (`px-3 sm:px-6 md:px-8 max-w-5xl mx-auto`) to folder detail header.
+  9. **Mind Space Category Alignment (`MindHome.tsx`):**
+     - Centered category tabs row with `justify-center`.
+  10. **Glory AI GPU Border Beam (`BorderBeam.tsx`, `BorderBeam.module.css`):**
+      - Replaced 60fps JavaScript canvas `requestAnimationFrame` loop with pure GPU-accelerated CSS conic beam with consistent light-blue color (`#38bdf8`) in both dark and light modes.
+  11. **Time Log Clean Text Inactivity Gap (`LearningHubPage.tsx`):**
+      - Replaced red bordered pill box with clean inline text indicator in both detail view and topic list cards.
+- **Reason:** Comprehensive system-wide stabilization pass resolving UI/UX, responsive layout, performance, PWA startup, and routing issues without redesigning Foscentia's core visual identity.
+- **Impact:** `frontend/src/app/*`, `frontend/src/context/AppContext.tsx`, `frontend/src/utils/themeTransition.ts`, `frontend/src/components/pages/*`, `frontend/src/components/workspace/*`, `frontend/src/components/ui/*`.
+- **Do Not Change Without Approval:** Do not reintroduce artificial loading delays on SPA navigation, remove modal portaling to `document.body`, or re-introduce CPU canvas loops in `BorderBeam`.
+
+

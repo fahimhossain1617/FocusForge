@@ -324,39 +324,30 @@ function CommandMenu({ options: shown, selected, onChoose }: { options: MenuOpti
     const vw = window.innerWidth || document.documentElement.clientWidth;
 
     const spaceBelow = vh - parentRect.bottom;
+    const spaceAbove = parentRect.top;
 
-    // When typing near the bottom of the page/screen:
-    if (spaceBelow < menuHeight + 35) {
-      const rightSpace = vw - parentRect.right;
-      const leftSpace = parentRect.left;
-
-      let top = Math.max(65, Math.min(parentRect.top - 80, vh - menuHeight - 16));
-      let left = parentRect.left;
-
-      if (vw >= 850 && rightSpace >= menuWidth + 20) {
-        // Place on the right side of the block
-        left = parentRect.right + 12;
-      } else if (vw >= 850 && leftSpace >= menuWidth + 20) {
-        // Place on the left side of the block
-        left = parentRect.left - menuWidth - 12;
-      } else if (vw >= 640) {
-        // Dock to the right side of the screen
-        left = Math.max(16, vw - menuWidth - 20);
+    if (spaceBelow < menuHeight + 20) {
+      if (spaceAbove >= menuHeight + 20) {
+        // Place comfortably directly above the current block
+        setFixedStyle({
+          position: 'absolute',
+          top: 'auto',
+          bottom: 'calc(100% + 6px)',
+          left: '0px',
+          width: `${menuWidth}px`,
+          zIndex: 9999,
+        });
       } else {
-        // Mobile: place comfortably above the current block
-        top = Math.max(65, parentRect.top - menuHeight - 8);
-        left = Math.max(8, Math.min(parentRect.left, vw - menuWidth - 12));
+        // Limited space: scroll parent block into view so it stays anchored near the trigger
+        parent.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        setFixedStyle({
+          position: 'absolute',
+          top: 'calc(100% + 6px)',
+          left: '0px',
+          width: `${menuWidth}px`,
+          zIndex: 9999,
+        });
       }
-
-      setFixedStyle({
-        position: 'fixed',
-        top: `${top}px`,
-        left: `${left}px`,
-        bottom: 'auto',
-        right: 'auto',
-        width: `${menuWidth}px`,
-        zIndex: 99999,
-      });
     } else {
       setFixedStyle(null);
     }
@@ -541,20 +532,20 @@ function ColorToolbar({ block, onUpdate, onClose }: { block: NoteBlock; onUpdate
 
 function StickyBlock({ block, control, input, textareaRef, onDelete }: any) {
   return (
-    <div className="editor-block editor-block--sticky relative group my-3 p-4 rounded-2xl border border-amber-500/20 bg-amber-500/[0.04] dark:bg-amber-500/[0.03]">
+    <div className="editor-block editor-block--sticky relative group my-4 p-5 sm:p-6 rounded-2xl border border-amber-500/25 bg-amber-500/[0.05] dark:bg-amber-500/[0.04]">
       {control}
-      <div className="flex items-center justify-between mb-2.5">
-        <div className="sticky-label flex items-center gap-1.5 text-xs font-bold text-amber-500 dark:text-amber-400 select-none">
-          <StickyNote size={14} />
+      <div className="flex items-center justify-between mb-3 px-0.5">
+        <div className="sticky-label flex items-center gap-2 text-xs font-bold text-amber-500 dark:text-amber-400 select-none">
+          <StickyNote size={15} />
           <span>QUICK NOTE</span>
         </div>
         <button
           type="button"
           onClick={onDelete}
-          className="text-red-400 hover:text-white bg-red-500/10 hover:bg-red-600 p-1.5 rounded-lg transition-colors cursor-pointer"
+          className="text-red-400 hover:text-white bg-red-500/10 hover:bg-red-600 p-2 rounded-xl transition-colors cursor-pointer"
           title="Delete Quick Note"
         >
-          <Trash2 size={14} />
+          <Trash2 size={15} />
         </button>
       </div>
 
@@ -570,7 +561,7 @@ function StickyBlock({ block, control, input, textareaRef, onDelete }: any) {
         }}
         rows={3}
         placeholder="Write a sticky note..."
-        className="w-full bg-transparent outline-none text-foreground placeholder:text-zinc-500 text-sm leading-relaxed resize-none overflow-hidden"
+        className="w-full bg-transparent outline-none text-foreground placeholder:text-zinc-500 text-sm sm:text-base leading-relaxed resize-none overflow-hidden px-1 py-0.5"
         style={{ minHeight: "80px" }}
       />
     </div>
@@ -714,14 +705,7 @@ function CodeBlockItem({
       </div>
 
       {/* Code Editor Body */}
-      <div className="flex bg-[#0d1117] text-zinc-200 font-mono text-[13.5px] leading-[22px] min-h-[140px] overflow-x-auto">
-        {/* Line numbers gutter */}
-        <div className="select-none py-3.5 px-3 text-right text-zinc-600 bg-black/20 border-r border-white/5 shrink-0 text-xs font-mono min-w-[38px]">
-          {Array.from({ length: lineCount }).map((_, i) => (
-            <div key={i}>{i + 1}</div>
-          ))}
-        </div>
-
+      <div className="flex bg-[#0d1117] text-zinc-200 font-mono text-[13.5px] leading-[22px] min-h-[140px] overflow-x-auto rounded-b-xl">
         {/* Code Input Area with horizontal scroll, no wrap, tap-select support */}
         <div className="flex-1 relative min-w-0">
           <textarea
@@ -729,7 +713,7 @@ function CodeBlockItem({
             onChange={onInput}
             onKeyDown={onKeyDown}
             placeholder="// Paste or write code here..."
-            rows={lineCount}
+            rows={Math.max(4, lineCount)}
             spellCheck={false}
             autoCapitalize="off"
             autoComplete="off"

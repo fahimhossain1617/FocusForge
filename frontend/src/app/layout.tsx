@@ -174,6 +174,10 @@ export default function RootLayout({
                 padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
               }
 
+              html:not(.ff-launch) #ff-boot-layer {
+                display: none !important;
+              }
+
               #ff-boot-badge {
                 width: 192px;
                 height: 192px;
@@ -278,8 +282,14 @@ export default function RootLayout({
             __html: `(function() {
   var isLaunching = document.documentElement.classList.contains('ff-launch');
   if (!isLaunching) {
-    var boot = document.getElementById('ff-boot-layer');
-    if (boot) boot.remove();
+    var removeBoot = function() {
+      var b = document.getElementById('ff-boot-layer');
+      if (b) b.remove();
+    };
+    removeBoot();
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', removeBoot, { once: true });
+    }
     return;
   }
 
@@ -435,8 +445,8 @@ export default function RootLayout({
       return;
     }
 
-    // Wait for React ready signal (first mount) with safety timeout 2.5s
-    await Promise.race([readyPromise, wait(2500)]);
+    // Wait for React ready signal (first mount) with safety timeout 1200ms
+    await Promise.race([readyPromise, wait(1200)]);
 
     // Wait for fonts and stable layout (document.fonts.ready + two RAF ticks)
     if (document.fonts && document.fonts.ready) {
@@ -620,6 +630,11 @@ export default function RootLayout({
             />
           </div>
         </div>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `if(!document.documentElement.classList.contains('ff-launch')){var b=document.getElementById('ff-boot-layer');if(b)b.remove();}`,
+          }}
+        />
 
         {/* Global SVG Symbol Definition for Header Icon */}
         <svg width="0" height="0" style={{ position: "absolute", pointerEvents: "none", opacity: 0 }} aria-hidden="true">

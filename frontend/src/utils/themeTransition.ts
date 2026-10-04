@@ -19,16 +19,19 @@ export function toggleThemeWithCircularTransition(
   const currentIsLight = root.classList.contains("light") || root.dataset.theme === "light";
   const nextIsLight = explicitTargetMode ? explicitTargetMode === "light" : !currentIsLight;
 
-  const syncDomTheme = () => {
-    root.dataset.theme = nextIsLight ? "light" : "dark";
-    root.classList.toggle("dark", !nextIsLight);
-    root.classList.toggle("light", nextIsLight);
-    root.style.colorScheme = nextIsLight ? "light" : "dark";
+  const updateMetaTheme = () => {
     const themeHex = nextIsLight ? "#F3F7FC" : "#090c19";
     const metaTags = document.querySelectorAll('meta[name="theme-color"]');
     metaTags.forEach((tag) => tag.setAttribute("content", themeHex));
     const ffTheme = document.getElementById("ff-theme-color");
     if (ffTheme) ffTheme.setAttribute("content", themeHex);
+  };
+
+  const syncDomTheme = () => {
+    root.dataset.theme = nextIsLight ? "light" : "dark";
+    root.classList.toggle("dark", !nextIsLight);
+    root.classList.toggle("light", nextIsLight);
+    root.style.colorScheme = nextIsLight ? "light" : "dark";
     try {
       localStorage.setItem("focusforge_theme", nextIsLight ? "light" : "dark");
     } catch {}
@@ -40,6 +43,7 @@ export function toggleThemeWithCircularTransition(
     window.matchMedia("(prefers-reduced-motion: reduce)").matches
   ) {
     syncDomTheme();
+    updateMetaTheme();
     return;
   }
 
@@ -64,7 +68,7 @@ export function toggleThemeWithCircularTransition(
         `circle(${endRadius}px at ${x}px ${y}px)`,
       ];
 
-      document.documentElement.animate(
+      const anim = document.documentElement.animate(
         {
           clipPath: clipPath,
         },
@@ -74,11 +78,29 @@ export function toggleThemeWithCircularTransition(
           pseudoElement: "::view-transition-new(root)",
         }
       );
+
+      // Synchronize status bar theme-color exactly halfway through the ripple
+      setTimeout(() => {
+        updateMetaTheme();
+      }, 140);
+
+      anim.finished.then(() => {
+        updateMetaTheme();
+      }).catch(() => {
+        updateMetaTheme();
+      });
     }).catch(() => {
-      // Fallback if animation promise gets interrupted
+      updateMetaTheme();
+    });
+
+    transition.finished.then(() => {
+      updateMetaTheme();
+    }).catch(() => {
+      updateMetaTheme();
     });
   } catch {
     syncDomTheme();
+    updateMetaTheme();
   }
 }
 

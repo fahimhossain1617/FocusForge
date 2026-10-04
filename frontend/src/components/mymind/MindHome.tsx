@@ -125,8 +125,8 @@ export default function MindHome({ navigate, setActiveThoughtId }: MindHomeProps
           </p>
         </div>
 
-        {/* Category Tabs - Single row with smooth horizontal scroll if needed */}
-        <div className="flex items-center justify-start sm:justify-center gap-2 sm:gap-2.5 mb-7 overflow-x-auto no-scrollbar py-1 whitespace-nowrap">
+        {/* Category Tabs - Centered row with smooth horizontal scroll if needed */}
+        <div className="flex items-center justify-center gap-2 sm:gap-2.5 mb-7 overflow-x-auto no-scrollbar py-1 whitespace-nowrap">
           <button 
             type="button"
             onClick={() => setActiveMode('mind')} 

@@ -1,4 +1,6 @@
-import React from "react";
+"use client";
+
+import React, { useEffect } from "react";
 import Skeleton from "./Skeleton";
 import SkeletonCircle from "./SkeletonCircle";
 import PageSkeleton from "./PageSkeleton";
@@ -8,6 +10,14 @@ export interface AppShellSkeletonProps {
 }
 
 export default function AppShellSkeleton({ page = "today" }: AppShellSkeletonProps) {
+  useEffect(() => {
+    if (typeof window !== "undefined" && typeof (window as any).__ffReady === "function") {
+      requestAnimationFrame(() => {
+        (window as any).__ffReady?.();
+      });
+    }
+  }, []);
+
   const isAIAgent = page === "ai-agent";
   const isPlanner = page === "planner";
   const isToday = page === "today";
