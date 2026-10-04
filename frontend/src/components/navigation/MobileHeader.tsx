@@ -124,9 +124,10 @@ export default function MobileHeader() {
             data-ff-launch-slot="mobile"
             className="slot relative w-7 h-7 rounded-lg shrink-0 select-none"
             style={{ width: "28px", height: "28px", minWidth: "28px", minHeight: "28px" }}
+            suppressHydrationWarning
           >
-            <span className="tile" />
-            <svg data-ff-launch-mark className="mk" viewBox="360 320 520 630">
+            <span className="tile" suppressHydrationWarning />
+            <svg data-ff-launch-mark className="mk" viewBox="360 320 520 630" suppressHydrationWarning>
               <use href="#ff-mark" />
             </svg>
           </div>

@@ -47,9 +47,10 @@ export default function AppShellSkeleton({ page = "today" }: AppShellSkeletonPro
             data-ff-launch-slot="sidebar-skeleton"
             className="slot relative w-8 h-8 rounded-xl shrink-0 select-none"
             style={{ width: "32px", height: "32px", minWidth: "32px", minHeight: "32px" }}
+            suppressHydrationWarning
           >
-            <span className="tile" />
-            <svg data-ff-launch-mark className="mk" viewBox="360 320 520 630">
+            <span className="tile" suppressHydrationWarning />
+            <svg data-ff-launch-mark className="mk" viewBox="360 320 520 630" suppressHydrationWarning>
               <use href="#ff-mark" />
             </svg>
           </div>
@@ -130,9 +131,10 @@ export default function AppShellSkeleton({ page = "today" }: AppShellSkeletonPro
               data-ff-launch-slot="mobile-skeleton"
               className="slot relative w-7 h-7 rounded-lg shrink-0 select-none"
               style={{ width: "28px", height: "28px", minWidth: "28px", minHeight: "28px" }}
+              suppressHydrationWarning
             >
-              <span className="tile" />
-              <svg data-ff-launch-mark className="mk" viewBox="360 320 520 630">
+              <span className="tile" suppressHydrationWarning />
+              <svg data-ff-launch-mark className="mk" viewBox="360 320 520 630" suppressHydrationWarning>
                 <use href="#ff-mark" />
               </svg>
             </div>

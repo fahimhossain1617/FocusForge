@@ -125,12 +125,13 @@ export default function RootLayout({
     var isReload = (navType === 'reload');
     var isBackForward = (navType === 'back_forward');
 
+    var isSplashParam = window.location.search.indexOf('splash=1') !== -1;
     var sessionPlayed = false;
     try {
       sessionPlayed = !!sessionStorage.getItem('ff_launch');
     } catch(e) {}
 
-    var shouldPlay = (!isReload && !isBackForward && !sessionPlayed);
+    var shouldPlay = isSplashParam || (!isReload && !isBackForward && !sessionPlayed);
 
     if (shouldPlay) {
       document.documentElement.classList.add('ff-launch');
@@ -179,26 +180,34 @@ export default function RootLayout({
               }
 
               #ff-boot-badge {
-                width: 192px;
-                height: 192px;
-                max-width: 48vw;
-                max-height: 48vw;
+                width: 124px;
+                height: 124px;
+                max-width: 34vw;
+                max-height: 34vw;
                 aspect-ratio: 1 / 1;
-                background: transparent;
-                border-radius: 0;
+                background: #ffffff;
+                border-radius: 28px;
                 position: relative;
                 flex: none;
                 transform-origin: center center;
-                will-change: transform;
+                will-change: transform, border-radius, opacity, box-shadow;
+                box-shadow: 0 12px 36px rgba(0, 0, 0, 0.35);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                overflow: hidden;
               }
 
-              #ff-boot-badge img {
-                width: 100%;
-                height: 100%;
-                object-fit: contain;
+              #ff-boot-badge .mk {
+                position: absolute;
+                left: 50%;
+                top: 50%;
+                height: 62%;
+                width: auto;
+                aspect-ratio: 520 / 630;
+                transform: translate(-50%, -50%);
                 display: block;
-                pointer-events: none;
-                user-select: none;
+                overflow: visible;
               }
 
               /* Hide slot mark and tile during active launch flight */
@@ -282,14 +291,6 @@ export default function RootLayout({
             __html: `(function() {
   var isLaunching = document.documentElement.classList.contains('ff-launch');
   if (!isLaunching) {
-    var removeBoot = function() {
-      var b = document.getElementById('ff-boot-layer');
-      if (b) b.remove();
-    };
-    removeBoot();
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', removeBoot, { once: true });
-    }
     return;
   }
 
@@ -445,21 +446,6 @@ export default function RootLayout({
       return;
     }
 
-    // Wait for React ready signal (first mount) with safety timeout 1200ms
-    await Promise.race([readyPromise, wait(1200)]);
-
-    // Wait for fonts and stable layout (document.fonts.ready + two RAF ticks)
-    if (document.fonts && document.fonts.ready) {
-      try {
-        await Promise.race([document.fonts.ready, wait(300)]);
-      } catch(e) {}
-    }
-    await new Promise(function(resolve) {
-      requestAnimationFrame(function() {
-        requestAnimationFrame(resolve);
-      });
-    });
-
     var appShell = document.getElementById('app-shell');
 
     // Reduced motion fallback
@@ -469,27 +455,24 @@ export default function RootLayout({
         appShell.style.transform = 'none';
       }
       try {
-        var rmAnim = bootLayer.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 200, fill: 'both' });
+        var rmAnim = bootLayer.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 150, fill: 'both' });
         await rmAnim.finished;
       } catch(e) {}
       cleanupAndFinish();
       return;
     }
 
-    // Hold still at center for initial handoff
-    await wait(100);
-
-    // Measure target slot accurately with appShell transform neutralized
-    var target = await waitForTargetSlot(400);
+    // Measure target slot with fast resolution
+    var target = await waitForTargetSlot(300);
 
     if (!target) {
       if (appShell) {
         try {
-          appShell.animate([{ opacity: 0, transform: 'translateY(10px)' }, { opacity: 1, transform: 'translateY(0)' }], { duration: 300, fill: 'forwards' });
+          appShell.animate([{ opacity: 0, transform: 'translateY(6px)' }, { opacity: 1, transform: 'translateY(0)' }], { duration: 200, fill: 'forwards' });
         } catch(e) {}
       }
       try {
-        var fallbackFade = bootLayer.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 250, fill: 'both' });
+        var fallbackFade = bootLayer.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 200, fill: 'both' });
         await fallbackFade.finished;
       } catch(e) {}
       cleanupAndFinish();
@@ -506,46 +489,34 @@ export default function RootLayout({
     var dx = slotCenterX - badgeCenterX;
     var dy = slotCenterY - badgeCenterY;
 
-    var flightDuration = isSlowDebug ? 3000 : 650;
-    var appShellDelay = isSlowDebug ? 1000 : 250;
-    var appShellDuration = isSlowDebug ? 1000 : 300;
+    // Fast, ultra-smooth, eye-soothing flight (~340ms)
+    var flightDuration = isSlowDebug ? 2500 : 340;
+    var targetRadius = Math.max(6, Math.round((parseInt(window.getComputedStyle(target.slot).borderRadius) || 8) / Math.max(scale, 0.1)));
 
-    // Transition boot layer background to transparent so app shell behind shows
+    // Subtle micro-hold (60ms) so user registers the splash badge steadily
+    await wait(isSlowDebug ? 300 : 60);
+
+    // Transition boot layer background to transparent so app shell beneath emerges seamlessly
     bootLayer.style.background = 'transparent';
     bootBadge.style.zIndex = '999999';
 
-    // Continuous Frame Logger to record and verify badge getBoundingClientRect
-    var isFlying = true;
-    window.__ffFlightTrajectory = [];
-    var logFrame = function(time) {
-      if (!isFlying) return;
-      var currentRect = bootBadge.getBoundingClientRect();
-      var curCenterX = currentRect.left + currentRect.width / 2;
-      var curCenterY = currentRect.top + currentRect.height / 2;
-      var frameData = {
-        t: Math.round(time),
-        centerX: Math.round(curCenterX * 10) / 10,
-        centerY: Math.round(curCenterY * 10) / 10,
-        w: Math.round(currentRect.width * 10) / 10,
-        h: Math.round(currentRect.height * 10) / 10
-      };
-      window.__ffFlightTrajectory.push(frameData);
-      if (isSlowDebug) {
-        console.log('[FF Flight Frame]', frameData);
-      }
-      requestAnimationFrame(logFrame);
-    };
-    requestAnimationFrame(logFrame);
-
-    // Badge flight animation: straight-line translate + scale
+    // Badge flight animation: translation + scale + border-radius matching
     var flightAnim;
     try {
       flightAnim = bootBadge.animate([
-        { transform: 'translate(0px, 0px) scale(1)' },
-        { transform: 'translate(' + dx + 'px, ' + dy + 'px) scale(' + scale + ')' }
+        { 
+          transform: 'translate(0px, 0px) scale(1)',
+          borderRadius: '28px',
+          boxShadow: '0 12px 36px rgba(0, 0, 0, 0.35)'
+        },
+        { 
+          transform: 'translate(' + dx + 'px, ' + dy + 'px) scale(' + scale + ')',
+          borderRadius: targetRadius + 'px',
+          boxShadow: '0 0px 0px rgba(0, 0, 0, 0)'
+        }
       ], {
         duration: flightDuration,
-        easing: 'cubic-bezier(.32, .72, 0, 1)',
+        easing: 'cubic-bezier(0.16, 1, 0.3, 1)',
         fill: 'forwards'
       });
     } catch(e) {
@@ -553,33 +524,26 @@ export default function RootLayout({
       return;
     }
 
-    // Fade in dark skeleton/dashboard (opacity 0 -> 1, translateY 10px -> 0px)
-    await wait(appShellDelay);
+    // Smoothly fade in app shell during flight
     if (appShell) {
       try {
         appShell.animate([
-          { opacity: 0, transform: 'translateY(10px)' },
+          { opacity: 0, transform: 'translateY(6px)' },
           { opacity: 1, transform: 'translateY(0px)' }
         ], {
-          duration: appShellDuration,
-          easing: 'ease-out',
+          duration: flightDuration,
+          easing: 'cubic-bezier(0.16, 1, 0.3, 1)',
           fill: 'forwards'
         });
       } catch(e) {}
     }
 
-    // Await full completion of badge flight animation
+    // Await arrival
     try {
       await flightAnim.finished;
     } catch(e) {}
 
-    isFlying = false;
-    try {
-      console.log('[FF Flight Complete] Total frames recorded:', window.__ffFlightTrajectory.length, 'Target:', target.name, target.rect);
-    } catch(e) {}
-
-    // At landing: in the SAME frame, show real header logo tile and remove badge (no gap, no flash)
-    // Then fade in "FocusForge" title beside it
+    // At landing: in the exact same frame, switch to real navbar logo and remove boot layer
     cleanupAndFinish();
   };
 
@@ -590,7 +554,7 @@ export default function RootLayout({
   }
 
   // Safety fallback
-  var safetyTimeoutMs = isSlowDebug ? 10000 : 3500;
+  var safetyTimeoutMs = isSlowDebug ? 8000 : 1500;
   setTimeout(function() {
     if (document.getElementById('ff-boot-layer')) {
       cleanupAndFinish();
@@ -616,27 +580,7 @@ export default function RootLayout({
           aria-hidden="true" 
         />
 
-        {/* Inline Boot Layer matching Android Splash (Uses same 512x512 manifest splash icon) */}
-        <div id="ff-boot-layer" aria-hidden="true">
-          <div id="ff-boot-badge">
-            <img
-              id="ff-boot-badge-img"
-              src="/icons/icon-512x512.png"
-              width="192"
-              height="192"
-              alt="FocusForge"
-              loading="eager"
-              decoding="sync"
-            />
-          </div>
-        </div>
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `if(!document.documentElement.classList.contains('ff-launch')){var b=document.getElementById('ff-boot-layer');if(b)b.remove();}`,
-          }}
-        />
-
-        {/* Global SVG Symbol Definition for Header Icon */}
+        {/* Global SVG Symbol Definition for Header Icon (Placed before Boot Layer for zero-latency paint) */}
         <svg width="0" height="0" style={{ position: "absolute", pointerEvents: "none", opacity: 0 }} aria-hidden="true">
           <defs>
             <g id="ff-mark" style={{ fill: "var(--logo, #061f52)" }}>
@@ -650,10 +594,20 @@ export default function RootLayout({
           </defs>
         </svg>
 
+        {/* Inline Boot Layer matching Android Splash (Clean white tile + dark navy logo mark) */}
+        <div
+          id="ff-boot-root"
+          aria-hidden="true"
+          suppressHydrationWarning
+          dangerouslySetInnerHTML={{
+            __html: `<div id="ff-boot-layer"><div id="ff-boot-badge"><svg class="mk" viewBox="360 320 520 630" aria-hidden="true"><use href="#ff-mark" /></svg></div></div>`,
+          }}
+        />
+
         <AppProvider>
           <AuthProvider>
             <ServiceWorkerRegister />
-            <div id="app-shell" className="relative z-10 h-screen h-dvh max-h-screen max-h-dvh overflow-hidden w-full">
+            <div id="app-shell" suppressHydrationWarning className="relative z-10 h-screen h-dvh max-h-screen max-h-dvh overflow-hidden w-full">
               {children}
             </div>
           </AuthProvider>

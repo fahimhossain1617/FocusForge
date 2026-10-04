@@ -207,9 +207,10 @@ Foscentia is an active, functional productivity suite built with Next.js 16 App 
 
 ### Frontend (App Shell, PWA Startup & Navigation)
 - **Current Implementation:** Next.js 16 App Router. `frontend/src/app/page.tsx` acts as SPA shell switching between 11 view components with sidebar navigation, bottom navigation bar on mobile, dark skeleton loaders, and launch animation gating. Includes comprehensive history & hardware back-button navigation integration (`popstate`), instant circular theme transition (`themeTransition.ts`), clean transparent popover backdrops, fixed bottom nav, and refined Focus UI.
+- **App Icons & Splash Transition:** Brand app icon updated with full-bleed white background and centered FocusForge emblem mark across all mobile and web formats (`icon-512x512.png`, maskable variants, `apple-touch-icon.png`, `favicon.ico`, `app-icon.svg`), eliminating black borders/corners on Android/iOS launchers. Zero-latency in-app boot layer (`#ff-boot-layer`) renders an identical white badge with SVG mark and executes an ultra-fast, eye-soothing 340ms flight animation (`cubic-bezier(0.16, 1, 0.3, 1)`) scaling and translating directly into the header/sidebar logo slot upon launch.
 - **Verified Status:** **VERIFIED**
 - **Known Problems:** None.
-- **Important Files:** `frontend/src/app/page.tsx`, `frontend/src/app/layout.tsx`, `frontend/src/components/Sidebar.tsx`, `frontend/src/components/navigation/MobileHeader.tsx`, `frontend/src/components/navigation/BottomNav.tsx`, `frontend/src/components/icons/GloryOrbIcon.tsx`, `frontend/src/context/AppContext.tsx`, `frontend/src/utils/themeTransition.ts`.
+- **Important Files:** `frontend/src/app/page.tsx`, `frontend/src/app/layout.tsx`, `frontend/public/app-icon.svg`, `frontend/public/icons/*`, `frontend/src/components/Sidebar.tsx`, `frontend/src/components/navigation/MobileHeader.tsx`, `frontend/src/components/navigation/BottomNav.tsx`, `frontend/src/components/icons/GloryOrbIcon.tsx`, `frontend/src/context/AppContext.tsx`, `frontend/src/utils/themeTransition.ts`.
 - **Dependencies:** `react` 19, `next` 16, `framer-motion`.
 - **Unknowns:** None.
 

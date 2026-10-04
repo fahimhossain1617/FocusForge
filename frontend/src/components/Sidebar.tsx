@@ -164,9 +164,10 @@ export default function Sidebar({
               data-ff-launch-slot="sidebar"
               className="slot relative w-8 h-8 rounded-xl shrink-0 select-none"
               style={{ width: "32px", height: "32px", minWidth: "32px", minHeight: "32px" }}
+              suppressHydrationWarning
             >
-              <span className="tile" />
-              <svg data-ff-launch-mark className="mk" viewBox="360 320 520 630">
+              <span className="tile" suppressHydrationWarning />
+              <svg data-ff-launch-mark className="mk" viewBox="360 320 520 630" suppressHydrationWarning>
                 <use href="#ff-mark" />
               </svg>
             </div>
