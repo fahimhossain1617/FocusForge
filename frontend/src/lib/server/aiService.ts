@@ -549,25 +549,38 @@ export async function transcribeAudio(
   const client = getGeminiClient();
 
   const prompt = [
-    'You are an expert, multilingual speech-to-text transcriber for the Focentia productivity app.',
-    'The user may speak in Bengali (বাংলা), English, or Banglish (Bengali spoken using colloquial or English mixed words).',
-    'AUTOMATIC MULTILINGUAL TRANSCRIPTION RULES:',
-    '1. If the user speaks in Bengali or Banglish (e.g. "ami ajke routine banate chai", "amar physics pora dorkar"):',
-    '   - Transcribe directly into clear, natural Bengali script (বাংলা লিপি).',
-    '2. If the user speaks in English (e.g. "Help me plan my study schedule"):',
-    '   - Transcribe into clean, punctuated English.',
-    '3. If the user speaks code-mixed Bengali and English (e.g. "ajke 2 ghonta React and Python shikhbo"):',
-    '   - Transcribe naturally in Bengali script keeping technical English terms (e.g. "আজকে ২ ঘণ্টা React এবং Python শিখব").',
-    '4. If silent or only noise/humming, return empty text: {"text": ""}.',
-    'Return ONLY valid JSON: {"text": "the transcribed words"}'
+    'You are a state-of-the-art, ultra-accurate multilingual speech-to-text transcriber.',
+    'The speaker may speak in Bengali (বাংলা), English, or mixed Banglish (code-switching).',
+    '',
+    'CRITICAL ACCURACY & LANGUAGE DETECTION GUIDELINES:',
+    '1. EXACT ACCURACY & SPEED TOLERANCE:',
+    '   - Accurately capture EVERY SINGLE WORD, even when the speaker talks very rapidly, murmurs, connects words fast, or uses colloquial expressions.',
+    '   - Never drop, hallucinate, skip, or summarize words. Transcribe verbatim with high phonetic precision.',
+    '',
+    '2. AUTOMATIC LANGUAGE DETECTION & SCRIPT RULES:',
+    '   - Bengali / Banglish: If the speaker speaks in Bengali or phonetic Banglish (e.g. "ami ajke porbo", "amar presentation banano lagbe"), transcribe into authentic Bengali script (বাংলা লিপি) with grammatically correct Bengali spelling.',
+    '   - English: If the speaker speaks in English, transcribe into clean, properly punctuated English.',
+    '   - Mixed (Bengali + English Code-Switching): Transcribe naturally in Bengali script, preserving English technical words, software names, brand names, and subject terminology in clean English (e.g., "আজকে ৩ ঘণ্টা Next.js এবং Python প্র্যাকটিস করব", "Physics চ্যাপ্টার ৪ রিভিশন দিতে হবে").',
+    '',
+    '3. NUMBER & PUNCTUATION FORMATTING:',
+    '   - Format numbers, times, percentages, and currencies naturally (e.g., "৫০%", "১০টা ৩০", "৫০০ টাকা", "2 hours").',
+    '   - Add natural punctuation (দাঁড়ি, কমা, ?, !) for clear readability.',
+    '',
+    '4. SILENCE / NOISE:',
+    '   - If the audio contains only silence, background noise, or clicks, return an empty string: {"text": ""}.',
+    '',
+    'Return valid JSON: {"text": "the transcribed words"}'
   ].join('\n');
 
   const configured = process.env.GEMINI_MODEL;
   const audioModels = [
     configured,
     'gemini-3.5-flash-lite',
-    'gemini-3.8-flash',
     'gemini-3.6-flash',
+    'gemini-3.8-flash',
+    'gemini-3.5-flash',
+    'gemini-2.5-flash',
+    'gemini-1.5-flash',
   ].filter((m, i, arr): m is string => Boolean(m) && arr.indexOf(m) === i);
 
   let lastError: any = null;

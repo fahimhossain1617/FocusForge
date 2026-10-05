@@ -121,14 +121,14 @@ Focentia is an active, functional productivity suite built with Next.js 16 App R
 ---
 
 ### Voice / Speech-to-Text (STT)
-- **Current Implementation:** Dual-mode ASR architecture:
-  1. Real-time streaming via WebSocket to `/api/ai/transcribe-stream` on Express backend (`webSocketService.ts`).
-  2. Batch audio POST to `/api/ai/transcribe` (Next.js serverless route invoking Gemini audio generation).
-  - Both modes feed into `useSpeechRecognition.ts` with overlap deduplication.
-- **Verified Status:** **PARTIAL** (Batch HTTP transcription is VERIFIED; Streaming WebSocket requires the companion Express server and is unavailable on pure Vercel serverless).
-- **Known Problems:** WebSocket connection fails on pure Vercel deployments; client gracefully falls back to batch HTTP transcription.
-- **Important Files:** `frontend/src/hooks/useSpeechRecognition.ts`, `frontend/src/app/api/ai/transcribe/route.ts`, `backend/src/services/webSocketService.ts`.
-- **Dependencies:** `MediaRecorder`, `@google/genai`, `ws`.
+- **Current Implementation:** Resilient Universal Hybrid ASR architecture:
+  1. Instant latency-free Web Speech API (`SpeechRecognition` / `webkitSpeechRecognition`) in Chrome, Android Chrome, Edge, Safari, and Samsung Internet supporting Bengali (`bn-BD`) and English (`en-US`) with continuous recognition and interim deduplication.
+  2. Background audio chunk collection via `MediaRecorder` with automatic Gemini AI Audio Transcription fallback (`transcribeAudioBlob` / `/api/ai/transcribe`).
+  3. Seamless error recovery preventing blocking WebSocket errors or failed ASR crashes on Vercel or mobile environments.
+- **Verified Status:** **VERIFIED**
+- **Known Problems:** None.
+- **Important Files:** `frontend/src/hooks/useSpeechRecognition.ts`, `frontend/src/services/aiAgentService.ts`, `frontend/src/app/api/ai/transcribe/route.ts`, `frontend/src/components/voice/VoiceAssistantModal.tsx`.
+- **Dependencies:** Web Speech API, `MediaRecorder`, `@google/genai`.
 - **Unknowns:** None.
 
 ---

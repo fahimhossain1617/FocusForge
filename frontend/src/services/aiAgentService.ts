@@ -1485,11 +1485,13 @@ export async function transcribeAudioBlob(blob: Blob, language?: string): Promis
               const genAI = new GoogleGenerativeAI(clientApiKey);
               const model = genAI.getGenerativeModel({ model: m });
               const prompt = [
-                'You are a fast, multilingual speech-to-text transcriber for the Focentia app.',
-                'The audio contains spoken words in Bengali (বাংলা), English, or Banglish.',
-                'If Bengali or Banglish, transcribe into clear Bengali script (বাংলা লিপি).',
-                'If English, transcribe into clean English.',
-                'Return ONLY the raw transcribed text. Do not add quotes or commentary.',
+                'You are a state-of-the-art, ultra-accurate multilingual speech-to-text transcriber.',
+                'The speaker may speak in Bengali (বাংলা), English, or mixed Banglish (code-switching).',
+                '1. Capture EVERY SINGLE WORD accurately even if spoken very fast or casually.',
+                '2. If Bengali or Banglish, transcribe into clear, authentic Bengali script (বাংলা লিপি).',
+                '3. If English, transcribe into clean English.',
+                '4. If mixed, keep Bengali words in Bengali script and English technical words in English script.',
+                'Return ONLY the raw transcribed text without quotes, markdown or commentary.',
               ].join('\n');
 
               const result = await model.generateContent([
