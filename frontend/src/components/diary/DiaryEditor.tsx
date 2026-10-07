@@ -85,32 +85,54 @@ export default function DiaryEditor({ entry, onSave, lang }: DiaryEditorProps) {
     updateCursorPosition();
   };
 
-  // Voice speech insertion: Strictly chronological, sequential appending
+  // Voice speech insertion: Cursor-aware insertion with clean spacing
   const handleSpeechInsert = useCallback((speechText: string) => {
     const cleanSpeech = speechText.trim();
     if (!cleanSpeech) return;
 
     setContent((currentContent) => {
-      let updated = "";
-      if (!currentContent || !currentContent.trim()) {
-        updated = cleanSpeech;
-      } else {
-        const trimmed = currentContent.trimEnd();
-        const needsSpace = !trimmed.endsWith(" ") && !trimmed.endsWith("\n");
-        updated = trimmed + (needsSpace ? " " : "") + cleanSpeech;
+      const doc = currentContent || "";
+      const docLen = doc.length;
+
+      // Determine insert position from active caret or tracked cursor position
+      let insertPos =
+        typeof lastCursorPosRef.current === "number" && lastCursorPosRef.current >= 0
+          ? Math.min(lastCursorPosRef.current, docLen)
+          : textareaRef.current
+          ? textareaRef.current.selectionStart
+          : docLen;
+
+      if (insertPos < 0 || insertPos > docLen) {
+        insertPos = docLen;
       }
 
-      lastCursorPosRef.current = updated.length;
+      const before = doc.slice(0, insertPos);
+      const after = doc.slice(insertPos);
+
+      let leadSpace = "";
+      if (before.length > 0 && !before.endsWith(" ") && !before.endsWith("\n")) {
+        leadSpace = " ";
+      }
+
+      let trailSpace = "";
+      if (after.length > 0 && !after.startsWith(" ") && !after.startsWith("\n")) {
+        trailSpace = " ";
+      }
+
+      const updated = `${before}${leadSpace}${cleanSpeech}${trailSpace}${after}`;
+      const newCursorPos = before.length + leadSpace.length + cleanSpeech.length;
+      lastCursorPosRef.current = newCursorPos;
+
       triggerAutoSave(updated, images);
 
-      // Keep cursor synced to the end of appended text
+      // Keep cursor position synced exactly after inserted text
       setTimeout(() => {
         if (textareaRef.current) {
-          textareaRef.current.selectionStart = updated.length;
-          textareaRef.current.selectionEnd = updated.length;
-          textareaRef.current.scrollTop = textareaRef.current.scrollHeight;
+          textareaRef.current.selectionStart = newCursorPos;
+          textareaRef.current.selectionEnd = newCursorPos;
+          textareaRef.current.focus();
         }
-      }, 10);
+      }, 0);
 
       return updated;
     });
@@ -182,7 +204,16 @@ export default function DiaryEditor({ entry, onSave, lang }: DiaryEditorProps) {
       <div className="flex flex-wrap items-center justify-between gap-2 sm:gap-3 px-3 sm:px-6 py-2 sm:py-2.5 border-b border-black/5 dark:border-white/5 bg-black/[0.015] dark:bg-white/[0.015]">
         {/* Left: Voice Input, Image Upload & Style Selector */}
         <div className="flex items-center gap-1.5 sm:gap-2.5 flex-wrap">
-          <DiaryVoiceInput onInsertText={handleSpeechInsert} />
+          <DiaryVoiceInput 
+            editorRef={textareaRef}
+            value={content}
+            onValueChange={(val) => {
+              setContent(val);
+              triggerAutoSave(val, images);
+              updateCursorPosition();
+            }}
+            onInsertText={handleSpeechInsert} 
+          />
 
           {/* Add Image Button */}
           <button

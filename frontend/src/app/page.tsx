@@ -13,6 +13,9 @@ import { OnboardingModal, ProductTour } from "../components/onboarding";
 import { ReviewModal } from "../components/review";
 import { onboardingStorage } from "../services/onboardingStorage";
 import { userService } from "../services/userService";
+import { useEncryption } from "../hooks/useEncryption";
+import PassphraseSetupModal from "../components/encryption/PassphraseSetupModal";
+import PassphraseUnlockModal from "../components/encryption/PassphraseUnlockModal";
 
 import {
   AppShellSkeleton,
@@ -71,6 +74,17 @@ export default function Home() {
     if (!document.documentElement.classList.contains("ff-launch")) return true;
     return Boolean((window as any).__ffLaunchDone);
   });
+
+  // Zero-Knowledge Client-Side Encryption Hook
+  const {
+    needsSetup: encryptionNeedsSetup,
+    needsUnlock: encryptionNeedsUnlock,
+    setupVault,
+    unlockVault,
+  } = useEncryption(user?.id);
+
+  const [dismissedEncryptionSetup, setDismissedEncryptionSetup] = useState(false);
+  const [dismissedEncryptionUnlock, setDismissedEncryptionUnlock] = useState(false);
 
   // Signal app readiness once first real render mounts and data/auth are settled
   useEffect(() => {
@@ -328,6 +342,22 @@ export default function Home() {
         onClose={skipReview}
         onSubmit={submitReview}
         isSubmitting={isReviewSubmitting}
+      />
+
+      {/* Zero-Knowledge Envelope Encryption Setup Modal */}
+      <PassphraseSetupModal
+        isOpen={encryptionNeedsSetup && !dismissedEncryptionSetup && launchDone}
+        onComplete={setupVault}
+        onDismiss={() => setDismissedEncryptionSetup(true)}
+        lang={state.lang}
+      />
+
+      {/* Returning Device Passphrase Unlock Modal */}
+      <PassphraseUnlockModal
+        isOpen={encryptionNeedsUnlock && !dismissedEncryptionUnlock && launchDone}
+        onUnlock={unlockVault}
+        onCancel={() => setDismissedEncryptionUnlock(true)}
+        lang={state.lang}
       />
     </div>
   );

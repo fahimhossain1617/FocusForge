@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
-import { X, Mic, MicOff, Square, AlertCircle } from "lucide-react";
+import { X, Mic, MicOff, Square, AlertCircle, Play, Pause } from "lucide-react";
 import { VoiceOrbCanvas } from "./VoiceOrbCanvas";
 import { VoiceBottomArc } from "./VoiceBottomArc";
 import { useAudioAnalyzer } from "./useAudioAnalyzer";
@@ -27,70 +27,61 @@ export const VoiceAssistantModal: React.FC<VoiceAssistantModalProps> = ({
   themeMode,
 }) => {
   const [mounted, setMounted] = useState(false);
-  const [accumulatedText, setAccumulatedText] = useState("");
   const { state, showToast, isOnline } = useAppContext();
   const { lang } = useTranslation();
   const activeTheme = themeMode || (state?.theme?.mode === "light" ? "light" : "dark");
   const isLight = activeTheme === "light";
 
-  const latestSpeechTextRef = useRef("");
+  const onSpeechResultRef = useRef(onSpeechResult);
+  useEffect(() => {
+    onSpeechResultRef.current = onSpeechResult;
+  }, [onSpeechResult]);
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  // Speech recognition for converting speech to text
-  const handleSpeechResultChunk = useCallback(
-    (chunk: string, isFinal: boolean, isFullReplacement?: boolean) => {
-      if (isFullReplacement && chunk) {
-        setAccumulatedText(chunk.trim());
-        latestSpeechTextRef.current = chunk.trim();
-        return;
-      }
-
-      if (isFinal && chunk && chunk.trim()) {
-        setAccumulatedText((prev) => {
-          const trimmedChunk = chunk.trim();
-          const needsSpace = prev.length > 0 && !prev.endsWith(" ") && !prev.endsWith("\n");
-          const next = prev + (needsSpace ? " " : "") + trimmedChunk;
-          latestSpeechTextRef.current = next;
-          return next;
-        });
-      }
-    },
-    []
-  );
-
   const {
     isListening,
+    isPaused,
+    isRecovering,
     isTranscribing,
     transcript,
     interimText,
+    fullLiveText,
     mediaStream,
     speechLanguage,
     setSpeechLanguage,
     error: speechError,
     startListening,
+    pauseListening,
+    resumeListening,
     stopListening,
     abortListening,
-  } = useSpeechRecognition({
-    onResult: handleSpeechResultChunk,
-  });
+    resetTranscript,
+  } = useSpeechRecognition();
 
   // Real-time audio analyzer for 60fps canvas visualizer using shared mediaStream
   const {
     smoothedAmplitudeRef,
     error: audioError,
     retry: retryAudio,
-  } = useAudioAnalyzer(isOpen && isOnline, Boolean(interimText.trim() || accumulatedText.trim()), mediaStream);
+  } = useAudioAnalyzer(
+    isOpen && isOnline && isListening,
+    Boolean(fullLiveText.trim()),
+    mediaStream
+  );
 
   const startListeningRef = useRef(startListening);
   const stopListeningRef = useRef(stopListening);
   const abortListeningRef = useRef(abortListening);
+  const resetTranscriptRef = useRef(resetTranscript);
+
   useEffect(() => {
     startListeningRef.current = startListening;
     stopListeningRef.current = stopListening;
     abortListeningRef.current = abortListening;
+    resetTranscriptRef.current = resetTranscript;
   });
 
   // Lock background page from scrolling while modal is open
@@ -117,8 +108,7 @@ export const VoiceAssistantModal: React.FC<VoiceAssistantModalProps> = ({
         return;
       }
 
-      latestSpeechTextRef.current = "";
-      setAccumulatedText("");
+      resetTranscriptRef.current();
       setSpeechLanguage("auto");
       startListeningRef.current("auto", { reset: true });
     } else {
@@ -129,23 +119,35 @@ export const VoiceAssistantModal: React.FC<VoiceAssistantModalProps> = ({
     };
   }, [isOpen, isOnline, onClose, showToast, lang, setSpeechLanguage]);
 
-  // Handle manual close / stop: finalizes full speech (supports arbitrarily long speaking sessions)
+  // Handle manual close / stop: finalizes full speech safely
   const handleManualClose = useCallback(async () => {
-    const aiResult = await stopListeningRef.current();
-    const finalText = (aiResult || latestSpeechTextRef.current || accumulatedText).trim();
-    if (finalText && onSpeechResult) {
-      onSpeechResult(finalText);
+    const finalAccumulated = await stopListeningRef.current();
+    const cleanFinal = (finalAccumulated || fullLiveText).trim();
+    if (cleanFinal && onSpeechResultRef.current) {
+      onSpeechResultRef.current(cleanFinal);
     }
     onClose();
-  }, [accumulatedText, onClose, onSpeechResult]);
+  }, [fullLiveText, onClose]);
 
-  // Auto-scroll transcript smoothly as text builds up without showing scrollbars
+  // Smart auto-scroll transcript smoothly as text builds up without aggressively locking upward scrolling
   const transcriptScrollRef = useRef<HTMLDivElement>(null);
+  const isUserScrolledUpRef = useRef(false);
+
+  const handleScroll = useCallback(() => {
+    const el = transcriptScrollRef.current;
+    if (!el) return;
+    const distanceToBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+    // If distance from bottom is greater than 50px, consider user scrolled up
+    isUserScrolledUpRef.current = distanceToBottom > 50;
+  }, []);
+
   useEffect(() => {
-    if (transcriptScrollRef.current) {
-      transcriptScrollRef.current.scrollTop = transcriptScrollRef.current.scrollHeight;
+    const el = transcriptScrollRef.current;
+    if (!el) return;
+    if (!isUserScrolledUpRef.current) {
+      el.scrollTop = el.scrollHeight;
     }
-  }, [accumulatedText, interimText]);
+  }, [fullLiveText]);
 
   // Handle escape key to close
   useEffect(() => {
@@ -164,10 +166,17 @@ export const VoiceAssistantModal: React.FC<VoiceAssistantModalProps> = ({
   const hasError = Boolean(audioError || speechError);
   const errorMessage = audioError || speechError;
 
-  const liveInterim = interimText.trim();
-  const displayedText = (
-    accumulatedText + (liveInterim ? ((accumulatedText && !accumulatedText.endsWith(" ")) ? " " : "") + liveInterim : "")
-  ).trim();
+  const displayedText = fullLiveText.trim();
+
+  const handleMicToggle = () => {
+    if (isListening) {
+      pauseListening();
+    } else if (isPaused) {
+      resumeListening();
+    } else {
+      startListening("auto", { reset: false });
+    }
+  };
 
   const modalContent = (
     <div
@@ -209,10 +218,16 @@ export const VoiceAssistantModal: React.FC<VoiceAssistantModalProps> = ({
       <footer className={styles.bottomControls}>
         {isTranscribing ? (
           <div className={styles.liveTranscript} style={{ opacity: 0.95, letterSpacing: '0.02em', color: '#60a5fa' }}>
-            <Mic className="w-4 h-4 inline-block mr-1.5 animate-pulse" />ভয়েস প্রসেস হচ্ছে (AI Transcribing)...
+            <Mic className="w-4 h-4 inline-block mr-1.5 animate-pulse" />
+            {lang === "bn" ? "ভয়েস প্রসেস হচ্ছে..." : "Finishing transcript..."}
           </div>
         ) : displayedText ? (
-          <div className={styles.liveTranscript} ref={transcriptScrollRef} aria-live="polite">
+          <div
+            className={styles.liveTranscript}
+            ref={transcriptScrollRef}
+            onScroll={handleScroll}
+            aria-live="polite"
+          >
             {displayedText}
             {isListening && (
               <span
@@ -241,14 +256,18 @@ export const VoiceAssistantModal: React.FC<VoiceAssistantModalProps> = ({
           <button
             type="button"
             className={`${styles.voiceActionButton} ${!isListening ? styles.pausedButton : ""}`}
-            onClick={isListening ? stopListening : () => startListening(speechLanguage, { reset: false })}
+            onClick={handleMicToggle}
             disabled={isTranscribing}
-            aria-label={isListening ? "Pause microphone" : "Resume microphone"}
+            aria-label={isListening ? "Pause dictation" : "Resume dictation"}
             title={isListening ? "Pause" : "Resume"}
           >
             <span className={isListening ? styles.pulseDot : styles.pausedDot} />
-            {isListening ? <Mic size={14} /> : <MicOff size={14} />}
-            <span>{isListening ? "শুনছি..." : "Paused"}</span>
+            {isListening ? <Pause size={13} /> : <Play size={13} />}
+            <span>
+              {isListening
+                ? (isRecovering ? (lang === "bn" ? "সংযোগ..." : "Reconnecting...") : (lang === "bn" ? "শুনছি..." : "Listening..."))
+                : (lang === "bn" ? "বিরতি (Paused)" : "Paused")}
+            </span>
           </button>
 
           <span className={styles.boxDivider} aria-hidden="true" />
@@ -258,11 +277,11 @@ export const VoiceAssistantModal: React.FC<VoiceAssistantModalProps> = ({
             className={styles.stopVoiceButton}
             onClick={handleManualClose}
             disabled={isTranscribing}
-            aria-label="Stop and turn off voice"
+            aria-label="Stop and save voice text"
             title="Stop voice"
           >
             <Square size={11} className={styles.stopIcon} />
-            <span>{isTranscribing ? "Processing..." : "ভয়েস শেষ"}</span>
+            <span>{isTranscribing ? (lang === "bn" ? "শেষ হচ্ছে..." : "Finishing...") : (lang === "bn" ? "ভয়েস শেষ" : "Done")}</span>
           </button>
         </div>
       </footer>

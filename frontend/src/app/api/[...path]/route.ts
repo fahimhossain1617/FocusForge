@@ -178,6 +178,51 @@ export async function GET(request: NextRequest, context: { params: Promise<{ pat
     }
   }
 
+  // 3.5. Encryption Key Metadata: GET /api/crypto/keys
+  if (pathStr === 'crypto/keys') {
+    if (!userId || isGuest) {
+      return NextResponse.json({ exists: false, error: 'Authentication required' }, { status: 401 });
+    }
+    try {
+      const { rows } = await pool.query(
+        `SELECT key_version, algorithm, kdf_algorithm, kdf_salt, kdf_params, wrapped_master_key, created_at, updated_at
+         FROM user_encryption_keys
+         WHERE user_id = $1`,
+        [userId]
+      );
+      if (rows.length === 0) {
+        return NextResponse.json({ exists: false });
+      }
+      const row = rows[0];
+      let iv = '';
+      let wrappedKeyCiphertext = row.wrapped_master_key;
+      if (row.wrapped_master_key && row.wrapped_master_key.includes(':')) {
+        const parts = row.wrapped_master_key.split(':');
+        iv = parts[0];
+        wrappedKeyCiphertext = parts[1];
+      }
+      return NextResponse.json({
+        exists: true,
+        envelope: {
+          version: row.key_version,
+          algorithm: row.algorithm,
+          kdf: {
+            algorithm: row.kdf_algorithm,
+            salt: row.kdf_salt,
+            parameters: typeof row.kdf_params === 'string' ? JSON.parse(row.kdf_params) : (row.kdf_params || {}),
+          },
+          iv,
+          wrappedKeyCiphertext,
+          createdAt: row.created_at,
+          updatedAt: row.updated_at,
+        },
+      });
+    } catch (err: any) {
+      console.warn('[Crypto API] Error fetching user encryption keys:', err?.message);
+      return NextResponse.json({ exists: false, error: err?.message }, { status: 500 });
+    }
+  }
+
   // 4. Notification Settings: GET /api/notifications/settings
   if (pathStr === 'notifications/settings') {
     if (!userId || isGuest) {
@@ -758,6 +803,50 @@ export async function POST(request: NextRequest, context: { params: Promise<{ pa
         errorMsg = 'Database connection error. Please verify your Supabase database connection pooler settings in Vercel.';
       }
       return NextResponse.json({ error: errorMsg }, { status: 500 });
+    }
+  }
+
+  // 0. Encryption Key Envelope: POST /api/crypto/keys
+  if (pathStr === 'crypto/keys') {
+    if (!userId || isGuest) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+    }
+    const { envelope } = body;
+    if (!envelope || !envelope.wrappedKeyCiphertext || !envelope.kdf) {
+      return NextResponse.json({ error: 'Invalid envelope payload' }, { status: 400 });
+    }
+    try {
+      const serializedWrappedKey = `${envelope.iv || ''}:${envelope.wrappedKeyCiphertext}`;
+      await pool.query(
+        `
+        INSERT INTO user_encryption_keys (
+          user_id, key_version, algorithm, kdf_algorithm, kdf_salt, kdf_params, wrapped_master_key, created_at, updated_at
+        ) VALUES (
+          $1, $2, $3, $4, $5, $6, $7, NOW(), NOW()
+        )
+        ON CONFLICT (user_id) DO UPDATE SET
+          key_version = EXCLUDED.key_version,
+          algorithm = EXCLUDED.algorithm,
+          kdf_algorithm = EXCLUDED.kdf_algorithm,
+          kdf_salt = EXCLUDED.kdf_salt,
+          kdf_params = EXCLUDED.kdf_params,
+          wrapped_master_key = EXCLUDED.wrapped_master_key,
+          updated_at = NOW()
+        `,
+        [
+          userId,
+          envelope.version || 1,
+          envelope.algorithm || 'AES-256-GCM',
+          envelope.kdf.algorithm || 'PBKDF2-SHA256',
+          envelope.kdf.salt,
+          JSON.stringify(envelope.kdf.parameters || {}),
+          serializedWrappedKey,
+        ]
+      );
+      return NextResponse.json({ success: true });
+    } catch (err: any) {
+      console.warn('[Crypto API] Error saving encryption keys:', err?.message);
+      return NextResponse.json({ error: err?.message || 'Failed to save encryption keys' }, { status: 500 });
     }
   }
 
@@ -1558,6 +1647,17 @@ export async function DELETE(request: NextRequest, context: { params: Promise<{ 
       return NextResponse.json({ success: true });
     } catch (err: any) {
       return NextResponse.json({ error: err?.message || 'Failed to purge sync records' }, { status: 500 });
+    }
+  }
+
+  // 1.6. Purge Encryption Key & Data: DELETE /api/crypto/keys
+  if (pathStr === 'crypto/keys') {
+    try {
+      await pool.query('DELETE FROM user_encryption_keys WHERE user_id = $1', [userId]);
+      await pool.query('DELETE FROM encrypted_sync_records WHERE user_id = $1', [userId]);
+      return NextResponse.json({ success: true });
+    } catch (err: any) {
+      return NextResponse.json({ error: err?.message || 'Failed to reset encryption keys' }, { status: 500 });
     }
   }
 

@@ -28,7 +28,7 @@ import { useAppContext } from "@/context/AppContext";
 import { useAuth } from "@/context/AuthContext";
 import { useAIAgent } from "@/hooks/useAIAgent";
 import type { AIAgentLanguage, AIAgentModel, ActionRequest, ActionItem } from "@/types/aiAgent";
-import { VoiceAssistantModal } from "@/components/voice";
+import { useContinuousSpeech } from "@/hooks/useContinuousSpeech";
 import { AIOrbFace } from "./AIOrbFace";
 import { useOrbMood, getOrbStatusLabel, type OrbMood } from "./useOrbMood";
 import { AIActionCard } from "./AIActionCard";
@@ -77,9 +77,19 @@ export function AIAgentPage() {
   const [modelMenuOpen, setModelMenuOpen] = useState(false);
   const [language, setLanguage] = useState<AIAgentLanguage>(isSystemBn ? "bn" : "en");
   const [input, setInput] = useState("");
-  const [voiceOpen, setVoiceOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [moodMenuOpen, setMoodMenuOpen] = useState(false);
+
+  const {
+    text: voiceLiveText,
+    isListening: isVoiceListening,
+    startListening: startVoiceListening,
+    stopListening: stopVoiceListening,
+    setManualText: setVoiceManualText,
+  } = useContinuousSpeech({
+    initialLang: isSystemBn ? "bn-BD" : "en-US",
+  });
+  const resetVoiceTranscript = () => setVoiceManualText("");
 
   const baseInputRef = useRef<string>("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -650,7 +660,39 @@ export function AIAgentPage() {
     }
   }, [addTask, addTimeBlock, showToast, isSystemBn, updateActionStatus, setOrbState]);
 
+  // Dynamically auto-growing textarea: starts compact at 24px cursor line, extends up to 340px (400-500 words capacity)
+  const adjustTextareaHeight = useCallback(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    const singleLineHeight = 24;
+    const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
+    const maxHeight = isMobile ? 240 : 340;
+    const nextHeight = Math.max(singleLineHeight, el.scrollHeight);
+    if (nextHeight >= maxHeight) {
+      el.style.height = `${maxHeight}px`;
+      el.style.overflowY = "auto";
+    } else {
+      el.style.height = `${nextHeight}px`;
+      el.style.overflowY = "hidden";
+    }
+  }, []);
+
+  useEffect(() => {
+    adjustTextareaHeight();
+  }, [input, adjustTextareaHeight]);
+
+  // Stream live recognized speech directly into the chat composer textarea
+  useEffect(() => {
+    if (!isVoiceListening) return;
+    setInput(voiceLiveText);
+    requestAnimationFrame(adjustTextareaHeight);
+  }, [voiceLiveText, isVoiceListening, adjustTextareaHeight]);
+
   const submit = async (value = input) => {
+    if (isVoiceListening) {
+      stopVoiceListening();
+    }
     if (!value.trim() || guestLimitExceeded) return;
     if (!isOnline) {
       showToast(isSystemBn ? "তুমি বর্তমানে অফলাইনে আছো।" : "You are currently offline.", "error");
@@ -666,68 +708,21 @@ export function AIAgentPage() {
     }
   };
 
-  const startVoice = () => {
+  const startVoice = async () => {
     if (guestLimitExceeded) return;
     if (!isOnline) {
       showToast(isSystemBn ? "তুমি বর্তমানে অফলাইনে আছো।" : "You are currently offline.", "error");
       return;
     }
-    baseInputRef.current = input.trim();
-    setVoiceOpen(true);
-  };
-
-  const stopVoice = () => {
-    setVoiceOpen(false);
-  };
-
-  // Dynamically auto-growing textarea: starts compact at 24px cursor line, extends up to 180px/220px
-  const adjustTextareaHeight = useCallback(() => {
-    const el = textareaRef.current;
-    if (!el) return;
-    el.style.height = "auto";
-    const singleLineHeight = 24;
-    const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
-    const maxHeight = isMobile ? 180 : 220;
-    const nextHeight = Math.max(singleLineHeight, el.scrollHeight);
-    if (nextHeight >= maxHeight) {
-      el.style.height = `${maxHeight}px`;
-      el.style.overflowY = "auto";
-    } else {
-      el.style.height = `${nextHeight}px`;
-      el.style.overflowY = "hidden";
+    baseInputRef.current = input;
+    startVoiceListening(input);
+    if (textareaRef.current) {
+      textareaRef.current.focus();
     }
-  }, []);
+  };
 
-  useEffect(() => {
-    adjustTextareaHeight();
-  }, [input, adjustTextareaHeight]);
-
-  const handleSpeechResult = (voiceText: string) => {
-    if (!voiceText) return;
-    const base = baseInputRef.current;
-    const prefix = base ? `${base} ` : "";
-    const targetText = (base ? `${base} ${voiceText}` : voiceText).trim();
-
-    // Smooth incremental typing-style text animation for real recognized speech
-    let currentLength = prefix.length;
-    setInput(prefix);
-
-    const timer = setInterval(() => {
-      currentLength += 2;
-      if (currentLength >= targetText.length) {
-        clearInterval(timer);
-        setInput(targetText);
-        setTimeout(() => {
-          if (textareaRef.current) {
-            textareaRef.current.focus();
-            adjustTextareaHeight();
-          }
-        }, 30);
-      } else {
-        setInput(targetText.slice(0, currentLength));
-        adjustTextareaHeight();
-      }
-    }, 16);
+  const stopVoice = async () => {
+    await stopVoiceListening();
   };
 
   return (
@@ -1290,7 +1285,12 @@ export function AIAgentPage() {
                 value={input}
                 disabled={isThinking}
                 onChange={(e) => {
-                  setInput(e.target.value);
+                  const val = e.target.value;
+                  setInput(val);
+                  if (isVoiceListening) {
+                    baseInputRef.current = val;
+                    resetVoiceTranscript();
+                  }
                   resetInactivityTimer();
                   requestAnimationFrame(adjustTextareaHeight);
                 }}
@@ -1302,7 +1302,11 @@ export function AIAgentPage() {
                   }
                 }}
                 placeholder={
-                  messages && messages.length > 0
+                  isVoiceListening
+                    ? isSystemBn
+                      ? "কথা বলুন... সরাসরি টাইপ হচ্ছে..."
+                      : "Listening... Speaking to type..."
+                    : messages && messages.length > 0
                     ? isSystemBn
                       ? "গ্লোরিকে উত্তর দিন..."
                       : "Reply to Glory..."
@@ -1402,11 +1406,11 @@ export function AIAgentPage() {
                 {/* Mic Icon Button */}
                 <button
                   type="button"
-                  className={`${styles.pillIconBtn} ${voiceOpen ? styles.pillIconBtnActive : ""}`}
-                  onClick={voiceOpen ? stopVoice : startVoice}
+                  className={`${styles.pillIconBtn} ${isVoiceListening ? styles.pillIconBtnActive : ""}`}
+                  onClick={isVoiceListening ? stopVoice : startVoice}
                   disabled={isThinking || tokenStatus?.isExhausted}
-                  aria-label={voiceOpen ? "Stop voice input" : "Start voice input"}
-                  title="Voice input"
+                  aria-label={isVoiceListening ? (isSystemBn ? "ভয়েস বন্ধ করুন" : "Stop voice input") : (isSystemBn ? "ভয়েস শুরু করুন" : "Start voice input")}
+                  title={isVoiceListening ? (isSystemBn ? "ভয়েস চালু আছে (ক্লিক করে থামান)" : "Listening... Click to stop") : (isSystemBn ? "ভয়েস ইনপুট" : "Voice input")}
                 >
                   <Mic size={18} strokeWidth={1.8} />
                 </button>
@@ -1444,14 +1448,6 @@ export function AIAgentPage() {
             )}
           </div>
         </div>
-
-        {/* Voice Assistant Modal */}
-        <VoiceAssistantModal
-          isOpen={voiceOpen}
-          onClose={stopVoice}
-          language="auto"
-          onSpeechResult={handleSpeechResult}
-        />
 
         {/* AI Privacy Consent Modal */}
         <AIConsentModal

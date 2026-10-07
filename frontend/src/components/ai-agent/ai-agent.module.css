@@ -1037,7 +1037,7 @@
   min-width: 0;
   height: 24px;
   min-height: 24px;
-  max-height: 180px;
+  max-height: 340px;
   background: transparent !important;
   background-color: transparent !important;
   border: 0 !important;
@@ -1315,6 +1315,24 @@
 
 .pillIconBtnActive {
   color: #ef4444;
+  background: rgba(239, 68, 68, 0.14);
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2);
+  animation: micPulseRecord 1.6s infinite ease-in-out;
+}
+
+@keyframes micPulseRecord {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.45);
+  }
+  50% {
+    transform: scale(1.08);
+    box-shadow: 0 0 0 6px rgba(239, 68, 68, 0);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+  }
 }
 
 .pillSendBtn {

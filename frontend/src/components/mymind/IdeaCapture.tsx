@@ -22,24 +22,11 @@ export default function IdeaCapture({ navigate }: IdeaCaptureProps) {
   const [problem, setProblem] = useState("");
   const [nextStep, setNextStep] = useState("");
   
-  const [interim, setInterim] = useState("");
   const [isFocused, setIsFocused] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     textareaRef.current?.focus();
-  }, [step]);
-
-  const handleResult = useCallback((text: string, isFinal: boolean, isFullReplacement?: boolean) => {
-    if (isFinal && text) {
-      const setter = step === 1 ? setIdea : step === 2 ? setInteresting : step === 3 ? setWhoFor : step === 4 ? setProblem : setNextStep;
-      setter((prev) => {
-        if (isFullReplacement) return text;
-        const needsSpace = prev.length > 0 && !prev.endsWith(" ") && !prev.endsWith("\n");
-        return prev + (needsSpace ? " " : "") + text;
-      });
-      setInterim("");
-    }
   }, [step]);
 
   const generateIdeaText = () => {
@@ -62,8 +49,6 @@ export default function IdeaCapture({ navigate }: IdeaCaptureProps) {
 
   const currentVal = step === 1 ? idea : step === 2 ? interesting : step === 3 ? whoFor : step === 4 ? problem : nextStep;
   const setCurrentVal = step === 1 ? setIdea : step === 2 ? setInteresting : step === 3 ? setWhoFor : step === 4 ? setProblem : setNextStep;
-  
-  const displayValue = currentVal + (interim ? ((currentVal && !currentVal.endsWith(" ") && !currentVal.endsWith("\n")) ? " " : "") + interim : "");
 
   return (
     <div className="motion-page max-w-2xl mx-auto py-10 min-h-[70vh] flex flex-col">
@@ -104,8 +89,23 @@ export default function IdeaCapture({ navigate }: IdeaCaptureProps) {
           >
             <textarea
               ref={textareaRef}
-              value={displayValue}
-              onChange={(e) => setCurrentVal(e.target.value)}
+              value={currentVal}
+              onChange={(e) => {
+                setCurrentVal(e.target.value);
+                const el = textareaRef.current;
+                if (el) {
+                  el.style.height = "auto";
+                  const scrollH = el.scrollHeight;
+                  if (scrollH > 240) {
+                    el.style.height = "240px";
+                    el.style.overflowY = "auto";
+                  } else {
+                    el.style.height = `${Math.max(scrollH, 100)}px`;
+                    el.style.overflowY = "hidden";
+                  }
+                  el.scrollTop = el.scrollHeight;
+                }
+              }}
               onFocus={() => setIsFocused(true)}
               onBlur={() => setIsFocused(false)}
               placeholder={t.myMind.ideaVaultPlaceholder || "What's the core idea or spark?"}
@@ -114,13 +114,22 @@ export default function IdeaCapture({ navigate }: IdeaCaptureProps) {
                 background: "transparent", 
                 border: "none",
                 outline: "none", 
-                minHeight: "150px",
+                minHeight: "100px",
+                maxHeight: "240px",
+                height: "auto",
+                overflowY: "hidden",
                 color: "var(--color-text-primary)" 
               }}
             />
             
             <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between">
-              <VoiceInput onResult={handleResult} onInterimResult={setInterim} />
+              <div className="flex items-center gap-2 max-w-[calc(100%-40px)]">
+                <VoiceInput 
+                  editorRef={textareaRef}
+                  currentValue={currentVal}
+                  onValueChange={(val) => setCurrentVal(val)}
+                />
+              </div>
             </div>
           </div>
 

@@ -140,22 +140,127 @@ router.post('/pull', requireAuth, async (req: AuthenticatedRequest, res: Respons
 });
 
 /**
- * DELETE /api/sync/purge
- * Completely wipes all encrypted sync records for this user (Account Deletion Option B).
+ * GET /api/crypto/keys
+ * Fetches user encryption key envelope metadata.
  */
-router.delete('/purge', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+router.get('/keys', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  const userId = req.user?.id;
+  if (!userId || userId === 'guest') {
+    return res.status(401).json({ exists: false, error: 'Authentication required' });
+  }
+
+  try {
+    const { rows } = await pool.query(
+      `SELECT key_version, algorithm, kdf_algorithm, kdf_salt, kdf_params, wrapped_master_key, created_at, updated_at
+       FROM user_encryption_keys
+       WHERE user_id = $1`,
+      [userId]
+    );
+
+    if (rows.length === 0) {
+      return res.json({ exists: false });
+    }
+
+    const row = rows[0];
+    let iv = '';
+    let wrappedKeyCiphertext = row.wrapped_master_key;
+    if (row.wrapped_master_key && row.wrapped_master_key.includes(':')) {
+      const parts = row.wrapped_master_key.split(':');
+      iv = parts[0];
+      wrappedKeyCiphertext = parts[1];
+    }
+
+    res.json({
+      exists: true,
+      envelope: {
+        version: row.key_version,
+        algorithm: row.algorithm,
+        kdf: {
+          algorithm: row.kdf_algorithm,
+          salt: row.kdf_salt,
+          parameters: typeof row.kdf_params === 'string' ? JSON.parse(row.kdf_params) : (row.kdf_params || {}),
+        },
+        iv,
+        wrappedKeyCiphertext,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at,
+      },
+    });
+  } catch (err: any) {
+    console.warn('[SyncRoutes] Fetch encryption keys error:', err?.message);
+    res.status(500).json({ exists: false, error: err?.message });
+  }
+});
+
+/**
+ * POST /api/crypto/keys
+ * Stores wrapped Master Encryption Key envelope.
+ */
+router.post('/keys', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  const userId = req.user?.id;
+  if (!userId || userId === 'guest') {
+    return res.status(401).json({ error: 'Authentication required' });
+  }
+
+  const { envelope } = req.body;
+  if (!envelope || !envelope.wrappedKeyCiphertext || !envelope.kdf) {
+    return res.status(400).json({ error: 'Invalid envelope payload' });
+  }
+
+  try {
+    const serializedWrappedKey = `${envelope.iv || ''}:${envelope.wrappedKeyCiphertext}`;
+    await pool.query(
+      `
+      INSERT INTO user_encryption_keys (
+        user_id, key_version, algorithm, kdf_algorithm, kdf_salt, kdf_params, wrapped_master_key, created_at, updated_at
+      ) VALUES (
+        $1, $2, $3, $4, $5, $6, $7, NOW(), NOW()
+      )
+      ON CONFLICT (user_id) DO UPDATE SET
+        key_version = EXCLUDED.key_version,
+        algorithm = EXCLUDED.algorithm,
+        kdf_algorithm = EXCLUDED.kdf_algorithm,
+        kdf_salt = EXCLUDED.kdf_salt,
+        kdf_params = EXCLUDED.kdf_params,
+        wrapped_master_key = EXCLUDED.wrapped_master_key,
+        updated_at = NOW()
+      `,
+      [
+        userId,
+        envelope.version || 1,
+        envelope.algorithm || 'AES-256-GCM',
+        envelope.kdf.algorithm || 'PBKDF2-SHA256',
+        envelope.kdf.salt,
+        JSON.stringify(envelope.kdf.parameters || {}),
+        serializedWrappedKey,
+      ]
+    );
+
+    res.json({ success: true });
+  } catch (err: any) {
+    console.warn('[SyncRoutes] Save encryption keys error:', err?.message);
+    res.status(500).json({ error: err?.message || 'Failed to save encryption keys' });
+  }
+});
+
+/**
+ * DELETE /api/crypto/keys
+ * Resets user encryption keys and sync data.
+ */
+router.delete('/keys', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
   const userId = req.user?.id;
   if (!userId || userId === 'guest') {
     return res.status(401).json({ error: 'Authentication required' });
   }
 
   try {
+    await pool.query(`DELETE FROM user_encryption_keys WHERE user_id = $1`, [userId]);
     await pool.query(`DELETE FROM encrypted_sync_records WHERE user_id = $1`, [userId]);
-    inMemorySyncStore.delete(userId);
     res.json({ success: true });
   } catch (err: any) {
-    res.status(500).json({ error: err?.message || 'Failed to purge sync records' });
+    res.status(500).json({ error: err?.message || 'Failed to reset encryption keys' });
   }
 });
 
 export default router;
+

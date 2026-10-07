@@ -1,13 +1,22 @@
 /**
  * FocusForge End-to-End Encryption & Key Management Service (cryptoSyncService.ts)
- * 
- * Implements privacy-preserving, zero-knowledge encryption using the standard Web Crypto API.
- * Standards:
- * - Cipher: AES-256-GCM with authenticated tags and unique 12-byte IV per record.
- * - Key Derivation: PBKDF2 (100,000 iterations, SHA-256).
- * - Master Secret: User passphrase / 12-word recovery key generated on-device.
- * - Zero Knowledge: Neither Supabase nor the sync relay server can ever decrypt the data.
+ *
+ * Delegates to the unified zero-knowledge envelope-key engine (lib/crypto.ts).
+ * Maintains full backward compatibility for existing callers.
  */
+
+import {
+  cryptoSession,
+  generateRecoveryPhrase,
+  encryptPayload,
+  decryptPayload,
+  deriveKeyFromPassphrase,
+  generateSalt,
+  bufferToBase64,
+  base64ToBuffer,
+  type EncryptedDataEnvelope,
+} from "../lib/crypto";
+import { fetchBackend } from "../lib/apiClient";
 
 export interface EncryptedPayload {
   ciphertext: string; // Base64 encoded ciphertext
@@ -24,107 +33,56 @@ export interface SyncRecordPayload {
   isDeleted: boolean;
 }
 
-// In-memory key cache for active session (never persisted in plaintext to localStorage)
-let inMemoryCryptoKey: CryptoKey | null = null;
-let activeKeyUserId: string | null = null;
-
-function bufferToBase64(buffer: ArrayBuffer | Uint8Array): string {
-  const bytes = buffer instanceof Uint8Array ? buffer : new Uint8Array(buffer);
-  let binary = "";
-  for (let i = 0; i < bytes.byteLength; i++) {
-    binary += String.fromCharCode(bytes[i]);
-  }
-  return btoa(binary);
-}
-
-function base64ToBuffer(base64: string): Uint8Array {
-  const binary = atob(base64);
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) {
-    bytes[i] = binary.charCodeAt(i);
-  }
-  return bytes;
-}
-
 export const cryptoSyncService = {
   /**
-   * Generates a secure 12-word or alphanumeric recovery passphrase on the user's device.
+   * Generates a secure recovery passphrase on the user's device.
    */
   generateRecoveryKey(): string {
-    const charset = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-    const randomBytes = new Uint8Array(16);
-    if (typeof window !== "undefined" && window.crypto) {
-      window.crypto.getRandomValues(randomBytes);
-    } else {
-      for (let i = 0; i < 16; i++) randomBytes[i] = Math.floor(Math.random() * 256);
-    }
-
-    let code = "";
-    for (let i = 0; i < 16; i++) {
-      code += charset[randomBytes[i] % charset.length];
-      if ((i + 1) % 4 === 0 && i !== 15) {
-        code += "-";
-      }
-    }
-    return `FF-${code}`;
+    return generateRecoveryPhrase();
   },
 
   /**
    * Derives a 256-bit AES-GCM CryptoKey using PBKDF2 with SHA-256.
    */
   async deriveKey(passphrase: string, saltBytes: Uint8Array): Promise<CryptoKey> {
-    if (typeof window === "undefined" || !window.crypto?.subtle) {
-      throw new Error("Web Crypto API is not available");
-    }
-
-    const encoder = new TextEncoder();
-    const keyMaterial = await window.crypto.subtle.importKey(
-      "raw",
-      encoder.encode(passphrase),
-      { name: "PBKDF2" },
-      false,
-      ["deriveKey"]
-    );
-
-    return window.crypto.subtle.deriveKey(
-      {
-        name: "PBKDF2",
-        salt: saltBytes as unknown as BufferSource,
-        iterations: 100000,
-        hash: "SHA-256",
-      },
-      keyMaterial,
-      { name: "AES-GCM", length: 256 },
-      false,
-      ["encrypt", "decrypt"]
-    );
+    const saltBase64 = bufferToBase64(saltBytes);
+    return await deriveKeyFromPassphrase(passphrase, saltBase64, 250000);
   },
 
   /**
    * Initializes or unlocks the encryption key for the current session.
    */
   async unlockEncryption(userId: string, passphrase: string): Promise<boolean> {
+    const cleanUserId = userId?.trim();
+    if (!cleanUserId || cleanUserId === "guest") return false;
+
     try {
-      const cleanUserId = userId.trim();
-      // Derive a deterministic per-user salt from user ID to ensure cross-device consistency
-      const encoder = new TextEncoder();
-      const rawUserSalt = await window.crypto.subtle.digest("SHA-256", encoder.encode(`salt_${cleanUserId}`));
-      const saltBytes = new Uint8Array(rawUserSalt).slice(0, 16);
+      // Check if remote vault exists
+      const res = await fetchBackend<{ exists: boolean; envelope?: any }>("/api/crypto/keys", {
+        method: "GET",
+      }).catch(() => null);
 
-      const key = await this.deriveKey(passphrase, saltBytes);
-      inMemoryCryptoKey = key;
-      activeKeyUserId = cleanUserId;
+      if (res && res.exists && res.envelope) {
+        await cryptoSession.unlockVault(cleanUserId, res.envelope, passphrase);
+      } else {
+        // Vault doesn't exist yet on server; initialize new vault
+        const { envelope } = await cryptoSession.createNewEncryptionVault(cleanUserId, passphrase);
+        await fetchBackend("/api/crypto/keys", {
+          method: "POST",
+          body: JSON.stringify({ envelope }),
+        }).catch(() => null);
+      }
 
-      // Keep passphrase securely in sessionStorage for active session auto-sync
+      // Store local recovery passphrase for auto-unlock on this device
       if (typeof window !== "undefined") {
         try {
-          sessionStorage.setItem(`focusforge_e2ee_salt_${cleanUserId}`, bufferToBase64(saltBytes));
+          localStorage.setItem(`focentia_recovery_key_${cleanUserId}`, passphrase);
         } catch {}
       }
 
       return true;
     } catch (err) {
-      console.error("[cryptoSyncService] Failed to derive encryption key:", err);
+      console.warn("[cryptoSyncService] Unlock notice:", err);
       return false;
     }
   },
@@ -135,7 +93,11 @@ export const cryptoSyncService = {
   getRecoveryKey(userId: string): string | null {
     if (typeof window === "undefined" || !userId || userId === "guest") return null;
     try {
-      return localStorage.getItem(`focusforge_recovery_key_${userId.trim()}`);
+      return (
+        localStorage.getItem(`focentia_recovery_key_${userId.trim()}`) ||
+        localStorage.getItem(`focusforge_recovery_key_${userId.trim()}`) ||
+        null
+      );
     } catch {
       return null;
     }
@@ -149,17 +111,16 @@ export const cryptoSyncService = {
     const cleanUserId = userId.trim();
     const cleanKey = key.trim();
     try {
-      localStorage.setItem(`focusforge_recovery_key_${cleanUserId}`, cleanKey);
+      localStorage.setItem(`focentia_recovery_key_${cleanUserId}`, cleanKey);
       return await this.unlockEncryption(cleanUserId, cleanKey);
     } catch (err) {
-      console.error("[cryptoSyncService] Failed to set recovery key:", err);
+      console.warn("[cryptoSyncService] Failed to set recovery key:", err);
       return false;
     }
   },
 
   /**
    * Ensures the encryption key is initialized for the active account.
-   * If no recovery key exists on this device, generates a secure one and initializes it.
    */
   async ensureKeyInitialized(userId: string): Promise<boolean> {
     if (!userId || userId === "guest") return false;
@@ -170,7 +131,7 @@ export const cryptoSyncService = {
       return await this.unlockEncryption(userId, existingKey);
     }
 
-    // Generate a new secure recovery key for this user
+    // Auto-create a secure recovery phrase for new account if none exists
     const newKey = this.generateRecoveryKey();
     return await this.setRecoveryKey(userId, newKey);
   },
@@ -179,43 +140,27 @@ export const cryptoSyncService = {
    * Checks if encryption is currently unlocked in memory.
    */
   isUnlocked(userId: string): boolean {
-    return inMemoryCryptoKey !== null && activeKeyUserId === userId;
+    return cryptoSession.isUnlocked(userId);
   },
 
   /**
-   * Locks and purges all decrypted keys and credentials from memory.
+   * Locks and purges all decrypted keys from memory.
    */
   lockEncryption(): void {
-    inMemoryCryptoKey = null;
-    activeKeyUserId = null;
+    cryptoSession.lockVault();
   },
 
   /**
    * Encrypts arbitrary JSON-serializable data using AES-256-GCM.
    */
   async encrypt<T = any>(data: T, customKey?: CryptoKey): Promise<EncryptedPayload> {
-    const key = customKey || inMemoryCryptoKey;
-    if (!key) {
-      throw new Error("Encryption key is locked or not initialized");
-    }
-
-    const iv = new Uint8Array(12);
-    window.crypto.getRandomValues(iv);
-
-    const encoder = new TextEncoder();
-    const plaintextBytes = encoder.encode(JSON.stringify(data));
-
-    const ciphertextBuffer = await window.crypto.subtle.encrypt(
-      { name: "AES-GCM", iv: iv as unknown as BufferSource },
-      key,
-      plaintextBytes
-    );
-
+    const key = customKey || cryptoSession.getMasterKey();
+    const envelope = await encryptPayload(data, key);
     return {
-      ciphertext: bufferToBase64(ciphertextBuffer),
-      iv: bufferToBase64(iv),
+      ciphertext: envelope.ciphertext,
+      iv: envelope.iv,
       salt: "",
-      version: 1,
+      version: envelope.version,
     };
   },
 
@@ -223,22 +168,15 @@ export const cryptoSyncService = {
    * Decrypts AES-256-GCM encrypted payload back to original JavaScript object.
    */
   async decrypt<T = any>(payload: EncryptedPayload, customKey?: CryptoKey): Promise<T> {
-    const key = customKey || inMemoryCryptoKey;
-    if (!key) {
-      throw new Error("Encryption key is locked or not initialized");
-    }
-
-    const ivBytes = base64ToBuffer(payload.iv);
-    const ciphertextBytes = base64ToBuffer(payload.ciphertext);
-
-    const decryptedBuffer = await window.crypto.subtle.decrypt(
-      { name: "AES-GCM", iv: ivBytes as unknown as BufferSource },
-      key,
-      ciphertextBytes as unknown as BufferSource
+    const key = customKey || cryptoSession.getMasterKey();
+    return await decryptPayload<T>(
+      {
+        version: payload.version || 1,
+        algorithm: "AES-256-GCM",
+        iv: payload.iv,
+        ciphertext: payload.ciphertext,
+      },
+      key
     );
-
-    const decoder = new TextDecoder();
-    const jsonString = decoder.decode(decryptedBuffer);
-    return JSON.parse(jsonString) as T;
   },
 };

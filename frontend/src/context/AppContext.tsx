@@ -13,9 +13,10 @@ import {
 import {
   loadStateFromIndexedDB,
   saveStateToIndexedDB,
-  safeSaveToLocalStorage,
   getUserStorageKey
 } from '../services/indexedDBStorage';
+import { migrateLocalStorageToIndexedDB } from '../lib/migrations/localStorageToIndexedDB';
+import { settingsRepository } from '../lib/repositories';
 import { supabase } from '../lib/supabaseClient';
 import { noteService } from '../services/noteService';
 import { mindService } from '../services/mindService';
@@ -227,29 +228,25 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   // Scoped user data loader
   const loadUserData = useCallback(async (userId: string | null, generation: number) => {
+    let cachedState: AppState | null = null;
+    let cachedThemeMode: string | null = null;
     try {
       // Isolate notifications and history per user/account
       notificationCenterService.setUserId(userId);
       notificationService.setUserId(userId);
 
-      let cachedState: AppState | null = null;
-      let cachedThemeMode: "dark" | "light" | "system" | null = null;
+      // 1. Run safe idempotent migration from legacy localStorage to Dexie IndexedDB
+      await migrateLocalStorageToIndexedDB(userId);
 
-      if (typeof window !== 'undefined') {
-        try {
-          const rawTheme = localStorage.getItem('focusforge_theme');
-          if (rawTheme === 'dark' || rawTheme === 'light' || rawTheme === 'system') {
-            cachedThemeMode = rawTheme;
-          }
-          const storageKey = getUserStorageKey(userId);
-          const syncLocal = localStorage.getItem(storageKey);
-          if (syncLocal) {
-            cachedState = JSON.parse(syncLocal);
-          }
-        } catch {}
-      }
+      // 2. Load state backup from Dexie repository
+      try {
+        const dexieBackup = await settingsRepository.getAppStateBackup(userId || 'guest');
+        if (dexieBackup) {
+          cachedState = dexieBackup as AppState;
+        }
+      } catch {}
 
-      // IndexedDB user-scoped load
+      // Fallback to legacy IndexedDB store if needed
       if (!cachedState) {
         try {
           cachedState = await loadStateFromIndexedDB(userId);
@@ -428,8 +425,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           theme: { ...defaultState.theme, ...parsed.theme }
         }));
 
+        // Persist to primary client-side layer: Dexie IndexedDB
+        settingsRepository.saveAppStateBackup(userId || 'guest', parsed).catch(() => {});
         saveStateToIndexedDB(parsed, userId);
-        safeSaveToLocalStorage(getUserStorageKey(userId), parsed);
       }
     } catch (e) {
       console.warn('State load warning:', e);
@@ -460,27 +458,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const isCurrentlyOnline = typeof navigator === 'undefined' || navigator.onLine;
 
     if (currentUserId) {
-      // Authenticated: save to user-scoped IndexedDB & localStorage cache immediately
+      // Authenticated: save to primary client-side layer (Dexie IndexedDB)
+      settingsRepository.saveAppStateBackup(currentUserId, state).catch(() => {});
+      settingsRepository.savePreferences(currentUserId, {
+        theme: state.theme,
+        lang: state.lang,
+        notifPreferences: state.notifPreferences,
+        calendarPreferences: state.calendarPreferences,
+      }).catch(() => {});
       saveStateToIndexedDB(state, currentUserId);
-      safeSaveToLocalStorage(getUserStorageKey(currentUserId), state);
 
       if (!isCurrentlyOnline) return;
 
-      // Clear any pending debounced timer
-      if (cloudTimerRef.current) {
-        clearTimeout(cloudTimerRef.current);
-      }
-
       // Debounced privacy-preserving E2EE cross-device sync
-      cloudTimerRef.current = setTimeout(async () => {
-        try {
-          if (activeUserIdRef.current === currentUserId) {
-            await syncService.syncNow(currentUserId);
-          }
-        } catch (syncErr) {
-          console.warn("[AppContext] E2EE sync warning:", syncErr);
-        }
-      }, 3000);
+      syncService.scheduleSync(currentUserId, 2500);
     } else {
       // Guest mode: ONLY keep in sessionStorage as temporary data
       if (typeof window !== 'undefined') {

@@ -1,61 +1,93 @@
 "use client";
 
-import React, { useEffect, useRef, useCallback } from "react";
-import { Mic, MicOff } from "lucide-react";
-import { useSpeechRecognition } from "../../hooks/useSpeechRecognition";
+import React, { useEffect, type RefObject } from "react";
+import { Mic, MicOff, Languages } from "lucide-react";
+import { useContinuousSpeech } from "@/hooks/useContinuousSpeech";
 import { useTranslation } from "../../hooks/useTranslation";
 import { useAppContext } from "../../context/AppContext";
 
 interface DiaryVoiceInputProps {
-  onInsertText: (text: string) => void;
+  editorRef?: RefObject<HTMLTextAreaElement | null>;
+  value?: string;
+  onValueChange?: (next: string) => void;
+  onInsertText?: (text: string) => void;
   onError?: (err: string) => void;
 }
 
-export default function DiaryVoiceInput({ onInsertText, onError }: DiaryVoiceInputProps) {
+export default function DiaryVoiceInput({
+  editorRef,
+  value = "",
+  onValueChange,
+  onInsertText,
+  onError,
+}: DiaryVoiceInputProps) {
   const { t } = useTranslation();
   const { showToast, isOnline, state } = useAppContext();
 
-  const onInsertTextRef = useRef(onInsertText);
-  useEffect(() => {
-    onInsertTextRef.current = onInsertText;
-  }, [onInsertText]);
-
-  const handleResult = useCallback((text: string, isFinal: boolean) => {
-    if (isFinal && text.trim()) {
-      if (onInsertTextRef.current) {
-        onInsertTextRef.current(text.trim());
+  const handleAdjustEditor = () => {
+    if (editorRef?.current) {
+      const el = editorRef.current;
+      el.style.height = "auto";
+      const scrollH = el.scrollHeight;
+      const maxH = 240;
+      if (scrollH > maxH) {
+        el.style.height = `${maxH}px`;
+        el.style.overflowY = "auto";
+      } else {
+        el.style.height = `${scrollH}px`;
+        el.style.overflowY = "hidden";
       }
+      el.scrollTop = el.scrollHeight;
     }
-  }, []);
+  };
 
   const {
-    isSupported,
     isListening,
-    isTranscribing,
-    interimText,
-    startListening,
-    stopListening,
-  } = useSpeechRecognition({
-    onResult: handleResult,
-    onError,
+    lang,
+    toggleListening: baseToggleListening,
+    toggleLanguage,
+    setManualText,
+    isSupported,
+  } = useContinuousSpeech({
+    initialLang: state.lang === "bn" ? "bn-BD" : "en-US",
+    onTranscriptChange: (nextVal) => {
+      onValueChange?.(nextVal);
+      onInsertText?.(nextVal);
+      requestAnimationFrame(handleAdjustEditor);
+    },
+    onError: (err) => {
+      onError?.(err);
+    },
   });
 
-  const handleToggle = useCallback(() => {
-    if (isListening) {
-      stopListening();
-    } else {
-      if (!isOnline) {
-        showToast(
-          state.lang === "bn"
-            ? "আপনি বর্তমানে অফলাইনে আছেন।"
-            : "You are currently offline.",
-          "error"
-        );
-        return;
-      }
-      startListening("auto");
+  useEffect(() => {
+    if (!isListening) {
+      setManualText(value);
     }
-  }, [isListening, isOnline, showToast, startListening, state.lang, stopListening]);
+  }, [value, isListening, setManualText]);
+
+  const handleToggle = () => {
+    if (isListening) {
+      baseToggleListening();
+      return;
+    }
+    if (!isOnline) {
+      showToast(
+        state.lang === "bn"
+          ? "আপনি বর্তমানে অফলাইনে আছেন।"
+          : "You are currently offline.",
+        "error"
+      );
+      return;
+    }
+    baseToggleListening(value);
+  };
+
+  const isBn = lang === "bn-BD";
+
+  const handleToggleLanguage = () => {
+    toggleLanguage();
+  };
 
   if (!isSupported) return null;
 
@@ -69,47 +101,28 @@ export default function DiaryVoiceInput({ onInsertText, onError }: DiaryVoiceInp
             ? "bg-red-500/20 text-red-400 border border-red-500/30 animate-pulse "
             : "bg-blue-500/10 text-blue-400 border border-blue-500/25 hover:bg-blue-500/20 hover:text-blue-300"
         }`}
-        title={isListening ? t.myMind.stopListening : t.myMind.speakThought}
-        aria-label={isListening ? t.myMind.stopListening : t.myMind.startVoiceInput}
-        disabled={isTranscribing}
+        title={isListening ? (t.myMind?.stopListening || "Stop Voice") : (t.myMind?.speakThought || "Voice Input")}
+        aria-label={isListening ? "Stop voice dictation" : "Start voice dictation"}
       >
-        {isTranscribing ? (
-          <div className="w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
-        ) : isListening ? (
-          <MicOff size={16} />
-        ) : (
-          <Mic size={16} />
-        )}
+        {isListening ? <MicOff size={16} /> : <Mic size={16} />}
       </button>
 
-      {/* Floating live text preview so user sees it typing simultaneously */}
-      {isListening && interimText && (
-        <div className="absolute top-12 left-0 w-max max-w-[250px] bg-black/90 dark:bg-zinc-800/95 text-white dark:text-zinc-100 text-xs p-2.5 rounded-xl shadow-none backdrop-blur-md pointer-events-none z-50 animate-fade-in whitespace-normal border border-white/10 text-left leading-relaxed">
-          {interimText}
-          <span className="animate-pulse ml-1">...</span>
-        </div>
-      )}
+      <button
+        type="button"
+        onClick={handleToggleLanguage}
+        className="h-8 px-2 rounded-xl border border-slate-200/90 dark:border-white/10 bg-white/90 dark:bg-white/5 hover:bg-blue-50/80 dark:hover:bg-white/10 text-slate-700 dark:text-slate-300 flex items-center gap-1 text-[11px] font-semibold transition-all cursor-pointer shadow-xs active:scale-95 select-none"
+        title={isBn ? "Switch to English (ইংরেজি সিলেক্ট করুন)" : "Switch to Bangla (বাংলা সিলেক্ট করুন)"}
+        aria-label={isBn ? "Switch to English speech recognition" : "Switch to Bangla speech recognition"}
+      >
+        <Languages size={12} className="text-blue-600 dark:text-blue-400 shrink-0" />
+        <span>{isBn ? "বাং" : "Eng"}</span>
+      </button>
 
-      {isListening ? (
-        <div className="voice-wave" role="status" aria-label="Listening">
-          <svg viewBox="0 0 240 48" aria-hidden="true" focusable="false">
-            <path
-              className="voice-wave__line voice-wave__line--back"
-              d="M-16 25 C4 10 21 10 41 25 S78 40 98 25 S135 10 155 25 S192 40 212 25 S239 10 258 25"
-            />
-            <path
-              className="voice-wave__line voice-wave__line--mid"
-              d="M-16 25 C4 40 21 40 41 25 S78 10 98 25 S135 40 155 25 S192 10 212 25 S239 40 258 25"
-            />
-            <path
-              className="voice-wave__line voice-wave__line--front"
-              d="M-16 25 C4 17 21 17 41 25 S78 33 98 25 S135 17 155 25 S192 33 212 25 S239 17 258 25"
-            />
-          </svg>
-        </div>
-      ) : isTranscribing ? (
-        <div className="text-xs text-blue-400 animate-pulse font-medium">Processing...</div>
-      ) : null}
+      {isListening && (
+        <span className="text-[10px] sm:text-[11px] font-medium text-blue-400/90 select-none">
+          {state.lang === "bn" ? "শুনছি..." : "Listening..."}
+        </span>
+      )}
     </div>
   );
 }

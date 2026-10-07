@@ -18,48 +18,48 @@ export default function MindHome({ navigate, setActiveThoughtId }: MindHomeProps
   const { requireAuth } = useAuth();
   const { t } = useTranslation();
   const [input, setInput] = useState("");
-  const [interim, setInterim] = useState("");
   const [isFocused, setIsFocused] = useState(false);
   const [activeMode, setActiveMode] = useState<'mind' | 'idea' | 'problem'>('mind');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const isUserScrolledUpRef = useRef(false);
 
   useEffect(() => {
     textareaRef.current?.focus();
   }, []);
 
-  const handleResult = useCallback((text: string, isFinal: boolean, isFullReplacement?: boolean) => {
-    if (isFinal && text) {
-      setInput((prev) => {
-        if (isFullReplacement) {
-          return text;
-        }
-        const needsSpace = prev.length > 0 && !prev.endsWith(" ") && !prev.endsWith("\n");
-        return prev + (needsSpace ? " " : "") + text;
-      });
-      setInterim("");
-      // Auto-resize with 200-300 word max height cap
-      setTimeout(() => {
-        if (textareaRef.current) {
-          textareaRef.current.style.height = "auto";
-          const newHeight = Math.min(textareaRef.current.scrollHeight, 260);
-          textareaRef.current.style.height = `${newHeight}px`;
-          textareaRef.current.scrollTop = textareaRef.current.scrollHeight;
-        }
-      }, 0);
+  const adjustTextareaHeight = useCallback(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    const minHeight = 60;
+    const maxHeight = 240; // Perplexity-style dynamic auto-grow (200-300 words)
+    const scrollH = el.scrollHeight;
+    if (scrollH >= maxHeight) {
+      el.style.height = `${maxHeight}px`;
+      el.style.overflowY = "auto";
+    } else {
+      el.style.height = `${Math.max(minHeight, scrollH)}px`;
+      el.style.overflowY = "hidden";
+    }
+    // Smart auto-scroll: If user hasn't manually scrolled up, follow caret/bottom
+    if (!isUserScrolledUpRef.current) {
+      el.scrollTop = el.scrollHeight;
     }
   }, []);
 
+  const handleScroll = (e: React.UIEvent<HTMLTextAreaElement>) => {
+    const el = e.currentTarget;
+    const isAtBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 30;
+    isUserScrolledUpRef.current = !isAtBottom;
+  };
+
+  const handleValueChange = (newVal: string) => {
+    setInput(newVal);
+    requestAnimationFrame(adjustTextareaHeight);
+  };
+
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const val = e.target.value;
-    setInput(val);
-    
-    // Auto-resize with cap and keep scrolling upwards
-    if (textareaRef.current) {
-      textareaRef.current.style.height = "auto";
-      const newHeight = Math.min(textareaRef.current.scrollHeight, 260);
-      textareaRef.current.style.height = `${newHeight}px`;
-      textareaRef.current.scrollTop = textareaRef.current.scrollHeight;
-    }
+    handleValueChange(e.target.value);
   };
 
   const handleSubmit = (e?: React.FormEvent) => {
@@ -110,7 +110,6 @@ export default function MindHome({ navigate, setActiveThoughtId }: MindHomeProps
     return sortedThoughts.slice(0, 6);
   }, [sortedThoughts]);
 
-  const displayValue = input + (interim ? ((input && !input.endsWith(" ") && !input.endsWith("\n")) ? " " : "") + interim : "");
 
   return (
     <div className="motion-page w-full max-w-3xl mx-auto px-4 sm:px-6 pt-1 pb-16">
@@ -168,8 +167,9 @@ export default function MindHome({ navigate, setActiveThoughtId }: MindHomeProps
         >
           <textarea
             ref={textareaRef}
-            value={displayValue}
+            value={input}
             onChange={handleChange}
+            onScroll={handleScroll}
             onKeyDown={(e) => {
               if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
                 e.preventDefault();
@@ -190,19 +190,22 @@ export default function MindHome({ navigate, setActiveThoughtId }: MindHomeProps
               background: "transparent", 
               border: "none", 
               outline: "none", 
-              minHeight: "120px",
-              maxHeight: "260px",
-              overflowY: "auto",
+              minHeight: "60px",
+              maxHeight: "240px",
+              overflowY: "hidden",
               color: "var(--color-text-primary)" 
             }}
           />
           
           <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between">
-            <VoiceInput 
-              onResult={handleResult} 
-              onInterimResult={setInterim}
-              onError={(err) => showToast(err, 'error')}
-            />
+            <div className="flex items-center gap-2 max-w-[calc(100%-90px)]">
+              <VoiceInput 
+                editorRef={textareaRef}
+                currentValue={input}
+                onValueChange={handleValueChange}
+                onError={(err) => showToast(err, 'error')}
+              />
+            </div>
             
             <div className="flex items-center gap-3">
               <button

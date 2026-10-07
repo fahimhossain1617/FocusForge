@@ -21,7 +21,6 @@ export default function ThoughtDetail({ thoughtId, navigate, previousView }: Tho
   const thought = state.mindItems.find(item => item.id === thoughtId);
   
   const [content, setContent] = useState(thought?.content || "");
-  const [interim, setInterim] = useState("");
   const [isFocused, setIsFocused] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -43,19 +42,7 @@ export default function ThoughtDetail({ thoughtId, navigate, previousView }: Tho
       textareaRef.current.style.height = `${newHeight}px`;
       textareaRef.current.scrollTop = textareaRef.current.scrollHeight;
     }
-  }, [content, interim]);
-
-  const handleResult = useCallback((text: string, isFinal: boolean, isFullReplacement?: boolean) => {
-    if (isFinal && text) {
-      setIsEditing(true);
-      setContent((prev) => {
-        if (isFullReplacement) return text;
-        const needsSpace = prev.length > 0 && !prev.endsWith(" ") && !prev.endsWith("\n");
-        return prev + (needsSpace ? " " : "") + text;
-      });
-      setInterim("");
-    }
-  }, []);
+  }, [content]);
 
   const handleSave = () => {
     if (!content.trim()) return;
@@ -74,7 +61,6 @@ export default function ThoughtDetail({ thoughtId, navigate, previousView }: Tho
   if (!thought) return null;
 
   const sourceInfo = getMindSourceInfo(thought, t);
-  const displayValue = content + (interim ? ((content && !content.endsWith(" ") && !content.endsWith("\n")) ? " " : "") + interim : "");
 
   return (
     <div className="motion-page max-w-6xl mx-auto w-full pb-14">
@@ -122,10 +108,23 @@ export default function ThoughtDetail({ thoughtId, navigate, previousView }: Tho
       >
         <textarea
           ref={textareaRef}
-          value={displayValue}
+          value={content}
           onChange={(e) => {
             setContent(e.target.value);
             setIsEditing(true);
+            const el = textareaRef.current;
+            if (el) {
+              el.style.height = "auto";
+              const scrollH = el.scrollHeight;
+              if (scrollH > 240) {
+                el.style.height = "240px";
+                el.style.overflowY = "auto";
+              } else {
+                el.style.height = `${Math.max(scrollH, 120)}px`;
+                el.style.overflowY = "hidden";
+              }
+              el.scrollTop = el.scrollHeight;
+            }
           }}
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
@@ -133,17 +132,27 @@ export default function ThoughtDetail({ thoughtId, navigate, previousView }: Tho
           className="w-full px-5 sm:px-7 py-5 sm:py-6 text-base sm:text-lg border-0 resize-none no-focus-ring leading-relaxed bg-transparent my-mind-textarea custom-mini-scrollbar"
           style={{ 
             background: "transparent", 
-            border: "none",
+            border: "none", 
             outline: "none", 
-            minHeight: "220px",
-            maxHeight: "380px",
-            overflowY: "auto",
+            minHeight: "120px",
+            maxHeight: "240px",
+            height: "auto",
+            overflowY: "hidden",
             color: "var(--color-text-primary)" 
           }}
         />
         
         <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between">
-          <VoiceInput onResult={handleResult} onInterimResult={setInterim} />
+          <div className="flex items-center gap-2 max-w-[calc(100%-160px)]">
+            <VoiceInput 
+              editorRef={textareaRef}
+              currentValue={content}
+              onValueChange={(val) => {
+                setContent(val);
+                setIsEditing(true);
+              }}
+            />
+          </div>
           
           <div className="flex items-center gap-3">
             <button

@@ -13,7 +13,6 @@ import VoiceInput from "./mymind/VoiceInput";
 export default function QuickCapture() {
   const [isOpen, setIsOpen] = useState(false);
   const [value, setValue] = useState("");
-  const [interim, setInterim] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { addMindItem, showToast, state } = useAppContext();
   const { requireAuth } = useAuth();
@@ -28,30 +27,21 @@ export default function QuickCapture() {
     }
   }, [isOpen]);
 
-  const handleVoiceResult = (text: string, isFinal: boolean, isFullReplacement?: boolean) => {
-    if (isFinal && text) {
-      setValue((prev) => {
-        if (isFullReplacement) return text;
-        const needsSpace = prev.length > 0 && !prev.endsWith(" ") && !prev.endsWith("\n");
-        return prev + (needsSpace ? " " : "") + text;
-      });
-      setInterim("");
-      setTimeout(() => {
-        if (textareaRef.current) {
-          textareaRef.current.style.height = "auto";
-          textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 250)}px`;
-        }
-      }, 0);
-    }
-  };
-
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setValue(e.target.value);
     
     // Auto-resize
     if (textareaRef.current) {
       textareaRef.current.style.height = "auto";
-      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 250)}px`;
+      const scrollH = textareaRef.current.scrollHeight;
+      if (scrollH > 240) {
+        textareaRef.current.style.height = "240px";
+        textareaRef.current.style.overflowY = "auto";
+      } else {
+        textareaRef.current.style.height = `${Math.max(scrollH, 44)}px`;
+        textareaRef.current.style.overflowY = "hidden";
+      }
+      textareaRef.current.scrollTop = textareaRef.current.scrollHeight;
     }
   };
 
@@ -110,7 +100,7 @@ export default function QuickCapture() {
             <Brain className="w-5 h-5 text-[#5B8DEF] shrink-0 mt-1" />
             <textarea
               ref={textareaRef}
-              value={value + (interim ? (value ? " " : "") + interim : "")}
+              value={value}
               onChange={handleChange}
               onKeyDown={handleKeyDown}
               placeholder={state.lang === 'bn' ? "আপনার মনে কী চলছে? (বাংলা বা ইংরেজিতে বলুন...)" : "What's on your mind? (Speak in বাংলা or English...)"}
@@ -120,22 +110,25 @@ export default function QuickCapture() {
                 border: "none",
                 boxShadow: "none",
                 minHeight: "44px",
-                maxHeight: "250px",
+                maxHeight: "240px",
+                height: "auto",
+                overflowY: "hidden",
               }}
             />
           </div>
           <div className="px-4 pb-4 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <VoiceInput onResult={handleVoiceResult} onInterimResult={setInterim} />
-              {interim && (
-                <span className="text-xs text-[#5B8DEF] animate-pulse font-medium">
-                  {t.myMind.listening || "Listening..."}
-                </span>
-              )}
+            <div className="flex items-center gap-2 max-w-[calc(100%-90px)]">
+              <VoiceInput
+                editorRef={textareaRef}
+                currentValue={value} 
+                onValueChange={(val) => {
+                  setValue(val);
+                }} 
+              />
             </div>
             <button
               onClick={handleSubmit}
-              disabled={!value.trim() && !interim.trim()}
+              disabled={!value.trim()}
               className="px-5 py-2 rounded-xl text-xs font-bold transition-all duration-150 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed bg-[#223A5E] hover:bg-[#2E4E7B] text-white shadow-none"
             >
               {t.myMind.save || "Save"}

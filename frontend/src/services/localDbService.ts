@@ -1,17 +1,14 @@
 /**
- * FocusForge Local-First Database Service (localDbService.ts)
- * 
- * Provides an enterprise-grade, versioned, multi-store IndexedDB engine.
- * Guarantees strict user isolation by scoping every store and record to the authenticated user ID.
- * Supports:
- * - Structured records for Tasks, Notes, Diary, Focus, Skills, Mind, and AI
- * - Binary/Image attachments stored locally without third-party cloud leakage
- * - Soft-deletes with tombstones for conflict-free E2EE synchronization
- * - Fast multi-index querying and pagination
- * - Complete database export / import for disaster recovery
+ * Focentia Local Database Service (localDbService.ts)
+ *
+ * Backed by Dexie.js (focentia_e2ee_db_v1).
+ * Bridges existing service calls to the high-performance Dexie repository layer
+ * ensuring 100% backward compatibility across all existing pages and hooks.
  */
 
-export const LOCAL_DB_NAME = "focusforge_local_v3";
+import { db, type DexieBaseRecord } from "../lib/db";
+
+export const LOCAL_DB_NAME = "focentia_e2ee_db_v1";
 export const LOCAL_DB_VERSION = 1;
 
 export interface BaseRecord {
@@ -40,327 +37,188 @@ export type StoreName =
   | "ai_messages"
   | "ai_memory"
   | "app_preferences"
+  | "app_state"
   | "sync_queue";
 
 class LocalDatabaseManager {
-  private dbPromise: Promise<IDBDatabase> | null = null;
-
-  public getDB(): Promise<IDBDatabase> {
-    if (typeof window === "undefined" || !window.indexedDB) {
-      return Promise.reject(new Error("IndexedDB is not available in this environment"));
-    }
-
-    if (this.dbPromise) {
-      return this.dbPromise;
-    }
-
-    this.dbPromise = new Promise<IDBDatabase>((resolve, reject) => {
-      const request = indexedDB.open(LOCAL_DB_NAME, LOCAL_DB_VERSION);
-
-      request.onupgradeneeded = (event: IDBVersionChangeEvent) => {
-        const db = request.result;
-
-        // Helper to ensure store with standard user-scoped indices
-        const ensureStore = (storeName: StoreName, keyPath: string = "localKey") => {
-          if (!db.objectStoreNames.contains(storeName)) {
-            const store = db.createObjectStore(storeName, { keyPath });
-            store.createIndex("by_user", "userId", { unique: false });
-            store.createIndex("by_user_updated", ["userId", "updatedAt"], { unique: false });
-            return store;
-          }
-          return request.transaction!.objectStore(storeName);
-        };
-
-        // 1. Tasks
-        const taskStore = ensureStore("tasks");
-        if (!taskStore.indexNames.contains("by_user_date")) {
-          taskStore.createIndex("by_user_date", ["userId", "targetDate"], { unique: false });
-        }
-
-        // 2. Routine Templates
-        ensureStore("routine_templates");
-
-        // 3. Notes
-        const noteStore = ensureStore("notes");
-        if (!noteStore.indexNames.contains("by_user_category")) {
-          noteStore.createIndex("by_user_category", ["userId", "category"], { unique: false });
-        }
-
-        // 4. Attachments (Binary Blobs & Images)
-        ensureStore("attachments");
-
-        // 5. Mind Items (Brain Dump / Capture)
-        ensureStore("mind_items");
-
-        // 6. Diary Topics
-        ensureStore("diary_topics");
-
-        // 7. Diary Entries
-        const diaryEntryStore = ensureStore("diary_entries");
-        if (!diaryEntryStore.indexNames.contains("by_user_topic")) {
-          diaryEntryStore.createIndex("by_user_topic", ["userId", "topicId"], { unique: false });
-        }
-        if (!diaryEntryStore.indexNames.contains("by_user_date")) {
-          diaryEntryStore.createIndex("by_user_date", ["userId", "date"], { unique: false });
-        }
-
-        // 8. Focus Sessions
-        const focusStore = ensureStore("focus_sessions");
-        if (!focusStore.indexNames.contains("by_user_start")) {
-          focusStore.createIndex("by_user_start", ["userId", "startTime"], { unique: false });
-        }
-
-        // 9. Learning Folders
-        ensureStore("learning_folders");
-
-        // 10. Learning Logs
-        const learningLogsStore = ensureStore("learning_logs");
-        if (!learningLogsStore.indexNames.contains("by_user_folder")) {
-          learningLogsStore.createIndex("by_user_folder", ["userId", "folderId"], { unique: false });
-        }
-
-        // 11. AI Sessions
-        ensureStore("ai_sessions");
-
-        // 12. AI Messages
-        const aiMsgStore = ensureStore("ai_messages");
-        if (!aiMsgStore.indexNames.contains("by_user_session")) {
-          aiMsgStore.createIndex("by_user_session", ["userId", "sessionId"], { unique: false });
-        }
-
-        // 13. AI Memory (User-approved long term memory items)
-        const aiMemStore = ensureStore("ai_memory");
-        if (!aiMemStore.indexNames.contains("by_user_category")) {
-          aiMemStore.createIndex("by_user_category", ["userId", "category"], { unique: false });
-        }
-
-        // 14. App Preferences
-        ensureStore("app_preferences");
-
-        // 15. Sync Queue (For dirty changes pending E2EE sync)
-        ensureStore("sync_queue");
-      };
-
-      request.onsuccess = () => resolve(request.result);
-      request.onerror = () => reject(request.error);
-    });
-
-    return this.dbPromise;
-  }
-
-  /**
-   * Generates a composite unique key for strict account isolation:
-   * "userId:recordId"
-   */
   public makeLocalKey(userId: string, recordId: string | number): string {
-    const cleanUserId = userId?.trim() || "guest";
-    return `${cleanUserId}::${recordId}`;
+    return db.makeLocalKey(userId, recordId);
   }
 
   /**
-   * Puts a record into the specified store, enforcing userId scoping.
+   * Puts a record into the specified Dexie store, enforcing userId scoping.
    */
   public async put<T extends BaseRecord>(storeName: StoreName, record: T): Promise<T> {
-    const db = await this.getDB();
     const cleanUserId = record.userId?.trim() || "guest";
     const now = new Date().toISOString();
-    
+    const id = record.id;
+    const localKey = db.makeLocalKey(cleanUserId, id);
+
     const enrichedRecord = {
       ...record,
       userId: cleanUserId,
-      localKey: this.makeLocalKey(cleanUserId, record.id),
+      localKey,
       updatedAt: record.updatedAt || now,
       createdAt: record.createdAt || now,
       isDeleted: record.isDeleted || false,
     };
 
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction([storeName, "sync_queue"], "readwrite");
-      const store = tx.objectStore(storeName);
-      const syncStore = tx.objectStore("sync_queue");
+    const table = (db as any)[storeName];
+    if (table) {
+      await table.put(enrichedRecord);
+    }
 
-      store.put(enrichedRecord);
+    // Add dirty record to sync_queue if authenticated and not attachments
+    if (storeName !== "attachments" && cleanUserId !== "guest") {
+      const queueKey = db.makeSyncQueueKey(cleanUserId, storeName, id);
+      await db.sync_queue.put({
+        localKey: queueKey,
+        userId: cleanUserId,
+        storeName,
+        recordId: id,
+        updatedAt: enrichedRecord.updatedAt,
+        isDeleted: Boolean(enrichedRecord.isDeleted),
+      });
+    }
 
-      // Track as a dirty record for E2EE sync (excluding attachments from direct queue)
-      if (storeName !== "attachments" && cleanUserId !== "guest") {
-        syncStore.put({
-          localKey: enrichedRecord.localKey,
-          storeName,
-          recordId: record.id,
-          userId: cleanUserId,
-          updatedAt: enrichedRecord.updatedAt,
-          isDeleted: enrichedRecord.isDeleted,
-        });
-      }
-
-      tx.oncomplete = () => resolve(enrichedRecord);
-      tx.onerror = () => reject(tx.error);
-      tx.onabort = () => reject(tx.error);
-    });
+    return enrichedRecord as T;
   }
 
   /**
-   * Puts multiple records in a single high-performance transaction.
+   * Puts multiple records in a single high-performance bulk transaction.
    */
   public async bulkPut<T extends BaseRecord>(storeName: StoreName, records: T[]): Promise<void> {
     if (!records || records.length === 0) return;
-    const db = await this.getDB();
     const now = new Date().toISOString();
 
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction([storeName, "sync_queue"], "readwrite");
-      const store = tx.objectStore(storeName);
-      const syncStore = tx.objectStore("sync_queue");
-
-      for (const record of records) {
-        const cleanUserId = record.userId?.trim() || "guest";
-        const enriched = {
-          ...record,
-          userId: cleanUserId,
-          localKey: this.makeLocalKey(cleanUserId, record.id),
-          updatedAt: record.updatedAt || now,
-          createdAt: record.createdAt || now,
-          isDeleted: record.isDeleted || false,
-        };
-        store.put(enriched);
-
-        if (storeName !== "attachments" && cleanUserId !== "guest") {
-          syncStore.put({
-            localKey: enriched.localKey,
-            storeName,
-            recordId: record.id,
-            userId: cleanUserId,
-            updatedAt: enriched.updatedAt,
-            isDeleted: enriched.isDeleted,
-          });
-        }
-      }
-
-      tx.oncomplete = () => resolve();
-      tx.onerror = () => reject(tx.error);
+    const enrichedList = records.map((record) => {
+      const cleanUserId = record.userId?.trim() || "guest";
+      return {
+        ...record,
+        userId: cleanUserId,
+        localKey: db.makeLocalKey(cleanUserId, record.id),
+        updatedAt: record.updatedAt || now,
+        createdAt: record.createdAt || now,
+        isDeleted: record.isDeleted || false,
+      };
     });
+
+    const table = (db as any)[storeName];
+    if (table) {
+      await table.bulkPut(enrichedList);
+    }
+
+    // Enqueue for sync
+    const syncItems = enrichedList
+      .filter((r) => r.userId !== "guest" && storeName !== "attachments")
+      .map((r) => ({
+        localKey: db.makeSyncQueueKey(r.userId, storeName, r.id),
+        userId: r.userId,
+        storeName,
+        recordId: r.id,
+        updatedAt: r.updatedAt,
+        isDeleted: Boolean(r.isDeleted),
+      }));
+
+    if (syncItems.length > 0) {
+      await db.sync_queue.bulkPut(syncItems);
+    }
   }
 
   /**
    * Gets a specific record by user ID and record ID.
    */
-  public async get<T extends BaseRecord>(storeName: StoreName, userId: string, recordId: string | number): Promise<T | null> {
-    const db = await this.getDB();
-    const key = this.makeLocalKey(userId, recordId);
+  public async get<T extends BaseRecord>(
+    storeName: StoreName,
+    userId: string,
+    recordId: string | number
+  ): Promise<T | null> {
+    const cleanUserId = userId?.trim() || "guest";
+    const localKey = db.makeLocalKey(cleanUserId, recordId);
 
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(storeName, "readonly");
-      const store = tx.objectStore(storeName);
-      const req = store.get(key);
+    const table = (db as any)[storeName];
+    if (!table) return null;
 
-      req.onsuccess = () => {
-        const item = req.result;
-        if (!item || item.isDeleted) {
-          resolve(null);
-        } else {
-          resolve(item as T);
-        }
-      };
-      req.onerror = () => reject(req.error);
-    });
+    const item = await table.get(localKey);
+    if (!item || item.isDeleted) return null;
+    return item as T;
   }
 
   /**
-   * Fetches all non-deleted records for a specific user.
+   * Fetches all non-deleted records for a specific user from Dexie.
    */
   public async getAllForUser<T extends BaseRecord>(
     storeName: StoreName,
     userId: string,
-    includeDeleted: boolean = false
+    includeDeleted = false
   ): Promise<T[]> {
-    const db = await this.getDB();
     const cleanUserId = userId?.trim() || "guest";
+    const table = (db as any)[storeName];
+    if (!table) return [];
 
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(storeName, "readonly");
-      const store = tx.objectStore(storeName);
-      const index = store.index("by_user");
-      const req = index.getAll(IDBKeyRange.only(cleanUserId));
-
-      req.onsuccess = () => {
-        const results = req.result as (T & { isDeleted?: boolean })[];
-        if (includeDeleted) {
-          resolve(results);
-        } else {
-          resolve(results.filter((r) => !r.isDeleted));
-        }
-      };
-      req.onerror = () => reject(req.error);
-    });
+    const items = await table.where("userId").equals(cleanUserId).toArray();
+    if (includeDeleted) {
+      return items as T[];
+    }
+    return items.filter((r: any) => !r.isDeleted) as T[];
   }
 
   /**
-   * Soft-deletes a record by creating a tombstone so deletions propagate correctly across devices.
+   * Soft-deletes a record by creating a tombstone so deletions propagate across devices.
    */
   public async softDelete(storeName: StoreName, userId: string, recordId: string | number): Promise<void> {
-    const db = await this.getDB();
-    const key = this.makeLocalKey(userId, recordId);
     const cleanUserId = userId?.trim() || "guest";
+    const localKey = db.makeLocalKey(cleanUserId, recordId);
     const now = new Date().toISOString();
 
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction([storeName, "sync_queue"], "readwrite");
-      const store = tx.objectStore(storeName);
-      const syncStore = tx.objectStore("sync_queue");
+    const table = (db as any)[storeName];
+    if (!table) return;
 
-      const getReq = store.get(key);
-      getReq.onsuccess = () => {
-        const existing = getReq.result || { id: recordId, userId: cleanUserId };
-        const tombstone = {
-          ...existing,
-          localKey: key,
-          userId: cleanUserId,
-          isDeleted: true,
-          deletedAt: now,
-          updatedAt: now,
-        };
-        store.put(tombstone);
+    const existing = (await table.get(localKey)) || { id: recordId, userId: cleanUserId };
+    const tombstone = {
+      ...existing,
+      localKey,
+      userId: cleanUserId,
+      isDeleted: true,
+      deletedAt: now,
+      updatedAt: now,
+    };
 
-        if (cleanUserId !== "guest") {
-          syncStore.put({
-            localKey: key,
-            storeName,
-            recordId,
-            userId: cleanUserId,
-            updatedAt: now,
-            isDeleted: true,
-          });
-        }
-      };
+    await table.put(tombstone);
 
-      tx.oncomplete = () => resolve();
-      tx.onerror = () => reject(tx.error);
-    });
+    if (cleanUserId !== "guest") {
+      const queueKey = db.makeSyncQueueKey(cleanUserId, storeName, recordId);
+      await db.sync_queue.put({
+        localKey: queueKey,
+        storeName,
+        recordId,
+        userId: cleanUserId,
+        updatedAt: now,
+        isDeleted: true,
+      });
+    }
   }
 
   /**
-   * Permanently hard-deletes a record from local storage (used when user requests purge).
+   * Permanently hard-deletes a record from Dexie storage.
    */
   public async hardDelete(storeName: StoreName, userId: string, recordId: string | number): Promise<void> {
-    const db = await this.getDB();
-    const key = this.makeLocalKey(userId, recordId);
+    const cleanUserId = userId?.trim() || "guest";
+    const localKey = db.makeLocalKey(cleanUserId, recordId);
+    const queueKey = db.makeSyncQueueKey(cleanUserId, storeName, recordId);
 
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction([storeName, "sync_queue"], "readwrite");
-      tx.objectStore(storeName).delete(key);
-      tx.objectStore("sync_queue").delete(key);
-      tx.oncomplete = () => resolve();
-      tx.onerror = () => reject(tx.error);
-    });
+    const table = (db as any)[storeName];
+    if (table) {
+      await table.delete(localKey);
+    }
+    await db.sync_queue.delete(queueKey);
   }
 
   /**
    * Clears all local records belonging to a specific user (used on account wipe).
-   * Does NOT touch other accounts on the device.
    */
   public async clearAllUserData(userId: string): Promise<void> {
     if (!userId) return;
-    const db = await this.getDB();
     const cleanUserId = userId.trim();
 
     const allStores: StoreName[] = [
@@ -378,27 +236,15 @@ class LocalDatabaseManager {
       "ai_messages",
       "ai_memory",
       "app_preferences",
+      "app_state",
       "sync_queue",
     ];
 
     for (const storeName of allStores) {
-      await new Promise<void>((resolve, reject) => {
-        const tx = db.transaction(storeName, "readwrite");
-        const store = tx.objectStore(storeName);
-        const index = store.index("by_user");
-        const req = index.openCursor(IDBKeyRange.only(cleanUserId));
-
-        req.onsuccess = (event) => {
-          const cursor = (event.target as IDBRequest).result as IDBCursorWithValue;
-          if (cursor) {
-            cursor.delete();
-            cursor.continue();
-          } else {
-            resolve();
-          }
-        };
-        req.onerror = () => reject(req.error);
-      });
+      const table = (db as any)[storeName];
+      if (table) {
+        await table.where("userId").equals(cleanUserId).delete();
+      }
     }
   }
 
@@ -442,7 +288,7 @@ class LocalDatabaseManager {
   }
 
   /**
-   * Imports a user dataset backup into local storage.
+   * Imports a user dataset backup into Dexie storage.
    */
   public async importUserData(userId: string, backup: { data: Record<string, any[]> }): Promise<void> {
     if (!backup?.data) return;
@@ -460,25 +306,16 @@ class LocalDatabaseManager {
    * Pulls pending dirty records from sync queue for E2EE push.
    */
   public async getPendingSyncQueue(userId: string): Promise<any[]> {
-    return this.getAllForUser("sync_queue", userId, true);
+    const cleanUserId = userId?.trim() || "guest";
+    return await db.sync_queue.where("userId").equals(cleanUserId).toArray();
   }
 
   /**
-   * Clears synced items from the queue after successful E2EE server confirmation.
+   * Clears synced items from the queue after successful server confirmation.
    */
   public async acknowledgeSyncQueue(userId: string, localKeys: string[]): Promise<void> {
     if (!localKeys || localKeys.length === 0) return;
-    const db = await this.getDB();
-
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction("sync_queue", "readwrite");
-      const store = tx.objectStore("sync_queue");
-      for (const k of localKeys) {
-        store.delete(k);
-      }
-      tx.oncomplete = () => resolve();
-      tx.onerror = () => reject(tx.error);
-    });
+    await db.sync_queue.bulkDelete(localKeys);
   }
 }
 

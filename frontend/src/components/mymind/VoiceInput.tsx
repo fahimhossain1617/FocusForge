@@ -1,92 +1,168 @@
-"use client";
+'use client';
 
-import { useEffect } from "react";
-import { Mic, MicOff } from "lucide-react";
-import { useSpeechRecognition } from "../../hooks/useSpeechRecognition";
-import { useTranslation } from "../../hooks/useTranslation";
-import { useAppContext } from "../../context/AppContext";
+import React, { useEffect, useRef, useCallback } from 'react';
+import { Mic, MicOff, Languages } from 'lucide-react';
+import { useContinuousSpeech } from '@/hooks/useContinuousSpeech';
 
 interface VoiceInputProps {
-  onResult: (text: string, isFinal: boolean, isFullReplacement?: boolean) => void;
-  onInterimResult?: (text: string) => void;
+  value?: string;
+  onChange?: (val: string) => void;
+  onSave?: (val: string) => void;
+  currentValue?: string;
+  onValueChange?: (val: string) => void;
+  editorRef?: React.RefObject<HTMLTextAreaElement | null>;
   onError?: (err: string) => void;
+  onListeningChange?: (isListening: boolean) => void;
+  showLangToggle?: boolean;
 }
 
-export default function VoiceInput({ onResult, onInterimResult, onError }: VoiceInputProps) {
-  const { t } = useTranslation();
-  const { showToast, isOnline, state } = useAppContext();
+export default function VoiceInput({
+  value: externalValue,
+  onChange,
+  onSave,
+  currentValue,
+  onValueChange,
+  editorRef: externalTextareaRef,
+  onError,
+  onListeningChange,
+  showLangToggle = true,
+}: VoiceInputProps) {
+  const incomingValue = externalValue !== undefined ? externalValue : (currentValue !== undefined ? currentValue : '');
+  const localTextareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const textareaRef = externalTextareaRef || localTextareaRef;
+
+  const handleTextChange = onChange || onValueChange;
+
+  // Auto-expand smoothly and auto-scroll to bottom
+  const adjustHeight = useCallback(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    const scrollH = el.scrollHeight;
+    const maxHeight = 240;
+
+    if (scrollH > maxHeight) {
+      el.style.height = `${maxHeight}px`;
+      el.style.overflowY = 'auto';
+    } else {
+      el.style.height = `${Math.max(scrollH, 64)}px`;
+      el.style.overflowY = 'hidden';
+    }
+    el.scrollTop = el.scrollHeight;
+  }, [textareaRef]);
 
   const {
-    isSupported,
+    text,
     isListening,
-    isTranscribing,
-    interimText,
-    startListening,
-    stopListening,
-  } = useSpeechRecognition({
-    onResult,
-    onInterimResult,
-    onError,
+    lang,
+    toggleListening: baseToggleListening,
+    toggleLanguage,
+    setManualText,
+  } = useContinuousSpeech({
+    initialLang: 'bn-BD',
+    onTranscriptChange: (newText) => {
+      if (handleTextChange) {
+        handleTextChange(newText);
+      }
+      requestAnimationFrame(() => {
+        adjustHeight();
+      });
+    },
+    onError: (err) => {
+      onError?.(err);
+    },
   });
 
+  // Sync external incoming value changes when not listening
   useEffect(() => {
-    if (onInterimResult) {
-      onInterimResult(interimText);
+    if (incomingValue !== undefined && !isListening) {
+      setManualText(incomingValue);
+      requestAnimationFrame(() => {
+        adjustHeight();
+      });
     }
-  }, [interimText, onInterimResult]);
+  }, [incomingValue, isListening, setManualText, adjustHeight]);
 
-  if (!isSupported) return null;
+  // Adjust height on value changes
+  useEffect(() => {
+    adjustHeight();
+  }, [text, incomingValue, adjustHeight]);
+
+  useEffect(() => {
+    onListeningChange?.(isListening);
+  }, [isListening, onListeningChange]);
+
+  const toggleListening = () => {
+    const activeText = incomingValue !== undefined && incomingValue !== '' ? incomingValue : text;
+    baseToggleListening(activeText);
+    textareaRef.current?.focus();
+  };
+
+  const currentDisplayValue = incomingValue !== undefined && incomingValue !== '' ? incomingValue : text;
 
   return (
-    <div className={`voice-input flex items-center gap-2 ${isListening ? "is-listening" : ""}`}>
-      <button
-        type="button"
-        onClick={() => {
-          if (!isListening && !isOnline) {
-            showToast(
-              state.lang === "bn"
-                ? "আপনি বর্তমানে অফলাইনে আছেন।"
-                : "You are currently offline.",
-              "error"
-            );
-            return;
-          }
-          isListening ? stopListening() : startListening("auto");
-        }}
-        className="voice-input__toggle w-10 h-10 flex items-center justify-center transition-all cursor-pointer"
-        title={isListening ? t.myMind.stopListening : t.myMind.speakThought}
-        aria-label={isListening ? t.myMind.stopListening : t.myMind.startVoiceInput}
-        disabled={isTranscribing}
-      >
-        {isTranscribing ? (
-          <div className="w-4 h-4 border-2 border-zinc-400 border-t-transparent rounded-full animate-spin" />
-        ) : isListening ? (
-          <MicOff size={18} />
-        ) : (
-          <Mic size={18} />
-        )}
-      </button>
+    <div className="w-full">
+      {/* If used standalone without external textarea, render self-contained textarea */}
+      {!externalTextareaRef && (
+        <textarea
+          ref={textareaRef}
+          value={currentDisplayValue}
+          onChange={(e) => {
+            const nextVal = e.target.value;
+            setManualText(nextVal);
+            handleTextChange?.(nextVal);
+            adjustHeight();
+          }}
+          placeholder="Write whatever comes to mind..."
+          className="w-full bg-transparent text-neutral-100 placeholder-neutral-500 text-base leading-relaxed resize-none outline-none"
+          style={{ minHeight: '64px', maxHeight: '240px', height: 'auto', overflowY: 'hidden' }}
+        />
+      )}
 
-      {isListening ? (
-        <div className="voice-wave" role="status" aria-label="Listening">
-          <svg viewBox="0 0 240 48" aria-hidden="true" focusable="false">
-            <path
-              className="voice-wave__line voice-wave__line--back"
-              d="M-16 25 C4 10 21 10 41 25 S78 40 98 25 S135 10 155 25 S192 40 212 25 S239 10 258 25"
-            />
-            <path
-              className="voice-wave__line voice-wave__line--mid"
-              d="M-16 25 C4 40 21 40 41 25 S78 10 98 25 S135 40 155 25 S192 10 212 25 S239 40 258 25"
-            />
-            <path
-              className="voice-wave__line voice-wave__line--front"
-              d="M-16 25 C4 17 21 17 41 25 S78 33 98 25 S135 17 155 25 S192 33 212 25 S239 17 258 25"
-            />
-          </svg>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          {/* Mic Button */}
+          <button
+            type="button"
+            onClick={toggleListening}
+            className={`p-2.5 rounded-full transition-all flex items-center justify-center cursor-pointer ${
+              isListening
+                ? 'bg-blue-600 text-white animate-pulse'
+                : 'bg-neutral-800/80 text-neutral-400 hover:text-white hover:bg-neutral-700'
+            }`}
+            title={isListening ? 'Stop Listening' : 'Start Listening'}
+            aria-label={isListening ? 'Stop voice input' : 'Start voice input'}
+          >
+            {isListening ? <Mic className="w-5 h-5" /> : <MicOff className="w-5 h-5" />}
+          </button>
+
+          {/* Language Toggle Button */}
+          {showLangToggle && (
+            <button
+              type="button"
+              onClick={toggleLanguage}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-neutral-800/80 text-neutral-300 hover:bg-neutral-700 transition cursor-pointer"
+              title={lang === 'bn-BD' ? 'Switch to English' : 'বাংলায় সুইচ করুন'}
+            >
+              <Languages className="w-3.5 h-3.5" />
+              <span>{lang === 'bn-BD' ? 'বাং' : 'Eng'}</span>
+            </button>
+          )}
         </div>
-      ) : isTranscribing ? (
-        <div className="text-xs text-blue-400 animate-pulse font-medium">Processing...</div>
-      ) : null}
+
+        {/* Optional Save Button if onSave provided */}
+        {onSave && (
+          <button
+            type="button"
+            onClick={() => onSave(currentDisplayValue)}
+            className="px-4 py-1.5 text-sm font-medium rounded-lg bg-neutral-800 text-neutral-200 hover:bg-neutral-700 hover:text-white transition cursor-pointer"
+          >
+            Save
+          </button>
+        )}
+      </div>
     </div>
   );
 }
+
+export { type VoiceInputProps };

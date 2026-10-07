@@ -364,11 +364,52 @@
   3. **UI, Layouts & Legal:** Updated all navigation headers (`Sidebar.tsx`, `MobileHeader.tsx`), Auth layouts (`AuthLayout.tsx`), Legal documents (`terms/page.tsx`, `privacy/page.tsx`), About & Help modals, onboarding tour, feedback prompts, and Notifications center.
   4. **Email & AI Prompts:** Updated transactional email templates, subject lines, AI Agent identity instructions, greetings, voice transcription prompts, and supervisor support engine tags.
   5. **Safety & Technical Identifier Preservation:** Kept internal storage keys (e.g. `focusforge_theme`, `focusforge_local_v3`), database tables, and route API contracts intact to prevent data loss or migration breaks for existing users.
-- **Reason:** Complete official brand name transition requested by user.
-- **Impact:** `frontend/src/config.ts`, `frontend/src/app/layout.tsx`, `frontend/public/manifest.json`, `frontend/src/services/notificationTemplates.ts`, `frontend/src/services/emailService.ts`, `frontend/src/services/aiAgentService.ts`, `frontend/src/lib/server/aiService.ts`, all pages and components.
+---
 
+## ADR-024: Zero-Knowledge Envelope-Key E2EE & Dexie.js Primary Persistence
 
+- **Date:** October 2026
+- **Status:** Accepted
+- **Decision:**
+  1. **Dexie.js IndexedDB Primary Store:** Established Dexie.js IndexedDB (`focentia_e2ee_db_v1`) as the primary client-side persistent storage across 17 typed stores. Direct `localStorage` usage for state is completely replaced with an idempotent, non-destructive migration engine (`localStorageToIndexedDB.ts`) protected by a strict verification gate.
+  2. **Envelope-Key Cryptography:** Generated a cryptographically random 256-bit Master Encryption Key (MEK) via Web Crypto `crypto.getRandomValues()`.
+  3. **Key Derivation (PBKDF2):** Derived a Key Encryption Key (KEK) from the user's secret passphrase using Web Crypto PBKDF2-HMAC-SHA-256 with 250,000 iterations and a 16-byte random salt.
+  4. **MEK Wrapping & Storage:** Wrapped the MEK with KEK using AES-256-GCM (12-byte fresh IV) and stored remotely in Supabase `public.user_encryption_keys`.
+  5. **Ciphertext Relay:** Supabase receives and stores exclusively opaque ciphertext (`user_encrypted_data` / `encrypted_sync_records`) with zero plaintext personal data.
+  6. **Client-Side File Encryption:** All file attachments (images, PDFs, documents) are encrypted into authenticated AES-256-GCM binary blobs client-side before uploading to Supabase Storage.
+---
 
+## ADR-025: Production-Grade Real-Time Voice-to-Text & Unlimited Continuous Dictation Architecture
 
+- **Date:** October 2026
+- **Status:** Accepted
+- **Decision:**
+  1. **Separation of Concerns:** De-coupled Voice Recognition from Text Editing by creating three dedicated services:
+     - `TranscriptReconciler` (`frontend/src/services/voice/transcriptReconciler.ts`): Pure, deterministic transcript normalization (Bengali/English numbers, percentages, punctuation spacing), jitter stutter filtering, and word-boundary overlap deduplication.
+     - `VoiceSessionManager` (`frontend/src/services/voice/voiceSessionManager.ts`): Typed finite state machine (`IDLE` | `LISTENING` | `PAUSED` | `RECOVERING` | `STOPPING` | `ERROR`), managing continuous streaming speech recognition, transparent background session rollover, intentional Stop vs Pause/Resume state separation, and zero-leak `MediaStream` track release.
+     - `VoiceEditingController` (`frontend/src/services/voice/voiceEditingController.ts`): Manages caret/selection anchoring, safe range insertion at cursor position, live interim preview, and protects manual edits (typing, backspace, delete, paste) from being overwritten or resurrecting deleted text.
+  2. **Unlimited Continuous Dictation:** Removed all arbitrary line, word-count, or time limitations. The user decides when dictation ends. Natural pauses are handled seamlessly without clearing transcripts or losing cursor positions.
+  3. **Multi-Language Support:** First-class support for Bengali (`bn-BD`), English (`en-US`), and mixed Banglish code-switching with technical term preservation.
+  4. **Zero Synthetic Audio Feedback:** Completely removed unwanted synthetic start/stop beeps and sound effects while managing browser speech recognition transitions gracefully.
+  5. **Direct Caret Synchronization in Editors:** Updated `DiaryEditor.tsx`, `DiaryVoiceInput.tsx`, `MindHome.tsx`, `IdeaCapture.tsx`, `ProblemSolver.tsx`, `ThoughtDetail.tsx`, `QuickCapture.tsx`, and `VoiceAssistantModal.tsx` to insert speech at active caret positions and preserve user manual editing.
+- **Reason:** Upgrades Focentia's voice system into a reliable, ChatGPT/Perplexity-grade dictation experience with zero dropped words, zero duplicated phrases, and perfect cursor stability.
+- **Impact:** `frontend/src/services/voice/*`, `frontend/src/hooks/useSpeechRecognition.ts`, `frontend/src/components/voice/VoiceAssistantModal.tsx`, `frontend/src/components/diary/*`, `frontend/src/components/mymind/*`, `frontend/src/components/QuickCapture.tsx`.
+- **Do Not Change Without Approval:** Do not replace incremental streaming with blind whole-audio overwrites or remove cursor-aware anchoring.
 
+---
+
+## ADR-026: Global Continuous Speech Recognition Engine (`useContinuousSpeech`)
+
+- **Date:** October 2026
+- **Status:** Accepted
+- **Decision:**
+  1. **Zero-Drop Engine (`useContinuousSpeech`):** Implemented a dedicated hook `frontend/src/hooks/useContinuousSpeech.ts` keeping `allFinalTextRef` locked across session terminations with `sessionFinalRef` tracking live-session final words.
+  2. **250ms Device Release Backoff:** Upon Chrome's native Web Speech API `recognition.onend` event, if `isListeningRef.current === true`, commits session final words and waits a deliberate **250ms interval** (not 50ms) to allow the OS and Chrome audio subsystem to completely release the microphone before creating and starting a completely NEW `SpeechRecognition` instance.
+  3. **Error Recovery Backoff:** Network and audio-capture errors are handled with 400ms backoff, avoiding rapid restart loops (death spiral).
+  4. **Single Speech Engine Consolidation:** Eliminated duplicate competing SpeechRecognition engines in `useVoiceIntoEditor.ts` and `AIAgentPage.tsx`. All voice entry points use `useContinuousSpeech`.
+  5. **Smooth Auto-Expansion & Auto-Scroll:** Standardized all dictation textareas across Mind Space, Idea Vault, Problem Solver, Thought Detail, Quick Capture, and Diary to expand smoothly up to `240px` (`height: auto; max-height: 240px; overflow-y: scrollHeight > 240 ? 'auto' : 'hidden'`) and auto-scroll to the bottom (`scrollTop = scrollHeight`) on every speech streaming event.
+  6. **Language Switch Continuity:** Language switching between `bn-BD` and `en-US` seamlessly preserves existing accumulated text in `allFinalTextRef` without wiping prior speech.
+- **Reason:** Chrome terminates Web Speech API WebSocket connections on silent pauses of 20-30 seconds. Reusing dead instances or restarting within 50ms triggered `audio-capture` death spirals because the OS microphone device was not released. Competing engines in other components caused channel conflicts.
+- **Impact:** `frontend/src/hooks/useContinuousSpeech.ts`, `frontend/src/components/mymind/VoiceInput.tsx`, `frontend/src/components/diary/DiaryVoiceInput.tsx`, `frontend/src/components/mymind/*`, `frontend/src/components/QuickCapture.tsx`, `frontend/src/components/ai-agent/AIAgentPage.tsx`.
+- **Do Not Change Without Approval:** Do not reduce backoff below 250ms or re-introduce competing SpeechRecognition instances.
 

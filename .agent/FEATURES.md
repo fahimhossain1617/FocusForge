@@ -23,18 +23,17 @@
 | **Mind Space (Capture / Solver)** | **VERIFIED** | `frontend/src/components/pages/MyMindPage.tsx` | `mind_items` table, `mindService.ts` | None. Fast brain dump, idea grouping, and problem breakdown. |
 | **Personal Diary** | **VERIFIED** | `frontend/src/components/diary/DiaryHome.tsx` | `diary_topics`, `diary_entries` tables | None. Multi-topic journals, rich themes, search, TOC. |
 | **Learning Hub & Streaks** | **VERIFIED** | `frontend/src/components/pages/LearningHubPage.tsx` | `learning_folders`, `learning_logs` tables | None. Topic roadmaps, daily practice tracking, streak calculation. |
-| **AI Agent (Glory AI) & Action Engine** | **VERIFIED** | `frontend/src/components/ai-agent/AIAgentPage.tsx` | `@google/genai`, `ai_chat_sessions`, `ai_tokens` | Rebranded as Glory AI with Orb Face icon and persistent 5k quota lock. |
-| **Voice / STT (Batch HTTP)** | **VERIFIED** | `frontend/src/app/api/ai/transcribe/route.ts` | `@google/genai` audio multimodal | None. Works reliably across all browsers. |
-| **Voice / STT (Streaming WS)** | **PARTIAL** | `frontend/src/hooks/useSpeechRecognition.ts` | `backend/src/services/webSocketService.ts` | Requires running Express server (port 5000); unavailable on Vercel serverless. |
+| **Voice / STT (Real-Time Dictation)** | **VERIFIED** | `frontend/src/services/voice/*`, `useSpeechRecognition.ts` | Web Speech API, `VoiceSessionManager`, `TranscriptReconciler` | None. Direct in-composer live streaming, dynamic 400–500 word textarea auto-expansion, default Bengali (bn-BD) recognition, unlimited continuous listening with instant 25ms rollover. |
+| **Voice / STT (Cloud AI Fallback)** | **VERIFIED** | `frontend/src/app/api/ai/transcribe/route.ts` | `@google/genai` audio multimodal | None. Multilingual fallback across all devices. |
 | **In-App Notifications & Rotation** | **VERIFIED** | `frontend/src/components/pages/NotificationsPage.tsx` | `user_notifications`, `user_notification_rotation` | None. Implements shuffle-bag rotation and quiet hours. |
 | **Web Push & PWA Notifications** | **VERIFIED** | `frontend/public/sw.js`, `notificationService.ts` | Web Push API, Service Worker v6 | Full Android Web Notification capabilities (monochrome badge, native actions, deterministic tags, deep-linking). |
 | **Supervisor Portal (/supervisor)** | **VERIFIED** | `frontend/src/app/supervisor/page.tsx` | `user_roles`, `support_tickets`, `ticket_replies` | Strict privacy boundary prevents supervisors from viewing user personal data. |
 | **Settings & Profile Management** | **VERIFIED** | `frontend/src/components/pages/SettingsPage.tsx` | `profiles` table, `userService.ts` | None. Unique display names, avatar upload, atomic account deletion. |
-| **Local-First Storage (IndexedDB)** | **VERIFIED** | `frontend/src/services/localDbService.ts` | Browser IndexedDB (`focusforge_local_v3`) | None. 15 object stores with user-scoped indices. |
-| **Cross-Device Sync & Relay** | **VERIFIED** | `frontend/src/services/syncService.ts` | `/api/sync/push`, `/api/sync/pull` | None. Drains local `sync_queue` to cloud relay. |
-| **Zero-Knowledge Encryption (E2EE)** | **VERIFIED** | `frontend/src/services/cryptoSyncService.ts`, `SettingsPage.tsx` | Web Crypto API (`AES-256-GCM`), `encrypted_sync_records` | None. Full recovery key (`FF-XXXX-...`) management and multi-device authorization. |
+| **Local-First Storage (Dexie.js IndexedDB)** | **VERIFIED** | `frontend/src/lib/db.ts`, `lib/repositories/*` | Dexie.js, IndexedDB (`focentia_e2ee_db_v1`) | None. 17 typed stores, zero direct localStorage state. |
+| **Cross-Device Sync & Relay** | **VERIFIED** | `frontend/src/lib/sync.ts`, `services/syncService.ts` | `/api/sync/push`, `/api/sync/pull` | None. Debounced, batched offline-first sync engine. |
+| **Zero-Knowledge Envelope E2EE** | **VERIFIED** | `frontend/src/lib/crypto.ts`, `components/encryption/*` | Web Crypto (AES-256-GCM, PBKDF2-SHA256), `user_encryption_keys` | None. 256-bit MEK, 250k PBKDF2 KEK, wrapped key envelope in Supabase. |
 | **Privacy-First AI Consent** | **VERIFIED** | `frontend/src/services/aiConsentService.ts`, `AIConsentModal.tsx` | `localStorage` | None. Local-first personal chats; "Keep My Chats Private" default; improvement is strict opt-in. |
-| **Auth-Only Cloud DB** | **VERIFIED** | `frontend/src/lib/server/db.ts`, `supabase/migrations/` | Supabase pooler, `025_encrypted_sync_and_auth_only_cleanup.sql` | None. Zero plaintext personal data in cloud DB. |
+| **Auth-Only Cloud DB** | **VERIFIED** | `frontend/src/lib/server/db.ts`, `supabase/migrations/` | Supabase pooler, `026_user_encryption_keys_and_e2ee.sql` | None. Zero plaintext personal data in cloud DB. |
 
 ---
 

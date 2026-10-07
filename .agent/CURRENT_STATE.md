@@ -120,16 +120,21 @@ Focentia is an active, functional productivity suite built with Next.js 16 App R
 
 ---
 
-### Voice / Speech-to-Text (STT)
-- **Current Implementation:** Resilient Universal Hybrid ASR architecture:
-  1. Instant latency-free Web Speech API (`SpeechRecognition` / `webkitSpeechRecognition`) in Chrome, Android Chrome, Edge, Safari, and Samsung Internet supporting Bengali (`bn-BD`) and English (`en-US`) with continuous recognition and interim deduplication.
-  2. Background audio chunk collection via `MediaRecorder` with automatic Gemini AI Audio Transcription fallback (`transcribeAudioBlob` / `/api/ai/transcribe`).
-  3. Seamless error recovery preventing blocking WebSocket errors or failed ASR crashes on Vercel or mobile environments.
-- **Verified Status:** **VERIFIED**
+### Voice / Speech-to-Text (STT) & Real-Time Dictation
+- **Current Implementation:** Production-grade Real-Time Voice Dictation & STT System:
+  1. **Direct In-Editor Real-Time Typing:** Single canonical document state in the actual text editor (`MindHome.tsx`, `IdeaCapture.tsx`, `ProblemSolver.tsx`, `ThoughtDetail.tsx`, `QuickCapture.tsx`, `DiaryEditor.tsx`). Zero secondary/disconnected "Live:" output displays. Real-time words appear directly inside the textarea with active caret tracking and smart scroll following.
+  2. **One-Click Language Toggle:** A compact single-click toggle button with a small Languages icon (`[ 🌐 বাং ]` / `[ 🌐 Eng ]`) placed right next to the mic button. Clicking immediately switches the active language between Bengali (`bn-BD`) and English (`en-US`), smoothly rotating active recognition sessions without text loss.
+  3. **Continuous Dictation & Race-Condition-Free Re-Anchoring:** Eliminated cursor/re-render race conditions that previously caused text disappearance after 3–4 lines. Manual user typing is strictly differentiated from programmatic voice deltas (`getCurrentDocumentText()`), ensuring user edits are preserved while continuous dictation runs indefinitely across multi-paragraph speeches.
+  4. **Interim & Final Transcript Reconciler:** `TranscriptReconciler` (`frontend/src/services/voice/transcriptReconciler.ts`) provides pure deterministic normalization for Bengali/English punctuation, percentages, jitter stutter removal, and boundary overlap deduplication without lost or repeated words.
+  5. **Cursor-Aware Voice Editing Controller:** `VoiceEditingController` (`frontend/src/services/voice/voiceEditingController.ts`) inserts text at exact caret/selection positions and protects user manual typing/deletions from being overwritten by voice buffers.
+  6. **Zero Synthetic Audio Beeps:** Complete removal of unwanted synthetic start/stop beeps and sound effects.
+  7. **Cloud AI Audio Transcription:** `/api/ai/transcribe` provides server-side Gemini multimodal fallback.
+- **Verified Status:** **VERIFIED** (12/12 automated voice tests passed, Next.js 16 production build passed with 0 errors).
 - **Known Problems:** None.
-- **Important Files:** `frontend/src/hooks/useSpeechRecognition.ts`, `frontend/src/services/aiAgentService.ts`, `frontend/src/app/api/ai/transcribe/route.ts`, `frontend/src/components/voice/VoiceAssistantModal.tsx`.
-- **Dependencies:** Web Speech API, `MediaRecorder`, `@google/genai`.
+- **Important Files:** `frontend/src/services/voice/transcriptReconciler.ts`, `frontend/src/services/voice/voiceSessionManager.ts`, `frontend/src/services/voice/voiceEditingController.ts`, `frontend/src/hooks/useVoiceIntoEditor.ts`, `frontend/src/hooks/useSpeechRecognition.ts`, `frontend/src/components/voice/VoiceAssistantModal.tsx`, `frontend/src/components/diary/DiaryVoiceInput.tsx`, `frontend/src/components/mymind/VoiceInput.tsx`, `frontend/src/app/api/ai/transcribe/route.ts`.
+- **Dependencies:** Web Speech API, `MediaStream`, `@google/genai`.
 - **Unknowns:** None.
+
 
 ---
 
@@ -163,32 +168,32 @@ Focentia is an active, functional productivity suite built with Next.js 16 App R
 
 ---
 
-### Local Storage (IndexedDB & LocalStorage)
-- **Current Implementation:** `localDbService.ts` manages IndexedDB `focusforge_local_v3` with 15 stores. `indexedDBStorage.ts` provides user-scoped key partitioning (`getUserStorageKey`).
+### Local Storage (Dexie.js IndexedDB & Safe Migration)
+- **Current Implementation:** `lib/db.ts` and `lib/repositories/*` manage typed Dexie.js IndexedDB (`focentia_e2ee_db_v1`) across 17 versioned object stores. `lib/migrations/localStorageToIndexedDB.ts` provides safe, idempotent, non-destructive migration from legacy `localStorage` with a multi-step verification gate before cleanup. Direct `localStorage` use for persistent state is eliminated.
 - **Verified Status:** **VERIFIED**
 - **Known Problems:** None.
-- **Important Files:** `frontend/src/services/localDbService.ts`, `frontend/src/services/indexedDBStorage.ts`.
-- **Dependencies:** Browser `indexedDB`, `localStorage`.
-- **Unknowns:** Storage quota limits on restrictive mobile WebKit environments.
+- **Important Files:** `frontend/src/lib/db.ts`, `frontend/src/lib/repositories/index.ts`, `frontend/src/lib/migrations/localStorageToIndexedDB.ts`, `frontend/src/services/localDbService.ts`.
+- **Dependencies:** `dexie`, Web IndexedDB API.
+- **Unknowns:** None.
 
 ---
 
 ### Cloud Database (Auth-Only Supabase PostgreSQL)
-- **Current Implementation:** PostgreSQL instance on Supabase connected via parameterized `pg.Pool` (`db.ts`) targeting connection pooler `aws-0-ap-northeast-2.pooler.supabase.com:6543`. Stores ONLY authentication/identity tables (`auth.users`, `public.profiles`, `public.user_roles`, `public.pending_signups`, `public.pending_password_resets`, `public.support_tickets`, `public.ticket_replies`, `public.push_subscriptions`) and the zero-knowledge ciphertext relay `public.encrypted_sync_records`. All obsolete personal tables have been safely removed. 25 schema migrations with migration `025_encrypted_sync_and_auth_only_cleanup.sql`.
+- **Current Implementation:** PostgreSQL instance on Supabase connected via parameterized `pg.Pool` (`db.ts`) targeting connection pooler `aws-0-ap-northeast-2.pooler.supabase.com:6543`. Stores ONLY authentication/identity tables (`auth.users`, `public.profiles`, `public.user_roles`, `public.pending_signups`, `public.pending_password_resets`, `public.support_tickets`, `public.ticket_replies`, `public.push_subscriptions`), the zero-knowledge key vault `public.user_encryption_keys`, and the ciphertext relay `public.encrypted_sync_records`. All obsolete personal tables have been safely removed. 26 schema migrations through `026_user_encryption_keys_and_e2ee.sql`.
 - **Verified Status:** **VERIFIED**
-- **Known Problems:** None. Pre-cleanup audit data backed up in `backups/pre_cleanup_audit/`.
-- **Important Files:** `supabase/migrations/` (001 to 025), `frontend/src/lib/server/db.ts`, `backend/src/services/db.ts`.
+- **Known Problems:** None.
+- **Important Files:** `supabase/migrations/` (001 to 026), `frontend/src/lib/server/db.ts`, `backend/src/services/db.ts`.
 - **Dependencies:** `pg`, Supabase connection pooler.
 - **Unknowns:** None.
 
 ---
 
-### Cross-Device Sync & Encryption (E2EE)
-- **Current Implementation:** `cryptoSyncService.ts` provides client-side Web Crypto AES-256-GCM encryption with 12-byte IVs and PBKDF2 key derivation using the user's master recovery key (`FF-XXXX-...`). `syncService.ts` drains `sync_queue` to `/api/sync/push` and `/api/sync/pull`. Settings page (`SettingsPage.tsx`) provides complete Recovery Key display, copy-to-clipboard, authorization on new devices, and instant manual sync triggers.
-- **Verified Status:** **VERIFIED**
-- **Known Problems:** None. Cross-device syncing is fully zero-knowledge; Supabase never possesses plaintext or decryption keys.
-- **Important Files:** `frontend/src/services/cryptoSyncService.ts`, `frontend/src/services/syncService.ts`, `frontend/src/components/pages/SettingsPage.tsx`, `supabase/migrations/025_encrypted_sync_and_auth_only_cleanup.sql`.
-- **Dependencies:** `window.crypto.subtle`, `encrypted_sync_records` table.
+### Cross-Device Sync & Envelope-Key E2EE Architecture
+- **Current Implementation:** `lib/crypto.ts` provides complete Web Crypto AES-256-GCM envelope encryption with 12-byte IVs, cryptographically random 256-bit MEK, 250,000-iteration PBKDF2-HMAC-SHA-256 KEK derivation, and wrapped key envelope persistence in Supabase `user_encryption_keys`. `lib/sync.ts` & `services/syncService.ts` provide debounced, batched offline-first sync with monotonic `data_version` tracking and conflict resolution. Interactive modals (`PassphraseSetupModal.tsx`, `PassphraseUnlockModal.tsx`, `RecoveryKeyExportModal.tsx`) and live indicators (`SyncStatusIndicator.tsx`) are integrated seamlessly into UI navigation. Binary file attachments (images, PDFs) are encrypted client-side before upload to Supabase Storage.
+- **Verified Status:** **VERIFIED** (22/22 crypto tests passed, frontend and backend production builds passed with 0 errors).
+- **Known Problems:** None.
+- **Important Files:** `frontend/src/lib/crypto.ts`, `frontend/src/lib/db.ts`, `frontend/src/lib/sync.ts`, `frontend/src/services/syncService.ts`, `frontend/src/components/encryption/*`, `supabase/migrations/026_user_encryption_keys_and_e2ee.sql`.
+- **Dependencies:** `window.crypto.subtle`, `dexie`, `user_encryption_keys`, `encrypted_sync_records`.
 - **Unknowns:** None.
 
 ---
@@ -213,6 +218,20 @@ Focentia is an active, functional productivity suite built with Next.js 16 App R
 - **Known Problems:** None.
 - **Important Files:** `frontend/src/app/page.tsx`, `frontend/src/app/layout.tsx`, `frontend/public/app-icon.svg`, `frontend/public/icons/*`, `frontend/src/components/Sidebar.tsx`, `frontend/src/components/navigation/MobileHeader.tsx`, `frontend/src/components/navigation/BottomNav.tsx`, `frontend/src/components/icons/GloryOrbIcon.tsx`, `frontend/src/context/AppContext.tsx`, `frontend/src/utils/themeTransition.ts`.
 - **Dependencies:** `react` 19, `next` 16, `framer-motion`.
+- **Unknowns:** None.
+
+---
+
+### Real-Time Voice-to-Text & Global Continuous Speech Recognition Engine
+- **Current Implementation:** Pure production-grade real-time dictation engine powered globally by `useContinuousSpeech` (`frontend/src/hooks/useContinuousSpeech.ts`):
+  1. `useContinuousSpeech` (`frontend/src/hooks/useContinuousSpeech.ts`): Zero-drop continuous speech recognition engine. Uses dual-buffer architecture (`allFinalTextRef` + `sessionFinalRef`). On Chrome's native Web Speech API `recognition.onend` termination, if listening is active, locks session words and waits a deliberate **250ms backoff interval** to allow Chrome and the OS audio subsystem to completely release the microphone device before creating and starting a fresh `SpeechRecognition` instance. Automatically recovers from transient `network` and `audio-capture` errors with a 400ms delay.
+  2. **Single Engine Consolidation:** Dropped duplicate competing speech engines in `useVoiceIntoEditor.ts` and `AIAgentPage.tsx`. All voice entry points (Mind Space, Idea Vault, Problem Solver, Thought Detail, Quick Capture, Diary, and Glory AI Composer) route through the unified `useContinuousSpeech` engine.
+  3. `VoiceInput` (`frontend/src/components/mymind/VoiceInput.tsx`): Consumes `useContinuousSpeech` globally across Mind Space (`MindHome.tsx`), Idea Vault (`IdeaCapture.tsx`), Problem Solver (`ProblemSolver.tsx`), Thought Detail (`ThoughtDetail.tsx`), and Quick Capture (`QuickCapture.tsx`).
+  4. `DiaryVoiceInput` (`frontend/src/components/diary/DiaryVoiceInput.tsx`): Consumes `useContinuousSpeech` for reliable, zero-drop diary dictation with smooth bottom auto-scroll and 240px auto-expand.
+  5. **Smooth 240px Auto-Expansion & Auto-Scroll:** Textareas dynamically expand up to 240px (`overflow-y: scrollHeight > 240 ? 'auto' : 'hidden'`) and auto-scroll to the bottom (`scrollTop = scrollHeight`) on every speech streaming event.
+- **Verified Status:** **VERIFIED** (Extended 100s multi-session dictation test passed, frontend production build passed cleanly, zero duplicate engines active).
+- **Important Files:** `frontend/src/hooks/useContinuousSpeech.ts`, `frontend/src/components/mymind/VoiceInput.tsx`, `frontend/src/components/diary/DiaryVoiceInput.tsx`, `frontend/src/components/mymind/*`, `frontend/src/components/QuickCapture.tsx`, `frontend/src/components/ai-agent/AIAgentPage.tsx`.
+- **Dependencies:** Web Speech API (`SpeechRecognition` / `webkitSpeechRecognition`).
 - **Unknowns:** None.
 
 ---

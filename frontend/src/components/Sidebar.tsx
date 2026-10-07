@@ -28,6 +28,8 @@ import { MindSpaceIcon } from "./icons/MindSpaceIcon";
 import { GloryOrbIcon } from "./icons/GloryOrbIcon";
 import { useAuth } from "../context/AuthContext";
 import { useAnimateExit } from "../hooks/useAnimateExit";
+import { useSync } from "../hooks/useSync";
+import SyncStatusIndicator from "./encryption/SyncStatusIndicator";
 
 interface NavItem {
   id: string;
@@ -74,6 +76,7 @@ export default function Sidebar({
     cancelLogout 
   } = useAuth();
   const { t } = useTranslation();
+  const { syncStatus, isSyncing, syncNow } = useSync(user?.id);
 
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
@@ -401,6 +404,19 @@ export default function Sidebar({
               </motion.div>
             )}
           </AnimatePresence>
+
+          {/* Sync Status (Expanded Sidebar View) */}
+          {user && !isGuest && !isCollapsed && (
+            <div className="hidden md:flex items-center justify-between px-2 pb-2">
+              <SyncStatusIndicator
+                status={syncStatus}
+                isSyncing={isSyncing}
+                onTriggerSync={syncNow}
+                lang={state.lang}
+                className="w-full justify-center"
+              />
+            </div>
+          )}
 
           {/* Expanded State Bottom Section (Seamlessly integrated with sidebar, no box container) */}
           <div className={`items-center gap-1.5 px-0.5 py-0.5 flex ${isCollapsed ? "md:hidden" : "md:flex"}`}>

@@ -118,7 +118,11 @@ Database: `focusforge_local_v3` (Version 1)
 1. **Google Gemini Models:** `gemini-3.6-flash`, `gemini-3.8-flash`, `gemini-3.5-flash`, `gemini-3.5-flash-lite`, `gemini-flash-latest`.
 2. **Sanitization:** `sanitizePayloadForGemini` redacts potential tokens, passwords, and API keys before dispatching context to Gemini.
 3. **Action Execution:** 23+ intent actions verified through `aiActionValidator.ts`. Destructive actions require explicit confirmation.
-4. **Speech-to-Text:** Live WebSocket audio slices (180ms) streamed to Express or base64 audio sent to serverless `/api/ai/transcribe`. Overlap deduplication in `useSpeechRecognition.ts`.
+4. **Speech-to-Text & Real-Time Dictation System:**
+   - `VoiceSessionManager`: Typed Finite State Machine (`IDLE`, `LISTENING`, `PAUSED`, `RECOVERING`, `STOPPING`, `ERROR`) providing unlimited continuous listening, transparent session rollover, backoff recovery, and intentional pause/resume handling.
+   - `TranscriptReconciler`: Pure deterministic transcript normalization, jitter stutter filtering, and word boundary overlap deduplication for Bengali (`bn-BD`), English (`en-US`), and mixed Banglish speech.
+   - `VoiceEditingController`: Caret-anchored text insertion and manual edit / backspace / delete protection.
+   - Serverless Multimodal Audio Fallback: `/api/ai/transcribe` invoking Google Gemini multimodal audio transcription with cascading model fallbacks.
 
 ---
 

@@ -1,21 +1,17 @@
 /**
- * FocusForge Privacy-Preserving Cross-Device Sync Service (syncService.ts)
- * 
- * Coordinates client-side E2EE synchronization:
- * 1. Collects modified local records from IndexedDB `sync_queue`.
- * 2. Encrypts every record client-side via AES-256-GCM before it leaves the device.
- * 3. Transmits opaque encrypted blobs to the zero-knowledge sync relay endpoint.
- * 4. Pulls encrypted updates from other authorized devices and decrypts them locally.
- * 5. Handles tombstones so deleted items disappear consistently across all devices.
+ * FocusForge Cross-Device Sync Service (syncService.ts)
+ *
+ * Coordinates client-side E2EE synchronization via syncEngine (lib/sync.ts).
+ * Maintains full backward compatibility for all existing callers.
  */
 
-import { localDb, StoreName } from "./localDbService";
-import { cryptoSyncService, EncryptedPayload } from "./cryptoSyncService";
-import { fetchBackend } from "../lib/apiClient";
+import { syncEngine, type SyncStatus, type EncryptedSyncRecord } from "../lib/sync";
+
+export type { SyncStatus, EncryptedSyncRecord };
 
 export interface EncryptedSyncItem {
   id: string | number;
-  collection: StoreName;
+  collection: string;
   ciphertext: string;
   iv: string;
   salt: string;
@@ -26,146 +22,38 @@ export interface EncryptedSyncItem {
 }
 
 export function getDeviceId(): string {
-  if (typeof window === "undefined") return "server";
-  let did = localStorage.getItem("focusforge_device_id");
-  if (!did) {
-    did = "dev_" + Math.random().toString(36).substring(2, 10);
-    localStorage.setItem("focusforge_device_id", did);
-  }
-  return did;
+  return syncEngine.getDeviceId();
 }
 
 export const syncService = {
-  isSyncing: false,
+  get isSyncing(): boolean {
+    return syncEngine.getStatus() === "syncing";
+  },
 
   /**
    * Pushes dirty local records and pulls remote updates.
    */
-  async syncNow(userId: string): Promise<{ success: boolean; pushedCount: number; pulledCount: number }> {
-    if (!userId || userId === "guest" || this.isSyncing) {
-      return { success: false, pushedCount: 0, pulledCount: 0 };
-    }
+  async syncNow(userId: string): Promise<{ success: boolean; pushedCount: number; pulledCount: number; status?: SyncStatus }> {
+    const res = await syncEngine.syncNow(userId);
+    return {
+      success: res.success,
+      pushedCount: res.pushedCount,
+      pulledCount: res.pulledCount,
+      status: res.status,
+    };
+  },
 
-    if (typeof navigator !== "undefined" && !navigator.onLine) {
-      return { success: false, pushedCount: 0, pulledCount: 0 };
-    }
+  /**
+   * Schedules a debounced sync pass after a local change.
+   */
+  scheduleSync(userId: string, delayMs = 2500): void {
+    syncEngine.scheduleSync(userId, delayMs);
+  },
 
-    // Auto-unlock encryption key using device recovery key or initialize one
-    if (!cryptoSyncService.isUnlocked(userId)) {
-      await cryptoSyncService.ensureKeyInitialized(userId);
-    }
-
-    this.isSyncing = true;
-    let pushed = 0;
-    let pulled = 0;
-
-    try {
-      // 1. COLLECT DIRTY RECORDS FROM LOCAL INDEXEDDB
-      const dirtyQueue = await localDb.getPendingSyncQueue(userId);
-
-      if (dirtyQueue && dirtyQueue.length > 0) {
-        const encryptedBatch: EncryptedSyncItem[] = [];
-        const syncedLocalKeys: string[] = [];
-
-        for (const queueItem of dirtyQueue) {
-          const { storeName, recordId, isDeleted, updatedAt } = queueItem;
-          let record: any = null;
-
-          if (isDeleted) {
-            record = { id: recordId, isDeleted: true, updatedAt };
-          } else {
-            record = await localDb.get(storeName as StoreName, userId, recordId);
-          }
-
-          if (record) {
-            try {
-              const encryptedPayload = await cryptoSyncService.encrypt(record);
-              encryptedBatch.push({
-                id: recordId,
-                collection: storeName as StoreName,
-                ciphertext: encryptedPayload.ciphertext,
-                iv: encryptedPayload.iv,
-                salt: encryptedPayload.salt,
-                version: encryptedPayload.version,
-                updatedAt: record.updatedAt || new Date().toISOString(),
-                isDeleted: Boolean(record.isDeleted),
-                deviceId: getDeviceId(),
-              });
-              syncedLocalKeys.push(queueItem.localKey);
-            } catch (encErr) {
-              console.warn("[syncService] Encryption skip for record:", recordId, encErr);
-            }
-          }
-        }
-
-        // PUSH ENCRYPTED BATCH TO ZERO-KNOWLEDGE RELAY
-        if (encryptedBatch.length > 0) {
-          const pushRes = await fetchBackend<any>("/api/sync/push", {
-            method: "POST",
-            body: JSON.stringify({
-              items: encryptedBatch,
-              deviceId: getDeviceId(),
-            }),
-          }).catch(() => null);
-
-          if (pushRes && pushRes.success) {
-            await localDb.acknowledgeSyncQueue(userId, syncedLocalKeys);
-            pushed = encryptedBatch.length;
-          }
-        }
-      }
-
-      // 2. PULL ENCRYPTED UPDATES FROM ZERO-KNOWLEDGE RELAY
-      const lastSyncKey = `focusforge_last_sync_${userId}`;
-      const lastSyncTime = typeof window !== "undefined" ? localStorage.getItem(lastSyncKey) || "" : "";
-
-      const pullRes = await fetchBackend<{ items: EncryptedSyncItem[]; serverTime: string }>("/api/sync/pull", {
-        method: "POST",
-        body: JSON.stringify({
-          since: lastSyncTime,
-          deviceId: getDeviceId(),
-        }),
-      }).catch(() => null);
-
-      if (pullRes && Array.isArray(pullRes.items) && pullRes.items.length > 0) {
-        for (const item of pullRes.items) {
-          try {
-            const decryptedRecord = await cryptoSyncService.decrypt({
-              ciphertext: item.ciphertext,
-              iv: item.iv,
-              salt: item.salt,
-              version: item.version,
-            });
-
-            if (decryptedRecord) {
-              if (item.isDeleted || decryptedRecord.isDeleted) {
-                await localDb.softDelete(item.collection, userId, item.id);
-              } else {
-                await localDb.put(item.collection, {
-                  ...decryptedRecord,
-                  userId,
-                  id: item.id,
-                  updatedAt: item.updatedAt,
-                });
-              }
-              pulled++;
-            }
-          } catch (decErr) {
-            console.warn("[syncService] Decrypt skip for incoming remote item:", item.id, decErr);
-          }
-        }
-
-        if (pullRes.serverTime && typeof window !== "undefined") {
-          localStorage.setItem(lastSyncKey, pullRes.serverTime);
-        }
-      }
-
-      return { success: true, pushedCount: pushed, pulledCount: pulled };
-    } catch (err) {
-      console.warn("[syncService] Sync iteration notice:", err);
-      return { success: false, pushedCount: pushed, pulledCount: pulled };
-    } finally {
-      this.isSyncing = false;
-    }
+  /**
+   * Subscribes to sync status changes.
+   */
+  subscribe(listener: (status: SyncStatus, note?: string) => void): () => void {
+    return syncEngine.subscribe(listener);
   },
 };

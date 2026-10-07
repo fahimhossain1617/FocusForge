@@ -11,6 +11,7 @@ import { useTranslation } from "../hooks/useTranslation";
 import { clearGuestData } from "../services/indexedDBStorage";
 import { onboardingStorage } from "../services/onboardingStorage";
 import { accountManager, RememberedAccount } from "../services/accountManager";
+import { cryptoSession } from "../lib/crypto";
 import GuestTransitionModal from "../components/auth/GuestTransitionModal";
 import AccountSwitcherModal from "../components/auth/AccountSwitcherModal";
 
@@ -434,6 +435,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setLogoutConfirmOpen(false);
 
     try {
+      cryptoSession.lockVault();
       await authService.clearSession();
     } catch (err) {
       console.warn("[AuthContext] Logout clear session warning:", err);
@@ -459,6 +461,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setAccountSwitcherOpen(false);
 
       try {
+        cryptoSession.lockVault();
         await authService.clearSession();
       } catch (err) {
         console.warn("[AuthContext] Switch account sign out warning:", err);
