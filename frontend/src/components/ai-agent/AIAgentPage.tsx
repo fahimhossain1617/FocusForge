@@ -22,7 +22,8 @@ import {
   Clock,
   Smile,
   ChevronDown,
-  Check
+  Check,
+  Languages
 } from "lucide-react";
 import { useAppContext } from "@/context/AppContext";
 import { useAuth } from "@/context/AuthContext";
@@ -36,6 +37,8 @@ import styles from "./ai-agent.module.css";
 import { AIChatAnimatedTypingInput } from "./AIChatAnimatedTypingInput";
 import AIConsentModal from "../ai/AIConsentModal";
 import BorderBeam from "../ui/BorderBeam";
+import VoiceReactiveGlow from "../voice/VoiceReactiveGlow";
+import VoiceWaveform from "../voice/VoiceWaveform";
 
 const moodList: { id: OrbMood; labelBn: string; labelEn: string }[] = [
   { id: "happy", labelBn: "হ্যাপি", labelEn: "Happy" },
@@ -83,11 +86,13 @@ export function AIAgentPage() {
   const {
     text: voiceLiveText,
     isListening: isVoiceListening,
+    lang: voiceLang,
     startListening: startVoiceListening,
     stopListening: stopVoiceListening,
+    toggleLanguage: toggleVoiceLanguage,
     setManualText: setVoiceManualText,
   } = useContinuousSpeech({
-    initialLang: isSystemBn ? "bn-BD" : "en-US",
+    initialLang: "bn-BD",
   });
   const resetVoiceTranscript = () => setVoiceManualText("");
 
@@ -1222,14 +1227,18 @@ export function AIAgentPage() {
                 }
               }}
             >
-              {/* Border Beam around the capsule pill text bar */}
-              <BorderBeam
-                borderWidth={1.5}
-                duration={6}
-                beamPercentage={25}
-                colorFrom="#38bdf8"
-                colorTo="#818cf8"
-              />
+              {/* Voice-reactive ambient glow around the AI text bar */}
+              <VoiceReactiveGlow active={isVoiceListening} rounded="rounded-full" />
+              {/* Border Beam around the capsule pill text bar (hidden while voice is active) */}
+              {!isVoiceListening && (
+                <BorderBeam
+                  borderWidth={1.5}
+                  duration={12}
+                  beamPercentage={25}
+                  colorFrom="#38bdf8"
+                  colorTo="#818cf8"
+                />
+              )}
               {/* Left Companion Emoji / Mood Button */}
               <div className={styles.moodMenuWrapper} ref={moodMenuRef}>
                 <button
@@ -1279,49 +1288,52 @@ export function AIAgentPage() {
                 )}
               </div>
 
-              {/* Center Input Textarea with Animated User Typing */}
-              <AIChatAnimatedTypingInput
-                ref={textareaRef}
-                value={input}
-                disabled={isThinking}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  setInput(val);
-                  if (isVoiceListening) {
-                    baseInputRef.current = val;
-                    resetVoiceTranscript();
+              {/* Center Input Textarea or Voice Waveform */}
+              {isVoiceListening ? (
+                <div className="flex-1 flex items-center h-[26px] overflow-hidden pointer-events-none">
+                  <VoiceWaveform active={isVoiceListening} isBengali={voiceLang === "bn-BD"} />
+                </div>
+              ) : (
+
+                <AIChatAnimatedTypingInput
+                  ref={textareaRef}
+                  value={input}
+                  disabled={isThinking}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setInput(val);
+                    if (isVoiceListening) {
+                      baseInputRef.current = val;
+                      resetVoiceTranscript();
+                    }
+                    resetInactivityTimer();
+                    requestAnimationFrame(adjustTextareaHeight);
+                  }}
+                  onKeyDown={(e) => {
+                    resetInactivityTimer();
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      submit();
+                    }
+                  }}
+                  placeholder={
+                    messages && messages.length > 0
+                      ? isSystemBn
+                        ? "গ্লোরিকে উত্তর দিন..."
+                        : "Reply to Glory..."
+                      : isSystemBn
+                      ? "গ্লোরির সাথে চ্যাট করুন..."
+                      : "Chat with Glory..."
                   }
-                  resetInactivityTimer();
-                  requestAnimationFrame(adjustTextareaHeight);
-                }}
-                onKeyDown={(e) => {
-                  resetInactivityTimer();
-                  if (e.key === "Enter" && !e.shiftKey) {
-                    e.preventDefault();
-                    submit();
+                  rows={1}
+                  className={`${styles.pillTextarea} composer-pill-textarea`}
+                  aria-label={
+                    messages && messages.length > 0
+                      ? "Reply to Glory"
+                      : "Chat with Glory"
                   }
-                }}
-                placeholder={
-                  isVoiceListening
-                    ? isSystemBn
-                      ? "কথা বলুন... সরাসরি টাইপ হচ্ছে..."
-                      : "Listening... Speaking to type..."
-                    : messages && messages.length > 0
-                    ? isSystemBn
-                      ? "গ্লোরিকে উত্তর দিন..."
-                      : "Reply to Glory..."
-                    : isSystemBn
-                    ? "গ্লোরির সাথে চ্যাট করুন..."
-                    : "Chat with Glory..."
-                }
-                rows={1}
-                className={`${styles.pillTextarea} composer-pill-textarea`}
-                aria-label={
-                  messages && messages.length > 0
-                    ? "Reply to Glory"
-                    : "Chat with Glory"
-                }
-              />
+                />
+              )}
 
               {/* Right Controls: Model Switcher + Mic + Send/Stop */}
               <div className={styles.pillControlsRight}>
@@ -1403,7 +1415,19 @@ export function AIAgentPage() {
                   )}
                 </div>
 
-                {/* Mic Icon Button */}
+                {/* Voice Language Toggle Button */}
+                <button
+                  type="button"
+                  className={styles.pillLangBtn}
+                  onClick={toggleVoiceLanguage}
+                  title={voiceLang === "bn-BD" ? "Switch voice to English (EN)" : "বাংলা ভয়েস ইনপুট নির্বাচন করুন (বাং)"}
+                  aria-label={voiceLang === "bn-BD" ? "Switch voice to English" : "Switch voice to Bangla"}
+                >
+                  <Languages size={12} className="shrink-0 text-purple-600 dark:text-purple-400" />
+                  <span>{voiceLang === "bn-BD" ? "বাং" : "EN"}</span>
+                </button>
+
+                {/* Mic / Stop Icon Button */}
                 <button
                   type="button"
                   className={`${styles.pillIconBtn} ${isVoiceListening ? styles.pillIconBtnActive : ""}`}
@@ -1412,7 +1436,7 @@ export function AIAgentPage() {
                   aria-label={isVoiceListening ? (isSystemBn ? "ভয়েস বন্ধ করুন" : "Stop voice input") : (isSystemBn ? "ভয়েস শুরু করুন" : "Start voice input")}
                   title={isVoiceListening ? (isSystemBn ? "ভয়েস চালু আছে (ক্লিক করে থামান)" : "Listening... Click to stop") : (isSystemBn ? "ভয়েস ইনপুট" : "Voice input")}
                 >
-                  <Mic size={18} strokeWidth={1.8} />
+                  {isVoiceListening ? <Square size={13} fill="currentColor" /> : <Mic size={17} strokeWidth={1.8} />}
                 </button>
 
                 {/* Send / Stop Action Button */}

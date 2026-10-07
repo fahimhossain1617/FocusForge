@@ -229,9 +229,16 @@ Focentia is an active, functional productivity suite built with Next.js 16 App R
   3. `VoiceInput` (`frontend/src/components/mymind/VoiceInput.tsx`): Consumes `useContinuousSpeech` globally across Mind Space (`MindHome.tsx`), Idea Vault (`IdeaCapture.tsx`), Problem Solver (`ProblemSolver.tsx`), Thought Detail (`ThoughtDetail.tsx`), and Quick Capture (`QuickCapture.tsx`).
   4. `DiaryVoiceInput` (`frontend/src/components/diary/DiaryVoiceInput.tsx`): Consumes `useContinuousSpeech` for reliable, zero-drop diary dictation with smooth bottom auto-scroll and 240px auto-expand.
   5. **Smooth 240px Auto-Expansion & Auto-Scroll:** Textareas dynamically expand up to 240px (`overflow-y: scrollHeight > 240 ? 'auto' : 'hidden'`) and auto-scroll to the bottom (`scrollTop = scrollHeight`) on every speech streaming event.
-- **Verified Status:** **VERIFIED** (Extended 100s multi-session dictation test passed, frontend production build passed cleanly, zero duplicate engines active).
-- **Important Files:** `frontend/src/hooks/useContinuousSpeech.ts`, `frontend/src/components/mymind/VoiceInput.tsx`, `frontend/src/components/diary/DiaryVoiceInput.tsx`, `frontend/src/components/mymind/*`, `frontend/src/components/QuickCapture.tsx`, `frontend/src/components/ai-agent/AIAgentPage.tsx`.
-- **Dependencies:** Web Speech API (`SpeechRecognition` / `webkitSpeechRecognition`).
+  6. **Voice-Reactive Ambient Glow Effect & Harmonic Waveform:**
+     - **Astral Violet-Cyan Aurora:** High-contrast organic aura (`VoiceReactiveGlow.tsx` / `VoiceReactiveGlow.module.css`) in violet, purple, and cyan tones (`rgba(168, 85, 247, ...)`, `rgba(6, 182, 212, ...)`), designed to pop with sci-fi clarity against dark blue/slate backgrounds and light mode backgrounds.
+     - **Center-Out Symmetrical Audio Waveform Bar:** Live audio equalizer waveform (`VoiceWaveform.tsx`) rendered across the text input bar in Mind Space and Glory AI. Uses Web Audio API `AnalyserNode` frequency spectrum mirrored symmetrically outward from the center to both edges, with a cosine/Gaussian envelope providing peak center amplitude and smooth outer decay.
+     - **Glory AI Border Beam Dynamic Transition:** When voice is started in Glory AI, `BorderBeam` is automatically hidden, leaving only the ambient glow and reactive sound wave, and reappears when voice stops.
+     - **Unified Mic / Stop Square Controls:** Standard `<Mic>` icon in idle states (no crossed slash `<MicOff>` anywhere), switching to `<Square>` stop icon in theme accent (not red) when active.
+     - **Bengali/English Language Toggle:** Discrete touch button (`বাং` / `EN`) next to all voice inputs (Glory AI, Mind Space, My Diary) defaulting to `bn-BD`.
+- **Verified Status:** **VERIFIED** (Automated Next.js production build passed with 0 errors across all 17 routes, verified responsive waveform canvas, Center-Out Symmetrical mirroring, BorderBeam hide/show transition, and language toggle).
+
+- **Important Files:** `frontend/src/hooks/useContinuousSpeech.ts`, `frontend/src/hooks/useVoiceAmplitude.ts`, `frontend/src/components/voice/VoiceReactiveGlow.tsx`, `frontend/src/components/voice/VoiceReactiveGlow.module.css`, `frontend/src/components/mymind/VoiceInput.tsx`, `frontend/src/components/mymind/MindHome.tsx`, `frontend/src/components/ai-agent/AIAgentPage.tsx`.
+- **Dependencies:** Web Speech API (`SpeechRecognition` / `webkitSpeechRecognition`), Web Audio API (`AudioContext`, `AnalyserNode`).
 - **Unknowns:** None.
 
 ---

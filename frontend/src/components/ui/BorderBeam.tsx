@@ -9,7 +9,7 @@ export interface BorderBeamProps {
    */
   borderWidth?: number;
   /**
-   * Duration for one full loop in seconds. Default is 6s.
+   * Duration for one full loop in seconds. Default is 12s.
    */
   duration?: number;
   /**
@@ -29,7 +29,7 @@ export interface BorderBeamProps {
 
 export default function BorderBeam({
   borderWidth = 1.5,
-  duration = 6,
+  duration = 12,
   beamPercentage = 25,
   colorFrom = "#38bdf8",
   colorTo = "#818cf8",

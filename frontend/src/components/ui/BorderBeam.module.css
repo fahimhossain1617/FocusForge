@@ -13,7 +13,7 @@
 
 .beamRect {
   stroke-dasharray: var(--beam-dash, 25 75);
-  animation: moveBorderBeam var(--beam-duration, 6s) linear infinite;
+  animation: moveBorderBeam var(--beam-duration, 12s) linear infinite;
   will-change: stroke-dashoffset;
 }
 

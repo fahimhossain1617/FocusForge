@@ -7,6 +7,8 @@ import { useAuth } from "../../context/AuthContext";
 import { useTranslation } from "../../hooks/useTranslation";
 import VoiceInput from "./VoiceInput";
 import ThoughtPaperCard from "./ThoughtPaperCard";
+import VoiceReactiveGlow from "../voice/VoiceReactiveGlow";
+import VoiceWaveform from "../voice/VoiceWaveform";
 
 interface MindHomeProps {
   navigate: (view: string) => void;
@@ -19,6 +21,7 @@ export default function MindHome({ navigate, setActiveThoughtId }: MindHomeProps
   const { t } = useTranslation();
   const [input, setInput] = useState("");
   const [isFocused, setIsFocused] = useState(false);
+  const [isVoiceListening, setIsVoiceListening] = useState(false);
   const [activeMode, setActiveMode] = useState<'mind' | 'idea' | 'problem'>('mind');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const isUserScrolledUpRef = useRef(false);
@@ -165,37 +168,45 @@ export default function MindHome({ navigate, setActiveThoughtId }: MindHomeProps
         <div
           className="rounded-2xl border border-slate-200 dark:border-white/10 bg-white dark:bg-[#111827] relative pb-16 w-full flex flex-col shadow-none"
         >
-          <textarea
-            ref={textareaRef}
-            value={input}
-            onChange={handleChange}
-            onScroll={handleScroll}
-            onKeyDown={(e) => {
-              if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
-                e.preventDefault();
-                handleSubmit();
+          <VoiceReactiveGlow active={isVoiceListening} rounded="rounded-2xl" />
+          {isVoiceListening ? (
+            <div className="w-full px-5 sm:px-6 pt-5 pb-2 flex items-center h-[60px] overflow-hidden">
+              <VoiceWaveform active={isVoiceListening} isBengali={state.lang === "bn"} />
+            </div>
+          ) : (
+
+            <textarea
+              ref={textareaRef}
+              value={input}
+              onChange={handleChange}
+              onScroll={handleScroll}
+              onKeyDown={(e) => {
+                if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+                  e.preventDefault();
+                  handleSubmit();
+                }
+              }}
+              onFocus={() => setIsFocused(true)}
+              onBlur={() => setIsFocused(false)}
+              placeholder={
+                activeMode === 'idea' 
+                  ? (t.myMind.ideaVaultPlaceholder || "What's the core idea or spark?")
+                  : activeMode === 'problem'
+                  ? (t.myMind.problemSolverPlaceholder || "What problem are you trying to break down?")
+                  : (t.myMind.writeFreely || "Write whatever comes to mind...")
               }
-            }}
-            onFocus={() => setIsFocused(true)}
-            onBlur={() => setIsFocused(false)}
-            placeholder={
-              activeMode === 'idea' 
-                ? (t.myMind.ideaVaultPlaceholder || "What's the core idea or spark?")
-                : activeMode === 'problem'
-                ? (t.myMind.problemSolverPlaceholder || "What problem are you trying to break down?")
-                : (t.myMind.writeFreely || "Write whatever comes to mind...")
-            }
-            className="w-full px-5 sm:px-6 pt-5 pb-2 text-base sm:text-lg border-0 resize-none no-focus-ring bg-transparent my-mind-textarea custom-mini-scrollbar"
-            style={{ 
-              background: "transparent", 
-              border: "none", 
-              outline: "none", 
-              minHeight: "60px",
-              maxHeight: "240px",
-              overflowY: "hidden",
-              color: "var(--color-text-primary)" 
-            }}
-          />
+              className="w-full px-5 sm:px-6 pt-5 pb-2 text-base sm:text-lg border-0 resize-none no-focus-ring bg-transparent my-mind-textarea custom-mini-scrollbar"
+              style={{ 
+                background: "transparent", 
+                border: "none", 
+                outline: "none", 
+                minHeight: "60px",
+                maxHeight: "240px",
+                overflowY: "hidden",
+                color: "var(--color-text-primary)" 
+              }}
+            />
+          )}
           
           <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between">
             <div className="flex items-center gap-2 max-w-[calc(100%-90px)]">
@@ -203,6 +214,7 @@ export default function MindHome({ navigate, setActiveThoughtId }: MindHomeProps
                 editorRef={textareaRef}
                 currentValue={input}
                 onValueChange={handleValueChange}
+                onListeningChange={setIsVoiceListening}
                 onError={(err) => showToast(err, 'error')}
               />
             </div>

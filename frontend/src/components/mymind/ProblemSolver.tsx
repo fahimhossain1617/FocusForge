@@ -5,6 +5,8 @@ import { ArrowLeft } from "lucide-react";
 import { useAppContext } from "../../context/AppContext";
 import { useTranslation } from "../../hooks/useTranslation";
 import VoiceInput from "./VoiceInput";
+import VoiceReactiveGlow from "../voice/VoiceReactiveGlow";
+import VoiceWaveform from "../voice/VoiceWaveform";
 
 
 interface ProblemSolverProps {
@@ -22,6 +24,7 @@ export default function ProblemSolver({ navigate }: ProblemSolverProps) {
   const [nextStep, setNextStep] = useState("");
   
   const [isFocused, setIsFocused] = useState(false);
+  const [isVoiceListening, setIsVoiceListening] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
@@ -76,40 +79,48 @@ export default function ProblemSolver({ navigate }: ProblemSolverProps) {
           <div
             className="rounded-2xl border border-slate-200 dark:border-white/10 bg-white dark:bg-[#111827] relative pb-16 shadow-none"
           >
-            <textarea
-              ref={textareaRef}
-              value={currentVal}
-              onChange={(e) => {
-                setCurrentVal(e.target.value);
-                const el = textareaRef.current;
-                if (el) {
-                  el.style.height = "auto";
-                  const scrollH = el.scrollHeight;
-                  if (scrollH > 240) {
-                    el.style.height = "240px";
-                    el.style.overflowY = "auto";
-                  } else {
-                    el.style.height = `${Math.max(scrollH, 100)}px`;
-                    el.style.overflowY = "hidden";
+            <VoiceReactiveGlow active={isVoiceListening} rounded="rounded-2xl" />
+            {isVoiceListening ? (
+              <div className="w-full px-6 py-6 flex items-center h-[100px] overflow-hidden">
+                <VoiceWaveform active={isVoiceListening} />
+              </div>
+            ) : (
+
+              <textarea
+                ref={textareaRef}
+                value={currentVal}
+                onChange={(e) => {
+                  setCurrentVal(e.target.value);
+                  const el = textareaRef.current;
+                  if (el) {
+                    el.style.height = "auto";
+                    const scrollH = el.scrollHeight;
+                    if (scrollH > 240) {
+                      el.style.height = "240px";
+                      el.style.overflowY = "auto";
+                    } else {
+                      el.style.height = `${Math.max(scrollH, 100)}px`;
+                      el.style.overflowY = "hidden";
+                    }
+                    el.scrollTop = el.scrollHeight;
                   }
-                  el.scrollTop = el.scrollHeight;
-                }
-              }}
-              onFocus={() => setIsFocused(true)}
-              onBlur={() => setIsFocused(false)}
-              placeholder={t.myMind.problemSolverPlaceholder || "What problem are you trying to break down?"}
-              className="w-full px-6 py-6 text-lg border-0 resize-none no-focus-ring bg-transparent my-mind-textarea"
-              style={{ 
-                background: "transparent", 
-                border: "none",
-                outline: "none", 
-                minHeight: "100px",
-                maxHeight: "240px",
-                height: "auto",
-                overflowY: "hidden",
-                color: "var(--color-text-primary)" 
-              }}
-            />
+                }}
+                onFocus={() => setIsFocused(true)}
+                onBlur={() => setIsFocused(false)}
+                placeholder={t.myMind.problemSolverPlaceholder || "What problem are you trying to break down?"}
+                className="w-full px-6 py-6 text-lg border-0 resize-none no-focus-ring bg-transparent my-mind-textarea"
+                style={{ 
+                  background: "transparent", 
+                  border: "none", 
+                  outline: "none", 
+                  minHeight: "100px",
+                  maxHeight: "240px",
+                  height: "auto",
+                  overflowY: "hidden",
+                  color: "var(--color-text-primary)" 
+                }}
+              />
+            )}
             
             <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between">
               <div className="flex items-center gap-2 max-w-[calc(100%-40px)]">
@@ -117,6 +128,7 @@ export default function ProblemSolver({ navigate }: ProblemSolverProps) {
                   editorRef={textareaRef}
                   currentValue={currentVal}
                   onValueChange={(val) => setCurrentVal(val)}
+                  onListeningChange={setIsVoiceListening}
                 />
               </div>
             </div>

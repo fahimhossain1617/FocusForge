@@ -8,11 +8,14 @@ import { useKeyboardShortcut } from "../hooks/useKeyboardShortcut";
 import { useAnimateExit } from "../hooks/useAnimateExit";
 import { Brain } from "lucide-react";
 import VoiceInput from "./mymind/VoiceInput";
+import VoiceReactiveGlow from "./voice/VoiceReactiveGlow";
+import VoiceWaveform from "./voice/VoiceWaveform";
 
 
 export default function QuickCapture() {
   const [isOpen, setIsOpen] = useState(false);
   const [value, setValue] = useState("");
+  const [isVoiceListening, setIsVoiceListening] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { addMindItem, showToast, state } = useAppContext();
   const { requireAuth } = useAuth();
@@ -94,27 +97,35 @@ export default function QuickCapture() {
       <div className="absolute inset-0 bg-[#223A5E]/38 backdrop-blur-sm" />
       <div className={`relative w-full max-w-lg mx-4 ${isExiting ? "motion-exit-reveal" : "motion-reveal"}`}>
         <div
-          className="app-capture-modal rounded-[18px] p-1 bg-white dark:bg-[#111827] border border-[#5B8DEF] shadow-none"
+          className="app-capture-modal rounded-[18px] p-1 bg-white dark:bg-[#111827] border border-[#5B8DEF] shadow-none relative"
         >
+          <VoiceReactiveGlow active={isVoiceListening} rounded="rounded-[18px]" />
           <div className="flex items-start gap-3 p-4">
             <Brain className="w-5 h-5 text-[#5B8DEF] shrink-0 mt-1" />
-            <textarea
-              ref={textareaRef}
-              value={value}
-              onChange={handleChange}
-              onKeyDown={handleKeyDown}
-              placeholder={state.lang === 'bn' ? "আপনার মনে কী চলছে? (বাংলা বা ইংরেজিতে বলুন...)" : "What's on your mind? (Speak in বাংলা or English...)"}
-              className="flex-1 py-1 text-base font-medium bg-transparent !border-none !shadow-none focus:!shadow-none resize-none text-[#111827] dark:text-foreground placeholder:text-[#8290A5]"
-              style={{
-                background: "transparent",
-                border: "none",
-                boxShadow: "none",
-                minHeight: "44px",
-                maxHeight: "240px",
-                height: "auto",
-                overflowY: "hidden",
-              }}
-            />
+            {isVoiceListening ? (
+              <div className="flex-1 flex items-center h-[44px] overflow-hidden">
+                <VoiceWaveform active={isVoiceListening} isBengali={state.lang === 'bn'} />
+              </div>
+            ) : (
+
+              <textarea
+                ref={textareaRef}
+                value={value}
+                onChange={handleChange}
+                onKeyDown={handleKeyDown}
+                placeholder={state.lang === 'bn' ? "আপনার মনে কী চলছে? (বাংলা বা ইংরেজিতে বলুন...)" : "What's on your mind? (Speak in বাংলা or English...)"}
+                className="flex-1 py-1 text-base font-medium bg-transparent !border-none !shadow-none focus:!shadow-none resize-none text-[#111827] dark:text-foreground placeholder:text-[#8290A5]"
+                style={{
+                  background: "transparent",
+                  border: "none",
+                  boxShadow: "none",
+                  minHeight: "44px",
+                  maxHeight: "240px",
+                  height: "auto",
+                  overflowY: "hidden",
+                }}
+              />
+            )}
           </div>
           <div className="px-4 pb-4 flex items-center justify-between">
             <div className="flex items-center gap-2 max-w-[calc(100%-90px)]">
@@ -123,7 +134,8 @@ export default function QuickCapture() {
                 currentValue={value} 
                 onValueChange={(val) => {
                   setValue(val);
-                }} 
+                }}
+                onListeningChange={setIsVoiceListening}
               />
             </div>
             <button

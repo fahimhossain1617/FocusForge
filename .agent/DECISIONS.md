@@ -413,3 +413,42 @@
 - **Impact:** `frontend/src/hooks/useContinuousSpeech.ts`, `frontend/src/components/mymind/VoiceInput.tsx`, `frontend/src/components/diary/DiaryVoiceInput.tsx`, `frontend/src/components/mymind/*`, `frontend/src/components/QuickCapture.tsx`, `frontend/src/components/ai-agent/AIAgentPage.tsx`.
 - **Do Not Change Without Approval:** Do not reduce backoff below 250ms or re-introduce competing SpeechRecognition instances.
 
+---
+
+## ADR-027: Voice-Reactive Ambient Glow Effect (Mind Space & AI Composer Bar)
+
+- **Date:** October 2026
+- **Status:** Accepted
+- **Decision:**
+  1. **Strict Area Isolation:** Ambient glow effect is strictly attached to the perimeter of the Mind Space text/input bar (`MindHome.tsx`, `IdeaCapture.tsx`, `ProblemSolver.tsx`) and the Glory AI text composer pill bar (`AIAgentPage.tsx`). Absolutely zero global screen, sidebar, dashboard, card, or navigation pollution.
+  2. **Microphone Voice Reactivity:** Implemented `useVoiceAmplitude` (`frontend/src/hooks/useVoiceAmplitude.ts`), querying real-time microphone RMS volume through Web Audio API (`AudioContext`, `createMediaStreamSource`, `createAnalyser`) with speech frequency band gating (85Hz - 2200Hz) and asymmetric attack/release exponential smoothing (120ms attack / 500ms release) to avoid jitter or rapid flickering.
+  3. **Zero-Rerender GPU Compositing:** Implemented `VoiceReactiveGlow` (`frontend/src/components/voice/VoiceReactiveGlow.tsx` & `.module.css`) executing inside a `requestAnimationFrame` loop that mutates DOM element transforms and opacities directly, causing 0 React re-renders per audio frame.
+  4. **Multi-Layer Organic Atmosphere:** 3 layered soft blurred fields:
+     - Layer 1 (Atmospheric Base): Broad soft diffusion (38px blur), slow organic drift left -> right.
+     - Layer 2 (Secondary Cloud): Medium diffusion (24px blur), slow organic drift right -> left.
+     - Layer 3 (Rim Radiance): Edge illumination (10px blur) along the container border.
+  5. **Theme Adaptation:** Dark Mode uses subtle cool-blue / cyan atmospheric gradients (`rgba(56, 189, 248, ...)`, `rgba(59, 130, 246, ...)`); Light Mode adapts to Focentia's light accent (`rgba(91, 141, 239, ...)`).
+  6. **Stability & Accessibility:** Input bar dimensions, padding, borders, text, cursor, icons, and buttons remain completely stable and interactive (`pointer-events: none`, `z-index: -1`, `border-radius: inherit`). Respects `prefers-reduced-motion` by disabling positional translation and scale drift while maintaining soft static luminescence. Smooth 380ms fade-in/fade-out transitions.
+- **Reason:** Satisfies user requirement for an Apple/ChatGPT-grade, subtle, voice-reactive atmospheric presence that signals listening without looking like a gaming RGB visualizer, flashing neon stroke, or changing UI dimensions.
+- **Impact:** `frontend/src/hooks/useVoiceAmplitude.ts`, `frontend/src/components/voice/VoiceReactiveGlow.tsx`, `frontend/src/components/voice/VoiceReactiveGlow.module.css`, `frontend/src/components/voice/index.ts`, `frontend/src/components/mymind/MindHome.tsx`, `frontend/src/components/mymind/IdeaCapture.tsx`, `frontend/src/components/mymind/ProblemSolver.tsx`, `frontend/src/components/ai-agent/AIAgentPage.tsx`.
+- **Do Not Change Without Approval:** Do not apply ambient glow globally to non-voice elements, replace the input borders with thick strokes, or trigger React state re-renders on audio frames.
+
+---
+
+## ADR-028: Unified Voice Interface, Reactive Waveform Bar & Astral Aurora Glow
+
+- **Date:** October 2026
+- **Status:** Accepted
+- **Decision:**
+  1. **Astral Violet-Cyan Aurora Glow:** Upgraded `VoiceReactiveGlow` palette from monochromatic light blue to a rich, high-contrast violet-cyan cosmic aura (`rgba(168, 85, 247, ...)`, `rgba(99, 102, 241, ...)`, `rgba(6, 182, 212, ...)`) that pops vibrantly against dark slate/blue backgrounds without blending in, and looks clean and distinct in Light Mode.
+  2. **Harmonic Voice Waveform (`VoiceWaveform.tsx`):** Implemented an audio equalizer waveform composed of centered vertical bars with bell/diamond envelope and rounded caps, dynamically driven at 60fps by microphone audio amplitude via `useVoiceAmplitude`. Runs within the text bar in Mind Space and Glory AI without overflowing.
+  3. **Glory AI Border Beam Dynamic Transition:** When voice recording begins in Glory AI (`AIAgentPage.tsx`), `BorderBeam` is automatically hidden, giving full prominence to `VoiceReactiveGlow` and `VoiceWaveform`. When voice recording stops, `BorderBeam` returns smoothly.
+  4. **Universal Mic / Stop Square Button Consistency:**
+     - When idle: Clean, sharp `<Mic>` icon matching the theme UI (no crossed slash `MicOff` icon anywhere across the site).
+     - When listening: Box/rounded square `<Square>` stop icon styled in theme purple/accent (not red).
+  5. **Direct Touch Language Toggle (`বাং` / `EN`):** Provided a discrete, non-sliding touch toggle button next to every voice input across the entire app (Glory AI, Mind Space, My Diary), defaulting to Bangla (`bn-BD`) with instant toggle to English (`en-US`).
+  6. **Diary Scope Isolation:** Maintained a clean, minimal voice button + language toggle in My Diary (`DiaryVoiceInput.tsx`) without full ambient waveform container overlays, keeping journal editing focused and distraction-free.
+- **Reason:** Addresses user feedback on low-contrast glow color, replaces crossed mic icons with standard mic/square stop controls, adds dynamic in-bar sound wave visualization matching reference specifications, and integrates Bengali/English voice toggle across all modules.
+- **Impact:** `frontend/src/components/voice/VoiceReactiveGlow.module.css`, `frontend/src/components/voice/VoiceWaveform.tsx`, `frontend/src/components/voice/index.ts`, `frontend/src/components/mymind/VoiceInput.tsx`, `frontend/src/components/mymind/MindHome.tsx`, `frontend/src/components/mymind/ProblemSolver.tsx`, `frontend/src/components/mymind/IdeaCapture.tsx`, `frontend/src/components/mymind/ThoughtDetail.tsx`, `frontend/src/components/QuickCapture.tsx`, `frontend/src/components/diary/DiaryVoiceInput.tsx`, `frontend/src/components/ai-agent/AIAgentPage.tsx`, `frontend/src/components/ai-agent/ai-agent.module.css`.
+- **Do Not Change Without Approval:** Do not reintroduce `MicOff` crossed icons or red stop buttons, and do not remove the Bengali/English language switcher.
+

@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useEffect, useRef, useCallback } from 'react';
-import { Mic, MicOff, Languages } from 'lucide-react';
+import { Mic, Square, Languages } from 'lucide-react';
 import { useContinuousSpeech } from '@/hooks/useContinuousSpeech';
+import VoiceWaveform from '@/components/voice/VoiceWaveform';
 
 interface VoiceInputProps {
   value?: string;
@@ -99,41 +100,50 @@ export default function VoiceInput({
   };
 
   const currentDisplayValue = incomingValue !== undefined && incomingValue !== '' ? incomingValue : text;
+  const isBn = lang === 'bn-BD';
 
   return (
     <div className="w-full">
-      {/* If used standalone without external textarea, render self-contained textarea */}
+      {/* If used standalone without external textarea, render self-contained textarea or waveform */}
       {!externalTextareaRef && (
-        <textarea
-          ref={textareaRef}
-          value={currentDisplayValue}
-          onChange={(e) => {
-            const nextVal = e.target.value;
-            setManualText(nextVal);
-            handleTextChange?.(nextVal);
-            adjustHeight();
-          }}
-          placeholder="Write whatever comes to mind..."
-          className="w-full bg-transparent text-neutral-100 placeholder-neutral-500 text-base leading-relaxed resize-none outline-none"
-          style={{ minHeight: '64px', maxHeight: '240px', height: 'auto', overflowY: 'hidden' }}
-        />
+        <div className="relative w-full min-h-[64px]">
+          {isListening ? (
+            <div className="w-full py-3 flex items-center justify-center">
+              <VoiceWaveform active={isListening} isBengali={isBn} />
+            </div>
+          ) : (
+            <textarea
+              ref={textareaRef}
+              value={currentDisplayValue}
+              onChange={(e) => {
+                const nextVal = e.target.value;
+                setManualText(nextVal);
+                handleTextChange?.(nextVal);
+                adjustHeight();
+              }}
+              placeholder="Write whatever comes to mind..."
+              className="w-full bg-transparent text-neutral-900 dark:text-neutral-100 placeholder-neutral-400 dark:placeholder-neutral-500 text-base leading-relaxed resize-none outline-none"
+              style={{ minHeight: '64px', maxHeight: '240px', height: 'auto', overflowY: 'hidden' }}
+            />
+          )}
+        </div>
       )}
 
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          {/* Mic Button */}
+          {/* Mic / Stop Button */}
           <button
             type="button"
             onClick={toggleListening}
-            className={`p-2.5 rounded-full transition-all flex items-center justify-center cursor-pointer ${
+            className={`w-9 h-9 rounded-xl transition-all flex items-center justify-center cursor-pointer shadow-xs active:scale-95 ${
               isListening
-                ? 'bg-blue-600 text-white animate-pulse'
-                : 'bg-neutral-800/80 text-neutral-400 hover:text-white hover:bg-neutral-700'
+                ? 'bg-purple-600 dark:bg-purple-500 text-white shadow-purple-500/20'
+                : 'bg-slate-100 dark:bg-white/5 border border-slate-200/80 dark:border-white/10 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-white/10 hover:text-slate-900 dark:hover:text-white'
             }`}
-            title={isListening ? 'Stop Listening' : 'Start Listening'}
+            title={isListening ? (isBn ? 'ভয়েস থামান' : 'Stop Listening') : (isBn ? 'ভয়েস ইনপুট' : 'Start Listening')}
             aria-label={isListening ? 'Stop voice input' : 'Start voice input'}
           >
-            {isListening ? <Mic className="w-5 h-5" /> : <MicOff className="w-5 h-5" />}
+            {isListening ? <Square size={13} fill="currentColor" /> : <Mic size={16} strokeWidth={1.8} />}
           </button>
 
           {/* Language Toggle Button */}
@@ -141,11 +151,12 @@ export default function VoiceInput({
             <button
               type="button"
               onClick={toggleLanguage}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-neutral-800/80 text-neutral-300 hover:bg-neutral-700 transition cursor-pointer"
-              title={lang === 'bn-BD' ? 'Switch to English' : 'বাংলায় সুইচ করুন'}
+              className="flex items-center gap-1.5 h-9 px-3 text-xs font-semibold rounded-xl bg-slate-100 dark:bg-white/5 border border-slate-200/80 dark:border-white/10 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-white/10 transition cursor-pointer shadow-xs active:scale-95 select-none"
+              title={isBn ? 'Switch to English (ইংরেজি সিলেক্ট করুন)' : 'বাংলায় সুইচ করুন'}
+              aria-label={isBn ? 'Switch voice recognition to English' : 'Switch voice recognition to Bangla'}
             >
-              <Languages className="w-3.5 h-3.5" />
-              <span>{lang === 'bn-BD' ? 'বাং' : 'Eng'}</span>
+              <Languages size={13} className="text-purple-600 dark:text-purple-400 shrink-0" />
+              <span>{isBn ? 'বাং' : 'EN'}</span>
             </button>
           )}
         </div>
@@ -155,7 +166,7 @@ export default function VoiceInput({
           <button
             type="button"
             onClick={() => onSave(currentDisplayValue)}
-            className="px-4 py-1.5 text-sm font-medium rounded-lg bg-neutral-800 text-neutral-200 hover:bg-neutral-700 hover:text-white transition cursor-pointer"
+            className="px-4 py-1.5 text-sm font-medium rounded-xl bg-purple-600 hover:bg-purple-700 text-white transition cursor-pointer"
           >
             Save
           </button>
