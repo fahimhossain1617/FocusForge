@@ -1,5 +1,5 @@
 // Focentia Progressive Web App Service Worker
-const CACHE_NAME = 'focentia-v8';
+const CACHE_NAME = 'focentia-v9';
 
 const STATIC_ASSETS = [
   '/',
@@ -15,6 +15,9 @@ const STATIC_ASSETS = [
   '/icons/badge-96x96.png',
   '/icons/badge-72x72.png',
   '/icons/badge-monochrome.png',
+  '/icons/notification-badge.png',
+  '/badge-96x96.png',
+  '/notification-badge.png',
   '/logo.png'
 ];
 

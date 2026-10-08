@@ -590,4 +590,17 @@
      - Under `Privacy > E2EE Sync & Recovery Key` in `SettingsPage.tsx`, authenticated users can view encryption status, update/change their encryption passphrase, copy their secret recovery key, authorize new devices, or trigger manual cloud synchronization.
 - **Reason:** Resolves an issue where clicking the email reset link routed to the home dashboard and intercepted users with E2EE device sync modals instead of the password change flow.
 - **Impact:** `frontend/src/context/AuthContext.tsx`, `frontend/src/app/auth/callback/page.tsx`, `frontend/src/app/page.tsx`, `frontend/src/app/reset-password/page.tsx`, `frontend/src/components/pages/SettingsPage.tsx`.
-- **Do Not Change Without Approval:** Do not show encryption prompts to unauthenticated guests or during password recovery flows.
+- **Do Not Change Without Approval:** Do not show encryption prompts to unauthenticated guests or during password recovery flows.---
+
+## ADR-037: Custom Monochrome Android Push Notification Badge Integration
+
+- **Date:** October 2026
+- **Status:** Accepted
+- **Decision:**
+  1. **Monochrome Badge Asset Export:** Converted the master custom "F" logo shape graphic into pure white `#FFFFFF` pixels with transparent background and anti-aliased alpha transparency across standard density sizes (`badge-96x96.png`, `badge-72x72.png`, `badge-monochrome.png`, `notification-badge.png`, and `badge-master.png`).
+  2. **Android Status Bar & Header Badge Conformance:** Provided standard balanced padding (8-10%) inside the square canvas so Android notification drawer headers and status bar small icons render without clipping or edge bleeding.
+  3. **Notification Service & Service Worker Delivery:** Verified `self.registration.showNotification(title, { badge: '/icons/badge-96x96.png', ... })` in `sw.js` and `notificationService.ts`.
+  4. **Cache Invalidation & Immediate Update:** Bumped Service Worker cache name to `focentia-v9` and added all badge routes to `STATIC_ASSETS` pre-caching array to ensure immediate retrieval on devices.
+- **Reason:** Replaces default browser circular indicator on Android status bar / push notification tray with the exact custom F branding.
+- **Impact:** `frontend/public/icons/badge-96x96.png`, `frontend/public/icons/badge-72x72.png`, `frontend/public/icons/badge-monochrome.png`, `frontend/public/sw.js`, `frontend/scripts/test_notification_architecture.js`.
+- **Do Not Change Without Approval:** Do not invert badge alpha or remove transparent background.

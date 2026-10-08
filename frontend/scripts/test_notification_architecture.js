@@ -30,7 +30,7 @@ console.log('\n--- 2. Service Worker (sw.js) Verification ---');
 const swPath = path.join(__dirname, '..', 'public', 'sw.js');
 const swContent = fs.readFileSync(swPath, 'utf8');
 
-assert(swContent.includes("CACHE_NAME = 'focusforge-v6'"), 'CACHE_NAME is not v6');
+assert(swContent.includes("CACHE_NAME = 'focentia-v9'"), 'CACHE_NAME is not v9');
 assert(swContent.includes('/icons/badge-96x96.png'), 'sw.js missing badge-96x96.png in static assets');
 assert(swContent.includes("self.addEventListener('push'"), 'sw.js missing push event listener');
 assert(swContent.includes("self.addEventListener('notificationclick'"), 'sw.js missing notificationclick listener');
