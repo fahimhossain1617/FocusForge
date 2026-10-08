@@ -4,8 +4,8 @@ import { supabase } from "../lib/supabaseClient";
 
 async function getActiveUserId(): Promise<string> {
   try {
-    const { data: { user } } = await supabase.auth.getUser();
-    return user?.id || "guest";
+    const { data: { session } } = await supabase.auth.getSession();
+    return session?.user?.id || "guest";
   } catch {
     return "guest";
   }

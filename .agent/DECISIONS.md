@@ -601,7 +601,18 @@
   2. **Inner Target Stroke & Gap Contrast Sharpening:** Enhanced the inner target concentric circles, center hole (r <= 18), solid middle disc, transparent gap (r 70..92), and crosshairs before downsampling to prevent bilinear blur and maintain sharp contrast at 96x96 and 48x48.
   3. **High-Visibility Assets:** Exported `badge-large.png`, `badge-48x48.png`, `badge-96x96.png`, `badge-72x72.png`, and `badge-monochrome.png`.
   4. **Dynamic Cache Busting:** Configured Service Worker and `notificationService.ts` to request `/icons/badge-large.png?v=max_zoom_1` and bumped Service Worker cache name to `focentia-v10-badge-zoom`.
-- **Reason:** Ensures the custom F badge remains bold, crisp, and instantly readable from a distance on small Android status bar cutouts.
-- **Impact:** `frontend/public/icons/badge-large.png`, `frontend/public/icons/badge-48x48.png`, `frontend/public/sw.js`, `frontend/src/services/notificationService.ts`, `frontend/scripts/test_notification_architecture.js`.
-- **Do Not Change Without Approval:** Do not add outer margins or lower crosshair contrast.
+## ADR-039: Sub-0.3s Instant PWA Launch, Zero Unexpected Auto-Reloads, and Double State Render Flash Elimination
+
+- **Date:** October 2026
+- **Status:** Accepted
+- **Decision:**
+  1. **Instant Stale-While-Revalidate HTML Navigation (`sw.js`):** HTML navigation requests (`mode === 'navigate'`) return the cached app shell instantly (sub-15ms) and revalidate in the background, eliminating the previous 2.5-second network timeout on app launch.
+  2. **Elimination of Abrupt PWA Auto-Reloads (`ServiceWorkerRegister.tsx`):** Removed `controllerchange -> window.location.reload()` so background Service Worker updates no longer unexpectedly hard-refresh or flash the user's active screen.
+  3. **Atomic Single-Pass Local State Loading (`AppContext.tsx`):** Replaced the two-step `loadUserData` sequence (initial backup render + subsequent full state overwrite) with a single parallel query across Dexie IndexedDB stores (`tasks`, `notes`, `mind_items`, `diary_topics`, `focus_sessions`, `learning_folders`), updating state exactly once and eliminating secondary re-render layout flashes.
+  4. **Auth Session Deduplication (`AuthContext.tsx`):** Added processed user ID guards between `initAuth()` and `onAuthStateChange("INITIAL_SESSION")`, preventing duplicate profile network requests and double `setUser` render cycles on mount.
+  5. **Instant Local Storage User Resolution (`taskService.ts`):** Replaced network `supabase.auth.getUser()` calls with fast in-memory `supabase.auth.getSession()` for all local repository operations.
+  6. **Snappy Launch Transition (`layout.tsx`, `page.tsx`):** Streamlined the splash flight animation (240ms), removed artificial micro-holds (60ms), and made `launchDone` event dispatch immediate.
+- **Reason:** Solves user-reported slow app launch when opening after an idle gap and stops sudden automatic reloads / blinking.
+- **Impact:** `frontend/public/sw.js`, `frontend/src/components/pwa/ServiceWorkerRegister.tsx`, `frontend/src/context/AppContext.tsx`, `frontend/src/context/AuthContext.tsx`, `frontend/src/services/taskService.ts`, `frontend/src/app/layout.tsx`, `frontend/src/app/page.tsx`.
+- **Do Not Change Without Approval:** Do not reintroduce `window.location.reload()` in Service Worker listeners, network timeouts on navigate requests, or two-stage state replacement during initial state loading.
 

@@ -490,12 +490,13 @@ export default function RootLayout({
     var dx = slotCenterX - badgeCenterX;
     var dy = slotCenterY - badgeCenterY;
 
-    // Fast, ultra-smooth, eye-soothing flight (~340ms)
-    var flightDuration = isSlowDebug ? 2500 : 340;
+    // Fast, ultra-smooth, eye-soothing flight (~240ms)
+    var flightDuration = isSlowDebug ? 2500 : 240;
     var targetRadius = Math.max(6, Math.round((parseInt(window.getComputedStyle(target.slot).borderRadius) || 8) / Math.max(scale, 0.1)));
 
-    // Subtle micro-hold (60ms) so user registers the splash badge steadily
-    await wait(isSlowDebug ? 300 : 60);
+    if (isSlowDebug) {
+      await wait(300);
+    }
 
     // Transition boot layer background to transparent so app shell beneath emerges seamlessly
     bootLayer.style.background = 'transparent';

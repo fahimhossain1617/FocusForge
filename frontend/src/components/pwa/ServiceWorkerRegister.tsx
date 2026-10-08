@@ -32,12 +32,11 @@ export default function ServiceWorkerRegister() {
     let refreshing = false;
     const hadController = Boolean(navigator.serviceWorker.controller);
 
-    // When the new service worker takes over, reload the page ONLY if an older controller was already active (i.e. an update, NOT initial install)
+    // When the new service worker takes over, avoid hard-reloading active screen to prevent disrupting user sessions
     const handleControllerChange = () => {
       if (hadController && !refreshing) {
         refreshing = true;
-        console.log("[PWA] Controller updated. Reloading page to apply updates...");
-        window.location.reload();
+        console.log("[PWA] Controller updated in background.");
       }
     };
 

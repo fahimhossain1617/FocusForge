@@ -118,16 +118,14 @@ export default function Home() {
     };
   }, [isLoaded, isAuthLoading]);
 
-  // Gate onboarding and modals until launch animation completes + 400ms delay
+  // Gate onboarding and modals until launch animation completes
   useEffect(() => {
     if (launchDone) return;
     const handleLaunchDone = () => {
-      setTimeout(() => {
-        setLaunchDone(true);
-      }, 400);
+      setLaunchDone(true);
     };
     window.addEventListener("ff:launch-done", handleLaunchDone);
-    const fallbackTimer = setTimeout(handleLaunchDone, 5000);
+    const fallbackTimer = setTimeout(handleLaunchDone, 1500);
     return () => {
       window.removeEventListener("ff:launch-done", handleLaunchDone);
       clearTimeout(fallbackTimer);

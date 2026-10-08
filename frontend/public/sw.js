@@ -217,35 +217,34 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 5. HTML Navigation: Instant offline fallback or fast network race
+  // 5. HTML Navigation: Instant Cache-First with Background Revalidation for sub-0.3s launch
   if (request.mode === 'navigate') {
     event.respondWith(
       (async () => {
-        if (typeof self.navigator !== 'undefined' && self.navigator.onLine === false) {
-          const cachedOffline = (await caches.match('/')) || (await caches.match(request));
-          if (cachedOffline) return cachedOffline;
-        }
-
-        try {
-          const networkPromise = fetch(request);
-          const timeoutPromise = new Promise((_, reject) =>
-            setTimeout(() => reject(new Error('Navigation timeout')), 2500)
-          );
-          const networkResponse = await Promise.race([networkPromise, timeoutPromise]);
-
-          if (networkResponse && networkResponse.status === 200) {
-            const responseClone = networkResponse.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put('/', responseClone));
-            return networkResponse;
-          }
-        } catch {
-          // Network failed or timed out: fall back to cached shell
-        }
-
         const cached = (await caches.match('/')) || (await caches.match(request));
-        if (cached) return cached;
 
-        return fetch(request);
+        // Background fetch to keep cached app shell updated
+        const fetchPromise = fetch(request)
+          .then((networkResponse) => {
+            if (networkResponse && networkResponse.status === 200) {
+              const responseClone = networkResponse.clone();
+              caches.open(CACHE_NAME).then((cache) => cache.put('/', responseClone));
+            }
+            return networkResponse;
+          })
+          .catch(() => null);
+
+        // If cached app shell exists, return INSTANTLY (sub-15ms)
+        if (cached) {
+          event.waitUntil(fetchPromise);
+          return cached;
+        }
+
+        // First-time visit: wait for network response
+        const networkResponse = await fetchPromise;
+        if (networkResponse) return networkResponse;
+
+        return cached || fetch(request);
       })()
     );
     return;

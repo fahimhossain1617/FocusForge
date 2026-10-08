@@ -120,64 +120,74 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     let unsubscribeProfile: (() => void) | null = null;
     let isMounted = true;
+    const processedUserIdRef = { current: null as string | null };
+
+    async function processAuthenticatedUser(u: any, isInitial: boolean = false) {
+      if (!isMounted || !u?.id) return;
+      if (processedUserIdRef.current === u.id && isInitial) return;
+      processedUserIdRef.current = u.id;
+
+      const meta = u.user_metadata || {};
+      let activeUser: User = {
+        id: u.id,
+        identifier: u.email || u.phone || "",
+        email: u.email || "",
+        authMethod: u.app_metadata?.provider === "google" ? "google" : u.email ? "email" : "phone",
+        displayName: meta.display_name || meta.full_name || u.email?.split("@")[0] || "User",
+        fullName: meta.full_name || "",
+        phone: meta.phone || u.phone || "",
+        dob: meta.dob || meta.date_of_birth || "",
+        gender: meta.gender || "",
+        country: meta.country || "",
+        city: meta.city || "",
+        bio: meta.bio || "",
+        avatarUrl: meta.avatar_url || undefined,
+        createdAt: u.created_at || u.createdAt,
+      };
+
+      const isCurrentlyOnline = typeof navigator === "undefined" || navigator.onLine;
+      if (isCurrentlyOnline) {
+        try {
+          const profile = await userService.fetchUserProfile(u.id);
+          if (profile) activeUser = profile;
+
+          if (!unsubscribeProfile) {
+            unsubscribeProfile = userService.subscribeToProfile(activeUser.id, (updatedProfile) => {
+              if (isMounted) setUser(updatedProfile);
+            });
+          }
+        } catch {}
+      }
+
+      if (isMounted) {
+        setUser(activeUser);
+        setLifecycle("AUTHENTICATED");
+        accountManager.setGuestModePermanentlyDisabled();
+        setIsGuestModeDisabled(true);
+        accountManager.saveRememberedAccount({
+          id: activeUser.id,
+          email: activeUser.identifier || activeUser.email || "",
+          displayName: activeUser.displayName || "User",
+          fullName: activeUser.fullName,
+          avatarUrl: activeUser.avatarUrl,
+          authMethod: activeUser.authMethod || "email",
+          lastUsedAt: new Date().toISOString(),
+        });
+        setRememberedAccounts(accountManager.getRememberedAccounts());
+      }
+    }
 
     async function initAuth() {
       try {
         const sessionPromise = authService.getSession();
         const timeoutPromise = new Promise<{ user: null; rememberMe: false }>((resolve) =>
-          setTimeout(() => resolve({ user: null, rememberMe: false }), 3000)
+          setTimeout(() => resolve({ user: null, rememberMe: false }), 2000)
         );
         const session = await Promise.race([sessionPromise, timeoutPromise]);
 
         if (session && session.user && isMounted) {
-          const isCurrentlyOnline = typeof navigator === "undefined" || navigator.onLine;
-          const u = session.user as any;
-          const meta = u.user_metadata || {};
-          let activeUser: User = {
-            id: u.id,
-            identifier: u.email || u.phone || "",
-            email: u.email || "",
-            authMethod: u.app_metadata?.provider === "google" ? "google" : u.email ? "email" : "phone",
-            displayName: meta.display_name || meta.full_name || u.email?.split("@")[0] || "User",
-            fullName: meta.full_name || "",
-            phone: meta.phone || u.phone || "",
-            dob: meta.dob || meta.date_of_birth || "",
-            gender: meta.gender || "",
-            country: meta.country || "",
-            city: meta.city || "",
-            bio: meta.bio || "",
-            avatarUrl: meta.avatar_url || undefined,
-            createdAt: u.created_at || u.createdAt,
-          };
-
-          if (isCurrentlyOnline) {
-            try {
-              const profile = await userService.fetchUserProfile(session.user.id);
-              if (profile) activeUser = profile;
-
-              unsubscribeProfile = userService.subscribeToProfile(activeUser.id, (updatedProfile) => {
-                if (isMounted) setUser(updatedProfile);
-              });
-            } catch {}
-          }
-
-          if (isMounted) {
-            setUser(activeUser);
-            setLifecycle("AUTHENTICATED");
-            accountManager.setGuestModePermanentlyDisabled();
-            setIsGuestModeDisabled(true);
-            accountManager.saveRememberedAccount({
-              id: activeUser.id,
-              email: activeUser.identifier || activeUser.email || "",
-              displayName: activeUser.displayName || "User",
-              fullName: activeUser.fullName,
-              avatarUrl: activeUser.avatarUrl,
-              authMethod: activeUser.authMethod || "email",
-              lastUsedAt: new Date().toISOString(),
-            });
-            setRememberedAccounts(accountManager.getRememberedAccounts());
-          }
-        } else if (isMounted) {
+          await processAuthenticatedUser(session.user, true);
+        } else if (isMounted && !processedUserIdRef.current) {
           setUser(null);
           const guestDisabled = accountManager.isGuestModePermanentlyDisabled();
           setIsGuestModeDisabled(guestDisabled);
@@ -185,7 +195,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       } catch (err) {
         console.warn("[AuthContext] Session init error:", err);
-        if (isMounted) {
+        if (isMounted && !processedUserIdRef.current) {
           setUser(null);
           setLifecycle("UNAUTHENTICATED");
         }
@@ -219,41 +229,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
 
         if (session?.user) {
-          const u = session.user;
-          const meta = u.user_metadata || {};
-          let profile = await userService.fetchUserProfile(session.user.id);
-          const authedUser: User = profile || {
-            id: u.id,
-            identifier: u.email || u.phone || "",
-            email: u.email || "",
-            authMethod: u.app_metadata?.provider === "google" ? "google" : u.email ? "email" : "phone",
-            displayName: meta.display_name || meta.full_name || u.email?.split("@")[0] || "User",
-            fullName: meta.full_name || "",
-            phone: meta.phone || u.phone || "",
-            dob: meta.dob || meta.date_of_birth || "",
-            gender: meta.gender || "",
-            country: meta.country || "",
-            city: meta.city || "",
-            bio: meta.bio || "",
-            avatarUrl: meta.avatar_url || undefined,
-            createdAt: u.created_at,
-          };
+          // If INITIAL_SESSION fires for the same user already processed by initAuth, skip re-processing
+          if (event === "INITIAL_SESSION" && processedUserIdRef.current === session.user.id) {
+            return;
+          }
 
-          setUser(authedUser);
-          setLifecycle("AUTHENTICATED");
-          accountManager.setGuestModePermanentlyDisabled();
-          setIsGuestModeDisabled(true);
-
-          accountManager.saveRememberedAccount({
-            id: authedUser.id,
-            email: authedUser.identifier || authedUser.email || "",
-            displayName: authedUser.displayName || "User",
-            fullName: authedUser.fullName,
-            avatarUrl: authedUser.avatarUrl,
-            authMethod: authedUser.authMethod || "email",
-            lastUsedAt: new Date().toISOString(),
-          });
-          setRememberedAccounts(accountManager.getRememberedAccounts());
+          await processAuthenticatedUser(session.user, false);
 
           // Clean up guest-only artifacts permanently
           await clearGuestData();
