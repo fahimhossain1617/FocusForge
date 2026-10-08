@@ -19,6 +19,7 @@
 import { notificationCenterService } from "./notificationCenterService";
 import { NotificationCategory } from "../types";
 import type { OrbMood } from "../components/ai-agent/useOrbMood";
+import { subscribeUserToPush, unsubscribeUserFromPush } from "../utils/pushSubscription";
 
 const SENT_LOG_PREFIX = "focusforge_notif_sent_";
 const DAILY_COUNT_PREFIX = "focusforge_notif_daily_count_";
@@ -74,6 +75,11 @@ class NotificationService {
     const nextId = userId ? userId.trim() : null;
     this.activeUserId = nextId;
     notificationCenterService.setUserId(nextId);
+
+    // If permission is already granted and a valid user is active, ensure Web Push subscription is synced
+    if (nextId && typeof window !== "undefined" && this.isSupported() && this.getPermission() === "granted") {
+      subscribeUserToPush(nextId).catch(() => {});
+    }
   }
 
   /**
@@ -110,6 +116,7 @@ class NotificationService {
 
   /**
    * Request notification permission only after explicit user interaction.
+   * On grant, automatically registers the OS Web Push subscription.
    */
   public async requestPermission(): Promise<NotificationPermission> {
     if (!this.isSupported()) {
@@ -117,10 +124,30 @@ class NotificationService {
     }
     try {
       const permission = await Notification.requestPermission();
+      if (permission === "granted") {
+        await subscribeUserToPush(this.activeUserId).catch((err) => {
+          console.warn("[NotificationService] Web Push subscription registration error:", err);
+        });
+      }
       return permission;
     } catch {
       return Notification.permission;
     }
+  }
+
+  /**
+   * Manually register or refresh Web Push subscription
+   */
+  public async subscribePush(): Promise<boolean> {
+    const sub = await subscribeUserToPush(this.activeUserId);
+    return Boolean(sub);
+  }
+
+  /**
+   * Manually unsubscribe from Web Push
+   */
+  public async unsubscribePush(): Promise<boolean> {
+    return await unsubscribeUserFromPush(this.activeUserId);
   }
 
   /**

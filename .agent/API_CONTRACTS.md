@@ -168,7 +168,10 @@ Content-Type: application/json
 - `GET /api/notifications/settings` & `POST /api/notifications/settings` -> Manages push settings, quiet hours, and daily limits.
 - `GET /api/notifications` -> In-app notification history.
 - `GET /api/notifications/rotation` -> Retrieves current shuffle-bag rotation state per category.
-- `POST /api/notifications/subscribe` -> Saves web push subscription (`p256dh`, `auth`).
+- `POST /api/notifications/subscribe` -> Saves Web Push subscription (`endpoint`, `p256dh`, `auth`, `user_agent`).
+- `POST /api/notifications/unsubscribe` -> Removes Web Push subscription endpoint from database.
+- `POST /api/notifications/send-push` -> Dispatches OS-level Web Push notification to user's devices via VAPID protocol.
+- `POST /api/notifications/test` / `POST /api/notifications/test-push` -> Dispatches test Web Push notification to verify background delivery.
 - `GET /api/reviews/state` & `POST /api/reviews/action` & `POST /api/reviews/skip` & `POST /api/reviews/submit` -> Smart in-app review prompt trigger pipeline.
 
 ---

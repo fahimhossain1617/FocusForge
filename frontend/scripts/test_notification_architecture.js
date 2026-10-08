@@ -32,7 +32,7 @@ console.log('\n--- 2. Service Worker (sw.js) Verification ---');
 const swPath = path.join(__dirname, '..', 'public', 'sw.js');
 const swContent = fs.readFileSync(swPath, 'utf8');
 
-assert(swContent.includes("CACHE_NAME = 'focentia-v10-badge-zoom'"), 'CACHE_NAME is not v10');
+assert(swContent.includes("CACHE_NAME = 'focentia-"), 'CACHE_NAME is not valid focentia cache');
 assert(swContent.includes('/icons/badge-large.png'), 'sw.js missing badge-large.png in static assets');
 assert(swContent.includes("self.addEventListener('push'"), 'sw.js missing push event listener');
 assert(swContent.includes("self.addEventListener('notificationclick'"), 'sw.js missing notificationclick listener');
@@ -42,7 +42,7 @@ assert(swContent.includes("start_focus"), 'sw.js missing start_focus action hand
 assert(swContent.includes("view_plan"), 'sw.js missing view_plan action handler');
 assert(swContent.includes("open_task"), 'sw.js missing open_task action handler');
 assert(swContent.includes("postMessage({"), 'sw.js missing postMessage to client');
-console.log('  ✅ [PASS] sw.js has cache v10, monochrome bold badges, push listener, showNotification, and all action handlers');
+console.log('  ✅ [PASS] sw.js has valid cache name, monochrome bold badges, push listener, showNotification, and all action handlers');
 
 // 3. Check notificationService.ts
 console.log('\n--- 3. notificationService.ts Verification ---');

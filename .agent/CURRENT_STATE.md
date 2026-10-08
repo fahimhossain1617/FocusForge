@@ -251,6 +251,20 @@ Focentia is an active, functional productivity suite built with Next.js 16 App R
 
 ---
 
+### Web Push & PWA Background Notifications Subsystem
+- **Current Implementation:**
+  1. **OS-Level Service Worker Push Handler (`frontend/public/sw.js`):** Standalone `push` event listener parsing JSON/text payloads and invoking `event.waitUntil(self.registration.showNotification(title, options))` so the OS handles displaying notifications even when the app/browser is terminated or minimized. Robust `notificationclick` handler focusing active clients or launching window to deep-linked URLs.
+  2. **VAPID Keys & Client Subscription Pipeline (`frontend/src/utils/pushSubscription.ts`):** ECDSA P-256 VAPID protocol integration (`NEXT_PUBLIC_VAPID_PUBLIC_KEY` & `VAPID_PRIVATE_KEY`). `subscribeUserToPush` negotiates browser PushManager subscription via `urlBase64ToUint8Array` and persists endpoint/keys to `push_subscriptions` database table. Integrated automatically with `ServiceWorkerRegister.tsx` and `notificationService.ts`.
+  3. **Server-Side Push Delivery Pipelines (`webPushService.ts`):** `frontend/src/lib/server/webPushService.ts` and `backend/src/services/webPushService.ts` using `web-push` library with automatic removal of 410/404 expired subscriptions.
+  4. **Supabase Edge Function (`supabase/functions/send-push/index.ts`):** Native Deno Edge Function for direct serverless Web Push delivery from database triggers and webhooks.
+  5. **API Endpoints:** `POST /api/notifications/subscribe`, `POST /api/notifications/unsubscribe`, `POST /api/notifications/send-push`, `POST /api/notifications/test-push`.
+- **Verified Status:** **VERIFIED** (Next.js production build passed with 0 errors, backend compilation passed, 5/5 architecture tests passed, database query verified).
+- **Important Files:** `frontend/public/sw.js`, `frontend/src/utils/pushSubscription.ts`, `frontend/src/lib/server/webPushService.ts`, `backend/src/services/webPushService.ts`, `supabase/functions/send-push/index.ts`, `supabase/migrations/027_push_subscriptions_and_rls.sql`, `frontend/src/app/api/[...path]/route.ts`, `backend/src/routes/notificationRoutes.ts`.
+- **Dependencies:** `web-push`, PushManager API, Service Worker API, PostgreSQL.
+- **Unknowns:** None.
+
+---
+
 ### Deployment
 - **Current Implementation:** Vercel deployment configured via `frontend/vercel.json` and `frontend/next.config.ts`.
 - **Verified Status:** **VERIFIED**
@@ -258,3 +272,4 @@ Focentia is an active, functional productivity suite built with Next.js 16 App R
 - **Important Files:** `frontend/vercel.json`, `frontend/next.config.ts`, `scripts/deploy.js`.
 - **Dependencies:** Vercel platform.
 - **Unknowns:** None.
+

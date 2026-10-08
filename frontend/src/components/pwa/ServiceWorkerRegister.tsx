@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { subscribeUserToPush } from "../../utils/pushSubscription";
 
 export default function ServiceWorkerRegister() {
   useEffect(() => {
@@ -63,6 +64,11 @@ export default function ServiceWorkerRegister() {
         .then((reg) => {
           // Immediately check for updates from the server
           reg.update().catch(() => {});
+
+          // If permission is already granted, ensure Web Push subscription is registered
+          if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted") {
+            subscribeUserToPush().catch(() => {});
+          }
 
           reg.onupdatefound = () => {
             const installingWorker = reg.installing;

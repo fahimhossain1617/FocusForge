@@ -15,6 +15,7 @@
     "@supabase/supabase-js": "^2.115.0",
     "@types/dompurify": "^3.0.5",
     "@types/pg": "^8.23.1",
+    "@types/web-push": "^3.6.4",
     "canvas-confetti": "^1.9.4",
     "dexie": "^4.4.6",
     "dompurify": "^3.4.16",
@@ -34,7 +35,8 @@
     "recharts": "^3.10.1",
     "rehype-katex": "^7.0.1",
     "remark-gfm": "^4.0.1",
-    "remark-math": "^6.0.0"
+    "remark-math": "^6.0.0",
+    "web-push": "^3.6.7"
   },
   "overrides": {
     "dompurify": "^3.4.16",

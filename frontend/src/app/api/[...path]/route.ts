@@ -35,6 +35,7 @@ import {
   dbDeleteUserAccountCompletely,
   pool,
 } from '@/lib/server/db';
+import { sendWebPushToUser } from '@/lib/server/webPushService';
 import {
   ERROR_CODES,
   validateFullName,
@@ -1099,6 +1100,40 @@ export async function POST(request: NextRequest, context: { params: Promise<{ pa
     } catch (err: any) {
       return NextResponse.json({ error: err?.message || 'Failed to save rotation state' }, { status: 500 });
     }
+  }
+
+  // 4.3. Trigger Web Push Notification: POST /api/notifications/send-push
+  if (pathStr === 'notifications/send-push') {
+    if (!userId || isGuest) {
+      return NextResponse.json({ success: true, guest: true, sentCount: 0 });
+    }
+    try {
+      const pushPayload = body.payload || body;
+      const pushResult = await sendWebPushToUser(userId, pushPayload);
+      return NextResponse.json({ success: true, ...pushResult });
+    } catch (err: any) {
+      return NextResponse.json({ error: err?.message || 'Failed to dispatch push notification' }, { status: 500 });
+    }
+  }
+
+  // 4.4. Test Web Push Notification: POST /api/notifications/test or /api/notifications/test-push
+  if (pathStr === 'notifications/test' || pathStr === 'notifications/test-push') {
+    const isBengali = lang === 'bn';
+    const testPayload = {
+      title: isBengali ? 'Focentia নোটিফিকেশন সক্রিয়' : 'Focentia Notification Active',
+      body: isBengali 
+        ? 'আপনার ব্যাকগ্রাউন্ড পুশ নোটিফিকেশন সম্পূর্ণ সক্রিয় রয়েছে।' 
+        : 'Your background Web Push notifications are fully active.',
+      timestamp: Date.now(),
+      category: 'system',
+      actionRoute: 'today',
+    };
+
+    let pushResult = { sentCount: 0, failedCount: 0, removedExpired: 0 };
+    if (userId && !isGuest) {
+      pushResult = await sendWebPushToUser(userId, testPayload);
+    }
+    return NextResponse.json({ success: true, payload: testPayload, pushResult });
   }
 
   // 5. Support Pipeline Submissions: Report, Contact, Feedback

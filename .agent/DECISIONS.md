@@ -616,3 +616,20 @@
 - **Impact:** `frontend/public/sw.js`, `frontend/src/components/pwa/ServiceWorkerRegister.tsx`, `frontend/src/context/AppContext.tsx`, `frontend/src/context/AuthContext.tsx`, `frontend/src/services/taskService.ts`, `frontend/src/app/layout.tsx`, `frontend/src/app/page.tsx`.
 - **Do Not Change Without Approval:** Do not reintroduce `window.location.reload()` in Service Worker listeners, network timeouts on navigate requests, or two-stage state replacement during initial state loading.
 
+---
+
+## ADR-040: Standard OS-Level Background Web Push Protocol & VAPID Subscription Pipeline
+
+- **Date:** October 2026
+- **Status:** Accepted
+- **Decision:**
+  1. **OS-Level Service Worker Push Handler (`frontend/public/sw.js`):** Implement a standalone `push` event handler in `sw.js` that parses incoming payloads and uses `event.waitUntil(self.registration.showNotification(title, options))` so the OS displays notifications even when the app/browser is terminated or minimized. Robust `notificationclick` handler focuses existing clients or opens new windows.
+  2. **ECDSA P-256 VAPID Web Push Subscription (`frontend/src/utils/pushSubscription.ts`):** VAPID public/private keypair generation and frontend subscription utility (`subscribeUserToPush`) that converts Base64 URL keys to Uint8Array and registers PushManager subscriptions with the backend `/api/notifications/subscribe`.
+  3. **Multi-Platform Server-Side Web Push Pipeline (`webPushService.ts`):** Next.js Serverless and companion Express backend services powered by `web-push` library with automatic purging of expired/unsubscribed endpoints (410 Gone / 404 Not Found).
+  4. **Supabase Edge Function (`supabase/functions/send-push/index.ts`):** Standalone Deno function for direct invocation by database webhooks and crons.
+  5. **Database Table & RLS (`027_push_subscriptions_and_rls.sql`):** `public.push_subscriptions` with strict Row Level Security (RLS) scoping subscriptions to authenticated user IDs and providing a `user_push_subscriptions` view for backward compatibility.
+- **Reason:** Solves the issue where notifications only triggered when the user was actively inside the app because alerts were tied to foreground polling / websockets rather than standard OS-level Web Push.
+- **Impact:** `frontend/public/sw.js`, `frontend/src/utils/pushSubscription.ts`, `frontend/src/lib/server/webPushService.ts`, `backend/src/services/webPushService.ts`, `supabase/functions/send-push/index.ts`, `supabase/migrations/027_push_subscriptions_and_rls.sql`, `frontend/src/app/api/[...path]/route.ts`, `backend/src/routes/notificationRoutes.ts`, `frontend/src/services/notificationService.ts`, `frontend/src/components/pwa/ServiceWorkerRegister.tsx`.
+- **Do Not Change Without Approval:** Do not remove the `push` event listener from `sw.js` or replace server-side Web Push with client-only polling timers.
+
+

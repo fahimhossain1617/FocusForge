@@ -15,6 +15,7 @@ import {
   dbGetRotationStates,
   dbSaveRotationState,
 } from '../services/db';
+import { sendWebPushToUser } from '../services/webPushService';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -269,24 +270,51 @@ router.post('/unsubscribe', async (req: AuthenticatedRequest, res: Response) => 
 });
 
 /**
+ * POST /api/notifications/send-push
+ * Trigger background Web Push delivery to user's registered devices
+ */
+router.post('/send-push', async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId || req.user?.isGuest) {
+      return res.json({ success: true, guest: true, sentCount: 0 });
+    }
+
+    const payload = req.body.payload || req.body;
+    const result = await sendWebPushToUser(userId, payload);
+    res.json({ success: true, ...result });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to send push notification' });
+  }
+});
+
+/**
  * POST /api/notifications/test
- * Triggers a test notification payload or checks user notification subscription
+ * Triggers a test notification payload and sends real Web Push if subscribed
  */
 router.post('/test', async (req: AuthenticatedRequest, res: Response) => {
   try {
+    const userId = req.user?.id;
     const lang = req.headers['x-app-lang'] === 'en' ? 'en' : 'bn';
     const isBengali = lang === 'bn';
 
     const payload = {
-      title: isBengali ? 'Focentia নোটিফিকেশন সফল' : 'Focentia Notification Active',
+      title: isBengali ? 'Focentia নোটিফিকেশন সক্রিয়' : 'Focentia Notification Active',
       body: isBengali 
-        ? 'আপনার নোটিফিকেশন সিস্টেম সম্পূর্ণ সক্রিয় রয়েছে। সময়মতো আপনার কাজের রিমাইন্ডার পাবেন।' 
-        : 'Your notification system is fully active. You will receive your scheduled task reminders on time.',
-      timestamp: new Date().toISOString(),
+        ? 'আপনার নোটিফিকেশন সিস্টেম সম্পূর্ণ সক্রিয় রয়েছে। ব্যাকগ্রাউন্ড পুশ প্রস্তুত।' 
+        : 'Your notification system is fully active. Background Web Push is ready.',
+      timestamp: Date.now(),
+      category: 'system',
+      actionRoute: 'today',
       lang,
     };
 
-    res.json({ success: true, payload });
+    let pushResult = { sentCount: 0, failedCount: 0, removedExpired: 0 };
+    if (userId && !req.user?.isGuest) {
+      pushResult = await sendWebPushToUser(userId, payload);
+    }
+
+    res.json({ success: true, payload, pushResult });
   } catch (err: any) {
     res.status(500).json({ error: err.message || 'Notification test failed' });
   }

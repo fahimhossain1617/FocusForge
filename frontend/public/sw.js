@@ -1,5 +1,5 @@
 // Focentia Progressive Web App Service Worker
-const CACHE_NAME = 'focentia-v10-badge-zoom';
+const CACHE_NAME = 'focentia-v11-web-push';
 
 const STATIC_ASSETS = [
   '/',
