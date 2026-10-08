@@ -91,12 +91,12 @@ export class NotificationPromptService {
    */
   public isEligibleToShow(forceCheck: boolean = false): boolean {
     if (!this.isSupported()) return false;
+    // If permission is currently active/granted in browser/phone, never prompt
     if (this.isPermissionGranted()) return false;
 
     const state = this.getStorage();
-    if (state.hasGranted) return false;
 
-    // Check daily cap
+    // Check daily cap (max 2 times per day)
     if (state.dailyCount >= MAX_PROMPTS_PER_DAY) {
       return false;
     }
