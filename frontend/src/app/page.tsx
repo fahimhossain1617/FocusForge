@@ -9,7 +9,7 @@ import Toast from "../components/ui/Toast";
 import NotificationBanner from "../components/navigation/NotificationBanner";
 import AuthModal from "../components/auth/AuthModal";
 import AuthGuardModal from "../components/auth/AuthGuardModal";
-import { OnboardingModal, ProductTour } from "../components/onboarding";
+import { OnboardingModal } from "../components/onboarding";
 import { ReviewModal } from "../components/review";
 import { onboardingStorage } from "../services/onboardingStorage";
 import { userService } from "../services/userService";
@@ -67,7 +67,6 @@ export default function Home() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
-  const [showTour, setShowTour] = useState(false);
   const [onboardingChecked, setOnboardingChecked] = useState(false);
   const [launchDone, setLaunchDone] = useState<boolean>(() => {
     if (typeof window === "undefined") return true;
@@ -194,7 +193,6 @@ export default function Home() {
           const dbState = await userService.fetchOnboardingState(user.id);
           if (dbState && dbState.onboardingCompleted) {
             setShowOnboarding(false);
-            setShowTour(false);
           } else {
             const local = onboardingStorage.getLocalState();
             if (local?.onboardingCompleted) {
@@ -206,7 +204,6 @@ export default function Home() {
                 productTourCompleted: true,
               });
               setShowOnboarding(false);
-              setShowTour(false);
             } else {
               navigateTo("today");
               setShowOnboarding(true);
@@ -217,7 +214,6 @@ export default function Home() {
           const local = onboardingStorage.getLocalState();
           if (local && local.onboardingCompleted) {
             setShowOnboarding(false);
-            setShowTour(false);
           } else {
             navigateTo("today");
             setShowOnboarding(true);
@@ -234,35 +230,7 @@ export default function Home() {
   }, [isLoaded, isAuthLoading, user, onboardingChecked, navigateTo]);
 
   const handleEnterAppFromOnboarding = () => {
-    navigateTo("today");
-    setSidebarOpen(false);
     setShowOnboarding(false);
-    setShowTour(true);
-  };
-
-  const handleCompleteTour = async () => {
-    setSidebarOpen(false);
-    setShowTour(false);
-    const lang = state.lang === "bn" ? "bn" : "en";
-    const themeMode = state.theme?.mode === "light" ? "light" : "dark";
-
-    onboardingStorage.saveLocalState({
-      onboardingCompleted: true,
-      productTourCompleted: true,
-      preferredLanguage: lang,
-      preferredTheme: themeMode,
-      accountMode: user ? "authenticated" : "guest",
-    });
-
-    if (user?.id) {
-      await userService.saveOnboardingState(user.id, {
-        onboardingCompleted: true,
-        productTourCompleted: true,
-        preferredLanguage: lang,
-        preferredTheme: themeMode,
-        accountMode: "authenticated",
-      });
-    }
   };
 
   // Initial App Shell Skeleton while storage / backend data is loading
@@ -278,7 +246,6 @@ export default function Home() {
       <Sidebar 
         isOpen={sidebarOpen} 
         onClose={() => setSidebarOpen(false)} 
-        isTourActive={showTour} 
         isCollapsed={sidebarCollapsed}
         onToggleCollapse={handleToggleSidebarCollapse}
       />
@@ -322,23 +289,15 @@ export default function Home() {
       <AuthModal />
       <AuthGuardModal />
 
-      {/* First-Time User Onboarding & Interactive Tour */}
+      {/* First-Time User Modern Minimal Onboarding */}
       <OnboardingModal
         isOpen={showOnboarding && launchDone}
         onEnterApp={handleEnterAppFromOnboarding}
       />
-      {showTour && launchDone && (
-        <ProductTour
-          isOpen={showTour}
-          onCompleteTour={handleCompleteTour}
-          isSidebarOpen={sidebarOpen}
-          onSetSidebarOpen={setSidebarOpen}
-        />
-      )}
 
       {/* Smart Review & Feedback Modal */}
       <ReviewModal
-        isOpen={showReviewModal && !showOnboarding && !showTour && launchDone}
+        isOpen={showReviewModal && !showOnboarding && launchDone}
         onClose={skipReview}
         onSubmit={submitReview}
         isSubmitting={isReviewSubmitting}

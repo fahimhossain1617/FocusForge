@@ -1,387 +1,113 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Moon, Sun, ArrowRight, ArrowLeft, Check, Compass, LogIn } from "lucide-react";
-import { useAppContext } from "@/context/AppContext";
+import { useRouter } from "next/navigation";
+import { ArrowUpRight } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
-import { useTranslation } from "@/hooks/useTranslation";
 import { onboardingStorage } from "@/services/onboardingStorage";
+import { userService } from "@/services/userService";
 import styles from "./onboarding.module.css";
-
-export type OnboardingStep = "WELCOME" | "LANGUAGE" | "THEME" | "PHILOSOPHY" | "ACCOUNT_MODE";
 
 interface OnboardingModalProps {
   isOpen: boolean;
-  onEnterApp: () => void;
+  onEnterApp?: () => void;
 }
 
 export const OnboardingModal: React.FC<OnboardingModalProps> = ({
   isOpen,
   onEnterApp,
 }) => {
-  const { state, updateState } = useAppContext();
-  const { openAuth } = useAuth();
-  const { t } = useTranslation();
+  const router = useRouter();
+  const { user } = useAuth();
+  const [isExiting, setIsExiting] = useState(false);
 
-  const [step, setStep] = useState<OnboardingStep>("WELCOME");
-  const [selectedLang, setSelectedLang] = useState<"en" | "bn">(state.lang === "bn" ? "bn" : "en");
-  const [selectedTheme, setSelectedTheme] = useState<"dark" | "light" | "system">(state.theme.mode || "dark");
-
-  // Keep local choices in sync with current state
-  useEffect(() => {
-    if (state.lang) setSelectedLang(state.lang === "bn" ? "bn" : "en");
-  }, [state.lang]);
-
-  useEffect(() => {
-    if (state.theme?.mode) setSelectedTheme(state.theme.mode);
-  }, [state.theme?.mode]);
-
-  // Lock background scrolling while onboarding modal is active
+  // Lock document scrolling while onboarding screen is open & prefetch login
   useEffect(() => {
     if (!isOpen) return;
-    const prev = document.body.style.overflow;
+    router.prefetch("/login");
+    const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => {
-      document.body.style.overflow = prev;
+      document.body.style.overflow = prevOverflow;
     };
-  }, [isOpen]);
+  }, [isOpen, router]);
 
   if (!isOpen) return null;
 
-  const ob = t.onboarding;
+  const handleGetStarted = () => {
+    try {
+      // Persist onboarding completion so it never prompts again
+      onboardingStorage.saveLocalState({
+        onboardingCompleted: true,
+        productTourCompleted: true,
+      });
 
-  // Language selection handler
-  const handleSelectLanguage = (lang: "en" | "bn") => {
-    setSelectedLang(lang);
-    updateState({ lang });
-    onboardingStorage.saveLocalState({ preferredLanguage: lang });
-  };
+      if (user?.id) {
+        userService.saveOnboardingState(user.id, {
+          onboardingCompleted: true,
+          productTourCompleted: true,
+        }).catch((err) => {
+          console.warn("[OnboardingModal] Failed to sync onboarding to server:", err);
+        });
+      }
+    } catch (err) {
+      console.warn("[OnboardingModal] Storage update error:", err);
+    }
 
-  // Theme selection handler - immediately updates live UI
-  const handleSelectTheme = (mode: "dark" | "light" | "system") => {
-    setSelectedTheme(mode);
-    updateState({
-      theme: {
-        ...state.theme,
-        mode,
-        background: mode === "light" ? "#F8FAFC" : "#08090C",
-      },
-    });
-    onboardingStorage.saveLocalState({ preferredTheme: mode });
-  };
-
-  // Guest flow completion
-  const handleContinueAsGuest = () => {
-    onboardingStorage.saveLocalState({
-      accountMode: "guest",
-      preferredLanguage: selectedLang,
-      preferredTheme: selectedTheme,
-    });
-    onEnterApp();
-  };
-
-  // Auth flow initiation
-  const handleLoginOrSignup = () => {
-    onboardingStorage.saveLocalState({
-      accountMode: "authenticated",
-      preferredLanguage: selectedLang,
-      preferredTheme: selectedTheme,
-    });
-    openAuth("login", {
-      onAuthenticated: () => {
-        onEnterApp();
-      },
-    });
+    // Instantly close onboarding and replace URL without history back to onboarding
+    if (onEnterApp) {
+      onEnterApp();
+    }
+    router.replace("/login");
   };
 
   return (
     <div
-      className={styles.onboardingOverlay}
+      className={`${styles.onboardingRoot} ${isExiting ? styles.isExiting : ""}`}
       role="dialog"
       aria-modal="true"
-      aria-label="Focentia Onboarding"
+      aria-label="Welcome to Focentia"
     >
-      <div className={styles.ambientGlowPrimary} />
-      <div className={styles.ambientGlowSecondary} />
+      {/* Background Gradient Atmosphere */}
+      <div className={styles.backgroundAtmosphere} aria-hidden="true" />
 
-      <div className={styles.onboardingCard}>
-        {/* ==================== STEP 1: WELCOME ==================== */}
-        {step === "WELCOME" && (
-          <div className="fade-in flex flex-col items-center text-center">
-            <h1 className={styles.cardTitle} style={{ marginTop: "12px", marginBottom: "14px" }}>
-              {ob.welcome.title}
-            </h1>
+      {/* Main Content Layout */}
+      <div className={styles.contentContainer}>
+        {/* Top spacer for mobile vertical breathing room */}
+        <div className={styles.topSpacer} aria-hidden="true" />
 
-            <p className={styles.cardSubtitle} style={{ marginBottom: "28px" }}>
-              {ob.welcome.description}
-            </p>
+        {/* Text Block: Headline, Accent Line, Subtitle */}
+        <div className={styles.textBlock}>
+          <h1 className={styles.headline}>
+            <span className={styles.headlineLine}>PLAN,</span>
+            <span className={styles.headlineLine}>FOCUS &amp;</span>
+            <span className={styles.headlineLine}>GROW</span>
+            <span className={styles.withFocentiaLine}>
+              <span className={styles.withWord}>WITH </span>
+              <span className={styles.focentiaWord}>FOCENTIA</span>
+            </span>
+          </h1>
 
-            <button
-              type="button"
-              className={styles.primaryButton}
-              onClick={() => setStep("LANGUAGE")}
-              autoFocus
-            >
-              <span>{ob.welcome.getStarted}</span>
-              <ArrowRight size={17} />
-            </button>
-          </div>
-        )}
+          <div className={styles.accentLine} aria-hidden="true" />
 
-        {/* ==================== STEP 2: LANGUAGE ==================== */}
-        {step === "LANGUAGE" && (
-          <div className="fade-in flex flex-col">
-            <div className={styles.cardHeader}>
-              <h2 className={styles.cardTitle}>{ob.language.title}</h2>
-              <p className={styles.cardSubtitle}>{ob.language.subtitle}</p>
+          <p className={styles.subtitle}>
+            Plan your day, focus deeply, track your progress, and keep your notes and ideas organized—all in one place.
+          </p>
+        </div>
+
+        {/* Action Button Container */}
+        <div className={styles.buttonContainer}>
+          <button
+            type="button"
+            className={styles.getStartedButton}
+            onClick={handleGetStarted}
+            aria-label="Get Started"
+          >
+            <span className={styles.buttonText}>Get Started</span>
+            <div className={styles.buttonIconCircle} aria-hidden="true">
+              <ArrowUpRight className={styles.arrowIcon} strokeWidth={2.5} />
             </div>
-
-            <div className={styles.optionsGrid}>
-              <button
-                type="button"
-                className={`${styles.optionCard} ${selectedLang === "bn" ? styles.optionCardActive : ""}`}
-                onClick={() => handleSelectLanguage("bn")}
-              >
-                <div className={styles.optionIconWrapper}>
-                  <span style={{ fontSize: "19px", fontWeight: 700 }}>ক</span>
-                </div>
-                <div className="flex flex-col gap-0.5">
-                  <p className={styles.optionLabel}>বাংলা</p>
-                  <p className={styles.optionDesc}>Bengali Interface</p>
-                </div>
-                {selectedLang === "bn" && (
-                  <div className="absolute top-3 right-3 text-blue-500">
-                    <Check size={16} strokeWidth={2.8} />
-                  </div>
-                )}
-              </button>
-
-              <button
-                type="button"
-                className={`${styles.optionCard} ${selectedLang === "en" ? styles.optionCardActive : ""}`}
-                onClick={() => handleSelectLanguage("en")}
-              >
-                <div className={styles.optionIconWrapper}>
-                  <span style={{ fontSize: "17px", fontWeight: 700 }}>EN</span>
-                </div>
-                <div className="flex flex-col gap-0.5">
-                  <p className={styles.optionLabel}>English</p>
-                  <p className={styles.optionDesc}>English Interface</p>
-                </div>
-                {selectedLang === "en" && (
-                  <div className="absolute top-3 right-3 text-blue-500">
-                    <Check size={16} strokeWidth={2.8} />
-                  </div>
-                )}
-              </button>
-            </div>
-
-            <div className={styles.buttonRow}>
-              <button
-                type="button"
-                className={styles.backButton}
-                onClick={() => setStep("WELCOME")}
-                title={ob.back}
-              >
-                <ArrowLeft size={16} />
-                <span>{ob.back}</span>
-              </button>
-
-              <button
-                type="button"
-                className={styles.primaryButton}
-                onClick={() => setStep("THEME")}
-                style={{ flex: 1 }}
-                autoFocus
-              >
-                <span>{ob.language.next}</span>
-                <ArrowRight size={17} />
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* ==================== STEP 3: THEME ==================== */}
-        {step === "THEME" && (
-          <div className="fade-in flex flex-col">
-            <div className={styles.cardHeader}>
-              <h2 className={styles.cardTitle}>{ob.theme.title}</h2>
-              <p className={styles.cardSubtitle}>{ob.theme.subtitle}</p>
-            </div>
-
-            <div className={styles.optionsGrid}>
-              <button
-                type="button"
-                className={`${styles.optionCard} ${selectedTheme === "dark" ? styles.optionCardActive : ""}`}
-                onClick={() => handleSelectTheme("dark")}
-              >
-                <div className={styles.optionIconWrapper}>
-                  <Moon size={20} />
-                </div>
-                <div className="flex flex-col gap-0.5">
-                  <p className={styles.optionLabel}>{ob.theme.dark}</p>
-                  <p className={styles.optionDesc}>{ob.theme.darkDesc}</p>
-                </div>
-                {selectedTheme === "dark" && (
-                  <div className="absolute top-3 right-3 text-blue-500">
-                    <Check size={16} strokeWidth={2.8} />
-                  </div>
-                )}
-              </button>
-
-              <button
-                type="button"
-                className={`${styles.optionCard} ${selectedTheme === "light" ? styles.optionCardActive : ""}`}
-                onClick={() => handleSelectTheme("light")}
-              >
-                <div className={styles.optionIconWrapper}>
-                  <Sun size={20} />
-                </div>
-                <div className="flex flex-col gap-0.5">
-                  <p className={styles.optionLabel}>{ob.theme.light}</p>
-                  <p className={styles.optionDesc}>{ob.theme.lightDesc}</p>
-                </div>
-                {selectedTheme === "light" && (
-                  <div className="absolute top-3 right-3 text-blue-500">
-                    <Check size={16} strokeWidth={2.8} />
-                  </div>
-                )}
-              </button>
-            </div>
-
-            <div className={styles.buttonRow}>
-              <button
-                type="button"
-                className={styles.backButton}
-                onClick={() => setStep("LANGUAGE")}
-                title={ob.back}
-              >
-                <ArrowLeft size={16} />
-                <span>{ob.back}</span>
-              </button>
-
-              <button
-                type="button"
-                className={styles.primaryButton}
-                onClick={() => setStep("PHILOSOPHY")}
-                style={{ flex: 1 }}
-                autoFocus
-              >
-                <span>{ob.theme.next}</span>
-                <ArrowRight size={17} />
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* ==================== STEP 4: PHILOSOPHY ==================== */}
-        {step === "PHILOSOPHY" && (
-          <div className="fade-in flex flex-col">
-            <div className={styles.philosophyBody}>
-              <p className={styles.philosophyIntro}>{ob.philosophy.title}</p>
-              <p className={styles.philosophySub}>{ob.philosophy.subtitle}</p>
-              <p className={styles.philosophyGoodNews}>{ob.philosophy.goodNewsTitle}</p>
-
-              <div className={styles.philosophyList}>
-                {ob.philosophy.points.map((pt, idx) => (
-                  <div key={idx} className={styles.philosophyItem}>
-                    <span className={styles.bulletDot} />
-                    <span>{pt}</span>
-                  </div>
-                ))}
-              </div>
-
-              <div className={styles.philosophyQuoteBox}>
-                <p className={styles.philosophyQuote}>"{ob.philosophy.quote1}"</p>
-                <p className={styles.philosophyQuote}>"{ob.philosophy.quote2}"</p>
-              </div>
-            </div>
-
-            <div className={styles.buttonRow}>
-              <button
-                type="button"
-                className={styles.backButton}
-                onClick={() => setStep("THEME")}
-                title={ob.back}
-              >
-                <ArrowLeft size={16} />
-                <span>{ob.back}</span>
-              </button>
-
-              <button
-                type="button"
-                className={styles.primaryButton}
-                onClick={() => setStep("ACCOUNT_MODE")}
-                style={{ flex: 1 }}
-                autoFocus
-              >
-                <span>{ob.philosophy.continueBtn}</span>
-                <ArrowRight size={17} />
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* ==================== STEP 5: ACCOUNT MODE ==================== */}
-        {step === "ACCOUNT_MODE" && (
-          <div className="fade-in flex flex-col">
-            <div className={styles.cardHeader}>
-              <h2 className={styles.cardTitle}>{ob.account.title}</h2>
-              <p className={styles.cardSubtitle}>{ob.account.subtitle}</p>
-            </div>
-
-            <div className={styles.optionsGrid}>
-              <button
-                type="button"
-                className={styles.optionCard}
-                onClick={handleContinueAsGuest}
-                title={ob.account.guestDesc}
-              >
-                <div className={styles.optionIconWrapper}>
-                  <Compass size={22} />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <p className={styles.optionLabel}>{ob.account.guestTitle}</p>
-                  <p className={styles.optionDesc}>{ob.account.guestDesc}</p>
-                </div>
-              </button>
-
-              <button
-                type="button"
-                className={`${styles.optionCard} ${styles.optionCardActive}`}
-                onClick={handleLoginOrSignup}
-                title={ob.account.authDesc}
-              >
-                <div className={styles.optionIconWrapper}>
-                  <LogIn size={22} />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <p className={styles.optionLabel}>{ob.account.authTitle}</p>
-                  <p className={styles.optionDesc}>{ob.account.authDesc}</p>
-                </div>
-              </button>
-            </div>
-
-            <button
-              type="button"
-              className={styles.backButton}
-              onClick={() => setStep("PHILOSOPHY")}
-              style={{ width: "100%", marginTop: "16px" }}
-              title={ob.back}
-            >
-              <ArrowLeft size={16} />
-              <span>{ob.back}</span>
-            </button>
-          </div>
-        )}
-
-        {/* Step Indicator Dots */}
-        <div className={styles.stepDots} aria-hidden="true">
-          <span className={`${styles.stepDot} ${step === "WELCOME" ? styles.stepDotActive : ""}`} />
-          <span className={`${styles.stepDot} ${step === "LANGUAGE" ? styles.stepDotActive : ""}`} />
-          <span className={`${styles.stepDot} ${step === "THEME" ? styles.stepDotActive : ""}`} />
-          <span className={`${styles.stepDot} ${step === "PHILOSOPHY" ? styles.stepDotActive : ""}`} />
-          <span className={`${styles.stepDot} ${step === "ACCOUNT_MODE" ? styles.stepDotActive : ""}`} />
+          </button>
         </div>
       </div>
     </div>

@@ -451,4 +451,27 @@
 - **Reason:** Addresses user feedback on low-contrast glow color, replaces crossed mic icons with standard mic/square stop controls, adds dynamic in-bar sound wave visualization matching reference specifications, and integrates Bengali/English voice toggle across all modules.
 - **Impact:** `frontend/src/components/voice/VoiceReactiveGlow.module.css`, `frontend/src/components/voice/VoiceWaveform.tsx`, `frontend/src/components/voice/index.ts`, `frontend/src/components/mymind/VoiceInput.tsx`, `frontend/src/components/mymind/MindHome.tsx`, `frontend/src/components/mymind/ProblemSolver.tsx`, `frontend/src/components/mymind/IdeaCapture.tsx`, `frontend/src/components/mymind/ThoughtDetail.tsx`, `frontend/src/components/QuickCapture.tsx`, `frontend/src/components/diary/DiaryVoiceInput.tsx`, `frontend/src/components/ai-agent/AIAgentPage.tsx`, `frontend/src/components/ai-agent/ai-agent.module.css`.
 - **Do Not Change Without Approval:** Do not reintroduce `MicOff` crossed icons or red stop buttons, and do not remove the Bengali/English language switcher.
+---
 
+## ADR-029: Modern Minimal Onboarding Screen & Direct Login Transition
+
+- **Date:** October 2026
+- **Status:** Accepted
+- **Decision:**
+  1. **Retirement of Legacy Multi-Step Onboarding & Tour:** Deleted the legacy multi-step wizard (welcome, language picker, theme selector, philosophy, account mode modal) and the multi-step `ProductTour` walkthrough per direct user instruction.
+  2. **Faithful Reproduction of User Reference Design:**
+     - **Typography:** Bold uppercase headline `PLAN,` / `FOCUS &` / `GROW` / `WITH FOCENTIA`.
+     - **Metallic Text Gradient on "WITH FOCENTIA":** Vivid electric blue on the sides with bright white/ice luminescence in the center ("OCENT"), matching the exact requested styling.
+     - **Decorative Accent Bar:** Cyan-to-royal-blue gradient line with soft horizontal fade placed directly below the headline.
+     - **Subtitle Copy:** `"Plan your day, focus deeply, track your progress, and keep your notes and ideas organized—all in one place."` in muted slate blue (`#8FA0BA`).
+     - **Atmospheric Background Gradient:** Deep midnight blue (`#020612`) canvas with ambient royal blue glow (top-left for mobile, top-right for desktop). As explicitly instructed, the curved neon line arcs above the button from the desktop mockup were omitted to keep the right canvas clean and uncluttered.
+  3. **"Get Started" Button:**
+     - Rounded pill container with dark navy fill (`#020816`) and subtle electric blue border (`#1A6CFF`).
+     - Pure white "Get Started" typography and an electric blue circle (`#1668FE`) containing a 45-degree arrow (`↗` / `ArrowUpRight`).
+     - **Zero Hover Effect:** As explicitly required by the user, all hover animations, color shifts, and shadow expansions were disabled.
+     - **Layout Placement:** Positioned at the bottom-right on mobile screens, and in the lower-right quadrant on desktop/laptop screens.
+  4. **Silky Smooth Exit Animation & Direct Route to `/login`:**
+     - When the user taps "Get Started", an aesthetic 320ms transition (subtle zoom, blur fade-out) triggers, persists completion in `onboardingStorage` and `userService`, and immediately routes to `/login`.
+- **Reason:** Replaced cumbersome legacy onboarding modal and intrusive product tour with a sleek, minimalist, aesthetic entry point matching the user's mobile & desktop designs.
+- **Impact:** `frontend/src/components/onboarding/OnboardingModal.tsx`, `frontend/src/components/onboarding/onboarding.module.css`, `frontend/src/components/onboarding/ProductTour.tsx`, `frontend/src/app/page.tsx`.
+- **Do Not Change Without Approval:** Do not restore the legacy multi-step tour or add hover transformations/effects to the "Get Started" button.

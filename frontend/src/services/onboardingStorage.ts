@@ -27,7 +27,7 @@ export const onboardingStorage = {
         return JSON.parse(raw);
       }
       // Check legacy/fallback guest completed flag
-      const legacyGuest = localStorage.getItem(GUEST_COMPLETED_KEY);
+      const legacyGuest = localStorage.getItem(GUEST_COMPLETED_KEY) || localStorage.getItem("focusforge_onboarding_completed");
       if (legacyGuest === "true") {
         return {
           onboardingCompleted: true,
@@ -66,6 +66,7 @@ export const onboardingStorage = {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
       if (merged.onboardingCompleted) {
         localStorage.setItem(GUEST_COMPLETED_KEY, "true");
+        localStorage.setItem("focusforge_onboarding_completed", "true");
       }
     } catch (e) {
       console.warn("[onboardingStorage] Failed to save local state:", e);

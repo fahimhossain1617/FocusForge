@@ -1,828 +1,285 @@
 /* ==========================================================================
-   FocusForge AI — Onboarding & Interactive Product Tour Styles
+   FocusForge / Focentia — Modern Minimal Onboarding Styles
+   Matches User Reference Designs for Mobile & Desktop
    ========================================================================== */
 
-/* 1. Modal Overlay & Ambient Stage */
-.onboardingOverlay {
+.onboardingRoot {
   position: fixed;
   inset: 0;
-  z-index: 9999;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  z-index: 99999;
+  background-color: #020612;
+  overflow: hidden;
+  user-select: none;
   display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 20px;
-  background-color: rgba(3, 7, 18, 0.88);
-  backdrop-filter: blur(28px);
-  -webkit-backdrop-filter: blur(28px);
-  animation: overlayFadeIn 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  opacity: 1;
+  transform: scale(1);
+  filter: blur(0px);
+  transition: opacity 360ms cubic-bezier(0.16, 1, 0.3, 1),
+              transform 360ms cubic-bezier(0.16, 1, 0.3, 1),
+              filter 360ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.ambientGlowPrimary {
+.isExiting {
+  opacity: 0 !important;
+  transform: scale(1.025) !important;
+  filter: blur(8px) !important;
+  pointer-events: none !important;
+}
+
+/* Atmospheric Ambient Gradients — Seamlessly blended deep midnight navy */
+.backgroundAtmosphere {
   position: absolute;
-  top: 15%;
-  left: 20%;
-  width: 480px;
-  height: 480px;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(37, 99, 235, 0.22) 0%, rgba(59, 130, 246, 0.05) 50%, transparent 70%);
-  filter: blur(80px);
+  inset: 0;
   pointer-events: none;
-  animation: pulseAmbient 6s ease-in-out infinite alternate;
+  z-index: 1;
 }
 
-.ambientGlowSecondary {
-  position: absolute;
-  bottom: 15%;
-  right: 20%;
-  width: 420px;
-  height: 420px;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(99, 102, 241, 0.18) 0%, rgba(139, 92, 246, 0.04) 50%, transparent 70%);
-  filter: blur(80px);
-  pointer-events: none;
-  animation: pulseAmbient 7s ease-in-out infinite alternate-reverse;
+/* Mobile: Deep, subtle midnight navy ambient tone seamlessly matching the bottom */
+@media (max-width: 767px) {
+  .backgroundAtmosphere {
+    background: 
+      radial-gradient(ellipse 130% 85% at 15% 10%, rgba(14, 54, 148, 0.26) 0%, rgba(9, 36, 108, 0.18) 26%, rgba(5, 22, 72, 0.10) 52%, rgba(3, 12, 42, 0.04) 75%, transparent 100%),
+      linear-gradient(165deg, rgba(10, 40, 118, 0.20) 0%, rgba(6, 22, 70, 0.12) 32%, rgba(2, 10, 36, 0.05) 58%, transparent 85%),
+      #020612;
+  }
 }
 
-@keyframes overlayFadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+/* Desktop / Laptop: Subtle, deep navy royal atmosphere seamlessly matched with dark base */
+@media (min-width: 768px) {
+  .backgroundAtmosphere {
+    background: 
+      radial-gradient(ellipse 110% 85% at 85% 18%, rgba(16, 58, 155, 0.28) 0%, rgba(10, 38, 112, 0.18) 28%, rgba(5, 24, 76, 0.10) 54%, rgba(2, 12, 42, 0.04) 78%, transparent 100%),
+      radial-gradient(ellipse 80% 65% at 12% 18%, rgba(10, 38, 110, 0.15) 0%, rgba(5, 20, 65, 0.07) 45%, transparent 80%),
+      linear-gradient(135deg, rgba(8, 28, 88, 0.12) 0%, transparent 48%),
+      #020612;
+  }
 }
 
-@keyframes pulseAmbient {
-  from { transform: scale(0.9) translate(-10px, -10px); opacity: 0.7; }
-  to { transform: scale(1.1) translate(10px, 10px); opacity: 1; }
-}
-
-/* 2. Central Onboarding Card Container */
-.onboardingCard {
+/* Main Content Container */
+.contentContainer {
   position: relative;
-  z-index: 10;
+  z-index: 2;
   width: 100%;
-  max-width: 520px;
-  border-radius: 24px;
-  padding: 36px 32px;
-  background: linear-gradient(145deg, rgba(15, 23, 42, 0.82), rgba(10, 16, 32, 0.94));
-  border: 1px solid rgba(147, 197, 253, 0.24);
-  box-shadow: none !important;
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  color: #f8fafc;
-  animation: cardSlideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  height: 100%;
   display: flex;
   flex-direction: column;
 }
 
-/* Adapt to light theme when user chooses Light */
-:global([data-theme="light"]) .onboardingCard {
-  background: linear-gradient(145deg, rgba(255, 255, 255, 0.95), rgba(241, 245, 249, 0.95));
-  border-color: #DCE5F0;
-  box-shadow: none !important;
-  color: #111827;
-}
-
-@keyframes cardSlideUp {
-  from {
-    opacity: 0;
-    transform: translateY(16px) scale(0.98);
+/* -------------------------------------------------------------
+   MOBILE LAYOUT (< 768px)
+   Positioned in the lower-middle zone (just slightly above the bottom),
+   with a clean, precise distance between subtitle and Get Started button.
+   ------------------------------------------------------------- */
+@media (max-width: 767px) {
+  .contentContainer {
+    justify-content: flex-end;
+    padding-left: clamp(24px, 7vw, 36px);
+    padding-right: clamp(24px, 7vw, 36px);
+    padding-top: 24px;
+    padding-bottom: clamp(44px, 8vh, 64px);
   }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
+
+  .topSpacer {
+    display: none;
+  }
+
+  .textBlock {
+    margin-bottom: 0;
+  }
+
+  .buttonContainer {
+    width: 100%;
+    display: flex;
+    justify-content: flex-end;
+    margin-top: clamp(24px, 3.8vh, 34px);
   }
 }
 
-/* 3. Common Header Elements */
-.cardHeader {
-  text-align: center;
-  margin-bottom: 26px;
+/* -------------------------------------------------------------
+   DESKTOP / LAPTOP LAYOUT (>= 768px)
+   Two-column split: Text on left, Get Started button on right lower quadrant
+   ------------------------------------------------------------- */
+@media (min-width: 768px) {
+  .contentContainer {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    padding-left: clamp(48px, 8vw, 120px);
+    padding-right: clamp(48px, 9vw, 130px);
+    padding-top: 40px;
+    padding-bottom: 40px;
+  }
+
+  .topSpacer {
+    display: none;
+  }
+
+  .textBlock {
+    max-width: 580px;
+    flex: 1;
+  }
+
+  .buttonContainer {
+    flex: 1;
+    display: flex;
+    justify-content: flex-end;
+    align-items: flex-end;
+    align-self: flex-end;
+    margin-bottom: clamp(20px, 8vh, 60px);
+  }
 }
 
-.brandBadge {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  padding: 5px 13px;
-  border-radius: 9999px;
-  background: rgba(37, 99, 235, 0.16);
-  border: 1px solid rgba(147, 197, 253, 0.35);
-  color: #93c5fd;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.1em;
+/* -------------------------------------------------------------
+   TYPOGRAPHY
+   ------------------------------------------------------------- */
+.headline {
+  margin: 0;
+  padding: 0;
+  color: #FFFFFF;
+  font-family: var(--font-geist-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-weight: 800;
   text-transform: uppercase;
-  margin-bottom: 14px;
-}
-
-:global([data-theme="light"]) .brandBadge {
-  background: rgba(219, 234, 254, 0.8);
-  border-color: rgba(147, 197, 253, 0.8);
-  color: #1d4ed8;
-}
-
-.cardTitle {
-  font-size: 24px;
-  font-weight: 800;
-  letter-spacing: -0.025em;
-  line-height: 1.25;
-  margin: 0 0 10px 0;
-  color: inherit;
-}
-
-.cardSubtitle {
-  font-size: 14px;
-  font-weight: 400;
-  line-height: 1.55;
-  color: #94a3b8;
-  margin: 0 auto;
-  max-width: 440px;
-}
-
-:global([data-theme="light"]) .cardSubtitle {
-  color: #52627A;
-}
-
-/* 4. Selection Grid (Language & Theme & Account Mode) */
-.optionsGrid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 14px;
-  margin-bottom: 28px;
-}
-
-.optionCard {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  padding: 22px 16px;
-  border-radius: 18px;
-  background: rgba(15, 23, 42, 0.5);
-  border: 1.5px solid rgba(148, 163, 184, 0.18);
-  cursor: pointer;
-  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
-  text-align: center;
-  color: inherit;
-  outline: none;
-}
-
-:global([data-theme="light"]) .optionCard {
-  background: rgba(248, 250, 252, 0.85);
-  border-color: rgba(203, 213, 225, 0.8);
-}
-
-.optionCard:hover {
-  border-color: rgba(96, 165, 250, 0.55);
-  background: rgba(30, 58, 138, 0.2);
-  transform: translateY(-2px);
-  box-shadow: none !important;
-}
-
-:global([data-theme="light"]) .optionCard:hover {
-  background: rgba(239, 246, 255, 0.95);
-  border-color: rgba(59, 130, 246, 0.6);
-}
-
-.optionCardActive {
-  border-color: #3b82f6 !important;
-  background: linear-gradient(145deg, rgba(37, 99, 235, 0.22), rgba(29, 78, 216, 0.12)) !important;
-  box-shadow: none !important;
-}
-
-:global([data-theme="light"]) .optionCardActive {
-  border-color: #2563eb !important;
-  background: linear-gradient(145deg, rgba(239, 246, 255, 1), rgba(219, 234, 254, 0.6)) !important;
-  box-shadow: none !important;
-}
-
-.optionIconWrapper {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 44px;
-  height: 44px;
-  border-radius: 14px;
-  background: rgba(37, 99, 235, 0.15);
-  border: 1px solid rgba(147, 197, 253, 0.25);
-  color: #60a5fa;
-  transition: transform 0.2s ease;
-}
-
-:global([data-theme="light"]) .optionIconWrapper {
-  background: rgba(219, 234, 254, 0.8);
-  border-color: rgba(147, 197, 253, 0.6);
-  color: #2563eb;
-}
-
-.optionCard:hover .optionIconWrapper {
-  transform: scale(1.08);
-}
-
-.optionLabel {
-  font-size: 15px;
-  font-weight: 700;
   letter-spacing: -0.01em;
-  margin: 0;
+  line-height: 1.06;
+  font-size: clamp(34px, 8.5vw, 44px);
 }
 
-.optionDesc {
-  font-size: 11.5px;
-  line-height: 1.4;
-  color: #94a3b8;
-  margin: 0;
+@media (min-width: 768px) {
+  .headline {
+    font-size: clamp(48px, 4.8vw, 68px);
+    line-height: 1.04;
+  }
 }
 
-:global([data-theme="light"]) .optionDesc {
-  color: #52627A;
+.headlineLine {
+  display: block;
 }
 
-/* 5. Philosophy / Motivational Screen */
-.philosophyBody {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  margin-bottom: 28px;
-  padding: 6px 4px;
+/* "WITH FOCENTIA" Line with distinct blue sides and white metallic center */
+.withFocentiaLine {
+  display: block;
+  white-space: nowrap;
 }
 
-.philosophyIntro {
-  font-size: 16px;
-  font-weight: 700;
-  color: #f1f5f9;
-  margin: 0;
-  line-height: 1.4;
+.withWord {
+  color: #1A6CFF;
 }
 
-:global([data-theme="light"]) .philosophyIntro {
-  color: #111827;
+.focentiaWord {
+  background: linear-gradient(
+    90deg,
+    #1A6CFF 0%,
+    #3B82F6 18%,
+    #E0F2FE 42%,
+    #FFFFFF 50%,
+    #E0F2FE 58%,
+    #3B82F6 82%,
+    #1A6CFF 100%
+  );
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
-.philosophySub {
-  font-size: 13.5px;
-  color: #94a3b8;
-  margin: 0;
-  line-height: 1.5;
-}
-
-:global([data-theme="light"]) .philosophySub {
-  color: #52627A;
-}
-
-.philosophyGoodNews {
-  font-size: 14px;
-  font-weight: 600;
-  color: #60a5fa;
-  margin-top: 4px;
-}
-
-:global([data-theme="light"]) .philosophyGoodNews {
-  color: #2563eb;
-}
-
-.philosophyList {
-  display: flex;
-  flex-direction: column;
-  gap: 9px;
-  padding-left: 2px;
-}
-
-.philosophyItem {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 13.5px;
-  font-weight: 500;
-  color: #e2e8f0;
-}
-
-:global([data-theme="light"]) .philosophyItem {
-  color: #111827;
-}
-
-.bulletDot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background-color: #38bdf8;
-  box-shadow: none !important;
-  shrink: 0;
-}
-
-:global([data-theme="light"]) .bulletDot {
-  background-color: #2563eb;
-  box-shadow: none !important;
-}
-
-.philosophyQuoteBox {
-  margin-top: 4px;
-  padding: 12px 14px;
-  border-radius: 14px;
-  background: rgba(30, 58, 138, 0.18);
-  border: 1px solid rgba(96, 165, 250, 0.22);
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-:global([data-theme="light"]) .philosophyQuoteBox {
-  background: rgba(239, 246, 255, 0.7);
-  border-color: rgba(191, 219, 254, 0.9);
-}
-
-.philosophyQuote {
-  font-size: 12.5px;
-  font-style: italic;
-  line-height: 1.45;
-  color: #cbd5e1;
-  margin: 0;
-}
-
-:global([data-theme="light"]) .philosophyQuote {
-  color: #52627A;
-}
-
-/* 6. Action Button (Primary CTA) */
-.primaryButton {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  width: 100%;
-  background: #2563eb;
-  box-shadow: none !important;
-  border: none;
-  border-radius: var(--r-md);
-  color: white;
-  font-weight: 600;
-  font-size: 14px;
-  padding: 10px 20px;
-  cursor: pointer;
-  transition: transform 0.12s ease-in-out;
-  outline: none;
-}
-
-.primaryButton:hover {
-  background: #2563eb;
-  box-shadow: none !important;
-}
-
-.primaryButton:active {
-  transform: scale(0.985) !important;
-}
-
-:global([data-theme="light"]) .primaryButton {
-  background: #223A5E !important;
-  color: #FFFFFF !important;
-  border: 1px solid #223A5E !important;
-  border-radius: 12px !important;
-  font-weight: 700 !important;
-  box-shadow: none !important;
-}
-
-:global([data-theme="light"]) .primaryButton:hover {
-  background: #2E4E7B !important;
-  border-color: #2E4E7B !important;
-  color: #FFFFFF !important;
-}
-
-/* 7. Step Indicators (Subtle dots) */
-.stepDots {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 7px;
-  margin-top: 20px;
-}
-
-.stepDot {
-  width: 7px;
-  height: 7px;
+/* Gradient Accent Line below headline */
+.accentLine {
+  width: 82px;
+  height: 2.5px;
   border-radius: 9999px;
-  background: rgba(148, 163, 184, 0.25);
-  transition: all 0.25s ease;
+  margin-top: 18px;
+  margin-bottom: 18px;
+  background: linear-gradient(90deg, #00D2FF 0%, #1A6CFF 68%, transparent 100%);
 }
 
-.stepDotActive {
-  width: 22px;
-  background: #3b82f6;
-  box-shadow: none !important;
-}
-
-/* ==========================================================================
-   INTERACTIVE PRODUCT TOUR TOOLTIP & SPOTLIGHT
-   ========================================================================== */
-
-/* Fullscreen transparent layer for intercepting clicks and positioning */
-.tourBackdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 9998;
-  pointer-events: auto;
-  background: rgba(2, 6, 23, 0.45);
-  backdrop-filter: blur(2px);
-  -webkit-backdrop-filter: blur(2px);
-  animation: overlayFadeIn 0.25s ease;
-}
-
-/* Glowing spotlight ring around the targeted real UI element */
-.tourSpotlightRing {
-  position: fixed;
-  z-index: 10000;
-  border-radius: 14px;
-  border: 2px solid #3b82f6;
-  box-shadow: none !important;
-  pointer-events: none;
-  transition: all 0.28s cubic-bezier(0.16, 1, 0.3, 1);
-  animation: spotlightPulse 2s infinite ease-in-out;
-}
-
-@keyframes spotlightPulse {
-  0%, 100% {
-    box-shadow: none !important;
-  }
-  50% {
-    box-shadow: none !important;
+@media (min-width: 768px) {
+  .accentLine {
+    width: 100px;
+    height: 3px;
+    margin-top: 22px;
+    margin-bottom: 22px;
   }
 }
 
-/* Small Glassmorphism Message Card for Tour */
-.tourCard {
-  position: fixed;
-  z-index: 10001;
-  width: 320px;
-  border-radius: 18px;
-  padding: 18px 20px;
-  background: linear-gradient(145deg, rgba(15, 23, 42, 0.92), rgba(10, 16, 32, 0.96));
-  border: 1px solid rgba(147, 197, 253, 0.35);
-  box-shadow: none !important;
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-  color: #f8fafc;
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-  animation: cardSlideUp 0.25s ease-out;
+/* Subtitle Description */
+.subtitle {
+  margin: 0;
+  padding: 0;
+  color: #8FA0BA;
+  font-family: var(--font-geist-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-size: 14.5px;
+  line-height: 1.55;
+  font-weight: 400;
+  max-width: 340px;
 }
 
-:global([data-theme="light"]) .tourCard {
-  background: linear-gradient(145deg, rgba(255, 255, 255, 0.96), rgba(241, 245, 249, 0.96));
-  border-color: #DCE5F0;
-  box-shadow: none !important;
-  color: #111827;
+@media (min-width: 768px) {
+  .subtitle {
+    font-size: clamp(15.5px, 1.25vw, 17px);
+    line-height: 1.6;
+    max-width: 420px;
+  }
 }
 
-.tourStepBadge {
-  font-size: 11px;
-  font-weight: 700;
-  color: #60a5fa;
-  letter-spacing: 0.04em;
-  margin-bottom: 4px;
-}
-
-:global([data-theme="light"]) .tourStepBadge {
-  color: #2563eb;
-}
-
-.tourTitle {
-  font-size: 16px;
-  font-weight: 800;
-  line-height: 1.25;
-  margin: 0 0 6px 0;
-  color: inherit;
-}
-
-.tourDesc {
-  font-size: 13px;
-  line-height: 1.45;
-  color: #cbd5e1;
-  margin: 0 0 16px 0;
-}
-
-:global([data-theme="light"]) .tourDesc {
-  color: #52627A;
-}
-
-.tourActions {
-  display: flex;
+/* -------------------------------------------------------------
+   "GET STARTED" BUTTON
+   Clean, sleek pill button with glowing blue border & 45-deg icon.
+   User rule: Absolutely NO hover effects or extra heavy shadows!
+   ------------------------------------------------------------- */
+.getStartedButton {
+  appearance: none;
+  -webkit-appearance: none;
+  background: #020816;
+  border: 1.5px solid #1A6CFF;
+  border-radius: 9999px;
+  padding: 6px 7px 6px 22px;
+  display: inline-flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
-}
-
-.tourSkipBtn {
-  background: transparent;
-  border: none;
-  color: #94a3b8;
-  font-size: 12px;
-  font-weight: 600;
+  gap: 14px;
   cursor: pointer;
-  padding: 4px 6px;
-  border-radius: 6px;
-  transition: color 0.15s ease;
+  outline: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  box-shadow: 0 0 16px rgba(26, 108, 255, 0.22);
+  /* Explicitly disable hover animations/effects */
+  transition: none;
 }
 
-.tourSkipBtn:hover {
-  color: #e2e8f0;
+.getStartedButton:hover,
+.getStartedButton:active,
+.getStartedButton:focus {
+  /* Keep state completely identical to normal - NO hover changes */
+  background: #020816;
+  border-color: #1A6CFF;
+  box-shadow: 0 0 16px rgba(26, 108, 255, 0.22);
+  transform: none;
 }
 
-:global([data-theme="light"]) .tourSkipBtn:hover {
-  color: #111827;
+.buttonText {
+  color: #FFFFFF;
+  font-family: var(--font-geist-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-size: 15.5px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
 }
 
-.tourNextBtn {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 8px 16px;
-  border-radius: 10px;
-  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
-  border: 1px solid rgba(147, 197, 253, 0.4);
-  color: #ffffff;
-  font-size: 13px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  box-shadow: none !important;
-}
-
-.tourNextBtn:hover {
-  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-  box-shadow: none !important;
-  transform: translateY(-0.5px);
-}
-
-.tourNextBtn:active {
-  transform: scale(0.985);
-}
-
-:global([data-theme="light"]) .tourNextBtn {
-  background: #223A5E !important;
-  color: #FFFFFF !important;
-  border: 1px solid #223A5E !important;
-  border-radius: 12px !important;
-  font-weight: 700 !important;
-  box-shadow: none !important;
-}
-
-:global([data-theme="light"]) .tourNextBtn:hover {
-  background: #2E4E7B !important;
-  border-color: #2E4E7B !important;
-  color: #FFFFFF !important;
-}
-
-/* Install Guide Step within Product Tour */
-.tourCardWide {
-  width: 390px !important;
-  max-width: calc(100vw - 32px);
-}
-
-.installGuideSteps {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin: 12px 0 16px 0;
-}
-
-.installStepRow {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  padding: 10px 12px;
-  border-radius: 12px;
-  background: rgba(30, 41, 59, 0.45);
-  border: 1px solid rgba(148, 163, 184, 0.15);
-  transition: all 0.2s ease;
-}
-
-:global([data-theme="light"]) .installStepRow {
-  background: rgba(241, 245, 249, 0.9);
-  border-color: rgba(203, 213, 225, 0.8);
-}
-
-.installStepRow:hover {
-  background: rgba(30, 58, 138, 0.2);
-  border-color: rgba(96, 165, 250, 0.35);
-}
-
-:global([data-theme="light"]) .installStepRow:hover {
-  background: rgba(239, 246, 255, 0.95);
-  border-color: rgba(59, 130, 246, 0.4);
-}
-
-.installStepIconBadge {
+.buttonIconCircle {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: #1668FE;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
-  border-radius: 10px;
-  background: rgba(37, 99, 235, 0.2);
-  border: 1px solid rgba(96, 165, 250, 0.3);
-  color: #60a5fa;
   flex-shrink: 0;
 }
 
-:global([data-theme="light"]) .installStepIconBadge {
-  background: rgba(219, 234, 254, 0.9);
-  border-color: rgba(147, 197, 253, 0.8);
-  color: #2563eb;
+.arrowIcon {
+  width: 20px;
+  height: 20px;
+  color: #FFFFFF;
 }
-
-.installStepContent {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.installStepHeading {
-  font-size: 13px;
-  font-weight: 700;
-  color: #f8fafc;
-  margin: 0;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-:global([data-theme="light"]) .installStepHeading {
-  color: #111827;
-}
-
-.installStepSub {
-  font-size: 11.5px;
-  line-height: 1.4;
-  color: #94a3b8;
-  margin: 0;
-}
-
-:global([data-theme="light"]) .installStepSub {
-  color: #52627A;
-}
-
-.installPromptDirectBtn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  width: 100%;
-  padding: 8px 12px;
-  margin-bottom: 12px;
-  border-radius: 10px;
-  background: rgba(16, 185, 129, 0.15);
-  border: 1px solid rgba(16, 185, 129, 0.35);
-  color: #34d399;
-  font-size: 12px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.installPromptDirectBtn:hover {
-  background: rgba(16, 185, 129, 0.25);
-  border-color: rgba(16, 185, 129, 0.5);
-  transform: translateY(-1px);
-}
-
-:global([data-theme="light"]) .installPromptDirectBtn {
-  background: rgba(16, 185, 129, 0.12);
-  color: #059669;
-  border-color: rgba(16, 185, 129, 0.4);
-}
-
-.tourSecondaryBtn {
-  padding: 8px 14px;
-  border-radius: 10px;
-  background: rgba(51, 65, 85, 0.4);
-  border: 1px solid rgba(148, 163, 184, 0.25);
-  color: #cbd5e1;
-  font-size: 12.5px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.18s ease;
-}
-
-.tourSecondaryBtn:hover {
-  background: rgba(51, 65, 85, 0.7);
-  color: #ffffff;
-  border-color: rgba(148, 163, 184, 0.4);
-}
-
-:global([data-theme="light"]) .tourSecondaryBtn {
-  background: rgba(241, 245, 249, 0.9);
-  border-color: #DCE5F0;
-  color: #52627A;
-}
-
-:global([data-theme="light"]) .tourSecondaryBtn:hover {
-  background: rgba(226, 232, 240, 0.95);
-  color: #111827;
-}
-
-/* Back Button & Action Button Row */
-.buttonRow {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  width: 100%;
-}
-
-.backButton {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  padding: 12px 18px;
-  border-radius: 12px;
-  background: rgba(30, 41, 59, 0.5);
-  border: 1px solid rgba(148, 163, 184, 0.2);
-  color: #cbd5e1;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  flex-shrink: 0;
-}
-
-.backButton:hover {
-  background: rgba(51, 65, 85, 0.8);
-  border-color: rgba(148, 163, 184, 0.4);
-  color: #ffffff;
-}
-
-:global([data-theme="light"]) .backButton {
-  background: rgba(241, 245, 249, 0.9);
-  border-color: #DCE5F0;
-  color: #52627A;
-}
-
-:global([data-theme="light"]) .backButton:hover {
-  background: rgba(226, 232, 240, 1);
-  color: #111827;
-}
-
-/* 8. Mobile Responsiveness */
-@media (max-width: 768px) {
-  .onboardingCard {
-    padding: 24px 18px;
-    border-radius: 20px;
-    max-height: 90vh;
-    overflow-y: auto;
-  }
-
-  .cardTitle {
-    font-size: 20px;
-  }
-
-  .optionsGrid {
-    grid-template-columns: 1fr;
-    gap: 10px;
-  }
-
-  .optionCard {
-    padding: 14px 16px;
-    flex-direction: row;
-    justify-content: flex-start;
-    text-align: left;
-    gap: 14px;
-  }
-
-  /* Tour Card on Mobile: docked at bottom, text fits perfectly over Dashboard */
-  .tourCard {
-    width: calc(100vw - 28px) !important;
-    max-width: 440px !important;
-    left: 14px !important;
-    right: 14px !important;
-    bottom: 20px !important;
-    top: auto !important;
-    margin: 0 auto !important;
-    padding: 16px 18px !important;
-    border-radius: 18px !important;
-    box-shadow: none !important;
-  }
-
-  .tourCardWide {
-    width: calc(100vw - 28px) !important;
-    max-width: 440px !important;
-  }
-
-  .tourTitle {
-    font-size: 15px !important;
-    margin-bottom: 4px !important;
-  }
-
-  .tourDesc {
-    font-size: 12.5px !important;
-    line-height: 1.4 !important;
-    margin-bottom: 12px !important;
-  }
-
-  .installGuideSteps {
-    margin: 8px 0 12px 0 !important;
-    gap: 8px !important;
-  }
-
-  .installStepRow {
-    padding: 8px 10px !important;
-    gap: 10px !important;
-  }
-}
-

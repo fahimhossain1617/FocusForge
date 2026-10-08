@@ -376,28 +376,27 @@ function LoginContent() {
             className="auth-sheet-panel"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between mb-3">
-              <div>
-                <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                  <Users size={16} className="text-blue-400" />
+            <div className="mb-3.5">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-bold text-white tracking-tight">
                   Continue with a Saved Account
                 </h3>
-                <p className="text-[11px] text-slate-400">Select an account to log in instantly</p>
+                <button
+                  type="button"
+                  onClick={() => setShowSavedSheet(false)}
+                  className="text-xs text-slate-400 hover:text-white px-2 py-0.5 rounded-lg bg-white/5 hover:bg-white/10 transition-colors cursor-pointer"
+                >
+                  Close
+                </button>
               </div>
-              <button
-                type="button"
-                onClick={() => setShowSavedSheet(false)}
-                className="text-xs text-slate-400 hover:text-white px-2 py-1 rounded bg-white/5"
-              >
-                Close
-              </button>
+              <p className="text-[11px] text-slate-400 mt-1">Select an account to log in instantly</p>
             </div>
 
-            <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+            <div className="divide-y divide-white/[0.08] max-h-64 overflow-y-auto pr-1">
               {rememberedAccounts.map((account) => (
                 <div
                   key={account.id}
-                  className="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-white/[0.04] border border-white/10 hover:border-blue-400/80 transition-all cursor-pointer"
+                  className="flex items-center justify-between gap-2 py-3 px-1.5 hover:bg-white/[0.03] transition-all cursor-pointer rounded-lg group"
                   onClick={() => handleSelectRememberedAccount(account)}
                 >
                   <div className="flex items-center gap-3 min-w-0 flex-1">
@@ -444,7 +443,7 @@ function LoginContent() {
             <button
               type="button"
               onClick={() => setShowSavedSheet(false)}
-              className="w-full mt-3 py-2 text-xs text-slate-300 hover:text-white bg-white/5 hover:bg-white/10 rounded-xl transition-colors font-medium"
+              className="w-full mt-3 py-2 text-xs text-slate-300 hover:text-white bg-white/5 hover:bg-white/10 rounded-xl transition-colors font-medium cursor-pointer"
             >
               Use a different account
             </button>

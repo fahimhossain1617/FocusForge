@@ -1,25 +1,29 @@
 /* ===== FOCUSFORGE AUTHENTICATION STYLES ===== */
 
 .auth-frame {
-  --bgimg: linear-gradient(180deg, #0356C5 0%, #021a4f 38%, #02060E 100%);
-  --text: #f8fafc;
-  --sub: #cbd5e1;
-  --mute: #94a3b8;
-  --card: rgba(2, 9, 32, 0.72);
-  --cardline: rgba(77, 143, 255, 0.22);
-  --field: rgba(2, 8, 28, 0.8);
-  --fieldline: rgba(77, 143, 255, 0.25);
-  --focus: #3b82f6;
-  --link: #60a5fa;
-  --btn1: #0356C5;
-  --btn2: #02439c;
+  --bg-color: #020612;
+  --text: #ffffff;
+  --sub: #8fa0ba;
+  --mute: #64748b;
+  --card: rgba(2, 8, 24, 0.82);
+  --cardline: rgba(26, 108, 255, 0.22);
+  --field: rgba(2, 8, 22, 0.88);
+  --fieldline: rgba(26, 108, 255, 0.25);
+  --focus: #1a6cff;
+  --link: #3b82f6;
+  --btn1: #1a6cff;
+  --btn2: #1668fe;
   --btntext: #ffffff;
-  --google-bg: rgba(255, 255, 255, 0.08);
+  --google-bg: rgba(255, 255, 255, 0.05);
   position: relative;
   overflow-x: hidden;
   color: var(--text);
-  font-family: "Manrope", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  background: var(--bgimg);
+  font-family: var(--font-geist-sans), "Manrope", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background-color: #020612;
+  background-image: 
+    radial-gradient(ellipse 110% 85% at 85% 18%, rgba(16, 58, 155, 0.28) 0%, rgba(10, 38, 112, 0.18) 28%, rgba(5, 24, 76, 0.10) 54%, rgba(2, 12, 42, 0.04) 78%, transparent 100%),
+    radial-gradient(ellipse 80% 65% at 12% 18%, rgba(10, 38, 110, 0.15) 0%, rgba(5, 20, 65, 0.07) 45%, transparent 80%),
+    linear-gradient(135deg, rgba(8, 28, 88, 0.12) 0%, transparent 48%);
   background-attachment: fixed;
   isolation: isolate;
   min-height: 100vh;
@@ -30,28 +34,29 @@
 .auth-frame[data-theme="light"],
 html.light .auth-frame,
 [data-theme="light"] .auth-frame {
-  --bgimg: linear-gradient(var(--angle), #ffffff 0%, #ffffff 38%, #d6e6ff 72%, #a8d3fa 100%);
+  --bg-color: #ffffff;
   --text: #0b1b4d;
   --sub: #4a5787;
   --mute: #7783ad;
-  --card: rgba(255, 255, 255, 0.85);
+  --card: rgba(255, 255, 255, 0.88);
   --cardline: rgba(40, 80, 180, 0.14);
   --field: #ffffff;
   --fieldline: #d5dcf2;
-  --focus: #1f6fe0;
+  --focus: #1a6cff;
   --link: #1f5fd0;
+  --btn1: #1a6cff;
+  --btn2: #1668fe;
   --google-bg: #ffffff;
+  background-color: #ffffff;
+  background-image: linear-gradient(135deg, #ffffff 0%, #ffffff 38%, #d6e6ff 72%, #a8d3fa 100%);
 }
 
-@media (max-width: 699px) {
+@media (max-width: 767px) {
   .auth-frame {
-    --angle: 160deg;
-  }
-}
-
-@media (min-width: 700px) and (max-width: 1023px) {
-  .auth-frame {
-    --angle: 155deg;
+    background-color: #020612;
+    background-image: 
+      radial-gradient(ellipse 130% 85% at 15% 10%, rgba(14, 54, 148, 0.26) 0%, rgba(9, 36, 108, 0.18) 26%, rgba(5, 22, 72, 0.10) 52%, rgba(3, 12, 42, 0.04) 75%, transparent 100%),
+      linear-gradient(165deg, rgba(10, 40, 118, 0.20) 0%, rgba(6, 22, 70, 0.12) 32%, rgba(2, 10, 36, 0.05) 58%, transparent 85%);
   }
 }
 
@@ -86,38 +91,36 @@ html.light .auth-frame,
 .auth-hero-group {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 0px;
 }
 
 .auth-hero-lead {
-  font-family: "Manrope", sans-serif;
+  font-family: var(--font-geist-sans), "Manrope", sans-serif;
   font-size: 28px;
   font-weight: 600;
   color: #e2e8f0;
   letter-spacing: -0.015em;
-  line-height: 1.2;
+  line-height: 1.1;
+  margin-bottom: -2px;
 }
 
 .auth-hero-title {
-  font-family: "Sora", sans-serif;
+  font-family: var(--font-geist-sans), "Sora", sans-serif;
   font-weight: 800;
   font-size: 58px;
-  line-height: 1.05;
+  line-height: 1.02;
   letter-spacing: -0.035em;
   margin: 0;
   color: #ffffff;
-  background: linear-gradient(180deg, #ffffff 40%, #93c5fd 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
 }
 
 .auth-hero-desc {
-  margin: 22px 0 0;
+  margin: 20px 0 0;
   max-width: 460px;
 }
 
 .auth-hero-tagline {
-  font-family: "Manrope", sans-serif;
+  font-family: var(--font-geist-sans), "Manrope", sans-serif;
   font-size: 19px;
   font-weight: 700;
   color: #f1f5f9;
@@ -126,10 +129,10 @@ html.light .auth-frame,
 }
 
 .auth-hero-details {
-  font-family: "Manrope", sans-serif;
+  font-family: var(--font-geist-sans), "Manrope", sans-serif;
   font-size: 14.5px;
   line-height: 1.6;
-  color: #94a3b8;
+  color: #8fa0ba;
   margin: 0;
 }
 
@@ -1068,8 +1071,8 @@ html.light .auth-pass-pill.met {
     min-height: 100dvh;
   }
   .auth-desktop-left .mid {
-    margin: 8% 0 auto;
-    padding-bottom: 20px;
+    margin: auto 0;
+    padding-bottom: 0;
   }
   .auth-desktop-right {
     display: flex;
@@ -1082,25 +1085,28 @@ html.light .auth-pass-pill.met {
 /* Tablet (700px - 1023px) */
 @media (min-width: 700px) and (max-width: 1023px) {
   .auth-tablet-layout {
-    padding: 48px 48px 32px;
+    padding: 48px 32px 32px;
     display: flex;
     flex-direction: column;
     min-height: 100vh;
-    max-width: 640px;
+    min-height: 100dvh;
+    max-width: 600px;
     margin: 0 auto;
     justify-content: center;
+    align-items: center;
   }
-  .auth-tablet-layout .auth-hero {
-    font-size: 46px;
-    margin-top: 32px;
+  .auth-tablet-layout .auth-hero-group {
+    text-align: center;
   }
-  .auth-tablet-layout .auth-hero-sub {
-    font-size: 16.5px;
-    margin: 12px 0 24px;
-    max-width: none;
+  .auth-tablet-layout .auth-hero-desc {
+    text-align: center;
+    margin: 14px auto 22px;
+    max-width: 480px;
   }
   .auth-tablet-layout .auth-card {
     padding: 28px 32px;
+    width: 100%;
+    max-width: 440px;
   }
   .auth-tablet-layout .auth-foot {
     margin-top: 24px;
@@ -1118,20 +1124,20 @@ html.light .auth-pass-pill.met {
     min-height: 100dvh;
     max-width: 440px;
     margin: 0 auto;
-    justify-content: center;
+    justify-content: flex-start;
     box-sizing: border-box;
     width: 100%;
     position: relative;
   }
   .auth-phone-top-bar {
     width: 100%;
-    margin-bottom: 8px;
+    margin-bottom: 10px;
     display: flex;
     align-items: center;
   }
   .auth-phone-main {
     width: 100%;
-    margin-top: auto;
+    margin-top: 12px;
     margin-bottom: auto;
     display: flex;
     flex-direction: column;
@@ -1141,46 +1147,44 @@ html.light .auth-pass-pill.met {
     margin-bottom: auto;
   }
   .auth-hero-mobile {
-    margin-bottom: 22px;
+    margin-bottom: 20px;
     text-align: left;
   }
   .auth-hero-mobile .auth-hero-lead {
-    font-family: "Manrope", sans-serif;
-    font-size: 20px;
+    font-family: var(--font-geist-sans), "Manrope", sans-serif;
+    font-size: 23px;
     font-weight: 600;
     color: #e2e8f0;
     letter-spacing: -0.015em;
-    line-height: 1.2;
+    line-height: 1.1;
     display: block;
+    margin-bottom: -1px;
   }
   .auth-hero-mobile .auth-hero-title {
-    font-family: "Sora", sans-serif;
+    font-family: var(--font-geist-sans), "Sora", sans-serif;
     font-weight: 800;
-    font-size: 38px;
-    line-height: 1.1;
-    letter-spacing: -0.035em;
-    margin: 3px 0 0;
+    font-size: 40px;
+    line-height: 1.04;
+    letter-spacing: -0.03em;
+    margin: 0;
     color: #ffffff;
-    background: linear-gradient(180deg, #ffffff 40%, #93c5fd 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
   }
   .auth-hero-mobile .auth-hero-desc {
-    margin: 14px 0 0;
+    margin: 12px 0 0;
   }
   .auth-hero-mobile .auth-hero-tagline {
-    font-family: "Manrope", sans-serif;
-    font-size: 15px;
+    font-family: var(--font-geist-sans), "Manrope", sans-serif;
+    font-size: 15.5px;
     font-weight: 700;
     color: #f1f5f9;
-    margin: 0 0 6px;
+    margin: 0 0 5px;
     letter-spacing: -0.01em;
   }
   .auth-hero-mobile .auth-hero-details {
-    font-family: "Manrope", sans-serif;
-    font-size: 13px;
-    line-height: 1.55;
-    color: #94a3b8;
+    font-family: var(--font-geist-sans), "Manrope", sans-serif;
+    font-size: 13.5px;
+    line-height: 1.5;
+    color: #8fa0ba;
     margin: 0;
   }
   .auth-phone-layout .auth-title {
