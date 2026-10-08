@@ -23,6 +23,7 @@ import { syncService } from "../../services/syncService";
 import FocusForgeDatePicker from "../ui/FocusForgeDatePicker";
 import FocusForgeSelect from "../ui/FocusForgeSelect";
 import { toggleThemeWithCircularTransition } from "../../utils/themeTransition";
+import { subscribeUserToPush, getPushDiagnostics } from "../../utils/pushSubscription";
 
 import { 
   APP_NAME, 
@@ -487,6 +488,73 @@ export default function SettingsPage() {
       }
     });
     showToast(state.lang === "bn" ? "সেভ করা হয়েছে" : "Saved", "info");
+  };
+
+  // Web Push Diagnostics & Testing
+  const [pushDiagLoading, setPushDiagLoading] = useState(false);
+  const [pushDiagReport, setPushDiagReport] = useState<any>(null);
+
+  const handleRunPushDiagnostics = async () => {
+    setPushDiagLoading(true);
+    try {
+      const diag = await getPushDiagnostics();
+      const res = await fetch("/api/debug/test-push");
+      const serverStatus = await res.json().catch(() => ({ error: "Failed to parse server response" }));
+      setPushDiagReport({
+        client: diag,
+        server: serverStatus,
+        timestamp: new Date().toLocaleTimeString(),
+      });
+      showToast(state.lang === "bn" ? "ডায়াগনস্টিক রিপোর্ট প্রস্তুত" : "Diagnostics updated", "info");
+    } catch (err: any) {
+      setPushDiagReport({ error: err?.message || String(err) });
+      showToast(err?.message || "Diagnostic error", "error");
+    } finally {
+      setPushDiagLoading(false);
+    }
+  };
+
+  const handleRegisterPushSubscription = async () => {
+    setPushDiagLoading(true);
+    try {
+      const result = await subscribeUserToPush(user?.id);
+      if (result.success) {
+        showToast(state.lang === "bn" ? "পুশ সাবস্ক্রিপশন সফলভাবে রেজিস্টার হয়েছে!" : "Push subscription registered successfully!", "success");
+      } else {
+        showToast(result.error || (state.lang === "bn" ? "সাবস্ক্রিপশন ব্যর্থ হয়েছে" : "Subscription failed"), "error");
+      }
+      await handleRunPushDiagnostics();
+    } catch (err: any) {
+      showToast(err?.message || "Error subscribing", "error");
+    } finally {
+      setPushDiagLoading(false);
+    }
+  };
+
+  const handleSendTestPush = async () => {
+    setPushDiagLoading(true);
+    try {
+      const res = await fetch("/api/debug/test-push", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: user?.id }),
+      });
+      const data = await res.json();
+      setPushDiagReport((prev: any) => ({
+        ...prev,
+        lastTestPushResponse: data,
+        testedAt: new Date().toLocaleTimeString(),
+      }));
+      if (data.success) {
+        showToast(state.lang === "bn" ? "টেস্ট পুশ পাঠানো হয়েছে! অ্যাপ বন্ধ করে দেখুন।" : "Test push dispatched! Check background.", "success");
+      } else {
+        showToast(data.error || "Test push failed", "error");
+      }
+    } catch (err: any) {
+      showToast(err?.message || "Test push error", "error");
+    } finally {
+      setPushDiagLoading(false);
+    }
   };
 
   // =========================================================================
@@ -1895,6 +1963,75 @@ export default function SettingsPage() {
                   ))}
                 </div>
               </div>
+            </div>
+
+            {/* Web Push Device Diagnostics & Live Testing Card */}
+            <div className="rounded-2xl border border-[var(--color-border-subtle)] bg-[var(--color-surface-elevated)] p-5 sm:p-6 shadow-none space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <h3 className="text-sm font-semibold text-[var(--color-text-primary)] flex items-center gap-2">
+                    <Sparkles size={16} className="text-blue-500" />
+                    <span>{state.lang === "bn" ? "ওয়েব পুশ ও ব্যাকগ্রাউন্ড নোটিফিকেশন ডায়াগনস্টিক" : "Web Push Device Diagnostics & Live Test"}</span>
+                  </h3>
+                  <p className="text-xs text-[var(--color-text-secondary)] mt-0.5">
+                    {state.lang === "bn"
+                      ? "অ্যান্ড্রয়েড PWA ও ব্রাউজারে অ্যাপ বন্ধ থাকা অবস্থায় ব্যাকগ্রাউন্ড পুশ সক্রিয় রয়েছে কিনা তা পরীক্ষা ও রেজিস্টার করুন।"
+                      : "Verify and test OS-level background Web Push delivery on Android PWA and browser when the app is closed."}
+                  </p>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex flex-wrap gap-2 pt-1">
+                <button
+                  type="button"
+                  disabled={pushDiagLoading}
+                  onClick={handleRegisterPushSubscription}
+                  className="px-4 py-2 rounded-xl text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 transition-all cursor-pointer disabled:opacity-50 flex items-center gap-1.5 shadow-none"
+                >
+                  <RefreshCw size={13} className={pushDiagLoading ? "animate-spin" : ""} />
+                  <span>{state.lang === "bn" ? "পুশ সাবস্ক্রিপশন রেজিস্টার করুন" : "Register / Sync Web Push"}</span>
+                </button>
+
+                <button
+                  type="button"
+                  disabled={pushDiagLoading}
+                  onClick={handleSendTestPush}
+                  className="px-4 py-2 rounded-xl text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 transition-all cursor-pointer disabled:opacity-50 flex items-center gap-1.5 shadow-none"
+                >
+                  <Bell size={13} />
+                  <span>{state.lang === "bn" ? "এই ডিভাইসে টেস্ট পুশ পাঠান" : "Send Test Push to This Device"}</span>
+                </button>
+
+                <button
+                  type="button"
+                  disabled={pushDiagLoading}
+                  onClick={handleRunPushDiagnostics}
+                  className="px-3.5 py-2 rounded-xl text-xs font-medium text-[var(--color-text-primary)] bg-[var(--color-surface)] border border-[var(--color-border-subtle)] hover:bg-[var(--color-surface-hover)] transition-all cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
+                >
+                  <Key size={13} />
+                  <span>{state.lang === "bn" ? "স্ট্যাটাস রিপোর্ট" : "Check Status"}</span>
+                </button>
+              </div>
+
+              {/* Diagnostic Output View */}
+              {pushDiagReport && (
+                <div className="mt-3 rounded-xl border border-[var(--color-border-subtle)] bg-[var(--color-surface)] p-4 text-xs space-y-2">
+                  <div className="flex items-center justify-between text-[var(--color-text-secondary)] font-mono text-[11px] pb-1 border-b border-[var(--color-border-subtle)]">
+                    <span>Diagnostic Log ({pushDiagReport.timestamp || pushDiagReport.testedAt || "Live"})</span>
+                    <button
+                      type="button"
+                      onClick={() => setPushDiagReport(null)}
+                      className="text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] cursor-pointer"
+                    >
+                      Clear
+                    </button>
+                  </div>
+                  <pre className="text-[11px] font-mono text-[var(--color-text-primary)] overflow-x-auto whitespace-pre-wrap max-h-60 leading-relaxed">
+                    {JSON.stringify(pushDiagReport, null, 2)}
+                  </pre>
+                </div>
+              )}
             </div>
           </div>
         );

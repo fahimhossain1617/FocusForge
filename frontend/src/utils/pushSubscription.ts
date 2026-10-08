@@ -5,8 +5,10 @@
  * 1. Base64 VAPID Public Key conversion to Uint8Array.
  * 2. Web Push registration with browser PushManager.
  * 3. Secure sync of endpoint and p256dh/auth keys to Supabase database.
- * 4. Graceful unsubscription and key rotation.
+ * 4. Graceful unsubscription, key rotation, and diagnostics.
  */
+
+import { supabase } from '../lib/supabaseClient';
 
 const DEFAULT_VAPID_PUBLIC_KEY =
   process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ||
@@ -57,26 +59,30 @@ export async function getExistingPushSubscription(): Promise<PushSubscription | 
   }
 }
 
+export interface PushSyncResult {
+  success: boolean;
+  subscription: PushSubscription | null;
+  serverResult?: any;
+  error?: string;
+}
+
 /**
  * Subscribes the current device/browser to Web Push and sends the endpoint to backend
  */
-export async function subscribeUserToPush(userId?: string | null): Promise<PushSubscription | null> {
+export async function subscribeUserToPush(userId?: string | null): Promise<PushSyncResult> {
   if (!isPushSupported()) {
-    console.warn('[WebPush] Push notifications are not supported in this browser/device.');
-    return null;
+    return { success: false, subscription: null, error: 'Push notifications not supported in this browser' };
   }
 
   if (Notification.permission !== 'granted') {
-    console.warn('[WebPush] Notification permission not granted yet.');
-    return null;
+    return { success: false, subscription: null, error: 'Notification permission not granted' };
   }
 
   try {
     const registration = await navigator.serviceWorker.ready;
     const vapidKey = DEFAULT_VAPID_PUBLIC_KEY;
     if (!vapidKey) {
-      console.error('[WebPush] Missing VAPID public key.');
-      return null;
+      return { success: false, subscription: null, error: 'Missing VAPID public key' };
     }
 
     const applicationServerKey = urlBase64ToUint8Array(vapidKey);
@@ -88,30 +94,55 @@ export async function subscribeUserToPush(userId?: string | null): Promise<PushS
         userVisibleOnly: true,
         applicationServerKey: applicationServerKey as unknown as BufferSource,
       });
-      console.log('[WebPush] Successfully created new push subscription.');
+      console.log('[WebPush] Created fresh PushSubscription with PushManager.');
     }
+
+    // Get current auth session to include valid JWT Bearer token
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+
+    let resolvedUserId = userId;
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.access_token) {
+        headers['Authorization'] = `Bearer ${session.access_token}`;
+      }
+      if (session?.user?.id) {
+        resolvedUserId = session.user.id;
+      }
+    } catch {}
+
+    if (resolvedUserId) {
+      headers['x-user-id'] = resolvedUserId;
+    }
+
+    let serverResult: any = null;
 
     // Sync subscription payload with backend
     if (subscription) {
       const subJson = subscription.toJSON();
-      await fetch('/api/notifications/subscribe', {
+      const res = await fetch('/api/notifications/subscribe', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(userId ? { 'x-user-id': userId } : {}),
-        },
+        headers,
         body: JSON.stringify({
           subscription: subJson,
+          userId: resolvedUserId,
         }),
-      }).catch((syncErr) => {
-        console.warn('[WebPush] Failed to sync push subscription to backend:', syncErr);
       });
+
+      serverResult = await res.json().catch(() => ({}));
+      console.log('[WebPush] Backend subscription sync response:', serverResult);
     }
 
-    return subscription;
-  } catch (err) {
+    return {
+      success: Boolean(serverResult?.success),
+      subscription,
+      serverResult,
+    };
+  } catch (err: any) {
     console.error('[WebPush] Failed to subscribe user to Web Push:', err);
-    return null;
+    return { success: false, subscription: null, error: err?.message || String(err) };
   }
 }
 
@@ -129,12 +160,24 @@ export async function unsubscribeUserFromPush(userId?: string | null): Promise<b
     const endpoint = subscription.endpoint;
     await subscription.unsubscribe();
 
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.access_token) {
+        headers['Authorization'] = `Bearer ${session.access_token}`;
+      }
+    } catch {}
+
+    if (userId) {
+      headers['x-user-id'] = userId;
+    }
+
     await fetch('/api/notifications/unsubscribe', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(userId ? { 'x-user-id': userId } : {}),
-      },
+      headers,
       body: JSON.stringify({ endpoint }),
     }).catch(() => {});
 
@@ -144,4 +187,41 @@ export async function unsubscribeUserFromPush(userId?: string | null): Promise<b
     console.error('[WebPush] Error unsubscribing:', err);
     return false;
   }
+}
+
+/**
+ * Collects full client diagnostic details for debugging
+ */
+export async function getPushDiagnostics() {
+  const supported = isPushSupported();
+  const permission = typeof window !== 'undefined' && 'Notification' in window ? Notification.permission : 'unsupported';
+  let swReady = false;
+  let swScope = '';
+  let subscriptionData: any = null;
+  let error: string | null = null;
+
+  if (supported) {
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      swReady = Boolean(reg);
+      swScope = reg.scope;
+      const sub = await reg.pushManager.getSubscription();
+      if (sub) {
+        subscriptionData = sub.toJSON();
+      }
+    } catch (e: any) {
+      error = e.message || String(e);
+    }
+  }
+
+  return {
+    supported,
+    permission,
+    swReady,
+    swScope,
+    hasSubscription: Boolean(subscriptionData),
+    subscription: subscriptionData,
+    vapidKeyLength: DEFAULT_VAPID_PUBLIC_KEY?.length || 0,
+    error,
+  };
 }

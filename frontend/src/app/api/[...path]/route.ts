@@ -355,6 +355,45 @@ export async function GET(request: NextRequest, context: { params: Promise<{ pat
     }
   }
 
+  // 8.1. Debug / Push Status: GET /api/debug/test-push or /api/debug/push-status
+  if (pathStr === 'debug/test-push' || pathStr === 'debug/push-status') {
+    try {
+      const targetUserId = userId || searchParams.get('userId');
+      let count = 0;
+      let latestRows: any[] = [];
+      try {
+        const countRes = await pool.query('SELECT count(*) FROM push_subscriptions');
+        count = parseInt(countRes.rows[0]?.count || '0', 10);
+        const latestRes = await pool.query('SELECT id, user_id, endpoint, created_at, updated_at FROM push_subscriptions ORDER BY created_at DESC LIMIT 5');
+        latestRows = latestRes.rows.map(r => ({
+          ...r,
+          endpointPreview: r.endpoint.slice(0, 50) + '...',
+        }));
+      } catch (dbErr: any) {
+        return NextResponse.json({ success: false, error: 'Database query error: ' + dbErr?.message }, { status: 500 });
+      }
+
+      const vapidSubject = process.env.VAPID_SUBJECT || 'mailto:focentia13@gmail.com';
+      const vapidPublic = process.env.VAPID_PUBLIC_KEY || process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+      const vapidPrivate = process.env.VAPID_PRIVATE_KEY;
+
+      return NextResponse.json({
+        success: true,
+        totalSubscriptions: count,
+        currentUser: userId || 'unauthenticated',
+        vapidConfig: {
+          subject: vapidSubject,
+          hasPublicKey: Boolean(vapidPublic),
+          publicKeyPreview: vapidPublic ? vapidPublic.slice(0, 15) + '...' : null,
+          hasPrivateKey: Boolean(vapidPrivate),
+        },
+        recentSubscriptions: latestRows,
+      });
+    } catch (err: any) {
+      return NextResponse.json({ success: false, error: err?.message }, { status: 500 });
+    }
+  }
+
   // 9. AI Agent Sessions & Messages (Local-First: Managed on Device)
   if (
     pathStr === 'ai/agent/sessions' ||
@@ -1050,24 +1089,26 @@ export async function POST(request: NextRequest, context: { params: Promise<{ pa
 
   // 4. Push Subscriptions: POST /api/notifications/subscribe & unsubscribe
   if (pathStr === 'notifications/subscribe') {
-    if (!userId || isGuest) {
-      return NextResponse.json({ success: true, guest: true });
+    const targetUserId = userId || (body.userId && body.userId !== 'guest' ? body.userId : null) || request.headers.get('x-user-id');
+    if (!targetUserId || targetUserId === 'guest') {
+      return NextResponse.json({ success: false, guest: true, error: 'Authentication required to save push subscription' }, { status: 401 });
     }
     try {
       const userAgent = request.headers.get('user-agent') || '';
-      await dbSavePushSubscription(userId, body.subscription, userAgent);
-      return NextResponse.json({ success: true });
+      await dbSavePushSubscription(targetUserId, body.subscription, userAgent);
+      return NextResponse.json({ success: true, saved: true, userId: targetUserId, endpoint: body.subscription?.endpoint });
     } catch (err: any) {
       return NextResponse.json({ error: err?.message || 'Subscription failed' }, { status: 500 });
     }
   }
 
   if (pathStr === 'notifications/unsubscribe') {
-    if (!userId || isGuest) {
+    const targetUserId = userId || request.headers.get('x-user-id');
+    if (!targetUserId || targetUserId === 'guest') {
       return NextResponse.json({ success: true });
     }
     try {
-      await dbRemovePushSubscription(userId, body.endpoint);
+      await dbRemovePushSubscription(targetUserId, body.endpoint);
       return NextResponse.json({ success: true });
     } catch (err: any) {
       return NextResponse.json({ error: err?.message || 'Unsubscribe failed' }, { status: 500 });
@@ -1104,12 +1145,13 @@ export async function POST(request: NextRequest, context: { params: Promise<{ pa
 
   // 4.3. Trigger Web Push Notification: POST /api/notifications/send-push
   if (pathStr === 'notifications/send-push') {
-    if (!userId || isGuest) {
+    const targetUserId = userId || (body.userId && body.userId !== 'guest' ? body.userId : null) || request.headers.get('x-user-id');
+    if (!targetUserId || targetUserId === 'guest') {
       return NextResponse.json({ success: true, guest: true, sentCount: 0 });
     }
     try {
       const pushPayload = body.payload || body;
-      const pushResult = await sendWebPushToUser(userId, pushPayload);
+      const pushResult = await sendWebPushToUser(targetUserId, pushPayload);
       return NextResponse.json({ success: true, ...pushResult });
     } catch (err: any) {
       return NextResponse.json({ error: err?.message || 'Failed to dispatch push notification' }, { status: 500 });
@@ -1130,10 +1172,96 @@ export async function POST(request: NextRequest, context: { params: Promise<{ pa
     };
 
     let pushResult = { sentCount: 0, failedCount: 0, removedExpired: 0 };
-    if (userId && !isGuest) {
-      pushResult = await sendWebPushToUser(userId, testPayload);
+    const targetUserId = userId || (body.userId && body.userId !== 'guest' ? body.userId : null) || request.headers.get('x-user-id');
+    if (targetUserId && targetUserId !== 'guest') {
+      pushResult = await sendWebPushToUser(targetUserId, testPayload);
     }
     return NextResponse.json({ success: true, payload: testPayload, pushResult });
+  }
+
+  // 4.5. Full Isolation Debug Push: POST /api/debug/test-push
+  if (pathStr === 'debug/test-push') {
+    try {
+      const targetUserId = userId || (body?.userId && body.userId !== 'guest' ? body.userId : null) || request.headers.get('x-user-id');
+      let subscriptionRow: any = null;
+
+      if (targetUserId && targetUserId !== 'guest') {
+        const { rows } = await pool.query('SELECT * FROM push_subscriptions WHERE user_id = $1 ORDER BY created_at DESC LIMIT 1', [targetUserId]);
+        subscriptionRow = rows[0];
+      }
+      
+      if (!subscriptionRow) {
+        const { rows } = await pool.query('SELECT * FROM push_subscriptions ORDER BY created_at DESC LIMIT 1');
+        subscriptionRow = rows[0];
+      }
+
+      const vapidSubject = process.env.VAPID_SUBJECT || 'mailto:focentia13@gmail.com';
+      const vapidPublic = process.env.VAPID_PUBLIC_KEY || process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+      const vapidPrivate = process.env.VAPID_PRIVATE_KEY;
+
+      if (!subscriptionRow) {
+        return NextResponse.json({
+          success: false,
+          error: 'No push subscription found in database. Please click "Register / Sync Web Push" on your device first.',
+          vapidConfig: {
+            subject: vapidSubject,
+            hasPublicKey: Boolean(vapidPublic),
+            hasPrivateKey: Boolean(vapidPrivate),
+          },
+        });
+      }
+
+      const webpush = (await import('web-push')).default;
+      if (vapidPublic && vapidPrivate) {
+        webpush.setVapidDetails(vapidSubject, vapidPublic, vapidPrivate);
+      }
+
+      const testPayload = JSON.stringify({
+        title: 'Focentia Web Push Diagnostic',
+        body: 'OS Background Web Push is working! (' + new Date().toLocaleTimeString() + ')',
+        id: 'diag_' + Date.now(),
+        category: 'system',
+        actionRoute: 'today',
+        icon: '/icons/icon-192x192.png',
+        badge: '/icons/badge-large.png?v=max_zoom_1',
+        tag: 'focentia-diag-test',
+        timestamp: Date.now(),
+      });
+
+      const pushSub = {
+        endpoint: subscriptionRow.endpoint,
+        keys: {
+          p256dh: subscriptionRow.p256dh,
+          auth: subscriptionRow.auth,
+        },
+      };
+
+      const sendRes = await webpush.sendNotification(pushSub, testPayload, {
+        TTL: 86400,
+        urgency: 'high',
+      });
+
+      return NextResponse.json({
+        success: true,
+        statusCode: sendRes.statusCode,
+        headers: sendRes.headers,
+        targetUserId: subscriptionRow.user_id,
+        endpointPreview: subscriptionRow.endpoint.slice(0, 45) + '...',
+        vapidConfig: {
+          subject: vapidSubject,
+          hasPublicKey: Boolean(vapidPublic),
+          hasPrivateKey: Boolean(vapidPrivate),
+        },
+      });
+    } catch (pushErr: any) {
+      return NextResponse.json({
+        success: false,
+        error: pushErr?.message || String(pushErr),
+        statusCode: pushErr?.statusCode || 500,
+        body: pushErr?.body || null,
+        endpoint: pushErr?.endpoint || null,
+      });
+    }
   }
 
   // 5. Support Pipeline Submissions: Report, Contact, Feedback
