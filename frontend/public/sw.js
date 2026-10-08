@@ -26,10 +26,117 @@ const STATIC_ASSETS = [
   '/logo.png'
 ];
 
-// Message listener to trigger immediate skip waiting from client
+// Background reminder storage and active timers map
+let activeScheduledReminders = [];
+const activeReminderTimers = new Map();
+const triggeredReminderIds = new Set();
+
+function clearAllReminderTimers() {
+  for (const timer of activeReminderTimers.values()) {
+    clearTimeout(timer);
+  }
+  activeReminderTimers.clear();
+}
+
+async function triggerScheduledNotification(reminder) {
+  if (!reminder || triggeredReminderIds.has(reminder.id)) return;
+  triggeredReminderIds.add(reminder.id);
+
+  try {
+    // Check if any client is open and actively focused
+    const clientList = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+    const hasFocusedClient = clientList.some((c) => c.visibilityState === 'visible' && c.focused);
+
+    // If user is actively focused in the app, the in-app banner will display it without duplicate OS noise.
+    if (hasFocusedClient && !reminder.isUrgent) {
+      return;
+    }
+
+    const category = reminder.category || 'system';
+    const actionRoute = reminder.actionRoute || '';
+    const deterministicTag = reminder.tag || `focentia-${reminder.id}`;
+    const actions = getDefaultActions(category, actionRoute);
+
+    const options = {
+      body: reminder.body,
+      icon: reminder.icon || '/icons/icon-192x192.png',
+      badge: reminder.badge || '/icons/badge-large.png?v=max_zoom_1',
+      tag: deterministicTag,
+      renotify: true,
+      requireInteraction: Boolean(reminder.requireInteraction),
+      vibrate: reminder.isUrgent ? [150, 80, 150, 80, 200] : [100, 50, 100],
+      timestamp: reminder.timestamp || Date.now(),
+      data: {
+        id: reminder.id,
+        actionRoute,
+        targetUrl: actionRoute ? `/?page=${encodeURIComponent(actionRoute)}` : '/',
+        category,
+        taskId: reminder.taskId,
+        skillId: reminder.skillId
+      }
+    };
+
+    if (actions.length > 0) {
+      options.actions = actions;
+    }
+
+    await self.registration.showNotification(reminder.title, options);
+  } catch (err) {
+    console.warn('[SW] Scheduled notification trigger error:', err);
+  }
+}
+
+function scheduleReminders(reminders) {
+  if (!Array.isArray(reminders)) return;
+  clearAllReminderTimers();
+  activeScheduledReminders = reminders;
+
+  const now = Date.now();
+  for (const item of reminders) {
+    if (!item.targetTimestamp || triggeredReminderIds.has(item.id)) continue;
+    const delay = item.targetTimestamp - now;
+    if (delay > 0 && delay < 24 * 60 * 60 * 1000) {
+      const timer = setTimeout(() => {
+        triggerScheduledNotification(item);
+        activeReminderTimers.delete(item.id);
+      }, delay);
+      activeReminderTimers.set(item.id, timer);
+    } else if (delay >= -45000 && delay <= 0) {
+      // Within last 45 seconds: trigger immediately
+      triggerScheduledNotification(item);
+    }
+  }
+}
+
+// Message listener to trigger immediate skip waiting or schedule reminders from client
 self.addEventListener('message', (event) => {
-  if (event.data && (event.data.type === 'SKIP_WAITING' || event.data === 'skipWaiting')) {
+  if (!event.data) return;
+
+  if (event.data.type === 'SKIP_WAITING' || event.data === 'skipWaiting') {
     self.skipWaiting();
+  } else if (event.data.type === 'SCHEDULE_REMINDERS') {
+    scheduleReminders(event.data.reminders);
+  } else if (event.data.type === 'CANCEL_REMINDER' && event.data.id) {
+    triggeredReminderIds.add(event.data.id);
+    const timer = activeReminderTimers.get(event.data.id);
+    if (timer) {
+      clearTimeout(timer);
+      activeReminderTimers.delete(event.data.id);
+    }
+  }
+});
+
+// Periodic background sync if supported by Android/Chromium browser
+self.addEventListener('periodicsync', (event) => {
+  if (event.tag === 'focentia-reminders') {
+    event.waitUntil((async () => {
+      const now = Date.now();
+      for (const item of activeScheduledReminders) {
+        if (!triggeredReminderIds.has(item.id) && item.targetTimestamp <= now && now - item.targetTimestamp < 15 * 60 * 1000) {
+          await triggerScheduledNotification(item);
+        }
+      }
+    })());
   }
 });
 
