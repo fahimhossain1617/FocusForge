@@ -34,7 +34,7 @@ export default function MindHome({ navigate, setActiveThoughtId }: MindHomeProps
     const el = textareaRef.current;
     if (!el) return;
     el.style.height = "auto";
-    const minHeight = 60;
+    const minHeight = 36;
     const maxHeight = 240; // Perplexity-style dynamic auto-grow (200-300 words)
     const scrollH = el.scrollHeight;
     if (scrollH >= maxHeight) {
@@ -164,53 +164,60 @@ export default function MindHome({ navigate, setActiveThoughtId }: MindHomeProps
           </button>
         </div>
 
-        {/* Writing Area */}
+        {/* Unified Mind Space Writing Area */}
         <div
-          className="rounded-2xl border border-slate-200 dark:border-white/10 bg-white dark:bg-[#111827] relative pb-16 w-full flex flex-col shadow-none"
+          className="rounded-2xl sm:rounded-3xl border border-slate-200/80 dark:border-white/10 bg-white dark:bg-[#111827] relative w-full flex flex-col px-4 py-3 sm:px-5 sm:py-3.5 gap-2 shadow-none transition-all focus-within:border-blue-500/40 dark:focus-within:border-blue-500/30"
         >
-          <VoiceReactiveGlow active={isVoiceListening} rounded="rounded-2xl" />
-          {isVoiceListening && (
-            <div className="w-full px-5 sm:px-6 pt-3 pb-1 flex items-center h-[26px] overflow-hidden pointer-events-none">
-              <VoiceWaveform active={isVoiceListening} isBengali={state.lang === "bn"} />
-            </div>
-          )}
+          <VoiceReactiveGlow active={isVoiceListening} rounded="rounded-2xl sm:rounded-3xl" />
 
-          <textarea
-            ref={textareaRef}
-            value={input}
-            onChange={handleChange}
-            onScroll={handleScroll}
-            onKeyDown={(e) => {
-              if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
-                e.preventDefault();
-                handleSubmit();
-              }
-            }}
-            onFocus={() => setIsFocused(true)}
-            onBlur={() => setIsFocused(false)}
-            placeholder={
-              isVoiceListening
-                ? (state.lang === "bn" ? "বলুন, কথা শুনছি..." : "Listening to your voice...")
-                : activeMode === 'idea' 
-                ? (t.myMind.ideaVaultPlaceholder || "What's the core idea or spark?")
-                : activeMode === 'problem'
-                ? (t.myMind.problemSolverPlaceholder || "What problem are you trying to break down?")
-                : (t.myMind.writeFreely || "Write whatever comes to mind...")
-            }
-            className="w-full px-5 sm:px-6 pt-4 pb-2 text-base sm:text-lg border-0 resize-none no-focus-ring bg-transparent my-mind-textarea custom-mini-scrollbar"
-            style={{ 
-              background: "transparent", 
-              border: "none", 
-              outline: "none", 
-              minHeight: "60px",
-              maxHeight: "240px",
-              overflowY: "hidden",
-              color: "var(--color-text-primary)" 
-            }}
-          />
+          {/* Top/Center: Text Entry Area or Centered Voice Waveform */}
+          <div className="w-full min-h-[36px] flex flex-col justify-center">
+            {isVoiceListening ? (
+              <div className="w-full min-h-[36px] flex items-center justify-center pointer-events-none py-1">
+                <VoiceWaveform active={isVoiceListening} isBengali={state.lang === "bn"} />
+              </div>
+            ) : (
+              <textarea
+                ref={textareaRef}
+                value={input}
+                onChange={handleChange}
+                onScroll={handleScroll}
+                onKeyDown={(e) => {
+                  if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+                    e.preventDefault();
+                    handleSubmit();
+                  }
+                }}
+                onFocus={() => setIsFocused(true)}
+                onBlur={() => setIsFocused(false)}
+                placeholder={
+                  activeMode === 'idea' 
+                    ? (t.myMind.ideaVaultPlaceholder || "What's the core idea or spark?")
+                    : activeMode === 'problem'
+                    ? (t.myMind.problemSolverPlaceholder || "What problem are you trying to break down?")
+                    : (t.myMind.writeFreely || "Write whatever comes to mind...")
+                }
+                className="w-full text-base sm:text-lg border-0 resize-none no-focus-ring bg-transparent composer-pill-textarea my-mind-textarea custom-mini-scrollbar p-0 m-0 placeholder:text-slate-400 dark:placeholder:text-slate-500 text-slate-900 dark:text-slate-100 font-normal leading-relaxed"
+                style={{ 
+                  background: "transparent", 
+                  backgroundColor: "transparent",
+                  border: "none", 
+                  outline: "none", 
+                  minHeight: "36px",
+                  maxHeight: "240px",
+                  overflowY: "hidden",
+                  boxShadow: "none",
+                  borderRadius: 0,
+                  padding: 0,
+                  margin: 0
+                }}
+              />
+            )}
+          </div>
           
-          <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between">
-            <div className="flex items-center gap-2 max-w-[calc(100%-90px)]">
+          {/* Bottom Action Row: Controls integrated into the same main container */}
+          <div className="flex items-center justify-between w-full pt-0.5">
+            <div className="flex items-center gap-2">
               <VoiceInput 
                 editorRef={textareaRef}
                 currentValue={input}
@@ -225,11 +232,11 @@ export default function MindHome({ navigate, setActiveThoughtId }: MindHomeProps
                 type="button"
                 onClick={() => handleSubmit()}
                 disabled={!input.trim()}
-                className="px-4 py-2 rounded-xl text-sm font-semibold transition-all cursor-pointer shadow-none disabled:cursor-not-allowed"
-                style={{
-                  background: input.trim() ? "var(--color-purple-primary)" : "var(--color-bg-elevated)",
-                  color: input.trim() ? "white" : "var(--color-text-muted)",
-                }}
+                className={`px-4 sm:px-5 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer shadow-none ${
+                  input.trim()
+                    ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-sm shadow-blue-500/20 active:scale-95'
+                    : 'bg-slate-100 dark:bg-white/5 text-slate-400 dark:text-slate-500 border border-slate-200/50 dark:border-white/5 cursor-not-allowed opacity-60'
+                }`}
               >
                 {t.myMind.save}
               </button>

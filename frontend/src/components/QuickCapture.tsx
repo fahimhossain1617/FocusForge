@@ -102,33 +102,32 @@ export default function QuickCapture() {
           <VoiceReactiveGlow active={isVoiceListening} rounded="rounded-[18px]" />
           <div className="flex items-start gap-3 p-4">
             <Brain className="w-5 h-5 text-[#5B8DEF] shrink-0 mt-1" />
-            <div className="flex-1 flex flex-col min-w-0">
-              {isVoiceListening && (
-                <div className="w-full h-[22px] flex items-center overflow-hidden mb-1 pointer-events-none">
+            <div className="flex-1 flex flex-col justify-center min-w-0 min-h-[44px]">
+              {isVoiceListening ? (
+                <div className="w-full min-h-[44px] flex items-center justify-center pointer-events-none py-1">
                   <VoiceWaveform active={isVoiceListening} isBengali={state.lang === 'bn'} />
                 </div>
+              ) : (
+                <textarea
+                  ref={textareaRef}
+                  value={value}
+                  onChange={handleChange}
+                  onKeyDown={handleKeyDown}
+                  placeholder={
+                    state.lang === 'bn' ? "আপনার মনে কী চলছে? (বাংলা বা ইংরেজিতে বলুন...)" : "What's on your mind? (Speak in বাংলা or English...)"
+                  }
+                  className="w-full py-1 text-base font-medium bg-transparent !border-none !shadow-none focus:!shadow-none resize-none text-[#111827] dark:text-foreground placeholder:text-[#8290A5]"
+                  style={{
+                    background: "transparent",
+                    border: "none",
+                    boxShadow: "none",
+                    minHeight: "44px",
+                    maxHeight: "240px",
+                    height: "auto",
+                    overflowY: "hidden",
+                  }}
+                />
               )}
-              <textarea
-                ref={textareaRef}
-                value={value}
-                onChange={handleChange}
-                onKeyDown={handleKeyDown}
-                placeholder={
-                  isVoiceListening
-                    ? (state.lang === 'bn' ? "বলুন, কথা শোনা হচ্ছে..." : "Listening, speak now...")
-                    : (state.lang === 'bn' ? "আপনার মনে কী চলছে? (বাংলা বা ইংরেজিতে বলুন...)" : "What's on your mind? (Speak in বাংলা or English...)")
-                }
-                className="w-full py-1 text-base font-medium bg-transparent !border-none !shadow-none focus:!shadow-none resize-none text-[#111827] dark:text-foreground placeholder:text-[#8290A5]"
-                style={{
-                  background: "transparent",
-                  border: "none",
-                  boxShadow: "none",
-                  minHeight: "44px",
-                  maxHeight: "240px",
-                  height: "auto",
-                  overflowY: "hidden",
-                }}
-              />
             </div>
           </div>
           <div className="px-4 pb-4 flex items-center justify-between">

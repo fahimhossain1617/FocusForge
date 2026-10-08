@@ -700,13 +700,6 @@ export function AIAgentPage() {
     return () => window.removeEventListener("resize", handleResize);
   }, [adjustTextareaHeight]);
 
-  // Stream live recognized speech directly into the chat composer textarea
-  useEffect(() => {
-    if (!isVoiceListening) return;
-    setInput(voiceLiveText);
-    requestAnimationFrame(adjustTextareaHeight);
-  }, [voiceLiveText, isVoiceListening, adjustTextareaHeight]);
-
   const submit = async (value = input) => {
     if (isVoiceListening) {
       stopVoiceListening();
@@ -1254,53 +1247,48 @@ export function AIAgentPage() {
                 />
               )}
 
-              {/* Upper Region: Center Input Textarea with Voice Waveform when active */}
+              {/* Upper Region: Center Input Textarea or Centered Voice Waveform when active */}
               <div className={styles.composerTextRegion}>
-                {isVoiceListening && (
-                  <div className="w-full h-[20px] flex items-center overflow-hidden pointer-events-none mb-1.5">
+                {isVoiceListening ? (
+                  <div className="w-full min-h-[30px] flex items-center justify-center pointer-events-none py-1.5">
                     <VoiceWaveform active={isVoiceListening} isBengali={voiceLang === "bn-BD"} />
                   </div>
+                ) : (
+                  <AIChatAnimatedTypingInput
+                    ref={textareaRef}
+                    value={input}
+                    disabled={isThinking}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setInput(val);
+                      resetInactivityTimer();
+                      requestAnimationFrame(adjustTextareaHeight);
+                    }}
+                    onKeyDown={(e) => {
+                      resetInactivityTimer();
+                      if (e.key === "Enter" && !e.shiftKey) {
+                        e.preventDefault();
+                        submit();
+                      }
+                    }}
+                    placeholder={
+                      messages && messages.length > 0
+                        ? isSystemBn
+                          ? "গ্লোরিকে উত্তর দিন..."
+                          : "Reply to Glory..."
+                        : isSystemBn
+                        ? "গ্লোরির সাথে চ্যাট করুন..."
+                        : "Chat with Glory..."
+                    }
+                    rows={1}
+                    className={`${styles.pillTextarea} composer-pill-textarea`}
+                    aria-label={
+                      messages && messages.length > 0
+                        ? "Reply to Glory"
+                        : "Chat with Glory"
+                    }
+                  />
                 )}
-                <AIChatAnimatedTypingInput
-                  ref={textareaRef}
-                  value={input}
-                  disabled={isThinking}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    setInput(val);
-                    if (isVoiceListening) {
-                      baseInputRef.current = val;
-                      setVoiceManualText(val);
-                    }
-                    resetInactivityTimer();
-                    requestAnimationFrame(adjustTextareaHeight);
-                  }}
-                  onKeyDown={(e) => {
-                    resetInactivityTimer();
-                    if (e.key === "Enter" && !e.shiftKey) {
-                      e.preventDefault();
-                      submit();
-                    }
-                  }}
-                  placeholder={
-                    isVoiceListening
-                      ? (isSystemBn ? "বলুন, গ্লোরি শুনছে..." : "Listening to your voice...")
-                      : messages && messages.length > 0
-                      ? isSystemBn
-                        ? "গ্লোরিকে উত্তর দিন..."
-                        : "Reply to Glory..."
-                      : isSystemBn
-                      ? "গ্লোরির সাথে চ্যাট করুন..."
-                      : "Chat with Glory..."
-                  }
-                  rows={1}
-                  className={`${styles.pillTextarea} composer-pill-textarea`}
-                  aria-label={
-                    messages && messages.length > 0
-                      ? "Reply to Glory"
-                      : "Chat with Glory"
-                  }
-                />
               </div>
 
               {/* Bottom Action Row: Fixed Controls pinned to bottom */}

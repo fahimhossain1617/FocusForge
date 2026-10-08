@@ -535,5 +535,24 @@
 - **Impact:** `frontend/src/components/ai-agent/AIAgentPage.tsx`, `frontend/src/components/ai-agent/AIChatAnimatedTypingInput.tsx`, `frontend/src/components/ai-agent/ai-agent.module.css`, `frontend/src/components/ui/BorderBeam.tsx`.
 - **Do Not Change Without Approval:** Do not reintroduce character-splitting DOM spans or re-flatten the two-tier composer into a single horizontal row.
 
+---
+
+## ADR-034: Mind Space Unified Composer Redesign & Integrated Controls Layout
+
+- **Date:** October 2026
+- **Status:** Accepted
+- **Decision:**
+  1. **One Unified Container:** Redesigned the Mind Space writing composer into a single continuous rounded container (`rounded-2xl sm:rounded-3xl`) removing the nested "box inside another box" appearance.
+  2. **Seamless Textarea Integration:** Removed separate inner dark backgrounds, outlines, box shadows, and nested card wrappers from the text-entry area. The textarea background is 100% transparent and blends seamlessly into the parent container with spacious padding and smooth auto-growth (`minHeight: 70px`, `maxHeight: 240px`).
+  3. **Integrated Bottom Action Row:** Positioned existing controls inside the unified container:
+     - Left side: Microphone button and Bengali/English language selector (`বাং`/`EN`).
+     - Right side: Save button with Focentia blue accent when active and disabled state when empty.
+  4. **Voice Experience Preservation:** Voice animation (`VoiceWaveform` and `VoiceReactiveGlow`) renders centered inside the upper area without extra nested panels or "Listening to your voice..." text. When recording stops, finalized text is cleanly placed into the textarea.
+  5. **Zero Page Redesign:** Preserved all surrounding Mind Space headers, mode tabs (Free Flow, Idea Vault, Problem Solver), Recent Thoughts section, and card preview lists.
+- **Reason:** Eliminates visual clutter, redundant nested borders, and inconsistent styling, bringing the Mind Space composer to parity with modern ChatGPT-style unified mobile/desktop composers.
+- **Impact:** `frontend/src/components/mymind/MindHome.tsx`, `frontend/src/components/mymind/VoiceInput.tsx`.
+- **Do Not Change Without Approval:** Do not reintroduce nested textarea containers or alter Mind Space category tab / persistence contracts.
+
+
 
 

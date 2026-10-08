@@ -81,10 +81,10 @@ Focentia is an active, functional productivity suite built with Next.js 16 App R
 ---
 
 ### My Mind / Mind Space
-- **Current Implementation:** `MyMindPage.tsx`, `MindHome.tsx`, `IdeaCapture.tsx`, `ProblemSolver.tsx`. Provides fast unstructured brain dump, idea grouping, structured problem solving, and quick capture modals (`QuickCapture.tsx`). Category selector tabs row ("Free Flow", "Idea Vault", "Problem Solver") centered across all screen sizes.
+- **Current Implementation:** `MyMindPage.tsx`, `MindHome.tsx`, `IdeaCapture.tsx`, `ProblemSolver.tsx`. Provides fast unstructured brain dump, idea grouping, structured problem solving, and quick capture modals (`QuickCapture.tsx`). Unified single-container writing composer design with seamless transparent textarea, centered VoiceWaveform during recording with zero status labels, and integrated lower action controls (Microphone, Bengali/English language toggle, Save button). Category selector tabs row ("Free Flow", "Idea Vault", "Problem Solver") centered across all screen sizes.
 - **Verified Status:** **VERIFIED**
 - **Known Problems:** None.
-- **Important Files:** `frontend/src/components/pages/MyMindPage.tsx`, `frontend/src/components/mymind/MindHome.tsx`, `frontend/src/services/mindService.ts`.
+- **Important Files:** `frontend/src/components/pages/MyMindPage.tsx`, `frontend/src/components/mymind/MindHome.tsx`, `frontend/src/components/mymind/VoiceInput.tsx`, `frontend/src/services/mindService.ts`.
 - **Dependencies:** `AppContext.tsx`, `mind_items` table.
 - **Unknowns:** None.
 

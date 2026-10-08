@@ -88,55 +88,57 @@ export default function IdeaCapture({ navigate }: IdeaCaptureProps) {
           {step === 1 && <div className="mb-6"></div>}
           
           <div
-            className="rounded-2xl border border-slate-200 dark:border-white/10 bg-white dark:bg-[#111827] relative pb-16 shadow-none"
+            className="rounded-2xl sm:rounded-3xl border border-slate-200/80 dark:border-white/10 bg-white dark:bg-[#111827] relative w-full flex flex-col p-4 sm:p-5 gap-3 shadow-none transition-all focus-within:border-blue-500/40 dark:focus-within:border-blue-500/30"
           >
-            <VoiceReactiveGlow active={isVoiceListening} rounded="rounded-2xl" />
-            {isVoiceListening && (
-              <div className="w-full px-6 pt-3 pb-1 flex items-center h-[26px] overflow-hidden pointer-events-none">
-                <VoiceWaveform active={isVoiceListening} isBengali={lang === 'bn'} />
-              </div>
-            )}
+            <VoiceReactiveGlow active={isVoiceListening} rounded="rounded-2xl sm:rounded-3xl" />
 
-            <textarea
-              ref={textareaRef}
-              value={currentVal}
-              onChange={(e) => {
-                setCurrentVal(e.target.value);
-                const el = textareaRef.current;
-                if (el) {
-                  el.style.height = "auto";
-                  const scrollH = el.scrollHeight;
-                  if (scrollH > 240) {
-                    el.style.height = "240px";
-                    el.style.overflowY = "auto";
-                  } else {
-                    el.style.height = `${Math.max(scrollH, 100)}px`;
-                    el.style.overflowY = "hidden";
-                  }
-                  el.scrollTop = el.scrollHeight;
-                }
-              }}
-              onFocus={() => setIsFocused(true)}
-              onBlur={() => setIsFocused(false)}
-              placeholder={
-                isVoiceListening
-                  ? (lang === 'bn' ? "বলুন, আইডিয়া শোনা হচ্ছে..." : "Listening, speak your idea...")
-                  : (t.myMind.ideaVaultPlaceholder || "What's the core idea or spark?")
-              }
-              className="w-full px-6 py-4 text-lg border-0 resize-none no-focus-ring bg-transparent my-mind-textarea"
-              style={{ 
-                background: "transparent", 
-                border: "none", 
-                outline: "none", 
-                minHeight: "100px",
-                maxHeight: "240px",
-                height: "auto",
-                overflowY: "hidden",
-                color: "var(--color-text-primary)" 
-              }}
-            />
+            <div className="w-full min-h-[90px] flex flex-col justify-center">
+              {isVoiceListening ? (
+                <div className="w-full min-h-[90px] flex items-center justify-center pointer-events-none py-3">
+                  <VoiceWaveform active={isVoiceListening} isBengali={lang === 'bn'} />
+                </div>
+              ) : (
+                <textarea
+                  ref={textareaRef}
+                  value={currentVal}
+                  onChange={(e) => {
+                    setCurrentVal(e.target.value);
+                    const el = textareaRef.current;
+                    if (el) {
+                      el.style.height = "auto";
+                      const scrollH = el.scrollHeight;
+                      if (scrollH > 240) {
+                        el.style.height = "240px";
+                        el.style.overflowY = "auto";
+                      } else {
+                        el.style.height = `${Math.max(scrollH, 90)}px`;
+                        el.style.overflowY = "hidden";
+                      }
+                      el.scrollTop = el.scrollHeight;
+                    }
+                  }}
+                  onFocus={() => setIsFocused(true)}
+                  onBlur={() => setIsFocused(false)}
+                  placeholder={t.myMind.ideaVaultPlaceholder || "What's the core idea or spark?"}
+                  className="w-full text-base sm:text-lg border-0 resize-none no-focus-ring bg-transparent composer-pill-textarea my-mind-textarea custom-mini-scrollbar p-0 m-0 placeholder:text-slate-400 dark:placeholder:text-slate-500 text-slate-900 dark:text-slate-100 font-normal leading-relaxed"
+                  style={{ 
+                    background: "transparent", 
+                    backgroundColor: "transparent",
+                    border: "none", 
+                    outline: "none", 
+                    minHeight: "90px",
+                    maxHeight: "240px",
+                    overflowY: "hidden",
+                    boxShadow: "none",
+                    borderRadius: 0,
+                    padding: 0,
+                    margin: 0
+                  }}
+                />
+              )}
+            </div>
             
-            <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between">
+            <div className="flex items-center justify-between w-full pt-1">
               <div className="flex items-center gap-2 max-w-[calc(100%-40px)]">
                 <VoiceInput 
                   editorRef={textareaRef}

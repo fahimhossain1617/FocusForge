@@ -143,16 +143,18 @@ export default function ThoughtDetail({ thoughtId, navigate, previousView }: Tho
               ? (lang === 'bn' ? "বলুন, কথা শোনা হচ্ছে..." : "Listening, speak freely...")
               : t.myMind.writeFreely
           }
-          className="w-full px-5 sm:px-7 py-4 text-base sm:text-lg border-0 resize-none no-focus-ring leading-relaxed bg-transparent my-mind-textarea custom-mini-scrollbar"
+          className="w-full px-5 sm:px-7 py-4 text-base sm:text-lg border-0 resize-none no-focus-ring leading-relaxed bg-transparent composer-pill-textarea my-mind-textarea custom-mini-scrollbar text-slate-900 dark:text-slate-100"
           style={{ 
             background: "transparent", 
+            backgroundColor: "transparent",
             border: "none", 
             outline: "none", 
             minHeight: "120px",
             maxHeight: "240px",
             height: "auto",
             overflowY: "hidden",
-            color: "var(--color-text-primary)" 
+            boxShadow: "none",
+            borderRadius: 0
           }}
         />
         
