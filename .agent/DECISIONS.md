@@ -504,7 +504,36 @@
   5. **Glory AI Input Integration:** Connected `useContinuousSpeech` in `AIAgentPage.tsx` via `onTranscriptChange`, ensuring live voice transcript streams directly into Glory AI's composer input and allows instant submission via Enter key or Send button.
   6. **Diary Dictation Deduplication:** Removed conflicting duplicate `onInsertText` callback in `DiaryEditor.tsx` / `DiaryVoiceInput.tsx` in favor of `onValueChange`, ensuring continuous speech dictation updates cleanly without fighting or duplicating words.
 - **Reason:** Solves user-reported issue of repeated beep sounds, uncaptured voice audio, and hidden text inputs during speech recognition across the entire website.
-- **Impact:** `frontend/src/hooks/useVoiceAmplitude.ts`, `frontend/src/hooks/useContinuousSpeech.ts`, `frontend/src/components/ai-agent/AIAgentPage.tsx`, `frontend/src/components/mymind/*`, `frontend/src/components/QuickCapture.tsx`, `frontend/src/components/diary/*`.
 - **Do Not Change Without Approval:** Do not reintroduce competing `getUserMedia` audio streams alongside Web Speech API or unmount textareas during active speech recognition.
+
+## ADR-032: Single-Owner Voice Recognition Architecture, Zero-Duplication & Exact-Once Finalization
+
+- **Date:** October 2026
+- **Status:** Accepted
+- **Decision:**
+  1. **Single-Owner Authoritative Controller:** Refactored `VoiceSessionManager` and `useContinuousSpeech` into a single authoritative finite state machine (`IDLE` | `RECORDING` | `STOPPING` | `FINALIZING` | `PAUSED` | `ERROR`) with epoch and session ID lifecycle guards. Stale callbacks and events from old or cancelled sessions are unconditionally ignored.
+  2. **Zero-Duplication Transcript Processing:** Eliminated 2x-4x word/sentence repetition by strictly decoupling `committedBaseText`, `sessionFinalTranscript`, and temporary `sessionInterimTranscript`. Interim hypotheses are never committed as final text. On Pause/Stop, an idempotent commit routine (`executeFinalCommit`) merges base text with session final transcript using `mergeTranscripts()` and invokes the commit callback **exactly once**.
+  3. **No-Live-Transcript UX During Active Recording:** While recording, recognized words are not streamed into the input value, preventing live text rendering conflicts, layout shifts, and cursor jumping. The voice animation (`VoiceWaveform` & `VoiceReactiveGlow`) remains fully responsive to speech activity at 60fps. Upon pressing Pause/Stop, the finalized transcript is cleanly inserted into the input.
+  4. **Genuine Repetition Preservation:** Maintained intentional expressive repeated words (e.g., "really really", "অনেক অনেক") in `transcriptReconciler.ts` while clamping packet jitter glitch loops.
+  5. **Bilingual Support (Bangla & English):** Preserves `bn-BD` as default with seamless toggle to `en-US`. Language changes during recording cleanly finalize active sessions before starting new sessions.
+  6. **Automated Master Test Harness:** Added `scripts/test_master_voice_verification.ts` with 24 automated test cases verifying single words, sentences, rapid interim results, idempotency, resume flows, and error handling with 100% pass rate.
+- **Reason:** Completely fixes multi-word transcript duplications, eliminates live-text rendering interference with text bars and animations, and provides deterministic voice input across Glory AI, QuickCapture, Mind Space, and Diary.
+- **Impact:** `frontend/src/services/voice/*`, `frontend/src/hooks/useContinuousSpeech.ts`, `frontend/src/hooks/useSpeechRecognition.ts`, `scripts/test_master_voice_verification.ts`.
+
+## ADR-033: Glory AI Two-Tier Message Composer, Auto-Growth, Bengali Unicode Rendering & Stationary Controls Layout
+
+- **Date:** October 2026
+- **Status:** Accepted
+- **Decision:**
+  1. **Two-Tier Structured Composer Layout:** Refactored the Glory AI message composer from a single-row horizontal capsule pill into a two-tier layout:
+     - Top Tier (`.composerTextRegion`): Dedicated full-width auto-growing text entry area (`AIChatAnimatedTypingInput`) with dynamic height expansion up to 150px on mobile (~40-45% of viewport) and 220px on desktop, transitioning to internal vertical scrolling once maximum height is reached.
+     - Bottom Tier (`.composerActionRow`): Stationary action controls pinned cleanly at the bottom edge. Left side holds Companion Mood (`Smile`) and Model Selector (`Fast`/`Deep` with left-aligned popover menu). Right side holds Voice Language toggle (`বাং`/`EN`), Voice Mic button, and conditional Send/Stop button.
+  2. **Native Bengali Unicode & Typography Rendering:** Replaced the DOM character-splitting tokenization mechanism in `AIChatAnimatedTypingInput` (which split strings into individual `<span>` tags with `translateY` animations, breaking OpenType GSUB/GPOS tables, vowel matras, and conjunct formation) with a high-performance native `<textarea>`. Applied proper typography font stack (`'Onest', 'Hind Siliguri', var(--font-bengali), var(--font-geist-sans), system-ui, sans-serif`), balanced `line-height: 1.55` (preventing ascender/descender clipping), `word-break: break-word`, `overflow-wrap: break-word`, and native IME composition support for Bengali (Avro, Gboard, Apple Bengali) and English.
+  3. **Auto-Growth & Upward Expansion:** The composer container is anchored at the bottom of the viewport. As text is typed, pasted, or transcribed, the textarea grows upward smoothly without shifting or jumping the bottom action controls. When text is cleared or deleted, it returns instantly to its compact single-line height (~80px total height).
+  4. **Corner Radius & Border Beam Conformance:** Updated `BorderBeam.tsx` to support explicit `borderRadius?: number` (set to 24px on the composer) so the rotating cyan/indigo gradient border beam and ambient voice glow adhere precisely to the 24px rounded corners at all expansion heights instead of distorting into an oversized pill arc.
+- **Reason:** Completely fixes user-reported Bengali text line overlap, glyph distortion, compressed input squishing, and erratic control positioning when typing long messages in Glory AI.
+- **Impact:** `frontend/src/components/ai-agent/AIAgentPage.tsx`, `frontend/src/components/ai-agent/AIChatAnimatedTypingInput.tsx`, `frontend/src/components/ai-agent/ai-agent.module.css`, `frontend/src/components/ui/BorderBeam.tsx`.
+- **Do Not Change Without Approval:** Do not reintroduce character-splitting DOM spans or re-flatten the two-tier composer into a single horizontal row.
+
 
 

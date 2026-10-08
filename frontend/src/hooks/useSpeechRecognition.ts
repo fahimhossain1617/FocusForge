@@ -13,7 +13,6 @@ interface UseSpeechRecognitionProps {
   onError?: (error: string) => void;
   onStateChange?: (state: VoiceState) => void;
   language?: SpeechLanguage;
-  captureAudioStream?: boolean;
 }
 
 function readSavedSpeechLanguage(fallback: SpeechLanguage = "bn-BD"): SpeechLanguage {
@@ -35,13 +34,11 @@ export function useSpeechRecognition({
   onError,
   onStateChange,
   language: initialLanguage,
-  captureAudioStream = false,
 }: UseSpeechRecognitionProps = {}) {
   const [isSupported, setIsSupported] = useState(true);
   const [voiceState, setVoiceState] = useState<VoiceState>("IDLE");
   const [transcript, setTranscript] = useState("");
   const [interimText, setInterimText] = useState("");
-  const [mediaStream, setMediaStream] = useState<MediaStream | null>(null);
   const [error, setErrorState] = useState<string | null>(null);
 
   const [speechLanguage, setSpeechLanguageState] = useState<SpeechLanguage>(() => {
@@ -50,8 +47,6 @@ export function useSpeechRecognition({
   });
 
   const sessionManagerRef = useRef<VoiceSessionManager | null>(null);
-  const captureAudioStreamRef = useRef(captureAudioStream);
-  captureAudioStreamRef.current = captureAudioStream;
 
   const onResultRef = useRef(onResult);
   const onInterimResultRef = useRef(onInterimResult);
@@ -74,22 +69,19 @@ export function useSpeechRecognition({
     onStateChangeRef.current = onStateChange;
   }, [onStateChange]);
 
-  // Construct the manager once, outside render-driven recreation.
-  // Callbacks always read latest refs so editor setState does not rebuild recognition.
   useEffect(() => {
     const manager = new VoiceSessionManager({
-      onFinalResult: (fullFinal, newChunk) => {
+      onFinalCommit: (fullFinal, newChunk) => {
         setTranscript(fullFinal);
         setInterimText("");
         onResultRef.current?.(newChunk, true, false);
       },
-      onInterimResult: (interim) => {
+      onInterimChange: (interim) => {
         setInterimText(interim);
         onInterimResultRef.current?.(interim);
       },
       onStateChange: (newState) => {
         setVoiceState(newState);
-        setMediaStream(manager.getMediaStream());
         onStateChangeRef.current?.(newState);
       },
       onError: (errMsg) => {
@@ -109,7 +101,7 @@ export function useSpeechRecognition({
 
   const setSpeechLanguage = useCallback((newLang: SpeechLanguage) => {
     setSpeechLanguageState(newLang);
-    sessionManagerRef.current?.setLanguage(newLang);
+    sessionManagerRef.current?.setLanguage(newLang as SupportedSpeechLang);
     if (typeof window !== "undefined") {
       try {
         localStorage.setItem("focusforge_speech_lang", newLang);
@@ -137,29 +129,25 @@ export function useSpeechRecognition({
 
       await sessionManagerRef.current?.start({
         language: targetLang as SupportedSpeechLang,
-        reset: options?.reset !== false,
-        captureAudioStream: captureAudioStreamRef.current,
+        baseText: options?.reset !== false ? "" : transcript,
       });
-      setMediaStream(sessionManagerRef.current?.getMediaStream() ?? null);
     },
-    [speechLanguage]
+    [speechLanguage, transcript]
   );
 
-  const pauseListening = useCallback(() => {
-    sessionManagerRef.current?.pause();
+  const pauseListening = useCallback(async () => {
+    return await sessionManagerRef.current?.pause();
   }, []);
 
   const resumeListening = useCallback(async () => {
-    await sessionManagerRef.current?.resume();
-    setMediaStream(sessionManagerRef.current?.getMediaStream() ?? null);
-  }, []);
+    await sessionManagerRef.current?.resume(transcript);
+  }, [transcript]);
 
   const stopListening = useCallback(async (): Promise<string> => {
     if (sessionManagerRef.current) {
       const fullText = await sessionManagerRef.current.stop();
       setTranscript(fullText);
       setInterimText("");
-      setMediaStream(null);
       return fullText;
     }
     return transcript;
@@ -168,25 +156,18 @@ export function useSpeechRecognition({
   const abortListening = useCallback(() => {
     sessionManagerRef.current?.abort();
     setInterimText("");
-    setMediaStream(null);
   }, []);
 
   const resetTranscript = useCallback(() => {
-    sessionManagerRef.current?.resetTranscript();
     setTranscript("");
     setInterimText("");
+    sessionManagerRef.current?.setManualBaseText("");
   }, []);
 
-  const clearVoiceBuffersSilent = useCallback(() => {
-    sessionManagerRef.current?.clearVoiceBuffersSilent();
-    setTranscript("");
-    setInterimText("");
-  }, []);
-
-  const isListening = voiceState === "LISTENING" || voiceState === "RECOVERING";
+  const isListening = voiceState === "RECORDING" || voiceState === "STOPPING" || voiceState === "FINALIZING";
   const isPaused = voiceState === "PAUSED";
-  const isRecovering = voiceState === "RECOVERING";
-  const isTranscribing = voiceState === "STOPPING";
+  const isRecovering = false;
+  const isTranscribing = voiceState === "STOPPING" || voiceState === "FINALIZING";
   const isVoiceGlowActive = isListening;
 
   const fullLiveText = (
@@ -205,7 +186,7 @@ export function useSpeechRecognition({
     transcript,
     interimText,
     fullLiveText,
-    mediaStream,
+    mediaStream: null,
     error,
     speechLanguage,
     setSpeechLanguage,
@@ -216,6 +197,7 @@ export function useSpeechRecognition({
     stopListening,
     abortListening,
     resetTranscript,
-    clearVoiceBuffersSilent,
+    clearVoiceBuffersSilent: resetTranscript,
   };
 }
+

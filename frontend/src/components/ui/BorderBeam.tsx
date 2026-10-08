@@ -25,6 +25,10 @@ export interface BorderBeamProps {
    * Custom CSS class.
    */
   className?: string;
+  /**
+   * Explicit corner border radius in pixels. If not specified, defaults to (height / 2).
+   */
+  borderRadius?: number;
 }
 
 export default function BorderBeam({
@@ -34,6 +38,7 @@ export default function BorderBeam({
   colorFrom = "#38bdf8",
   colorTo = "#818cf8",
   className = "",
+  borderRadius,
 }: BorderBeamProps) {
   const rawId = useId();
   const safeId = "bb-" + rawId.replace(/[^a-zA-Z0-9_-]/g, "");
@@ -68,8 +73,9 @@ export default function BorderBeam({
   }, []);
 
   const dashArray = `${beamPercentage} ${100 - beamPercentage}`;
-  // Exact circular corner radius (height / 2) matching CSS pill capsule
-  const cornerRadius = size.height > 0 ? Math.max(0, (size.height - borderWidth) / 2) : 26;
+  // Calculate corner radius: use explicit borderRadius if provided, or height / 2 for pure capsule pills
+  const maxPillRadius = size.height > 0 ? Math.max(0, (size.height - borderWidth) / 2) : 24;
+  const cornerRadius = borderRadius !== undefined ? Math.min(borderRadius, maxPillRadius) : maxPillRadius;
   const rectWidth = size.width > 0 ? Math.max(0, size.width - borderWidth) : 0;
   const rectHeight = size.height > 0 ? Math.max(0, size.height - borderWidth) : 0;
 

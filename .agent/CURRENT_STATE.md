@@ -111,28 +111,28 @@ Focentia is an active, functional productivity suite built with Next.js 16 App R
 ---
 
 ### AI Agent (Glory AI)
-- **Current Implementation:** `AIAgentPage.tsx`, `AIOrbFace.tsx`, `GloryOrbIcon.tsx`, `BorderBeam.tsx`, `aiAgentService.ts`, `frontend/src/lib/server/aiService.ts`. Rebranded as **Glory AI** (গ্লোরি এআই) with dedicated monochromatic Orb Face icon. Constant-speed SVG perimeter BorderBeam on composer pill. Permanent silky pearl white Orb face across dark and light modes with full mobile touch drag tracking. Powered by ultra-low latency `gemini-3.5-flash-lite` engine (~1000ms response time) with instant streaming reveals, persistent active in-memory chat conversation across internal feature navigation (Planner, Today, Focus, etc.), explicit "New Chat" reset controls, smart auto-titling, strict persistent 5,000 token quota management with reset-at timers, and 23+ intent actions with validation (`aiActionValidator.ts`).
+- **Current Implementation:** `AIAgentPage.tsx`, `AIChatAnimatedTypingInput.tsx`, `AIOrbFace.tsx`, `GloryOrbIcon.tsx`, `BorderBeam.tsx`, `aiAgentService.ts`, `frontend/src/lib/server/aiService.ts`. Rebranded as **Glory AI** (গ্লোরি এআই) with dedicated monochromatic Orb Face icon. Features a two-tier composer layout with a dedicated auto-growing native textarea supporting full Bengali Unicode script & conjunct rendering, expanding upward up to 150px on mobile and 220px on desktop with internal vertical scrolling beyond maximum height, while bottom action controls (Companion Mood, Model Selector, Voice Language Toggle, Mic, Send/Stop) remain stationary. Constant-speed SVG perimeter BorderBeam (with explicit 24px corner radius matching composer container) and VoiceReactiveGlow. Permanent silky pearl white Orb face across dark and light modes with full mobile touch drag tracking. Powered by ultra-low latency `gemini-3.5-flash-lite` engine (~1000ms response time) with instant streaming reveals, persistent active in-memory chat conversation across internal feature navigation (Planner, Today, Focus, etc.), explicit "New Chat" reset controls, smart auto-titling, strict persistent 5,000 token quota management with reset-at timers, and 23+ intent actions with validation (`aiActionValidator.ts`).
 - **Verified Status:** **VERIFIED**
 - **Known Problems:** None.
-- **Important Files:** `frontend/src/components/ai-agent/AIAgentPage.tsx`, `frontend/src/hooks/useAIAgent.ts`, `frontend/src/components/ai-agent/AIOrbFace.tsx`, `frontend/src/components/ui/BorderBeam.tsx`, `frontend/src/components/icons/GloryOrbIcon.tsx`, `frontend/src/services/aiAgentService.ts`, `frontend/src/lib/server/aiService.ts`.
+- **Important Files:** `frontend/src/components/ai-agent/AIAgentPage.tsx`, `frontend/src/components/ai-agent/AIChatAnimatedTypingInput.tsx`, `frontend/src/components/ai-agent/ai-agent.module.css`, `frontend/src/hooks/useAIAgent.ts`, `frontend/src/components/ai-agent/AIOrbFace.tsx`, `frontend/src/components/ui/BorderBeam.tsx`, `frontend/src/components/icons/GloryOrbIcon.tsx`, `frontend/src/services/aiAgentService.ts`, `frontend/src/lib/server/aiService.ts`.
 - **Dependencies:** `@google/genai`, `ai_chat_sessions`, `ai_tokens`.
 - **Unknowns:** None.
 
 ---
 
 ### Voice / Speech-to-Text (STT) & Real-Time Dictation
-- **Current Implementation:** Production-grade Real-Time Voice Dictation & STT System:
-  1. **Direct In-Editor Real-Time Typing:** Single canonical document state in the actual text editor (`MindHome.tsx`, `IdeaCapture.tsx`, `ProblemSolver.tsx`, `ThoughtDetail.tsx`, `QuickCapture.tsx`, `DiaryEditor.tsx`). Zero secondary/disconnected "Live:" output displays. Real-time words appear directly inside the textarea with active caret tracking and smart scroll following.
-  2. **One-Click Language Toggle:** A compact single-click toggle button with a small Languages icon (`[ 🌐 বাং ]` / `[ 🌐 Eng ]`) placed right next to the mic button. Clicking immediately switches the active language between Bengali (`bn-BD`) and English (`en-US`), smoothly rotating active recognition sessions without text loss.
-  3. **Continuous Dictation & Race-Condition-Free Re-Anchoring:** Eliminated cursor/re-render race conditions that previously caused text disappearance after 3–4 lines. Manual user typing is strictly differentiated from programmatic voice deltas (`getCurrentDocumentText()`), ensuring user edits are preserved while continuous dictation runs indefinitely across multi-paragraph speeches.
-  4. **Interim & Final Transcript Reconciler:** `TranscriptReconciler` (`frontend/src/services/voice/transcriptReconciler.ts`) provides pure deterministic normalization for Bengali/English punctuation, percentages, jitter stutter removal, and boundary overlap deduplication without lost or repeated words.
-  5. **Cursor-Aware Voice Editing Controller:** `VoiceEditingController` (`frontend/src/services/voice/voiceEditingController.ts`) inserts text at exact caret/selection positions and protects user manual typing/deletions from being overwritten by voice buffers.
-  6. **Zero Synthetic Audio Beeps:** Complete removal of unwanted synthetic start/stop beeps and sound effects.
+- **Current Implementation:** Production-grade Single-Owner Voice Dictation & STT System:
+  1. **Deterministic Single-Owner Engine:** Typed Finite State Machine (`VoiceSessionManager` & `useContinuousSpeech`) managing `IDLE` | `RECORDING` | `STOPPING` | `FINALIZING` | `PAUSED` | `ERROR` with epoch guards and session ID lifecycle management.
+  2. **No-Live-Transcript UX Stability:** Prevents live interim text insertion and layout shifts during speech recording. The text input remains stable while the 60fps audio waveform and voice-reactive astral glow animate smoothly inside the text bar.
+  3. **Exact-Once Idempotent Finalization:** On Pause/Stop, the session final transcript is merged with base text using `mergeTranscripts()` and committed exactly once.
+  4. **Zero-Duplication & Genuine Repetition Preservation:** Eliminates multi-word repetitions across chunk boundaries while preserving intentional repetitions like "really really" and "অনেক অনেক".
+  5. **Bilingual Support (Bangla & English):** Default `bn-BD` with discrete instant toggle to `en-US`.
+  6. **Zero Hardware Lockouts:** Event-driven harmonic synthesis via `broadcastSpeechActivity` guarantees zero mic hardware contention.
   7. **Cloud AI Audio Transcription:** `/api/ai/transcribe` provides server-side Gemini multimodal fallback.
-- **Verified Status:** **VERIFIED** (12/12 automated voice tests passed, Next.js 16 production build passed with 0 errors).
+- **Verified Status:** **VERIFIED** (24/24 master automated voice tests passed, 12/12 reconciler tests passed, Next.js 16 production build passed with 0 errors).
 - **Known Problems:** None.
-- **Important Files:** `frontend/src/services/voice/transcriptReconciler.ts`, `frontend/src/services/voice/voiceSessionManager.ts`, `frontend/src/services/voice/voiceEditingController.ts`, `frontend/src/hooks/useVoiceIntoEditor.ts`, `frontend/src/hooks/useSpeechRecognition.ts`, `frontend/src/components/voice/VoiceAssistantModal.tsx`, `frontend/src/components/diary/DiaryVoiceInput.tsx`, `frontend/src/components/mymind/VoiceInput.tsx`, `frontend/src/app/api/ai/transcribe/route.ts`.
-- **Dependencies:** Web Speech API, `MediaStream`, `@google/genai`.
+- **Important Files:** `frontend/src/services/voice/transcriptReconciler.ts`, `frontend/src/services/voice/voiceSessionManager.ts`, `frontend/src/services/voice/voiceEditingController.ts`, `frontend/src/hooks/useContinuousSpeech.ts`, `frontend/src/hooks/useSpeechRecognition.ts`, `frontend/src/components/voice/VoiceWaveform.tsx`, `frontend/src/components/voice/VoiceReactiveGlow.tsx`, `frontend/src/components/ai-agent/AIAgentPage.tsx`, `frontend/src/components/mymind/VoiceInput.tsx`, `frontend/src/components/diary/DiaryVoiceInput.tsx`, `scripts/test_master_voice_verification.ts`.
+- **Dependencies:** Web Speech API, `@google/genai`.
 - **Unknowns:** None.
 
 

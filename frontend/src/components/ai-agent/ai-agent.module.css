@@ -977,18 +977,19 @@
   gap: 4px;
 }
 
-/* ── GEMINI STYLE COMPACT PILL COMPOSER (Exact Gemini style single unified capsule bar) ── */
+/* ── GEMINI STYLE COMPACT PILL COMPOSER (Two-tier layout: auto-growing text entry + fixed bottom action row) ── */
 .composerPillBox {
   position: relative;
   background: var(--surface-2);
   border: 1px solid var(--line);
-  border-radius: 9999px;
-  padding: 6px 12px 6px 16px;
-  min-height: 52px;
+  border-radius: 24px;
+  padding: 10px 14px 8px 14px;
+  min-height: 80px;
   display: flex;
-  align-items: center;
-  gap: 10px;
-  box-shadow: none !important;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 6px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
   outline: none !important;
   transition: border-color 0.15s ease;
   box-sizing: border-box;
@@ -997,8 +998,39 @@
 
 .composerPillBox:focus-within {
   border-color: var(--line-strong);
-  box-shadow: none !important;
   outline: none !important;
+}
+
+.composerTextRegion {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.composerActionRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: 8px;
+  flex-shrink: 0;
+  padding-top: 2px;
+}
+
+.composerActionsLeft {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.composerActionsRight {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
 }
 
 .pillMoodBtn {
@@ -1033,11 +1065,11 @@
 .composerPillBox textarea,
 :global(.composer-pill-box) textarea,
 :global(.composer-pill-textarea) {
-  flex: 1;
+  width: 100%;
   min-width: 0;
   height: 24px;
   min-height: 24px;
-  max-height: 340px;
+  max-height: 220px;
   background: transparent !important;
   background-color: transparent !important;
   border: 0 !important;
@@ -1052,13 +1084,16 @@
   color: var(--text) !important;
   font-family: var(--ff-font);
   font-size: 15px;
-  line-height: 24px;
+  line-height: 1.55;
   resize: none;
-  padding: 0 !important;
+  padding: 0 4px !important;
   margin: 0 !important;
   box-sizing: border-box;
   scrollbar-width: thin;
   scrollbar-color: var(--line) transparent;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  white-space: pre-wrap;
 }
 
 .pillTextarea:focus,
@@ -1094,7 +1129,7 @@
   color: var(--muted);
   opacity: 0.8;
   font-size: 15px;
-  line-height: 24px;
+  line-height: 1.55;
 }
 
 .pillControlsRight {
@@ -1148,8 +1183,8 @@
 
 .modelPopover {
   position: absolute;
-  bottom: calc(100% + 10px);
-  right: 0;
+  bottom: calc(100% + 8px);
+  left: 0;
   width: 250px;
   max-width: calc(100vw - 32px);
   background: var(--surface);

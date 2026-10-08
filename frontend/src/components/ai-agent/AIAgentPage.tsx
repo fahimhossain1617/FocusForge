@@ -672,14 +672,14 @@ export function AIAgentPage() {
     }
   }, [addTask, addTimeBlock, showToast, isSystemBn, updateActionStatus, setOrbState]);
 
-  // Dynamically auto-growing textarea: starts compact at 24px cursor line, extends up to 340px (400-500 words capacity)
+  // Dynamically auto-growing textarea: starts compact at 24px cursor line, extends up to 150px on mobile (40-45% chat viewport), 220px on desktop
   const adjustTextareaHeight = useCallback(() => {
     const el = textareaRef.current;
     if (!el) return;
     el.style.height = "auto";
     const singleLineHeight = 24;
     const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
-    const maxHeight = isMobile ? 240 : 340;
+    const maxHeight = isMobile ? 150 : 220;
     const nextHeight = Math.max(singleLineHeight, el.scrollHeight);
     if (nextHeight >= maxHeight) {
       el.style.height = `${maxHeight}px`;
@@ -693,6 +693,12 @@ export function AIAgentPage() {
   useEffect(() => {
     adjustTextareaHeight();
   }, [input, adjustTextareaHeight]);
+
+  useEffect(() => {
+    const handleResize = () => adjustTextareaHeight();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, [adjustTextareaHeight]);
 
   // Stream live recognized speech directly into the chat composer textarea
   useEffect(() => {
@@ -1225,7 +1231,7 @@ export function AIAgentPage() {
               </div>
             )}
 
-            {/* Main Compact Pill Input Box (Gemini style single unified capsule pill) */}
+            {/* Main Compact Composer Box (Reference Image 3 default state, expands upward as in Reference Image 2) */}
             <div
               className={`${styles.composerPillBox} composer-pill-box`}
               onClick={(e) => {
@@ -1235,8 +1241,8 @@ export function AIAgentPage() {
               }}
             >
               {/* Voice-reactive ambient glow around the AI text bar */}
-              <VoiceReactiveGlow active={isVoiceListening} rounded="rounded-full" />
-              {/* Border Beam around the capsule pill text bar (hidden while voice is active) */}
+              <VoiceReactiveGlow active={isVoiceListening} rounded="rounded-[24px]" />
+              {/* Border Beam around the composer box (hidden while voice is active) */}
               {!isVoiceListening && (
                 <BorderBeam
                   borderWidth={1.5}
@@ -1244,61 +1250,14 @@ export function AIAgentPage() {
                   beamPercentage={25}
                   colorFrom="#38bdf8"
                   colorTo="#818cf8"
+                  borderRadius={24}
                 />
               )}
-              {/* Left Companion Emoji / Mood Button */}
-              <div className={styles.moodMenuWrapper} ref={moodMenuRef}>
-                <button
-                  type="button"
-                  className={`${styles.pillMoodBtn} ${moodMenuOpen ? styles.pillMoodBtnActive : ""}`}
-                  onClick={() => setMoodMenuOpen((prev) => !prev)}
-                  aria-label="Companion mood"
-                  aria-haspopup="true"
-                  aria-expanded={moodMenuOpen}
-                  title={isSystemBn ? "কম্প্যানিয়ন মুড" : "Companion Mood"}
-                >
-                  <Smile size={18} strokeWidth={1.8} />
-                </button>
 
-                {moodMenuOpen && (
-                  <div className={styles.moodPopoverBottom} role="dialog" aria-label="Companion moods">
-                    <div className={styles.moodGrid}>
-                      <button
-                        type="button"
-                        className={`${styles.moodItem} ${mood === "idle" ? styles.moodItemActive : ""}`}
-                        onClick={() => {
-                          setManualMood(null);
-                          setMoodMenuOpen(false);
-                        }}
-                      >
-                        <span className={styles.moodLabel}>
-                          {isSystemBn ? "অটো" : "Auto"}
-                        </span>
-                      </button>
-                      {moodList.map((opt) => (
-                        <button
-                          key={opt.id}
-                          type="button"
-                          className={`${styles.moodItem} ${mood === opt.id ? styles.moodItemActive : ""}`}
-                          onClick={() => {
-                            setManualMood(opt.id);
-                            setMoodMenuOpen(false);
-                          }}
-                        >
-                          <span className={styles.moodLabel}>
-                            {isSystemBn ? opt.labelBn : opt.labelEn}
-                          </span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Center Input Textarea with Voice Waveform when active */}
-              <div className="flex-1 flex flex-col justify-center min-w-0">
+              {/* Upper Region: Center Input Textarea with Voice Waveform when active */}
+              <div className={styles.composerTextRegion}>
                 {isVoiceListening && (
-                  <div className="w-full h-[20px] flex items-center overflow-hidden pointer-events-none mb-1">
+                  <div className="w-full h-[20px] flex items-center overflow-hidden pointer-events-none mb-1.5">
                     <VoiceWaveform active={isVoiceListening} isBengali={voiceLang === "bn-BD"} />
                   </div>
                 )}
@@ -1344,132 +1303,187 @@ export function AIAgentPage() {
                 />
               </div>
 
-              {/* Right Controls: Model Switcher + Mic + Send/Stop */}
-              <div className={styles.pillControlsRight}>
-                {/* Model Selector Pill with choose menu */}
-                <div className={styles.modelMenuWrapper} ref={modelMenuRef}>
-                  <button
-                    type="button"
-                    className={`${styles.pillModelBtn} ${modelMenuOpen ? styles.pillModelBtnActive : ""}`}
-                    onClick={() => setModelMenuOpen((prev) => !prev)}
-                    aria-label="Select AI Model"
-                    aria-haspopup="true"
-                    aria-expanded={modelMenuOpen}
-                    title={
-                      modelMode === "fast"
-                        ? isSystemBn ? "মডেল নির্বাচন করুন (বর্তমান: Fast)" : "Select AI model (Current: Fast)"
-                        : isSystemBn ? "মডেল নির্বাচন করুন (বর্তমান: Deep)" : "Select AI model (Current: Deep)"
-                    }
-                  >
-                    <span>{modelMode === "fast" ? "Fast" : "Deep"}</span>
-                    <ChevronDown size={13} className={`${styles.modelChevron} ${modelMenuOpen ? styles.modelChevronOpen : ""}`} />
-                  </button>
+              {/* Bottom Action Row: Fixed Controls pinned to bottom */}
+              <div className={styles.composerActionRow}>
+                {/* Left Side: Mood + Model Selector */}
+                <div className={styles.composerActionsLeft}>
+                  {/* Left Companion Emoji / Mood Button */}
+                  <div className={styles.moodMenuWrapper} ref={moodMenuRef}>
+                    <button
+                      type="button"
+                      className={`${styles.pillMoodBtn} ${moodMenuOpen ? styles.pillMoodBtnActive : ""}`}
+                      onClick={() => setMoodMenuOpen((prev) => !prev)}
+                      aria-label="Companion mood"
+                      aria-haspopup="true"
+                      aria-expanded={moodMenuOpen}
+                      title={isSystemBn ? "কম্প্যানিয়ন মুড" : "Companion Mood"}
+                    >
+                      <Smile size={18} strokeWidth={1.8} />
+                    </button>
 
-                  {modelMenuOpen && (
-                    <div className={styles.modelPopover} role="menu" aria-label="AI Model Selection">
-                      <div className={styles.modelPopoverHeader}>
-                        <span>{isSystemBn ? "এআই মডেল নির্বাচন" : "Select AI Model"}</span>
+                    {moodMenuOpen && (
+                      <div className={styles.moodPopoverBottom} role="dialog" aria-label="Companion moods">
+                        <div className={styles.moodGrid}>
+                          <button
+                            type="button"
+                            className={`${styles.moodItem} ${mood === "idle" ? styles.moodItemActive : ""}`}
+                            onClick={() => {
+                              setManualMood(null);
+                              setMoodMenuOpen(false);
+                            }}
+                          >
+                            <span className={styles.moodLabel}>
+                              {isSystemBn ? "অটো" : "Auto"}
+                            </span>
+                          </button>
+                          {moodList.map((opt) => (
+                            <button
+                              key={opt.id}
+                              type="button"
+                              className={`${styles.moodItem} ${mood === opt.id ? styles.moodItemActive : ""}`}
+                              onClick={() => {
+                                setManualMood(opt.id);
+                                setMoodMenuOpen(false);
+                              }}
+                            >
+                              <span className={styles.moodLabel}>
+                                {isSystemBn ? opt.labelBn : opt.labelEn}
+                              </span>
+                            </button>
+                          ))}
+                        </div>
                       </div>
+                    )}
+                  </div>
 
-                      <button
-                        type="button"
-                        role="menuitem"
-                        className={`${styles.modelMenuItem} ${modelMode === "fast" ? styles.modelMenuItemActive : ""}`}
-                        onClick={() => {
-                          setModelMode("fast");
-                          setModelMenuOpen(false);
-                        }}
-                      >
-                        <div className={styles.modelMenuInfo}>
-                          <div className={styles.modelMenuTitleRow}>
-                            <span className={styles.modelMenuName}>Fast</span>
-                            <span className={styles.modelMenuBadge}>0.4s</span>
-                          </div>
-                          <span className={styles.modelMenuDesc}>
-                            {isSystemBn ? "দ্রুত প্রতিক্রিয়া ও সহজ কাজ" : "Quick response & general tasks"}
-                          </span>
-                        </div>
-                        {modelMode === "fast" && (
-                          <div className={styles.modelCheckIcon}>
-                            <Check size={14} />
-                          </div>
-                        )}
-                      </button>
+                  {/* Model Selector Pill with choose menu */}
+                  <div className={styles.modelMenuWrapper} ref={modelMenuRef}>
+                    <button
+                      type="button"
+                      className={`${styles.pillModelBtn} ${modelMenuOpen ? styles.pillModelBtnActive : ""}`}
+                      onClick={() => setModelMenuOpen((prev) => !prev)}
+                      aria-label="Select AI Model"
+                      aria-haspopup="true"
+                      aria-expanded={modelMenuOpen}
+                      title={
+                        modelMode === "fast"
+                          ? isSystemBn ? "মডেল নির্বাচন করুন (বর্তমান: Fast)" : "Select AI model (Current: Fast)"
+                          : isSystemBn ? "মডেল নির্বাচন করুন (বর্তমান: Deep)" : "Select AI model (Current: Deep)"
+                      }
+                    >
+                      <span>{modelMode === "fast" ? "Fast" : "Deep"}</span>
+                      <ChevronDown size={13} className={`${styles.modelChevron} ${modelMenuOpen ? styles.modelChevronOpen : ""}`} />
+                    </button>
 
-                      <button
-                        type="button"
-                        role="menuitem"
-                        className={`${styles.modelMenuItem} ${modelMode === "deep" ? styles.modelMenuItemActive : ""}`}
-                        onClick={() => {
-                          setModelMode("deep");
-                          setModelMenuOpen(false);
-                        }}
-                      >
-                        <div className={styles.modelMenuInfo}>
-                          <div className={styles.modelMenuTitleRow}>
-                            <span className={styles.modelMenuName}>Deep</span>
-                            <span className={styles.modelMenuBadgeDeep}>Planning</span>
-                          </div>
-                          <span className={styles.modelMenuDesc}>
-                            {isSystemBn ? "গভীর চিন্তা ও বিস্তারিত পরিকল্পনা" : "Deep reasoning & task planning"}
-                          </span>
+                    {modelMenuOpen && (
+                      <div className={styles.modelPopover} role="menu" aria-label="AI Model Selection">
+                        <div className={styles.modelPopoverHeader}>
+                          <span>{isSystemBn ? "এআই মডেল নির্বাচন" : "Select AI Model"}</span>
                         </div>
-                        {modelMode === "deep" && (
-                          <div className={styles.modelCheckIcon}>
-                            <Check size={14} />
+
+                        <button
+                          type="button"
+                          role="menuitem"
+                          className={`${styles.modelMenuItem} ${modelMode === "fast" ? styles.modelMenuItemActive : ""}`}
+                          onClick={() => {
+                            setModelMode("fast");
+                            setModelMenuOpen(false);
+                          }}
+                        >
+                          <div className={styles.modelMenuInfo}>
+                            <div className={styles.modelMenuTitleRow}>
+                              <span className={styles.modelMenuName}>Fast</span>
+                              <span className={styles.modelMenuBadge}>0.4s</span>
+                            </div>
+                            <span className={styles.modelMenuDesc}>
+                              {isSystemBn ? "দ্রুত প্রতিক্রিয়া ও সহজ কাজ" : "Quick response & general tasks"}
+                            </span>
                           </div>
-                        )}
-                      </button>
-                    </div>
-                  )}
+                          {modelMode === "fast" && (
+                            <div className={styles.modelCheckIcon}>
+                              <Check size={14} />
+                            </div>
+                          )}
+                        </button>
+
+                        <button
+                          type="button"
+                          role="menuitem"
+                          className={`${styles.modelMenuItem} ${modelMode === "deep" ? styles.modelMenuItemActive : ""}`}
+                          onClick={() => {
+                            setModelMode("deep");
+                            setModelMenuOpen(false);
+                          }}
+                        >
+                          <div className={styles.modelMenuInfo}>
+                            <div className={styles.modelMenuTitleRow}>
+                              <span className={styles.modelMenuName}>Deep</span>
+                              <span className={styles.modelMenuBadgeDeep}>Planning</span>
+                            </div>
+                            <span className={styles.modelMenuDesc}>
+                              {isSystemBn ? "গভীর চিন্তা ও বিস্তারিত পরিকল্পনা" : "Deep reasoning & task planning"}
+                            </span>
+                          </div>
+                          {modelMode === "deep" && (
+                            <div className={styles.modelCheckIcon}>
+                              <Check size={14} />
+                            </div>
+                          )}
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
-                {/* Voice Language Toggle Button */}
-                <button
-                  type="button"
-                  className={styles.pillLangBtn}
-                  onClick={toggleVoiceLanguage}
-                  title={voiceLang === "bn-BD" ? "Switch voice to English (EN)" : "বাংলা ভয়েস ইনপুট নির্বাচন করুন (বাং)"}
-                  aria-label={voiceLang === "bn-BD" ? "Switch voice to English" : "Switch voice to Bangla"}
-                >
-                  <Languages size={12} className="shrink-0 text-purple-600 dark:text-purple-400" />
-                  <span>{voiceLang === "bn-BD" ? "বাং" : "EN"}</span>
-                </button>
-
-                {/* Mic / Stop Icon Button */}
-                <button
-                  type="button"
-                  className={`${styles.pillIconBtn} ${isVoiceListening ? styles.pillIconBtnActive : ""}`}
-                  onClick={isVoiceListening ? stopVoice : startVoice}
-                  disabled={isThinking || tokenStatus?.isExhausted}
-                  aria-label={isVoiceListening ? (isSystemBn ? "ভয়েস বন্ধ করুন" : "Stop voice input") : (isSystemBn ? "ভয়েস শুরু করুন" : "Start voice input")}
-                  title={isVoiceListening ? (isSystemBn ? "ভয়েস চালু আছে (ক্লিক করে থামান)" : "Listening... Click to stop") : (isSystemBn ? "ভয়েস ইনপুট" : "Voice input")}
-                >
-                  {isVoiceListening ? <Square size={13} fill="currentColor" /> : <Mic size={17} strokeWidth={1.8} />}
-                </button>
-
-                {/* Send / Stop Action Button */}
-                {isThinking ? (
+                {/* Right Side Controls: Language + Mic + Send/Stop */}
+                <div className={styles.composerActionsRight}>
+                  {/* Voice Language Toggle Button */}
                   <button
                     type="button"
-                    className={styles.pillSendBtn}
-                    onClick={() => stopGeneration(isSystemBn ? "bn" : "en")}
-                    aria-label="Stop generation"
-                    title="Stop"
+                    className={styles.pillLangBtn}
+                    onClick={toggleVoiceLanguage}
+                    title={voiceLang === "bn-BD" ? "Switch voice to English (EN)" : "বাংলা ভয়েস ইনপুট নির্বাচন করুন (বাং)"}
+                    aria-label={voiceLang === "bn-BD" ? "Switch voice to English" : "Switch voice to Bangla"}
                   >
-                    <Square size={13} fill="currentColor" />
+                    <Languages size={12} className="shrink-0 text-purple-600 dark:text-purple-400" />
+                    <span>{voiceLang === "bn-BD" ? "বাং" : "EN"}</span>
                   </button>
-                ) : input.trim() ? (
+
+                  {/* Mic / Stop Icon Button */}
                   <button
                     type="button"
-                    className={styles.pillSendBtn}
-                    onClick={() => submit()}
-                    aria-label="Send message"
-                    title="Send"
+                    className={`${styles.pillIconBtn} ${isVoiceListening ? styles.pillIconBtnActive : ""}`}
+                    onClick={isVoiceListening ? stopVoice : startVoice}
+                    disabled={isThinking || tokenStatus?.isExhausted}
+                    aria-label={isVoiceListening ? (isSystemBn ? "ভয়েস বন্ধ করুন" : "Stop voice input") : (isSystemBn ? "ভয়েস শুরু করুন" : "Start voice input")}
+                    title={isVoiceListening ? (isSystemBn ? "ভয়েস চালু আছে (ক্লিক করে থামান)" : "Listening... Click to stop") : (isSystemBn ? "ভয়েস ইনপুট" : "Voice input")}
                   >
-                    <ArrowUp size={18} strokeWidth={2.2} />
+                    {isVoiceListening ? <Square size={13} fill="currentColor" /> : <Mic size={17} strokeWidth={1.8} />}
                   </button>
-                ) : null}
+
+                  {/* Send / Stop Action Button */}
+                  {isThinking ? (
+                    <button
+                      type="button"
+                      className={styles.pillSendBtn}
+                      onClick={() => stopGeneration(isSystemBn ? "bn" : "en")}
+                      aria-label="Stop generation"
+                      title="Stop"
+                    >
+                      <Square size={13} fill="currentColor" />
+                    </button>
+                  ) : input.trim() ? (
+                    <button
+                      type="button"
+                      className={styles.pillSendBtn}
+                      onClick={() => submit()}
+                      aria-label="Send message"
+                      title="Send"
+                    >
+                      <ArrowUp size={18} strokeWidth={2.2} />
+                    </button>
+                  ) : null}
+                </div>
               </div>
             </div>
 
