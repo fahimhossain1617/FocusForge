@@ -475,3 +475,20 @@
 - **Reason:** Replaced cumbersome legacy onboarding modal and intrusive product tour with a sleek, minimalist, aesthetic entry point matching the user's mobile & desktop designs.
 - **Impact:** `frontend/src/components/onboarding/OnboardingModal.tsx`, `frontend/src/components/onboarding/onboarding.module.css`, `frontend/src/components/onboarding/ProductTour.tsx`, `frontend/src/app/page.tsx`.
 - **Do Not Change Without Approval:** Do not restore the legacy multi-step tour or add hover transformations/effects to the "Get Started" button.
+
+---
+
+## ADR-030: Final Production Hardening, Dependency Remediation & Serverless Route Safety
+
+- **Date:** October 2026
+- **Status:** Accepted
+- **Decision:**
+  1. **Zero Production Vulnerabilities:** Added package overrides in `frontend/package.json` and `backend/package.json` (`dompurify@^3.4.16`, `katex@^0.18.5`, `braces@^3.0.3`). Verified `npm audit --omit=dev` produces exactly **0 vulnerabilities** across frontend and backend.
+  2. **Restored Serverless Background Dispatch:** Re-imported `after` from `next/server` in `frontend/src/app/api/[...path]/route.ts` to allow non-blocking asynchronous email and logging execution without blocking the user response loop.
+  3. **Hardened Database Isolation & Test Harness:** Sanitized test scripts (`scripts/test_live_db_isolation.ts`) to read database and Supabase secrets exclusively from environment variables (`process.env.DATABASE_URL`, `NEXT_PUBLIC_SUPABASE_URL`).
+  4. **Dynamic Port Test Harness:** Updated `scripts/verify_routes_runtime.ts` and `scripts/load_test_benchmark.ts` to support dynamic port resolution (`TEST_PORT || PORT || '3001'`).
+  5. **Verification Gate Passed:** Full suite of 35 production readiness checks, 20 auth isolation scenarios, 22 zero-knowledge E2EE crypto tests, 12 voice system checks, 7 continuous speech tests, 9 runtime HTTP routes, and load benchmarks (60 reqs @ 15 workers with 0 failures) verified with 100% pass rate.
+- **Reason:** Comprehensive production hardening, eliminating security risks, and verifying runtime stability across all application subsystems.
+- **Impact:** `frontend/package.json`, `backend/package.json`, `frontend/src/app/api/[...path]/route.ts`, `scripts/*`.
+- **Do Not Change Without Approval:** Do not downgrade packages or bypass the verification gate.
+

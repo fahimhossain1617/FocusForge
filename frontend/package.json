@@ -17,13 +17,13 @@
     "@types/pg": "^8.23.1",
     "canvas-confetti": "^1.9.4",
     "dexie": "^4.4.6",
-    "dompurify": "^3.4.14",
+    "dompurify": "^3.4.16",
     "fabric": "^7.4.0",
     "framer-motion": "^13.4.0",
     "geist": "^1.7.2",
     "katex": "^0.18.5",
     "lucide-react": "^1.38.0",
-    "next": "16.3.3",
+    "next": "^16.4.0",
     "nodemailer": "^10.0.10",
     "pg": "^8.23.0",
     "prismjs": "^1.30.0",
@@ -36,6 +36,11 @@
     "remark-gfm": "^4.0.1",
     "remark-math": "^6.0.0"
   },
+  "overrides": {
+    "dompurify": "^3.4.16",
+    "katex": "^0.18.5",
+    "braces": "^3.0.3"
+  },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@types/canvas-confetti": "^1.9.0",
@@ -47,7 +52,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
-    "eslint-config-next": "16.3.3",
+    "eslint-config-next": "^16.4.0",
     "tailwindcss": "^4",
     "typescript": "^5"
   }

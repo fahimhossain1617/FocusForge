@@ -24,6 +24,9 @@ dotenv.config();
 const app = express();
 const port = process.env.PORT || 5000;
 
+// Trust first reverse proxy (e.g. Vercel, Cloudflare, Nginx)
+app.set('trust proxy', 1);
+
 // Middleware
 app.use(helmet({ crossOriginResourcePolicy: false }));
 app.use(cors({

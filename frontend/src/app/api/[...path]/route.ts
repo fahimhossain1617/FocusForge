@@ -87,7 +87,14 @@ async function extractAuth(request: NextRequest) {
   const guestId = request.headers.get('x-guest-id') || 'guest';
   const authHeader = request.headers.get('authorization') || '';
   const token = authHeader.replace(/^Bearer\s+/i, '').trim();
-  const clientIp = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || '127.0.0.1';
+  const rawXff = request.headers.get('x-forwarded-for');
+  const xffList = rawXff ? rawXff.split(',').map((s) => s.trim()).filter(Boolean) : [];
+  const clientIp =
+    request.headers.get('x-real-ip')?.trim() ||
+    request.headers.get('cf-connecting-ip')?.trim() ||
+    request.headers.get('x-vercel-proxied-for')?.split(',')[0]?.trim() ||
+    (xffList.length > 0 ? xffList[xffList.length - 1] : null) ||
+    '127.0.0.1';
 
   let userId: string | null = null;
   let isGuest = true;

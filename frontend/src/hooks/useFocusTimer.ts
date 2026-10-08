@@ -68,6 +68,22 @@ export function useFocusTimer(options?: UseFocusTimerOptions) {
     }
   }, [clearTimer]);
 
+  // Immediately sync timer state upon tab visibility change or window focus
+  useEffect(() => {
+    if (!isRunning) return;
+    const handleVisibilitySync = () => {
+      if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+        tick();
+      }
+    };
+    window.addEventListener('focus', handleVisibilitySync);
+    document.addEventListener('visibilitychange', handleVisibilitySync);
+    return () => {
+      window.removeEventListener('focus', handleVisibilitySync);
+      document.removeEventListener('visibilitychange', handleVisibilitySync);
+    };
+  }, [isRunning, tick]);
+
   const start = useCallback(() => {
     if (isRunning) return;
 

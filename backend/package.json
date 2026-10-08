@@ -36,5 +36,8 @@
     "nodemon": "^3.1.14",
     "ts-node": "^10.9.2",
     "typescript": "^7.0.2"
+  },
+  "overrides": {
+    "braces": "^3.0.3"
   }
 }

@@ -26,6 +26,8 @@ const webSocketService_1 = require("./services/webSocketService");
 dotenv_1.default.config();
 const app = (0, express_1.default)();
 const port = process.env.PORT || 5000;
+// Trust first reverse proxy (e.g. Vercel, Cloudflare, Nginx)
+app.set('trust proxy', 1);
 // Middleware
 app.use((0, helmet_1.default)({ crossOriginResourcePolicy: false }));
 app.use((0, cors_1.default)({
