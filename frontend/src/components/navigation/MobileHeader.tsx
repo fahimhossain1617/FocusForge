@@ -19,14 +19,14 @@ import {
 } from "lucide-react";
 import { toggleThemeWithCircularTransition } from "../../utils/themeTransition";
 import { useSync } from "../../hooks/useSync";
-import SyncStatusIndicator from "../encryption/SyncStatusIndicator";
 
 export default function MobileHeader() {
   const { state, updateState, navigateTo, isSubViewActive } = useAppContext();
   const { user, isGuest, openAuth, promptLogout } = useAuth();
   const { t } = useTranslation();
   const { hasUnread, unreadCount } = useNotificationCenter();
-  const { syncStatus, isSyncing, syncNow } = useSync(user?.id);
+  // Runs background sync seamlessly without showing noisy indicators in header
+  useSync(user?.id);
 
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
@@ -139,18 +139,8 @@ export default function MobileHeader() {
           </span>
         </button>
 
-        {/* Right Actions: Sync Status + Theme Toggle + Clean Unboxed Bell + 3-Dots Menu */}
+        {/* Right Actions: Theme Toggle + Clean Unboxed Bell + 3-Dots Menu */}
         <div className="flex items-center gap-1">
-          {/* Sync Status Badge (Authenticated Only) */}
-          {user && !isGuest && (
-            <SyncStatusIndicator
-              status={syncStatus}
-              isSyncing={isSyncing}
-              onTriggerSync={syncNow}
-              lang={state.lang}
-              className="mr-0.5"
-            />
-          )}
 
           {/* Theme Quick Toggle Button (Clean unboxed icon matching theme) */}
           <button

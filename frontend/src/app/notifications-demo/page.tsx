@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { NotificationOrbAvatar } from "../../components/navigation/NotificationOrbAvatar";
 import { NotificationBanner } from "../../components/navigation/NotificationBanner";
@@ -8,6 +8,9 @@ import NotificationCenter from "../../components/navigation/NotificationCenter";
 import { notificationService } from "../../services/notificationService";
 import { notificationRotationManager } from "../../services/notificationTemplates";
 import { NotificationCategory } from "../../types";
+import NotificationPermissionPrompt from "../../components/notifications/NotificationPermissionPrompt";
+import { useNotificationPermissionPrompt } from "../../hooks/useNotificationPermissionPrompt";
+import notificationPromptService from "../../services/notificationPromptService";
 import { 
   Bell, 
   Sparkles, 
@@ -31,6 +34,33 @@ export default function NotificationsDemoPage() {
   const [lastTriggeredTemplate, setLastTriggeredTemplate] = useState<string>("");
 
   const isBn = lang === "bn";
+
+  const {
+    isOpen: isPermissionPromptOpen,
+    handleEnable: handleEnablePermission,
+    handleLater: handleLaterPermission,
+    triggerManually: triggerPermissionPrompt,
+    resetForTesting: resetPermissionPrompt,
+  } = useNotificationPermissionPrompt();
+
+  const [mounted, setMounted] = useState(false);
+  const [promptStats, setPromptStats] = useState({
+    dailyDate: "",
+    dailyCount: 0,
+    totalActionsSincePrompt: 0,
+    hasGranted: false,
+    permission: "default",
+    isSupported: true,
+  });
+
+  useEffect(() => {
+    setMounted(true);
+    setPromptStats(notificationPromptService.getDebugStats());
+  }, []);
+
+  const refreshStats = () => {
+    setPromptStats(notificationPromptService.getDebugStats());
+  };
 
   // Trigger live interactive notification banner
   const triggerNotification = (category: NotificationCategory, customTitle?: string) => {
@@ -157,6 +187,68 @@ export default function NotificationsDemoPage() {
             </p>
           </div>
         </div>
+
+        {/* SECTION 0: Contextual Notification Permission Prompt Test */}
+        <section className={`p-6 rounded-2xl border space-y-4 ${isDark ? "bg-[#101B35] border-[#22346B]" : "bg-white border-[#D5DEEE]"}`}>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div>
+              <h3 className="text-base font-bold">
+                {isBn ? "স্মার্ট নোটিফিকেশন পারমিশন প্রম্পট (Non-intrusive Contextual Prompt)" : "Smart Notification Permission Prompt"}
+              </h3>
+              <p className={`text-xs mt-0.5 ${isDark ? "text-[#8DA2CC]" : "text-[#5B6B8C]"}`}>
+                {isBn
+                  ? "টাস্ক যোগ বা ফিচার ব্যবহারের পর স্বয়ংক্রিয়ভাবে ওঠে (ডেইলি সর্বোচ্চ ২ বার, কোনো ব্যাকগ্রাউন্ড ব্লার/কালো ছাড়া)"
+                  : "Triggers after task creation or 2-3 feature interactions (max 2/day, zero background dim/blur)"}
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  resetPermissionPrompt();
+                  refreshStats();
+                }}
+                className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition-colors cursor-pointer ${
+                  isDark ? "border-slate-700 hover:bg-slate-800 text-slate-300" : "border-slate-200 hover:bg-slate-100 text-slate-700"
+                }`}
+              >
+                {isBn ? "কাউন্টার রিসেট করুন" : "Reset Daily Limit"}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  triggerPermissionPrompt();
+                  refreshStats();
+                }}
+                className="px-4 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-all active:scale-95 cursor-pointer"
+              >
+                {isBn ? "প্রম্পট টেস্ট করুন" : "Trigger Permission Prompt"}
+              </button>
+            </div>
+          </div>
+
+          {/* Prompt Status Metrics */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+            <div className={`p-3 rounded-xl border ${isDark ? "bg-[#0A1224] border-slate-800" : "bg-slate-50 border-slate-200"}`}>
+              <span className="opacity-60 block text-[10px] uppercase font-bold">{isBn ? "অনুমতি স্ট্যাটাস" : "Permission Status"}</span>
+              <span suppressHydrationWarning className="font-bold text-sm mt-0.5 block capitalize">{mounted ? promptStats.permission : "—"}</span>
+            </div>
+            <div className={`p-3 rounded-xl border ${isDark ? "bg-[#0A1224] border-slate-800" : "bg-slate-50 border-slate-200"}`}>
+              <span className="opacity-60 block text-[10px] uppercase font-bold">{isBn ? "আজকের প্রম্পট সংখ্যা" : "Today's Prompts"}</span>
+              <span suppressHydrationWarning className="font-bold text-sm mt-0.5 block">{mounted ? promptStats.dailyCount : 0} / 2 {isBn ? "বার" : "max"}</span>
+            </div>
+            <div className={`p-3 rounded-xl border ${isDark ? "bg-[#0A1224] border-slate-800" : "bg-slate-50 border-slate-200"}`}>
+              <span className="opacity-60 block text-[10px] uppercase font-bold">{isBn ? "অ্যাকশন কাউন্টার" : "Action Counter"}</span>
+              <span suppressHydrationWarning className="font-bold text-sm mt-0.5 block">{mounted ? promptStats.totalActionsSincePrompt : 0} {isBn ? "টি কাজ" : "actions"}</span>
+            </div>
+            <div className={`p-3 rounded-xl border ${isDark ? "bg-[#0A1224] border-slate-800" : "bg-slate-50 border-slate-200"}`}>
+              <span className="opacity-60 block text-[10px] uppercase font-bold">{isBn ? "ব্রাউজার সাপোর্ট" : "Browser Support"}</span>
+              <span suppressHydrationWarning className="font-bold text-sm mt-0.5 block">{mounted ? (promptStats.isSupported ? "Supported" : "Not Supported") : "—"}</span>
+            </div>
+          </div>
+        </section>
 
         {/* SECTION 1: Live Interactive Triggers */}
         <section className="space-y-4">
@@ -425,6 +517,19 @@ export default function NotificationsDemoPage() {
           </div>
         </section>
       </main>
+
+      {/* Contextual Notification Permission Prompt */}
+      <NotificationPermissionPrompt
+        isOpen={isPermissionPromptOpen}
+        onEnable={async () => {
+          await handleEnablePermission();
+          refreshStats();
+        }}
+        onLater={() => {
+          handleLaterPermission();
+          refreshStats();
+        }}
+      />
 
       {/* Slide-over Notification Center Modal */}
       <NotificationCenter

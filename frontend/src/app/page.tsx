@@ -32,6 +32,8 @@ import {
 } from "../components/ui/skeleton";
 import { useDailyPlan } from "../hooks/useDailyPlan";
 import { useReviewPrompt } from "../hooks/useReviewPrompt";
+import { useNotificationPermissionPrompt } from "../hooks/useNotificationPermissionPrompt";
+import NotificationPermissionPrompt from "../components/notifications/NotificationPermissionPrompt";
 
 import DashboardPage from "../components/pages/DashboardPage";
 import MyMindPage from "../components/pages/MyMindPage";
@@ -162,6 +164,13 @@ export default function Home() {
     skip: skipReview,
     submit: submitReview,
   } = useReviewPrompt();
+
+  // Smart Contextual Notification Permission Prompt Hook
+  const {
+    isOpen: showNotificationPermissionPrompt,
+    handleEnable: handleEnableNotificationPermission,
+    handleLater: handleLaterNotificationPermission,
+  } = useNotificationPermissionPrompt();
 
   useEffect(() => {
     const root = document.documentElement;
@@ -297,6 +306,11 @@ export default function Home() {
       <QuickCapture />
       <Toast />
       <NotificationBanner />
+      <NotificationPermissionPrompt
+        isOpen={showNotificationPermissionPrompt && !showOnboarding && launchDone}
+        onEnable={handleEnableNotificationPermission}
+        onLater={handleLaterNotificationPermission}
+      />
       <AuthModal />
       <AuthGuardModal />
 
