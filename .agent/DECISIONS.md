@@ -553,6 +553,18 @@
 - **Impact:** `frontend/src/components/mymind/MindHome.tsx`, `frontend/src/components/mymind/VoiceInput.tsx`.
 - **Do Not Change Without Approval:** Do not reintroduce nested textarea containers or alter Mind Space category tab / persistence contracts.
 
+---
 
+## ADR-035: Mobile Authentication Flow Layout Optimization & Vertical Centering
 
-
+- **Date:** October 2026
+- **Status:** Accepted
+- **Decision:**
+  1. **Mobile Vertical Balance & Centering:** Configured `.auth-phone-layout` (`@media (max-width: 699px)`) with `justify-content: center` and dynamic safe-area top padding (`padding: max(48px, calc(env(safe-area-inset-top, 0px) + 36px)) 20px max(24px, calc(env(safe-area-inset-bottom, 0px) + 20px))`).
+  2. **Card Margin Balancing:** Updated `.auth-phone-main` to `margin-top: auto; margin-bottom: auto;`, naturally positioning the authentication card and form inputs (Email address, Password placeholders, and CTA buttons) in the vertical middle of mobile screens rather than clamping them at the very top.
+  3. **Header Breathing Room:** "Welcome to Focentia" and tagline header now rest comfortably 1.5 to 2 inches (~80-120px) from the phone's top bezel.
+  4. **Universal Flow Uniformity:** Applied cleanly across all mobile auth screens (Login, Sign up, Verify OTP, Reset Password, Forgot Password).
+  5. **Desktop & Tablet Isolation:** Desktop (`.auth-desktop-layout`, 1024px+) and tablet (`.auth-tablet-layout`, 700px-1023px) layouts remain completely untouched and unmodified.
+- **Reason:** Addresses user feedback regarding cramped top alignment and large empty bottom space on mobile phone screens.
+- **Impact:** `frontend/src/app/auth.css`.
+- **Do Not Change Without Approval:** Do not alter desktop/tablet split view layouts or revert mobile centering to top-pinned margins.

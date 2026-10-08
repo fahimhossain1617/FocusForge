@@ -1117,34 +1117,42 @@ html.light .auth-pass-pill.met {
 /* Phone (<= 699px) */
 @media (max-width: 699px) {
   .auth-phone-layout {
-    padding: 24px 20px 24px;
+    padding: max(48px, calc(env(safe-area-inset-top, 0px) + 36px)) 20px max(24px, calc(env(safe-area-inset-bottom, 0px) + 20px));
     display: flex;
     flex-direction: column;
     min-height: 100vh;
     min-height: 100dvh;
     max-width: 440px;
     margin: 0 auto;
-    justify-content: flex-start;
+    justify-content: center;
     box-sizing: border-box;
     width: 100%;
     position: relative;
   }
   .auth-phone-top-bar {
-    width: 100%;
-    margin-bottom: 10px;
+    position: absolute;
+    top: max(16px, calc(env(safe-area-inset-top, 0px) + 12px));
+    left: 20px;
+    right: 20px;
+    width: auto;
+    margin-bottom: 0;
     display: flex;
     align-items: center;
+    z-index: 10;
   }
   .auth-phone-main {
     width: 100%;
-    margin-top: 12px;
+    margin-top: auto;
     margin-bottom: auto;
     display: flex;
     flex-direction: column;
+    justify-content: center;
+    padding: 8px 0;
   }
   .auth-phone-main.auth-phone-main-top {
-    margin-top: 4px;
+    margin-top: auto;
     margin-bottom: auto;
+    padding-top: 12px;
   }
   .auth-hero-mobile {
     margin-bottom: 20px;
