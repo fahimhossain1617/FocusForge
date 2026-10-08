@@ -632,4 +632,64 @@
 - **Impact:** `frontend/public/sw.js`, `frontend/src/utils/pushSubscription.ts`, `frontend/src/lib/server/webPushService.ts`, `backend/src/services/webPushService.ts`, `supabase/functions/send-push/index.ts`, `supabase/migrations/027_push_subscriptions_and_rls.sql`, `frontend/src/app/api/[...path]/route.ts`, `backend/src/routes/notificationRoutes.ts`, `frontend/src/services/notificationService.ts`, `frontend/src/components/pwa/ServiceWorkerRegister.tsx`.
 - **Do Not Change Without Approval:** Do not remove the `push` event listener from `sw.js` or replace server-side Web Push with client-only polling timers.
 
+---
+
+## ADR-041: Server-Side Notification Scheduler Worker & Simplified Notification UX
+
+- **Date:** October 2026
+- **Status:** Accepted
+- **Decision:**
+  1. **Background Scheduler Worker (`backend/src/services/notificationSchedulerService.ts`):** Implemented an automated cron/interval worker (running every 60s) on the backend that inspects active tasks, focus history, skill logs, and last activity to trigger timely Web Push notifications across all user devices when the app is closed:
+     - 5 minutes before scheduled task (`task_pre_reminder`)
+     - Exact task start time (`task_start`)
+     - 30 minutes before task end if still incomplete (`task_incomplete`)
+     - Midday & evening focus reminders if no focus session completed today (`focus_reminder`)
+     - Skill builder practice reminder if learning topics exist but not practiced today (`skill_reminder`)
+     - Mind space / Diary reflection reminder in the evening (`diary_reminder`)
+     - 1-day inactivity companion alert to chat with Glory AI or resume focus (`ai_companion`)
+  2. **Intelligent Anti-Clustering & Priority Task Isolation:**
+     - **Top Priority (User Tasks):** Explicit user-scheduled tasks (5m before, start, 30m before end) trigger with zero blocking.
+     - **Task Proximity Protection:** Automated nudges (focus, skill, diary, AI companion) are suppressed if an active task starts in <= 45 minutes or is currently underway.
+     - **75-Minute Minimum Cooldown:** Enforced across all automated engagement notifications so users never receive multiple nudges in a cluster.
+     - **Dedicated Time Slots:** Staggered into dedicated windows (Midday Focus: 13:30-15:30, Afternoon Skill: 16:30-18:00, Early Evening AI: 18:30-20:00, Night Diary: 20:30-22:00) with a maximum of 1 automated nudge per cycle.
+  3. **Quiet Hours & Daily Frequency Caps:** Worker enforces quiet hours (22:00 - 07:00) and respects maximum daily notification limits per user settings.
+  4. **Simplified Settings UI with Master Push Switch (`SettingsPage.tsx`):** Removed developer diagnostic cards ("Web Push Device Diagnostics & Live Test") from user-facing settings. Introduced a clean Master Push Toggle in the header: enabling it prompts and activates Web Push permissions, turning on all sub-category toggles; disabling it grays out all sub-toggles.
+  5. **Cron Endpoint (`/api/notifications/cron`):** Added a secure cron endpoint callable by Vercel Cron, external cron services, or the internal backend timer.
+- **Reason:** Users need background notifications to arrive punctually when the app is completely closed without being overwhelmed by clustered reminders, technical diagnostic UI, or annoying simultaneous alerts.
+- **Impact:** `backend/src/services/notificationSchedulerService.ts`, `backend/src/server.ts`, `backend/src/routes/notificationRoutes.ts`, `frontend/src/app/api/[...path]/route.ts`, `frontend/src/components/pages/SettingsPage.tsx`, `frontend/src/services/notificationTemplates.ts`, `frontend/src/types.ts`, `frontend/src/hooks/useDailyPlan.ts`.
+---
+
+## ADR-042: PWA 'Get App' Responsive Installation Trigger & Lifecycle Management
+
+- **Date:** October 2026
+- **Status:** Accepted
+- **Decision:**
+  1. **Dual Responsive Placement:**
+     - **Mobile & Tablet:** Modern compact pill button rendered in [MobileHeader.tsx](file:///c:/Users/fahim/OneDrive/Desktop/My%20all%20learning%20project%20files/my%20app/frontend/src/components/navigation/MobileHeader.tsx) directly to the left of the Theme Toggle button.
+     - **Desktop / Laptop (Expanded Sidebar):** Sleek install banner card rendered in [Sidebar.tsx](file:///c:/Users/fahim/OneDrive/Desktop/My%20all%20learning%20project%20files/my%20app/frontend/src/components/Sidebar.tsx) immediately above the User profile & settings row.
+     - **Desktop / Laptop (Collapsed Sidebar):** Clean icon button with tooltip rendered in the bottom icon stack above the user avatar.
+  2. **Intelligent Visibility & Lifecycle State:**
+     - Only shown when the user visits via web browser / web link.
+     - Automatically hidden if running inside standalone PWA window (`(display-mode: standalone)`, `navigator.standalone`, `getInstalledRelatedApps()`, etc.).
+     - Captures and synchronizes `beforeinstallprompt` and `appinstalled` events across [ServiceWorkerRegister.tsx](file:///c:/Users/fahim/OneDrive/Desktop/My%20all%20learning%20project%20files/my%20app/frontend/src/components/pwa/ServiceWorkerRegister.tsx) and [InstallPrompt.tsx](file:///c:/Users/fahim/OneDrive/Desktop/My%20all%20learning%20project%20files/my%20app/frontend/src/components/pwa/InstallPrompt.tsx).
+     - Once installed (via native prompt, button click, or browser menu ⋮), the button is automatically and permanently hidden.
+  3. **Universal Cross-Browser Support:**
+     - Directly triggers native prompt when available (`deferredPrompt.prompt()`).
+     - Provides clear platform-specific guidance for iOS Safari ("Share -> Add to Home Screen") and other browsers.
+- **Reason:** Direct user request to provide an elegant "Get App" / "গেট অ্যাপ" install option that seamlessly appears in the mobile header and desktop sidebar for web visitors and disappears once installed.
+## ADR-043: Notification Master Toggle Reactivation & Header Badge Cleanup
+
+- **Date:** October 2026
+- **Status:** Accepted
+- **Decision:**
+  1. **Removed "Active" / "সক্রিয়" Status Badge:** Removed the redundant status badge next to the Notifications header title in [SettingsPage.tsx](file:///c:/Users/fahim/OneDrive/Desktop/My%20all%20learning%20project%20files/my%20app/frontend/src/components/pages/SettingsPage.tsx) as requested by the user.
+  2. **Non-Blocking Permission & Asynchronous Push Registration:**
+     - In [notificationService.ts](file:///c:/Users/fahim/OneDrive/Desktop/My%20all%20learning%20project%20files/my%20app/frontend/src/services/notificationService.ts), removed blocking `await` from `subscribeUserToPush` within `requestPermission()`.
+     - In [pushSubscription.ts](file:///c:/Users/fahim/OneDrive/Desktop/My%20all%20learning%20project%20files/my%20app/frontend/src/utils/pushSubscription.ts), added a 3.5s timeout guard to `getServiceWorkerRegistration()` so `navigator.serviceWorker.ready` never hangs indefinitely if the Service Worker is pending or unregistered.
+     - In [SettingsPage.tsx](file:///c:/Users/fahim/OneDrive/Desktop/My%20all%20learning%20project%20files/my%20app/frontend/src/components/pages/SettingsPage.tsx), fixed the master toggle reactivation flow to properly check `permissionResult === "denied"` rather than blocking on truthiness evaluation, allowing users to toggle notifications off and on freely at any time.
+- **Reason:** Users who toggled notifications off in settings were unable to turn them back on because the promise chain was blocked waiting indefinitely on Service Worker ready, and the redundant "Active" badge cluttered the header title.
+- **Impact:** [SettingsPage.tsx](file:///c:/Users/fahim/OneDrive/Desktop/My%20all%20learning%20project%20files/my%20app/frontend/src/components/pages/SettingsPage.tsx), [notificationService.ts](file:///c:/Users/fahim/OneDrive/Desktop/My%20all%20learning%20project%20files/my%20app/frontend/src/services/notificationService.ts), [pushSubscription.ts](file:///c:/Users/fahim/OneDrive/Desktop/My%20all%20learning%20project%20files/my%20app/frontend/src/utils/pushSubscription.ts).
+- **Do Not Change Without Approval:** Do not block `Notification.requestPermission()` with synchronous push network/worker subscriptions.
+
+
 

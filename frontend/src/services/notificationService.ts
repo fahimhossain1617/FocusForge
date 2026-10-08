@@ -125,7 +125,7 @@ class NotificationService {
     try {
       const permission = await Notification.requestPermission();
       if (permission === "granted") {
-        await subscribeUserToPush(this.activeUserId).catch((err) => {
+        subscribeUserToPush(this.activeUserId).catch((err) => {
           console.warn("[NotificationService] Web Push subscription registration error:", err);
         });
       }

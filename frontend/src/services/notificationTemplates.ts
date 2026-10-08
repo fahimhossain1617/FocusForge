@@ -349,6 +349,96 @@ export const NOTIFICATION_TEMPLATES: Record<NotificationCategory, CategoryConfig
     ],
   },
 
+  diary_reminder: {
+    orbMood: "thinking",
+    appTagEn: "FOCENTIA - MY DIARY",
+    appTagBn: "ফোসেন্টিয়া - আমার ডায়েরি",
+    defaultTitleEn: "Time for Reflection",
+    defaultTitleBn: "ভাবনা লেখার সময়",
+    templates: [
+      {
+        id: "diary_rem_1",
+        en: "How was your day? Take a minute to write in your Diary.",
+        bn: "আজকের দিনটা কেমন কাটল? ডায়েরিতে লিখে রাখতে পারো।",
+      },
+      {
+        id: "diary_rem_2",
+        en: "Capture today's thoughts and moments in your Mind Space.",
+        bn: "আজকের বিশেষ মুহূর্ত ও ভাবনাগুলো ডায়েরিতে বন্দি করে রাখো।",
+      },
+      {
+        id: "diary_rem_3",
+        en: "A quiet moment for yourself. Write down what you learned or felt today.",
+        bn: "নিজের সাথে কিছুক্ষণ শান্ত সময় কাটাও। আজকের উপলব্ধিগুলো লিখে ফেলো।",
+      },
+      {
+        id: "diary_rem_4",
+        en: "Your Diary is waiting. Unload your thoughts before the day ends.",
+        bn: "ডায়েরি তোমার অপেক্ষায়। দিন শেষে মনের কথাগুলো লিখে ফেলো।",
+      },
+      {
+        id: "diary_rem_5",
+        en: "Reflecting regularly brings mental clarity. Write a quick diary entry.",
+        bn: "নিয়মিত ডায়েরি লিখলে মন হালকা থাকে। ছোট করে হলেও কিছু লিখে নাও।",
+      },
+      {
+        id: "diary_rem_6",
+        en: "Record your memories and lessons from today in My Diary.",
+        bn: "আজকের শিক্ষা ও স্মৃতিগুলো তোমার ডায়েরিতে জমা রাখো।",
+      },
+      {
+        id: "diary_rem_7",
+        en: "It's been a while since your last reflection. Jot down a thought or memory.",
+        bn: "কিছুদিন হলো ডায়েরি লেখা হয়নি। ছোট্ট কোনো চিন্তাভাবনা লিখে রাখতে পারো।",
+      },
+    ],
+  },
+
+  ai_companion: {
+    orbMood: "playful",
+    appTagEn: "FOCENTIA - GLORY AI",
+    appTagBn: "ফোসেন্টিয়া - গ্লোরি এআই",
+    defaultTitleEn: "Glory AI is Here",
+    defaultTitleBn: "গ্লোরি এআই আপনার অপেক্ষায়",
+    templates: [
+      {
+        id: "ai_comp_1",
+        en: "Haven't seen you today! Glory AI is ready if you want to chat or plan ahead.",
+        bn: "আজ তোমার দেখা মেলেনি! নতুন কোনো প্ল্যান বা আলোচনার জন্য গ্লোরি এআই প্রস্তুত।",
+      },
+      {
+        id: "ai_comp_2",
+        en: "Need a hand organizing your tasks or studies? Talk with Glory AI anytime.",
+        bn: "পড়াশোনা বা কাজের প্ল্যান করতে কোনো সাহায্য লাগবে? গ্লোরি এআই-এর সাথে কথা বলো।",
+      },
+      {
+        id: "ai_comp_3",
+        en: "Keep your focus sharp. Glory AI is here to help you break down complex goals.",
+        bn: "ফোকাস ধরে রাখো। বড় লক্ষ্যগুলোকে সহজে গুছিয়ে দিতে গ্লোরি এআই আছে তোমার পাশে।",
+      },
+      {
+        id: "ai_comp_4",
+        en: "Take a minute to check in. Let Glory AI help you stay on track.",
+        bn: "একটু সময় নিয়ে অ্যাপে ঢোকো। কাজের ধারায় ফিরতে গ্লোরি এআই সাহায্য করবে।",
+      },
+      {
+        id: "ai_comp_5",
+        en: "Have thoughts or questions on your mind? Share them with Glory AI.",
+        bn: "মাথায় কোনো প্রশ্ন বা চিন্তা ঘুরপাক খাচ্ছে? গ্লোরি এআই-কে খুলে বলো।",
+      },
+      {
+        id: "ai_comp_6",
+        en: "Your personal growth journey continues. Let Glory AI guide your next step.",
+        bn: "তোমার অগ্রযাত্রায় পাশে আছি। পরবর্তী ধাপ ঠিক করতে গ্লোরি এআই-এর পরামর্শ নাও।",
+      },
+      {
+        id: "ai_comp_7",
+        en: "Let's turn today around with a quick focus goal. Glory AI is standing by.",
+        bn: "দিনটাকে দারুণভাবে কাজে লাগাও। ছোট একটি লক্ষ্য নিয়ে এখনই শুরু করো।",
+      },
+    ],
+  },
+
   task_completed: {
     orbMood: "happy",
     appTagEn: "FOCENTIA - COMPLETED",

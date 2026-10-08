@@ -441,6 +441,8 @@ export default function SettingsPage() {
   const dailyMorningPlan = state.notifPreferences?.dailyMorningPlan ?? true;
   const dailyProgressReminders = state.notifPreferences?.dailyProgressReminders ?? true;
   const skillReminders = state.notifPreferences?.skillReminders ?? true;
+  const diaryReminder = state.notifPreferences?.diaryReminder ?? true;
+  const aiCompanionReminder = state.notifPreferences?.aiCompanionReminder ?? true;
   const inactivityReminders = state.notifPreferences?.inactivityReminders ?? true;
   const motivationalNotifications = state.notifPreferences?.motivationalNotifications ?? true;
   const quietHoursEnabled = state.notifPreferences?.quietHoursEnabled ?? true;
@@ -448,11 +450,14 @@ export default function SettingsPage() {
 
   const handleMasterToggle = async (enabled: boolean) => {
     if (enabled) {
-      const granted = await notificationService.requestPermission();
-      if (typeof window !== "undefined" && "Notification" in window) {
-        setNotificationPermission(Notification.permission);
+      let permissionResult: NotificationPermission = "granted";
+      if (notificationService.isSupported()) {
+        permissionResult = await notificationService.requestPermission();
+        if (typeof window !== "undefined" && "Notification" in window) {
+          setNotificationPermission(Notification.permission);
+        }
       }
-      if (!granted) {
+      if (permissionResult === "denied") {
         showToast(t.settings.notifications.toastDenied, "error");
         updateState({
           notifPreferences: {
@@ -461,6 +466,10 @@ export default function SettingsPage() {
           }
         });
         return;
+      }
+      // Automatically register Web Push subscription in background
+      if (user?.id) {
+        subscribeUserToPush(user.id).catch(() => {});
       }
       updateState({
         notifPreferences: {
@@ -488,73 +497,6 @@ export default function SettingsPage() {
       }
     });
     showToast(state.lang === "bn" ? "সেভ করা হয়েছে" : "Saved", "info");
-  };
-
-  // Web Push Diagnostics & Testing
-  const [pushDiagLoading, setPushDiagLoading] = useState(false);
-  const [pushDiagReport, setPushDiagReport] = useState<any>(null);
-
-  const handleRunPushDiagnostics = async () => {
-    setPushDiagLoading(true);
-    try {
-      const diag = await getPushDiagnostics();
-      const res = await fetch("/api/debug/test-push");
-      const serverStatus = await res.json().catch(() => ({ error: "Failed to parse server response" }));
-      setPushDiagReport({
-        client: diag,
-        server: serverStatus,
-        timestamp: new Date().toLocaleTimeString(),
-      });
-      showToast(state.lang === "bn" ? "ডায়াগনস্টিক রিপোর্ট প্রস্তুত" : "Diagnostics updated", "info");
-    } catch (err: any) {
-      setPushDiagReport({ error: err?.message || String(err) });
-      showToast(err?.message || "Diagnostic error", "error");
-    } finally {
-      setPushDiagLoading(false);
-    }
-  };
-
-  const handleRegisterPushSubscription = async () => {
-    setPushDiagLoading(true);
-    try {
-      const result = await subscribeUserToPush(user?.id);
-      if (result.success) {
-        showToast(state.lang === "bn" ? "পুশ সাবস্ক্রিপশন সফলভাবে রেজিস্টার হয়েছে!" : "Push subscription registered successfully!", "success");
-      } else {
-        showToast(result.error || (state.lang === "bn" ? "সাবস্ক্রিপশন ব্যর্থ হয়েছে" : "Subscription failed"), "error");
-      }
-      await handleRunPushDiagnostics();
-    } catch (err: any) {
-      showToast(err?.message || "Error subscribing", "error");
-    } finally {
-      setPushDiagLoading(false);
-    }
-  };
-
-  const handleSendTestPush = async () => {
-    setPushDiagLoading(true);
-    try {
-      const res = await fetch("/api/debug/test-push", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId: user?.id }),
-      });
-      const data = await res.json();
-      setPushDiagReport((prev: any) => ({
-        ...prev,
-        lastTestPushResponse: data,
-        testedAt: new Date().toLocaleTimeString(),
-      }));
-      if (data.success) {
-        showToast(state.lang === "bn" ? "টেস্ট পুশ পাঠানো হয়েছে! অ্যাপ বন্ধ করে দেখুন।" : "Test push dispatched! Check background.", "success");
-      } else {
-        showToast(data.error || "Test push failed", "error");
-      }
-    } catch (err: any) {
-      showToast(err?.message || "Test push error", "error");
-    } finally {
-      setPushDiagLoading(false);
-    }
   };
 
   // =========================================================================
@@ -1734,13 +1676,26 @@ export default function SettingsPage() {
 
         return (
           <div className="space-y-6">
-            <div>
-              <h1 className="text-2xl font-bold text-[var(--color-text-primary)] tracking-tight">
-                {t.settings.notifications.title}
-              </h1>
-              <p className="text-sm text-[var(--color-text-secondary)] mt-1">
-                {t.settings.notifications.desc}
-              </p>
+            {/* Header with Central Master Toggle Switch */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 sm:p-6 rounded-2xl border border-[var(--color-border-subtle)] bg-[var(--color-surface-elevated)]">
+              <div>
+                <h1 className="text-xl sm:text-2xl font-bold text-[var(--color-text-primary)] tracking-tight">
+                  {t.settings.notifications.title}
+                </h1>
+                <p className="text-xs sm:text-sm text-[var(--color-text-secondary)] mt-1">
+                  {t.settings.notifications.desc}
+                </p>
+              </div>
+              <div className="flex items-center gap-3 shrink-0 self-end sm:self-center">
+                <span className="text-xs font-medium text-[var(--color-text-secondary)]">
+                  {t.settings.notifications.pushMaster}
+                </span>
+                <Toggle
+                  checked={notifMasterEnabled}
+                  onChange={handleMasterToggle}
+                  ariaLabel={t.settings.notifications.pushMaster}
+                />
+              </div>
             </div>
 
             {/* Permission Blocked Banner if denied */}
@@ -1751,25 +1706,9 @@ export default function SettingsPage() {
               </div>
             )}
 
+            {/* Sub-notification Toggles List */}
             <div className="rounded-2xl border border-[var(--color-border-subtle)] bg-[var(--color-surface-elevated)] divide-y divide-[var(--color-border-subtle)] shadow-none">
-              {/* Master Push Toggle */}
-              <div className="p-5 sm:p-6 flex items-center justify-between gap-4">
-                <div>
-                  <h3 className="text-sm font-semibold text-[var(--color-text-primary)]">
-                    {t.settings.notifications.pushMaster}
-                  </h3>
-                  <p className="text-xs text-[var(--color-text-secondary)] mt-0.5">
-                    {t.settings.notifications.pushMasterDesc}
-                  </p>
-                </div>
-                <Toggle
-                  checked={notifMasterEnabled}
-                  onChange={handleMasterToggle}
-                  ariaLabel={t.settings.notifications.pushMaster}
-                />
-              </div>
-
-              {/* Notification Sound Toggle (User requirement: On/Off sound control) */}
+              {/* Notification Sound Toggle */}
               <div className="p-5 sm:p-6 flex items-center justify-between gap-4">
                 <div className={notifMasterEnabled ? "" : "opacity-40"}>
                   <h3 className="text-sm font-semibold text-[var(--color-text-primary)] flex items-center gap-2">
@@ -1856,6 +1795,42 @@ export default function SettingsPage() {
                   disabled={!notifMasterEnabled}
                   onChange={(val) => handleSubNotificationToggle("skillReminders", val)}
                   ariaLabel={t.settings.notifications.skillReminders || "Time Log & Skill Practice"}
+                />
+              </div>
+
+              {/* My Diary & Reflections */}
+              <div className="p-5 sm:p-6 flex items-center justify-between gap-4">
+                <div className={notifMasterEnabled ? "" : "opacity-40"}>
+                  <h3 className="text-sm font-semibold text-[var(--color-text-primary)]">
+                    {t.settings.notifications.diaryReminder || (state.lang === "bn" ? "ডায়েরি ও ভাবনা প্রকাশ" : "My Diary & Reflections")}
+                  </h3>
+                  <p className="text-xs text-[var(--color-text-secondary)] mt-0.5">
+                    {t.settings.notifications.diaryReminderDesc || (state.lang === "bn" ? "প্রতি ১-২ দিন পর পর নিজের ভাবনা ও ডায়েরি লেখার তাগিদ।" : "Reflect and write in your Diary or Mind Space every 1-2 days.")}
+                  </p>
+                </div>
+                <Toggle
+                  checked={diaryReminder}
+                  disabled={!notifMasterEnabled}
+                  onChange={(val) => handleSubNotificationToggle("diaryReminder", val)}
+                  ariaLabel={t.settings.notifications.diaryReminder || "My Diary & Reflections"}
+                />
+              </div>
+
+              {/* Glory AI & Inactivity Companion */}
+              <div className="p-5 sm:p-6 flex items-center justify-between gap-4">
+                <div className={notifMasterEnabled ? "" : "opacity-40"}>
+                  <h3 className="text-sm font-semibold text-[var(--color-text-primary)]">
+                    {t.settings.notifications.aiCompanion || (state.lang === "bn" ? "গ্লোরি এআই ও রি-এনগেজমেন্ট" : "Glory AI & Inactivity Check-in")}
+                  </h3>
+                  <p className="text-xs text-[var(--color-text-secondary)] mt-0.5">
+                    {t.settings.notifications.aiCompanionDesc || (state.lang === "bn" ? "সারাদিন নিষ্ক্রিয় থাকলে ফোকাস ধরে রাখতে বা গ্লোরি এআই-এর সাথে কথা বলার বার্তা।" : "Helpful check-in to chat with Glory AI or resume focus after a day of inactivity.")}
+                  </p>
+                </div>
+                <Toggle
+                  checked={aiCompanionReminder}
+                  disabled={!notifMasterEnabled}
+                  onChange={(val) => handleSubNotificationToggle("aiCompanionReminder", val)}
+                  ariaLabel={t.settings.notifications.aiCompanion || "Glory AI & Inactivity Check-in"}
                 />
               </div>
 
@@ -1963,75 +1938,6 @@ export default function SettingsPage() {
                   ))}
                 </div>
               </div>
-            </div>
-
-            {/* Web Push Device Diagnostics & Live Testing Card */}
-            <div className="rounded-2xl border border-[var(--color-border-subtle)] bg-[var(--color-surface-elevated)] p-5 sm:p-6 shadow-none space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div>
-                  <h3 className="text-sm font-semibold text-[var(--color-text-primary)] flex items-center gap-2">
-                    <Sparkles size={16} className="text-blue-500" />
-                    <span>{state.lang === "bn" ? "ওয়েব পুশ ও ব্যাকগ্রাউন্ড নোটিফিকেশন ডায়াগনস্টিক" : "Web Push Device Diagnostics & Live Test"}</span>
-                  </h3>
-                  <p className="text-xs text-[var(--color-text-secondary)] mt-0.5">
-                    {state.lang === "bn"
-                      ? "অ্যান্ড্রয়েড PWA ও ব্রাউজারে অ্যাপ বন্ধ থাকা অবস্থায় ব্যাকগ্রাউন্ড পুশ সক্রিয় রয়েছে কিনা তা পরীক্ষা ও রেজিস্টার করুন।"
-                      : "Verify and test OS-level background Web Push delivery on Android PWA and browser when the app is closed."}
-                  </p>
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex flex-wrap gap-2 pt-1">
-                <button
-                  type="button"
-                  disabled={pushDiagLoading}
-                  onClick={handleRegisterPushSubscription}
-                  className="px-4 py-2 rounded-xl text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 transition-all cursor-pointer disabled:opacity-50 flex items-center gap-1.5 shadow-none"
-                >
-                  <RefreshCw size={13} className={pushDiagLoading ? "animate-spin" : ""} />
-                  <span>{state.lang === "bn" ? "পুশ সাবস্ক্রিপশন রেজিস্টার করুন" : "Register / Sync Web Push"}</span>
-                </button>
-
-                <button
-                  type="button"
-                  disabled={pushDiagLoading}
-                  onClick={handleSendTestPush}
-                  className="px-4 py-2 rounded-xl text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 transition-all cursor-pointer disabled:opacity-50 flex items-center gap-1.5 shadow-none"
-                >
-                  <Bell size={13} />
-                  <span>{state.lang === "bn" ? "এই ডিভাইসে টেস্ট পুশ পাঠান" : "Send Test Push to This Device"}</span>
-                </button>
-
-                <button
-                  type="button"
-                  disabled={pushDiagLoading}
-                  onClick={handleRunPushDiagnostics}
-                  className="px-3.5 py-2 rounded-xl text-xs font-medium text-[var(--color-text-primary)] bg-[var(--color-surface)] border border-[var(--color-border-subtle)] hover:bg-[var(--color-surface-hover)] transition-all cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
-                >
-                  <Key size={13} />
-                  <span>{state.lang === "bn" ? "স্ট্যাটাস রিপোর্ট" : "Check Status"}</span>
-                </button>
-              </div>
-
-              {/* Diagnostic Output View */}
-              {pushDiagReport && (
-                <div className="mt-3 rounded-xl border border-[var(--color-border-subtle)] bg-[var(--color-surface)] p-4 text-xs space-y-2">
-                  <div className="flex items-center justify-between text-[var(--color-text-secondary)] font-mono text-[11px] pb-1 border-b border-[var(--color-border-subtle)]">
-                    <span>Diagnostic Log ({pushDiagReport.timestamp || pushDiagReport.testedAt || "Live"})</span>
-                    <button
-                      type="button"
-                      onClick={() => setPushDiagReport(null)}
-                      className="text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] cursor-pointer"
-                    >
-                      Clear
-                    </button>
-                  </div>
-                  <pre className="text-[11px] font-mono text-[var(--color-text-primary)] overflow-x-auto whitespace-pre-wrap max-h-60 leading-relaxed">
-                    {JSON.stringify(pushDiagReport, null, 2)}
-                  </pre>
-                </div>
-              )}
             </div>
           </div>
         );

@@ -46,12 +46,28 @@ export function isPushSupported(): boolean {
 }
 
 /**
+ * Helper to safely obtain Service Worker registration with timeout guard to avoid hanging indefinitely
+ */
+async function getServiceWorkerRegistration(timeoutMs = 3500): Promise<ServiceWorkerRegistration | null> {
+  if (typeof window === 'undefined' || !('serviceWorker' in navigator)) return null;
+  try {
+    return await Promise.race([
+      navigator.serviceWorker.ready,
+      new Promise<null>((resolve) => setTimeout(() => resolve(null), timeoutMs))
+    ]);
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Retrieves the current active PushSubscription if one exists
  */
 export async function getExistingPushSubscription(): Promise<PushSubscription | null> {
   if (!isPushSupported()) return null;
   try {
-    const registration = await navigator.serviceWorker.ready;
+    const registration = await getServiceWorkerRegistration();
+    if (!registration) return null;
     return await registration.pushManager.getSubscription();
   } catch (err) {
     console.warn('[WebPush] Error checking existing subscription:', err);
@@ -79,7 +95,10 @@ export async function subscribeUserToPush(userId?: string | null): Promise<PushS
   }
 
   try {
-    const registration = await navigator.serviceWorker.ready;
+    const registration = await getServiceWorkerRegistration();
+    if (!registration) {
+      return { success: false, subscription: null, error: 'Service worker not ready' };
+    }
     const vapidKey = DEFAULT_VAPID_PUBLIC_KEY;
     if (!vapidKey) {
       return { success: false, subscription: null, error: 'Missing VAPID public key' };
@@ -153,7 +172,8 @@ export async function unsubscribeUserFromPush(userId?: string | null): Promise<b
   if (!isPushSupported()) return false;
 
   try {
-    const registration = await navigator.serviceWorker.ready;
+    const registration = await getServiceWorkerRegistration();
+    if (!registration) return true;
     const subscription = await registration.pushManager.getSubscription();
     if (!subscription) return true;
 
@@ -202,10 +222,10 @@ export async function getPushDiagnostics() {
 
   if (supported) {
     try {
-      const reg = await navigator.serviceWorker.ready;
+      const reg = await getServiceWorkerRegistration();
       swReady = Boolean(reg);
-      swScope = reg.scope;
-      const sub = await reg.pushManager.getSubscription();
+      swScope = reg?.scope || '';
+      const sub = reg ? await reg.pushManager.getSubscription() : null;
       if (sub) {
         subscriptionData = sub.toJSON();
       }

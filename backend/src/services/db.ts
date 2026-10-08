@@ -928,6 +928,13 @@ export async function dbGetNotificationSettings(userId: string) {
       dailyProgressReminders: true,
       dailyReminderTime: '20:00',
       timezone: 'UTC',
+      quietHoursEnabled: true,
+      quietHoursStart: '22:00',
+      quietHoursEnd: '07:00',
+      orbReactionsMode: 'on',
+      dailyLimit: 5,
+      skillReminders: true,
+      inactivityReminders: true,
     };
   }
   const row = res.rows[0];
@@ -938,6 +945,13 @@ export async function dbGetNotificationSettings(userId: string) {
     dailyProgressReminders: row.daily_progress_reminders ?? true,
     dailyReminderTime: row.daily_reminder_time || '20:00',
     timezone: row.timezone || 'UTC',
+    quietHoursEnabled: row.quiet_hours_enabled ?? true,
+    quietHoursStart: row.quiet_hours_start || '22:00',
+    quietHoursEnd: row.quiet_hours_end || '07:00',
+    orbReactionsMode: row.orb_reactions_mode || 'on',
+    dailyLimit: row.daily_limit || 5,
+    skillReminders: row.skill_reminders ?? true,
+    inactivityReminders: row.inactivity_reminders ?? true,
   };
 }
 
@@ -946,9 +960,11 @@ export async function dbUpsertNotificationSettings(userId: string, settings: any
     `
     INSERT INTO user_notification_settings (
       user_id, push_enabled, task_reminders, focus_reminders,
-      daily_progress_reminders, daily_reminder_time, timezone, updated_at
+      daily_progress_reminders, daily_reminder_time, timezone,
+      quiet_hours_enabled, quiet_hours_start, quiet_hours_end,
+      orb_reactions_mode, daily_limit, skill_reminders, inactivity_reminders, updated_at
     ) VALUES (
-      $1, $2, $3, $4, $5, $6, $7, NOW()
+      $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, NOW()
     )
     ON CONFLICT (user_id) DO UPDATE SET
       push_enabled = EXCLUDED.push_enabled,
@@ -957,6 +973,13 @@ export async function dbUpsertNotificationSettings(userId: string, settings: any
       daily_progress_reminders = EXCLUDED.daily_progress_reminders,
       daily_reminder_time = EXCLUDED.daily_reminder_time,
       timezone = EXCLUDED.timezone,
+      quiet_hours_enabled = EXCLUDED.quiet_hours_enabled,
+      quiet_hours_start = EXCLUDED.quiet_hours_start,
+      quiet_hours_end = EXCLUDED.quiet_hours_end,
+      orb_reactions_mode = EXCLUDED.orb_reactions_mode,
+      daily_limit = EXCLUDED.daily_limit,
+      skill_reminders = EXCLUDED.skill_reminders,
+      inactivity_reminders = EXCLUDED.inactivity_reminders,
       updated_at = NOW()
     RETURNING *;
     `,
@@ -968,16 +991,30 @@ export async function dbUpsertNotificationSettings(userId: string, settings: any
       settings.dailyProgressReminders ?? true,
       settings.dailyReminderTime || '20:00',
       settings.timezone || 'UTC',
+      settings.quietHoursEnabled ?? true,
+      settings.quietHoursStart || '22:00',
+      settings.quietHoursEnd || '07:00',
+      settings.orbReactionsMode || 'on',
+      Number(settings.dailyLimit) || 5,
+      settings.skillReminders ?? true,
+      settings.inactivityReminders ?? true,
     ]
   );
   const row = res.rows[0];
   return {
-    pushEnabled: row.push_enabled,
-    taskReminders: row.task_reminders,
-    focusReminders: row.focus_reminders,
-    dailyProgressReminders: row.daily_progress_reminders,
+    pushEnabled: row.push_enabled ?? true,
+    taskReminders: row.task_reminders ?? true,
+    focusReminders: row.focus_reminders ?? true,
+    dailyProgressReminders: row.daily_progress_reminders ?? true,
     dailyReminderTime: row.daily_reminder_time,
     timezone: row.timezone,
+    quietHoursEnabled: row.quiet_hours_enabled ?? true,
+    quietHoursStart: row.quiet_hours_start,
+    quietHoursEnd: row.quiet_hours_end,
+    orbReactionsMode: row.orb_reactions_mode,
+    dailyLimit: row.daily_limit,
+    skillReminders: row.skill_reminders ?? true,
+    inactivityReminders: row.inactivity_reminders ?? true,
   };
 }
 

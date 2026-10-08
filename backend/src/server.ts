@@ -17,6 +17,7 @@ import supervisorRoutes from './routes/supervisorRoutes';
 import syncRoutes from './routes/syncRoutes';
 import { createServer } from 'http';
 import { setupWebSocketServer } from './services/webSocketService';
+import { startNotificationScheduler } from './services/notificationSchedulerService';
 
 // Load environment variables
 dotenv.config();
@@ -66,6 +67,9 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
 const host = process.env.HOST || '0.0.0.0';
 const server = createServer(app);
 setupWebSocketServer(server);
+
+// Start background notification scheduler worker
+startNotificationScheduler(60000);
 
 server.listen(Number(port), host, () => {
   console.log(`Focentia Backend running on http://${host}:${port}`);

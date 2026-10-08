@@ -287,6 +287,8 @@ export interface NotificationPreferences {
   dailyLimit?: number; // 5
   skillReminders?: boolean;
   inactivityReminders?: boolean;
+  diaryReminder?: boolean;
+  aiCompanionReminder?: boolean;
 }
 
 export type NotificationCategory =
@@ -297,6 +299,8 @@ export type NotificationCategory =
   | 'task_pre_reminder'
   | 'task_incomplete'
   | 'skill_reminder'
+  | 'diary_reminder'
+  | 'ai_companion'
   | 'task_completed'
   | 'focus_completed'
   | 'break_time'

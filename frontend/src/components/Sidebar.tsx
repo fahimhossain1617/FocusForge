@@ -30,6 +30,7 @@ import { useAuth } from "../context/AuthContext";
 import { useAnimateExit } from "../hooks/useAnimateExit";
 import { useSync } from "../hooks/useSync";
 import SyncStatusIndicator from "./encryption/SyncStatusIndicator";
+import InstallPrompt from "./pwa/InstallPrompt";
 
 interface NavItem {
   id: string;
@@ -418,6 +419,13 @@ export default function Sidebar({
             </div>
           )}
 
+          {/* Install Prompt for Web App Users (Expanded) */}
+          {!isCollapsed && (
+            <div className="hidden md:block">
+              <InstallPrompt variant="sidebar" />
+            </div>
+          )}
+
           {/* Expanded State Bottom Section (Seamlessly integrated with sidebar, no box container) */}
           <div className={`items-center gap-1.5 px-0.5 py-0.5 flex ${isCollapsed ? "md:hidden" : "md:flex"}`}>
             {/* Clickable Profile Area (Avatar + Name) */}
@@ -479,6 +487,9 @@ export default function Sidebar({
           {/* Collapsed State Bottom Section (Icon Only) */}
           {isCollapsed && (
             <div className="hidden md:flex flex-col items-center gap-2">
+              {/* Install Prompt for Web App Users (Collapsed) */}
+              <InstallPrompt variant="sidebar-collapsed" />
+
               {/* Avatar Button */}
               <div className="relative group">
                 <button

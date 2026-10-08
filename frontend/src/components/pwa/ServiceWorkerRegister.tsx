@@ -47,11 +47,13 @@ export default function ServiceWorkerRegister() {
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
       (window as unknown as { deferredPrompt: Event }).deferredPrompt = e;
+      window.dispatchEvent(new CustomEvent("pwa:beforeinstallprompt", { detail: e }));
     };
 
     const handleAppInstalled = () => {
       (window as unknown as { deferredPrompt: null }).deferredPrompt = null;
       (window as unknown as { isAppInstalled: boolean }).isAppInstalled = true;
+      window.dispatchEvent(new CustomEvent("pwa:installed"));
     };
 
     window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);

@@ -255,12 +255,40 @@ Focentia is an active, functional productivity suite built with Next.js 16 App R
 - **Current Implementation:**
   1. **OS-Level Service Worker Push Handler (`frontend/public/sw.js`):** Standalone `push` event listener parsing JSON/text payloads and invoking `event.waitUntil(self.registration.showNotification(title, options))` so the OS handles displaying notifications even when the app/browser is terminated or minimized. Robust `notificationclick` handler focusing active clients or launching window to deep-linked URLs.
   2. **VAPID Keys & Client Subscription Pipeline (`frontend/src/utils/pushSubscription.ts`):** ECDSA P-256 VAPID protocol integration (`NEXT_PUBLIC_VAPID_PUBLIC_KEY` & `VAPID_PRIVATE_KEY`). `subscribeUserToPush` negotiates browser PushManager subscription via `urlBase64ToUint8Array` and persists endpoint/keys to `push_subscriptions` database table. Integrated automatically with `ServiceWorkerRegister.tsx` and `notificationService.ts`.
-  3. **Server-Side Push Delivery Pipelines (`webPushService.ts`):** `frontend/src/lib/server/webPushService.ts` and `backend/src/services/webPushService.ts` using `web-push` library with automatic removal of 410/404 expired subscriptions.
-  4. **Supabase Edge Function (`supabase/functions/send-push/index.ts`):** Native Deno Edge Function for direct serverless Web Push delivery from database triggers and webhooks.
-  5. **API Endpoints:** `POST /api/notifications/subscribe`, `POST /api/notifications/unsubscribe`, `POST /api/notifications/send-push`, `POST /api/notifications/test-push`.
-- **Verified Status:** **VERIFIED** (Next.js production build passed with 0 errors, backend compilation passed, 5/5 architecture tests passed, database query verified).
-- **Important Files:** `frontend/public/sw.js`, `frontend/src/utils/pushSubscription.ts`, `frontend/src/lib/server/webPushService.ts`, `backend/src/services/webPushService.ts`, `supabase/functions/send-push/index.ts`, `supabase/migrations/027_push_subscriptions_and_rls.sql`, `frontend/src/app/api/[...path]/route.ts`, `backend/src/routes/notificationRoutes.ts`.
+  3. **Backend Scheduler & Push Worker (`backend/src/services/notificationSchedulerService.ts`):** Persistent server background worker running every 60s to evaluate scheduled rules:
+     - 5 minutes before scheduled task (`task_pre_reminder`)
+     - Exact task start time (`task_start`)
+     - 30 minutes before task end if still incomplete (`task_incomplete`)
+     - Midday & evening focus reminders if no focus session recorded today (`focus_reminder`)
+     - Skill builder practice reminder if learning topics exist but not practiced today (`skill_reminder`)
+     - Mind space / Diary reminder every evening (`diary_reminder`)
+     - 1-day inactivity companion alert to chat with Glory AI or resume focus (`ai_companion`)
+     Respects quiet hours (22:00 - 07:00), daily frequency caps, and deduplication.
+  4. **Simplified Settings UI with Master Toggle (`SettingsPage.tsx`):** Clean header without redundant "Active" badge. Central push toggle in the Notification Settings header allows switching notifications ON and OFF fluidly at any time. When turned ON, it promptly enables state and schedules Web Push registration asynchronously in the background. When turned OFF, disables notifications and disables all sub-toggles.
+  5. **Server-Side Push Delivery Pipelines (`webPushService.ts`):** `frontend/src/lib/server/webPushService.ts` and `backend/src/services/webPushService.ts` using `web-push` library with automatic removal of 410/404 expired subscriptions.
+  6. **API Endpoints:** `POST /api/notifications/subscribe`, `POST /api/notifications/unsubscribe`, `POST /api/notifications/send-push`, `POST /api/notifications/test`, `POST /api/notifications/cron`, `GET/POST /api/notifications/settings`.
+- **Verified Status:** **VERIFIED** (Next.js production build passed with 0 errors, toggle on/off verified, non-blocking asynchronous Web Push registration guard active).
+- **Important Files:** `frontend/public/sw.js`, `frontend/src/utils/pushSubscription.ts`, `frontend/src/lib/server/webPushService.ts`, `backend/src/services/webPushService.ts`, `backend/src/services/notificationSchedulerService.ts`, `frontend/src/components/pages/SettingsPage.tsx`, `frontend/src/hooks/useDailyPlan.ts`, `frontend/src/services/notificationTemplates.ts`, `frontend/src/app/api/[...path]/route.ts`, `backend/src/routes/notificationRoutes.ts`.
 - **Dependencies:** `web-push`, PushManager API, Service Worker API, PostgreSQL.
+- **Unknowns:** None.
+
+### PWA 'Get App' / Installation Subsystem
+- **Current Implementation:**
+  1. **Dual Responsive Placement:**
+     - **Mobile & Tablet:** Modern compact pill button rendered in `MobileHeader.tsx` directly to the left of the Theme Toggle button.
+     - **Desktop / Laptop (Expanded Sidebar):** Sleek install banner card rendered in `Sidebar.tsx` immediately above the User profile & settings row.
+     - **Desktop / Laptop (Collapsed Sidebar):** Clean icon button with tooltip rendered in the bottom icon stack above the user avatar.
+  2. **Intelligent Visibility & Lifecycle State:**
+     - Only shown when running in standard web browser / via web link.
+     - Detects standalone display mode (`(display-mode: standalone)`, `navigator.standalone`, `getInstalledRelatedApps()`, etc.).
+     - Captures and synchronizes `beforeinstallprompt` and `appinstalled` events across `ServiceWorkerRegister.tsx` and `InstallPrompt.tsx`.
+     - Once installed (via native prompt, button click, or browser menu), automatically and permanently hidden.
+  3. **Universal Cross-Browser Support:**
+     - Directly triggers native prompt when available (`deferredPrompt.prompt()`).
+     - Provides clear platform-specific guidance for iOS Safari ("Share -> Add to Home Screen") and desktop browsers.
+- **Verified Status:** **VERIFIED** (Next.js production build passed with 0 errors across 18 static/dynamic routes, verified responsive rendering and prompt lifecycle).
+- **Important Files:** `frontend/src/components/pwa/InstallPrompt.tsx`, `frontend/src/components/pwa/ServiceWorkerRegister.tsx`, `frontend/src/components/navigation/MobileHeader.tsx`, `frontend/src/components/Sidebar.tsx`.
+- **Dependencies:** Web App Manifest, Service Worker API.
 - **Unknowns:** None.
 
 ---

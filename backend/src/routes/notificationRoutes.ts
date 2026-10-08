@@ -16,6 +16,7 @@ import {
   dbSaveRotationState,
 } from '../services/db';
 import { sendWebPushToUser } from '../services/webPushService';
+import { runNotificationSchedulerCycle } from '../services/notificationSchedulerService';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -338,6 +339,19 @@ router.get('/reminders', async (req: AuthenticatedRequest, res: Response) => {
     res.json({ reminders: pendingWithReminders || [] });
   } catch (err: any) {
     res.status(500).json({ error: err.message || 'Failed to fetch reminders' });
+  }
+});
+
+/**
+ * GET / POST /api/notifications/cron
+ * Manual or automated cron trigger to evaluate background notification delivery
+ */
+router.all('/cron', async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const result = await runNotificationSchedulerCycle();
+    res.json({ success: true, ...result, timestamp: new Date().toISOString() });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Cron cycle execution failed' });
   }
 });
 

@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { toggleThemeWithCircularTransition } from "../../utils/themeTransition";
 import { useSync } from "../../hooks/useSync";
+import InstallPrompt from "../pwa/InstallPrompt";
 
 export default function MobileHeader() {
   const { state, updateState, navigateTo, isSubViewActive } = useAppContext();
@@ -139,8 +140,10 @@ export default function MobileHeader() {
           </span>
         </button>
 
-        {/* Right Actions: Theme Toggle + Clean Unboxed Bell + 3-Dots Menu */}
-        <div className="flex items-center gap-1">
+        {/* Right Actions: Get App + Theme Toggle + Clean Unboxed Bell + 3-Dots Menu */}
+        <div className="flex items-center gap-1 sm:gap-1.5">
+          {/* Get App PWA Button (Visible only when not installed / web browser) */}
+          <InstallPrompt variant="header" />
 
           {/* Theme Quick Toggle Button (Clean unboxed icon matching theme) */}
           <button
