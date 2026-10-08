@@ -198,7 +198,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!isMounted) return;
 
+      if (event === "PASSWORD_RECOVERY") {
+        const recoveryEmail = session?.user?.email;
+        if (recoveryEmail && typeof window !== "undefined") {
+          sessionStorage.setItem("focusforge_pending_reset_email", recoveryEmail);
+        }
+        router.replace(`/reset-password${recoveryEmail ? `?email=${encodeURIComponent(recoveryEmail)}` : ""}`);
+        return;
+      }
+
       if (event === "SIGNED_IN" || event === "INITIAL_SESSION") {
+        const isRecoveryFlow = typeof window !== "undefined" && (
+          window.location.pathname.startsWith("/reset-password") ||
+          window.location.hash.includes("type=recovery") ||
+          window.location.search.includes("type=recovery")
+        );
+
+        if (isRecoveryFlow && session?.user?.email) {
+          sessionStorage.setItem("focusforge_pending_reset_email", session.user.email);
+        }
+
         if (session?.user) {
           const u = session.user;
           const meta = u.user_metadata || {};

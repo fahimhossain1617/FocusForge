@@ -699,6 +699,12 @@ export default function SettingsPage() {
   const [isSyncingNow, setIsSyncingNow] = useState<boolean>(false);
   const [syncResultNote, setSyncResultNote] = useState<string | null>(null);
   const [keyCopied, setKeyCopied] = useState<boolean>(false);
+  const [isEditingPassphrase, setIsEditingPassphrase] = useState<boolean>(false);
+  const [newPassphraseInput, setNewPassphraseInput] = useState<string>("");
+  const [confirmPassphraseInput, setConfirmPassphraseInput] = useState<string>("");
+  const [showPassphraseInput, setShowPassphraseInput] = useState<boolean>(false);
+  const [passphraseError, setPassphraseError] = useState<string>("");
+  const [isUpdatingPassphrase, setIsUpdatingPassphrase] = useState<boolean>(false);
 
   useEffect(() => {
     if (typeof window !== "undefined" && user?.id) {
@@ -713,6 +719,38 @@ export default function SettingsPage() {
     setKeyCopied(true);
     showToast(state?.lang === "bn" ? "রিকভারি কি ক্লিপবোর্ডে কপি করা হয়েছে!" : "Recovery key copied to clipboard!", "success");
     setTimeout(() => setKeyCopied(false), 2500);
+  };
+
+  const handleUpdatePassphrase = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user?.id) return;
+    if (newPassphraseInput.length < 6) {
+      setPassphraseError(state?.lang === "bn" ? "পাসফ্রেজ কমপক্ষে ৬ অক্ষরের হতে হবে।" : "Passphrase must be at least 6 characters long.");
+      return;
+    }
+    if (newPassphraseInput !== confirmPassphraseInput) {
+      setPassphraseError(state?.lang === "bn" ? "পাসফ্রেজ দুটি মিলছে না।" : "Passphrases do not match.");
+      return;
+    }
+    setPassphraseError("");
+    setIsUpdatingPassphrase(true);
+    try {
+      const ok = await cryptoSyncService.unlockEncryption(user.id, newPassphraseInput);
+      if (ok) {
+        showToast(state?.lang === "bn" ? "ডিভাইস এনক্রিপশন পাসফ্রেজ সফলভাবে আপডেট হয়েছে!" : "Device encryption passphrase updated successfully!", "success");
+        setIsEditingPassphrase(false);
+        setNewPassphraseInput("");
+        setConfirmPassphraseInput("");
+        const key = cryptoSyncService.getRecoveryKey(user.id);
+        setActiveRecoveryKey(key || "");
+      } else {
+        setPassphraseError(state?.lang === "bn" ? "পাসফ্রেজ আপডেট করতে সমস্যা হয়েছে।" : "Failed to update encryption passphrase.");
+      }
+    } catch (err: any) {
+      setPassphraseError(err?.message || "Failed to update passphrase.");
+    } finally {
+      setIsUpdatingPassphrase(false);
+    }
   };
 
   const handleAuthorizeWithKey = async () => {
@@ -2599,6 +2637,124 @@ export default function SettingsPage() {
               <div className="p-3.5 rounded-xl bg-[var(--color-surface)] border border-[var(--color-border-subtle)] font-mono text-xs text-[var(--color-text-primary)] break-all select-all tracking-wider text-center">
                 {activeRecoveryKey || "Generating key..."}
               </div>
+            </div>
+
+            {/* Device Encryption Passphrase Management Card */}
+            <div className="rounded-2xl border border-[var(--color-border-subtle)] bg-[var(--color-surface-elevated)] p-6 space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Lock className="w-4 h-4 text-emerald-500" />
+                  <h3 className="text-sm font-semibold text-[var(--color-text-primary)]">
+                    {isBn ? "ডিভাইস এনক্রিপশন পাসফ্রেজ" : "Device Encryption Passphrase"}
+                  </h3>
+                </div>
+                {!isEditingPassphrase && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsEditingPassphrase(true);
+                      setPassphraseError("");
+                    }}
+                    className="px-3 py-1.5 rounded-lg text-xs font-medium text-blue-600 dark:text-blue-400 hover:bg-blue-500/10 border border-blue-500/20 transition-colors cursor-pointer"
+                  >
+                    {isBn ? "পাসফ্রেজ পরিবর্তন করুন" : "Change Passphrase"}
+                  </button>
+                )}
+              </div>
+
+              <p className="text-[11px] text-[var(--color-text-muted)]">
+                {isBn
+                  ? "এই পাসফ্রেজটি আপনার ডিভাইসের মাস্টার এনক্রিপশন কি (AES-256) নিরাপদে লক এবং আনলক করার জন্য ব্যবহৃত হয়।"
+                  : "This passphrase wraps your AES-256 Master Encryption Key so only you can unlock your synchronized vault."}
+              </p>
+
+              {isEditingPassphrase ? (
+                <form onSubmit={handleUpdatePassphrase} className="space-y-4 pt-2">
+                  <div>
+                    <label className="block text-xs font-medium text-[var(--color-text-primary)] mb-1.5">
+                      {isBn ? "নতুন এনক্রিপশন পাসফ্রেজ" : "New Encryption Passphrase"} <span className="text-blue-500">*</span>
+                    </label>
+                    <div className="relative">
+                      <input
+                        type={showPassphraseInput ? "text" : "password"}
+                        required
+                        value={newPassphraseInput}
+                        onChange={(e) => {
+                          setNewPassphraseInput(e.target.value);
+                          if (passphraseError) setPassphraseError("");
+                        }}
+                        placeholder={isBn ? "কমপক্ষে ৬ অক্ষরের পাসফ্রেজ লিখুন" : "Enter passphrase (min. 6 chars)"}
+                        className="w-full px-3.5 py-2.5 pr-10 rounded-xl bg-[var(--color-surface)] border border-[var(--color-border-subtle)] text-xs text-[var(--color-text-primary)] focus:outline-none focus:border-blue-500 min-h-[44px]"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassphraseInput(!showPassphraseInput)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] cursor-pointer"
+                        aria-label="Toggle passphrase visibility"
+                      >
+                        {showPassphraseInput ? <EyeOff size={15} /> : <Eye size={15} />}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-[var(--color-text-primary)] mb-1.5">
+                      {isBn ? "পাসফ্রেজ নিশ্চিত করুন" : "Confirm Passphrase"} <span className="text-blue-500">*</span>
+                    </label>
+                    <input
+                      type={showPassphraseInput ? "text" : "password"}
+                      required
+                      value={confirmPassphraseInput}
+                      onChange={(e) => {
+                        setConfirmPassphraseInput(e.target.value);
+                        if (passphraseError) setPassphraseError("");
+                      }}
+                      placeholder={isBn ? "পাসফ্রেজটি পুনরায় লিখুন" : "Confirm passphrase"}
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-[var(--color-surface)] border border-[var(--color-border-subtle)] text-xs text-[var(--color-text-primary)] focus:outline-none focus:border-blue-500 min-h-[44px]"
+                    />
+                  </div>
+
+                  {passphraseError && (
+                    <p className="text-xs text-red-500 font-medium">{passphraseError}</p>
+                  )}
+
+                  <div className="flex items-center gap-3 pt-1">
+                    <button
+                      type="submit"
+                      disabled={isUpdatingPassphrase || !newPassphraseInput}
+                      className="px-4 py-2.5 rounded-xl text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 transition-colors shadow-none cursor-pointer disabled:opacity-50 min-h-[42px]"
+                    >
+                      {isUpdatingPassphrase
+                        ? (isBn ? "আপডেট হচ্ছে..." : "Updating...")
+                        : (isBn ? "পাসফ্রেজ সংরক্ষণ করুন" : "Save Passphrase")}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsEditingPassphrase(false);
+                        setNewPassphraseInput("");
+                        setConfirmPassphraseInput("");
+                        setPassphraseError("");
+                      }}
+                      className="px-4 py-2.5 rounded-xl text-xs font-semibold text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface)] border border-[var(--color-border-subtle)] transition-colors cursor-pointer min-h-[42px]"
+                    >
+                      {isBn ? "বাতিল" : "Cancel"}
+                    </button>
+                  </div>
+                </form>
+              ) : (
+                <div className="flex items-center justify-between p-3.5 rounded-xl bg-[var(--color-surface)] border border-[var(--color-border-subtle)]">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                    <span className="text-xs text-[var(--color-text-primary)] font-medium">
+                      {isBn ? "ভল্ট এনক্রিপশন সক্রিয়" : "Vault Encryption Active"}
+                    </span>
+                  </div>
+                  <span className="text-[11px] text-[var(--color-text-muted)] font-mono">
+                    PBKDF2-SHA256 • AES-256
+                  </span>
+                </div>
+              )}
             </div>
 
             {/* Authorize New Device Card */}

@@ -63,7 +63,7 @@ const pageComponents: Record<string, React.ComponentType<{ onOpenSidebar?: () =>
 
 export default function Home() {
   const { state, isLoaded, isPageLoading, navigateTo } = useAppContext();
-  const { user, isLoading: isAuthLoading } = useAuth();
+  const { user, isGuest, isLoading: isAuthLoading } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
@@ -84,6 +84,17 @@ export default function Home() {
 
   const [dismissedEncryptionSetup, setDismissedEncryptionSetup] = useState(false);
   const [dismissedEncryptionUnlock, setDismissedEncryptionUnlock] = useState(false);
+
+  // If page was loaded with a password recovery hash/query, redirect immediately to reset password
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const hash = window.location.hash || "";
+      const search = window.location.search || "";
+      if (hash.includes("type=recovery") || search.includes("type=recovery")) {
+        window.location.href = `/reset-password${hash || search}`;
+      }
+    }
+  }, []);
 
   // Signal app readiness once first real render mounts and data/auth are settled
   useEffect(() => {
@@ -303,17 +314,17 @@ export default function Home() {
         isSubmitting={isReviewSubmitting}
       />
 
-      {/* Zero-Knowledge Envelope Encryption Setup Modal */}
+      {/* Zero-Knowledge Envelope Encryption Setup Modal (Authenticated users only, after onboarding) */}
       <PassphraseSetupModal
-        isOpen={encryptionNeedsSetup && !dismissedEncryptionSetup && launchDone}
+        isOpen={!isGuest && Boolean(user?.id) && encryptionNeedsSetup && !dismissedEncryptionSetup && !showOnboarding && launchDone}
         onComplete={setupVault}
         onDismiss={() => setDismissedEncryptionSetup(true)}
         lang={state.lang}
       />
 
-      {/* Returning Device Passphrase Unlock Modal */}
+      {/* Returning Device Passphrase Unlock Modal (Authenticated users only, after onboarding) */}
       <PassphraseUnlockModal
-        isOpen={encryptionNeedsUnlock && !dismissedEncryptionUnlock && launchDone}
+        isOpen={!isGuest && Boolean(user?.id) && encryptionNeedsUnlock && !dismissedEncryptionUnlock && !showOnboarding && launchDone}
         onUnlock={unlockVault}
         onCancel={() => setDismissedEncryptionUnlock(true)}
         lang={state.lang}

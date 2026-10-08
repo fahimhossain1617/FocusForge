@@ -22,7 +22,13 @@ function AuthCallbackContent() {
         const next = searchParams.get("next");
         const code = searchParams.get("code");
         const hash = typeof window !== "undefined" ? window.location.hash : "";
-        const isRecovery = type === "recovery" || next?.includes("reset-password") || hash.includes("type=recovery");
+        const search = typeof window !== "undefined" ? window.location.search : "";
+        const isRecovery =
+          type === "recovery" ||
+          next?.includes("reset-password") ||
+          hash.includes("type=recovery") ||
+          search.includes("type=recovery") ||
+          searchParams.get("type") === "recovery";
 
         if (code) {
           await supabase.auth.exchangeCodeForSession(code);
@@ -36,7 +42,7 @@ function AuthCallbackContent() {
         }
 
         if (isRecovery) {
-          const userEmail = data?.session?.user?.email || "";
+          const userEmail = data?.session?.user?.email || searchParams.get("email") || "";
           if (userEmail && typeof window !== "undefined") {
             sessionStorage.setItem("focusforge_pending_reset_email", userEmail);
           }

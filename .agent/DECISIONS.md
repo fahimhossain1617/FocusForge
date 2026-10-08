@@ -568,3 +568,26 @@
 - **Reason:** Addresses user feedback regarding cramped top alignment and large empty bottom space on mobile phone screens.
 - **Impact:** `frontend/src/app/auth.css`.
 - **Do Not Change Without Approval:** Do not alter desktop/tablet split view layouts or revert mobile centering to top-pinned margins.
+
+---
+
+## ADR-036: Password Recovery Direct Routing & Device Encryption Lifecycle Isolation
+
+- **Date:** October 2026
+- **Status:** Accepted
+- **Decision:**
+  1. **Direct Password Recovery Navigation:** When a user clicks the Supabase password reset link from Gmail:
+     - `AuthContext.tsx` detects `event === "PASSWORD_RECOVERY"` and stores the recovery email in `sessionStorage` before routing immediately to `/reset-password`.
+     - `/auth/callback` and `app/page.tsx` intercept recovery tokens/hash parameters (`#type=recovery`, `?type=recovery`) and route directly to `/reset-password` without opening the dashboard or triggering encryption prompts.
+  2. **Two-Step Password Reset Flow:**
+     - Step 1: User enters New Password & Confirmation on `/reset-password`. Submitting calls `/api/auth/request-reset-otp` to dispatch a 6-digit OTP code to the user's Gmail.
+     - Step 2: User enters the 6-digit OTP. `/api/auth/verify-reset-otp` validates the OTP, updates the PostgreSQL password hash in `auth.users`, logs the user in, and transitions seamlessly.
+  3. **Device Encryption Setup & Modal Gating:**
+     - On first launch, Onboarding is displayed.
+     - In **Guest Mode**, Device Encryption (Passphrase Setup / Unlock) modals are **NEVER** displayed (`!isGuest && Boolean(user?.id)`).
+     - Once the user logs in/signs up as an authenticated user AND Onboarding is completed/closed, the Device Encryption prompt is presented.
+  4. **Settings Device Encryption Management:**
+     - Under `Privacy > E2EE Sync & Recovery Key` in `SettingsPage.tsx`, authenticated users can view encryption status, update/change their encryption passphrase, copy their secret recovery key, authorize new devices, or trigger manual cloud synchronization.
+- **Reason:** Resolves an issue where clicking the email reset link routed to the home dashboard and intercepted users with E2EE device sync modals instead of the password change flow.
+- **Impact:** `frontend/src/context/AuthContext.tsx`, `frontend/src/app/auth/callback/page.tsx`, `frontend/src/app/page.tsx`, `frontend/src/app/reset-password/page.tsx`, `frontend/src/components/pages/SettingsPage.tsx`.
+- **Do Not Change Without Approval:** Do not show encryption prompts to unauthenticated guests or during password recovery flows.

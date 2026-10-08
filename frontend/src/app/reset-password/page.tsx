@@ -48,14 +48,6 @@ function ResetPasswordContent() {
     if (resolvedEmail) {
       const clean = resolvedEmail.trim().toLowerCase();
       setEmail(clean);
-
-      // Check if this reset link was already used to set the new password
-      if (typeof window !== "undefined") {
-        const resetDone = localStorage.getItem(`focusforge_reset_completed_${clean}`);
-        if (resetDone) {
-          setIsAlreadyReset(true);
-        }
-      }
     }
 
     // Also check active Supabase recovery session if present
@@ -65,12 +57,6 @@ function ResetPasswordContent() {
         if (data?.session?.user?.email) {
           const sEmail = data.session.user.email.trim().toLowerCase();
           setEmail(sEmail);
-          if (typeof window !== "undefined") {
-            const resetDone = localStorage.getItem(`focusforge_reset_completed_${sEmail}`);
-            if (resetDone) {
-              setIsAlreadyReset(true);
-            }
-          }
         }
       } catch {}
     }
@@ -563,25 +549,21 @@ function ResetPasswordContent() {
       </p>
 
       <form onSubmit={handleProceedToVerify}>
-        {!searchParams?.get("email") && (
-          <>
-            <label htmlFor="reset-email" className="auth-label">
-              Account email
-            </label>
-            <div className="auth-field mb-3">
-              {AuthIcons.mail}
-              <input
-                id="reset-email"
-                type="email"
-                placeholder="Enter your email address"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                autoComplete="email"
-              />
-            </div>
-          </>
-        )}
+        <label htmlFor="reset-email" className="auth-label">
+          Account email
+        </label>
+        <div className="auth-field mb-3">
+          {AuthIcons.mail}
+          <input
+            id="reset-email"
+            type="email"
+            placeholder="Enter your email address"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+            autoComplete="email"
+          />
+        </div>
 
         <label htmlFor="reset-new-password" className="auth-label">
           New password
