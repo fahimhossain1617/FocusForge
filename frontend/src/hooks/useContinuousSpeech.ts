@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { broadcastSpeechActivity } from '@/hooks/useVoiceAmplitude';
 
 export interface UseContinuousSpeechOptions {
   initialLang?: 'bn-BD' | 'en-US';
@@ -24,6 +25,8 @@ export function useContinuousSpeech({
   const langRef = useRef(lang);
   const recognitionRef = useRef<any>(null);
   const restartTimerRef = useRef<any>(null);
+  const isStartingRef = useRef(false);
+  const consecutiveErrorsRef = useRef(0);
   const onTranscriptChangeRef = useRef(onTranscriptChange);
   const onErrorRef = useRef(onError);
 
@@ -42,7 +45,8 @@ export function useContinuousSpeech({
     onTranscriptChangeRef.current?.(newText);
   }, []);
 
-  const cleanupCurrentSession = () => {
+  const cleanupCurrentSession = useCallback(() => {
+    broadcastSpeechActivity(false);
     if (sessionFinalRef.current.trim()) {
       const base = allFinalTextRef.current.trim();
       const sFinal = sessionFinalRef.current.trim();
@@ -51,14 +55,20 @@ export function useContinuousSpeech({
     }
     if (recognitionRef.current) {
       try {
-        recognitionRef.current.onresult = null;
-        recognitionRef.current.onend = null;
-        recognitionRef.current.onerror = null;
-        recognitionRef.current.abort();
+        const rec = recognitionRef.current;
+        recognitionRef.current = null;
+        rec.onresult = null;
+        rec.onend = null;
+        rec.onerror = null;
+        rec.onspeechstart = null;
+        rec.onspeechend = null;
+        rec.onsoundstart = null;
+        rec.onsoundend = null;
+        rec.abort();
       } catch (e) {}
-      recognitionRef.current = null;
     }
-  };
+    isStartingRef.current = false;
+  }, []);
 
   const startRecognitionSession = useCallback(() => {
     if (typeof window === 'undefined') return;
@@ -66,21 +76,54 @@ export function useContinuousSpeech({
       (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
 
     if (!SpeechRecognition) {
-      onErrorRef.current?.('SpeechRecognition not supported in this browser.');
+      onErrorRef.current?.('SpeechRecognition is not supported in this browser.');
       return;
     }
 
+    if (isStartingRef.current) return;
+    isStartingRef.current = true;
+
     cleanupCurrentSession();
 
-    const recognition = new SpeechRecognition();
-    recognition.continuous = true;
-    recognition.interimResults = true;
-    recognition.maxAlternatives = 1;
-    recognition.lang = langRef.current;
+    let recognition: any;
+    try {
+      recognition = new SpeechRecognition();
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.maxAlternatives = 1;
+      recognition.lang = langRef.current;
+    } catch (initErr) {
+      isStartingRef.current = false;
+      return;
+    }
 
     sessionFinalRef.current = '';
 
+    recognition.onstart = () => {
+      isStartingRef.current = false;
+      consecutiveErrorsRef.current = 0;
+    };
+
+    recognition.onspeechstart = () => {
+      broadcastSpeechActivity(true);
+    };
+
+    recognition.onsoundstart = () => {
+      broadcastSpeechActivity(true);
+    };
+
+    recognition.onspeechend = () => {
+      broadcastSpeechActivity(false);
+    };
+
+    recognition.onsoundend = () => {
+      broadcastSpeechActivity(false);
+    };
+
     recognition.onresult = (event: any) => {
+      broadcastSpeechActivity(true);
+      consecutiveErrorsRef.current = 0;
+
       let currentFinal = '';
       let currentInterim = '';
 
@@ -107,31 +150,84 @@ export function useContinuousSpeech({
     };
 
     recognition.onerror = (event: any) => {
-      // Normal browser events during pauses:
-      if (event.error === 'no-speech' || event.error === 'aborted') {
+      const err = event?.error;
+
+      // Normal browser events during speech pauses:
+      if (err === 'no-speech' || err === 'aborted') {
+        broadcastSpeechActivity(false);
         return;
       }
 
-      // Socket/Network drop: give 400ms breathing room before reconnecting
-      if (event.error === 'network' || event.error === 'audio-capture') {
+      broadcastSpeechActivity(false);
+      consecutiveErrorsRef.current += 1;
+
+      // Microphone permission denied or blocked
+      if (err === 'not-allowed' || err === 'service-not-allowed') {
+        isListeningRef.current = false;
+        setIsListening(false);
         clearTimeout(restartTimerRef.current);
+        cleanupCurrentSession();
+        onErrorRef.current?.(
+          langRef.current === 'bn-BD'
+            ? 'মাইক্রোফোনের অনুমতি দেওয়া হয়নি। অনুগ্রহ করে ব্রাউজার সেটিংসে মাইক্রোফোন অ্যালাউ করুন।'
+            : 'Microphone permission denied. Please allow microphone access in browser settings.'
+        );
+        return;
+      }
+
+      // Hardware lock or audio capture conflict
+      if (err === 'audio-capture') {
+        clearTimeout(restartTimerRef.current);
+        if (consecutiveErrorsRef.current >= 2) {
+          isListeningRef.current = false;
+          setIsListening(false);
+          cleanupCurrentSession();
+          onErrorRef.current?.(
+            langRef.current === 'bn-BD'
+              ? 'মাইক্রোফোন পাওয়া যাচ্ছে না বা অন্য কোনো অ্যাপ ব্যবহার করছে।'
+              : 'Microphone is unavailable or busy by another application.'
+          );
+          return;
+        }
+
+        // Single retry with 500ms cooloff
         if (isListeningRef.current) {
           restartTimerRef.current = setTimeout(() => {
             if (isListeningRef.current) startRecognitionSession();
-          }, 400);
+          }, 500);
         }
         return;
       }
 
-      if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
-        isListeningRef.current = false;
-        setIsListening(false);
-        onErrorRef.current?.(event.error);
+      // Network hiccups
+      if (err === 'network') {
+        clearTimeout(restartTimerRef.current);
+        if (consecutiveErrorsRef.current >= 3) {
+          isListeningRef.current = false;
+          setIsListening(false);
+          cleanupCurrentSession();
+          onErrorRef.current?.(
+            langRef.current === 'bn-BD'
+              ? 'ভয়েস সার্ভারের সাথে সংযোগ বিচ্ছিন্ন হয়েছে। ইন্টারনেট কানেকশন চেক করুন।'
+              : 'Voice recognition network connection error.'
+          );
+          return;
+        }
+
+        if (isListeningRef.current) {
+          restartTimerRef.current = setTimeout(() => {
+            if (isListeningRef.current) startRecognitionSession();
+          }, 800);
+        }
+        return;
       }
     };
 
     recognition.onend = () => {
-      // Lock all completed sentences into permanent memory
+      broadcastSpeechActivity(false);
+      isStartingRef.current = false;
+
+      // Commit all completed sentences into permanent memory
       if (sessionFinalRef.current.trim()) {
         const base = allFinalTextRef.current.trim();
         const sFinal = sessionFinalRef.current.trim();
@@ -139,15 +235,15 @@ export function useContinuousSpeech({
         sessionFinalRef.current = '';
       }
 
-      // CRITICAL: Chrome needs at least 250ms to completely release the microphone stream
-      // Do NOT restart at 50ms, as it triggers audio-capture failure
-      if (isListeningRef.current) {
+      // Only restart if the user STILL intends to listen and error threshold is not breached
+      if (isListeningRef.current && consecutiveErrorsRef.current < 3) {
         clearTimeout(restartTimerRef.current);
+        // 300ms pause allows browser audio buffers to flush cleanly
         restartTimerRef.current = setTimeout(() => {
           if (isListeningRef.current) {
             startRecognitionSession();
           }
-        }, 250);
+        }, 300);
       }
     };
 
@@ -155,38 +251,38 @@ export function useContinuousSpeech({
       recognition.start();
       recognitionRef.current = recognition;
     } catch (err) {
-      if (isListeningRef.current) {
+      isStartingRef.current = false;
+      if (isListeningRef.current && consecutiveErrorsRef.current < 2) {
+        consecutiveErrorsRef.current += 1;
         restartTimerRef.current = setTimeout(() => {
           if (isListeningRef.current) startRecognitionSession();
-        }, 350);
+        }, 400);
       }
     }
-  }, [emitChange]);
+  }, [cleanupCurrentSession, emitChange]);
 
   const toggleListening = useCallback((currentManualText?: string) => {
     if (isListeningRef.current) {
-      // Stop
+      // STOP
       isListeningRef.current = false;
       setIsListening(false);
       clearTimeout(restartTimerRef.current);
+      consecutiveErrorsRef.current = 0;
       cleanupCurrentSession();
 
-      if (sessionFinalRef.current.trim()) {
-        const base = allFinalTextRef.current.trim();
-        const sFinal = sessionFinalRef.current.trim();
-        allFinalTextRef.current = base ? `${base} ${sFinal}` : sFinal;
-        sessionFinalRef.current = '';
-      }
+      // Ensure full finalized transcript is permanently preserved and emitted
+      emitChange(allFinalTextRef.current);
     } else {
-      // Start
+      // START
       const initialText = currentManualText !== undefined ? currentManualText : allFinalTextRef.current;
       allFinalTextRef.current = initialText;
       sessionFinalRef.current = '';
       isListeningRef.current = true;
       setIsListening(true);
+      consecutiveErrorsRef.current = 0;
       startRecognitionSession();
     }
-  }, [startRecognitionSession]);
+  }, [cleanupCurrentSession, emitChange, startRecognitionSession]);
 
   const toggleLanguage = useCallback(() => {
     const nextLang = langRef.current === 'bn-BD' ? 'en-US' : 'bn-BD';
@@ -204,7 +300,7 @@ export function useContinuousSpeech({
       clearTimeout(restartTimerRef.current);
       restartTimerRef.current = setTimeout(() => {
         if (isListeningRef.current) startRecognitionSession();
-      }, 200);
+      }, 250);
     }
   }, [startRecognitionSession]);
 
@@ -220,7 +316,7 @@ export function useContinuousSpeech({
       clearTimeout(restartTimerRef.current);
       cleanupCurrentSession();
     };
-  }, []);
+  }, [cleanupCurrentSession]);
 
   const isSupported = typeof window !== 'undefined' && Boolean(
     (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition

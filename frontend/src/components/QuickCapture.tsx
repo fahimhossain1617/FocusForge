@@ -102,19 +102,23 @@ export default function QuickCapture() {
           <VoiceReactiveGlow active={isVoiceListening} rounded="rounded-[18px]" />
           <div className="flex items-start gap-3 p-4">
             <Brain className="w-5 h-5 text-[#5B8DEF] shrink-0 mt-1" />
-            {isVoiceListening ? (
-              <div className="flex-1 flex items-center h-[44px] overflow-hidden">
-                <VoiceWaveform active={isVoiceListening} isBengali={state.lang === 'bn'} />
-              </div>
-            ) : (
-
+            <div className="flex-1 flex flex-col min-w-0">
+              {isVoiceListening && (
+                <div className="w-full h-[22px] flex items-center overflow-hidden mb-1 pointer-events-none">
+                  <VoiceWaveform active={isVoiceListening} isBengali={state.lang === 'bn'} />
+                </div>
+              )}
               <textarea
                 ref={textareaRef}
                 value={value}
                 onChange={handleChange}
                 onKeyDown={handleKeyDown}
-                placeholder={state.lang === 'bn' ? "আপনার মনে কী চলছে? (বাংলা বা ইংরেজিতে বলুন...)" : "What's on your mind? (Speak in বাংলা or English...)"}
-                className="flex-1 py-1 text-base font-medium bg-transparent !border-none !shadow-none focus:!shadow-none resize-none text-[#111827] dark:text-foreground placeholder:text-[#8290A5]"
+                placeholder={
+                  isVoiceListening
+                    ? (state.lang === 'bn' ? "বলুন, কথা শোনা হচ্ছে..." : "Listening, speak now...")
+                    : (state.lang === 'bn' ? "আপনার মনে কী চলছে? (বাংলা বা ইংরেজিতে বলুন...)" : "What's on your mind? (Speak in বাংলা or English...)")
+                }
+                className="w-full py-1 text-base font-medium bg-transparent !border-none !shadow-none focus:!shadow-none resize-none text-[#111827] dark:text-foreground placeholder:text-[#8290A5]"
                 style={{
                   background: "transparent",
                   border: "none",
@@ -125,7 +129,7 @@ export default function QuickCapture() {
                   overflowY: "hidden",
                 }}
               />
-            )}
+            </div>
           </div>
           <div className="px-4 pb-4 flex items-center justify-between">
             <div className="flex items-center gap-2 max-w-[calc(100%-90px)]">

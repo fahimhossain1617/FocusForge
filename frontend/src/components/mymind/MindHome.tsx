@@ -169,44 +169,45 @@ export default function MindHome({ navigate, setActiveThoughtId }: MindHomeProps
           className="rounded-2xl border border-slate-200 dark:border-white/10 bg-white dark:bg-[#111827] relative pb-16 w-full flex flex-col shadow-none"
         >
           <VoiceReactiveGlow active={isVoiceListening} rounded="rounded-2xl" />
-          {isVoiceListening ? (
-            <div className="w-full px-5 sm:px-6 pt-5 pb-2 flex items-center h-[60px] overflow-hidden">
+          {isVoiceListening && (
+            <div className="w-full px-5 sm:px-6 pt-3 pb-1 flex items-center h-[26px] overflow-hidden pointer-events-none">
               <VoiceWaveform active={isVoiceListening} isBengali={state.lang === "bn"} />
             </div>
-          ) : (
-
-            <textarea
-              ref={textareaRef}
-              value={input}
-              onChange={handleChange}
-              onScroll={handleScroll}
-              onKeyDown={(e) => {
-                if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
-                  e.preventDefault();
-                  handleSubmit();
-                }
-              }}
-              onFocus={() => setIsFocused(true)}
-              onBlur={() => setIsFocused(false)}
-              placeholder={
-                activeMode === 'idea' 
-                  ? (t.myMind.ideaVaultPlaceholder || "What's the core idea or spark?")
-                  : activeMode === 'problem'
-                  ? (t.myMind.problemSolverPlaceholder || "What problem are you trying to break down?")
-                  : (t.myMind.writeFreely || "Write whatever comes to mind...")
-              }
-              className="w-full px-5 sm:px-6 pt-5 pb-2 text-base sm:text-lg border-0 resize-none no-focus-ring bg-transparent my-mind-textarea custom-mini-scrollbar"
-              style={{ 
-                background: "transparent", 
-                border: "none", 
-                outline: "none", 
-                minHeight: "60px",
-                maxHeight: "240px",
-                overflowY: "hidden",
-                color: "var(--color-text-primary)" 
-              }}
-            />
           )}
+
+          <textarea
+            ref={textareaRef}
+            value={input}
+            onChange={handleChange}
+            onScroll={handleScroll}
+            onKeyDown={(e) => {
+              if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+                e.preventDefault();
+                handleSubmit();
+              }
+            }}
+            onFocus={() => setIsFocused(true)}
+            onBlur={() => setIsFocused(false)}
+            placeholder={
+              isVoiceListening
+                ? (state.lang === "bn" ? "বলুন, কথা শুনছি..." : "Listening to your voice...")
+                : activeMode === 'idea' 
+                ? (t.myMind.ideaVaultPlaceholder || "What's the core idea or spark?")
+                : activeMode === 'problem'
+                ? (t.myMind.problemSolverPlaceholder || "What problem are you trying to break down?")
+                : (t.myMind.writeFreely || "Write whatever comes to mind...")
+            }
+            className="w-full px-5 sm:px-6 pt-4 pb-2 text-base sm:text-lg border-0 resize-none no-focus-ring bg-transparent my-mind-textarea custom-mini-scrollbar"
+            style={{ 
+              background: "transparent", 
+              border: "none", 
+              outline: "none", 
+              minHeight: "60px",
+              maxHeight: "240px",
+              overflowY: "hidden",
+              color: "var(--color-text-primary)" 
+            }}
+          />
           
           <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between">
             <div className="flex items-center gap-2 max-w-[calc(100%-90px)]">

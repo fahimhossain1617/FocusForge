@@ -212,7 +212,6 @@ export default function DiaryEditor({ entry, onSave, lang }: DiaryEditorProps) {
               triggerAutoSave(val, images);
               updateCursorPosition();
             }}
-            onInsertText={handleSpeechInsert} 
           />
 
           {/* Add Image Button */}

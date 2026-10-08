@@ -110,48 +110,51 @@ export default function ThoughtDetail({ thoughtId, navigate, previousView }: Tho
         className="rounded-2xl border border-slate-200 dark:border-white/10 bg-white dark:bg-[#111827] relative pb-16 flex flex-col shadow-none"
       >
         <VoiceReactiveGlow active={isVoiceListening} rounded="rounded-2xl" />
-        {isVoiceListening ? (
-          <div className="w-full px-5 sm:px-7 py-5 sm:py-6 flex items-center h-[120px] overflow-hidden">
+        {isVoiceListening && (
+          <div className="w-full px-5 sm:px-7 pt-3 pb-1 flex items-center h-[26px] overflow-hidden pointer-events-none">
             <VoiceWaveform active={isVoiceListening} isBengali={lang === "bn"} />
           </div>
-        ) : (
-
-          <textarea
-            ref={textareaRef}
-            value={content}
-            onChange={(e) => {
-              setContent(e.target.value);
-              setIsEditing(true);
-              const el = textareaRef.current;
-              if (el) {
-                el.style.height = "auto";
-                const scrollH = el.scrollHeight;
-                if (scrollH > 240) {
-                  el.style.height = "240px";
-                  el.style.overflowY = "auto";
-                } else {
-                  el.style.height = `${Math.max(scrollH, 120)}px`;
-                  el.style.overflowY = "hidden";
-                }
-                el.scrollTop = el.scrollHeight;
-              }
-            }}
-            onFocus={() => setIsFocused(true)}
-            onBlur={() => setIsFocused(false)}
-            placeholder={t.myMind.writeFreely}
-            className="w-full px-5 sm:px-7 py-5 sm:py-6 text-base sm:text-lg border-0 resize-none no-focus-ring leading-relaxed bg-transparent my-mind-textarea custom-mini-scrollbar"
-            style={{ 
-              background: "transparent", 
-              border: "none", 
-              outline: "none", 
-              minHeight: "120px",
-              maxHeight: "240px",
-              height: "auto",
-              overflowY: "hidden",
-              color: "var(--color-text-primary)" 
-            }}
-          />
         )}
+
+        <textarea
+          ref={textareaRef}
+          value={content}
+          onChange={(e) => {
+            setContent(e.target.value);
+            setIsEditing(true);
+            const el = textareaRef.current;
+            if (el) {
+              el.style.height = "auto";
+              const scrollH = el.scrollHeight;
+              if (scrollH > 240) {
+                el.style.height = "240px";
+                el.style.overflowY = "auto";
+              } else {
+                el.style.height = `${Math.max(scrollH, 120)}px`;
+                el.style.overflowY = "hidden";
+              }
+              el.scrollTop = el.scrollHeight;
+            }
+          }}
+          onFocus={() => setIsFocused(true)}
+          onBlur={() => setIsFocused(false)}
+          placeholder={
+            isVoiceListening
+              ? (lang === 'bn' ? "বলুন, কথা শোনা হচ্ছে..." : "Listening, speak freely...")
+              : t.myMind.writeFreely
+          }
+          className="w-full px-5 sm:px-7 py-4 text-base sm:text-lg border-0 resize-none no-focus-ring leading-relaxed bg-transparent my-mind-textarea custom-mini-scrollbar"
+          style={{ 
+            background: "transparent", 
+            border: "none", 
+            outline: "none", 
+            minHeight: "120px",
+            maxHeight: "240px",
+            height: "auto",
+            overflowY: "hidden",
+            color: "var(--color-text-primary)" 
+          }}
+        />
         
         <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between">
           <div className="flex items-center gap-2 max-w-[calc(100%-160px)]">

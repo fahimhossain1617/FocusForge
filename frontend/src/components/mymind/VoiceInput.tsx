@@ -104,28 +104,27 @@ export default function VoiceInput({
 
   return (
     <div className="w-full">
-      {/* If used standalone without external textarea, render self-contained textarea or waveform */}
+      {/* If used standalone without external textarea, render self-contained textarea with waveform when active */}
       {!externalTextareaRef && (
-        <div className="relative w-full min-h-[64px]">
-          {isListening ? (
-            <div className="w-full py-3 flex items-center justify-center">
+        <div className="relative w-full min-h-[64px] flex flex-col gap-1.5 mb-2">
+          {isListening && (
+            <div className="w-full py-1.5 flex items-center justify-center pointer-events-none">
               <VoiceWaveform active={isListening} isBengali={isBn} />
             </div>
-          ) : (
-            <textarea
-              ref={textareaRef}
-              value={currentDisplayValue}
-              onChange={(e) => {
-                const nextVal = e.target.value;
-                setManualText(nextVal);
-                handleTextChange?.(nextVal);
-                adjustHeight();
-              }}
-              placeholder="Write whatever comes to mind..."
-              className="w-full bg-transparent text-neutral-900 dark:text-neutral-100 placeholder-neutral-400 dark:placeholder-neutral-500 text-base leading-relaxed resize-none outline-none"
-              style={{ minHeight: '64px', maxHeight: '240px', height: 'auto', overflowY: 'hidden' }}
-            />
           )}
+          <textarea
+            ref={textareaRef}
+            value={currentDisplayValue}
+            onChange={(e) => {
+              const nextVal = e.target.value;
+              setManualText(nextVal);
+              handleTextChange?.(nextVal);
+              adjustHeight();
+            }}
+            placeholder={isListening ? (isBn ? "বলুন, কথা শোনা হচ্ছে..." : "Listening, speak now...") : "Write whatever comes to mind..."}
+            className="w-full bg-transparent text-neutral-900 dark:text-neutral-100 placeholder-neutral-400 dark:placeholder-neutral-500 text-base leading-relaxed resize-none outline-none"
+            style={{ minHeight: '64px', maxHeight: '240px', height: 'auto', overflowY: 'hidden' }}
+          />
         </div>
       )}
 

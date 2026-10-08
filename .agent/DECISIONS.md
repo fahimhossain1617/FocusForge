@@ -492,3 +492,19 @@
 - **Impact:** `frontend/package.json`, `backend/package.json`, `frontend/src/app/api/[...path]/route.ts`, `scripts/*`.
 - **Do Not Change Without Approval:** Do not downgrade packages or bypass the verification gate.
 
+## ADR-031: Web Speech API Continuous Session Hardening, Zero-Beep Audio Fix & Real-Time Text Synchronization
+
+- **Date:** October 2026
+- **Status:** Accepted
+- **Decision:**
+  1. **Zero-Conflict Audio Architecture:** Replaced competing hardware microphone capture (`navigator.mediaDevices.getUserMedia`) in `useVoiceAmplitude` with an event-driven organic harmonic synthesizer. Because Android and Windows audio drivers enforce single-client microphone locking, `getUserMedia` previously caused Web Speech API to fail immediately with `audio-capture` errors and trigger rapid-fire restart loops that produced repeated "beep beep" sounds every 400ms. Eliminating hardware lockouts guarantees 100% microphone availability for native Web Speech API (`SpeechRecognition`).
+  2. **Harmonic Speech Reactivity:** `useContinuousSpeech` dispatches `speech-activity` events on speech start/sound/result and speech end. `useVoiceAmplitude` listens to these events and smoothly modulates the waveform amplitude (0.55–0.85 when actively talking, 0.16–0.25 ambient resting breath) and human vocal frequency distribution across canvas equalizer bars without requesting audio streams or prompting permissions.
+  3. **Continuous Session Retention & Safe Backoff:** Set `recognition.continuous = true` and `recognition.interimResults = true`. Added error thresholding (maximum 2 consecutive audio-capture or 3 network retries) to completely prevent infinite beep restart loops. On normal silence rollover (`onend`), sessions resume cleanly with a 300ms buffer.
+  4. **Live Caret & Textarea Visibility Across All Modules:** Eliminated the anti-pattern where textareas were unmounted and replaced by `<VoiceWaveform>`. In all voice views (`MindHome.tsx`, `IdeaCapture.tsx`, `ProblemSolver.tsx`, `ThoughtDetail.tsx`, `QuickCapture.tsx`, `VoiceInput.tsx`, and `AIAgentPage.tsx`), textareas remain permanently mounted and visible while speech dictation runs, with `<VoiceWaveform>` rendered cleanly above or embedded in the input area. As users speak, text streams live into the field in real time alongside the wave visualizer and ambient astral glow.
+  5. **Glory AI Input Integration:** Connected `useContinuousSpeech` in `AIAgentPage.tsx` via `onTranscriptChange`, ensuring live voice transcript streams directly into Glory AI's composer input and allows instant submission via Enter key or Send button.
+  6. **Diary Dictation Deduplication:** Removed conflicting duplicate `onInsertText` callback in `DiaryEditor.tsx` / `DiaryVoiceInput.tsx` in favor of `onValueChange`, ensuring continuous speech dictation updates cleanly without fighting or duplicating words.
+- **Reason:** Solves user-reported issue of repeated beep sounds, uncaptured voice audio, and hidden text inputs during speech recognition across the entire website.
+- **Impact:** `frontend/src/hooks/useVoiceAmplitude.ts`, `frontend/src/hooks/useContinuousSpeech.ts`, `frontend/src/components/ai-agent/AIAgentPage.tsx`, `frontend/src/components/mymind/*`, `frontend/src/components/QuickCapture.tsx`, `frontend/src/components/diary/*`.
+- **Do Not Change Without Approval:** Do not reintroduce competing `getUserMedia` audio streams alongside Web Speech API or unmount textareas during active speech recognition.
+
+

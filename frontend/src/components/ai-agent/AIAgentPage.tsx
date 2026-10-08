@@ -93,6 +93,13 @@ export function AIAgentPage() {
     setManualText: setVoiceManualText,
   } = useContinuousSpeech({
     initialLang: "bn-BD",
+    onTranscriptChange: (newText) => {
+      setInput(newText);
+      requestAnimationFrame(adjustTextareaHeight);
+    },
+    onError: (err) => {
+      showToast(err, "error");
+    },
   });
   const resetVoiceTranscript = () => setVoiceManualText("");
 
@@ -1288,13 +1295,13 @@ export function AIAgentPage() {
                 )}
               </div>
 
-              {/* Center Input Textarea or Voice Waveform */}
-              {isVoiceListening ? (
-                <div className="flex-1 flex items-center h-[26px] overflow-hidden pointer-events-none">
-                  <VoiceWaveform active={isVoiceListening} isBengali={voiceLang === "bn-BD"} />
-                </div>
-              ) : (
-
+              {/* Center Input Textarea with Voice Waveform when active */}
+              <div className="flex-1 flex flex-col justify-center min-w-0">
+                {isVoiceListening && (
+                  <div className="w-full h-[20px] flex items-center overflow-hidden pointer-events-none mb-1">
+                    <VoiceWaveform active={isVoiceListening} isBengali={voiceLang === "bn-BD"} />
+                  </div>
+                )}
                 <AIChatAnimatedTypingInput
                   ref={textareaRef}
                   value={input}
@@ -1304,7 +1311,7 @@ export function AIAgentPage() {
                     setInput(val);
                     if (isVoiceListening) {
                       baseInputRef.current = val;
-                      resetVoiceTranscript();
+                      setVoiceManualText(val);
                     }
                     resetInactivityTimer();
                     requestAnimationFrame(adjustTextareaHeight);
@@ -1317,7 +1324,9 @@ export function AIAgentPage() {
                     }
                   }}
                   placeholder={
-                    messages && messages.length > 0
+                    isVoiceListening
+                      ? (isSystemBn ? "বলুন, গ্লোরি শুনছে..." : "Listening to your voice...")
+                      : messages && messages.length > 0
                       ? isSystemBn
                         ? "গ্লোরিকে উত্তর দিন..."
                         : "Reply to Glory..."
@@ -1333,7 +1342,7 @@ export function AIAgentPage() {
                       : "Chat with Glory"
                   }
                 />
-              )}
+              </div>
 
               {/* Right Controls: Model Switcher + Mic + Send/Stop */}
               <div className={styles.pillControlsRight}>

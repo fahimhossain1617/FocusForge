@@ -51,8 +51,11 @@ export default function DiaryVoiceInput({
   } = useContinuousSpeech({
     initialLang: "bn-BD",
     onTranscriptChange: (nextVal) => {
-      onValueChange?.(nextVal);
-      onInsertText?.(nextVal);
+      if (onValueChange) {
+        onValueChange(nextVal);
+      } else if (onInsertText) {
+        onInsertText(nextVal);
+      }
       requestAnimationFrame(handleAdjustEditor);
     },
     onError: (err) => {
