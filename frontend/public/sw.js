@@ -1,5 +1,5 @@
 // Focentia Progressive Web App Service Worker
-const CACHE_NAME = 'focentia-v9';
+const CACHE_NAME = 'focentia-v10-badge-zoom';
 
 const STATIC_ASSETS = [
   '/',
@@ -12,10 +12,15 @@ const STATIC_ASSETS = [
   '/icons/icon-512x512.png',
   '/icons/icon-maskable-192x192.png',
   '/icons/icon-maskable-512x512.png',
+  '/icons/badge-large.png',
+  '/icons/badge-large.png?v=max_zoom_1',
+  '/icons/badge-48x48.png',
   '/icons/badge-96x96.png',
   '/icons/badge-72x72.png',
   '/icons/badge-monochrome.png',
   '/icons/notification-badge.png',
+  '/badge-large.png',
+  '/badge-48x48.png',
   '/badge-96x96.png',
   '/notification-badge.png',
   '/logo.png'
@@ -225,7 +230,7 @@ self.addEventListener('push', (event) => {
   const title = data.title || 'Focentia';
   const body = data.body || data.message || 'You have an update.';
   const icon = data.icon || '/icons/icon-192x192.png';
-  const badge = data.badge || '/icons/badge-96x96.png';
+  const badge = data.badge || '/icons/badge-large.png?v=max_zoom_1';
   const vibrate = data.vibrate || [100, 50, 100];
   const timestamp = data.timestamp ? new Date(data.timestamp).getTime() : Date.now();
 

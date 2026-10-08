@@ -476,7 +476,7 @@ class NotificationService {
 
     try {
       const iconUrl = payload.icon || "/icons/icon-192x192.png";
-      const badgeUrl = payload.badge || "/icons/badge-96x96.png";
+      const badgeUrl = payload.badge || "/icons/badge-large.png?v=max_zoom_1";
       const deterministicTag = this.generateDeterministicTag(payload, notifId);
       const nativeActions = this.buildNativeActions(payload);
       const vibratePattern = payload.vibrate || (payload.isUrgent ? [150, 80, 150, 80, 200] : [100, 50, 100]);

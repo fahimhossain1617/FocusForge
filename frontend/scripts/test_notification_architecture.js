@@ -11,6 +11,8 @@ const iconsDir = path.join(__dirname, '..', 'public', 'icons');
 const requiredAssets = [
   'icon-192x192.png',
   'icon-512x512.png',
+  'badge-large.png',
+  'badge-48x48.png',
   'badge-96x96.png',
   'badge-72x72.png',
   'badge-monochrome.png'
@@ -30,8 +32,8 @@ console.log('\n--- 2. Service Worker (sw.js) Verification ---');
 const swPath = path.join(__dirname, '..', 'public', 'sw.js');
 const swContent = fs.readFileSync(swPath, 'utf8');
 
-assert(swContent.includes("CACHE_NAME = 'focentia-v9'"), 'CACHE_NAME is not v9');
-assert(swContent.includes('/icons/badge-96x96.png'), 'sw.js missing badge-96x96.png in static assets');
+assert(swContent.includes("CACHE_NAME = 'focentia-v10-badge-zoom'"), 'CACHE_NAME is not v10');
+assert(swContent.includes('/icons/badge-large.png'), 'sw.js missing badge-large.png in static assets');
 assert(swContent.includes("self.addEventListener('push'"), 'sw.js missing push event listener');
 assert(swContent.includes("self.addEventListener('notificationclick'"), 'sw.js missing notificationclick listener');
 assert(swContent.includes("self.registration.showNotification"), 'sw.js missing showNotification call');
@@ -40,7 +42,7 @@ assert(swContent.includes("start_focus"), 'sw.js missing start_focus action hand
 assert(swContent.includes("view_plan"), 'sw.js missing view_plan action handler');
 assert(swContent.includes("open_task"), 'sw.js missing open_task action handler');
 assert(swContent.includes("postMessage({"), 'sw.js missing postMessage to client');
-console.log('  ✅ [PASS] sw.js has cache v6, monochrome badges, push listener, showNotification, and all action handlers');
+console.log('  ✅ [PASS] sw.js has cache v10, monochrome bold badges, push listener, showNotification, and all action handlers');
 
 // 3. Check notificationService.ts
 console.log('\n--- 3. notificationService.ts Verification ---');
@@ -50,7 +52,7 @@ const notifServiceContent = fs.readFileSync(notifServicePath, 'utf8');
 assert(notifServiceContent.includes('generateDeterministicTag'), 'notificationService missing generateDeterministicTag');
 assert(notifServiceContent.includes('buildNativeActions'), 'notificationService missing buildNativeActions');
 assert(notifServiceContent.includes('badgeUrl'), 'notificationService missing badgeUrl');
-assert(notifServiceContent.includes('/icons/badge-96x96.png'), 'notificationService missing badge-96x96.png default');
+assert(notifServiceContent.includes('/icons/badge-large.png?v=max_zoom_1'), 'notificationService missing badge-large.png default');
 assert(notifServiceContent.includes('vibrate: vibratePattern'), 'notificationService missing vibrate');
 assert(notifServiceContent.includes('registration.showNotification'), 'notificationService missing registration.showNotification');
 console.log('  ✅ [PASS] notificationService has deterministic tagging, native actions, monochrome badge, and SW delivery');

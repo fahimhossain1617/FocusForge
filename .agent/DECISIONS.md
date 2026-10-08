@@ -592,15 +592,16 @@
 - **Impact:** `frontend/src/context/AuthContext.tsx`, `frontend/src/app/auth/callback/page.tsx`, `frontend/src/app/page.tsx`, `frontend/src/app/reset-password/page.tsx`, `frontend/src/components/pages/SettingsPage.tsx`.
 - **Do Not Change Without Approval:** Do not show encryption prompts to unauthenticated guests or during password recovery flows.---
 
-## ADR-037: Custom Monochrome Android Push Notification Badge Integration
+## ADR-038: High-Visibility Full-Bleed Bold Notification Badge & Cache Busting
 
 - **Date:** October 2026
 - **Status:** Accepted
 - **Decision:**
-  1. **Monochrome Badge Asset Export:** Converted the master custom "F" logo shape graphic into pure white `#FFFFFF` pixels with transparent background and anti-aliased alpha transparency across standard density sizes (`badge-96x96.png`, `badge-72x72.png`, `badge-monochrome.png`, `notification-badge.png`, and `badge-master.png`).
-  2. **Android Status Bar & Header Badge Conformance:** Provided standard balanced padding (8-10%) inside the square canvas so Android notification drawer headers and status bar small icons render without clipping or edge bleeding.
-  3. **Notification Service & Service Worker Delivery:** Verified `self.registration.showNotification(title, { badge: '/icons/badge-96x96.png', ... })` in `sw.js` and `notificationService.ts`.
-  4. **Cache Invalidation & Immediate Update:** Bumped Service Worker cache name to `focentia-v9` and added all badge routes to `STATIC_ASSETS` pre-caching array to ensure immediate retrieval on devices.
-- **Reason:** Replaces default browser circular indicator on Android status bar / push notification tray with the exact custom F branding.
-- **Impact:** `frontend/public/icons/badge-96x96.png`, `frontend/public/icons/badge-72x72.png`, `frontend/public/icons/badge-monochrome.png`, `frontend/public/sw.js`, `frontend/scripts/test_notification_architecture.js`.
-- **Do Not Change Without Approval:** Do not invert badge alpha or remove transparent background.
+  1. **Full-Bleed Zero-Padding Crop:** Cropped tightly against the active visible glyph body `(165, 87, 863, 956)`, stripping out faint transparent compression boundaries and expanding the glyph to 100% full vertical height inside the square canvas (~45% larger visual size).
+  2. **Inner Target Stroke & Gap Contrast Sharpening:** Enhanced the inner target concentric circles, center hole (r <= 18), solid middle disc, transparent gap (r 70..92), and crosshairs before downsampling to prevent bilinear blur and maintain sharp contrast at 96x96 and 48x48.
+  3. **High-Visibility Assets:** Exported `badge-large.png`, `badge-48x48.png`, `badge-96x96.png`, `badge-72x72.png`, and `badge-monochrome.png`.
+  4. **Dynamic Cache Busting:** Configured Service Worker and `notificationService.ts` to request `/icons/badge-large.png?v=max_zoom_1` and bumped Service Worker cache name to `focentia-v10-badge-zoom`.
+- **Reason:** Ensures the custom F badge remains bold, crisp, and instantly readable from a distance on small Android status bar cutouts.
+- **Impact:** `frontend/public/icons/badge-large.png`, `frontend/public/icons/badge-48x48.png`, `frontend/public/sw.js`, `frontend/src/services/notificationService.ts`, `frontend/scripts/test_notification_architecture.js`.
+- **Do Not Change Without Approval:** Do not add outer margins or lower crosshair contrast.
+
