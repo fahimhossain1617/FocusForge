@@ -1270,7 +1270,11 @@ export default function FocusPage() {
                 <div className="flex items-center justify-center gap-3">
                   <button
                     onClick={timer.isRunning ? handlePauseAttempt : timer.start}
-                    className="w-20 h-12 rounded-full bg-white text-zinc-950 hover:bg-zinc-200 transition-all flex items-center justify-center shadow-none active:scale-95 cursor-pointer"
+                    className={`w-20 h-12 rounded-full font-bold text-sm flex items-center justify-center transition-all cursor-pointer active:scale-95 shadow-none ${
+                      timer.isRunning
+                        ? "bg-slate-900 hover:bg-slate-800 text-white border border-slate-900 dark:bg-white/15 dark:hover:bg-white/20 dark:text-white dark:border-white/10"
+                        : "bg-blue-600 hover:bg-blue-500 text-white"
+                    }`}
                     title={timer.isRunning ? t.focus.pause : t.focus.resume}
                     aria-label={timer.isRunning ? t.focus.pause : t.focus.resume}
                   >

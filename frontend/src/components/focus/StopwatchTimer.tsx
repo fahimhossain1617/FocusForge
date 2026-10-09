@@ -440,7 +440,7 @@ export const StopwatchTimer = memo(function StopwatchTimer({
               onClick={isRunning ? handlePause : handleStart}
               className={`w-24 h-12 rounded-full font-bold text-sm flex items-center justify-center gap-2 transition-all cursor-pointer active:scale-95 shadow-none ${
                 isRunning
-                  ? "bg-[#223A5E] hover:bg-[#1B2F4D] dark:bg-white/10 dark:hover:bg-white/15 text-white border border-[#223A5E] dark:border-white/10"
+                  ? "bg-slate-900 hover:bg-slate-800 text-white border border-slate-900 dark:bg-white/15 dark:hover:bg-white/20 dark:text-white dark:border-white/10"
                   : "bg-blue-600 hover:bg-blue-500 text-white"
               }`}
               title={isRunning ? (state.lang === "bn" ? "থামান" : "Pause") : (state.lang === "bn" ? "চালিয়ে যান" : "Resume")}
