@@ -129,10 +129,7 @@ export async function runNotificationSchedulerCycle(): Promise<SchedulerCycleRes
 
       // 2. Fetch user notification preferences
       const userSettingsRes = await pool.query(
-        `SELECT s.*, p.preferred_language 
-         FROM user_notification_settings s
-         LEFT JOIN profiles p ON p.id = s.user_id
-         WHERE s.user_id = $1`,
+        `SELECT * FROM user_notification_settings WHERE user_id = $1`,
         [userId]
       );
       const settings = userSettingsRes.rows[0] || {};
@@ -205,9 +202,9 @@ export async function runNotificationSchedulerCycle(): Promise<SchedulerCycleRes
 
       const dailyCountRes = await pool.query(
         `SELECT COUNT(*) as count 
-         FROM user_notifications 
-         WHERE user_id = $1 AND created_at >= $2::timestamptz`,
-        [userId, `${userLocalDate}T00:00:00.000Z`]
+         FROM scheduled_reminders 
+         WHERE user_id = $1 AND status = 'sent' AND due_date = $2`,
+        [userId, userLocalDate]
       );
       const sentTodayCount = parseInt(dailyCountRes.rows[0]?.count || '0', 10);
 
@@ -257,20 +254,6 @@ export async function runNotificationSchedulerCycle(): Promise<SchedulerCycleRes
       const pushRes = await sendWebPushToUser(userId, pushPayload);
 
       if (pushRes.sentCount > 0) {
-        await dbSaveNotification(userId, {
-          id,
-          type: category.startsWith('task') ? 'task' : category === 'focus_reminder' ? 'focus' : 'system',
-          category,
-          title,
-          message: body,
-          orbMood: isUrgent ? 'attentive' : category === 'focus_reminder' ? 'concerned' : 'attentive',
-          actionRoute,
-          taskId,
-          skillId,
-          metadata,
-          timestamp: now.toISOString(),
-        }).catch((err) => console.warn('[Scheduler Save Notif Log]:', err?.message));
-
         await dbUpdateScheduledReminderStatus(id, 'sent', `delivered_${pushRes.sentCount}_devices`, now);
         userLastSentMap.set(userId, now.getTime());
         result.dispatchedCount++;
