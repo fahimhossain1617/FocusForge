@@ -14,21 +14,19 @@ cp .env.example backend/.env
 ```
 
 ### Essential Environment Variables
-
 | Variable | Description | Example / Default |
-| :--- | :--- | :--- |
-| `DATABASE_URL` | PostgreSQL connection string | `postgresql://postgres...` |
-| `NEXT_PUBLIC_SUPABASE_URL` | Supabase API endpoint | `https://[PROJECT_REF].supabase.co` |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Public client API key | `eyJhbGciOi...` |
-| `SUPABASE_SERVICE_ROLE_KEY` | Admin service role key | `eyJhbGciOi...` |
-| `SUPPORT_EMAIL` | Public customer support address | `support@focentia.app` |
-| `SUPPORT_INBOX_EMAIL` | Private owner inbox for tickets | `focentia13@gmail.com` |
+| --- | --- | --- |
+| `DATABASE_URL` | PostgreSQL connection string | `postgresql://postgres:password@localhost:5432/db` |
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase API endpoint | `https://your-project.supabase.co` |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Public client API key | `your-anon-key-here` |
+| `SUPABASE_SERVICE_ROLE_KEY` | Admin service role key | `your-service-role-key-here` |
+| `SUPPORT_EMAIL` | Public customer support address | `support@example.com` |
+| `SUPPORT_INBOX_EMAIL` | Private owner inbox for tickets | `owner@example.com` |
 | `SMTP_HOST` | Transactional email SMTP host | `smtp.gmail.com` |
 | `SMTP_PORT` | SMTP port (587 TLS / 465 SSL) | `587` |
 | `SMTP_USER` | SMTP authentication user | `your-email@gmail.com` |
 | `SMTP_PASS` | SMTP app password | `your-smtp-app-password` |
-| `GEMINI_API_KEY` | Google Gemini API Key | `AIzaSy...` |
-
+| `GEMINI_API_KEY` | Google Gemini API Key | `your-gemini-api-key-here` |
 ---
 
 ## 2. Supervisor & Admin Role Assignment
