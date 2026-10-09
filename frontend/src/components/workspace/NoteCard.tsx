@@ -40,6 +40,17 @@ export default function NoteCard({ note, onEdit }: NoteCardProps) {
   const totalFiles = mediaBlocks.length + attachmentsCount;
   const totalNotes = Math.max(1, textBlocks.length);
 
+  // Extract first plain-text snippet for preview
+  const previewSnippet = React.useMemo(() => {
+    if (!note.blocks || note.blocks.length === 0) return "";
+    for (const block of note.blocks) {
+      if (block.type === "image" || block.type === "file" || block.type === "link") continue;
+      const raw = block.content ? block.content.replace(/<[^>]*>/g, "").trim() : "";
+      if (raw) return raw;
+    }
+    return "";
+  }, [note.blocks]);
+
   return (
     <article 
       className="folder-card-wrapper motion-grid-item"
@@ -92,12 +103,17 @@ export default function NoteCard({ note, onEdit }: NoteCardProps) {
                   ? `${totalNotes} টি নোট • ${totalFiles} টি ফাইল` 
                   : `${totalNotes} ${totalNotes === 1 ? "note" : "notes"} • ${totalFiles} ${totalFiles === 1 ? "file" : "files"}`}
               </p>
+              {previewSnippet && (
+                <p className="folder-card__snippet" title={previewSnippet}>
+                  {previewSnippet}
+                </p>
+              )}
             </div>
 
             {/* Bottom Row: Pure Clean Date */}
             <div className="folder-card__bottom-row">
               <div className="folder-card__date">
-                <CalendarDays size={13} className="shrink-0 opacity-70" />
+                <CalendarDays size={11} className="shrink-0 opacity-70" />
                 <span>{formattedDate}</span>
               </div>
             </div>

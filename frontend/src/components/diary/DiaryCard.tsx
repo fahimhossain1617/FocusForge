@@ -27,6 +27,23 @@ export default function DiaryCard({
   const theme = getDiaryTheme(topic, index);
   const dateStr = formatCardDateChip(topic.createdAt || topic.updatedAt);
 
+  // Extract preview snippet from topic entries or topic description
+  const previewSnippet = React.useMemo(() => {
+    if (topic.entries && topic.entries.length > 0) {
+      for (const entry of topic.entries) {
+        if (entry.content) {
+          const clean = entry.content.replace(/<[^>]*>/g, "").trim();
+          if (clean) return clean;
+        }
+      }
+    }
+    if (topic.description) {
+      const clean = topic.description.replace(/<[^>]*>/g, "").trim();
+      if (clean) return clean;
+    }
+    return "";
+  }, [topic.entries, topic.description]);
+
   const handleCardClick = () => {
     onOpen(topic.id);
   };
@@ -141,22 +158,11 @@ export default function DiaryCard({
             </span>
           </div>
 
-          {/* Middle-Left Section: Date & Topic Title (Shifted slightly upward) */}
-          <div className="relative z-10 flex flex-col items-start justify-center text-left w-full pl-2 sm:pl-2.5 pr-1 my-auto -translate-y-3 sm:-translate-y-4">
-            {/* Plain Unboxed Date */}
-            <div 
-              className="inline-flex items-center gap-1.5 text-[11.5px] sm:text-xs font-medium tracking-tight opacity-90 mb-3.5 sm:mb-4"
-              style={{
-                color: theme.isLightCover ? "#475569" : "rgba(255, 255, 255, 0.9)",
-              }}
-            >
-              <Calendar size={13} className="opacity-80" />
-              <span>{dateStr}</span>
-            </div>
-
+          {/* Middle-Left Section: Topic Title & Preview Snippet */}
+          <div className="relative z-10 flex flex-col items-start justify-center text-left w-full pl-2 sm:pl-2.5 pr-1 my-auto">
             {/* Title */}
             <h3 
-              className="text-base sm:text-lg font-bold tracking-tight line-clamp-3 leading-snug text-left"
+              className="text-base sm:text-lg font-bold tracking-tight line-clamp-2 leading-snug text-left"
               style={{ 
                 color: theme.isLightCover ? "#0F172A" : "#FFFFFF",
                 textShadow: theme.isLightCover ? "none" : "0 1px 2px rgba(0, 0, 0, 0.5)"
@@ -165,10 +171,34 @@ export default function DiaryCard({
             >
               {topic.title}
             </h3>
+
+            {/* Preview Snippet with distinct gap */}
+            {previewSnippet && (
+              <p 
+                className="text-xs line-clamp-2 font-normal leading-relaxed mt-2.5 sm:mt-3 opacity-80 select-none text-left"
+                style={{
+                  color: theme.isLightCover ? "#475569" : "rgba(255, 255, 255, 0.8)",
+                  textShadow: theme.isLightCover ? "none" : "0 1px 1px rgba(0, 0, 0, 0.3)"
+                }}
+                title={previewSnippet}
+              >
+                {previewSnippet}
+              </p>
+            )}
           </div>
 
-          {/* Bottom Invisible Balance Spacer */}
-          <div className="h-2 select-none pointer-events-none" />
+          {/* Bottom Row: Compact Date at Bottom Left */}
+          <div className="relative z-10 flex items-center justify-start w-full pl-2 sm:pl-2.5 pt-2 select-none">
+            <div 
+              className="inline-flex items-center gap-1.5 text-[10px] sm:text-[11px] font-medium tracking-tight opacity-75"
+              style={{
+                color: theme.isLightCover ? "#475569" : "rgba(255, 255, 255, 0.8)",
+              }}
+            >
+              <Calendar size={11} className="opacity-80 shrink-0" />
+              <span>{dateStr}</span>
+            </div>
+          </div>
         </div>
       </div>
     </div>

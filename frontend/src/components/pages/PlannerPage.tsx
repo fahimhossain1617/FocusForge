@@ -6,7 +6,7 @@ import { useAppContext } from "../../context/AppContext";
 import { useTranslation } from "../../hooks/useTranslation";
 import EmptyState from "../ui/EmptyState";
 import CalendarWidget from "../ui/CalendarWidget";
-import { ChevronLeft, ChevronRight, Plus, X, AlignLeft, Calendar as CalendarIcon, Clock, Bell, Layers, Sparkles, Copy, Pencil } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, X, AlignLeft, Calendar as CalendarIcon, Clock, Bell, Layers, Sparkles, Copy, Pencil, Trash2 } from "lucide-react";
 import { useAnimateExit } from "../../hooks/useAnimateExit";
 import FocusForgeTimePicker from "../ui/FocusForgeTimePicker";
 import AddTaskModal from "../planner/AddTaskModal";
@@ -628,7 +628,21 @@ export default function PlannerPage() {
               <>
                 {(showAllHighlights ? selectedDayItems : selectedDayItems.slice(0, 4)).map(item => {
                   return (
-                    <div key={item.id} className="planner-highlight-card min-w-[240px] max-w-[280px] p-3.5 sm:p-4 transition-colors group relative overflow-hidden flex flex-col justify-between">
+                    <div 
+                      key={item.id} 
+                      onClick={() => {
+                        setEditingTask({
+                          id: item.id,
+                          taskId: item.taskId,
+                          blockId: item.blockId,
+                          title: item.label,
+                          startTime: item.startTime,
+                          endTime: item.endTime,
+                        });
+                        setShowAddTaskModal(true);
+                      }}
+                      className="planner-highlight-card min-w-[240px] max-w-[280px] p-3.5 sm:p-4 transition-all group relative overflow-hidden flex flex-col justify-between cursor-pointer select-none hover:border-blue-500/30 dark:hover:border-blue-400/30"
+                    >
                       {/* Inner glowing accent */}
                       <div className={`absolute top-0 left-0 w-1 h-full ${getBadgeColor(item.category, item.isBreak)} opacity-80 group-hover:opacity-100 transition-opacity`}></div>
                       
@@ -638,31 +652,26 @@ export default function PlannerPage() {
                             <Clock className="w-3 h-3 text-blue-500 dark:text-blue-400 shrink-0" />
                             <span>{formatTime12hr(item.startTime)} <span className="opacity-50">{t.planner.to}</span> {formatTime12hr(item.endTime)}</span>
                           </div>
+
+                          <button 
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (item.blockId) deleteTimeBlock(item.blockId);
+                              if (item.taskId) deleteTask(item.taskId);
+                            }} 
+                            className="p-1 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors cursor-pointer shrink-0 -mr-1 -mt-0.5"
+                            title={state.lang === 'bn' ? "মুছে ফেলুন" : "Delete"}
+                            aria-label="Delete highlight"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
                         </div>
                         
                         <h4 className={`text-sm sm:text-base font-bold text-foreground mb-1 pl-2 break-words line-clamp-2 ${item.isBreak ? 'italic opacity-60' : ''} ${item.completed ? 'line-through opacity-70' : ''}`} title={item.label}>
                           {item.label || "Untitled Task"}
                         </h4>
                       </div>
-                      
-                      <button 
-                        type="button"
-                        onClick={() => {
-                          setEditingTask({
-                            id: item.id,
-                            taskId: item.taskId,
-                            blockId: item.blockId,
-                            title: item.label,
-                            startTime: item.startTime,
-                            endTime: item.endTime,
-                          });
-                          setShowAddTaskModal(true);
-                        }} 
-                        className="pl-2 text-[11px] font-semibold text-[#1E3E7B] dark:text-blue-400 hover:text-[#28539E] dark:hover:text-blue-300 transition-colors flex items-center gap-1.5 mt-3 cursor-pointer self-start"
-                      >
-                        <Pencil className="w-3 h-3" />
-                        <span>{state.lang === 'bn' ? "এডিট" : "Edit"}</span>
-                      </button>
                     </div>
                   );
                 })}

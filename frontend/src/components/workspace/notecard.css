@@ -221,6 +221,20 @@
   line-height: 1.35;
 }
 
+.folder-card__snippet {
+  margin: 10px 0 0 0;
+  font-size: 11px;
+  line-height: 1.4;
+  color: #94A3B8;
+  opacity: 0.85;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  word-break: break-word;
+}
+
 /* Bottom Row: Pure Clean Date - NO border line, NO box */
 .folder-card__bottom-row {
   display: flex;
@@ -234,10 +248,11 @@
 .folder-card__date {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 11.5px;
+  gap: 5px;
+  font-size: 10.5px;
   font-weight: 500;
   color: #94A3B8;
+  opacity: 0.75;
   background: transparent !important;
   border: none !important;
   padding: 0 !important;
@@ -289,6 +304,12 @@
 :root[data-theme="light"] .folder-card__subtitle,
 .light .folder-card__subtitle {
   color: #52627A !important;
+}
+
+:root[data-theme="light"] .folder-card__snippet,
+.light .folder-card__snippet {
+  color: #64748B !important;
+  opacity: 0.95;
 }
 
 :root[data-theme="light"] .folder-card__bottom-row,

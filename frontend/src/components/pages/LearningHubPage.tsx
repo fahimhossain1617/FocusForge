@@ -103,6 +103,7 @@ export default function LearningHubPage() {
   const [topics, setTopics] = useState("");
   const [practiceDetails, setPracticeDetails] = useState("");
   const [blockers, setBlockers] = useState("");
+  const [importantTopics, setImportantTopics] = useState("");
   const [isViewAllLogsOpen, setIsViewAllLogsOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<{ type: 'folder' | 'log'; id: string } | null>(null);
 
@@ -231,6 +232,7 @@ export default function LearningHubPage() {
         practiceDetails: practiceDetails.trim(),
         topics: topics.trim(),
         blockers: blockers.trim(),
+        importantTopics: importantTopics.trim(),
       });
 
       setWatchHours("");
@@ -240,6 +242,7 @@ export default function LearningHubPage() {
       setTopics("");
       setPracticeDetails("");
       setBlockers("");
+      setImportantTopics("");
       showToast(t.learningHub.toastLogAdded);
     }, "learning");
   };
@@ -811,18 +814,35 @@ export default function LearningHubPage() {
                   />
                 </div>
 
-                {/* Field 3: Weak Topics */}
-                <div>
-                  <label className="block text-xs font-medium mb-1.5 text-muted-foreground">
-                    {t.learningHub.weakTopics}
-                  </label>
-                  <input
-                    type="text"
-                    value={blockers}
-                    onChange={(e) => setBlockers(e.target.value)}
-                    placeholder={t.learningHub.weakTopicsPlaceholder}
-                    className="input-field w-full text-sm py-2 px-3 shadow-none"
-                  />
+                {/* Field 3 & 4: Weak Topics & Important Topics */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {/* Weak Topics */}
+                  <div>
+                    <label className="block text-xs font-medium mb-1.5 text-muted-foreground">
+                      {t.learningHub.weakTopics}
+                    </label>
+                    <input
+                      type="text"
+                      value={blockers}
+                      onChange={(e) => setBlockers(e.target.value)}
+                      placeholder={t.learningHub.weakTopicsPlaceholder}
+                      className="input-field w-full text-sm py-2 px-3 shadow-none"
+                    />
+                  </div>
+
+                  {/* Important Topics */}
+                  <div>
+                    <label className="block text-xs font-medium mb-1.5 text-muted-foreground">
+                      {t.learningHub.importantTopics}
+                    </label>
+                    <input
+                      type="text"
+                      value={importantTopics}
+                      onChange={(e) => setImportantTopics(e.target.value)}
+                      placeholder={t.learningHub.importantTopicsPlaceholder}
+                      className="input-field w-full text-sm py-2 px-3 shadow-none"
+                    />
+                  </div>
                 </div>
 
                 {/* Submit Button */}
@@ -921,18 +941,35 @@ export default function LearningHubPage() {
                         )}
                       </div>
 
-                      {/* Weak Topics */}
-                      {log.blockers && (
-                        <div className="border-l-2 border-indigo-500/70 pl-2.5 py-1 bg-indigo-500/[0.08] dark:bg-indigo-500/[0.12] rounded-r-lg">
-                          <p className="text-[10.5px] font-bold text-indigo-300 dark:text-indigo-200 mb-0.5 flex items-center gap-1">
-                            <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 shrink-0" />
-                            {t.learningHub.weakTopicsLabel}
-                          </p>
-                          <ul className="text-xs text-slate-800 dark:text-slate-100 list-disc list-inside space-y-0.5 pl-0.5 font-normal">
-                            {log.blockers.split(/[,;\n]+/).map((b, i) => (
-                              <li key={i} className="leading-relaxed">{b.trim()}</li>
-                            ))}
-                          </ul>
+                      {/* Weak Topics & Important Topics */}
+                      {(log.blockers || log.importantTopics) && (
+                        <div className="flex flex-col sm:flex-row gap-2">
+                          {log.blockers && (
+                            <div className="flex-1 border-l-2 border-rose-500/70 pl-2.5 py-1 bg-rose-500/[0.08] dark:bg-rose-500/[0.12] rounded-r-lg">
+                              <p className="text-[10.5px] font-bold text-rose-600 dark:text-rose-300 mb-0.5 flex items-center gap-1">
+                                <span className="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0" />
+                                {t.learningHub.weakTopicsLabel}
+                              </p>
+                              <ul className="text-xs text-slate-800 dark:text-slate-100 list-disc list-inside space-y-0.5 pl-0.5 font-normal">
+                                {log.blockers.split(/[,;\n]+/).map((b, i) => (
+                                  <li key={i} className="leading-relaxed">{b.trim()}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                          {log.importantTopics && (
+                            <div className="flex-1 border-l-2 border-amber-500/70 pl-2.5 py-1 bg-amber-500/[0.08] dark:bg-amber-500/[0.12] rounded-r-lg">
+                              <p className="text-[10.5px] font-bold text-amber-600 dark:text-amber-300 mb-0.5 flex items-center gap-1">
+                                <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
+                                {t.learningHub.importantTopicsLabel}
+                              </p>
+                              <ul className="text-xs text-slate-800 dark:text-slate-100 list-disc list-inside space-y-0.5 pl-0.5 font-normal">
+                                {log.importantTopics.split(/[,;\n]+/).map((it, i) => (
+                                  <li key={i} className="leading-relaxed">{it.trim()}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
@@ -1238,18 +1275,35 @@ export default function LearningHubPage() {
                       )}
                     </div>
 
-                    {/* Weak Topics */}
-                    {log.blockers && (
-                      <div className="border-l-2 border-indigo-500/70 pl-2.5 py-1 bg-indigo-500/[0.08] dark:bg-indigo-500/[0.12] rounded-r-lg">
-                        <p className="text-[10.5px] font-bold text-indigo-300 dark:text-indigo-200 mb-0.5 flex items-center gap-1">
-                          <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 shrink-0" />
-                          {t.learningHub.weakTopicsLabel}
-                        </p>
-                        <ul className="text-xs text-slate-800 dark:text-slate-100 list-disc list-inside space-y-0.5 pl-0.5 font-normal">
-                          {log.blockers.split(/[,;\n]+/).map((b, i) => (
-                            <li key={i} className="leading-relaxed">{b.trim()}</li>
-                          ))}
-                        </ul>
+                    {/* Weak Topics & Important Topics in View All Modal */}
+                    {(log.blockers || log.importantTopics) && (
+                      <div className="flex flex-col sm:flex-row gap-2">
+                        {log.blockers && (
+                          <div className="flex-1 border-l-2 border-rose-500/70 pl-2.5 py-1 bg-rose-500/[0.08] dark:bg-rose-500/[0.12] rounded-r-lg">
+                            <p className="text-[10.5px] font-bold text-rose-600 dark:text-rose-300 mb-0.5 flex items-center gap-1">
+                              <span className="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0" />
+                              {t.learningHub.weakTopicsLabel}
+                            </p>
+                            <ul className="text-xs text-slate-800 dark:text-slate-100 list-disc list-inside space-y-0.5 pl-0.5 font-normal">
+                              {log.blockers.split(/[,;\n]+/).map((b, i) => (
+                                <li key={i} className="leading-relaxed">{b.trim()}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                        {log.importantTopics && (
+                          <div className="flex-1 border-l-2 border-amber-500/70 pl-2.5 py-1 bg-amber-500/[0.08] dark:bg-amber-500/[0.12] rounded-r-lg">
+                            <p className="text-[10.5px] font-bold text-amber-600 dark:text-amber-300 mb-0.5 flex items-center gap-1">
+                              <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
+                              {t.learningHub.importantTopicsLabel}
+                            </p>
+                            <ul className="text-xs text-slate-800 dark:text-slate-100 list-disc list-inside space-y-0.5 pl-0.5 font-normal">
+                              {log.importantTopics.split(/[,;\n]+/).map((it, i) => (
+                                <li key={i} className="leading-relaxed">{it.trim()}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>

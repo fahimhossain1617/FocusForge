@@ -244,6 +244,7 @@ export interface LearningLog {
   practiceDetails: string;
   topics: string;
   blockers: string;
+  importantTopics?: string;
 }
 
 export interface Habit {

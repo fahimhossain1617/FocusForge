@@ -104,21 +104,21 @@ export default function ThoughtPaperCard({
           </div>
         </div>
 
-        {/* Creation Date (compact date only) */}
-        <div className="flex items-center gap-1 sm:gap-1.5 text-[10px] sm:text-[11px] font-medium text-slate-500 dark:text-slate-400 mt-0.5 sm:mt-1">
-          <Calendar size={11} className="shrink-0 opacity-80" />
-          <span className="truncate">{displayData.formattedDate}</span>
-        </div>
-
         {/* Prominent Thought Title */}
-        <h3 className="text-xs sm:text-[15px] font-bold text-slate-900 dark:text-slate-100 tracking-tight leading-snug line-clamp-2 mt-2 sm:mt-3 mb-1">
+        <h3 className="text-xs sm:text-[15px] font-bold text-slate-900 dark:text-slate-100 tracking-tight leading-snug line-clamp-2 mt-2 sm:mt-2.5">
           {displayData.title}
         </h3>
 
-        {/* Readable Truncated Content Preview */}
-        <p className="text-[11px] sm:text-[13px] text-slate-600 dark:text-slate-300/90 leading-relaxed line-clamp-3 sm:line-clamp-4 font-normal">
+        {/* Readable Truncated Content Preview with distinct gap */}
+        <p className="text-[11px] sm:text-[13px] text-slate-600 dark:text-slate-300/90 leading-relaxed line-clamp-3 sm:line-clamp-4 font-normal mt-2.5 sm:mt-3">
           {displayData.preview || displayData.title}
         </p>
+
+        {/* Creation Date at Bottom Left */}
+        <div className="mt-auto pt-2 flex items-center gap-1.5 text-[10px] sm:text-[11px] font-medium text-slate-500 dark:text-slate-400 opacity-75 select-none">
+          <Calendar size={11} className="shrink-0 opacity-80" />
+          <span className="truncate">{displayData.formattedDate}</span>
+        </div>
       </div>
     </article>
   );

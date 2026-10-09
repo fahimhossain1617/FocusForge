@@ -711,7 +711,16 @@
   4. **Skill Practice Slot Rotation:** Unpracticed learning skills rotate across 3 organic daily slots (Morning ~10:15, Late Afternoon ~17:15, Night ~20:15) with daily jitter.
   5. **Unified Client & Server Timestamps:** `useDailyPlan.ts` ServiceWorker synchronization delegates directly to `reminderSyncService.buildScheduledReminders()`, guaranteeing identical target timestamps across the browser in-app checks, ServiceWorker timers, and backend cron workers.
 - **Reason:** Users previously experienced clustered or delayed task reminders due to anti-clustering cooldowns suppressing subsequent alerts, and static background reminders felt rigid and intrusive at noon.
-- **Impact:** `frontend/src/services/reminderSyncService.ts`, `frontend/src/lib/server/schedulerService.ts`, `backend/src/services/notificationSchedulerService.ts`, `frontend/src/hooks/useDailyPlan.ts`, `frontend/vercel.json`.
+## ADR-046: Important Topics in Time Log, Note/Diary/MindSpace Text Previews, and Card Layout Standardization
+
+- **Date:** October 2026
+- **Status:** Accepted
+- **Decision:**
+  1. **Important Topics in Time Log (`LearningHubPage.tsx`):** Added `importantTopics` alongside Weak Topics (`blockers`) with clean, distinct amber color scheme (`border-amber-500/70`, `bg-amber-500/[0.08] dark:bg-amber-500/[0.12]`), responsive dual-column form inputs, and clean badge list rendering in both the folder logs view and the "View All" modal without glow or shadow.
+  2. **Unified Bottom Date Placement Across All File/Folder Cards:** Standardized Notes & Files (`NoteCard.tsx`), My Diary (`DiaryCard.tsx`), and Mind Space (`ThoughtPaperCard.tsx`) so the creation/update date is placed at the bottom-left with a clean, compact font (`10.5px–11px`) and subtle opacity (`0.75`).
+  3. **Generous Visual Separation Between Title and Body Snippet:** Ensured all folder/card items provide an intentional, distinct spacing between the title/subtitle and the inner content snippet (`mt-2.5` to `mt-3.5` / `margin: 10px 0 0 0`) with 2-line clamping for optimal legibility across light and dark themes.
+  4. **Planner Highlight Card Interaction (`PlannerPage.tsx`):** Made the highlight card directly clickable to open edit modal, removed redundant "Edit" text button, and added an inline Delete button aligned with the time row with event propagation protection.
+- **Impact:** `frontend/src/types.ts`, `frontend/src/i18n/translations.ts`, `frontend/src/components/pages/LearningHubPage.tsx`, `frontend/src/components/workspace/NoteCard.tsx`, `frontend/src/components/workspace/notecard.css`, `frontend/src/components/diary/DiaryCard.tsx`, `frontend/src/components/mymind/ThoughtPaperCard.tsx`, `frontend/src/components/pages/PlannerPage.tsx`.
 
 
 
