@@ -434,21 +434,22 @@ export const StopwatchTimer = memo(function StopwatchTimer({
 
           {/* Controls Row: Play/Pause, Save Session (solid blue, NO icon), Instant Reset */}
           <div className="flex flex-wrap items-center justify-center gap-3.5 mt-8 w-full">
-            {/* Play/Pause Button */}
+            {/* Play/Pause/Resume Button */}
             <button
               type="button"
               onClick={isRunning ? handlePause : handleStart}
-              className={`w-24 h-12 rounded-full font-bold text-sm flex items-center justify-center gap-2 transition-all cursor-pointer active:scale-95 shadow-none ${
-                isRunning
-                  ? "bg-slate-900 hover:bg-slate-800 text-white border border-slate-900 dark:bg-white/15 dark:hover:bg-white/20 dark:text-white dark:border-white/10"
-                  : "bg-blue-600 hover:bg-blue-500 text-white"
-              }`}
+              style={{
+                backgroundColor: isRunning ? "#0F172A" : "#1E3E7B",
+                borderColor: isRunning ? "#0F172A" : "#1E3E7B",
+                color: "#FFFFFF",
+              }}
+              className="w-24 h-12 rounded-full font-bold text-sm flex items-center justify-center gap-2 transition-all cursor-pointer active:scale-95 shadow-none dark:!bg-white/15 dark:!border-white/15 dark:!text-white text-white border"
               title={isRunning ? (state.lang === "bn" ? "থামান" : "Pause") : (state.lang === "bn" ? "চালিয়ে যান" : "Resume")}
             >
               {isRunning ? (
-                <Pause className="w-5 h-5 fill-current" />
+                <Pause className="w-5 h-5 fill-white text-white" />
               ) : (
-                <Play className="w-5 h-5 fill-current ml-0.5" />
+                <Play className="w-5 h-5 fill-white text-white ml-0.5" />
               )}
             </button>
 
