@@ -677,19 +677,26 @@
      - Directly triggers native prompt when available (`deferredPrompt.prompt()`).
      - Provides clear platform-specific guidance for iOS Safari ("Share -> Add to Home Screen") and other browsers.
 - **Reason:** Direct user request to provide an elegant "Get App" / "গেট অ্যাপ" install option that seamlessly appears in the mobile header and desktop sidebar for web visitors and disappears once installed.
-## ADR-043: Notification Master Toggle Reactivation & Header Badge Cleanup
+## ADR-044: Production-Grade Persistent Scheduled Reminders Queue & Atomic Concurrency Scheduler
 
 - **Date:** October 2026
 - **Status:** Accepted
 - **Decision:**
-  1. **Removed "Active" / "সক্রিয়" Status Badge:** Removed the redundant status badge next to the Notifications header title in [SettingsPage.tsx](file:///c:/Users/fahim/OneDrive/Desktop/My%20all%20learning%20project%20files/my%20app/frontend/src/components/pages/SettingsPage.tsx) as requested by the user.
-  2. **Non-Blocking Permission & Asynchronous Push Registration:**
-     - In [notificationService.ts](file:///c:/Users/fahim/OneDrive/Desktop/My%20all%20learning%20project%20files/my%20app/frontend/src/services/notificationService.ts), removed blocking `await` from `subscribeUserToPush` within `requestPermission()`.
-     - In [pushSubscription.ts](file:///c:/Users/fahim/OneDrive/Desktop/My%20all%20learning%20project%20files/my%20app/frontend/src/utils/pushSubscription.ts), added a 3.5s timeout guard to `getServiceWorkerRegistration()` so `navigator.serviceWorker.ready` never hangs indefinitely if the Service Worker is pending or unregistered.
-     - In [SettingsPage.tsx](file:///c:/Users/fahim/OneDrive/Desktop/My%20all%20learning%20project%20files/my%20app/frontend/src/components/pages/SettingsPage.tsx), fixed the master toggle reactivation flow to properly check `permissionResult === "denied"` rather than blocking on truthiness evaluation, allowing users to toggle notifications off and on freely at any time.
-- **Reason:** Users who toggled notifications off in settings were unable to turn them back on because the promise chain was blocked waiting indefinitely on Service Worker ready, and the redundant "Active" badge cluttered the header title.
-- **Impact:** [SettingsPage.tsx](file:///c:/Users/fahim/OneDrive/Desktop/My%20all%20learning%20project%20files/my%20app/frontend/src/components/pages/SettingsPage.tsx), [notificationService.ts](file:///c:/Users/fahim/OneDrive/Desktop/My%20all%20learning%20project%20files/my%20app/frontend/src/services/notificationService.ts), [pushSubscription.ts](file:///c:/Users/fahim/OneDrive/Desktop/My%20all%20learning%20project%20files/my%20app/frontend/src/utils/pushSubscription.ts).
-- **Do Not Change Without Approval:** Do not block `Notification.requestPermission()` with synchronous push network/worker subscriptions.
+  1. **Persistent Cloud Database Queue (`scheduled_reminders`):** Added table `public.scheduled_reminders` (migration 028) with partial index `idx_scheduled_reminders_pending_due` on `(status, target_time) WHERE status = 'pending'`. Stores exact UTC target instants, timezone, priority, category, title, body, and actionRoute.
+  2. **Atomic Concurrency Protection (`FOR UPDATE SKIP LOCKED`):** Schedulers claim due records atomically using `SELECT ... FOR UPDATE SKIP LOCKED` in `dbClaimDueScheduledReminders()`, preventing duplicate dispatches across multiple concurrent serverless executions, cron triggers, or worker instances.
+  3. **Strict Priority Dispatching & Anti-Clustering:** Schedulers process reminders in order of priority:
+     - Priority 1: `task_start` (Exact scheduled start time)
+     - Priority 2: `task_pre_reminder` (Exact 5 minutes before scheduled start)
+     - Priority 3: `skill_reminder` (Time Log / Skill Practice)
+     - Priority 4: `focus_reminder` (Daily Focus session nudge)
+     - Priority 5: `diary_reminder` / `ai_companion` / `system`
+     - Enforces 45-minute minimum spacing between non-urgent nudges, user quiet hours (22:00–07:00), and daily notification limit caps.
+  4. **Overdue Expiration Policy:** Reminders overdue by >30 minutes (from device disconnect or server downtime) are automatically expired to prevent spam bursts when back online.
+  5. **Client Synchronization (`reminderSyncService.ts`):** Client computes exact UTC target instants and debounces sync to `/api/notifications/reminders/sync`. On task completion or deletion, immediately cancels pending reminders in the database.
+  6. **Dual Cron Compatibility:** Configured Vercel Cron in `frontend/vercel.json` (`* * * * *` targeting `/api/notifications/cron`) and companion Express worker (`notificationSchedulerService.ts` running every minute).
+- **Reason:** Background notifications previously failed when the app was closed or tab was refreshed because the system relied on in-memory React timers or idle-terminated Service Worker timers. The database-backed scheduler guarantees punctual delivery regardless of client state.
+- **Impact:** `supabase/migrations/028_scheduled_reminders_and_queue.sql`, `frontend/src/lib/server/db.ts`, `backend/src/services/db.ts`, `frontend/src/lib/server/schedulerService.ts`, `backend/src/services/notificationSchedulerService.ts`, `frontend/src/services/reminderSyncService.ts`, `frontend/src/hooks/useDailyPlan.ts`, `frontend/vercel.json`, `frontend/src/app/api/[...path]/route.ts`, `backend/src/routes/notificationRoutes.ts`.
+- **Do Not Change Without Approval:** Do not remove the persistent `scheduled_reminders` queue, database concurrency locking, or revert to client-only timers.
 
 
 

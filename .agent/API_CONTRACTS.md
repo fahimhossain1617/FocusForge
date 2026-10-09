@@ -163,7 +163,7 @@ Content-Type: application/json
 
 ---
 
-## 6. Notifications & Reviews
+## 6. Notifications, Scheduled Reminders & Reviews
 
 - `GET /api/notifications/settings` & `POST /api/notifications/settings` -> Manages push settings, quiet hours, and daily limits.
 - `GET /api/notifications` -> In-app notification history.
@@ -172,6 +172,9 @@ Content-Type: application/json
 - `POST /api/notifications/unsubscribe` -> Removes Web Push subscription endpoint from database.
 - `POST /api/notifications/send-push` -> Dispatches OS-level Web Push notification to user's devices via VAPID protocol.
 - `POST /api/notifications/test` / `POST /api/notifications/test-push` -> Dispatches test Web Push notification to verify background delivery.
+- `POST /api/notifications/reminders/sync` -> Upserts scheduled reminders into persistent queue `public.scheduled_reminders` with timezone & target instants; cancels completed task reminders.
+- `POST /api/notifications/reminders/cancel` -> Cancels specific pending reminders or task reminders.
+- `GET / POST /api/notifications/cron` -> Executes automated background reminder evaluation, priority dispatch, anti-spam spacing, and expired reminder cleanup (triggered via Vercel Cron or Express worker).
 - `GET /api/reviews/state` & `POST /api/reviews/action` & `POST /api/reviews/skip` & `POST /api/reviews/submit` -> Smart in-app review prompt trigger pipeline.
 
 ---

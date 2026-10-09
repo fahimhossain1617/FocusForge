@@ -1,22 +1,25 @@
 /**
- * FocusForge / Focentia Notification Scheduler Service (Express Companion Backend)
+ * FocusForge / Focentia Centralized Notification Scheduler Service
  *
- * Runs background checks every 60 seconds (or on-demand cron triggers):
- * 1. Claims due reminders from `scheduled_reminders` via `FOR UPDATE SKIP LOCKED`.
- * 2. Enforces priority (Todo start/pre -> Skill -> Focus -> Inactivity/Diary).
- * 3. Enforces quiet hours in user timezone, daily limits, and anti-clustering spacing.
- * 4. Dispatches real Web Push to FCM/browser endpoints and handles expired subscriptions.
+ * Implements high-reliability background push notification delivery:
+ * 1. Concurrency Control: Atomic locks with `FOR UPDATE SKIP LOCKED`.
+ * 2. Strict Priority Order:
+ *    - Priority 1: Todo Task Scheduled Start (highest, urgent, requireInteraction)
+ *    - Priority 2: Todo Task Pre-Reminder (5 minutes before start)
+ *    - Priority 3: Time Log / Skill Practice Reminders
+ *    - Priority 4: Motivational Focus Reminders
+ *    - Priority 5: Diary / Reflection / Glory AI Companion
+ * 3. Timezone-Aware Quiet Hours & Daily Limits.
+ * 4. Anti-Clustering Spacing (min 60m cooldown between non-urgent nudges).
+ * 5. Overdue / Stale Reminder Catch-up & Expiration Policy.
+ * 6. Web Push Delivery via RFC 8291/8292 with FCM / Mozilla Push Service.
+ * 7. Automatic purging of 410/404 expired push subscriptions.
  */
 
-import {
-  pool,
-  dbClaimDueScheduledReminders,
-  dbUpdateScheduledReminderStatus,
-  dbSaveNotification,
-} from './db';
+import { pool, dbClaimDueScheduledReminders, dbUpdateScheduledReminderStatus, dbSaveNotification } from './db';
 import { sendWebPushToUser, WebPushPayload } from './webPushService';
 
-// In-memory cooldown tracking per user for automated nudges
+// In-memory cache for recent user send timestamps to enforce anti-clustering cooldowns
 const userLastSentMap = new Map<string, number>();
 
 export interface SchedulerCycleResult {
@@ -59,6 +62,7 @@ export function isUserInQuietHours(
     const endMinutes = (eH || 0) * 60 + (eM || 0);
 
     if (startMinutes > endMinutes) {
+      // Spans midnight, e.g. 22:00 -> 07:00
       return currentMinutes >= startMinutes || currentMinutes < endMinutes;
     }
     return currentMinutes >= startMinutes && currentMinutes < endMinutes;
@@ -127,7 +131,7 @@ export async function runNotificationSchedulerCycle(): Promise<SchedulerCycleRes
       const targetTime = new Date(targetTimeRaw);
       const isUrgent = priority === 1 || category === 'task_start';
 
-      // 2. Fetch user notification preferences
+      // 2. Fetch user notification preferences & language
       const userSettingsRes = await pool.query(
         `SELECT s.*, p.preferred_language 
          FROM user_notification_settings s
@@ -218,17 +222,19 @@ export async function runNotificationSchedulerCycle(): Promise<SchedulerCycleRes
       }
 
       // 6. Anti-Clustering / Minimum Spacing Check for Non-Urgent Reminders
+      // Ensure at least 45 minutes between non-urgent notifications for the same user
       if (!isUrgent) {
         const lastSentTime = userLastSentMap.get(userId) || 0;
         const timeSinceLastSentMs = now.getTime() - lastSentTime;
         if (timeSinceLastSentMs < 45 * 60 * 1000) {
+          // Defer or suppress
           await dbUpdateScheduledReminderStatus(id, 'suppressed', 'cooldown_spacing');
           result.suppressedCount++;
           continue;
         }
       }
 
-      // 7. Format Web Push Payload with Deterministic Tags
+      // 7. Format Web Push Payload with Deterministic Tags and Actions
       let deterministicTag = `focentia-${category}`;
       if (taskId) deterministicTag = `focentia-task-${taskId}-${category}`;
       else if (skillId) deterministicTag = `focentia-skill-${skillId}-${userLocalDate}`;
@@ -253,10 +259,11 @@ export async function runNotificationSchedulerCycle(): Promise<SchedulerCycleRes
         timestamp: targetTime.getTime(),
       };
 
-      // 8. Deliver Web Push
+      // 8. Deliver Web Push to all user's registered devices
       const pushRes = await sendWebPushToUser(userId, pushPayload);
 
       if (pushRes.sentCount > 0) {
+        // Success: Record into in-app notification center and mark sent
         await dbSaveNotification(userId, {
           id,
           type: category.startsWith('task') ? 'task' : category === 'focus_reminder' ? 'focus' : 'system',
@@ -275,13 +282,16 @@ export async function runNotificationSchedulerCycle(): Promise<SchedulerCycleRes
         userLastSentMap.set(userId, now.getTime());
         result.dispatchedCount++;
       } else if (pushRes.removedExpired > 0 && pushRes.failedCount === 0) {
+        // All subscriptions were expired/unregistered
         await dbUpdateScheduledReminderStatus(id, 'failed', 'no_active_subscriptions');
         result.failedCount++;
       } else {
+        // Delivery failed due to provider error or no subscriptions registered
         if (attemptCount >= (reminder.max_attempts || 3)) {
           await dbUpdateScheduledReminderStatus(id, 'failed', 'max_attempts_reached');
           result.failedCount++;
         } else {
+          // Leave in pending for next retry cycle with backoff
           await dbUpdateScheduledReminderStatus(id, 'pending', 'retry_queued');
         }
       }
@@ -289,24 +299,8 @@ export async function runNotificationSchedulerCycle(): Promise<SchedulerCycleRes
 
     return result;
   } catch (err: any) {
-    console.error('[Notification Scheduler] Global cycle error:', err);
+    console.error('[Scheduler Service] Cycle error:', err);
     result.failedCount++;
     return result;
   }
-}
-
-/**
- * Start the recurring background scheduler loop (runs every 60 seconds)
- */
-export function startNotificationScheduler(intervalMs: number = 60000): NodeJS.Timeout {
-  console.log('[Notification Scheduler] Starting background worker loop (60s interval)...');
-
-  // Run first cycle shortly after boot
-  setTimeout(() => {
-    runNotificationSchedulerCycle().catch((err) => console.warn('[Scheduler Initial Run]:', err));
-  }, 5000);
-
-  return setInterval(() => {
-    runNotificationSchedulerCycle().catch((err) => console.warn('[Scheduler Cycle Run]:', err));
-  }, intervalMs);
 }

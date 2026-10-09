@@ -33,9 +33,12 @@ import {
   dbLogSupervisorAction,
   dbGetSupervisorAuditLogs,
   dbDeleteUserAccountCompletely,
+  dbSyncScheduledReminders,
+  dbGetScheduledReminders,
   pool,
 } from '@/lib/server/db';
 import { sendWebPushToUser } from '@/lib/server/webPushService';
+import { runNotificationSchedulerCycle } from '@/lib/server/schedulerService';
 import {
   ERROR_CODES,
   validateFullName,
@@ -278,6 +281,24 @@ export async function GET(request: NextRequest, context: { params: Promise<{ pat
     }
   }
 
+  // 4.3.3. Automated Cron Trigger: GET /api/notifications/cron
+  if (pathStr === 'notifications/cron') {
+    const cronSecret = process.env.CRON_SECRET;
+    const authHeader = request.headers.get('authorization');
+    if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+      const isVercelCron = request.headers.get('x-vercel-cron') === '1';
+      if (!isVercelCron && (!userId || isGuest)) {
+        return NextResponse.json({ error: 'Unauthorized cron invocation' }, { status: 401 });
+      }
+    }
+    try {
+      const cycleResult = await runNotificationSchedulerCycle();
+      return NextResponse.json({ success: true, ...cycleResult });
+    } catch (err: any) {
+      return NextResponse.json({ error: err?.message || 'Notification cron cycle failed' }, { status: 500 });
+    }
+  }
+
   // 5. Supervisor API - Check Role: GET /api/supervisor/role
   if (pathStr === 'supervisor/role') {
     if (!userId || isGuest) {
@@ -445,16 +466,24 @@ export async function GET(request: NextRequest, context: { params: Promise<{ pat
 
   if (pathStr === 'notifications/cron') {
     try {
-      // Evaluate notification delivery for all subscribed users
-      const { runNotificationSchedulerCycle } = await import('@/lib/server/webPushService').then(async () => {
-        // Evaluate directly or through pool query
-        return {
-          runNotificationSchedulerCycle: async () => ({ evaluatedUsers: 0, dispatchedCount: 0 })
-        };
-      });
-      return NextResponse.json({ success: true, timestamp: new Date().toISOString() });
+      // Evaluate and dispatch due scheduled notifications for all registered users
+      const cycleResult = await runNotificationSchedulerCycle();
+      return NextResponse.json({ success: true, ...cycleResult });
     } catch (err: any) {
       return NextResponse.json({ error: err?.message || 'Notification cron failed' }, { status: 500 });
+    }
+  }
+
+  // 4.3. Scheduled Reminders: GET /api/notifications/reminders
+  if (pathStr === 'notifications/reminders' || pathStr === 'reminders') {
+    if (!userId || isGuest) return NextResponse.json({ reminders: [] });
+    try {
+      const url = new URL(request.url);
+      const date = url.searchParams.get('date') || undefined;
+      const reminders = await dbGetScheduledReminders(userId, date);
+      return NextResponse.json({ reminders });
+    } catch (err: any) {
+      return NextResponse.json({ error: err?.message || 'Failed to get scheduled reminders' }, { status: 500 });
     }
   }
 
@@ -1219,6 +1248,54 @@ export async function POST(request: NextRequest, context: { params: Promise<{ pa
       return NextResponse.json({ success: true, ...pushResult });
     } catch (err: any) {
       return NextResponse.json({ error: err?.message || 'Failed to dispatch push notification' }, { status: 500 });
+    }
+  }
+
+  // 4.3.1. Scheduled Reminders Sync: POST /api/notifications/reminders/sync or /api/reminders/sync
+  if (pathStr === 'notifications/reminders/sync' || pathStr === 'reminders/sync') {
+    const targetUserId = userId || (body.userId && body.userId !== 'guest' ? body.userId : null) || request.headers.get('x-user-id');
+    if (!targetUserId || targetUserId === 'guest') {
+      return NextResponse.json({ success: true, guest: true, syncedCount: 0 });
+    }
+    try {
+      const { reminders = [], cancelledIds = [], completedTaskIds = [] } = body;
+      const result = await dbSyncScheduledReminders(targetUserId, reminders, cancelledIds, completedTaskIds);
+      return NextResponse.json({ ...result });
+    } catch (err: any) {
+      return NextResponse.json({ error: err?.message || 'Failed to sync scheduled reminders' }, { status: 500 });
+    }
+  }
+
+  // 4.3.2. Scheduled Reminders Cancellation: POST /api/notifications/reminders/cancel
+  if (pathStr === 'notifications/reminders/cancel' || pathStr === 'reminders/cancel') {
+    const targetUserId = userId || (body.userId && body.userId !== 'guest' ? body.userId : null) || request.headers.get('x-user-id');
+    if (!targetUserId || targetUserId === 'guest') {
+      return NextResponse.json({ success: true, guest: true });
+    }
+    try {
+      const { ids = [], taskIds = [] } = body;
+      const result = await dbSyncScheduledReminders(targetUserId, [], ids, taskIds);
+      return NextResponse.json({ ...result });
+    } catch (err: any) {
+      return NextResponse.json({ error: err?.message || 'Failed to cancel scheduled reminders' }, { status: 500 });
+    }
+  }
+
+  // 4.3.3. Manual/Automated Cron Trigger: POST /api/notifications/cron
+  if (pathStr === 'notifications/cron') {
+    const cronSecret = process.env.CRON_SECRET;
+    const authHeader = request.headers.get('authorization');
+    if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+      const isVercelCron = request.headers.get('x-vercel-cron') === '1';
+      if (!isVercelCron && (!userId || isGuest)) {
+        return NextResponse.json({ error: 'Unauthorized cron invocation' }, { status: 401 });
+      }
+    }
+    try {
+      const cycleResult = await runNotificationSchedulerCycle();
+      return NextResponse.json({ success: true, ...cycleResult });
+    } catch (err: any) {
+      return NextResponse.json({ error: err?.message || 'Notification cron cycle failed' }, { status: 500 });
     }
   }
 

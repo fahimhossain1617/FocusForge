@@ -14,6 +14,8 @@ import {
   dbClearNotifications,
   dbGetRotationStates,
   dbSaveRotationState,
+  dbSyncScheduledReminders,
+  dbGetScheduledReminders,
 } from '../services/db';
 import { sendWebPushToUser } from '../services/webPushService';
 import { runNotificationSchedulerCycle } from '../services/notificationSchedulerService';
@@ -323,7 +325,7 @@ router.post('/test', async (req: AuthenticatedRequest, res: Response) => {
 
 /**
  * GET /api/notifications/reminders
- * Returns upcoming task reminders for the authenticated user for today
+ * Returns upcoming scheduled reminders for current user
  */
 router.get('/reminders', async (req: AuthenticatedRequest, res: Response) => {
   try {
@@ -332,13 +334,49 @@ router.get('/reminders', async (req: AuthenticatedRequest, res: Response) => {
       return res.json({ reminders: [] });
     }
 
-    const todayStr = new Date().toISOString().split('T')[0];
-    const tasks = await dbGetTasks(userId, todayStr);
-    const pendingWithReminders = tasks.filter((t: any) => !t.completed && t.status !== 'completed');
-
-    res.json({ reminders: pendingWithReminders || [] });
+    const date = typeof req.query.date === 'string' ? req.query.date : undefined;
+    const reminders = await dbGetScheduledReminders(userId, date);
+    res.json({ reminders: reminders || [] });
   } catch (err: any) {
     res.status(500).json({ error: err.message || 'Failed to fetch reminders' });
+  }
+});
+
+/**
+ * POST /api/notifications/reminders/sync
+ * Sync scheduled reminders from client to database queue
+ */
+router.post('/reminders/sync', async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId || req.user?.isGuest) {
+      return res.json({ success: true, guest: true, syncedCount: 0 });
+    }
+
+    const { reminders = [], cancelledIds = [], completedTaskIds = [] } = req.body;
+    const result = await dbSyncScheduledReminders(userId, reminders, cancelledIds, completedTaskIds);
+    res.json({ ...result });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to sync reminders' });
+  }
+});
+
+/**
+ * POST /api/notifications/reminders/cancel
+ * Cancel specific pending scheduled reminders or tasks
+ */
+router.post('/reminders/cancel', async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId || req.user?.isGuest) {
+      return res.json({ success: true, guest: true });
+    }
+
+    const { ids = [], taskIds = [] } = req.body;
+    const result = await dbSyncScheduledReminders(userId, [], ids, taskIds);
+    res.json({ ...result });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to cancel reminders' });
   }
 });
 
@@ -356,3 +394,4 @@ router.all('/cron', async (req: AuthenticatedRequest, res: Response) => {
 });
 
 export default router;
+

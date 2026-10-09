@@ -6,6 +6,7 @@ import { useAuth } from "../context/AuthContext";
 import { getLocalDateString, getTodayTasks } from "../services/taskService";
 import notificationService from "../services/notificationService";
 import { notificationRotationManager } from "../services/notificationTemplates";
+import reminderSyncService from "../services/reminderSyncService";
 
 export function useDailyPlan() {
   const { state, updateTask } = useAppContext();
@@ -107,9 +108,10 @@ export function useDailyPlan() {
     for (const task of todayTasks) {
       const isDone = task.completed || task.status === "completed";
 
-      // If task is completed, cancel remaining reminders
+      // If task is completed, cancel remaining reminders locally and on backend server
       if (isDone) {
         notificationService.cancelTaskReminders(task.id);
+        reminderSyncService.cancelTaskRemindersOnServer(task.id, userId);
         continue;
       }
 
@@ -625,10 +627,19 @@ export function useDailyPlan() {
     } catch {}
   }, [prefs, state.tasks, state.focusSessions, state.focusLogs, state.learningFolders, state.learningLogs, state.diaryTopics, lang, userId]);
 
-  // Sync to Service Worker on state updates
+  // Sync to Service Worker and Backend Server on state updates
   useEffect(() => {
     syncScheduleToServiceWorker();
-  }, [syncScheduleToServiceWorker]);
+    reminderSyncService.debounceSyncReminders({
+      tasks: state.tasks,
+      focusSessions: state.focusSessions,
+      learningFolders: state.learningFolders,
+      learningLogs: state.learningLogs,
+      notifPreferences: prefs,
+      lang,
+      userId,
+    });
+  }, [syncScheduleToServiceWorker, state.tasks, state.focusSessions, state.learningFolders, state.learningLogs, prefs, lang, userId]);
 
   /**
    * Master Polling Scheduler: Checks every 10 seconds for exact minute timing

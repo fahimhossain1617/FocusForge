@@ -1485,3 +1485,197 @@ export async function dbSaveRotationState(userId: string, category: string, bag:
   );
   return { success: true };
 }
+
+// ==================== SCHEDULED REMINDERS & QUEUE ====================
+
+export interface ScheduledReminderInput {
+  id: string;
+  category: string;
+  priority?: number;
+  title: string;
+  body: string;
+  actionRoute?: string;
+  targetTime: string | Date;
+  dueDate: string;
+  timezone?: string;
+  taskId?: number | string | null;
+  skillId?: string | null;
+  metadata?: Record<string, unknown>;
+}
+
+export async function dbSyncScheduledReminders(
+  userId: string,
+  reminders: ScheduledReminderInput[],
+  cancelledIds: string[] = [],
+  completedTaskIds: Array<number | string> = []
+) {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    // 1. Mark completed tasks' reminders as cancelled
+    if (completedTaskIds && completedTaskIds.length > 0) {
+      const numTaskIds = completedTaskIds.map(t => Number(t)).filter(t => !isNaN(t));
+      if (numTaskIds.length > 0) {
+        await client.query(
+          `UPDATE scheduled_reminders 
+           SET status = 'cancelled', updated_at = NOW() 
+           WHERE user_id = $1 AND task_id = ANY($2::bigint[]) AND status = 'pending'`,
+          [userId, numTaskIds]
+        );
+      }
+    }
+
+    // 2. Mark explicit cancelled IDs
+    if (cancelledIds && cancelledIds.length > 0) {
+      await client.query(
+        `UPDATE scheduled_reminders 
+         SET status = 'cancelled', updated_at = NOW() 
+         WHERE user_id = $1 AND id = ANY($2::text[]) AND status = 'pending'`,
+        [userId, cancelledIds]
+      );
+    }
+
+    // 3. Upsert upcoming reminders
+    let syncedCount = 0;
+    if (Array.isArray(reminders) && reminders.length > 0) {
+      for (const r of reminders) {
+        if (!r.id || !r.title || !r.targetTime) continue;
+
+        const targetTimeIso = typeof r.targetTime === 'string' ? r.targetTime : r.targetTime.toISOString();
+        const taskIdNum = r.taskId ? Number(r.taskId) : null;
+
+        await client.query(
+          `
+          INSERT INTO scheduled_reminders (
+            id, user_id, category, priority, title, body, action_route,
+            target_time, due_date, timezone, status, task_id, skill_id, metadata, created_at, updated_at
+          ) VALUES (
+            $1, $2, $3, $4, $5, $6, $7,
+            $8::timestamptz, $9, $10, 'pending', $11, $12, $13::jsonb, NOW(), NOW()
+          )
+          ON CONFLICT (id) DO UPDATE SET
+            title = EXCLUDED.title,
+            body = EXCLUDED.body,
+            action_route = EXCLUDED.action_route,
+            priority = EXCLUDED.priority,
+            target_time = EXCLUDED.target_time,
+            due_date = EXCLUDED.due_date,
+            timezone = EXCLUDED.timezone,
+            task_id = EXCLUDED.task_id,
+            skill_id = EXCLUDED.skill_id,
+            metadata = EXCLUDED.metadata,
+            updated_at = NOW()
+          WHERE scheduled_reminders.status = 'pending'
+          `,
+          [
+            r.id,
+            userId,
+            r.category || 'system',
+            r.priority ?? 2,
+            r.title,
+            r.body,
+            r.actionRoute || 'today',
+            targetTimeIso,
+            r.dueDate || new Date().toISOString().split('T')[0],
+            r.timezone || 'UTC',
+            taskIdNum,
+            r.skillId || null,
+            JSON.stringify(r.metadata || {}),
+          ]
+        );
+        syncedCount++;
+      }
+    }
+
+    await client.query('COMMIT');
+    return { success: true, syncedCount };
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
+}
+
+export async function dbGetScheduledReminders(userId: string, dueDate?: string) {
+  let query = 'SELECT * FROM scheduled_reminders WHERE user_id = $1';
+  const params: any[] = [userId];
+  if (dueDate) {
+    params.push(dueDate);
+    query += ` AND due_date = $${params.length}`;
+  }
+  query += ' ORDER BY target_time ASC';
+
+  const res = await pool.query(query, params);
+  return res.rows.map((row: any) => ({
+    id: row.id,
+    userId: row.user_id,
+    category: row.category,
+    priority: row.priority,
+    title: row.title,
+    body: row.body,
+    actionRoute: row.action_route,
+    targetTime: row.target_time ? new Date(row.target_time).toISOString() : '',
+    dueDate: row.due_date,
+    timezone: row.timezone,
+    status: row.status,
+    attemptCount: row.attempt_count,
+    lastAttemptAt: row.last_attempt_at,
+    sentAt: row.sent_at,
+    providerStatus: row.provider_status,
+    taskId: row.task_id,
+    skillId: row.skill_id,
+    metadata: row.metadata,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  }));
+}
+
+export async function dbClaimDueScheduledReminders(limit: number = 50) {
+  const query = `
+    WITH due_items AS (
+      SELECT id
+      FROM scheduled_reminders
+      WHERE (
+        status = 'pending'
+        OR (status = 'processing' AND updated_at < NOW() - INTERVAL '5 minutes')
+      )
+      AND target_time <= NOW()
+      AND attempt_count < 3
+      ORDER BY priority ASC, target_time ASC
+      LIMIT $1
+      FOR UPDATE SKIP LOCKED
+    )
+    UPDATE scheduled_reminders sr
+    SET status = 'processing',
+        attempt_count = sr.attempt_count + 1,
+        last_attempt_at = NOW(),
+        updated_at = NOW()
+    FROM due_items
+    WHERE sr.id = due_items.id
+    RETURNING sr.*;
+  `;
+  const res = await pool.query(query, [limit]);
+  return res.rows;
+}
+
+export async function dbUpdateScheduledReminderStatus(
+  id: string,
+  status: 'sent' | 'failed' | 'cancelled' | 'suppressed' | 'expired' | 'pending',
+  providerStatus?: string,
+  sentAt?: Date
+) {
+  await pool.query(
+    `
+    UPDATE scheduled_reminders
+    SET status = $1,
+        provider_status = $2,
+        sent_at = COALESCE($3, sent_at),
+        updated_at = NOW()
+    WHERE id = $4
+    `,
+    [status, providerStatus || null, sentAt || null, id]
+  );
+}
+

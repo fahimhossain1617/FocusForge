@@ -13,8 +13,8 @@ export default function ServiceWorkerRegister() {
       window.location.hostname.match(/^127(?:\.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)){3}$/)
     );
 
-    // In local development (npm run dev), unregister stale service workers to prevent Turbopack/HMR caching errors.
-    if (process.env.NODE_ENV === "development") {
+    // In local development (npm run dev), unregister stale service workers unless NEXT_PUBLIC_ENABLE_DEV_SW is true
+    if (process.env.NODE_ENV === "development" && process.env.NEXT_PUBLIC_ENABLE_DEV_SW !== "true") {
       navigator.serviceWorker.getRegistrations().then((registrations) => {
         for (const registration of registrations) {
           registration.unregister();
