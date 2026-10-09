@@ -83,8 +83,11 @@ export const TRANSLATIONS = {
     },
     focus: {
       title: "Focus",
+      modeFocus: "Focus",
+      modeTimer: "Timer",
       subtitleActive: "Stay in the zone.",
       subtitleInactive: "Pick a task and start a focus session.",
+      subtitleTimer: "Count-up stopwatch timer for open-ended focus sessions.",
       whatToFocus: "What will you focus on?",
       orCustomTask: "Enter your task or topic...",
       sessionDuration: "Session Duration",
@@ -1053,8 +1056,11 @@ export const TRANSLATIONS = {
     },
     focus: {
       title: "ফোকাস",
+      modeFocus: "ফোকাস",
+      modeTimer: "টাইমার",
       subtitleActive: "কাজে মগ্ন থাকুন।",
       subtitleInactive: "একটি টাস্ক বেছে নিন এবং ফোকাস সেশন শুরু করুন।",
+      subtitleTimer: "সীমাহীন সময়ের জন্য রোলিং ডিজিট কাউন্ট-আপ টাইমার।",
       whatToFocus: "আপনি কোন বিষয়ে ফোকাস করবেন?",
       orCustomTask: "টাস্ক বা পড়ার বিষয়ের নাম লিখুন...",
       sessionDuration: "সেশনের সময়কাল",

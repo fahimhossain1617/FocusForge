@@ -331,7 +331,9 @@ export default function RoutineLibraryModal({
       }}
     >
       <div
-        className="app-modal-panel relative w-full max-w-3xl my-auto rounded-3xl border flex flex-col shadow-none overflow-hidden max-h-[90vh] bg-white dark:bg-[#0f172a] border-slate-200 dark:border-blue-500/25"
+        className={`app-modal-panel relative w-full max-w-3xl my-auto rounded-3xl border flex flex-col shadow-none overflow-hidden max-h-[90vh] bg-white dark:bg-[#0f172a] border-slate-200 dark:border-blue-500/25 ${
+          isExiting ? "motion-exit-reveal" : "motion-reveal"
+        }`}
       >
         {/* MODAL HEADER */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-slate-200 dark:border-white/[0.08] bg-slate-50/70 dark:bg-white/[0.02]">

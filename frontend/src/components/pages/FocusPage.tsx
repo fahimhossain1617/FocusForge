@@ -33,7 +33,9 @@ import {
   Check,
   Sparkles
 } from "lucide-react";
+import { motion } from "framer-motion";
 import { useAnimateExit } from "../../hooks/useAnimateExit";
+import StopwatchTimer from "../focus/StopwatchTimer";
 
 
 type SessionPhase = "setup" | "focus_active" | "break_selection" | "break_active" | "break_completed";
@@ -53,6 +55,8 @@ export default function FocusPage() {
   } = useAppContext();
   const { t } = useTranslation();
 
+  const [focusTab, setFocusTab] = useState<"focus" | "timer">("focus");
+  const [isTimerActive, setIsTimerActive] = useState(false);
   const [sessionPhase, setSessionPhase] = useState<SessionPhase>("setup");
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [selectedTask, setSelectedTask] = useState<{ id?: number; name: string; category: string }>({
@@ -783,20 +787,78 @@ export default function FocusPage() {
       {/* ============================================================ */}
       {sessionPhase === "setup" && (
         <div className="w-full space-y-6">
-          {/* Header Row: Title & Subtitle */}
-          <div className="mb-2">
-            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
-              {t.focus.title}
-            </h1>
-            <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
-              {t.focus.subtitleInactive}
-            </p>
-          </div>
+          {/* Header Row: Title & Subtitle + Mode Toggle (Hidden when timer is active) */}
+          {!(focusTab === "timer" && isTimerActive) && (
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-2">
+              <div>
+                <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
+                  {focusTab === "timer"
+                    ? (state.lang === "bn" ? "টাইমার" : "Timer")
+                    : t.focus.title}
+                </h1>
+                <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
+                  {focusTab === "timer"
+                    ? (t.focus.subtitleTimer ||
+                      (state.lang === "bn"
+                        ? "সীমাহীন সময়ের জন্য রোলিং ডিজিট কাউন্ট-আপ টাইমার।"
+                        : "Count-up stopwatch timer for open-ended focus sessions."))
+                    : t.focus.subtitleInactive}
+                </p>
+              </div>
 
-          {/* Two-Column Side-by-Side Cards (Responsive: 1 col on mobile, 2 cols on lg) */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
-            {/* LEFT COLUMN: What will you focus on? */}
-            <div className="lg:col-span-6 flex flex-col">
+              {/* Smooth Morphing Mode Toggle: [ Focus ] [ Timer ] */}
+              <div 
+                className="relative inline-flex items-center p-1 rounded-2xl bg-slate-100 dark:bg-[#070d1a] border border-slate-200 dark:border-white/[0.08] shrink-0 self-start sm:self-auto select-none"
+                role="tablist"
+                aria-label="Focus Mode"
+              >
+                {(["focus", "timer"] as const).map((tab) => {
+                  const isActive = focusTab === tab;
+                  return (
+                    <button
+                      key={tab}
+                      type="button"
+                      role="tab"
+                      aria-selected={isActive}
+                      onClick={() => setFocusTab(tab)}
+                      className={`relative z-10 px-4 sm:px-5 py-1.5 sm:py-2 rounded-xl text-xs font-semibold tracking-wide transition-colors duration-200 cursor-pointer flex items-center justify-center outline-none select-none ${
+                        isActive
+                          ? "text-white font-bold"
+                          : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200"
+                      }`}
+                    >
+                      {isActive && (
+                        <motion.div
+                          layoutId="focusTabActivePill"
+                          className="absolute inset-0 rounded-xl bg-blue-600"
+                          transition={{
+                            type: "spring",
+                            stiffness: 420,
+                            damping: 30,
+                            mass: 0.7,
+                          }}
+                        />
+                      )}
+                      <span className="relative z-20">
+                        {tab === "focus"
+                          ? (t.focus.modeFocus || (state.lang === "bn" ? "ফোকাস" : "Focus"))
+                          : (t.focus.modeTimer || (state.lang === "bn" ? "টাইমার" : "Timer"))}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Conditional View: Timer (Stopwatch) or Focus Setup */}
+          {focusTab === "timer" ? (
+            <StopwatchTimer onActiveChange={setIsTimerActive} />
+          ) : (
+            /* Two-Column Side-by-Side Cards (Responsive: 1 col on mobile, 2 cols on lg) */
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+              {/* LEFT COLUMN: What will you focus on? */}
+              <div className="lg:col-span-6 flex flex-col">
               <div className="card rounded-2xl p-5 sm:p-6 border border-[#DCE5F0] dark:border-white/10 bg-white dark:bg-[#0c1222] dark:bg-[var(--color-bg-card)] shadow-none flex flex-col h-full justify-between gap-5">
                 <div>
                   {/* Card Title (Clean, no icon, no subtitle) */}
@@ -1140,8 +1202,9 @@ export default function FocusPage() {
               </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
+    )}
 
       {/* ============================================================ */}
       {/* 2. ACTIVE FOCUS SESSION (Automatic Completion at 00:00)      */}
@@ -1680,7 +1743,7 @@ export default function FocusPage() {
           onClick={(e) => {
             if (e.target === e.currentTarget) setShowHistoryModal(false);
           }}
-          className={`fixed inset-0 z-[150] flex items-center justify-center p-4 sm:p-6 overflow-y-auto bg-black/25 dark:bg-black/50 ${
+          className={`fixed inset-0 z-[150] flex items-center justify-center p-4 sm:p-6 overflow-y-auto bg-transparent ${
             historyModalAnim.isExiting ? "motion-exit-fade" : "fade-in duration-200"
           }`}
           style={{ minHeight: "100dvh" }}
@@ -1691,9 +1754,9 @@ export default function FocusPage() {
             }`}
           >
             {/* Modal Header */}
-            <div className="p-4 sm:p-5 border-b border-[#E2E8F0] dark:border-white/10 flex items-center justify-between bg-[#F8FAFC] dark:bg-white/[0.02]">
-              <h2 className="text-sm sm:text-base font-bold text-[#0F172A] dark:text-white flex items-center gap-2">
-                <History className="w-4 h-4 text-[#2563EB] dark:text-blue-400" />
+            <div className="p-3.5 sm:p-4 border-b border-[#E2E8F0] dark:border-white/10 flex items-center justify-between bg-[#F8FAFC] dark:bg-white/[0.02]">
+              <h2 className="text-xs sm:text-sm font-semibold text-[#0F172A] dark:text-white flex items-center gap-2">
+                <History className="w-3.5 h-3.5 text-[#2563EB] dark:text-blue-400" />
                 <span>{t.focus.taskHistory || (state.lang === "bn" ? "টাস্ক হিস্ট্রি" : "Task History")}</span>
               </h2>
               <button
@@ -1703,16 +1766,16 @@ export default function FocusPage() {
                 title="Close"
                 aria-label="Close"
               >
-                <X className="w-4 h-4" />
+                <X className="w-3.5 h-3.5" />
               </button>
             </div>
 
-            {/* Modal Content */}
-            <div className="p-4 sm:p-5 overflow-y-auto custom-scrollbar flex-1 bg-white dark:bg-[#0D1426]">
+            {/* Modal Content - Clean line separated list without boxed shapes */}
+            <div className="p-3.5 sm:p-4 overflow-y-auto custom-scrollbar flex-1 bg-white dark:bg-[#0D1426]">
               {taskHistory.length === 0 ? (
-                <p className="text-center text-[#64748B] dark:text-muted-foreground text-sm py-8">{t.focus.noHistory}</p>
+                <p className="text-center text-[#64748B] dark:text-muted-foreground text-xs py-8">{t.focus.noHistory}</p>
               ) : (
-                <div className="space-y-2">
+                <div className="divide-y divide-slate-100 dark:divide-white/[0.06]">
                   {taskHistory.map((taskItem, idx) => (
                     <div
                       key={idx}
@@ -1720,11 +1783,11 @@ export default function FocusPage() {
                         handleSelectTask({ name: taskItem.name, category: "" });
                         setShowHistoryModal(false);
                       }}
-                      className="group w-full px-4 py-3 rounded-xl text-sm transition-all bg-[#F8FAFC] dark:bg-white/[0.03] hover:bg-[#F1F5F9] dark:hover:bg-white/[0.06] border border-[#DCE5F0] dark:border-white/10 text-[#0F172A] dark:text-white flex items-center justify-between cursor-pointer active:scale-[0.99]"
+                      className="group w-full py-2.5 px-1 text-xs sm:text-sm transition-colors hover:bg-slate-50/60 dark:hover:bg-white/[0.03] text-[#0F172A] dark:text-white flex items-center justify-between cursor-pointer"
                     >
                       <div className="flex items-center gap-2 truncate mr-3">
-                        <span className="font-medium text-[#0F172A] dark:text-white truncate">{taskItem.name}</span>
-                        <span className="text-xs text-[#64748B] dark:text-zinc-400 whitespace-nowrap font-mono">
+                        <span className="font-medium text-[#0F172A] dark:text-white truncate group-hover:text-blue-500 transition-colors">{taskItem.name}</span>
+                        <span className="text-[11px] text-[#64748B] dark:text-zinc-400 whitespace-nowrap font-mono">
                           ({taskItem.totalMinutes}m {state.lang === "bn" ? "ফোকাস" : "focused"})
                         </span>
                       </div>
@@ -1734,11 +1797,11 @@ export default function FocusPage() {
                           e.stopPropagation();
                           deleteHistoryItem(taskItem.name);
                         }}
-                        className="p-1.5 rounded-lg text-[#94A3B8] hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors cursor-pointer shrink-0"
+                        className="p-1 rounded-lg text-[#94A3B8] hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors cursor-pointer shrink-0"
                         title={state.lang === "bn" ? "মুছুন" : "Delete"}
                         aria-label="Delete task"
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     </div>
                   ))}

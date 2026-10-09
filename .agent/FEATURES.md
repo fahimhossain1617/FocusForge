@@ -18,7 +18,7 @@
 | **Dashboard** | **VERIFIED** | `frontend/src/components/pages/DashboardPage.tsx` | `AppContext.tsx`, `CalendarWidget.tsx` | None. Calculates streaks, productivity scores, and habit metrics. |
 | **Planner & Tasks** | **VERIFIED** | `frontend/src/components/pages/PlannerPage.tsx` | `tasks` table, `taskService.ts` | None. Full priority tiers, time slots, and copy-to-date. |
 | **Routine Templates (Weekday)** | **VERIFIED** | `frontend/src/components/planner/RoutineLibraryModal.tsx` | `routine_templates` table | None. Supports recurring weekday schedule templates. |
-| **Focus Mode & Timer** | **VERIFIED** | `frontend/src/components/pages/FocusPage.tsx` | `useFocusTimer.ts`, `focus_sessions` table | None. Pomodoro, stopwatch, ambient audio, distraction logging. |
+| **Focus Mode & Timer** | **VERIFIED** | `frontend/src/components/pages/FocusPage.tsx`, `StopwatchTimer.tsx`, `RollingDigit.tsx` | `useFocusTimer.ts`, `focus_sessions` table, `framer-motion` | None. Pomodoro, infinite count-up stopwatch with rolling digit ticker, fullscreen mode, topic tags, distraction logging. |
 | **Notes & Workspace Editor** | **VERIFIED** | `frontend/src/components/pages/WorkspacePage.tsx` | `BlockEditor.tsx`, `notes` table | None. Modular blocks (KaTeX math, Prism code, Fabric canvas). |
 | **Mind Space (Capture / Solver)** | **VERIFIED** | `frontend/src/components/pages/MyMindPage.tsx` | `mind_items` table, `mindService.ts` | None. Fast brain dump, idea grouping, and problem breakdown. |
 | **Personal Diary** | **VERIFIED** | `frontend/src/components/diary/DiaryHome.tsx` | `diary_topics`, `diary_entries` tables | None. Multi-topic journals, rich themes, search, TOC. |

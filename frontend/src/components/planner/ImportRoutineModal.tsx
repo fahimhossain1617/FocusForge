@@ -243,13 +243,17 @@ export default function ImportRoutineModal({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-4 md:p-6 bg-black/75 backdrop-blur-md overflow-y-auto pointer-events-auto"
+      className={`fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-4 md:p-6 bg-black/75 backdrop-blur-md overflow-y-auto pointer-events-auto ${
+        isExiting ? "motion-exit-fade" : "fade-in duration-200"
+      }`}
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
       <div
-        className="app-modal-panel relative w-full max-w-2xl my-auto rounded-3xl border flex flex-col shadow-none overflow-hidden max-h-[90vh] bg-white dark:bg-[#0f172a] border-slate-200 dark:border-blue-500/22"
+        className={`app-modal-panel relative w-full max-w-2xl my-auto rounded-3xl border flex flex-col shadow-none overflow-hidden max-h-[90vh] bg-white dark:bg-[#0f172a] border-slate-200 dark:border-blue-500/22 ${
+          isExiting ? "motion-exit-reveal" : "motion-reveal"
+        }`}
       >
         {/* HEADER */}
         <div className="flex items-center justify-between px-6 py-5 border-b border-slate-200 dark:border-white/[0.08] bg-slate-50/70 dark:bg-white/[0.02]">

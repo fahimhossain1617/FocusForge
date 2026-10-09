@@ -197,6 +197,8 @@ export interface FocusSession {
   breakMinutes?: number;
   distractions: DistractionEntry[];
   completed: boolean;
+  sessionType?: "focus" | "timer";
+  elapsedSeconds?: number;
 }
 
 export interface ScheduleDay {

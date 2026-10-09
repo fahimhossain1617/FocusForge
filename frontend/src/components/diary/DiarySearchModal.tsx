@@ -51,7 +51,7 @@ export default function DiarySearchModal({
     >
       <div
         className={`w-full max-w-xl rounded-3xl border shadow-none overflow-hidden flex flex-col max-h-[80vh] ${
-          isExiting ? "motion-exit-reveal" : "motion-dialog"
+          isExiting ? "motion-exit-reveal" : "motion-reveal"
         }`}
         onClick={(e) => e.stopPropagation()}
         style={{

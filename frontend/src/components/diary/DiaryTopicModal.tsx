@@ -65,7 +65,7 @@ export default function DiaryTopicModal({
     >
       <div
         className={`w-full max-w-md rounded-3xl border p-6 shadow-none ${
-          isExiting ? "motion-exit-reveal" : "motion-dialog"
+          isExiting ? "motion-exit-reveal" : "motion-reveal"
         }`}
         onClick={(e) => e.stopPropagation()}
         style={{

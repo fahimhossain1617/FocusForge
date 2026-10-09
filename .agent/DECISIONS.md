@@ -722,5 +722,21 @@
   4. **Planner Highlight Card Interaction (`PlannerPage.tsx`):** Made the highlight card directly clickable to open edit modal, removed redundant "Edit" text button, and added an inline Delete button aligned with the time row with event propagation protection.
 - **Impact:** `frontend/src/types.ts`, `frontend/src/i18n/translations.ts`, `frontend/src/components/pages/LearningHubPage.tsx`, `frontend/src/components/workspace/NoteCard.tsx`, `frontend/src/components/workspace/notecard.css`, `frontend/src/components/diary/DiaryCard.tsx`, `frontend/src/components/mymind/ThoughtPaperCard.tsx`, `frontend/src/components/pages/PlannerPage.tsx`.
 
+---
+
+## ADR-047: Rolling Digit Stopwatch / Count-Up Timer & Focus Feature Integration
+
+- **Date:** October 2026
+- **Status:** Accepted
+- **Decision:**
+  1. **Integrated Focus Feature Mode Switching:** Added seamless segmented switcher in Focus Page (`FocusPage.tsx`) between **Focus (Pomodoro / Fixed Target)** and **Timer (Infinite Count-Up Stopwatch)** matching the Dashboard Weekly/Monthly morphing pill design with `layoutId` spring animation.
+  2. **Two-Column Setup Layout:** Standardized Timer Setup matching Focus Setup with side-by-side Topic Name card and Stopwatch Timer preview card with a prominent "Start Timer" button.
+  3. **Direct Active Immersive View:** Launching the timer smoothly transitions into an active centered view with top-left Back button, live status indicator, balanced padding/margins, and instant reset.
+  4. **Themed Celebratory Completion Modal:** On saving a session, presents an in-theme completion dialog with motivational reflection, "Start Again" and "Back to Dashboard" actions without heavy black background dimming or blur.
+  5. **Zero Layout Shift Rolling Digit Ticker (`RollingDigit.tsx`):** Each digit is isolated in its own masked `overflow: hidden` container using `framer-motion` vertical translateY slide/roll spring animations with monospace `tabular-nums` alignment, guaranteeing steady colons and adjacent digits.
+  6. **Dashboard & Analytics Integration:** Aggregates timer time into daily, weekly, and monthly focus statistics and displays a dedicated "Timer Time" row in the Today's Focus breakdown gauge card.
+- **Impact:** `frontend/src/components/focus/RollingDigit.tsx`, `frontend/src/components/focus/StopwatchTimer.tsx`, `frontend/src/components/pages/FocusPage.tsx`, `frontend/src/components/pages/DashboardPage.tsx`, `frontend/src/types.ts`, `frontend/src/i18n/translations.ts`.
+
+
 
 

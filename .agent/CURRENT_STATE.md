@@ -41,7 +41,7 @@ Focentia is an active, functional productivity suite built with Next.js 16 App R
 ---
 
 ### Dashboard & Focus Metrics
-- **Current Implementation:** `DashboardPage.tsx` aggregates metrics from Tasks, Focus Sessions, and Learning logs; calculates daily productivity scores, streak counters, and upcoming calendar schedules (`CalendarWidget.tsx`). Focus calculations compute focus minutes, break minutes, and distraction counts strictly from normalized `focusSessions` without double-counting synthetic activities. Supports inline collapsible distraction list with clean line-to-line separation without glows/shadows. Weekly and monthly metric summaries accurately calculate focus time, break time, distractions, and include Time Log skills completed in a responsive 5-metric row matching existing theme tokens.
+- **Current Implementation:** `DashboardPage.tsx` aggregates metrics from Tasks, Focus Sessions, and Learning logs; calculates daily productivity scores, streak counters, and upcoming calendar schedules (`CalendarWidget.tsx`). Focus calculations compute focus minutes, break minutes, timer minutes, and distraction counts strictly from normalized `focusSessions` without double-counting synthetic activities or Stopwatch timer sessions inside Pomodoro focus time. Supports clean, human-readable time formatting (`12s`, `1m 10s`, `1m`, `1h 20m`) avoiding fractional float overflows. The radial Donut gauge includes dedicated contiguous stroke segments for Focus, Breaks, and Stopwatch Timer (`#38BDF8`). Weekly and monthly performance views show segregated Pomodoro focus time and dedicated Timer summaries.
 - **Verified Status:** **VERIFIED**
 - **Known Problems:** None.
 - **Important Files:** `frontend/src/components/pages/DashboardPage.tsx`, `frontend/src/components/pages/FocusPage.tsx`, `frontend/src/components/pages/ProfilePage.tsx`, `frontend/src/context/AppContext.tsx`, `frontend/src/services/focusDbService.ts`, `frontend/src/services/userService.ts`.
@@ -61,10 +61,10 @@ Focentia is an active, functional productivity suite built with Next.js 16 App R
 ---
 
 ### Focus Mode & Timer
-- **Current Implementation:** `FocusPage.tsx`, `useFocusTimer.ts`, `HourglassTimer.tsx`. Supports Pomodoro interval mode, Stopwatch mode, customizable countdowns, ambient audio tracks, distraction logging, and historical focus logging. Unboxed natural recent task presentation; Pause Friction Modal, Early Exit Guard Modal, and History Modal portaled to `document.body` via `createPortal` for true responsive viewport centering without clipping or parent transform traps.
+- **Current Implementation:** `FocusPage.tsx`, `useFocusTimer.ts`, `HourglassTimer.tsx`, `StopwatchTimer.tsx`. Supports Pomodoro interval mode and Count-Up Stopwatch mode (`StopwatchTimer.tsx`) with seamless tab toggling. Features topic/task history with "View all" management modal, solid blue Save Session action, instant zero-prompt reset, and isolated active timer view (hiding page header and mode switcher during active stopwatch sessions). Pause Friction Modal, Early Exit Guard Modal, and History Modal portaled to `document.body` via `createPortal` for true responsive viewport centering.
 - **Verified Status:** **VERIFIED**
 - **Known Problems:** None.
-- **Important Files:** `frontend/src/components/pages/FocusPage.tsx`, `frontend/src/components/ui/HourglassTimer.tsx`, `frontend/src/services/focusDbService.ts`.
+- **Important Files:** `frontend/src/components/pages/FocusPage.tsx`, `frontend/src/components/focus/StopwatchTimer.tsx`, `frontend/src/components/ui/HourglassTimer.tsx`, `frontend/src/services/focusDbService.ts`.
 - **Dependencies:** `AppContext.tsx`, `focus_sessions` table.
 - **Unknowns:** None.
 

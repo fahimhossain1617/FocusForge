@@ -50,7 +50,7 @@ export default function CopyTasksModal({
 
   const { state, copyTasksToDate, showToast, trackMeaningfulAction } = useAppContext();
   const { t } = useTranslation();
-  const { shouldRender } = useAnimateExit({ isOpen, durationMs: 200 });
+  const { shouldRender, isExiting } = useAnimateExit({ isOpen, durationMs: 200 });
 
   const realToday = useMemo(() => formatLocalDate(new Date()), []);
 
@@ -529,14 +529,18 @@ export default function CopyTasksModal({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-4 bg-slate-900/40 dark:bg-black/75 backdrop-blur-md pointer-events-auto"
+      className={`fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-4 bg-slate-900/40 dark:bg-black/75 backdrop-blur-md pointer-events-auto ${
+        isExiting ? "motion-exit-fade" : "fade-in duration-200"
+      }`}
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
       <div
         data-theme={isLightMode ? "light" : "dark"}
-        className="app-modal-panel relative w-full max-w-[420px] rounded-2xl border flex flex-col shadow-none overflow-hidden bg-white dark:bg-[#0c1424] border-[#DCE5F0] dark:border-blue-500/25 max-h-[85vh] my-auto"
+        className={`app-modal-panel relative w-full max-w-[420px] rounded-2xl border flex flex-col shadow-none overflow-hidden bg-white dark:bg-[#0c1424] border-[#DCE5F0] dark:border-blue-500/25 max-h-[85vh] my-auto ${
+          isExiting ? "motion-exit-reveal" : "motion-reveal"
+        }`}
       >
         {/* COMPACT MODAL HEADER */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-[#DCE5F0] dark:border-white/[0.08] bg-[#F7FAFE] dark:bg-white/[0.02]">
