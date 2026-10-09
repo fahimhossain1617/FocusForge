@@ -698,5 +698,20 @@
 - **Impact:** `supabase/migrations/028_scheduled_reminders_and_queue.sql`, `frontend/src/lib/server/db.ts`, `backend/src/services/db.ts`, `frontend/src/lib/server/schedulerService.ts`, `backend/src/services/notificationSchedulerService.ts`, `frontend/src/services/reminderSyncService.ts`, `frontend/src/hooks/useDailyPlan.ts`, `frontend/vercel.json`, `frontend/src/app/api/[...path]/route.ts`, `backend/src/routes/notificationRoutes.ts`.
 - **Do Not Change Without Approval:** Do not remove the persistent `scheduled_reminders` queue, database concurrency locking, or revert to client-only timers.
 
+---
+
+## ADR-045: Organic Daily Jitter Scheduling, Slot Rotation & Protected Task Delivery
+
+- **Date:** October 2026
+- **Status:** Accepted
+- **Decision:**
+  1. **Strict User-Fixed Task Delivery:** User-scheduled Todo Tasks (`task_start` and `task_pre_reminder` at -5m) are strictly locked to exact user timestamps and elevated to Priority 1. They are completely exempt from non-urgent cooldown spacing and daily notification limits, guaranteeing delivery at the exact minute configured (e.g. 12:05 pre-reminder and 12:10 start).
+  2. **Deterministic Daily Jitter Engine (`getDailyJitterMinutes`):** All automated non-task reminders (Morning Plan, Focus Nudges, Skill Reminders, Inactivity Nudges, Diary Reflections) use a deterministic hash algorithm seeded with `(userId, dateStr, category)` to generate day-by-day varying delivery minutes. Ensures an organic, non-monotonous schedule without clock drift or database desync between client and server.
+  3. **Noon/Lunch Busy Window Protection:** Motivational focus reminders are restricted to Morning Kickoff (~08:45) and Evening Focus (~18:30). Midday/lunch hours (12:00–15:00) are explicitly excluded to avoid interrupting work/lunch hours.
+  4. **Skill Practice Slot Rotation:** Unpracticed learning skills rotate across 3 organic daily slots (Morning ~10:15, Late Afternoon ~17:15, Night ~20:15) with daily jitter.
+  5. **Unified Client & Server Timestamps:** `useDailyPlan.ts` ServiceWorker synchronization delegates directly to `reminderSyncService.buildScheduledReminders()`, guaranteeing identical target timestamps across the browser in-app checks, ServiceWorker timers, and backend cron workers.
+- **Reason:** Users previously experienced clustered or delayed task reminders due to anti-clustering cooldowns suppressing subsequent alerts, and static background reminders felt rigid and intrusive at noon.
+- **Impact:** `frontend/src/services/reminderSyncService.ts`, `frontend/src/lib/server/schedulerService.ts`, `backend/src/services/notificationSchedulerService.ts`, `frontend/src/hooks/useDailyPlan.ts`, `frontend/vercel.json`.
+
 
 

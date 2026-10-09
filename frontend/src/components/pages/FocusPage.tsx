@@ -1680,36 +1680,37 @@ export default function FocusPage() {
           onClick={(e) => {
             if (e.target === e.currentTarget) setShowHistoryModal(false);
           }}
-          className={`fixed inset-0 z-[150] flex items-center justify-center p-4 sm:p-6 overflow-y-auto ${
-            historyModalAnim.isExiting ? "motion-exit-fade" : "motion-overlay"
+          className={`fixed inset-0 z-[150] flex items-center justify-center p-4 sm:p-6 overflow-y-auto bg-black/25 dark:bg-black/50 ${
+            historyModalAnim.isExiting ? "motion-exit-fade" : "fade-in duration-200"
           }`}
           style={{ minHeight: "100dvh" }}
         >
           <div
-            className={`w-full max-w-sm sm:max-w-md my-auto p-0 rounded-2xl bg-[#121624] dark:bg-[#0c101b] border border-border/80 shadow-2xl overflow-hidden flex flex-col max-h-[80vh] ${
+            className={`w-full max-w-sm sm:max-w-md my-auto p-0 rounded-2xl bg-white dark:bg-[#0D1426] border border-[#DCE5F0] dark:border-white/10 shadow-xl overflow-hidden flex flex-col max-h-[80vh] ${
               historyModalAnim.isExiting ? "motion-exit-reveal" : "motion-reveal"
             }`}
           >
             {/* Modal Header */}
-            <div className="p-4 sm:p-5 border-b border-border/60 flex items-center justify-between bg-[#151a2b]/60 dark:bg-[#101524]/60">
-              <h2 className="text-base font-semibold text-foreground flex items-center gap-2">
-                <History className="w-4 h-4 text-blue-400" />
-                <span>{t.focus.taskHistory}</span>
+            <div className="p-4 sm:p-5 border-b border-[#E2E8F0] dark:border-white/10 flex items-center justify-between bg-[#F8FAFC] dark:bg-white/[0.02]">
+              <h2 className="text-sm sm:text-base font-bold text-[#0F172A] dark:text-white flex items-center gap-2">
+                <History className="w-4 h-4 text-[#2563EB] dark:text-blue-400" />
+                <span>{t.focus.taskHistory || (state.lang === "bn" ? "টাস্ক হিস্ট্রি" : "Task History")}</span>
               </h2>
               <button
                 type="button"
                 onClick={() => setShowHistoryModal(false)}
-                className="text-muted-foreground hover:text-foreground p-1 rounded-lg hover:bg-white/5 transition-colors cursor-pointer"
+                className="text-[#64748B] hover:text-[#0F172A] dark:text-zinc-400 dark:hover:text-white p-1 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer"
                 title="Close"
+                aria-label="Close"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
             {/* Modal Content */}
-            <div className="p-4 sm:p-5 overflow-y-auto custom-scrollbar flex-1 bg-[#121624] dark:bg-[#0c101b]">
+            <div className="p-4 sm:p-5 overflow-y-auto custom-scrollbar flex-1 bg-white dark:bg-[#0D1426]">
               {taskHistory.length === 0 ? (
-                <p className="text-center text-muted-foreground text-sm py-8">{t.focus.noHistory}</p>
+                <p className="text-center text-[#64748B] dark:text-muted-foreground text-sm py-8">{t.focus.noHistory}</p>
               ) : (
                 <div className="space-y-2">
                   {taskHistory.map((taskItem, idx) => (
@@ -1719,11 +1720,11 @@ export default function FocusPage() {
                         handleSelectTask({ name: taskItem.name, category: "" });
                         setShowHistoryModal(false);
                       }}
-                      className="group w-full px-4 py-3 rounded-xl text-sm transition-all bg-[#181e30] hover:bg-[#202840] border border-border/60 hover:border-blue-500/40 text-foreground flex items-center justify-between cursor-pointer active:scale-[0.99]"
+                      className="group w-full px-4 py-3 rounded-xl text-sm transition-all bg-[#F8FAFC] dark:bg-white/[0.03] hover:bg-[#F1F5F9] dark:hover:bg-white/[0.06] border border-[#DCE5F0] dark:border-white/10 text-[#0F172A] dark:text-white flex items-center justify-between cursor-pointer active:scale-[0.99]"
                     >
                       <div className="flex items-center gap-2 truncate mr-3">
-                        <span className="font-medium text-foreground truncate">{taskItem.name}</span>
-                        <span className="text-xs text-muted-foreground whitespace-nowrap">
+                        <span className="font-medium text-[#0F172A] dark:text-white truncate">{taskItem.name}</span>
+                        <span className="text-xs text-[#64748B] dark:text-zinc-400 whitespace-nowrap font-mono">
                           ({taskItem.totalMinutes}m {state.lang === "bn" ? "ফোকাস" : "focused"})
                         </span>
                       </div>
@@ -1733,7 +1734,7 @@ export default function FocusPage() {
                           e.stopPropagation();
                           deleteHistoryItem(taskItem.name);
                         }}
-                        className="p-1.5 rounded-lg text-muted-foreground hover:text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer shrink-0"
+                        className="p-1.5 rounded-lg text-[#94A3B8] hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors cursor-pointer shrink-0"
                         title={state.lang === "bn" ? "মুছুন" : "Delete"}
                         aria-label="Delete task"
                       >

@@ -226,6 +226,7 @@ export function useDailyPlan() {
     const todayStr = getLocalDateString();
     const now = new Date();
     const currentH = now.getHours();
+    const currentM = now.getMinutes();
 
     // Check if user completed a focus session today
     const allSessions = [...(state.focusSessions || []), ...(state.focusLogs || [])];
@@ -235,13 +236,35 @@ export function useDailyPlan() {
     });
 
     if (hasFocusToday) {
-      notificationService.markAsSent(`focus_rem_mid_${todayStr}`);
+      notificationService.markAsSent(`focus_rem_morn_${todayStr}`);
+      notificationService.markAsSent(`focus_rem_eve_${todayStr}`);
       return;
     }
 
-    // Midday reminder (13:30 - 15:30)
-    if (currentH >= 13 && currentH < 16) {
-      const notifId = `focus_rem_mid_${todayStr}`;
+    // A. Morning Kickoff slot (08:30 - 09:30)
+    if (currentH === 8 ? currentM >= 30 : currentH === 9 ? currentM <= 30 : false) {
+      const notifId = `focus_rem_morn_${todayStr}`;
+      if (!notificationService.hasBeenSent(notifId)) {
+        const template = notificationRotationManager.getNext("focus_reminder", lang, {}, userId);
+        await notificationService.send({
+          id: notifId,
+          category: "focus_reminder",
+          templateId: template.templateId,
+          appTag: template.appTag,
+          title: template.title,
+          body: template.message,
+          orbMood: template.orbMood,
+          type: "focus",
+          actionRoute: "focus",
+          requireInteraction: false,
+        });
+        lastAutomatedNudgeRef.current = Date.now();
+      }
+    }
+
+    // B. Evening Focus slot (18:00 - 20:00)
+    if (currentH >= 18 && currentH < 20) {
+      const notifId = `focus_rem_eve_${todayStr}`;
       if (!notificationService.hasBeenSent(notifId)) {
         const template = notificationRotationManager.getNext("focus_reminder", lang, {}, userId);
         await notificationService.send({
@@ -263,7 +286,7 @@ export function useDailyPlan() {
 
   /**
    * 4. Time Log / Skill Practice Reminders
-   * Staggered slot: Late Afternoon (16:30 - 18:00)
+   * Rotated across natural slots: Morning (~10:15), Sunset (~17:15), Night (~20:15)
    * Only fires if learning topics exist, no practice today, and no task conflicts
    */
   const checkSkillReminders = useCallback(async () => {
@@ -273,7 +296,6 @@ export function useDailyPlan() {
     const todayStr = getLocalDateString();
     const now = new Date();
     const currentH = now.getHours();
-    const currentM = now.getMinutes();
 
     // Check if learning logged today
     const hasLearningToday = (state.learningLogs || []).some(
@@ -281,7 +303,7 @@ export function useDailyPlan() {
     );
 
     if (hasLearningToday) {
-      notificationService.markAsSent(`skill_rem_aft_${todayStr}`);
+      notificationService.markAsSent(`skill_rem_${todayStr}`);
       return;
     }
 
@@ -290,9 +312,11 @@ export function useDailyPlan() {
 
     const activeTopic = folders[0]?.name || (lang === "bn" ? "টপিক" : "your skill");
 
-    // Afternoon reminder slot (16:30 - 18:00)
-    if (currentH === 16 ? currentM >= 30 : currentH === 17) {
-      const notifId = `skill_rem_aft_${todayStr}`;
+    // Dynamic slot matching (Morning 10-11, Sunset 17-18, Night 20-21)
+    const isSlotActive = (currentH === 10) || (currentH === 17) || (currentH === 20);
+
+    if (isSlotActive) {
+      const notifId = `skill_rem_${todayStr}`;
       if (!notificationService.hasBeenSent(notifId)) {
         const template = notificationRotationManager.getNext(
           "skill_reminder",
@@ -321,7 +345,7 @@ export function useDailyPlan() {
 
   /**
    * 5. My Diary / Mind Space Reflection Reminder
-   * Staggered slot: Night (20:30 - 22:00)
+   * Wind-down slot: Night (20:45 - 21:50)
    */
   const checkDiaryReminders = useCallback(async () => {
     if (!prefs.enabled || prefs.diaryReminder === false) return;
@@ -332,7 +356,7 @@ export function useDailyPlan() {
     const currentH = now.getHours();
     const currentM = now.getMinutes();
 
-    if (currentH < 20 || (currentH === 20 && currentM < 30) || currentH >= 22) return;
+    if (currentH < 20 || (currentH === 20 && currentM < 45) || currentH >= 22) return;
 
     const notifId = `diary_rem_${todayStr}`;
     if (notificationService.hasBeenSent(notifId)) return;
@@ -366,7 +390,7 @@ export function useDailyPlan() {
 
   /**
    * 6. Glory AI & Daily Inactivity Companion
-   * Staggered slot: Early Evening (18:30 - 20:00)
+   * Staggered slot: Early Evening (19:00 - 20:30)
    * Only fires if completely inactive today
    */
   const checkInactivityAndAICompanion = useCallback(async () => {
@@ -376,10 +400,9 @@ export function useDailyPlan() {
     const todayStr = getLocalDateString();
     const now = new Date();
     const currentH = now.getHours();
-    const currentM = now.getMinutes();
 
-    // Only between 18:30 and 20:00
-    if (currentH < 18 || (currentH === 18 && currentM < 30) || currentH >= 20) return;
+    // Only between 19:00 and 20:30
+    if (currentH < 19 || currentH >= 21) return;
 
     const todayTasks = getTodayTasks(state.tasks);
     const hasCompletedTask = todayTasks.some((t) => t.completed || t.status === "completed");
@@ -390,7 +413,7 @@ export function useDailyPlan() {
     });
 
     if (hasCompletedTask || hasFocus) {
-      notificationService.markAsSent(`inactivity_${todayStr}`);
+      notificationService.markAsSent(`inact_rem_${todayStr}`);
       notificationService.markAsSent(`ai_comp_${todayStr}`);
       return;
     }
@@ -419,7 +442,7 @@ export function useDailyPlan() {
 
     // Inactivity Nudge Fallback
     if (prefs.inactivityReminders !== false) {
-      const notifId = `inactivity_${todayStr}`;
+      const notifId = `inact_rem_${todayStr}`;
       if (!notificationService.hasBeenSent(notifId)) {
         const template = notificationRotationManager.getNext("inactivity", lang, {}, userId);
         await notificationService.send({
@@ -448,184 +471,37 @@ export function useDailyPlan() {
     if (!prefs.enabled) return;
 
     try {
-      const todayStr = getLocalDateString();
-      const scheduledList: Array<{
-        id: string;
-        targetTimestamp: number;
-        title: string;
-        body: string;
-        category: string;
-        actionRoute: string;
-        taskId?: number | string;
-        skillId?: string;
-        requireInteraction?: boolean;
-        isUrgent?: boolean;
-      }> = [];
+      const scheduled = reminderSyncService.buildScheduledReminders({
+        tasks: state.tasks,
+        focusSessions: state.focusSessions,
+        learningFolders: state.learningFolders,
+        learningLogs: state.learningLogs,
+        notifPreferences: prefs,
+        lang,
+        userId,
+      });
 
-      const today = new Date();
-      const year = today.getFullYear();
-      const month = today.getMonth();
-      const date = today.getDate();
-
-      // 1. Morning Plan
-      if (prefs.dailyMorningPlan !== false) {
-        const [mH, mM] = (prefs.dailyMorningPlanTime || "07:00").split(":").map(Number);
-        const morningTarget = new Date(year, month, date, mH, mM, 0).getTime();
-        const planTemplate = notificationRotationManager.getNext("daily_plan", lang, {}, userId);
-        scheduledList.push({
-          id: `daily_plan_${todayStr}`,
-          targetTimestamp: morningTarget,
-          title: planTemplate.title,
-          body: planTemplate.message,
-          category: "daily_plan",
-          actionRoute: "planner",
-        });
-      }
-
-      // 2. Task Reminders
-      if (prefs.taskReminders !== false) {
-        const todayTasks = getTodayTasks(state.tasks);
-        for (const task of todayTasks) {
-          if (task.completed || task.status === "completed") continue;
-          const targetTime = (task.reminderTime || task.time || "").trim();
-          if (!targetTime) continue;
-
-          const [rH, rM] = targetTime.split(":").map(Number);
-          if (isNaN(rH) || isNaN(rM)) continue;
-
-          const taskName = task.title || task.name || (lang === "bn" ? "টাস্ক" : "Task");
-          const taskStartTime = new Date(year, month, date, rH, rM, 0).getTime();
-          const preReminderTime = taskStartTime - 5 * 60 * 1000; // 5 mins before
-
-          const preTemplate = notificationRotationManager.getNext("task_pre_reminder", lang, { taskName }, userId);
-          const startTemplate = notificationRotationManager.getNext("task_start", lang, { taskName }, userId);
-
-          scheduledList.push({
-            id: `task_pre_${task.id}_${todayStr}`,
-            targetTimestamp: preReminderTime,
-            title: preTemplate.title,
-            body: preTemplate.message,
-            category: "task_pre_reminder",
-            actionRoute: "tasks",
-            taskId: task.id,
-          });
-
-          scheduledList.push({
-            id: `task_start_${task.id}_${todayStr}`,
-            targetTimestamp: taskStartTime,
-            title: startTemplate.title,
-            body: startTemplate.message,
-            category: "task_start",
-            actionRoute: "tasks",
-            taskId: task.id,
-            requireInteraction: true,
-            isUrgent: true,
-          });
-
-          const estMinutes = task.estMinutes || 45;
-          if (estMinutes >= 35) {
-            const incompReminderTime = taskStartTime + (estMinutes - 30) * 60 * 1000;
-            const incompTemplate = notificationRotationManager.getNext("task_incomplete", lang, { taskName }, userId);
-            scheduledList.push({
-              id: `task_incomp_${task.id}_${todayStr}`,
-              targetTimestamp: incompReminderTime,
-              title: incompTemplate.title,
-              body: incompTemplate.message,
-              category: "task_incomplete",
-              actionRoute: "tasks",
-              taskId: task.id,
-            });
-          }
-        }
-      }
-
-      // 3. Focus nudges
-      if (prefs.focusSessionReminder !== false) {
-        const allSessions = [...(state.focusSessions || []), ...(state.focusLogs || [])];
-        const hasFocusToday = allSessions.some((s: any) => {
-          const sDate = s.date || (s.startTime ? s.startTime.split("T")[0] : "");
-          return sDate === todayStr && (s.duration || s.completed);
-        });
-
-        if (!hasFocusToday) {
-          const focusTemplate = notificationRotationManager.getNext("focus_reminder", lang, {}, userId);
-          const middayFocusTime = new Date(year, month, date, 13, 30, 0).getTime();
-          const eveningFocusTime = new Date(year, month, date, 18, 30, 0).getTime();
-
-          scheduledList.push({
-            id: `focus_rem_day_${todayStr}`,
-            targetTimestamp: middayFocusTime,
-            title: focusTemplate.title,
-            body: focusTemplate.message,
-            category: "focus_reminder",
-            actionRoute: "focus",
-          });
-
-          scheduledList.push({
-            id: `focus_rem_eve_${todayStr}`,
-            targetTimestamp: eveningFocusTime,
-            title: focusTemplate.title,
-            body: focusTemplate.message,
-            category: "focus_reminder",
-            actionRoute: "focus",
-          });
-        }
-      }
-
-      // 4. Skill practice nudges
-      if (prefs.skillReminders !== false && (state.learningFolders || []).length > 0) {
-        const hasLearningToday = (state.learningLogs || []).some(
-          (log) => log.date === todayStr || ((log as any).createdAt && String((log as any).createdAt).startsWith(todayStr))
-        );
-
-        if (!hasLearningToday) {
-          const activeTopic = state.learningFolders[0]?.name || (lang === "bn" ? "টপিক" : "your skill");
-          const skillTemplate = notificationRotationManager.getNext("skill_reminder", lang, { skillName: activeTopic }, userId);
-          const aftSkillTime = new Date(year, month, date, 16, 30, 0).getTime();
-          const eveSkillTime = new Date(year, month, date, 20, 0, 0).getTime();
-
-          scheduledList.push({
-            id: `skill_rem_aft_${todayStr}`,
-            targetTimestamp: aftSkillTime,
-            title: skillTemplate.title,
-            body: skillTemplate.message,
-            category: "skill_reminder",
-            actionRoute: "learning",
-            skillId: state.learningFolders[0]?.id,
-          });
-
-          scheduledList.push({
-            id: `skill_rem_eve_${todayStr}`,
-            targetTimestamp: eveSkillTime,
-            title: skillTemplate.title,
-            body: skillTemplate.message,
-            category: "skill_reminder",
-            actionRoute: "learning",
-            skillId: state.learningFolders[0]?.id,
-          });
-        }
-      }
-
-      // 5. Diary nudges
-      if (prefs.diaryReminder !== false) {
-        const diaryTemplate = notificationRotationManager.getNext("diary_reminder", lang, {}, userId);
-        const diaryTime = new Date(year, month, date, 21, 0, 0).getTime();
-        scheduledList.push({
-          id: `diary_rem_${todayStr}`,
-          targetTimestamp: diaryTime,
-          title: diaryTemplate.title,
-          body: diaryTemplate.message,
-          category: "diary_reminder",
-          actionRoute: "diary",
-        });
-      }
+      const reminders = scheduled.map((r) => ({
+        id: r.id,
+        targetTimestamp: new Date(r.targetTime).getTime(),
+        title: r.title,
+        body: r.body,
+        category: r.category,
+        actionRoute: r.actionRoute,
+        taskId: r.taskId,
+        skillId: r.skillId,
+        requireInteraction: Boolean(r.isUrgent),
+        isUrgent: Boolean(r.isUrgent),
+      }));
 
       navigator.serviceWorker.controller.postMessage({
         type: "SCHEDULE_REMINDERS",
-        reminders: scheduledList,
+        reminders,
       });
-    } catch {}
-  }, [prefs, state.tasks, state.focusSessions, state.focusLogs, state.learningFolders, state.learningLogs, state.diaryTopics, lang, userId]);
+    } catch (err) {
+      console.warn("[useDailyPlan] ServiceWorker sync warning:", err);
+    }
+  }, [prefs, state.tasks, state.focusSessions, state.learningFolders, state.learningLogs, lang, userId]);
 
   // Sync to Service Worker and Backend Server on state updates
   useEffect(() => {

@@ -126,7 +126,7 @@ export const userService = {
         console.warn("[userService] Backend PATCH /api/user/profile warning:", backendErr?.message);
       }
 
-      // Synchronize metadata in Supabase
+      // Synchronize metadata in Supabase in background
       const metaUpdates: Record<string, any> = {};
       if (updates.displayName !== undefined) metaUpdates.display_name = updates.displayName;
       if (updates.fullName !== undefined) metaUpdates.full_name = updates.fullName;
@@ -143,14 +143,14 @@ export const userService = {
       if (updates.bio !== undefined) metaUpdates.bio = updates.bio;
 
       if (Object.keys(metaUpdates).length > 0) {
-        await supabase.auth.updateUser({
+        supabase.auth.updateUser({
           data: metaUpdates,
         }).catch((e) => console.warn("[userService] Supabase metadata sync warning:", e));
       }
 
       const updatedUser = data && data.id
         ? mapProfileToUser(data)
-        : await this.fetchUserProfile(userId);
+        : null;
 
       if (updatedUser) {
         return {

@@ -1293,13 +1293,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       startedAt: new Date().toISOString(),
       targetMinutes,
       durationMinutes: 0,
+      breakMinutes: 0,
       distractions: [],
       completed: false,
     };
     setState((prev) => ({ ...prev, focusSessions: [...prev.focusSessions, session] }));
 
-    // Async persist to Supabase & Express backend
-    focusDbService.saveFocusSession(session).catch((err) => {
+    const currentUserId = activeUserIdRef.current || 'guest';
+    // Async persist to Supabase & local DB
+    focusDbService.saveFocusSession(session, currentUserId).catch((err) => {
       console.warn("[AppContext] Error persisting focus session:", err);
     });
 
@@ -1318,39 +1320,25 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           : s
       );
 
-      // Auto-log as activity if durationMinutes > 0
-      const newActivities = durationMinutes > 0 ? [
-        ...prev.activities,
-        {
-          id: Date.now(),
-          category: session.category || 'Focus Session',
-          hours: Math.floor(durationMinutes / 60),
-          minutes: durationMinutes % 60,
-          totalMinutes: durationMinutes,
-          date: todayStr(),
-          notes: session.taskName,
-          createdAt: new Date().toISOString(),
-        }
-      ] : prev.activities;
-
       return {
         ...prev,
         focusSessions: updatedSessions,
-        activities: newActivities,
         pomodoroSessions: completed ? prev.pomodoroSessions + 1 : prev.pomodoroSessions,
       };
     });
 
     trackMeaningfulAction('focus_session');
 
-    // Async update in Supabase & Express backend
-    focusDbService.endFocusSession(sessionId, durationMinutes, completed).catch((err) => {
+    const currentUserId = activeUserIdRef.current || 'guest';
+    // Async update in local DB and Supabase
+    focusDbService.endFocusSession(sessionId, durationMinutes, completed, currentUserId).catch((err) => {
       console.warn("[AppContext] Error concluding focus session in DB:", err);
     });
   }, [trackMeaningfulAction]);
 
   const addBreakTime = useCallback((breakMinutes: number, sessionId?: string) => {
     if (breakMinutes <= 0) return;
+    let targetSessionId = sessionId;
     setState((prev) => {
       let updatedSessions = prev.focusSessions;
       if (sessionId) {
@@ -1359,31 +1347,24 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         );
       } else if (prev.focusSessions.length > 0) {
         const lastSession = prev.focusSessions[prev.focusSessions.length - 1];
+        targetSessionId = lastSession.id;
         updatedSessions = prev.focusSessions.map((s) =>
           s.id === lastSession.id ? { ...s, breakMinutes: (s.breakMinutes || 0) + breakMinutes } : s
         );
       }
 
-      const newActivities = [
-        ...prev.activities,
-        {
-          id: Date.now(),
-          category: 'Break',
-          hours: Math.floor(breakMinutes / 60),
-          minutes: breakMinutes % 60,
-          totalMinutes: breakMinutes,
-          date: todayStr(),
-          notes: 'Focus Break',
-          createdAt: new Date().toISOString(),
-        }
-      ];
-
       return {
         ...prev,
         focusSessions: updatedSessions,
-        activities: newActivities,
       };
     });
+
+    const currentUserId = activeUserIdRef.current || 'guest';
+    if (targetSessionId) {
+      focusDbService.addBreakTime(targetSessionId, breakMinutes, currentUserId).catch((err) => {
+        console.warn("[AppContext] Error updating break time in DB:", err);
+      });
+    }
   }, []);
 
   const addDistraction = useCallback((sessionId: string, content: string) => {
@@ -1397,19 +1378,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       focusSessions: prev.focusSessions.map((s) =>
         s.id === sessionId ? { ...s, distractions: [...s.distractions, entry] } : s
       ),
-      // Also log to legacy distractions for backward compat
-      distractions: [
-        ...prev.distractions,
-        {
-          id: Date.now(),
-          date: todayStr(),
-          time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
-        },
-      ],
     }));
 
-    // Async sync distraction to Supabase & Express backend
-    focusDbService.addDistraction(sessionId, entry).catch((err) => {
+    const currentUserId = activeUserIdRef.current || 'guest';
+    // Async sync distraction to DB
+    focusDbService.addDistraction(sessionId, entry, currentUserId).catch((err) => {
       console.warn("[AppContext] Error syncing distraction to DB:", err);
     });
   }, []);

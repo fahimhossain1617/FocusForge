@@ -125,7 +125,8 @@ export async function runNotificationSchedulerCycle(): Promise<SchedulerCycleRes
       } = reminder;
 
       const targetTime = new Date(targetTimeRaw);
-      const isUrgent = priority === 1 || category === 'task_start';
+      const isTaskReminder = category.startsWith('task') || Boolean(taskId) || priority === 1;
+      const isUrgent = priority === 1 || category === 'task_start' || category === 'task_pre_reminder';
 
       // 2. Fetch user notification preferences
       const userSettingsRes = await pool.query(
@@ -167,15 +168,22 @@ export async function runNotificationSchedulerCycle(): Promise<SchedulerCycleRes
       // 3. Stale / Overdue Policy Check
       const ageMinutes = (now.getTime() - targetTime.getTime()) / (60 * 1000);
 
-      // If motivational/non-urgent reminder is older than 30 minutes, expire it
-      if (!isUrgent && ageMinutes > 30) {
+      // If non-task reminder is older than 30 minutes, expire it
+      if (!isTaskReminder && ageMinutes > 30) {
         await dbUpdateScheduledReminderStatus(id, 'expired', `stale_${Math.round(ageMinutes)}m`);
         result.expiredCount++;
         continue;
       }
 
+      // If todo pre-reminder is older than 15 minutes, expire it
+      if (category === 'task_pre_reminder' && ageMinutes > 15) {
+        await dbUpdateScheduledReminderStatus(id, 'expired', `pre_reminder_stale_${Math.round(ageMinutes)}m`);
+        result.expiredCount++;
+        continue;
+      }
+
       // If todo start reminder is older than 60 minutes, expire it to prevent confusing late alerts
-      if (isUrgent && ageMinutes > 60) {
+      if (category === 'task_start' && ageMinutes > 60) {
         await dbUpdateScheduledReminderStatus(id, 'expired', `task_start_stale_${Math.round(ageMinutes)}m`);
         result.expiredCount++;
         continue;
@@ -196,26 +204,26 @@ export async function runNotificationSchedulerCycle(): Promise<SchedulerCycleRes
         continue;
       }
 
-      // 5. Daily Notification Limit Check
+      // 5. Daily Notification Limit Check (Task reminders are exempt)
       const dailyLimit = settings.daily_limit || 5;
       const userLocalDate = getUserLocalDateString(timezone, now);
 
       const dailyCountRes = await pool.query(
         `SELECT COUNT(*) as count 
          FROM scheduled_reminders 
-         WHERE user_id = $1 AND status = 'sent' AND due_date = $2`,
+         WHERE user_id = $1 AND status = 'sent' AND due_date = $2 AND category NOT LIKE 'task%'`,
         [userId, userLocalDate]
       );
       const sentTodayCount = parseInt(dailyCountRes.rows[0]?.count || '0', 10);
 
-      if (!isUrgent && sentTodayCount >= dailyLimit) {
+      if (!isTaskReminder && sentTodayCount >= dailyLimit) {
         await dbUpdateScheduledReminderStatus(id, 'suppressed', 'daily_limit_reached');
         result.suppressedCount++;
         continue;
       }
 
       // 6. Anti-Clustering / Minimum Spacing Check for Non-Urgent Reminders
-      if (!isUrgent) {
+      if (!isTaskReminder) {
         const lastSentTime = userLastSentMap.get(userId) || 0;
         const timeSinceLastSentMs = now.getTime() - lastSentTime;
         if (timeSinceLastSentMs < 45 * 60 * 1000) {
@@ -255,7 +263,9 @@ export async function runNotificationSchedulerCycle(): Promise<SchedulerCycleRes
 
       if (pushRes.sentCount > 0) {
         await dbUpdateScheduledReminderStatus(id, 'sent', `delivered_${pushRes.sentCount}_devices`, now);
-        userLastSentMap.set(userId, now.getTime());
+        if (!isTaskReminder) {
+          userLastSentMap.set(userId, now.getTime());
+        }
         result.dispatchedCount++;
       } else if (pushRes.removedExpired > 0 && pushRes.failedCount === 0) {
         await dbUpdateScheduledReminderStatus(id, 'failed', 'no_active_subscriptions');

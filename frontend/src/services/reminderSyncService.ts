@@ -13,13 +13,13 @@
  */
 
 import { supabase } from '../lib/supabaseClient';
-import { Task, FocusSession, LearningFolder, LearningLog, NotificationPreferences } from '../types';
+import { Task, FocusSession, LearningFolder, LearningLog, NotificationPreferences, NotificationCategory } from '../types';
 import { notificationRotationManager } from './notificationTemplates';
 import { getLocalDateString } from './taskService';
 
 export interface ScheduledReminderPayload {
   id: string;
-  category: 'task_start' | 'task_pre_reminder' | 'task_incomplete' | 'focus_reminder' | 'skill_reminder' | 'diary_reminder' | 'ai_companion' | 'system';
+  category: NotificationCategory | 'task_start' | 'task_pre_reminder' | 'task_incomplete' | 'focus_reminder' | 'skill_reminder' | 'diary_reminder' | 'ai_companion' | 'system' | 'daily_plan' | 'inactivity';
   priority: number;
   title: string;
   body: string;
@@ -49,6 +49,35 @@ class ReminderSyncService {
     } catch {
       return 'UTC';
     }
+  }
+
+  /**
+   * Calculate a deterministic daily jitter (in minutes) for non-urgent nudges.
+   * Ensures reminders feel organic and vary day-by-day without random drift between client and server.
+   */
+  public getDailyJitterMinutes(userId: string | null | undefined, dateStr: string, category: string, minOffset: number, maxOffset: number): number {
+    const seed = `${userId || 'anon'}_${dateStr}_${category}`;
+    let hash = 0;
+    for (let i = 0; i < seed.length; i++) {
+      hash = (hash << 5) - hash + seed.charCodeAt(i);
+      hash |= 0;
+    }
+    const span = Math.max(1, maxOffset - minOffset + 1);
+    const offset = Math.abs(hash) % span;
+    return minOffset + offset;
+  }
+
+  /**
+   * Convert local date (YYYY-MM-DD) and time (HH:mm) with optional jitter minutes into an exact Date
+   */
+  public parseLocalDateTimeWithJitter(dateStr: string, timeStr: string, jitterMinutes: number = 0): Date {
+    const [y, m, d] = dateStr.split('-').map(Number);
+    const [h, min] = timeStr.split(':').map(Number);
+    const date = new Date(y, (m || 1) - 1, d || 1, h || 0, min || 0, 0, 0);
+    if (jitterMinutes !== 0) {
+      date.setMinutes(date.getMinutes() + jitterMinutes);
+    }
+    return date;
   }
 
   /**
@@ -84,7 +113,7 @@ class ReminderSyncService {
     const now = Date.now();
 
     // =========================================================================
-    // 1. Todo Task Reminders (Priority 1: Start, Priority 2: 5m Pre & Incomplete)
+    // 1. Todo Task Reminders (Strictly User-Fixed, Precise 5m Pre & Start)
     // =========================================================================
     if (prefs.taskReminders !== false) {
       for (const task of tasks) {
@@ -104,7 +133,7 @@ class ReminderSyncService {
         const estMinutes = task.estMinutes || 45;
         const taskEndTimestamp = taskStartTimestamp + estMinutes * 60 * 1000;
 
-        // A. 5-Minute Pre-Reminder
+        // A. Exact 5-Minute Pre-Reminder (Priority 1: Protected Task Timing)
         const preTimestamp = taskStartTimestamp - 5 * 60 * 1000;
         if (preTimestamp > now - 10 * 60 * 1000) {
           const preTemplate = notificationRotationManager.getNext(
@@ -117,7 +146,7 @@ class ReminderSyncService {
           scheduledList.push({
             id: `task_pre_${task.id}_${taskDate}`,
             category: 'task_pre_reminder',
-            priority: 2,
+            priority: 1,
             title: preTemplate.title,
             body: preTemplate.message,
             actionRoute: 'tasks',
@@ -125,7 +154,7 @@ class ReminderSyncService {
             dueDate: taskDate,
             timezone,
             taskId: task.id,
-            isUrgent: false,
+            isUrgent: true,
           });
         }
 
@@ -183,7 +212,31 @@ class ReminderSyncService {
     }
 
     // =========================================================================
-    // 2. Motivational Focus Reminders (Midday ~14:00 & Evening ~18:30)
+    // 2. Daily Morning Plan Kickoff (~07:45 with organic daily shuffle)
+    // =========================================================================
+    if (prefs.dailyMorningPlan !== false) {
+      const basePlanTime = prefs.dailyMorningPlanTime || '07:45';
+      const planJitter = this.getDailyJitterMinutes(userId, todayStr, 'daily_plan', -15, 25);
+      const planDate = this.parseLocalDateTimeWithJitter(todayStr, basePlanTime, planJitter);
+      if (planDate.getTime() > now - 20 * 60 * 1000) {
+        const planTemplate = notificationRotationManager.getNext('daily_plan', lang, {}, userId || undefined);
+        scheduledList.push({
+          id: `daily_plan_${todayStr}`,
+          category: 'daily_plan',
+          priority: 3,
+          title: planTemplate.title,
+          body: planTemplate.message,
+          actionRoute: 'planner',
+          targetTime: planDate.toISOString(),
+          dueDate: todayStr,
+          timezone,
+          isUrgent: false,
+        });
+      }
+    }
+
+    // =========================================================================
+    // 3. Motivational Focus Reminders (Morning ~08:45 & Evening ~18:30, No Noon)
     // =========================================================================
     if (prefs.focusSessionReminder !== false) {
       const hasFocusToday = focusSessions.some((s: any) => {
@@ -192,17 +245,38 @@ class ReminderSyncService {
       });
 
       if (!hasFocusToday) {
-        const middayFocusDate = this.parseLocalDateTime(todayStr, '14:00');
-        if (middayFocusDate.getTime() > now - 15 * 60 * 1000) {
+        // A. Morning Kickoff (~08:45 with jitter -15 to +25 -> 08:30 to 09:10)
+        const morningJitter = this.getDailyJitterMinutes(userId, todayStr, 'focus_morning', -15, 25);
+        const morningFocusDate = this.parseLocalDateTimeWithJitter(todayStr, '08:45', morningJitter);
+        if (morningFocusDate.getTime() > now - 15 * 60 * 1000) {
           const focusTemplate = notificationRotationManager.getNext('focus_reminder', lang, {}, userId || undefined);
           scheduledList.push({
-            id: `focus_rem_mid_${todayStr}`,
+            id: `focus_rem_morn_${todayStr}`,
             category: 'focus_reminder',
             priority: 4,
             title: focusTemplate.title,
             body: focusTemplate.message,
             actionRoute: 'focus',
-            targetTime: middayFocusDate.toISOString(),
+            targetTime: morningFocusDate.toISOString(),
+            dueDate: todayStr,
+            timezone,
+            isUrgent: false,
+          });
+        }
+
+        // B. Evening Focus Nudge (~18:30 with jitter -20 to +40 -> 18:10 to 19:10)
+        const eveJitter = this.getDailyJitterMinutes(userId, todayStr, 'focus_evening', -20, 40);
+        const eveFocusDate = this.parseLocalDateTimeWithJitter(todayStr, '18:30', eveJitter);
+        if (eveFocusDate.getTime() > now - 15 * 60 * 1000) {
+          const focusTemplate = notificationRotationManager.getNext('focus_reminder', lang, {}, userId || undefined);
+          scheduledList.push({
+            id: `focus_rem_eve_${todayStr}`,
+            category: 'focus_reminder',
+            priority: 4,
+            title: focusTemplate.title,
+            body: focusTemplate.message,
+            actionRoute: 'focus',
+            targetTime: eveFocusDate.toISOString(),
             dueDate: todayStr,
             timezone,
             isUrgent: false,
@@ -212,24 +286,30 @@ class ReminderSyncService {
     }
 
     // =========================================================================
-    // 3. Time Log & Skill Practice Reminders (~17:00)
+    // 4. Time Log & Skill Practice Reminders (Rotated across Morning / Sunset / Night)
     // =========================================================================
     if (prefs.skillReminders !== false && learningFolders.length > 0) {
       const hasPracticeToday = learningLogs.some((l) => l.date === todayStr || ((l as any).createdAt && (l as any).createdAt.startsWith(todayStr)));
       if (!hasPracticeToday) {
-        const aftSkillDate = this.parseLocalDateTime(todayStr, '17:00');
-        if (aftSkillDate.getTime() > now - 15 * 60 * 1000) {
+        // Rotating slot based on day hash: 0 = morning (10:15), 1 = late afternoon (17:15), 2 = night (20:15)
+        const slotChoice = Math.abs(this.getDailyJitterMinutes(userId, todayStr, 'skill_slot', 0, 2));
+        const baseTimes = ['10:15', '17:15', '20:15'];
+        const chosenBaseTime = baseTimes[slotChoice] || '17:15';
+        const skillJitter = this.getDailyJitterMinutes(userId, todayStr, 'skill_reminder', -15, 25);
+        const skillDate = this.parseLocalDateTimeWithJitter(todayStr, chosenBaseTime, skillJitter);
+
+        if (skillDate.getTime() > now - 15 * 60 * 1000) {
           const activeTopic = learningFolders[0]?.name || (lang === 'bn' ? 'স্কিল' : 'skill');
           const skillTemplate = notificationRotationManager.getNext('skill_reminder', lang, { skillName: activeTopic }, userId || undefined);
 
           scheduledList.push({
-            id: `skill_rem_aft_${todayStr}`,
+            id: `skill_rem_${todayStr}`,
             category: 'skill_reminder',
             priority: 3,
             title: skillTemplate.title,
             body: skillTemplate.message,
             actionRoute: 'learning',
-            targetTime: aftSkillDate.toISOString(),
+            targetTime: skillDate.toISOString(),
             dueDate: todayStr,
             timezone,
             skillId: learningFolders[0]?.id,
@@ -240,10 +320,42 @@ class ReminderSyncService {
     }
 
     // =========================================================================
-    // 4. Diary / Reflection Reminders (~21:00)
+    // 5. Inactivity / Re-engagement Reminders (~19:30 with jitter)
+    // =========================================================================
+    if (prefs.inactivityReminders !== false) {
+      const hasFocusToday = focusSessions.some((s: any) => {
+        const sDate = s.date || (s.startTime ? s.startTime.split('T')[0] : '');
+        return sDate === todayStr && (s.duration || s.completed);
+      });
+      const hasTasksDoneToday = tasks.some((t) => (t.completed || t.status === 'completed') && (t.targetDate || t.date || todayStr) === todayStr);
+
+      if (!hasFocusToday && !hasTasksDoneToday) {
+        const inactJitter = this.getDailyJitterMinutes(userId, todayStr, 'inactivity', -20, 30);
+        const inactDate = this.parseLocalDateTimeWithJitter(todayStr, '19:30', inactJitter);
+        if (inactDate.getTime() > now - 15 * 60 * 1000) {
+          const inactTemplate = notificationRotationManager.getNext('inactivity', lang, {}, userId || undefined);
+          scheduledList.push({
+            id: `inact_rem_${todayStr}`,
+            category: 'inactivity',
+            priority: 4,
+            title: inactTemplate.title,
+            body: inactTemplate.message,
+            actionRoute: 'today',
+            targetTime: inactDate.toISOString(),
+            dueDate: todayStr,
+            timezone,
+            isUrgent: false,
+          });
+        }
+      }
+    }
+
+    // =========================================================================
+    // 6. Diary / Reflection Reminders (~21:15 with jitter 21:00 - 21:40)
     // =========================================================================
     if (prefs.diaryReminder !== false) {
-      const diaryDate = this.parseLocalDateTime(todayStr, '21:00');
+      const diaryJitter = this.getDailyJitterMinutes(userId, todayStr, 'diary_reminder', -15, 25);
+      const diaryDate = this.parseLocalDateTimeWithJitter(todayStr, '21:15', diaryJitter);
       if (diaryDate.getTime() > now - 15 * 60 * 1000) {
         const diaryTemplate = notificationRotationManager.getNext('diary_reminder', lang, {}, userId || undefined);
         scheduledList.push({

@@ -59,6 +59,30 @@ export const focusDbService = {
   },
 
   /**
+   * Updates break duration for a focus session in local-first database.
+   */
+  async addBreakTime(
+    sessionId: string,
+    breakMinutes: number,
+    userId?: string
+  ): Promise<void> {
+    try {
+      const cleanUserId = userId || "guest";
+      const existing = await localDb.get<FocusSession>("focus_sessions", cleanUserId, sessionId);
+      if (existing) {
+        await localDb.put("focus_sessions", {
+          ...existing,
+          breakMinutes: (existing.breakMinutes || 0) + breakMinutes,
+          userId: cleanUserId,
+          updatedAt: new Date().toISOString(),
+        });
+      }
+    } catch (err) {
+      console.warn("[focusDbService] Exception updating break time:", err);
+    }
+  },
+
+  /**
    * Logs a distraction entry during a focus session in local-first database.
    */
   async addDistraction(

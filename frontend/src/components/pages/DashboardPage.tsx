@@ -23,6 +23,7 @@ import {
   Moon,
   Sun,
   Bell,
+  ChevronDown,
 } from "lucide-react";
 
 import { useAppContext } from "../../context/AppContext";
@@ -106,6 +107,7 @@ export default function DashboardPage() {
   const [progressView, setProgressView] = useState<ProgressView>("weekly");
   const [hoveredDay, setHoveredDay] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState<string>(today);
+  const [isDistractionsOpen, setIsDistractionsOpen] = useState<boolean>(false);
   const { unreadCount, hasUnread } = useNotificationCenter();
 
   // Dynamic user display name
@@ -133,17 +135,14 @@ export default function DashboardPage() {
       const dayName = dayNames[d.getDay()];
       const dateLabel = `${d.getDate()} ${monthNames[d.getMonth()]}`;
 
-      // Calculate real focus minutes from focusSessions + activities for this day
+      // Calculate real focus minutes, break minutes, and distractions strictly from focusSessions
       const daySessions = (state.focusSessions || []).filter((s) => {
         const sDate = s.startedAt ? s.startedAt.split("T")[0] : "";
         return sDate === fullDate;
       });
       const sessionsMins = daySessions.reduce((acc, s) => acc + (s.durationMinutes || 0), 0);
-
-      const dayActivities = (state.activities || []).filter((a) => a.date === fullDate);
-      const activitiesMins = dayActivities.reduce((acc, a) => acc + (a.totalMinutes || (a.hours * 60 + a.minutes) || 0), 0);
-
-      const totalDayFocusMinutes = sessionsMins + activitiesMins;
+      const breakMins = daySessions.reduce((acc, s) => acc + (s.breakMinutes || 0), 0);
+      const distractionsCount = daySessions.reduce((acc, s) => acc + (Array.isArray(s.distractions) ? s.distractions.length : 0), 0);
 
       // Calculate real tasks for this day
       const dayTasks = (state.tasks || []).filter((t) => t.targetDate === fullDate || t.date === fullDate);
@@ -155,15 +154,18 @@ export default function DashboardPage() {
         day: dayName,
         date: dateLabel,
         fullDate,
-        focusTime: formatMinutes(totalDayFocusMinutes),
-        focusMinutes: totalDayFocusMinutes,
+        focusTime: formatMinutes(sessionsMins),
+        focusMinutes: sessionsMins,
+        breakTime: formatMinutes(breakMins),
+        breakMinutes: breakMins,
+        distractionsCount,
         tasksDone,
         tasksMissed,
         totalTasks: dayTasks.length,
       });
     }
     return days;
-  }, [state.focusSessions, state.activities, state.tasks, today]);
+  }, [state.focusSessions, state.tasks, today]);
 
   // Dynamic 4-Week Monthly Data
   const monthlyWeeks = useMemo(() => {
@@ -188,11 +190,8 @@ export default function DashboardPage() {
         return sDate >= startStr && sDate <= endStr;
       });
       const sessMins = weekSessions.reduce((acc, s) => acc + (s.durationMinutes || 0), 0);
-
-      const weekActivities = (state.activities || []).filter((a) => a.date >= startStr && a.date <= endStr);
-      const actMins = weekActivities.reduce((acc, a) => acc + (a.totalMinutes || (a.hours * 60 + a.minutes) || 0), 0);
-
-      const totalWeekFocusMins = sessMins + actMins;
+      const breakMins = weekSessions.reduce((acc, s) => acc + (s.breakMinutes || 0), 0);
+      const distractionsCount = weekSessions.reduce((acc, s) => acc + (Array.isArray(s.distractions) ? s.distractions.length : 0), 0);
 
       const weekTasks = (state.tasks || []).filter((t) => {
         const tDate = t.targetDate || t.date || "";
@@ -203,7 +202,7 @@ export default function DashboardPage() {
 
       const taskPercent = totalCount > 0 
         ? Math.round((doneCount / totalCount) * 100) 
-        : (totalWeekFocusMins > 0 ? Math.min(100, Math.round((totalWeekFocusMins / 900) * 100)) : 0);
+        : (sessMins > 0 ? Math.min(100, Math.round((sessMins / 900) * 100)) : 0);
 
       weeks.push({
         week: `Week ${4 - w}`,
@@ -211,8 +210,11 @@ export default function DashboardPage() {
         startStr,
         endStr,
         percent: taskPercent,
-        focusTime: formatMinutes(totalWeekFocusMins),
-        focusMinutes: totalWeekFocusMins,
+        focusTime: formatMinutes(sessMins),
+        focusMinutes: sessMins,
+        breakTime: formatMinutes(breakMins),
+        breakMinutes: breakMins,
+        distractionsCount,
         tasksDone: `${doneCount} / ${totalCount}`,
         doneCount,
         totalCount,
@@ -220,7 +222,7 @@ export default function DashboardPage() {
       });
     }
     return weeks;
-  }, [state.focusSessions, state.activities, state.tasks]);
+  }, [state.focusSessions, state.tasks]);
 
   // Helper to format start and end time for task items (always displayed in 12h AM/PM)
   const formatTaskTimeRange = (t: any): string => {
@@ -362,7 +364,7 @@ export default function DashboardPage() {
     const clickedWeek = monthlyWeeks.find((w) => w.week === selectedDate);
     if (clickedWeek) {
       const focusMins = clickedWeek.focusMinutes;
-      const breakMins = Math.round(focusMins * 0.15);
+      const breakMins = clickedWeek.breakMinutes || Math.round(focusMins * 0.15);
       const totalActive = focusMins + breakMins;
       const C = 238.761;
 
@@ -372,9 +374,10 @@ export default function DashboardPage() {
       return {
         focusTime: clickedWeek.focusTime,
         focusMinutes: focusMins,
-        breakTime: formatMinutes(breakMins),
+        breakTime: clickedWeek.breakTime || formatMinutes(breakMins),
         breakMinutes: breakMins,
-        distractionCount: 0,
+        distractionCount: clickedWeek.distractionsCount || 0,
+        distractionsList: [] as string[],
         distractionMinutes: 0,
         distractionSummary: "Calculated across weekly total",
         totalActiveMinutes: totalActive,
@@ -387,36 +390,23 @@ export default function DashboardPage() {
       };
     }
 
-    // Day calculations
+    // Day calculations strictly from focusSessions
     const daySessions = (state.focusSessions || []).filter((s) => {
       const sDate = s.startedAt ? s.startedAt.split("T")[0] : "";
       return sDate === selectedDate;
     });
-    const sessFocusMins = daySessions.reduce((acc, s) => acc + (s.durationMinutes || 0), 0);
-    const sessBreakMins = daySessions.reduce((acc, s) => acc + (s.breakMinutes || 0), 0);
-
-    const dayActivities = (state.activities || []).filter((a) => a.date === selectedDate);
-    const actFocusMins = dayActivities
-      .filter((a) => a.category !== 'Break')
-      .reduce((acc, a) => acc + (a.totalMinutes || (a.hours * 60 + a.minutes) || 0), 0);
-    const actBreakMins = dayActivities
-      .filter((a) => a.category === 'Break')
-      .reduce((acc, a) => acc + (a.totalMinutes || (a.hours * 60 + a.minutes) || 0), 0);
-
-    const totalFocusMins = sessFocusMins + actFocusMins;
-    const totalBreakMins = sessBreakMins + actBreakMins;
+    const totalFocusMins = daySessions.reduce((acc, s) => acc + (s.durationMinutes || 0), 0);
+    const totalBreakMins = daySessions.reduce((acc, s) => acc + (s.breakMinutes || 0), 0);
 
     const distractionsList: string[] = [];
     daySessions.forEach((s) => {
       if (Array.isArray(s.distractions)) {
         s.distractions.forEach((d) => {
-          if (d.content) distractionsList.push(d.content);
+          if (d.content && d.content.trim()) distractionsList.push(d.content.trim());
         });
       }
     });
-    const dayLegacyDistractions = (state.distractions || []).filter((d) => d.date === selectedDate);
-    const distractionCount = distractionsList.length + dayLegacyDistractions.length;
-    // Distraction weight for visualization (2 mins per distraction log if no explicit duration)
+    const distractionCount = distractionsList.length;
     const distractionMins = distractionCount > 0 ? distractionCount * 2 : 0;
 
     const totalActive = totalFocusMins + totalBreakMins + distractionMins;
@@ -436,6 +426,7 @@ export default function DashboardPage() {
       breakTime: formatMinutes(totalBreakMins),
       breakMinutes: totalBreakMins,
       distractionCount,
+      distractionsList,
       distractionMinutes: distractionMins,
       distractionSummary: distractionsList.length > 0 ? distractionsList.slice(0, 2).join(" · ") : (distractionCount > 0 ? `${distractionCount} distractions logged` : "None logged"),
       totalActiveMinutes: totalActive,
@@ -446,39 +437,57 @@ export default function DashboardPage() {
       breakOffset: -focusLen,
       distractionOffset: -(focusLen + breakLen),
     };
-  }, [selectedDate, monthlyWeeks, state.focusSessions, state.activities, state.distractions]);
+  }, [selectedDate, monthlyWeeks, state.focusSessions]);
 
   // Aggregated Weekly Totals
   const weeklySummary = useMemo(() => {
     const totalFocusMins = weeklyData.reduce((acc, d) => acc + d.focusMinutes, 0);
+    const totalBreakMins = weeklyData.reduce((acc, d) => acc + d.breakMinutes, 0);
+    const totalDistractions = weeklyData.reduce((acc, d) => acc + d.distractionsCount, 0);
     const totalDone = weeklyData.reduce((acc, d) => acc + d.tasksDone, 0);
     const totalTasks = weeklyData.reduce((acc, d) => acc + d.totalTasks, 0);
     const totalMissed = weeklyData.reduce((acc, d) => acc + d.tasksMissed, 0);
     const completionPercent = totalTasks > 0 ? Math.round((totalDone / totalTasks) * 100) : (totalDone > 0 ? 100 : 0);
 
+    const completedSkillsCount = (state.learningFolders || []).filter((f) => f.completed).length;
+    const activeSkillsCount = (state.learningFolders || []).filter((f) => !f.completed).length;
+
     return {
       focusTime: formatMinutes(totalFocusMins),
+      breakTime: formatMinutes(totalBreakMins),
+      distractionsCount: totalDistractions,
       tasksDoneRatio: `${totalDone} / ${totalTasks}`,
       totalMissed,
       completionPercent,
+      completedSkillsCount,
+      activeSkillsCount,
     };
-  }, [weeklyData]);
+  }, [weeklyData, state.learningFolders]);
 
   // Aggregated Monthly Totals
   const monthlySummary = useMemo(() => {
     const totalFocusMins = monthlyWeeks.reduce((acc, w) => acc + w.focusMinutes, 0);
+    const totalBreakMins = monthlyWeeks.reduce((acc, w) => acc + w.breakMinutes, 0);
+    const totalDistractions = monthlyWeeks.reduce((acc, w) => acc + w.distractionsCount, 0);
     const totalDone = monthlyWeeks.reduce((acc, w) => acc + w.doneCount, 0);
     const totalTasks = monthlyWeeks.reduce((acc, w) => acc + w.totalCount, 0);
     const totalMissed = monthlyWeeks.reduce((acc, w) => acc + w.missedCount, 0);
     const completionPercent = totalTasks > 0 ? Math.round((totalDone / totalTasks) * 100) : (totalDone > 0 ? 100 : 0);
 
+    const completedSkillsCount = (state.learningFolders || []).filter((f) => f.completed).length;
+    const activeSkillsCount = (state.learningFolders || []).filter((f) => !f.completed).length;
+
     return {
       focusTime: formatMinutes(totalFocusMins),
+      breakTime: formatMinutes(totalBreakMins),
+      distractionsCount: totalDistractions,
       tasksDoneRatio: `${totalDone} / ${totalTasks}`,
       totalMissed,
       completionPercent,
+      completedSkillsCount,
+      activeSkillsCount,
     };
-  }, [monthlyWeeks]);
+  }, [monthlyWeeks, state.learningFolders]);
 
   if (!isLoaded) {
     return <DashboardSkeleton />;
@@ -723,18 +732,48 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Integrated Compact Distractions Info (#D95C68) */}
-          <div className="mt-3 pt-1 flex items-center justify-between text-xs">
-            <div className="flex items-center gap-1.5 text-[#52627A] dark:text-muted-foreground">
-              <span className="w-2 h-2 rounded-full bg-[#D95C68] shrink-0" />
-              <span>{state.lang === 'bn' ? "দৈনিক বিক্ষেপ:" : "Daily Distractions:"}</span>
-              <span className="font-bold text-[#D95C68] font-mono tabular-nums">
-                {selectedFocusStats.distractionCount > 0 ? `${selectedFocusStats.distractionCount}` : "0"}
+          {/* Integrated Compact Distractions Info with expandable inline details */}
+          <div className="mt-3 pt-2 border-t border-[#E2E8F0] dark:border-white/5">
+            <div className="flex items-center justify-between text-xs">
+              <div className="flex items-center gap-1.5 text-[#52627A] dark:text-muted-foreground">
+                <span className="w-2 h-2 rounded-full bg-[#D95C68] shrink-0" />
+                <span>{state.lang === 'bn' ? "দৈনিক বিক্ষেপ:" : "Daily Distractions:"}</span>
+                <span className="font-bold text-[#D95C68] font-mono tabular-nums">
+                  {selectedFocusStats.distractionCount > 0 ? `${selectedFocusStats.distractionCount}` : "0"}
+                </span>
+                {selectedFocusStats.distractionCount > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setIsDistractionsOpen((prev) => !prev)}
+                    className="ml-1 p-0.5 rounded text-[#52627A] dark:text-muted-foreground hover:text-[#0F172A] dark:hover:text-white transition-colors cursor-pointer inline-flex items-center"
+                    title={isDistractionsOpen ? (state.lang === 'bn' ? "লুকান" : "Hide") : (state.lang === 'bn' ? "লিস্ট দেখুন" : "View list")}
+                    aria-label="Toggle distractions list"
+                  >
+                    <ChevronDown size={14} className={`transition-transform duration-200 ${isDistractionsOpen ? "rotate-180" : ""}`} />
+                  </button>
+                )}
+              </div>
+              <span className="text-[11px] text-[#8290A5] dark:text-muted-foreground truncate max-w-[180px]">
+                {selectedFocusStats.distractionSummary}
               </span>
             </div>
-            <span className="text-[11px] text-[#8290A5] dark:text-muted-foreground truncate max-w-[180px]">
-              {selectedFocusStats.distractionSummary}
-            </span>
+
+            {/* Inline Distractions Breakdown (line-to-line separation, responsive, no glowing/shadows) */}
+            {isDistractionsOpen && selectedFocusStats.distractionsList && selectedFocusStats.distractionsList.length > 0 && (
+              <div className="mt-2 pt-1 border-t border-[#E2E8F0] dark:border-white/5">
+                <div className="divide-y divide-[#E2E8F0] dark:divide-white/5">
+                  {selectedFocusStats.distractionsList.map((distractionName, idx) => (
+                    <div
+                      key={idx}
+                      className="py-1.5 text-xs text-[#334155] dark:text-zinc-300 flex items-center justify-between"
+                    >
+                      <span className="font-medium truncate">{distractionName}</span>
+                      <span className="text-[10px] text-[#94A3B8] dark:text-zinc-500 font-mono shrink-0 ml-2">#{idx + 1}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </section>
 
@@ -997,27 +1036,48 @@ export default function DashboardPage() {
               })}
             </div>
 
-            {/* Bottom 3 Summary Metrics (Normal flat layout without boxes) */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
-              <div className="py-2">
+            {/* Bottom 5 Summary Metrics (Normal flat layout without heavy boxes) */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 pt-4 border-t border-[#DCE5F0] dark:border-white/[0.06]">
+              <div className="py-1">
                 <p className="text-xs text-[#52627A] dark:text-muted-foreground font-medium">
-                  {state.lang === 'bn' ? "সাপ্তাহিক মোট ফোকাস টাইম" : "Total Weekly Focus Time"}
+                  {state.lang === 'bn' ? "সাপ্তাহিক মোট ফোকাস" : "Total Weekly Focus"}
                 </p>
-                <p className="mt-1 text-xl font-bold text-[#111827] dark:text-foreground tracking-tight">{weeklySummary.focusTime}</p>
+                <p className="mt-1 text-lg sm:text-xl font-bold text-[#111827] dark:text-foreground tracking-tight">{weeklySummary.focusTime}</p>
               </div>
 
-              <div className="py-2">
+              <div className="py-1">
                 <p className="text-xs text-[#52627A] dark:text-muted-foreground font-medium">
-                  {state.lang === 'bn' ? "সাপ্তাহিক সম্পন্ন টাস্ক" : "Weekly Tasks Completed"}
+                  {state.lang === 'bn' ? "সাপ্তাহিক বিরতি" : "Total Weekly Break"}
                 </p>
-                <p className="mt-1 text-xl font-bold text-[#111827] dark:text-foreground tracking-tight">{weeklySummary.tasksDoneRatio}</p>
+                <p className="mt-1 text-lg sm:text-xl font-bold text-[#10B981] dark:text-emerald-400 tracking-tight">{weeklySummary.breakTime}</p>
               </div>
 
-              <div className="py-2">
+              <div className="py-1">
                 <p className="text-xs text-[#52627A] dark:text-muted-foreground font-medium">
-                  {state.lang === 'bn' ? "সাপ্তাহিক মিস হওয়া টাস্ক" : "Weekly Missed Tasks"}
+                  {state.lang === 'bn' ? "সাপ্তাহিক বিক্ষেপ" : "Weekly Distractions"}
                 </p>
-                <p className="mt-1 text-xl font-bold text-[#111827] dark:text-foreground tracking-tight">{weeklySummary.totalMissed}</p>
+                <p className="mt-1 text-lg sm:text-xl font-bold text-[#D95C68] tracking-tight">{weeklySummary.distractionsCount}</p>
+              </div>
+
+              <div className="py-1">
+                <p className="text-xs text-[#52627A] dark:text-muted-foreground font-medium">
+                  {state.lang === 'bn' ? "সম্পন্ন টাস্ক" : "Tasks Done"}
+                </p>
+                <p className="mt-1 text-lg sm:text-xl font-bold text-[#111827] dark:text-foreground tracking-tight">{weeklySummary.tasksDoneRatio}</p>
+              </div>
+
+              <div className="py-1 col-span-2 sm:col-span-1">
+                <p className="text-xs text-[#52627A] dark:text-muted-foreground font-medium">
+                  {state.lang === 'bn' ? "টাইম লগ স্কিলস" : "Time Log Skills"}
+                </p>
+                <p className="mt-1 text-lg sm:text-xl font-bold text-[#2563EB] dark:text-blue-400 tracking-tight">
+                  {weeklySummary.completedSkillsCount} {state.lang === 'bn' ? "সম্পন্ন" : "Done"}
+                  {weeklySummary.activeSkillsCount > 0 && (
+                    <span className="text-xs font-normal text-[#52627A] dark:text-muted-foreground ml-1.5 font-mono">
+                      ({weeklySummary.activeSkillsCount} {state.lang === 'bn' ? "চলমান" : "active"})
+                    </span>
+                  )}
+                </p>
               </div>
             </div>
           </div>
@@ -1104,37 +1164,50 @@ export default function DashboardPage() {
               })}
             </div>
 
-            {/* Monthly Bottom 3 Summary Metric Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
-              <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-[#DCE5F0] dark:border-white/[0.06] shadow-none">
-                <div>
-                  <p className="text-xs text-slate-500 dark:text-muted-foreground font-medium">
-                    {state.lang === 'bn' ? "মাসিক মোট ফোকাস টাইম" : "Total Monthly Focus Time"}
-                  </p>
-                  <p className="mt-1 text-xl font-bold text-[#111827] dark:text-foreground tracking-tight">{monthlySummary.focusTime}</p>
-                </div>
+            {/* Monthly Bottom 5 Summary Metrics */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 pt-4 border-t border-[#DCE5F0] dark:border-white/[0.06]">
+              <div className="py-1">
+                <p className="text-xs text-slate-500 dark:text-muted-foreground font-medium">
+                  {state.lang === 'bn' ? "মাসিক মোট ফোকাস" : "Total Monthly Focus"}
+                </p>
+                <p className="mt-1 text-lg sm:text-xl font-bold text-[#111827] dark:text-foreground tracking-tight">{monthlySummary.focusTime}</p>
               </div>
 
-              <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-[#DCE5F0] dark:border-white/[0.06] shadow-none">
-                <div>
-                  <p className="text-xs text-slate-500 dark:text-muted-foreground font-medium">
-                    {state.lang === 'bn' ? "মাসিক সম্পন্ন টাস্ক" : "Monthly Tasks Completed"}
-                  </p>
-                  <p className="mt-1 text-xl font-bold text-[#111827] dark:text-foreground tracking-tight">
-                    {monthlySummary.tasksDoneRatio} <span className="text-sm font-normal text-slate-500 dark:text-muted-foreground">({monthlySummary.completionPercent}%)</span>
-                  </p>
-                </div>
+              <div className="py-1">
+                <p className="text-xs text-slate-500 dark:text-muted-foreground font-medium">
+                  {state.lang === 'bn' ? "মাসিক বিরতি" : "Total Monthly Break"}
+                </p>
+                <p className="mt-1 text-lg sm:text-xl font-bold text-[#10B981] dark:text-emerald-400 tracking-tight">{monthlySummary.breakTime}</p>
               </div>
 
-              <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-[#DCE5F0] dark:border-white/[0.06] shadow-none">
-                <div>
-                  <p className="text-xs text-slate-500 dark:text-muted-foreground font-medium">
-                    {state.lang === 'bn' ? "মাসিক মিস হওয়া টাস্ক" : "Monthly Missed Tasks"}
-                  </p>
-                  <p className="mt-1 text-xl font-bold text-[#111827] dark:text-foreground tracking-tight">
-                    {monthlySummary.totalMissed} {state.lang === 'bn' ? "টাস্ক" : "tasks"}
-                  </p>
-                </div>
+              <div className="py-1">
+                <p className="text-xs text-slate-500 dark:text-muted-foreground font-medium">
+                  {state.lang === 'bn' ? "মাসিক বিক্ষেপ" : "Monthly Distractions"}
+                </p>
+                <p className="mt-1 text-lg sm:text-xl font-bold text-[#D95C68] tracking-tight">{monthlySummary.distractionsCount}</p>
+              </div>
+
+              <div className="py-1">
+                <p className="text-xs text-slate-500 dark:text-muted-foreground font-medium">
+                  {state.lang === 'bn' ? "সম্পন্ন টাস্ক" : "Tasks Done"}
+                </p>
+                <p className="mt-1 text-lg sm:text-xl font-bold text-[#111827] dark:text-foreground tracking-tight">
+                  {monthlySummary.tasksDoneRatio}
+                </p>
+              </div>
+
+              <div className="py-1 col-span-2 sm:col-span-1">
+                <p className="text-xs text-slate-500 dark:text-muted-foreground font-medium">
+                  {state.lang === 'bn' ? "টাইম লগ স্কিলস" : "Time Log Skills"}
+                </p>
+                <p className="mt-1 text-lg sm:text-xl font-bold text-[#2563EB] dark:text-blue-400 tracking-tight">
+                  {monthlySummary.completedSkillsCount} {state.lang === 'bn' ? "সম্পন্ন" : "Done"}
+                  {monthlySummary.activeSkillsCount > 0 && (
+                    <span className="text-xs font-normal text-slate-500 dark:text-muted-foreground ml-1.5 font-mono">
+                      ({monthlySummary.activeSkillsCount} {state.lang === 'bn' ? "চলমান" : "active"})
+                    </span>
+                  )}
+                </p>
               </div>
             </div>
           </div>
