@@ -1271,11 +1271,11 @@ export default function FocusPage() {
                   <button
                     onClick={timer.isRunning ? handlePauseAttempt : timer.start}
                     style={{
-                      backgroundColor: timer.isRunning ? "#0F172A" : "#1E3E7B",
-                      borderColor: timer.isRunning ? "#0F172A" : "#1E3E7B",
+                      backgroundColor: "#1E3E7B",
+                      borderColor: "#1E3E7B",
                       color: "#FFFFFF",
                     }}
-                    className="w-20 h-12 rounded-full font-bold text-sm flex items-center justify-center transition-all cursor-pointer active:scale-95 shadow-none dark:!bg-white/15 dark:!border-white/15 dark:!text-white text-white border"
+                    className="w-20 h-12 rounded-full font-bold text-sm flex items-center justify-center transition-all cursor-pointer active:scale-95 shadow-none hover:opacity-90 dark:!bg-white/15 dark:!border-white/15 dark:!text-white text-white border"
                     title={timer.isRunning ? t.focus.pause : t.focus.resume}
                     aria-label={timer.isRunning ? t.focus.pause : t.focus.resume}
                   >

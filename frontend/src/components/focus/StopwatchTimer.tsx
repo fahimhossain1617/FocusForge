@@ -439,11 +439,11 @@ export const StopwatchTimer = memo(function StopwatchTimer({
               type="button"
               onClick={isRunning ? handlePause : handleStart}
               style={{
-                backgroundColor: isRunning ? "#0F172A" : "#1E3E7B",
-                borderColor: isRunning ? "#0F172A" : "#1E3E7B",
+                backgroundColor: "#1E3E7B",
+                borderColor: "#1E3E7B",
                 color: "#FFFFFF",
               }}
-              className="w-24 h-12 rounded-full font-bold text-sm flex items-center justify-center gap-2 transition-all cursor-pointer active:scale-95 shadow-none dark:!bg-white/15 dark:!border-white/15 dark:!text-white text-white border"
+              className="w-24 h-12 rounded-full font-bold text-sm flex items-center justify-center gap-2 transition-all cursor-pointer active:scale-95 shadow-none hover:opacity-90 dark:!bg-white/15 dark:!border-white/15 dark:!text-white text-white border"
               title={isRunning ? (state.lang === "bn" ? "থামান" : "Pause") : (state.lang === "bn" ? "চালিয়ে যান" : "Resume")}
             >
               {isRunning ? (
