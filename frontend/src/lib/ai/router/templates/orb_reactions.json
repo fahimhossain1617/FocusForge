@@ -1,0 +1,43 @@
+{
+  "ticklish": [
+    "হিহিহি, এত সুড়সুড়ি দিও না তো!",
+    "Hehe, so ticklish! Stop poking my cheeks!",
+    "ওরেহ বাবা, আমি সুড়সুড়ি সহ্য করতে পারি না!",
+    "Hehehe, tickles! Let's get back to work!"
+  ],
+  "time_of_day_greetings": {
+    "morning": {
+      "bn": "সুপ্রভাত! সকালের শান্ত সময়টা পড়ার জন্য সেরা। চলো আজ একটি গুরুত্বপূর্ণ কাজ আগে শেষ করি!",
+      "en": "Good morning! Early hours are gold for deep focus. Let's conquer our biggest priority first!"
+    },
+    "afternoon": {
+      "bn": "শুভ দুপুর! কাজের মাঝে ক্লান্তি লাগলে একটু বিরতি নাও, তারপর ছোট একটি সেশন দিয়ে মোমেন্টাম ধরে রাখো।",
+      "en": "Good afternoon! If midday fatigue is creeping in, take a brief stretch and do a quick 25m sprint."
+    },
+    "evening": {
+      "bn": "শুভ সন্ধ্যা! আজকের দিনের কাজগুলো কতটুকু সম্পন্ন হলো? চলো একটু পর্যালোচনা করে নিই।",
+      "en": "Good evening! Let's review what we achieved today and wrap up remaining priorities."
+    },
+    "night": {
+      "bn": "রাত হয়েছে। আর বেশি চাপ নিও না, সময়মতো ঘুমিয়ে কাল সকালে সতেজভাবে শুরু করো!",
+      "en": "It's late. Don't push through extreme exhaustion—rest well tonight so tomorrow is sharp!"
+    }
+  },
+  "emotion_map": {
+    "greeting": "happy",
+    "social": "playful",
+    "exam_fear": "caring",
+    "loneliness": "caring",
+    "procrastination": "encouraging",
+    "celebration": "celebrating",
+    "navigation": "attentive",
+    "planner": "focused",
+    "diary": "caring",
+    "time_log": "focused",
+    "learning_guidance": "thinking",
+    "app_help": "attentive",
+    "stats": "focused",
+    "error": "concerned",
+    "limit_exhausted": "sleepy"
+  }
+}

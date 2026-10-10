@@ -82,16 +82,11 @@ function sanitizePayloadForGemini(payload) {
 }
 function buildAgentChatPrompt(serializedPayload, modelMode = 'smart') {
     let modeGuidance = '';
-    if (modelMode === 'fast' || modelMode === 'focentia-2.1') {
+    const normalizedMode = (modelMode || '').toLowerCase().trim();
+    const isPlanning = normalizedMode === 'planning' || normalizedMode === 'deep' || normalizedMode === 'pro' || normalizedMode === 'focentia-pro';
+    if (isPlanning) {
         modeGuidance = `
-MODE: FOCENTIA 2.1 (SPEED & CRISP EFFICIENCY)
-- Give a prompt, concise, natural, witty, and helpful response.
-- Answer questions directly without unnecessary filler.
-- Ideal for fast replies, everyday tasks, rapid answers, and quick check-ins.`;
-    }
-    else if (modelMode === 'planning' || modelMode === 'deep' || modelMode === 'pro' || modelMode === 'focentia-pro') {
-        modeGuidance = `
-MODE: FOCENTIA PRO (DEEP RESEARCH, PLANNING & COMPREHENSIVE REASONING)
+MODE: FOCENTIA PRO (DEEP RESEARCH, PLANNING & COMPREHENSIVE REASONING - 25-30 TOKENS)
 - Provide deep, thoughtful, and structured strategic breakdown, detailed explanations, and complete code/study plans.
 - Conduct thorough research and analytical deep-dives for complex, large-scale problems.
 - Include thorough study routines, realistic time-blocking, milestone advice, nuanced explanations, and in-depth educational guidance.
@@ -99,9 +94,12 @@ MODE: FOCENTIA PRO (DEEP RESEARCH, PLANNING & COMPREHENSIVE REASONING)
     }
     else {
         modeGuidance = `
-MODE: FOCENTIA SMART (BALANCED INTELLIGENCE)
-- Provide a warm, balanced, highly conversational, emotionally intelligent, and comprehensive response.
-- Answer open-ended questions, academic/technical explanations, problem breakdowns, and daily workflows with depth.`;
+MODE: FOCENTIA 2.0 / 2.1 (EXTREME SPEED, CRISP BREVITY & TOKEN SAVER - 4-5 TOKENS)
+- CRITICAL TOKEN-SAVING DIRECTIVE: Speak concisely, shortly, crisply, and directly.
+- STRICT BREVITY: Answer directly in 1 to 3 short sentences. ZERO fluff, NO long introductory speeches, NO repetitive essays.
+- Keep the generated message short, punchy, and clear so the user gets fast replies while saving tokens.
+- When proposing an action (like planner task or focus timer), state it in one quick natural sentence.
+- Always preserve your warm, friendly, caring older-brother tone while being delightfully concise.`;
     }
     return [
         `You are Focentia AI, the primary intelligence, friendly companion, and productivity partner inside Focentia.`,
@@ -490,11 +488,10 @@ async function executeAIAction(action, payload) {
     }
     const client = getGeminiClient();
     const candidateModels = getCandidateModelsForMode(modelMode);
-    const isFast = modelMode === 'fast' || modelMode === 'focentia-2.1';
     const isPro = modelMode === 'planning' || modelMode === 'deep' || modelMode === 'pro' || modelMode === 'focentia-pro';
-    const timeoutMs = isFast ? 15000 : (isPro ? 40000 : 25000);
-    const temperature = isFast ? 0.3 : (isPro ? 0.65 : 0.45);
-    const maxOutputTokens = isFast ? 1500 : (isPro ? 6000 : 3000);
+    const timeoutMs = isPro ? 35000 : 12000;
+    const temperature = isPro ? 0.6 : 0.25;
+    const maxOutputTokens = isPro ? 3500 : 600;
     let lastErr = null;
     for (const model of candidateModels) {
         try {

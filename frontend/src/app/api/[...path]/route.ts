@@ -1676,7 +1676,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ pa
       });
     }
     
-    const recentHistory = Array.isArray(history) ? history.slice(-10) : [];
+    const recentHistory = Array.isArray(history) ? history.slice(-4) : [];
 
     let result: any;
     try {

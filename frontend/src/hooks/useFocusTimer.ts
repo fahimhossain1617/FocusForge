@@ -84,12 +84,17 @@ export function useFocusTimer(options?: UseFocusTimerOptions) {
     };
   }, [isRunning, tick]);
 
-  const start = useCallback(() => {
+  const start = useCallback((overrideMinutes?: number | any) => {
     if (isRunning) return;
 
     let currentSec = remaining;
-    if (currentSec <= 0) {
-      const mins = isWorkRef.current ? workMinutes : breakMinutes;
+    if (typeof overrideMinutes === 'number' && overrideMinutes > 0) {
+      setWorkMinutes(overrideMinutes);
+      currentSec = overrideMinutes * 60;
+      setRemaining(currentSec);
+      setTotal(currentSec);
+    } else if (currentSec <= 0) {
+      const mins = isWorkRef.current ? (workMinutes || 25) : (breakMinutes || 5);
       currentSec = mins * 60;
       setRemaining(currentSec);
       setTotal(currentSec);

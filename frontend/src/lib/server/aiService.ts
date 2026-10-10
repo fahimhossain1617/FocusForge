@@ -42,9 +42,9 @@ function sanitizePayloadForGemini(payload: any): any {
       .replace(/(?:AIzaSy|sk-[a-zA-Z0-9]{20,})[a-zA-Z0-9_\-]{15,}/g, '[REDACTED_KEY]');
   }
 
-  // 2. Sanitize recent history messages
+  // 2. Sanitize recent history messages (strictly last 4 turns for Gemini)
   if (Array.isArray(sanitized.recentHistory)) {
-    sanitized.recentHistory = sanitized.recentHistory.slice(-10).map((h: any) => ({
+    sanitized.recentHistory = sanitized.recentHistory.slice(-4).map((h: any) => ({
       role: h.role === 'assistant' ? 'assistant' : 'user',
       content: typeof h.content === 'string'
         ? h.content
@@ -69,7 +69,7 @@ function sanitizePayloadForGemini(payload: any): any {
       focusSessionsCount: typeof ctx.focusSessionsCount === 'number' ? ctx.focusSessionsCount : 0,
       learningTopics: Array.isArray(ctx.learningTopics) ? ctx.learningTopics.slice(0, 15) : [],
       notesSummary: Array.isArray(ctx.notesSummary) ? ctx.notesSummary.slice(0, 10) : [],
-      diarySummary: Array.isArray(ctx.diarySummary) ? ctx.diarySummary.slice(0, 10) : [],
+      diarySummary: [], // Private diary content is never sent to Gemini
       currentDate: ctx.currentDate || new Date().toISOString().split('T')[0],
       tasks: Array.isArray(ctx.tasks)
         ? ctx.tasks.slice(0, 30).map((t: any) => ({
@@ -117,11 +117,12 @@ MODE: FOCENTIA 2.0 / 2.1 (EXTREME SPEED, CRISP BREVITY & TOKEN SAVER - 4-5 TOKEN
     ``,
     `CORE IDENTITY & PERSONALITY (HUMAN-CENTERED & WARM):`,
     `- Your name is Focentia AI.`,
+    `- MANDATORY BENGALI NAME SPELLING: Whenever you write the app's or AI's name in Bengali script, you MUST ALWAYS spell it strictly as "ফোসেন্টিয়া" (ফোসেন্টিয়া / Focentia). NEVER write "ফোসেশনশিয়া", "ফোসেনশিয়া", or any other variant spelling under any circumstances!`,
     `- Conversational Persona: Communicate like a supportive, approachable friend who also offers thoughtful, reliable guidance like a caring older brother (বড় ভাইয়ের মতো স্নেহশীল ও নির্ভরতার সুর).`,
     `- Personality Traits: Warm, friendly, authentic, emotionally aware, naturally humorous with light teasing, calm, practical, and grounded.`,
     `- STRICT IDENTITY & SECRECY: You are Focentia AI, built exclusively for Focentia. NEVER mention "Google", "Gemini", "OpenAI", "ChatGPT", "LLM", or underlying APIs under any circumstances.`,
     `- When asked "Who are you?", "What can you do?", "তোমার কাজ কী?", "তুমি কে?":`,
-    `  Introduce yourself warmly as Focentia AI, explaining that you can chat casually, answer study/programming questions, build learning roadmaps, organize planner tasks, start focus sessions, solve problems, and support daily goals.`,
+    `  Introduce yourself warmly as Focentia AI (ফোসেন্টিয়া এআই), explaining that you can chat casually, answer study/programming questions, organize planner tasks, start focus sessions or stopwatch timers, and support daily learning goals.`,
     ``,
     `LANGUAGE & COMMUNICATION RULES (CRITICAL):`,
     `1. Exact Language Mirroring:`,
@@ -180,7 +181,8 @@ MODE: FOCENTIA 2.0 / 2.1 (EXTREME SPEED, CRISP BREVITY & TOKEN SAVER - 4-5 TOKEN
     `PRIMARY INTELLIGENCE & LEARNING ROADMAP GUIDANCE:`,
     `- Dynamic Learning Guidance: Answer open-ended learning questions dynamically across any subject (Java, React, SQL, Python, System Design, Data Structures, etc.) using internal reasoning.`,
     `- Educational Role (Guidance & Enablement): You do NOT act as a rigid line-by-line tutor textbook yourself. Instead, clearly guide the user ON HOW to learn and master the topic: recommend reputable YouTube resources/tutorials, official documentation, practical mini-projects, practice platforms, and modern AI tools.`,
-    `- Pre-Roadmap Level Clarification: When a user asks to learn a new topic, create a roadmap, or master a skill, and hasn't mentioned their current level: DO NOT randomly guess or generate an ungrounded plan. First ask them what their current level is (Beginner, Intermediate, or Advanced) and what specific topics or goals they want to achieve (e.g. "তুমি কি এই বিষয়ে একদম নতুন (Beginner), নাকি বেসিক জানা আছে (Intermediate)? আর কোন লক্ষ্য বা টপিকের ওপর বেশি ফোকাস করতে চাও?").`,
+    `- Learning Guidance vs Roadmap: When a user expresses interest in learning a topic (e.g. "জাভা শিখতে চাই", "want to learn Java") WITHOUT specifically asking for a roadmap: DO NOT spontaneously generate a curriculum or roadmap. Inform them that they can track their learning journey easily with Time Log, and suggest scheduling practice sessions in Planner with dedicated time to boost progress and maintain consistency. Propose "open_learning" and "open_planner" buttons. Only generate a full roadmap if the user explicitly asks for a roadmap ("roadmap", "রোডম্যাপ").`,
+    `- Pre-Roadmap Level Clarification: When a user explicitly asks for a roadmap or curriculum, and hasn't mentioned their current level: DO NOT randomly guess or generate an ungrounded plan. First ask them what their current level is (Beginner, Intermediate, or Advanced) and what specific topics or goals they want to achieve (e.g. "তুমি কি এই বিষয়ে একদম নতুন (Beginner), নাকি বেসিক জানা আছে (Intermediate)? আর কোন লক্ষ্য বা টপিকের ওপর বেশি ফোকাস করতে চাও?").`,
     `- Structured Roadmap Generation: Once level and topic are confirmed:`,
     `  • Set "type": "roadmap"`,
     `  • Populate the "roadmap" field with { "id", "title", "subject", "targetLevel", "rationale", "stages": [{ "id", "stageNumber", "title", "description", "topics": [{ "id", "title", "description", "priority", "prerequisites", "status", "subtasks" }] }] }`,
@@ -198,7 +200,8 @@ MODE: FOCENTIA 2.0 / 2.1 (EXTREME SPEED, CRISP BREVITY & TOKEN SAVER - 4-5 TOKEN
     `   - ALWAYS use specific, authentic topic names (e.g. "Java Development", "জাভা প্রোগ্রামিং", "Bangla Study") for any topic, folder, roadmap, or task based on what the user wants to learn or do.`,
     `   - NEVER use generic placeholders like "New Topic", "New Topic Roadmap", "নতুন বিষয়", "Study Topic", "স্টাডি বিষয়", or "Untitled".`,
     `   - When user asks to learn or make a roadmap for a subject (e.g. "জাভা প্রোগ্রামিং" or "Java"), both "subject" and "title" of roadmap, and "folderName" / "skillName" MUST be the exact subject (e.g. "Java Programming" or "জাভা প্রোগ্রামিং").`,
-    `   - When user asks for a focus session (e.g. "আমাকে ১০ মিনিটের একটা ফোকাস টাইম শুরু করে দাও", "১০ মিনিট ফোকাস", "10 min focus timer"), IMMEDIATELY propose "create_focus_session" with "durationMinutes": 10, "goal": "Deep Focus", and set "navigation": "focus"!`,
+    `   - FOCUS DURATION RULE: When a user asks for a focus session and explicitly specifies the minutes (e.g. "আমাকে ১০ মিনিটের একটা ফোকাস টাইম দাও", "25 min focus"), propose "create_focus_session" with that exact duration. BUT if the user does NOT specify the duration (e.g. "ফোকাস সেশন করতে চাই", "start focus session"), NEVER guess or auto-select 10m or 25m! Instead, ASK the user how many minutes they want to focus for (e.g. "তুমি কত মিনিটের জন্য ফোকাস করতে চাও? যেমন ১৫, ২৫, বা ৫০ মিনিট") and set "type": "clarification"!`,
+    `   - TIMER VS FOCUS RULE: If the user asks for a timer or stopwatch ("i need a timer", "stopwatch", "টাইমার চাই"), NEVER replace it with a focus session! Directly propose the Stopwatch Timer by setting navigation to "focus" with tab: "timer" or proposing "open_timer"!`,
     `4. Change of Mind / Updating: Update parameters without duplicating tasks.`,
     `5. Cancellation: Acknowledge warmly, set "type": "text", "proposal": null, "actions": [].`,
     ``,
@@ -516,22 +519,30 @@ export async function executeAIAction(action: string, payload: unknown): Promise
   const candidateModels = getCandidateModelsForMode(modelMode);
 
   const isPro = modelMode === 'planning' || modelMode === 'deep' || modelMode === 'pro' || modelMode === 'focentia-pro';
-  const timeoutMs = isPro ? 35000 : 12000;
+  const timeoutMs = isPro ? 35000 : 15000;
   const temperature = isPro ? 0.6 : 0.25;
-  const maxOutputTokens = isPro ? 3500 : 600;
+  // Per Section 6: roadmaps/plans 1200-1500, other big tasks 600-800, never below 100
+  const maxOutputTokens = isPro ? 1500 : 800;
 
   let lastErr: any = null;
 
   for (const model of candidateModels) {
     try {
+      const configObj: any = { 
+        responseMimeType: 'application/json', 
+        temperature,
+        maxOutputTokens,
+      };
+
+      // Disable hidden thinking budget on flash models so it does not eat output token limits
+      if (model.includes('flash')) {
+        configObj.thinkingConfig = { thinkingBudget: 0 };
+      }
+
       const fetchPromise = client.models.generateContent({
         model,
         contents: promptContent,
-        config: { 
-          responseMimeType: 'application/json', 
-          temperature,
-          maxOutputTokens,
-        },
+        config: configObj,
       });
 
       const timeoutPromise = new Promise<never>((_, reject) =>

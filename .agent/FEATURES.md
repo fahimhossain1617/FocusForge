@@ -38,7 +38,7 @@
 | **AI Production Hardening & E2E Acceptance** | **VERIFIED** | `scripts/test_phase4_e2e_verification.js` | Supabase Auth, PostgreSQL, Dexie.js | None. 27/27 tests passed covering multi-tenant isolation, confirmation integrity, 10 user journeys, latency, and Bengali Unicode. |
 | **AI Personality & Emotional Intelligence (Phase 6)** | **VERIFIED** | `frontend/src/lib/server/aiService.ts`, `backend/src/services/aiService.ts` | `@google/genai` | None. Caring older brother persona, exam anxiety handling, non-judgmental support, evidence-based motivation. |
 | **Dynamic Emotional Facial Expressions (Final Phase)** | **VERIFIED** | `frontend/src/components/ai-agent/AIOrbFace.tsx`, `useOrbMood.ts`, `ai-orb-face.module.css` | SVG, LERP physics | None. 24 expression states, responsive SVG eyebrow/eye/mouth shapes, glowing shield badge, twinkling stars, floating hearts, reduced-motion accessibility. |
-| **Auth-Only Cloud DB** | **VERIFIED** | `frontend/src/lib/server/db.ts`, `supabase/migrations/` | Supabase pooler, `026_user_encryption_keys_and_e2ee.sql` | None. Zero plaintext personal data in cloud DB. |
+| **Glory AI Local-First Router** | **VERIFIED** | `frontend/src/lib/ai/router/`, `frontend/src/services/aiAgentService.ts` | `localDbService.ts`, editable JSON banks | None. Answers ~85-90% of user interactions (social, motivation, planner, diary, time log, app help, safety) locally at 0 Gemini tokens. Provides Stopwatch Timer navigation, multi-turn focus duration asking, interactive planner task cards, strict Bengali branding "ফোসেন্টিয়া", and zero unrequested roadmaps. Calls Gemini only for roadmaps/big tasks. Verified via `scripts/test_local_router.ts` (22/22 passed). |
 
 
 ---
@@ -124,4 +124,13 @@
   2. **Focentia 2.0 / 2.1 Consumption:** Strictly bounded to 4 to 5 tokens (clamped to max 6 tokens). A guest gets ~200-250 chats; an auth user gets ~1,000 chats daily.
   3. **Focentia Pro Consumption:** Bounded to 25 to 30 tokens for deep reasoning, roadmaps, and complex breakdowns.
   4. **Crisp Brevity & High Speed:** Strict prompt guidance for Focentia 2.0 / 2.1 to respond in 1-3 short, crisp sentences with zero verbose fluff or preamble, keeping generation latency under ~1-2 seconds.
+
+### 2.13 Glory AI Local-First Router Architecture
+- **Location:** `frontend/src/lib/ai/router/`, `frontend/src/services/aiAgentService.ts`, `frontend/src/lib/server/aiService.ts`
+- **Behavior:**
+  1. **Zero-Token Local Execution:** Answers ~85-90% of user queries entirely within client device code (Social, Jokes, Motivation, App Help & deep navigation links, Settings guides, Planner task creation with multi-turn time clarification, Diary folder setup, Time Log tracking recommendations, Orb speech bubbles, and Crisis/Safety guidance) using editable JSON template banks with 0 token consumption.
+  2. **Shuffle-Bag Anti-Repetition Rotation:** Maintains in-memory rotation memory tracking the last 5 used variants per intent, preventing repetitive responses on consecutive identical queries.
+  3. **Multi-Turn State Machine:** Captures partial user intents (e.g. "add math tomorrow to my planner"), requests missing parameters (such as task time), and resolves the action on subsequent turns without ever pinging Gemini.
+  4. **Safety & Crisis Interception:** Automatically intercepts self-harm and crisis phrases in English, Bengali, and Banglish locally, outputting compassionate care, verified emergency helpline numbers (BD 999, Kaan Pete Roi), and a direct button to "My Diary". Never calls Gemini for crisis messages.
+  5. **Selective Gemini Delegation & Token Bug Fix:** Gemini API is called strictly for "Big Tasks" (Roadmaps, 30-day study plans, complex unstructured inquiries). Fixed tiny `maxOutputTokens` bug by guaranteeing 1200-1500 tokens for roadmaps and 600-800 for big tasks. Explicitly set `thinkingConfig: { thinkingBudget: 0 }` for Flash models. Pruned conversation history to last 4 turns and excluded private diary data from prompts.
 

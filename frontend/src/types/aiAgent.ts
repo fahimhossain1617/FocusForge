@@ -91,6 +91,7 @@ export type ActionType =
   | "open_profile"
   | "open_settings"
   | "open_notifications"
+  | "open_timer"
   // Focus
   | "create_focus_session"
   // Planner & Tasks

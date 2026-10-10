@@ -417,67 +417,9 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
     const isContentPureEnglish = /^[a-zA-Z0-9\s.,!?'"()-]+$/.test(content.trim()) && !banglishRegex.test(content);
     const langParam = isContentBengali ? "bn" : (isContentPureEnglish ? "en" : (language === "en" ? "en" : "bn"));
     const isBn = langParam === "bn";
-
-    // 1. FAST PATH CHECK: instantaneous local navigation response (< 50ms)
-    const fastPath = detectFastPathNavigation(content, isBn);
-    if (fastPath) {
-      const userMsg: AgentMessage = {
-        id: crypto.randomUUID(),
-        role: "user",
-        content: content.trim(),
-        createdAt: new Date()
-      };
-      const fastAiMsg: AgentMessage = {
-        id: crypto.randomUUID(),
-        role: "assistant",
-        content: fastPath.message,
-        intent: "NAVIGATION",
-        actions: [fastPath.action],
-        createdAt: new Date(),
-        privacyMode
-      };
-
-      setMessages((items) => [...items, userMsg, fastAiMsg]);
-      setOrbState("idle");
-      return fastAiMsg;
-    }
-
     const isGuestUser = isGuest || !user;
 
-    // Check token exhaustion
-    if (tokenStatus?.isExhausted || (tokenStatus && tokenStatus.remaining <= 0)) {
-      const userMsg: AgentMessage = { id: crypto.randomUUID(), role: "user", content: content.trim(), createdAt: new Date() };
-      
-      if (isGuestUser) {
-        const guestExhaustedMsg: AgentMessage = {
-          id: 'guest_lockout_' + Date.now(),
-          role: 'assistant',
-          intent: 'REQUIRE_LOGIN',
-          content: langParam === 'bn'
-            ? "আমি তোমাকে সাহায্য করতে পছন্দ করি। তবে তুমি তো এখনও লগইন করোনি আর তোমার গেস্ট লিমিট শেষ হয়ে গেছে। একটু লগইন করে নিলে আমি আবার জেগে তোমাকে সাহায্য করতে পারব। ততক্ষণ আমি একটু বিশ্রাম নিই।"
-            : "I'd love to help you! However, you haven't logged in yet and your guest limit is reached. Please log in so I can wake up and help you. Until then, I'll take a quick rest.",
-          payload: { requireLogin: true },
-          createdAt: new Date()
-        };
-        setMessages((items) => [...items, userMsg, guestExhaustedMsg]);
-        return;
-      } else {
-        const resetDateStr = tokenStatus.formattedResetDate || (langParam === 'bn' ? 'আগামীকাল' : 'tomorrow');
-        const remTimeStr = tokenStatus.formattedRemainingTime || (langParam === 'bn' ? '২৪ ঘণ্টা' : '24h');
-        const authExhaustedMsg: AgentMessage = {
-          id: 'auth_exhausted_' + Date.now(),
-          role: 'assistant',
-          intent: 'LIMIT_EXHAUSTED',
-          content: langParam === "bn"
-            ? `আমি তোমাকে সাহায্য করতে চাই, তবে আজকের জন্য তোমার ফ্রি লিমিট শেষ হয়ে গেছে।\n\n• লিমিট রিসেট হবে: ${resetDateStr}\n• বাকি সময়: ${remTimeStr}\n\nঅনুগ্রহ করে একটু অপেক্ষা করো। লিমিট রিসেট হলে আমি আবার জেগে তোমাকে সাহায্য করতে প্রস্তুত থাকব। ততক্ষণ আমি বিশ্রামে আছি।`
-            : `I really want to help you, but your daily limit for today has been reached.\n\n• Resets on: ${resetDateStr}\n• Remaining time: ${remTimeStr}\n\nPlease wait a little bit. Once it resets, I'll wake right up to help you! Until then, I'll be resting.`,
-          payload: { resetDate: resetDateStr, remainingTime: remTimeStr },
-          createdAt: new Date()
-        };
-        setMessages((items) => [...items, userMsg, authExhaustedMsg]);
-        return;
-      }
-    }
+    // Local features (planner, diary, focus, motivation, navigation) cost 0 tokens and continue working even if quota is exhausted. Quota gating is handled before network Gemini calls.
 
     // Optimistic user message
     const userMsg: AgentMessage = { 

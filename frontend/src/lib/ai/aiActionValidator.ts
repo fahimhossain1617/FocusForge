@@ -76,6 +76,7 @@ export function validateAndSanitizeAction(name: string, rawArgs: any): Validated
     const routeMap: Record<string, string> = {
       open_dashboard: 'today',
       open_focus: 'focus',
+      open_timer: 'focus',
       open_planner: 'planner',
       open_tasks: 'tasks',
       open_notes: 'tasks',
@@ -89,7 +90,7 @@ export function validateAndSanitizeAction(name: string, rawArgs: any): Validated
     const route = routeMap[name] || 'today';
     return {
       name: name as ActionType,
-      args: {},
+      args: args,
       isAllowed: true,
       isDestructive: false,
       requiresConfirmation: false,

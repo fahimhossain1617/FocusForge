@@ -52,9 +52,21 @@ export function AIActionCard({
     return map;
   });
 
-  // Track single task time
+  // Track single task date, start time and end time
+  const [singleTaskDate, setSingleTaskDate] = useState<string>(() => {
+    return action.parameters?.targetDate || new Date().toISOString().split("T")[0];
+  });
+
   const [singleTaskTime, setSingleTaskTime] = useState<string>(() => {
     return action.parameters?.time || "10:00";
+  });
+
+  const [singleTaskEndTime, setSingleTaskEndTime] = useState<string>(() => {
+    if (action.parameters?.endTime) return action.parameters.endTime;
+    const startTime = action.parameters?.time || "10:00";
+    const [h, m] = startTime.split(":").map(Number);
+    const endH = ((h || 10) + 1) % 24;
+    return `${String(endH).padStart(2, "0")}:${String(m || 0).padStart(2, "0")}`;
   });
 
   const toggleItem = (id: string) => {
@@ -67,6 +79,8 @@ export function AIActionCard({
     switch (action.type) {
       case "create_focus_session":
         return <Target className="w-4 h-4 text-emerald-400" />;
+      case "open_timer":
+        return <Clock className="w-4 h-4 text-emerald-400" />;
       case "create_task":
       case "create_tasks":
       case "update_task":
@@ -206,27 +220,52 @@ export function AIActionCard({
       )}
 
       {/* Planner Single Task Details */}
-      {action.type === "create_task" && action.parameters.targetDate && (
+      {action.type === "create_task" && (
         <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground mb-3">
-          <span className="bg-muted/40 px-2 py-1 rounded-md border border-border/40 font-mono">
-            📅 {action.parameters.targetDate}
-          </span>
-          <div className="flex items-center gap-1.5 bg-muted/40 px-2 py-0.5 rounded-md border border-border/40">
-            <span className="text-[11px] font-mono">⏰</span>
+          {/* Interactive Date Picker */}
+          <div className="flex items-center gap-1.5 bg-muted/40 px-2.5 py-1 rounded-lg border border-border/40">
+            <Calendar className="w-3.5 h-3.5 text-sky-400 shrink-0" />
+            <input
+              type="date"
+              value={singleTaskDate}
+              disabled={!isPending}
+              onChange={(e) => setSingleTaskDate(e.target.value)}
+              className="bg-transparent text-[11px] font-mono text-foreground focus:outline-none cursor-pointer"
+              title={isBn ? "তারিখ নির্বাচন করুন" : "Select date"}
+            />
+          </div>
+
+          {/* Interactive Start and End Time Selectors */}
+          <div className="flex items-center gap-1.5 bg-muted/40 px-2.5 py-1 rounded-lg border border-border/40">
+            <Clock className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+            <span className="text-[10px] text-muted-foreground font-mono uppercase">Start:</span>
             <input
               type="time"
               value={singleTaskTime}
               disabled={!isPending}
-              onChange={(e) => setSingleTaskTime(e.target.value)}
+              onChange={(e) => {
+                const newStart = e.target.value;
+                setSingleTaskTime(newStart);
+                if (newStart) {
+                  const [h, m] = newStart.split(":").map(Number);
+                  const endH = ((h || 10) + 1) % 24;
+                  setSingleTaskEndTime(`${String(endH).padStart(2, "0")}:${String(m || 0).padStart(2, "0")}`);
+                }
+              }}
               className="bg-transparent text-[11px] font-mono text-foreground focus:outline-none cursor-pointer"
-              title={isBn ? "পড়ার সময় নির্বাচন করুন" : "Select study time"}
+              title={isBn ? "শুরুর সময়" : "Start time"}
+            />
+            <span className="text-muted-foreground/60 text-[10px] mx-0.5">—</span>
+            <span className="text-[10px] text-muted-foreground font-mono uppercase">End:</span>
+            <input
+              type="time"
+              value={singleTaskEndTime}
+              disabled={!isPending}
+              onChange={(e) => setSingleTaskEndTime(e.target.value)}
+              className="bg-transparent text-[11px] font-mono text-foreground focus:outline-none cursor-pointer"
+              title={isBn ? "শেষের সময়" : "End time"}
             />
           </div>
-          {action.parameters.estimatedMinutes && (
-            <span className="bg-muted/40 px-2 py-1 rounded-md border border-border/40">
-              ⏱ {action.parameters.estimatedMinutes}m
-            </span>
-          )}
         </div>
       )}
 
@@ -402,7 +441,10 @@ export function AIActionCard({
                   ...action,
                   parameters: {
                     ...action.parameters,
+                    targetDate: singleTaskDate,
                     time: singleTaskTime,
+                    startTime: singleTaskTime,
+                    endTime: singleTaskEndTime,
                   },
                 };
                 onConfirm(action.id, undefined, updatedAction);

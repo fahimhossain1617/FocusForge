@@ -55,7 +55,16 @@ export default function FocusPage() {
   } = useAppContext();
   const { t } = useTranslation();
 
-  const [focusTab, setFocusTab] = useState<"focus" | "timer">("focus");
+  const [focusTab, setFocusTab] = useState<"focus" | "timer">(() => {
+    if (typeof window !== "undefined") {
+      const initTab = localStorage.getItem("focusforge_focus_initial_tab");
+      if (initTab === "timer") {
+        localStorage.removeItem("focusforge_focus_initial_tab");
+        return "timer";
+      }
+    }
+    return "focus";
+  });
   const [isTimerActive, setIsTimerActive] = useState(false);
   const [sessionPhase, setSessionPhase] = useState<SessionPhase>("setup");
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
@@ -343,7 +352,7 @@ export default function FocusPage() {
           setSessionPhase("focus_active");
 
           setTimeout(() => {
-            timer.start();
+            timer.start(mins);
           }, 150);
 
           showToast(

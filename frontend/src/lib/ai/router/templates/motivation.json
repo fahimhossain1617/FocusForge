@@ -1,0 +1,160 @@
+{
+  "exam_fear": {
+    "actionRoute": "focus",
+    "actionButton": {
+      "type": "open_focus",
+      "labelBn": "২৫ মিনিট ফোকাস শুরু করুন",
+      "labelEn": "Start 25m Focus Session"
+    },
+    "bn": [
+      "পরীক্ষার আগে ভয় লাগা একদম স্বাভাবিক—এর মানে হলো এই পরীক্ষাটি তোমার কাছে অর্থবহ। চলো পুরো সিলেবাস নিয়ে দুশ্চিন্তা না করে মাত্র একটি সহজ অধ্যায় বা টপিক বেছে নিই এবং ২৫ মিনিটের একটি ফোকাস সেশন চালাই।",
+      "ভয় পাওয়া কোনো দুর্বলতা নয়। বড় লক্ষ্যকে ছোট অংশে ভাগ করে নিলে চাপ অর্ধেক হয়ে যায়। গভীর শ্বাস নাও, শুধু পরবর্তী ২০ মিনিট বইয়ের একটি পৃষ্ঠায় চোখ বোলাও।",
+      "পরীক্ষার ফলাফল আমাদের পুরো নিয়ন্ত্রণাধীন নয়, কিন্তু বর্তমান মুহূর্তের প্রস্তুতি আমাদের হাতেই। চলো মাত্র ২৫ মিনিটের পোমোডোরো শুরু করে একটি ছোট রিভিশন শেষ করি।",
+      "অতিরিক্ত চিন্তা করার চেয়ে ৫ মিনিট পড়তে বসা মনকে শান্ত করে। তুমি আগে অনেক বাধা পেরিয়ে এসেছো, এবারও পারবে। চলো টাইমারটা অন করি!",
+      "ভয়কে হারিয়ে দেওয়ার সেরা উপায় হলো কাজে নেমে পড়া। চলো মাত্র একটি টপিক নির্বাচন করি এবং একসাথে ফোকাস করি।",
+      "তুমি একা নও, অধিকাংশ শিক্ষার্থীই এই চাপ অনুভব করে। পুরো বই একবারে পড়তে হবে না, কেবল পরবর্তী ১৫ মিনিট মনোযোগ দাও।",
+      "পরীক্ষার ভয় তখনই কমে যখন আমরা একবারে একটি প্রশ্নের উত্তর প্রস্তুত করি। চলো একটি ছোট অধ্যায়ে ফোকাস দিই।",
+      "নিজের মেধার ওপর আস্থা রাখো। তোমার পরিশ্রম কখনও বৃথা যায় না। চলো মাত্র ২৫ মিনিটের একটি শান্ত স্টাডি সেশন শুরু করি।",
+      "ভয়কে দূরে রাখতে এক গ্লাস পানি খাও, চোখ বন্ধ করে ৩ বার গভীর শ্বাস নাও। তারপর চলো পড়ার টেবিলে ২৫ মিনিট সময় দিই।",
+      "যেকোনো বড় চ্যালেঞ্জের শুরু হয় একটিমাত্র ছোট পদক্ষেপে। আত্মবিশ্বাস রাখো, তুমি অবশ্যই পারবে!",
+      "সিলেবাস বড় মনে হলেও ঘাবড়ানোর কিছু নেই। ছোট ছোট অংশে ভাগ করে নিলে দেখবে সহজে শেষ হয়ে গেছে। চলো শুরু করি!",
+      "টেনশন হলে খাতার পাতায় টপিকগুলোর নাম লিখে ফেলো। তারপর চলো প্রথমটা দিয়ে ফোকাস টাইমার শুরু করি।",
+      "ভয়কে কাজ দিয়ে প্রতিস্থাপন করাটাই সফলদের অভ্যাস। চলো আজ একটি ছোট বিষয়ের রিভিশন সেরে ফেলি!",
+      "তোমার ভেতরে দারুণ সম্ভাবনা আছে। ভয়কে পাশ কাটিয়ে চলো ২৫ মিনিট একসাথে পড়ে আসি।",
+      "স্মরণ রেখো, একটি পরীক্ষা তোমার পুরো পরিচয় নির্ধারণ করে না। তবে তোমার আজকের সর্বোচ্চ চেষ্টাটা জরুরি। চলো পড়তে বসি!"
+    ],
+    "en": [
+      "Exam anxiety is completely normal—it just means this matters to you. Instead of looking at the entire syllabus, let's pick just one small section and run a gentle 25-minute Pomodoro.",
+      "Courage isn't the absence of fear, but taking action despite it. Take a deep breath, pick one topic, and let's focus for just 20 minutes.",
+      "Action is the best cure for anxiety. Rather than worrying about the outcome, let's win the next 25 minutes together.",
+      "You have conquered difficult tests before, and you can do it again. Let's break today's study block into tiny, bite-sized tasks.",
+      "Don't let the mountain overwhelm you; just focus on the next pebble. Ready to launch a 25-minute focus timer?",
+      "Take a slow breath and drink a glass of water. When you're ready, let's review just one single summary sheet.",
+      "Perfection is not required; steady progress is what wins. Let's conquer one chapter together.",
+      "Your preparation will speak for itself. Trust the hours you put in, and let's add one more solid 25-minute block.",
+      "Whenever panic knocks, answer with structured focus. Let's start the Focus timer on one simple topic.",
+      "You are stronger than this exam. Let's tackle one concept right now.",
+      "Break the syllabus down: pick the easiest topic first to build immediate momentum. Shall we start?",
+      "One page at a time, one concept at a time. That is how mastery is built. Let's do a short 25m sprint.",
+      "Clear your desk, silence notifications, and give yourself the gift of 25 minutes of undisturbed study.",
+      "Worrying drains energy that could be spent learning. Let's channel that energy into our Focus timer right now.",
+      "Remember: this exam does not define your worth, but your honest effort today will make you proud. Let's begin!"
+    ]
+  },
+  "loneliness_and_sadness": {
+    "actionRoute": "diary",
+    "actionButton": {
+      "type": "open_diary",
+      "labelBn": "ডায়েরিতে অনুভূতি লিখুন",
+      "labelEn": "Write in My Diary"
+    },
+    "bn": [
+      "মন খারাপ থাকলে বা একা লাগলে বিষয়টি চেপে রেখো না। কখনো কখনো অনুভূতিগুলো ডায়েরির পাতায় লিখে রাখলে মনের ভার অনেক হালকা হয়ে যায়। তোমার My Diary কিন্তু সম্পূর্ণ ব্যক্তিগত।",
+      "আমি বুঝতে পারছি তোমার মন ভালো নেই। সবার জীবনেই এমন কিছু দিন আসে। নিজের ওপর কঠোর না হয়ে এক কাপ চা খাও, ডায়েরিতে মনের কথাগুলো লিখে মনকে মুক্ত করো।",
+      "তুমি একা নও, তোমার শেখার ও এগিয়ে চলার পথে ফোসেন্টিয়া (Focentia) এবং আমি সবসময় আছি। একটু বিশ্রাম নাও অথবা ডায়েরিতে যা মনে আসে লিখে ফেলো।",
+      "মন ভারাক্রান্ত থাকলে জোর করে পড়তে বসার দরকার নেই। আগে মনের যত্ন নাও। My Diary খুলে অনুভূতিগুলো প্রকাশ করে দেখতে পারো।",
+      "কঠিন অনুভূতিগুলো চিরস্থায়ী নয়, মেঘের মতো সরে যায়। নিজেকে একটু সময় দাও। চাইলে ডায়েরির পাতায় অনুভূতির খসড়া করতে পারো।",
+      "কখনো কখনো নিঃসঙ্গতা আমাদের নিজেদের আরও গভীরভাবে বুঝতে সাহায্য করে। মন শান্ত করতে ডায়েরি একটি দারুণ নিরাপদ জায়গা।",
+      "তোমার অনুভূতির মূল্য আছে। একটু হেঁটে এসো বা প্রিয় কোনো গান শুনে My Diary-তে কিছু অনুভূতি লিখে রাখতে পারো।",
+      "ভারী মন নিয়ে কাজ করা কঠিন। চলো একটু বিরতি নিই। মনের অস্থিরতা কাটাতে ডায়েরিতে দুই লাইন লিখে ফেললে হালকা লাগবে।",
+      "আমি ডিজিটাল হতে পারি, কিন্তু তোমার প্রতি আমার যত্ন আন্তরিক। নিজের ওপর ভরসা রাখো, ডায়েরি খুলে মনের ভার নামিয়ে ফেলো।",
+      "খারাপ দিনগুলোও কেটে যায়। আজ হয়তো কঠিন লাগছে, কিন্তু কাল নতুন সূর্য উঠবে। ডায়েরিতে কিছু লিখে নিজেকে স্বস্তি দাও।",
+      "মন খারাপের দিনে ছোট পদক্ষেপে চলো। ডায়েরির পাতায় মন খুলে লেখো, এটি কাউকে দেখাতে হবে না।",
+      "নীরবতা ও নিঃসঙ্গতা মাঝে মাঝে ক্লান্তিকর হতে পারে। প্রিয় কারো সাথে কথা বলো অথবা ডায়েরিতে কথাগুলো জমিয়ে রাখো।",
+      "নিজেকে দোষারোপ করো না। জীবনের উত্থান-পতন সবারই থাকে। My Diary তোমার জন্য সবসময় খোলা।",
+      "মন ভালো না থাকলে ৫ মিনিট চোখ বন্ধ করে বিশ্রাম নাও। চাইলে ডায়েরিতে আজকের চিন্তাগুলো টুকে রাখতে পারো।",
+      "তুমি মূল্যবান এবং তোমার প্রচেষ্টাগুলো মূল্যবান। নিজেকে একটু সহমর্মিতা দাও এবং ডায়েরিতে অনুভূতিগুলো শেয়ার করো।"
+    ],
+    "en": [
+      "I hear you, and it's okay not to feel okay sometimes. Writing down raw emotions often lifts a heavy weight from the chest. Your private Diary is always ready.",
+      "You are not alone in this journey. We all have quiet days where everything feels overwhelming. Give yourself grace, and perhaps put your thoughts onto paper in My Diary.",
+      "Whenever loneliness hits, remember that taking care of your emotional wellbeing comes first. Take a warm break and reflect in your private Diary.",
+      "You don't have to carry everything in your head. Unloading your thoughts into My Diary helps clear mental clutter safely.",
+      "Tough emotions are like passing clouds—they will move on. Treat yourself with kindness today.",
+      "Take a slow breath. If studying feels too much right now, write down what you are feeling in My Diary, then rest.",
+      "Your feelings are valid. Take a moment to step away from the screen, stretch, and write a quick diary entry if it helps.",
+      "Even on solitary days, your journey matters. Let's take a calm pause and let your thoughts breathe in My Diary.",
+      "Heavy days don't define your entire story. Take one gentle moment for yourself and write in your private space.",
+      "I'm right here with you. Give yourself a few minutes of quiet compassion in My Diary.",
+      "It is perfectly human to feel disconnected sometimes. A short walk or a private journal reflection can bring steady comfort.",
+      "Don't pressure yourself to be intensely productive right now. Let's nurture your peace of mind first in My Diary.",
+      "You matter, and your presence matters. Take a gentle breath and let your thoughts rest in your Diary.",
+      "Writing without judgment is powerful therapy. My Diary is encrypted and private to you alone.",
+      "Be gentle with yourself today. Tomorrow is a brand new page, and I'll be right here whenever you are ready."
+    ]
+  },
+  "procrastination_and_laziness": {
+    "actionRoute": "focus",
+    "actionButton": {
+      "type": "open_focus",
+      "labelBn": "শুধু ৫ মিনিট শুরু করুন",
+      "labelEn": "Start Just 5 Minutes"
+    },
+    "bn": [
+      "পড়তে বা কাজ করতে ইচ্ছে করছে না? কোনো সমস্যা নেই! এসো '৫ মিনিটের নীতি' মেনে চলি—বইটা খুলে শুধু ৫ মিনিট পড়ো। ভালো না লাগলে বন্ধ করে দিও!",
+      "আলসেমি নয়, আসলে মস্তিষ্ক যখন কাজটাকে অনেক বড় মনে করে তখন দ্বিধা তৈরি হয়। কাজটাকে খুব ছোট করে নাও। চলো মাত্র ২৫ মিনিটের পোমোডোরো চালাই!",
+      "ফোন বা সোশ্যাল মিডিয়ার আকর্ষণ অনেক বেশি জানি! কিন্তু চলো ফোনটাকে একটু দূরে রেখে শুধু একটি টাস্কের জন্য ২৫ মিনিট ফোকাস করি।",
+      "অনুপ্রেরণার জন্য অপেক্ষা করতে হবে না; কাজ শুরু করলেই অনুপ্রেরণা নিজে চলে আসে। চলো টাইমারটা স্টার্ট করি!",
+      "পুরো সিলেবাস বা অ্যাসাইনমেন্ট নয়, শুধু প্রথম ২ প্যারাগ্রাফ পড়ো। মোমেন্টাম তৈরি হয়ে গেলে আর থামাতে হবে না!",
+      "চলো মনকে বলি: 'আমি মাত্র ৫ মিনিট দেখব।' শুরু করাটাই সবচেয়ে কঠিন অংশ। চলো শুরু করি!",
+      "আজকের কাজ কালকের জন্য ফেলে রাখলে কালকের দিনটাও ভারী হয়ে যাবে। চলো এখনই ছোট একটি ফোকাস সেশন চালিয়ে নিই!",
+      "মোবাইল সাইলেন্ট করো, পড়ার টেবিলটা হালকা গুছিয়ে নাও। চলো ২৫ মিনিটের একটি সলিড সেশন দিয়ে মোমেন্টাম ফিরে পাই!",
+      "সবচেয়ে কঠিন হলো বইটা খোলা। একবার খুলে ফেললে পথ সহজ হয়ে যায়। চলো টাইমার অন করি!",
+      "আলসেমি কাটাতে চোখ-মুখে একটু ঠান্ডা পানির ঝাপটা দাও। তারপর মাত্র ১৫ মিনিট পড়াশোনা করি!",
+      "তোমার লক্ষ্যগুলো তোমার অপেক্ষা করছে। চলো আড্ডাবাজি বা স্ক্রলিং থামিয়ে একটি ছোট সেশন দিয়ে দিনটাকে বাঁচিয়ে নিই!",
+      "একটানা কয়েক ঘণ্টা পড়ার দরকার নেই। মাত্র ২৫ মিনিটের একটি স্প্রিন্ট দিয়ে চলো বিরতি নেব!",
+      "দেরি না করে চলো প্রথম লাইনটা লিখে ফেলি। কাজ শুরুর চেয়ে আনন্দদায়ক আর কিছুই নেই!",
+      "মনে করো এটি একটি চ্যালেঞ্জ—মাত্র ২৫ মিনিট ফোন ছাড়া থাকা। তুমি অবশ্যই পারবে, চলো স্টার্ট করি!",
+      "ছোট ছোট পদক্ষেপই বড় ফলাফল তৈরি করে। চলো এখনই একটি ফোকাস সেশন শুরু করি!"
+    ],
+    "en": [
+      "Not feeling like studying? That's completely normal. Try the '5-Minute Rule': sit down and study for just 5 minutes. If you still hate it, you can stop. Ready to try?",
+      "Procrastination happens when tasks feel too enormous. Let's shrink it down to a 25-minute Pomodoro on just one single topic.",
+      "Phone scrolling is tempting, but it leaves you drained. Put the phone in another room, take a deep breath, and let's do one 25m sprint.",
+      "You don't need motivation to start; action creates motivation. Launch a quick timer and let momentum take over!",
+      "Don't worry about finishing the whole assignment. Just write the first sentence or read page one. Shall we begin?",
+      "Starting is 80% of the battle. Once you sit down and the timer starts ticking, the resistance melts away.",
+      "Tell your brain: 'I am only working for 5 minutes.' Let's launch the Focus timer and see where it leads!",
+      "Splash some cold water on your face, stretch your arms, and let's knock out one clean 25-minute focus session.",
+      "Every hour spent procrastinating adds mental guilt. Free yourself by completing just one small task right now.",
+      "The easiest way to beat friction is a tiny timer. Let's start a 25-minute Deep Flow session together.",
+      "Don't wait for the 'perfect mood' to study. Perfect moods follow disciplined actions. Let's start!",
+      "Clear the desk, mute notifications, and give yourself 25 minutes of undivided focus.",
+      "Your future self will thank you for starting right now instead of waiting until midnight. Let's go!",
+      "One quick 25-minute sprint will save your entire day. Let's hit start on the Focus timer!",
+      "Small consistent efforts beat sporadic all-nighters every single time. Let's do this!"
+    ]
+  },
+  "celebrating_progress": {
+    "actionRoute": "today",
+    "actionButton": {
+      "type": "open_dashboard",
+      "labelBn": "ড্যাশবোর্ডে অগ্রগতি দেখুন",
+      "labelEn": "View Dashboard Progress"
+    },
+    "bn": [
+      "অসাধারণ! দারুণ কাজ করেছ! প্রতিটি সম্পন্ন কাজ তোমার স্বপ্নের দিকে এক ধাপ এগিয়ে দেয়। এই ধারা বজায় রাখো!",
+      "সাবাশ! তোমার এই পরিশ্রম দেখে আমার গর্ব হচ্ছে! একটু পানি খেয়ে নাও, তারপর পরের পদক্ষেপে যাব।",
+      "দারুণ অর্জন! ধারাবাহিকতাই সাফল্যের চাবিকাঠি, আর তুমি আজ দারুণ ধারাবাহিকতা দেখিয়েছো!",
+      "অভিনন্দন বন্ধু! কঠিন কাজটি শেষ করে ফেলেছো। আজকের ড্যাশবোর্ডে তোমার অগ্রগতি চকচক করছে!",
+      "এই তো চাই! তুমি প্রমাণ করে দিলে যে মনোযোগ দিলে যেকোনো কাজই সম্ভব। সাবাশ!",
+      "দারুণ অগ্রগতি! ছোট ছোট এই বিজয়গুলোই একদিন বড় সাফল্যের রূপ নেয়। চালিয়ে যাও!",
+      "তোমার স্ট্রাইক এবং অগ্রগতি দেখে আমি রোমাঞ্চিত! চলো ড্যাশবোর্ডে গিয়ে আজকের অর্জন দেখে আসি!",
+      "অসাধারণ ফোকাস! তোমার এই কঠোর পরিশ্রমের ফল তুমি নিশ্চয়ই পাবে। দারুণ করেছো!",
+      "আজকের দিনটা সত্যিই তোমার জন্য ফলপ্রসূ হলো! নিজেকে একটা আন্তরিক বাহবা দাও!",
+      "সাবাশ! এভাবে নিয়মিত এগোতে থাকলে কোনো লক্ষ্যই আর দূরে থাকবে না। চলো এগিয়ে যাই!"
+    ],
+    "en": [
+      "Incredible work! Every single completed task brings you closer to your dream. Keep this amazing momentum going!",
+      "Awesome job! Seeing your discipline in action is inspiring. Take a quick refreshing sip of water and celebrate this win!",
+      "High five! Consistency is what separates great learners, and you just proved your dedication today!",
+      "Well done! That task is conquered. Your progress on the Dashboard is looking fantastic!",
+      "That is what true focus looks like! You set a goal and delivered. Proud of you!",
+      "Huge congrats on finishing that! Small daily wins compound into massive breakthroughs over time.",
+      "Look at that momentum! Celebrate this milestone, take a breather, and let's check your stats on the Dashboard.",
+      "Fantastic effort! Hard work never goes to waste, and you're building habits that will last a lifetime.",
+      "Boom! Another goal checked off. You are turning plans into reality!",
+      "Outstanding focus today! Keep showing up with this positive energy, and nothing can stop you."
+    ]
+  }
+}

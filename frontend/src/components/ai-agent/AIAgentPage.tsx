@@ -501,21 +501,22 @@ export function AIAgentPage() {
           const taskId = Date.now() + Math.floor(Math.random() * 1000);
           const taskDate = p.targetDate || new Date().toISOString().split("T")[0];
           const taskTitle = p.title || (isSystemBn ? "নতুন স্টাডি টাস্ক" : "New Task");
-          const startTime = p.time || "10:00";
-          const startHour = parseInt(startTime.split(":")[0], 10) || 10;
-          const endHour = startHour + Math.max(1, Math.ceil(totalMins / 60));
-          const endTime = `${String(endHour).padStart(2, "0")}:00`;
+          const startTime = p.time || p.startTime || "10:00";
+          const endTime = p.endTime || (() => {
+            const startHour = parseInt(startTime.split(":")[0], 10) || 10;
+            const endHour = (startHour + 1) % 24;
+            return `${String(endHour).padStart(2, "0")}:00`;
+          })();
 
           addTask({
             id: taskId,
             name: taskTitle,
             title: taskTitle,
             priority: p.priority || "medium",
-            estHours: Math.floor(totalMins / 60),
-            estMinutes: totalMins % 60,
             targetDate: taskDate,
             date: taskDate,
             time: startTime,
+            endTime: endTime,
             category: "Study",
             status: "not_started",
             notes: p.enableNotification ? "[Notification Reminders: ON]" : "",
@@ -655,7 +656,16 @@ export function AIAgentPage() {
           break;
         }
 
+        case "open_timer":
+          if (typeof window !== "undefined") {
+            localStorage.setItem("focusforge_focus_initial_tab", "timer");
+          }
+          navigateTo("focus");
+          break;
         case "open_focus":
+          if (action.parameters?.tab === "timer" && typeof window !== "undefined") {
+            localStorage.setItem("focusforge_focus_initial_tab", "timer");
+          }
           navigateTo("focus");
           break;
         case "open_planner":
@@ -1084,7 +1094,7 @@ export function AIAgentPage() {
                             </div>
                           )}
 
-                          {message.payload && message.intent === "PROBLEM_SOLVER" && (
+                          {(!message.actions || message.actions.length === 0) && message.payload && message.intent === "PROBLEM_SOLVER" && (
                             <div className={styles.proposalCard}>
                               <div className={styles.proposalBadge}>
                                 <CheckCircle2 size={13} />
@@ -1112,7 +1122,7 @@ export function AIAgentPage() {
                             </div>
                           )}
 
-                          {message.payload && message.intent === "IDEA_CAPTURE" && (
+                          {(!message.actions || message.actions.length === 0) && message.payload && message.intent === "IDEA_CAPTURE" && (
                             <div className={styles.proposalCard}>
                               <div className={styles.proposalBadge}>
                                 <CheckCircle2 size={13} />
@@ -1140,7 +1150,8 @@ export function AIAgentPage() {
                             </div>
                           )}
 
-                          {message.payload &&
+                          {(!message.actions || message.actions.length === 0) &&
+                            message.payload &&
                             !message.roadmap &&
                             !message.structuredResponse?.roadmap &&
                             !(message.payload && message.payload.stages) &&
@@ -1178,7 +1189,7 @@ export function AIAgentPage() {
                             </div>
                           )}
 
-                          {message.payload && (message.intent === "MY_DIARY" || message.intent === "DIARY_ENTRY") && (
+                          {(!message.actions || message.actions.length === 0) && message.payload && (message.intent === "MY_DIARY" || message.intent === "DIARY_ENTRY") && (
                             <div className={styles.proposalCard}>
                               <div className={styles.proposalBadge}>
                                 <CheckCircle2 size={13} />
@@ -1206,7 +1217,7 @@ export function AIAgentPage() {
                             </div>
                           )}
 
-                          {message.payload && message.intent === "NOTES_FILES" && (
+                          {(!message.actions || message.actions.length === 0) && message.payload && message.intent === "NOTES_FILES" && (
                             <div className={styles.proposalCard}>
                               <div className={styles.proposalBadge}>
                                 <CheckCircle2 size={13} />
@@ -1231,7 +1242,7 @@ export function AIAgentPage() {
                             </div>
                           )}
 
-                          {message.payload && message.intent === "FOCUS_SESSION" && (
+                          {(!message.actions || message.actions.length === 0) && message.payload && message.intent === "FOCUS_SESSION" && (
                             <div className={styles.proposalCard}>
                               <div className={styles.proposalBadge}>
                                 <CheckCircle2 size={13} />

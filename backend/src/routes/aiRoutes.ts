@@ -294,12 +294,12 @@ router.post('/agent/chat', async (req, res) => {
     // Fetch previous messages for multi-turn conversational context if in an active session
     let recentHistory: Array<{ role: string; content: string }> = [];
     if (Array.isArray(history) && history.length > 0) {
-      recentHistory = history.slice(-8);
+      recentHistory = history.slice(-4);
     } else if (sessionId && sessionId !== 'guest-session' && userId) {
       try {
         const past = await getChatMessages(userId, sessionId);
         if (Array.isArray(past)) {
-          recentHistory = past.slice(-8).map((m: any) => ({
+          recentHistory = past.slice(-4).map((m: any) => ({
             role: m.role,
             content: m.content,
           }));

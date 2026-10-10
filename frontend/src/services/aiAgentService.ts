@@ -3,6 +3,13 @@ import { supabase } from "../lib/supabaseClient";
 import { localDb } from "./localDbService";
 import { aiMemoryService } from "./aiMemoryService";
 import { buildActionRequest, validateAndSanitizeAction } from "../lib/ai/aiActionValidator";
+import { 
+  routeUserMessage, 
+  pruneHistoryForGemini, 
+  sanitizeContextForGemini, 
+  buildRoadmapActionButtons,
+  setCachedResponse 
+} from "../lib/ai/router";
 
 export interface TokenStatus {
   total: number;
@@ -847,25 +854,35 @@ export async function sendAgentMessage(
     throw new DOMException('Aborted', 'AbortError');
   }
 
-  const banglishIndicators = /\b(ami|amar|tumi|tomar|apni|apnar|korbo|korchi|korte|chai|dorkar|shikhbo|hobe|kemon|achho|achen|bhalo|parbo|ki|kibhabe|kothay|kokhon|porbo|porte|porashona|ajke|aajke|ekhon|shuru|routine)\b/i;
-  const isBn = /[\u0980-\u09FF]/.test(message) || banglishIndicators.test(message) || (lang === "bn" && !/^[a-zA-Z0-9\s.,!?'"-]+$/.test(message.trim()));
+  // 1. GLORY LOCAL-FIRST ROUTER: Deterministic on-device resolution (0 tokens)
+  const isBn = lang === 'bn';
+  const { data: { user: currentUser } } = await supabase.auth.getUser();
+  const isAuth = !!currentUser?.id;
+  const userName = currentUser?.user_metadata?.name || currentUser?.user_metadata?.full_name || '';
 
-  // 1. FAST PATH NAVIGATION: Instant response for direct commands
-  const fastPath = detectFastPathNavigation(message, isBn);
-  if (fastPath) {
+  const localResolution = await routeUserMessage(message, context, history, isAuth, userName);
+
+  if (!localResolution.shouldCallGemini) {
     const targetSessionId = (sessionId && isUuid.test(sessionId)) ? sessionId : crypto.randomUUID();
+    const currentTokenStatus = await getAITokenStatus(lang);
+
+    const localAiMessage: AgentMessage = {
+      id: crypto.randomUUID(),
+      role: "assistant",
+      content: localResolution.message,
+      intent: localResolution.intent as any,
+      actions: localResolution.actions,
+      roadmap: localResolution.roadmap || null,
+      emotion: localResolution.orbEmotion,
+      privacyMode,
+      createdAt: new Date(),
+    };
+
     return {
       sessionId: targetSessionId,
       sessionTitle: message.slice(0, 30),
-      aiMessage: {
-        id: crypto.randomUUID(),
-        role: "assistant",
-        content: fastPath.message,
-        intent: fastPath.intent,
-        actions: [fastPath.action],
-        createdAt: new Date(),
-        privacyMode,
-      }
+      aiMessage: localAiMessage,
+      tokenStatus: currentTokenStatus,
     };
   }
 
@@ -877,10 +894,8 @@ export async function sendAgentMessage(
   // 2. PRIVACY & MEMORY INJECTION: Retrieve relevant memory based on query
   let enrichedContext = context;
   try {
-    const { data: { user: currentUser } } = await supabase.auth.getUser();
     if (currentUser?.id) {
       if (privacyMode === "improvement") {
-        // Detect explicit corrections asynchronously
         aiMemoryService.detectAndSaveCorrection(currentUser.id, message, "improvement").catch(() => {});
       }
       const memoryContext = await aiMemoryService.buildMemoryContext(currentUser.id, message, privacyMode);
@@ -895,7 +910,10 @@ export async function sendAgentMessage(
 
   let resData: any = null;
 
-  // 3. Try Next.js / backend API route first
+  // 3. Optimized Gemini API call (Pruned to last 4 messages, sanitized context)
+  const prunedHistory = pruneHistoryForGemini(history);
+  const sanitizedCtx = sanitizeContextForGemini(enrichedContext);
+
   try {
     const res = await fetch(`${getApiUrl()}/ai/agent/chat`, {
       method: 'POST',
@@ -909,8 +927,8 @@ export async function sendAgentMessage(
       body: JSON.stringify({ 
         sessionId: targetSessionId, 
         message, 
-        context: enrichedContext, 
-        history, 
+        context: sanitizedCtx, 
+        history: prunedHistory, 
         model,
         privacyMode 
       })
@@ -918,20 +936,23 @@ export async function sendAgentMessage(
     
     if (res.ok) {
       resData = await res.json();
+    } else {
+      console.warn(`[AI Agent Service] Server returned HTTP ${res.status}`);
     }
   } catch (err: any) {
     if (err?.name === 'AbortError' || signal?.aborted) {
       throw new DOMException('Aborted', 'AbortError');
     }
+    console.warn('[AI Agent Service] Network fetch notice:', err?.message || err);
   }
 
   if (signal?.aborted) {
     throw new DOMException('Aborted', 'AbortError');
   }
 
-  // 4. Client-side Gemini Fallback
+  // 4. Client-side Gemini Fallback if server returned no answer
   if (!resData || !resData.aiMessage?.content || resData.sessionId?.startsWith('session_')) {
-    const generated = await generateClientGeminiResponse(message, context, history, lang, model, signal);
+    const generated = await generateClientGeminiResponse(message, context, prunedHistory, lang, model, signal);
     resData = {
       sessionId: targetSessionId,
       sessionTitle: undefined,
@@ -942,7 +963,7 @@ export async function sendAgentMessage(
         intent: generated.intent as any,
         payload: generated.payload,
         roadmap: generated.roadmap || null,
-        actions: generated.actions,
+        actions: generated.actions || [],
         structuredResponse: generated.structuredResponse,
         emotion: generated.emotion,
         reaction: generated.reaction,
@@ -950,6 +971,13 @@ export async function sendAgentMessage(
         createdAt: new Date()
       }
     };
+  }
+
+  // Attach post-roadmap buttons if a roadmap was generated
+  if (resData.aiMessage?.roadmap) {
+    const roadmapBtns = buildRoadmapActionButtons(resData.aiMessage.roadmap, isBn);
+    resData.aiMessage.actions = [...(resData.aiMessage.actions || []), ...roadmapBtns];
+    setCachedResponse(message.toLowerCase().trim(), resData.aiMessage);
   }
 
   // 5. Ensure actions are populated on assistant message
@@ -977,9 +1005,7 @@ export async function sendAgentMessage(
   }
 
   // Handle persistence & token calculation
-  const { data: { user } } = await supabase.auth.getUser();
-  const userId = user?.id || null;
-  const isAuth = !!userId;
+  const userId = currentUser?.id || null;
 
   // Client-side token consumption calculation if server didn't already return tokenStatus
   if (!resData.tokenStatus) {

@@ -13,7 +13,8 @@ import {
   Sparkles,
   Layers,
   ArrowRight,
-  Award
+  Award,
+  AlertCircle
 } from "lucide-react";
 import confetti from "canvas-confetti";
 import { useAuth } from "@/context/AuthContext";
@@ -38,6 +39,7 @@ export function AIRoadmapCard({
   const [roadmap, setRoadmap] = useState<LearningRoadmap>(initialRoadmap);
   const [isSaved, setIsSaved] = useState<boolean>(Boolean(initialRoadmap.isSaved));
   const [collapsedStages, setCollapsedStages] = useState<Record<string, boolean>>({});
+  const [saveWarning, setSaveWarning] = useState<string | null>(null);
   const hasTriggeredCelebrationRef = useRef<boolean>(false);
 
   // Sync if initialRoadmap changes
@@ -106,6 +108,7 @@ export function AIRoadmapCard({
   const handleSaveRoadmap = () => {
     const saved = roadmapService.saveRoadmap(roadmap, user?.id);
     setIsSaved(true);
+    setSaveWarning(null);
     if (onSave) {
       onSave(saved);
     }
@@ -342,9 +345,17 @@ export function AIRoadmapCard({
           <Award className="w-5 h-5 text-emerald-500 shrink-0" />
           <div className="text-xs sm:text-sm font-semibold leading-relaxed">
             {isBn
-              ? "অভিনন্দন! তুমি তোমার সম্পূর্ণ রোডম্যাপ সফলভাবে সম্পন্ন করেছো! তোমার শেখার এই দারুণ ধারাবাহিকতা অব্যাহত রাখো! 🎉"
-              : "Congratulations! You have completed your entire roadmap! Keep up this incredible learning momentum! 🎉"}
+              ? "অভিনন্দন! তুমি তোমার সম্পূর্ণ রোডম্যাপ সফলভাবে সম্পন্ন করেছো! তোমার শেখার এই দারুণ ধারাবাহিকতা অব্যাহত রাখো!"
+              : "Congratulations! You have completed your entire roadmap! Keep up this incredible learning momentum!"}
           </div>
+        </div>
+      )}
+
+      {/* SAVE WARNING BANNER */}
+      {saveWarning && (
+        <div className="mx-3.5 sm:mx-4 my-2 p-3 rounded-xl border border-amber-500/30 bg-amber-500/10 dark:bg-amber-500/15 text-amber-800 dark:text-amber-300 text-xs flex items-center gap-2.5 animate-in fade-in duration-200">
+          <AlertCircle className="w-4 h-4 text-amber-500 shrink-0" />
+          <span className="font-medium leading-relaxed">{saveWarning}</span>
         </div>
       )}
 
@@ -354,7 +365,7 @@ export function AIRoadmapCard({
           {progress.isFullyCompleted ? (
             <span className="inline-flex items-center gap-1 text-emerald-500 font-semibold">
               <Award size={14} />
-              {isBn ? "রোডম্যাপ সম্পূর্ণ সম্পন্ন হয়েছে! 🎉" : "Roadmap Completed! 🎉"}
+              {isBn ? "রোডম্যাপ সম্পূর্ণ সম্পন্ন হয়েছে!" : "Roadmap Completed!"}
             </span>
           ) : (
             <span>
@@ -368,11 +379,16 @@ export function AIRoadmapCard({
             type="button"
             onClick={() => {
               if (!isSaved) {
-                handleSaveRoadmap();
+                setSaveWarning(
+                  isBn
+                    ? "আগে 'সেভ করুন' (Save Plan) বাটনে ক্লিক করে রোডম্যাপটি সেভ করো, তারপর টাইম লগ ওপেন করো।"
+                    : "Please click 'Save Plan' to save your roadmap first, then open Time Log."
+                );
+                return;
               }
               onNavigate("learning");
             }}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-200 transition-colors"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-200 transition-colors cursor-pointer"
           >
             <Compass size={13} />
             <span>{isBn ? "টাইম লগ খুলুন" : "Open Time Log"}</span>

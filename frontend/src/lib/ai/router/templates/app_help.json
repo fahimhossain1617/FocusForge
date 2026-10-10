@@ -1,0 +1,168 @@
+{
+  "navigation": {
+    "focus": {
+      "route": "focus",
+      "actionType": "open_focus",
+      "labelBn": "ফোকাস টাইমার খুলুন",
+      "labelEn": "Open Focus Timer",
+      "messageBn": "অবশ্যই, আমি তোমাকে Focus স্ক্রিনে নিয়ে যাচ্ছি। এখানে Pomodoro বা কাস্টম টাইমার চালাতে পারবে।",
+      "messageEn": "Taking you straight to the Focus Timer screen. You can start Pomodoro, Deep Flow, or custom sessions here."
+    },
+    "planner": {
+      "route": "planner",
+      "actionType": "open_planner",
+      "labelBn": "প্ল্যানার খুলুন",
+      "labelEn": "Open Planner",
+      "messageBn": "অবশ্যই, তোমার Planner খুলে দিচ্ছি। এখানে দৈনিক টাইম-ব্লক ও রুটিন শিডিউল দেখতে পারবে।",
+      "messageEn": "Taking you right to your Planner. You can organize your daily schedule, time-blocks, and routines here."
+    },
+    "diary": {
+      "route": "diary",
+      "actionType": "open_diary",
+      "labelBn": "মাই ডায়েরি খুলুন",
+      "labelEn": "Open My Diary",
+      "messageBn": "অবশ্যই, তোমার ব্যক্তিগত My Diary সেকশনে নিয়ে যাচ্ছি। তোমার ডায়েরি সম্পূর্ণ ব্যক্তিগত ও সুরক্ষিত।",
+      "messageEn": "Opening your private My Diary. Your diary entries are encrypted and strictly private to you."
+    },
+    "notes": {
+      "route": "tasks",
+      "actionType": "open_notes",
+      "labelBn": "নোটস ও ফাইলস খুলুন",
+      "labelEn": "Open Notes & Files",
+      "messageBn": "অবশ্যই, Notes & Files সেকশনে নিয়ে যাচ্ছি। এখানে রিচ নোটস, কোড স্নিপেট ও ডকুমেন্ট রাখতে পারো।",
+      "messageEn": "Navigating to Notes & Files. Here you can write rich study notes, code snippets, and manage documents."
+    },
+    "mind": {
+      "route": "mind",
+      "actionType": "open_mind",
+      "labelBn": "মাইন্ড স্পেস খুলুন",
+      "labelEn": "Open Mind Space",
+      "messageBn": "অবশ্যই, Mind Space-এ নিয়ে যাচ্ছি। এখানে Free Flow, Idea Vault এবং Problem Solver ট্যাব রয়েছে।",
+      "messageEn": "Taking you to Mind Space. Explore Free Flow, Idea Vault, and Problem Solver capture tabs."
+    },
+    "learning": {
+      "route": "learning",
+      "actionType": "open_learning",
+      "labelBn": "টাইম লগ খুলুন",
+      "labelEn": "Open Time Log",
+      "messageBn": "অবশ্যই, Time Log ও স্কিল বিল্ডারে নিয়ে যাচ্ছি। এখানে বিষয়ভিত্তিক পড়ার সময় ও স্ট্রাইক ট্র্যাক করতে পারবে।",
+      "messageEn": "Taking you to Time Log & Skill Builder. Track study hours, subject categories, and streaks here."
+    },
+    "dashboard": {
+      "route": "today",
+      "actionType": "open_dashboard",
+      "labelBn": "ড্যাশবোর্ড খুলুন",
+      "labelEn": "Open Dashboard",
+      "messageBn": "অবশ্যই, Dashboard-এ আজকের কাজের সার্বিক অগ্রগতি ও পারফরম্যান্স দেখে নিতে পারো।",
+      "messageEn": "Navigating to your Dashboard overview to see today's focus time, tasks, and performance."
+    },
+    "settings": {
+      "route": "settings",
+      "actionType": "open_settings",
+      "labelBn": "সেটিংস খুলুন",
+      "labelEn": "Open Settings",
+      "messageBn": "অবশ্যই, Settings পেজে নিয়ে যাচ্ছি। এখান থেকে অ্যাকাউন্ট, ভাষা, থিম ও প্রাইভেসি নিয়ন্ত্রণ করতে পারো।",
+      "messageEn": "Opening Settings. You can configure Account, Preferences, Language, Theme, and Privacy here."
+    },
+    "profile": {
+      "route": "profile",
+      "actionType": "open_profile",
+      "labelBn": "প্রোফাইল খুলুন",
+      "labelEn": "Open Profile",
+      "messageBn": "অবশ্যই, তোমার Profile সেকশনে নিয়ে যাচ্ছি।",
+      "messageEn": "Taking you to your Profile details."
+    },
+    "notifications": {
+      "route": "notifications",
+      "actionType": "open_notifications",
+      "labelBn": "নোটিফিকেশন খুলুন",
+      "labelEn": "Open Notifications",
+      "messageBn": "অবশ্যই, Notifications স্ক্রিনে নিয়ে যাচ্ছি।",
+      "messageEn": "Navigating to Notifications."
+    }
+  },
+  "settings_help": {
+    "language": {
+      "route": "settings",
+      "actionType": "open_settings",
+      "labelBn": "ভাষা সেটিংসে যান",
+      "labelEn": "Go to Language Settings",
+      "messageBn": "ভাষা পরিবর্তন করতে Settings > Preferences > Language-এ গিয়ে বাংলা বা English নির্বাচন করো।",
+      "messageEn": "To change your app language, navigate to Settings > Preferences > Language and select English or Bengali."
+    },
+    "theme": {
+      "route": "settings",
+      "actionType": "open_settings",
+      "labelBn": "থিম সেটিংসে যান",
+      "labelEn": "Go to Theme Settings",
+      "messageBn": "থিম পরিবর্তন করতে উপরে ডানদিকের সান/মুন আইকনে ট্যাপ করো অথবা Settings > Preferences > Theme-এ গিয়ে Dark/Light নির্বাচন করো।",
+      "messageEn": "To toggle Theme, click the Sun/Moon icon in the top bar or go to Settings > Preferences > Theme to choose Dark or Light mode."
+    },
+    "password": {
+      "route": "settings",
+      "actionType": "open_settings",
+      "labelBn": "পাসওয়ার্ড সেটিংসে যান",
+      "labelEn": "Go to Password Settings",
+      "messageBn": "পাসওয়ার্ড পরিবর্তন করতে Settings > Account > Password & Security অপশনে যাও।",
+      "messageEn": "To update your password, navigate to Settings > Account > Password & Security."
+    },
+    "delete_account": {
+      "route": "settings",
+      "actionType": "open_settings",
+      "labelBn": "প্রাইভেসি সেটিংসে যান",
+      "labelEn": "Go to Privacy Settings",
+      "messageBn": "অ্যাকাউন্ট ডিলিট করতে Settings > Privacy > Delete Account-এ যাও। মনে রেখো এটি একটি স্থায়ী ও অপরিবর্তনীয় প্রক্রিয়া।",
+      "messageEn": "To delete your account, visit Settings > Privacy > Delete Account. Please note that this action is permanent."
+    },
+    "notifications": {
+      "route": "settings",
+      "actionType": "open_settings",
+      "labelBn": "নোটিফিকেশন সেটিংসে যান",
+      "labelEn": "Go to Notification Settings",
+      "messageBn": "নোটিফিকেশন নিয়ন্ত্রণ ও শান্ত সময় (Quiet Hours: 10 PM - 7 AM) নির্ধারণ করতে Settings > Account > Notifications-এ যাও।",
+      "messageEn": "Manage reminders and Quiet Hours (10 PM - 7 AM) under Settings > Account > Notifications."
+    },
+    "report_problem": {
+      "route": "settings",
+      "actionType": "open_settings",
+      "labelBn": "সাপোর্ট সেকশনে যান",
+      "labelEn": "Go to Support Section",
+      "messageBn": "কোনো সমস্যার সম্মুখীন হলে Settings > Support > Report a Problem অথবা Contact Support-এ বার্তা পাঠাতে পারো।",
+      "messageEn": "If you experience any issues, navigate to Settings > Support > Report a Problem or Contact Support."
+    }
+  },
+  "features_help": {
+    "focus_session": {
+      "route": "focus",
+      "actionType": "open_focus",
+      "labelBn": "ফোকাস সেশনে যান",
+      "labelEn": "Go to Focus",
+      "messageBn": "Focus সেশন শুরু করতে Focus পেজে যাও, বিষয় বা কাজের নাম লেখো, সময় নির্বাচন করো (25m Pomodoro, 50m Deep Flow, বা 1h30m Ultradian) এবং 'Start Focus'-এ ট্যাপ করো।",
+      "messageEn": "To start a Focus session, go to Focus, enter your task topic, choose a duration preset (25m Pomodoro, 50m Deep Flow, 90m Ultradian), and hit Start Focus."
+    },
+    "routines": {
+      "route": "planner",
+      "actionType": "open_planner",
+      "labelBn": "প্ল্যানার রুটিনে যান",
+      "labelEn": "Go to Planner Routines",
+      "messageBn": "Planner-এ Routines হলো সাপ্তাহিক পুনর্ব্যবহারযোগ্য সময়সূচি। সপ্তাহের নির্দিষ্ট দিনের রুটিন তৈরি করে যেকোনো তারিখে এক ক্লিকে ইমপোর্ট করতে পারবে।",
+      "messageEn": "In Planner, Routines are reusable weekly schedules that you can create once and import into any specific calendar date with one tap."
+    },
+    "diary_privacy": {
+      "route": "diary",
+      "actionType": "open_diary",
+      "labelBn": "মাই ডায়েরি খুলুন",
+      "labelEn": "Open My Diary",
+      "messageBn": "তোমার My Diary সম্পূর্ণ নিরাপদ এবং শুধুমাত্র তোমার অ্যাকাউন্টের জন্য ব্যক্তিগত। Glory বা Gemini কখনই তোমার ডায়েরির লেখা পড়ে না বা ক্লাউড এআই-তে পাঠায় না।",
+      "messageEn": "Your Diary is strictly private to your own account. Glory and Gemini never read, analyze, or transmit your private diary contents."
+    },
+    "orb_reactions": {
+      "route": "settings",
+      "actionType": "open_settings",
+      "labelBn": "সেটিংস খুলুন",
+      "labelEn": "Open Settings",
+      "messageBn": "Glory অর্ব তোমার মনোযোগ ও অনুভূতির সাথে তাল মিলিয়ে অভিব্যক্তি পরিবর্তন করে (যেমন: হ্যাপি, চিন্তাশীল, কেয়ারিং)। Settings থেকে Orb Reactions On/Reduced/Off করতে পারো।",
+      "messageEn": "Glory reacts visually with animated expressions matching your focus and emotions. You can set Orb Reactions to On, Reduced, or Off in Settings."
+    }
+  }
+}
