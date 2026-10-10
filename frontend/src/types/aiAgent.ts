@@ -28,6 +28,7 @@ export type OrbState =
   | "attentive"
   | "thinking"
   | "composing"
+  | "typing"
   | "working"
   | "waiting_confirmation"
   | "success"

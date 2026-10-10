@@ -150,6 +150,7 @@ export function useOrbMood({
   const inactivityTimerRef = useRef<NodeJS.Timeout | null>(null);
   const moodTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const giggleTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isManualOverrideRef = useRef<boolean>(false);
   const lastProcessedUserMsgRef = useRef<string>("");
   const lastIdleMsgTimeRef = useRef<number>(0);
 
@@ -187,6 +188,16 @@ export function useOrbMood({
   useEffect(() => {
     if (isGiggling || !isOnline || isLimitExhausted || isGuestLimit) return;
 
+    // Preserve manual mood preview; release only when active conversation event starts
+    if (isManualOverrideRef.current) {
+      if (isThinking || isTyping || isWorking || (orbState && orbState !== "idle")) {
+        isManualOverrideRef.current = false;
+        if (moodTimeoutRef.current) clearTimeout(moodTimeoutRef.current);
+      } else {
+        return;
+      }
+    }
+
     const currentQuery = lastUserMessage || userInput || "";
     const contextualEvent = detectContextualStatusEvent(currentQuery);
     const dynamicStatusText = getStatusText(contextualEvent, isBn);
@@ -197,9 +208,13 @@ export function useOrbMood({
           setMood("thinking");
           setCustomThought(dynamicStatusText);
           return;
+        case "typing":
+          setMood("typing");
+          setCustomThought(isBn ? "লিখছি…" : "Typing…");
+          return;
         case "composing":
           setMood(isTyping ? "typing" : "thinking");
-          setCustomThought(isTyping ? null : (isBn ? "উত্তর প্রস্তুত করছি…" : "Formulating response…"));
+          setCustomThought(isTyping ? (isBn ? "লিখছি…" : "Typing…") : (isBn ? "উত্তর প্রস্তুত করছি…" : "Formulating response…"));
           return;
         case "working":
           setMood("working");
@@ -415,39 +430,55 @@ export function useOrbMood({
   }, [isBn, isGuestLimit, isLimitExhausted, isOnline, mood]);
 
   // 5. MANUAL MOOD SELECTION
-  const setManualMood = useCallback((newMood: OrbMood | null, durationMs = 5000) => {
+  const setManualMood = useCallback((newMood: OrbMood | null, durationMs = 6000) => {
     if (moodTimeoutRef.current) clearTimeout(moodTimeoutRef.current);
 
     if (newMood === null) {
+      isManualOverrideRef.current = false;
       setMood("idle");
       setCustomThought(null);
       return;
     }
 
+    isManualOverrideRef.current = true;
     setMood(newMood);
 
-    if (newMood === "sleepy") {
+    if (newMood === "attentive") {
+      setCustomThought(isBn ? "মনোযোগ সহকারে শুনছি!" : "Listening attentively!");
+    } else if (newMood === "focused") {
+      setCustomThought(isBn ? "চলো সম্পূর্ণ ফোকাস দিয়ে কাজ শুরু করি!" : "Laser focused on your goals!");
+    } else if (newMood === "thinking") {
+      setCustomThought(isBn ? "হুমম... একটু চিন্তা করছি..." : "Hmm... thinking about it...");
+    } else if (newMood === "angry") {
+      setCustomThought(isBn ? "হুম! মিষ্টি করে একটু রাগ করলাম কিন্তু!" : "Hmph! Just a cute little playful pout!");
+    } else if (newMood === "sleepy") {
       setCustomThought(
         isBn
           ? "হুউম... একটু ঘুমিয়ে নিচ্ছি। ট্যাপ করলে বা নতুন কাজ দিলে ডেকে দিও।"
           : "Huum... taking a nap. Wake me up with your next task or a tap."
       );
-      return;
-    }
-
-    if (newMood === "playful") {
+    } else if (newMood === "playful") {
       setCustomThought(isBn ? "হেহে! চোখ টিপে দিলাম! চলো দারুণ কিছু করি!" : "Hehe! Wink wink! Let's do something fun!");
     } else if (newMood === "caring" || newMood === "supportive") {
       setCustomThought(isBn ? "আমি সবসময় তোমার পাশে আছি। যেকোনো প্রয়োজনে আমাকে বলো।" : "I'm always here for you. Tell me whenever you need help.");
     } else if (newMood === "proud" || newMood === "celebrating" || newMood === "success") {
-      setCustomThought(isBn ? "ওয়াও! তোমার অগ্রগতি সত্যিই দারুণ! গর্ব হচ্ছে।" : "Wow! Your progress is amazing! Super proud of you.");
-    } else if (newMood === "focused") {
-      setCustomThought(isBn ? "চলো সম্পূর্ণ ফোকাস দিয়ে কাজ শুরু করি!" : "Laser focused on your goals!");
+      setCustomThought(isBn ? "ওয়াও! তোমার অগ্রগতি সত্যিই দারুণ! গর্ব হচ্ছে।" : "Wow! Super proud of you!");
+    } else if (newMood === "happy") {
+      setCustomThought(isBn ? "তোমার সাথে কথা বলতে পেরে আমি খুব খুশি!" : "I'm so happy to chat with you!");
+    } else if (newMood === "excited") {
+      setCustomThought(isBn ? "খুব রোমাঞ্চিত লাগছে! চলো শুরু করি!" : "Super excited! Let's do this!");
+    } else if (newMood === "curious") {
+      setCustomThought(isBn ? "কী হতে পারে? আমি খুব কৌতূহলী!" : "I'm so curious! Tell me more!");
+    } else if (newMood === "sulky") {
+      setCustomThought(isBn ? "পড়তে বসো কিন্তু! ফাঁকিবাজি নয়।" : "Time to focus and study!");
+    } else if (newMood === "sad") {
+      setCustomThought(isBn ? "মন খারাপ করো না, আমি পাশে আছি।" : "Don't be sad, I'm right here.");
     } else {
       setCustomThought(null);
     }
 
     moodTimeoutRef.current = setTimeout(() => {
+      isManualOverrideRef.current = false;
       setMood("idle");
       setCustomThought(null);
     }, durationMs);

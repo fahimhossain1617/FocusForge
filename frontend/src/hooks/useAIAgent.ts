@@ -458,7 +458,7 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
     );
     stageTimers.push(
       setTimeout(() => {
-        setOrbState("composing");
+        setOrbState("typing");
       }, 2400)
     );
 
@@ -519,43 +519,42 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
       };
 
       setIsThinking(false);
-      setOrbState("composing");
+      setOrbState("typing");
+      setIsTyping(true);
+
+      // Brief realistic "AI is typing" stage before message display, as requested
+      await new Promise<void>((resolve) => setTimeout(resolve, 600));
 
       // Grapheme/Token-safe streaming (NEVER splits multi-byte Bengali characters or vowel diacritics!)
       const fullText = normalizedAiMessage.content || "";
       if (fullText.length > 0) {
         const tokens = fullText.match(/\S+|\s+/g) || [fullText];
-        // Short messages appear almost instantly (<20ms), longer messages stream at high FPS
-        if (tokens.length <= 12) {
-          setIsTyping(false);
-          setStreamingText("");
-        } else {
-          setIsTyping(true);
-          setStreamingText("");
+        setStreamingText("");
 
-          await new Promise<void>((resolve) => {
-            let tokenIndex = 0;
-            const step = Math.max(2, Math.ceil(tokens.length / 10));
+        await new Promise<void>((resolve) => {
+          let tokenIndex = 0;
+          const step = Math.max(2, Math.ceil(tokens.length / 10));
 
-            typingIntervalRef.current = setInterval(() => {
-              tokenIndex += step;
-              if (tokenIndex >= tokens.length) {
-                if (typingIntervalRef.current) {
-                  clearInterval(typingIntervalRef.current);
-                  typingIntervalRef.current = null;
-                }
-                setStreamingText(fullText);
-                setTimeout(() => {
-                  setIsTyping(false);
-                  setStreamingText("");
-                  resolve();
-                }, 20);
-              } else {
-                setStreamingText(tokens.slice(0, tokenIndex).join(''));
+          typingIntervalRef.current = setInterval(() => {
+            tokenIndex += step;
+            if (tokenIndex >= tokens.length) {
+              if (typingIntervalRef.current) {
+                clearInterval(typingIntervalRef.current);
+                typingIntervalRef.current = null;
               }
-            }, 12);
-          });
-        }
+              setStreamingText(fullText);
+              setTimeout(() => {
+                setIsTyping(false);
+                setStreamingText("");
+                resolve();
+              }, 40);
+            } else {
+              setStreamingText(tokens.slice(0, tokenIndex).join(''));
+            }
+          }, 16);
+        });
+      } else {
+        setIsTyping(false);
       }
 
       // Transition Orb state after response output

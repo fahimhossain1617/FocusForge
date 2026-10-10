@@ -41,6 +41,7 @@ export function AIOrbFace({
   onTap,
   compact = false,
   showStatusBadge = false,
+  isTypingStream = false,
 }: AIOrbFaceProps) {
   const stageRef = useRef<HTMLDivElement>(null);
   const headGroupRef = useRef<SVGGElement>(null);
@@ -69,13 +70,18 @@ export function AIOrbFace({
   const [isBlinking, setIsBlinking] = useState(false);
 
   const isBn = language === "bn";
-  const mood: OrbMood = (orbState && orbState !== "idle") ? (orbState as OrbMood) : propMood;
+  const mood: OrbMood = (propMood && propMood !== "idle")
+    ? propMood
+    : (orbState && orbState !== "idle" ? (orbState as OrbMood) : (propMood || "idle"));
   const effectiveMood: OrbMood = mood;
 
   // Head tilt angle based on emotion and active state machine
   const headAngle = useMemo(() => {
     if (effectiveMood === "curious") return 6.5;
     if (effectiveMood === "thinking") return 5.5;
+    if (effectiveMood === "attentive") return 3.5;
+    if (effectiveMood === "focused") return 0;
+    if (effectiveMood === "angry") return 4.5;
     if (effectiveMood === "sad" || effectiveMood === "error") return -4.5;
     if (effectiveMood === "sulky") return -3.0;
     if (
@@ -97,7 +103,7 @@ export function AIOrbFace({
     )
       return 3.5;
     if (effectiveMood === "waiting_confirmation") return 4.0;
-    if (effectiveMood === "focused" || effectiveMood === "working") return 1.5;
+    if (effectiveMood === "working") return 1.5;
     if (effectiveMood === "serious" || effectiveMood === "protective") return 0;
     if (isEnjoying) return -2.5;
     return 0;
@@ -140,13 +146,28 @@ export function AIOrbFace({
         case "typing":
         case "composing":
           moodBiasX = 0;
-          moodBiasY = 0.55; // eyes cast down towards laptop
+          moodBiasY = 0.42; // eyes looking happily down towards laptop
           allowCursorTracking = false;
           break;
         case "thinking":
-          moodBiasX = 0.42;
-          moodBiasY = -0.58; // tilted up-right towards thought cloud
+          moodBiasX = 0.35;
+          moodBiasY = -0.45; // tilted up-right towards thought cloud
           allowCursorTracking = false;
+          break;
+        case "attentive":
+          moodBiasX = 0.08;
+          moodBiasY = -0.12;
+          allowCursorTracking = true;
+          break;
+        case "focused":
+          moodBiasX = 0;
+          moodBiasY = 0;
+          allowCursorTracking = true;
+          break;
+        case "angry":
+          moodBiasX = 0.15;
+          moodBiasY = -0.15; // cute playful pout gaze
+          allowCursorTracking = true;
           break;
         case "working":
           moodBiasX = 0;
@@ -211,8 +232,6 @@ export function AIOrbFace({
           moodBiasY = 0; // firm, alert, watchful steady posture
           allowCursorTracking = false;
           break;
-        case "focused":
-        case "attentive":
         case "listening":
           moodBiasX = 0;
           moodBiasY = -0.05;
@@ -634,6 +653,19 @@ export function AIOrbFace({
                 <stop offset="100%" stopColor="#020617" />
               </radialGradient>
 
+              {/* Miniature Laptop Lid - Vibrant Cobalt/Sky Blue (Image 3) */}
+              <linearGradient id="cuteBlueLaptopLid" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#4f86f7" />
+                <stop offset="50%" stopColor="#3b82f6" />
+                <stop offset="100%" stopColor="#1d4ed8" />
+              </linearGradient>
+
+              {/* Miniature Laptop Base - Modern Blue */}
+              <linearGradient id="cuteBlueLaptopBase" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stopColor="#2563eb" />
+                <stop offset="100%" stopColor="#1e3a8a" />
+              </linearGradient>
+
               {/* Miniature Laptop Lid - Dark Mode */}
               <linearGradient id="cuteLaptopLidDark" x1="0%" y1="0%" x2="100%" y2="100%">
                 <stop offset="0%" stopColor="#0284c7" stopOpacity="0.9" />
@@ -792,17 +824,29 @@ export function AIOrbFace({
                       <path d="M 100 96 Q 112 99 124 97" fill="none" />
                       <path d="M 156 97 Q 168 99 180 96" fill="none" />
                     </>
+                  ) : mood === "focused" ? (
+                    /* Focused (Image 1 top-right): Inward determined focused brows */
+                    <>
+                      <line x1="97" y1="91" x2="124" y2="95" stroke="#1e293b" strokeWidth="2.6" strokeLinecap="round" />
+                      <line x1="183" y1="91" x2="156" y2="95" stroke="#1e293b" strokeWidth="2.6" strokeLinecap="round" />
+                    </>
                   ) : mood === "thinking" ? (
-                    /* Thinking: Left brow lowered pensive, Right brow high */
+                    /* Thinking (Image 1 bottom-left): Left brow lowered pensive, Right brow high quizzical arch */
                     <>
                       <path d="M 98 94 Q 112 90 124 95" fill="none" />
-                      <path d="M 156 87 Q 168 80 180 87" fill="none" />
+                      <path d="M 156 86 Q 168 76 180 86" fill="none" />
                     </>
                   ) : mood === "angry" ? (
-                    /* Playful angry: Slanted determined brows */
+                    /* Playful Pout (Image 1 bottom-right): Gentle sweet arched brows */
                     <>
-                      <line x1="98" y1="90" x2="124" y2="97" />
-                      <line x1="182" y1="90" x2="156" y2="97" />
+                      <path d="M 98 88 Q 112 82 124 88" fill="none" />
+                      <path d="M 156 88 Q 168 82 180 88" fill="none" />
+                    </>
+                  ) : mood === "attentive" ? (
+                    /* Attentive (Image 1 top-left): Sweet gentle arched brows */
+                    <>
+                      <path d="M 99 89 Q 112 83 125 89" fill="none" />
+                      <path d="M 155 89 Q 168 83 181 89" fill="none" />
                     </>
                   ) : mood === "proud" ? (
                     /* Proud: Confident, cheerfully arched high brows */
@@ -832,7 +876,28 @@ export function AIOrbFace({
                 </g>
 
                 {/* REALISTIC EXPRESSIVE EYES */}
-                {mood === "playful" || isGiggling ? (
+                {mood === "angry" ? (
+                  /* Playful Pout (Image 1 bottom-right): Left Eye Open Shiny Anime Eye, Right Eye Sweet Winking Curved Line */
+                  <g className={isBlinking ? styles.eyeLidClosed : styles.eyeLidOpen}>
+                    <g>
+                      <ellipse cx="112" cy="112" rx="13.5" ry="15.5" fill="url(#cuteEyeGrad)" />
+                      <ellipse cx="112" cy="116" rx="9" ry="5" fill="#0284c7" opacity="0.35" />
+                      <g ref={pupilLeftRef} transform="translate(0, 0)">
+                        <circle cx="112" cy="112" r="7.5" fill="#0369a1" opacity="0.4" />
+                        <circle cx="115.5" cy="107.5" r="4.3" fill="#ffffff" filter="url(#softGlow)" />
+                        <circle cx="108.5" cy="115" r="1.8" fill="#ffffff" opacity="0.85" />
+                      </g>
+                    </g>
+                    <path
+                      d="M 154 113 Q 168 120 182 113"
+                      fill="none"
+                      stroke="#0f172a"
+                      strokeWidth="3.6"
+                      strokeLinecap="round"
+                    />
+                    <line x1="182" y1="113" x2="186" y2="108" stroke="#0f172a" strokeWidth="2.4" strokeLinecap="round" />
+                  </g>
+                ) : mood === "playful" || isGiggling ? (
                   /* A. Playful / Tickle: Left Eye Open, Right Eye Winking */
                   <g>
                     <ellipse cx="112" cy="112" rx="13.5" ry="15.5" fill="url(#cuteEyeGrad)" />
@@ -998,12 +1063,33 @@ export function AIOrbFace({
                       <ellipse cx="140" cy="133.5" rx="4.2" ry="2.8" fill="#ff4d79" />
                     </g>
                   ) : mood === "thinking" ? (
-                    /* Thinking: Thoughtful pensive curve */
+                    /* Thinking (Image 1 bottom-left): Wondering curious slight open mouth */
+                    <ellipse cx="140" cy="128" rx="2.8" ry="3.4" fill="#0b1328" stroke="#0f172a" strokeWidth="1.2" />
+                  ) : mood === "angry" ? (
+                    /* Playful Pout (Image 1 bottom-right): Adorable kissy/pout "3" mouth */
                     <path
-                      d="M 134 130 Q 140 126 146 130"
+                      d="M 137 124.5 C 140.2 124.5, 141.2 127.5, 138.8 129 C 141.2 130.5, 140.2 133.5, 137 133.5"
                       fill="none"
                       stroke="#0f172a"
-                      strokeWidth="2.2"
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                    />
+                  ) : mood === "focused" ? (
+                    /* Focused (Image 1 top-right): Confident subtle smile */
+                    <path
+                      d="M 133 125 Q 140 130 147 125"
+                      fill="none"
+                      stroke="#0f172a"
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                    />
+                  ) : mood === "attentive" ? (
+                    /* Attentive (Image 1 top-left): Sweet curved friendly smile */
+                    <path
+                      d="M 133 124 Q 140 131 147 124"
+                      fill="none"
+                      stroke="#0f172a"
+                      strokeWidth="2.4"
                       strokeLinecap="round"
                     />
                   ) : mood === "happy" || mood === "excited" || mood === "celebrating" || isEnjoying ? (
@@ -1024,21 +1110,12 @@ export function AIOrbFace({
                       strokeLinecap="round"
                     />
                   ) : mood === "caring" || mood === "supportive" || mood === "empathetic" || mood === "encouraging" || mood === "concerned" ? (
-                    /* Caring / Supportive / Empathetic / Encouraging / Concerned: Warm, gentle comforting smile */
+                    /* Caring / Supportive / Empathetic / Encouraging / Concerned: Warm gentle comforting smile */
                     <path
                       d="M 134 125 Q 140 131 146 125"
                       fill="none"
                       stroke="#0f172a"
                       strokeWidth="2.2"
-                      strokeLinecap="round"
-                    />
-                  ) : mood === "angry" ? (
-                    /* Angry: Pouty triangle mouth */
-                    <path
-                      d="M 134 126 L 140 130 L 146 126"
-                      fill="none"
-                      stroke="#0f172a"
-                      strokeWidth="2.5"
                       strokeLinecap="round"
                     />
                   ) : mood === "sad" || mood === "error" ? (
@@ -1067,6 +1144,45 @@ export function AIOrbFace({
                 </g>
 
                 {/* ACCESSORIES & EMOTION SYMBOLS */}
+                {/* Attentive (Image 1 top-left): Three Radiating Energy Shine Lines */}
+                {mood === "attentive" && (
+                  <g stroke="#38bdf8" strokeWidth="2.6" strokeLinecap="round" filter="url(#softGlow)">
+                    <line x1="188" y1="64" x2="198" y2="48" />
+                    <line x1="202" y1="68" x2="216" y2="56" />
+                    <line x1="210" y1="76" x2="226" y2="70" />
+                  </g>
+                )}
+
+                {/* Focused (Image 1 top-right): 4 Glowing Corner Scanner Brackets */}
+                {mood === "focused" && (
+                  <g stroke="#38bdf8" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" fill="none" filter="url(#softGlow)">
+                    {/* Top-Left */}
+                    <path d="M 64 82 L 64 64 L 82 64" />
+                    {/* Top-Right */}
+                    <path d="M 198 64 L 216 64 L 216 82" />
+                    {/* Bottom-Left */}
+                    <path d="M 64 170 L 64 188 L 82 188" />
+                    {/* Bottom-Right */}
+                    <path d="M 198 188 L 216 188 L 216 170" />
+                  </g>
+                )}
+
+                {/* Playful Pout (Image 1 bottom-right): Glowing Heart Outline + Sparkle Dashes */}
+                {mood === "angry" && (
+                  <g transform="translate(194, 52)">
+                    <path
+                      d="M 0 -4 C -2 -10 -10 -9 -10 -3 C -10 3 -3 7 0 11 C 3 7 10 3 10 -3 C 10 -9 2 -10 0 -4 Z"
+                      fill="none"
+                      stroke="#38bdf8"
+                      strokeWidth="2.4"
+                      filter="url(#softGlow)"
+                      transform="rotate(16)"
+                    />
+                    <line x1="14" y1="10" x2="22" y2="8" stroke="#38bdf8" strokeWidth="2.2" strokeLinecap="round" filter="url(#softGlow)" />
+                    <line x1="12" y1="17" x2="19" y2="19" stroke="#38bdf8" strokeWidth="2.2" strokeLinecap="round" filter="url(#softGlow)" />
+                  </g>
+                )}
+
                 {/* Serious / Protective: Glowing Protective Shield Badge 🛡️ */}
                 {(mood === "serious" || mood === "protective") && (
                   <g transform="translate(196, 50)" filter="url(#softGlow)">
@@ -1085,16 +1201,16 @@ export function AIOrbFace({
                   </g>
                 )}
 
-                {/* Curious: Floating Question Mark ? */}
-                {mood === "curious" && (
+                {/* Thinking (Image 1 bottom-left) & Curious: Floating Glowing Question Mark ? */}
+                {(mood === "thinking" || mood === "curious") && (
                   <g transform="translate(196, 62)">
                     <text
                       x="0"
                       y="0"
-                      fill="#2563eb"
-                      fontSize="22"
+                      fill="#38bdf8"
+                      fontSize="26"
                       fontWeight="bold"
-                      fontFamily="sans-serif"
+                      fontFamily="system-ui, sans-serif"
                       filter="url(#softGlow)"
                     >
                       ?
@@ -1201,49 +1317,39 @@ export function AIOrbFace({
               </g>
 
               {/* 5. HAND POSES FOR EMOTIONS */}
-              {/* A. Thinking Hand Pose: Cute arm & spherical paw resting on chin */}
+              {/* A. Thinking Hand Pose (Image 1 bottom-left): Cute white rounded paw nestled under the chin */}
               {mood === "thinking" && (
-                <g>
-                  <ellipse
-                    cx="94"
-                    cy="152"
-                    rx="10"
-                    ry="7"
-                    fill="url(#cuteHandGradLight)"
-                    stroke="#94a3b8"
-                    strokeWidth="1.2"
-                    opacity="0.7"
-                    transform="rotate(-15, 94, 152)"
-                  />
+                <g transform="translate(136, 144)">
+                  {/* Subtle lower arm shadow/depth */}
                   <path
-                    d="M 194 162 C 206 148, 198 132, 172 134"
+                    d="M -12 28 C -22 18, -18 6, -8 0"
                     fill="none"
                     stroke="url(#cuteHandGradLight)"
-                    strokeWidth="15"
+                    strokeWidth="14"
                     strokeLinecap="round"
                     filter="url(#softGlow)"
                   />
                   <path
-                    d="M 194 162 C 206 148, 198 132, 172 134"
+                    d="M -12 28 C -22 18, -18 6, -8 0"
                     fill="none"
                     stroke="#94a3b8"
-                    strokeWidth="1.6"
+                    strokeWidth="1.5"
                     strokeLinecap="round"
-                    opacity="0.6"
+                    opacity="0.5"
                   />
-                  <g transform="translate(162, 136)">
-                    <circle
-                      cx="0"
-                      cy="0"
-                      r="11"
-                      fill="url(#cuteHandGradLight)"
-                      stroke="#94a3b8"
-                      strokeWidth="1.6"
-                      filter="url(#softGlow)"
-                    />
-                    <path d="M -5 -4 Q 0 -7 5 -4" fill="none" stroke="#94a3b8" strokeWidth="1.4" strokeLinecap="round" />
-                    <path d="M -5 1 Q 0 -2 5 1" fill="none" stroke="#94a3b8" strokeWidth="1.4" strokeLinecap="round" />
-                  </g>
+                  {/* Cute rounded fist/paw resting under chin */}
+                  <circle
+                    cx="-6"
+                    cy="0"
+                    r="12"
+                    fill="url(#cuteHandGradLight)"
+                    stroke="#94a3b8"
+                    strokeWidth="1.6"
+                    filter="url(#softGlow)"
+                  />
+                  {/* Paw knuckle creases */}
+                  <path d="M -11 -4 Q -6 -7 -1 -4" fill="none" stroke="#94a3b8" strokeWidth="1.4" strokeLinecap="round" />
+                  <path d="M -11 1 Q -6 -2 -1 1" fill="none" stroke="#94a3b8" strokeWidth="1.4" strokeLinecap="round" />
                 </g>
               )}
 
@@ -1264,68 +1370,74 @@ export function AIOrbFace({
               )}
             </g>
 
-            {/* 6. MINIATURE LAPTOP & TYPING ARMS */}
-            {mood === "typing" && (
+            {/* 6. MINIATURE BLUE LAPTOP & TYPING ARMS (Image 3) */}
+            {(mood === "typing" || mood === "composing" || isTypingStream) && (
               <g transform="translate(0, 8)">
-                {/* Floating typing wave dots (...) */}
-                <g transform="translate(122, 122)">
-                  <circle cx="8" cy="0" r="3.2" fill="#2563eb" className={styles.typingDot1} />
-                  <circle cx="18" cy="0" r="3.2" fill="#2563eb" className={styles.typingDot2} />
-                  <circle cx="28" cy="0" r="3.2" fill="#2563eb" className={styles.typingDot3} />
-                </g>
-
-                {/* Floor ring under laptop */}
+                {/* Floor glow / ring under laptop */}
                 <ellipse
                   cx="140"
                   cy="210"
-                  rx="58"
-                  ry="10"
+                  rx="62"
+                  ry="11"
                   fill="none"
-                  stroke="rgba(148, 163, 184, 0.4)"
+                  stroke="#38bdf8"
                   strokeWidth="1.5"
-                  opacity="0.4"
+                  opacity="0.35"
                   filter="url(#softGlow)"
                 />
 
-                {/* Laptop Lid Facing Viewer */}
-                <g transform="translate(98, 160)">
+                {/* Glowing Typing Sparks on Right of Laptop Screen (Image 3) */}
+                <g stroke="#38bdf8" strokeWidth="3.2" strokeLinecap="round" filter="url(#softGlow)">
+                  <line x1="184" y1="152" x2="194" y2="144" />
+                  <line x1="190" y1="160" x2="202" y2="156" />
+                </g>
+
+                {/* Laptop Lid Facing Viewer - Vibrant Blue (Image 3) */}
+                <g transform="translate(98, 158)">
                   <rect
                     x="0"
                     y="0"
                     width="84"
-                    height="44"
-                    rx="7"
-                    fill="url(#cuteLaptopLidLight)"
-                    stroke="#94a3b8"
+                    height="46"
+                    rx="8"
+                    fill="url(#cuteBlueLaptopLid)"
+                    stroke="#60a5fa"
                     strokeWidth="1.8"
                   />
 
+                  {/* Inner screen border bevel */}
                   <rect
                     x="3"
                     y="3"
                     width="78"
-                    height="38"
-                    rx="5"
+                    height="40"
+                    rx="6"
                     fill="none"
-                    stroke="rgba(148, 163, 184, 0.3)"
+                    stroke="rgba(255, 255, 255, 0.25)"
                     strokeWidth="1"
                   />
 
-                  {/* FocusForge 'F' Logo on Laptop Lid */}
-                  <path
-                    d="M 39 14 L 47 14 C 48 14 49 14.8 49 15.8 L 49 16.5 C 49 17.5 48.2 18 47.2 18 L 42.5 18 L 42.5 20.5 L 46 20.5 C 46.8 20.5 47.5 21.2 47.5 22 L 47.5 22.5 C 47.5 23.3 46.8 24 46 24 L 42.5 24 L 42.5 29 C 42.5 29.8 41.8 30.5 41 30.5 L 40 30.5 C 39.2 30.5 38.5 29.8 38.5 29 Z"
-                    fill="#2563eb"
-                    filter="url(#softGlow)"
-                  />
+                  {/* White Focentia 'fo' Logo on Laptop Lid (Image 3) */}
+                  <g transform="translate(35, 14)">
+                    {/* Stylized lowercase 'f' */}
+                    <path
+                      d="M 1 18 L 1 6.5 C 1 3 3.5 1 7 1 L 9 1 C 9.8 1 10.4 1.6 10.4 2.4 C 10.4 3.2 9.8 3.8 9 3.8 L 7 3.8 C 5.2 3.8 4 4.8 4 6.8 L 4 8.5 L 9 8.5 C 9.8 8.5 10.4 9.1 10.4 9.9 C 10.4 10.7 9.8 11.3 9 11.3 L 4 11.3 L 4 18 Z"
+                      fill="#ffffff"
+                    />
+                    {/* Stylized lowercase 'o' */}
+                    <circle cx="16" cy="12" r="5" fill="none" stroke="#ffffff" strokeWidth="2.8" />
+                  </g>
                 </g>
 
-                {/* Laptop Base */}
+                {/* Laptop Base / Keyboard (Image 3) */}
                 <path
-                  d="M 90 204 L 190 204 L 182 210 L 98 210 Z"
-                  fill="#e2e8f0"
-                  stroke="#94a3b8"
-                  strokeWidth="1.5"
+                  d="M 88 204 L 192 204 L 182 212 L 98 212 Z"
+                  fill="url(#cuteBlueLaptopBase)"
+                  stroke="#3b82f6"
+                  strokeWidth="1.4"
                 />
+                {/* Keyboard keys subtle line */}
+                <line x1="104" y1="207" x2="176" y2="207" stroke="#60a5fa" strokeWidth="1.2" opacity="0.65" />
 
                 {/* Left Typing Arm & Paw */}
                 <path
@@ -1339,10 +1451,10 @@ export function AIOrbFace({
                 <circle
                   cx="96"
                   cy="172"
-                  r="8.5"
+                  r="9.5"
                   fill="url(#cuteHandGradLight)"
                   stroke="#94a3b8"
-                  strokeWidth="1.5"
+                  strokeWidth="1.6"
                   className={styles.pawLeft}
                 />
 
@@ -1358,10 +1470,10 @@ export function AIOrbFace({
                 <circle
                   cx="184"
                   cy="172"
-                  r="8.5"
+                  r="9.5"
                   fill="url(#cuteHandGradLight)"
                   stroke="#94a3b8"
-                  strokeWidth="1.5"
+                  strokeWidth="1.6"
                   className={styles.pawRight}
                 />
               </g>
