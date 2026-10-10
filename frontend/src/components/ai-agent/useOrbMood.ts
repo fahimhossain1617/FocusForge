@@ -186,12 +186,12 @@ export function useOrbMood({
           setCustomThought(dynamicStatusText);
           return;
         case "composing":
-          setMood("typing");
-          setCustomThought(null);
+          setMood(isTyping ? "typing" : "thinking");
+          setCustomThought(isTyping ? null : (isBn ? "উত্তর প্রস্তুত করছি…" : "Formulating response…"));
           return;
         case "working":
           setMood("working");
-          setCustomThought(isBn ? "পরিবর্তন সংরক্ষণ করছি…" : "Saving your changes…");
+          setCustomThought(isBn ? "তথ্য ও অগ্রগতি পর্যালোচনা করছি…" : "Analyzing details & progress…");
           return;
         case "waiting_confirmation":
           setMood("waiting_confirmation");

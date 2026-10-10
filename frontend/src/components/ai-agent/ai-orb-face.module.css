@@ -204,6 +204,23 @@
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   white-space: nowrap;
+  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.thoughtTextAnim {
+  display: inline-block;
+  animation: thoughtFadeIn 0.35s ease-out;
+}
+
+@keyframes thoughtFadeIn {
+  0% {
+    opacity: 0.3;
+    transform: translateY(2px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 :global([data-theme="light"]) .thoughtCloud,

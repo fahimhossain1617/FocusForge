@@ -492,6 +492,18 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
     setIsThinking(true);
     setOrbState("thinking");
 
+    const stageTimers: NodeJS.Timeout[] = [];
+    stageTimers.push(
+      setTimeout(() => {
+        setOrbState("working");
+      }, 1200)
+    );
+    stageTimers.push(
+      setTimeout(() => {
+        setOrbState("composing");
+      }, 2400)
+    );
+
     const abortController = new AbortController();
     abortControllerRef.current = abortController;
 
@@ -508,6 +520,8 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
         abortController.signal,
         privacyMode
       );
+
+      stageTimers.forEach((t) => clearTimeout(t));
 
       if (result.tokenStatus) {
         setTokenStatus(result.tokenStatus);
@@ -678,6 +692,7 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
 
       return normalizedAiMessage;
     } catch (err: any) {
+      stageTimers.forEach((t) => clearTimeout(t));
       if (err?.name === 'AbortError' || abortController.signal.aborted) {
         setOrbState("idle");
         return;

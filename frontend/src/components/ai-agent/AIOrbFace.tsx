@@ -439,11 +439,13 @@ export function AIOrbFace({
       data-theme={isLight ? "light" : "dark"}
     >
 
-      {/* 1. SINGLE AUTHORITATIVE THINKING STATUS BUBBLE (Strict single-source-of-truth) */}
+      {/* 1. SINGLE AUTHORITATIVE THINKING STATUS BUBBLE (Dynamic staged updates) */}
       {isThinkingActive ? (
         <div className={styles.thoughtCloudWrapper} aria-label="AI is thinking" role="status">
           <div className={styles.thoughtCloud}>
-            <span>{isBn ? "AI ভাবছে" : "AI is thinking"}</span>
+            <span key={thoughtText || "default"} className={styles.thoughtTextAnim}>
+              {thoughtText || (isBn ? "AI ভাবছে…" : "AI is thinking…")}
+            </span>
             <span className={styles.dotPulse1}>.</span>
             <span className={styles.dotPulse2}>.</span>
             <span className={styles.dotPulse3}>.</span>

@@ -146,12 +146,60 @@ export function AIAgentPage() {
     }
   }, [state?.lang]);
 
-  const context = useMemo(() => ({
-    tasks: state.tasks,
-    notesCount: state.notes.length,
-    timeBlocksCount: state.timeBlocks.length,
-    productivityScore: state.productivityScore
-  }), [state.tasks, state.notes.length, state.timeBlocks.length, state.productivityScore]);
+  const context = useMemo(() => {
+    const today = new Date().toISOString().split("T")[0];
+    const completedList = (state.tasks || []).filter((t: any) => t.status === "completed");
+    const todaySessions = (state.focusSessions || []).filter((s: any) => s.date === today || s.createdAt?.startsWith(today));
+    const focusMinutesToday = todaySessions.reduce((acc: number, s: any) => {
+      const mins = typeof s.durationMinutes === "number" ? s.durationMinutes : Math.round((s.durationSeconds || 0) / 60);
+      return acc + (mins > 0 ? mins : 0);
+    }, 0);
+
+    const learningTopics = (state.learningFolders || []).slice(0, 15).map((f: any) => {
+      const logs = (state.learningLogs || []).filter((l: any) => l.folderId === f.id);
+      const totalMins = logs.reduce((sum: number, l: any) => sum + (l.durationMinutes || 0), 0);
+      return {
+        name: f.name || f.title || "Topic",
+        targetHours: f.targetHours || 0,
+        loggedMinutes: totalMins,
+        weakTopics: Array.isArray(f.weakTopics) ? f.weakTopics : (f.notes ? [f.notes] : []),
+        notes: f.notes || ""
+      };
+    });
+
+    const notesSummary = (state.notes || []).slice(-10).map((n: any) => ({
+      title: n.title || "Untitled",
+      category: n.category || "General"
+    }));
+
+    const diarySummary = (state.diaryTopics || []).slice(-10).map((d: any) => ({
+      title: d.title || "",
+      topicTitle: d.topicTitle || ""
+    }));
+
+    return {
+      tasks: state.tasks,
+      notesCount: state.notes.length,
+      timeBlocksCount: state.timeBlocks.length,
+      productivityScore: state.productivityScore,
+      completedTasksCount: completedList.length,
+      completedTasksSummary: completedList.slice(-10).map((t: any) => t.title || t.name || ""),
+      focusMinutesToday,
+      focusSessionsCount: todaySessions.length,
+      learningTopics,
+      notesSummary,
+      diarySummary
+    };
+  }, [
+    state.tasks,
+    state.notes,
+    state.timeBlocks.length,
+    state.productivityScore,
+    state.focusSessions,
+    state.learningFolders,
+    state.learningLogs,
+    state.diaryTopics
+  ]);
 
   const {
     messages,

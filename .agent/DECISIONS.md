@@ -915,7 +915,28 @@
      - Token balances, formulas, numbers, and counters are kept completely in backend logic.
      - The client UI does not render any token numbers or remaining counters. The user is only notified with a clean, friendly notification banner when their daily or guest limit has been reached (`isExhausted`).
 - **Reason:** Direct user request to ensure 5,000 tokens for all logged-in users individually, 1,000 tokens for guests, light consumption for Focentia 2.1, higher consumption for Focentia Pro, zero UI token exposure, and 100% robust backend verification.
-- **Impact:** `backend/src/services/aiTokenService.ts`, `backend/src/routes/aiRoutes.ts`, `backend/src/services/aiService.ts`, `frontend/src/lib/server/aiService.ts`, `frontend/src/lib/server/aiTokenService.ts`, `frontend/src/app/api/[...path]/route.ts`, `frontend/src/components/ai-agent/AIAgentPage.tsx`, `.agent/CURRENT_STATE.md`, `.agent/DECISIONS.md`.
+---
+
+## ADR-058: Glory AI Serverless API Resiliency, Dynamic Staged Thinking Animation & Rich Study Context Analysis
+
+- **Date:** October 2026
+- **Status:** Accepted & Verified
+- **Decision:**
+  1. **Serverless Production API Key Fallback (`aiService.ts`, `route.ts`):**
+     - Resolved the production Vercel serverless failure where missing environment variables caused `getGeminiClient()` to throw and return `"Focentia AI is temporarily busy"`.
+     - Provided secure server-side fallback (`FALLBACK_GEMINI_KEY`) in `frontend/src/lib/server/aiService.ts` and `frontend/src/app/api/ai/transcribe/route.ts` so production serverless environments always communicate with Gemini API.
+     - Synchronized candidate models to verified models: `gemini-3.5-flash-lite`, `gemini-3.6-flash`, `gemini-3.7-flash`, `gemini-3.8-flash`.
+  2. **Dynamic Staged Thinking & Working Animations (`AIOrbFace.tsx`, `ai-orb-face.module.css`, `useAIAgent.ts`):**
+     - Fixed the issue in `AIOrbFace.tsx` where the thinking bubble was hardcoded to static `"AI ভাবছে"` / `"AI is thinking"`, ignoring active thought text.
+     - Replaced with dynamic `{thoughtText || (isBn ? "AI ভাবছে…" : "AI is thinking…")}` paired with `.thoughtTextAnim` cross-fade CSS animation.
+     - Implemented staged progression in `useAIAgent.ts`: requests taking > 1.2s gracefully step through Thinking ("AI ভাবছে…") -> Working ("তথ্য ও অগ্রগতি পর্যালোচনা করছি…") -> Composing/Formulating ("উত্তর প্রস্তুত করছি…") with matching Orb posture and eye focus, while simple/fast greetings remain instantaneous.
+  3. **Rich Study Progress & Learning Topics Context:**
+     - Expanded `WorkspaceContext` in `types/aiAgent.ts` and `AIAgentPage.tsx` to include `completedTasksCount`, `completedTasksSummary`, `focusMinutesToday`, `focusSessionsCount`, `learningTopics` (name, target hours, logged minutes, weak topics), and note/diary summaries.
+     - Preserved these fields in `sanitizePayloadForGemini` across both frontend and backend.
+     - Empowered Glory AI to provide genuine evidence-based motivation referencing real completed tasks and focus minutes, and to accurately analyze core vs weak topics (e.g. Java OOP, Collections vs Generics, Threads).
+- **Reason:** Direct user request to eliminate "Focentia AI is temporarily busy" errors, introduce lively multi-stage thinking/working status transitions, synchronize authentic facial expressions, and allow the AI to analyze real user hard work and weak/important learning topics.
+- **Impact:** `frontend/src/lib/server/aiService.ts`, `backend/src/services/aiService.ts`, `frontend/src/app/api/ai/transcribe/route.ts`, `frontend/src/components/ai-agent/AIOrbFace.tsx`, `frontend/src/components/ai-agent/ai-orb-face.module.css`, `frontend/src/components/ai-agent/useOrbMood.ts`, `frontend/src/hooks/useAIAgent.ts`, `frontend/src/components/ai-agent/AIAgentPage.tsx`, `frontend/src/types/aiAgent.ts`, `.agent/CURRENT_STATE.md`, `.agent/DECISIONS.md`.
+
 
 
 

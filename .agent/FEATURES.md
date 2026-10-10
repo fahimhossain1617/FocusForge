@@ -66,10 +66,13 @@
 - **Behavior:** Organizes reflections into custom topics with personalized theme styling. Supports rich markdown formatting, image attachments, table-of-contents navigation, and search across entries.
 
 ### 2.6 AI Agent (Focentia AI) & Dual Model Intelligence Pipeline (Focentia 2.1 & Focentia Pro)
-- **Location:** `frontend/src/components/ai-agent/AIAgentPage.tsx`, `frontend/src/services/aiAgentService.ts`, `frontend/src/lib/server/aiService.ts`, `backend/src/services/aiService.ts`
-- **Behavior:** Powered by Google Gemini with dual-tier model selection:
-  - **Focentia 2.1 (Fast Mode):** Ultra-fast lightweight execution (~1.1s latency via `gemini-3.5-flash-lite`, with fallbacks to `gemini-flash-lite-latest`, `gemini-flash-latest`, `gemini-3.7-flash`). Tailored for quick replies, everyday tasks, rapid answers, and concise check-ins (0.5x token multiplier).
+- **Location:** `frontend/src/components/ai-agent/AIAgentPage.tsx`, `frontend/src/services/aiAgentService.ts`, `frontend/src/lib/server/aiService.ts`, `backend/src/services/aiService.ts`, `frontend/src/hooks/useAIAgent.ts`, `frontend/src/components/ai-agent/AIOrbFace.tsx`
+- **Behavior:** Powered by Google Gemini with dual-tier model selection and serverless resilience (ADR-058):
+  - **Resilient Serverless Key Management:** Guaranteed fallback key preventing API failure / busy errors in environments where serverless environment variables are missing. Verified working models: `gemini-3.5-flash-lite`, `gemini-3.6-flash`, `gemini-3.7-flash`, `gemini-3.8-flash`.
+  - **Focentia 2.1 (Fast Mode):** Ultra-fast lightweight execution (~1.1s latency via `gemini-3.5-flash-lite`). Tailored for quick replies, everyday tasks, rapid answers, and concise check-ins (0.5x token multiplier).
   - **Focentia Pro (Deep Research & Planning Mode):** High-capacity deep reasoning via `gemini-3.8-flash` and `gemini-3.7-flash` (40s timeout, 6,000 max output tokens, 0.65 temperature). Conducts deep research, thorough milestone planning, comprehensive academic/technical explanations, and multi-step complex tasks (2.0x token multiplier).
+  - **Staged Thinking & Dynamic Progress Animation:** Fluid state progression (`thinking` -> `working` -> `composing`) with smooth `@keyframes thoughtFadeIn` text transitions and synchronized Orby expressions for queries taking longer than 1.2s, while fast answers return instantly.
+  - **Full-Context Learning & Effort Awareness:** Comprehensive ingestion of completed tasks count/summary, daily focus minutes, learning topics, and weak topic logs, enabling truthful evidence-based motivation and curriculum guidance.
   - Delivers open-ended academic and coding explanations, multi-turn clarification when task details (date/time) are missing, structured task and roadmap proposals, explicit confirmation gates before any user data mutations, and strict Bengali Unicode integrity with "তুমি" tone. All hardcoded/canned task responses completely eliminated.
 
 ### 2.7 Application Capability Registry & Secure Typed Tools (Phase 2)

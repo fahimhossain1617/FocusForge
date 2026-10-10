@@ -168,6 +168,19 @@ export interface WorkspaceContext {
     taskName?: string;
     remainingMinutes?: number;
   } | null;
+  completedTasksCount?: number;
+  completedTasksSummary?: string[];
+  focusMinutesToday?: number;
+  focusSessionsCount?: number;
+  learningTopics?: Array<{
+    name: string;
+    targetHours?: number;
+    loggedMinutes?: number;
+    weakTopics?: string[];
+    notes?: string;
+  }>;
+  notesSummary?: Array<{ title: string; category?: string }>;
+  diarySummary?: Array<{ title: string; topicTitle?: string }>;
 }
 
 export interface ProposedAction {
