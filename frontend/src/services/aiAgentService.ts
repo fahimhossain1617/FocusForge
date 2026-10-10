@@ -198,35 +198,68 @@ export function estimateClientTokenUsage(
 }
 
 /**
- * Fetch chat sessions directly from local-first IndexedDB
+ * Fetch chat sessions directly from database with local-first fallback
  */
 export async function getChatSessions(): Promise<ChatSession[]> {
+  const token = await getToken();
+  const guestId = getGuestId();
+
+  // 1. Try server database first
+  try {
+    const res = await fetch(`${getApiUrl()}/ai/sessions`, {
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        "x-guest-id": guestId,
+      },
+    });
+    if (res.ok) {
+      const serverSessions = await res.json();
+      if (Array.isArray(serverSessions) && serverSessions.length > 0) {
+        return serverSessions.map((s: any) => ({
+          id: s.id,
+          title: s.title || "Chat",
+          user_id: s.user_id || null,
+          created_at: s.created_at,
+          updated_at: s.updated_at || s.created_at || new Date().toISOString(),
+        })).sort((a, b) => new Date(b.updated_at || 0).getTime() - new Date(a.updated_at || 0).getTime());
+      }
+    }
+  } catch (netErr) {
+    console.warn("[aiAgentService] Server sessions fetch notice:", netErr);
+  }
+
+  // 2. Fallback to localDb
   try {
     const { data: { user } } = await supabase.auth.getUser();
     const userId = user?.id || null;
     if (userId) {
       const sessions = await localDb.getAllForUser<any>("ai_sessions", userId, false);
-      return sessions.map((s) => ({
-        id: s.id,
-        title: s.title || "Chat",
-        user_id: s.userId || userId,
-        created_at: s.createdAt,
-        updated_at: s.updatedAt || s.createdAt || new Date().toISOString(),
-      })).sort((a, b) => new Date(b.updated_at || 0).getTime() - new Date(a.updated_at || 0).getTime());
-    } else {
-      if (typeof window !== "undefined") {
-        const guestStored = sessionStorage.getItem("focusforge_guest_sessions_list");
-        if (guestStored) {
-          const parsed = JSON.parse(guestStored);
-          if (Array.isArray(parsed)) return parsed;
-        }
+      if (sessions.length > 0) {
+        return sessions.map((s) => ({
+          id: s.id,
+          title: s.title || "Chat",
+          user_id: s.userId || userId,
+          created_at: s.createdAt,
+          updated_at: s.updatedAt || s.createdAt || new Date().toISOString(),
+        })).sort((a, b) => new Date(b.updated_at || 0).getTime() - new Date(a.updated_at || 0).getTime());
       }
-      return [];
     }
   } catch (err) {
     console.warn("[aiAgentService] Error reading local sessions:", err);
-    return [];
   }
+
+  // 3. Fallback to cache / guest storage
+  if (typeof window !== "undefined") {
+    try {
+      const guestStored = localStorage.getItem("focusforge_guest_sessions_list") || sessionStorage.getItem("focusforge_guest_sessions_list");
+      if (guestStored) {
+        const parsed = JSON.parse(guestStored);
+        if (Array.isArray(parsed)) return parsed;
+      }
+    } catch {}
+  }
+
+  return [];
 }
 
 /**
@@ -248,8 +281,10 @@ export async function createChatSession(title: string): Promise<ChatSession> {
       } as any);
     } else {
       if (typeof window !== "undefined") {
-        const existing = JSON.parse(sessionStorage.getItem("focusforge_guest_sessions_list") || "[]");
-        sessionStorage.setItem("focusforge_guest_sessions_list", JSON.stringify([session, ...existing]));
+        const existing = JSON.parse(localStorage.getItem("focusforge_guest_sessions_list") || sessionStorage.getItem("focusforge_guest_sessions_list") || "[]");
+        const updated = [session, ...existing];
+        localStorage.setItem("focusforge_guest_sessions_list", JSON.stringify(updated));
+        sessionStorage.setItem("focusforge_guest_sessions_list", JSON.stringify(updated));
       }
     }
     return session;
@@ -259,9 +294,26 @@ export async function createChatSession(title: string): Promise<ChatSession> {
 }
 
 /**
- * Delete a session and its messages from local-first database
+ * Delete a session and its messages from database and local storage
  */
 export async function deleteChatSession(sessionId: string): Promise<{ success: boolean }> {
+  const token = await getToken();
+  const guestId = getGuestId();
+
+  // 1. Delete on server API
+  try {
+    await fetch(`${getApiUrl()}/ai/sessions/${sessionId}`, {
+      method: "DELETE",
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        "x-guest-id": guestId,
+      },
+    });
+  } catch (netErr) {
+    console.warn("[aiAgentService] Server delete session error:", netErr);
+  }
+
+  // 2. Delete in localDb
   try {
     const { data: { user } } = await supabase.auth.getUser();
     const userId = user?.id || null;
@@ -278,8 +330,10 @@ export async function deleteChatSession(sessionId: string): Promise<{ success: b
     console.warn("[aiAgentService] Error deleting local chat session:", err);
   }
 
+  // 3. Clear cache keys
   if (typeof window !== "undefined") {
     sessionStorage.removeItem(`focusforge_guest_msg_${sessionId}`);
+    localStorage.removeItem(`focusforge_guest_msg_${sessionId}`);
     localStorage.removeItem(`focusforge_auth_msg_${sessionId}`);
     localStorage.removeItem(`focusforge_chat_msg_${sessionId}`);
   }
@@ -292,6 +346,23 @@ export async function deleteChatSession(sessionId: string): Promise<{ success: b
  */
 export async function clearAllChatSessions(): Promise<{ success: boolean }> {
   let userId: string | null = null;
+  const token = await getToken();
+  const guestId = getGuestId();
+
+  // 1. Clear on server API
+  try {
+    await fetch(`${getApiUrl()}/ai/sessions`, {
+      method: "DELETE",
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        "x-guest-id": guestId,
+      },
+    });
+  } catch (netErr) {
+    console.warn("[aiAgentService] Server clear sessions error:", netErr);
+  }
+
+  // 2. Clear in localDb
   try {
     const { data: { user } } = await supabase.auth.getUser();
     userId = user?.id || null;
@@ -309,16 +380,18 @@ export async function clearAllChatSessions(): Promise<{ success: boolean }> {
     console.warn("[aiAgentService] Error clearing local chat sessions:", err);
   }
 
+  // 3. Clear storage
   if (typeof window !== "undefined") {
     try {
       sessionStorage.removeItem("focusforge_guest_sessions_list");
+      localStorage.removeItem("focusforge_guest_sessions_list");
       localStorage.removeItem("focusforge_active_sessions_cache");
       localStorage.removeItem("focusforge_ai_sessions_guest");
       if (userId) {
         localStorage.removeItem(`focusforge_ai_sessions_${userId}`);
       }
       Object.keys(localStorage).forEach((k) => {
-        if (k.startsWith("focusforge_auth_msg_") || k.startsWith("focusforge_chat_msg_") || k.startsWith("focusforge_ai_sessions_")) {
+        if (k.startsWith("focusforge_auth_msg_") || k.startsWith("focusforge_chat_msg_") || k.startsWith("focusforge_guest_msg_") || k.startsWith("focusforge_ai_sessions_")) {
           localStorage.removeItem(k);
         }
       });
@@ -334,9 +407,39 @@ export async function clearAllChatSessions(): Promise<{ success: boolean }> {
 }
 
 /**
- * Fetch messages for a specific session from local-first database
+ * Fetch messages for a specific session from database or local-first storage
  */
 export async function getChatMessages(sessionId: string): Promise<AgentMessage[]> {
+  const token = await getToken();
+  const guestId = getGuestId();
+
+  // 1. Try server database first
+  try {
+    const res = await fetch(`${getApiUrl()}/ai/sessions/${sessionId}/messages`, {
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        "x-guest-id": guestId,
+      },
+    });
+    if (res.ok) {
+      const serverMsgs = await res.json();
+      if (Array.isArray(serverMsgs) && serverMsgs.length > 0) {
+        return serverMsgs.map((m: any) => ({
+          id: m.id,
+          role: m.role as "user" | "assistant",
+          content: m.content,
+          intent: m.intent,
+          payload: m.payload_json || m.payload,
+          roadmap: m.payload_json?.stages ? m.payload_json : null,
+          createdAt: new Date(m.created_at || m.createdAt || Date.now()),
+        }));
+      }
+    }
+  } catch (netErr) {
+    console.warn("[aiAgentService] Server messages fetch notice:", netErr);
+  }
+
+  // 2. Fallback to localDb
   try {
     const { data: { user } } = await supabase.auth.getUser();
     const userId = user?.id || null;
@@ -360,11 +463,12 @@ export async function getChatMessages(sessionId: string): Promise<AgentMessage[]
     console.warn("[aiAgentService] Error reading local messages:", err);
   }
 
-  // Fallback to cache / sessionStorage
+  // 3. Fallback to cache / storage
   if (typeof window !== "undefined") {
     try {
       const cached = localStorage.getItem(`focusforge_chat_msg_${sessionId}`) ||
                      localStorage.getItem(`focusforge_auth_msg_${sessionId}`) ||
+                     localStorage.getItem(`focusforge_guest_msg_${sessionId}`) ||
                      sessionStorage.getItem(`focusforge_guest_msg_${sessionId}`);
       if (cached) {
         const parsed = JSON.parse(cached);

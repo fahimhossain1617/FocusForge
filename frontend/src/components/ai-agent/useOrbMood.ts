@@ -128,12 +128,19 @@ export function useOrbMood({
   const isBn = language === "bn" || (language === "auto" && appState?.lang === "bn") || appState?.lang === "bn";
   const [mood, setMood] = useState<OrbMood>(() => {
     if (!isOnline) return "offline";
-    if (isLimitExhausted || isGuestLimit) return "usage_limit";
+    if (isLimitExhausted || isGuestLimit) return "sleepy";
     return "idle";
   });
   const [isGiggling, setIsGiggling] = useState(false);
   const [isEnjoying, setIsEnjoying] = useState(false);
-  const [customThought, setCustomThought] = useState<string | null>(null);
+  const [customThought, setCustomThought] = useState<string | null>(() => {
+    if (isLimitExhausted || isGuestLimit) {
+      return isBn
+        ? "তোমার আজকের লিমিট শেষ হয়ে গেছে, তাই আমি একটু রেস্ট নিচ্ছি। লিমিট রিসেট হলে আবার জেগে তোমাকে সাহায্য করবো!"
+        : "Your daily limit has been reached, so I'm taking a little rest. Once it resets, I'll wake right up to help you!";
+    }
+    return null;
+  });
 
   const inactivityTimerRef = useRef<NodeJS.Timeout | null>(null);
   const moodTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -156,16 +163,16 @@ export function useOrbMood({
     }
   }, [isOnline, isBn, mood]);
 
-  // 2. USAGE LIMIT HANDLING
+  // 2. USAGE LIMIT HANDLING - Sleeps peacefully with warm message
   useEffect(() => {
     if (isGuestLimit || isLimitExhausted) {
-      setMood("usage_limit");
+      setMood("sleepy");
       setCustomThought(
         isBn
-          ? "আজকের জন্য AI লিমিট শেষ। আমি একটু বিশ্রাম নিই, পরে আবার কথা হবে!"
-          : "Looks like we've reached the AI limit for now. I'll take a little nap. Come back when you're ready!"
+          ? "তোমার আজকের লিমিট শেষ হয়ে গেছে, তাই আমি একটু রেস্ট নিচ্ছি। লিমিট রিসেট হলে আবার জেগে তোমাকে সাহায্য করবো!"
+          : "Your daily limit has been reached, so I'm taking a little rest. Once it resets, I'll wake right up to help you!"
       );
-    } else if (mood === "usage_limit") {
+    } else if (mood === "sleepy" || mood === "usage_limit") {
       setMood("idle");
       setCustomThought(null);
     }

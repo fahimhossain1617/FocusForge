@@ -102,5 +102,17 @@
      - `sleepy`: Peaceful closed sleeping lines and floating Zzz.
   3. **Zero Latency Penalty:** All facial expressions are determined in a single turn by Gemini via the existing JSON `"emotion"` contract, ensuring instant animations without additional API calls.
 
+### 2.10 Full Database & Multi-Tenant AI Chat Persistence
+- **Location:** `frontend/src/lib/server/aiChatService.ts`, `frontend/src/app/api/[...path]/route.ts`, `frontend/src/services/aiAgentService.ts`, `frontend/src/services/aiConsentService.ts`
+- **Behavior:**
+  1. **PostgreSQL Pooled Persistence:** Auto-persists `ai_chat_sessions` and `ai_chat_messages` using PostgreSQL connection pooler for both authenticated and guest accounts.
+  2. **Zero Chat Loss on Refresh:** Fetches existing sessions and messages directly from database upon mount or session switch, while preserving offline localStorage caching.
+  3. **Privacy Control:** Fully honors ephemeral private chat mode when toggled.
 
-
+### 2.11 Time Log Roadmap Synchronization & Persistent Limit Countdown
+- **Location:** `frontend/src/components/ai-agent/AIRoadmapCard.tsx`, `frontend/src/components/ai-agent/AIAgentPage.tsx`, `frontend/src/components/pages/LearningHubPage.tsx`, `frontend/src/services/roadmapService.ts`
+- **Behavior:**
+  1. **Clean Single-Card Architecture:** Eliminates duplicate fallback cards and strictly avoids generic names like "New Topic" / "নতুন বিষয়".
+  2. **Direct Time Log Deep-Linking:** Roadmaps are linked with topic folders. Roadmap buttons in Time Log header and folder detail hero row open the full interactive roadmap modal.
+  3. **Completion Celebration:** When 100% of roadmap items are completed, triggers confetti and displays a warm congratulations message.
+  4. **Sticky Limit Reached Banner & Sleeping Orb:** Fixed banner displaying live reset countdown (e.g., `রিস্টোর হবে: ২ ঘণ্টা ১৫ মিনিট পর`) persisting across navigation and new chats. AI Orb Face automatically enters `sleepy` mode with eyes closed and restful speech bubble.

@@ -37,6 +37,14 @@ import {
   dbGetScheduledReminders,
   pool,
 } from '@/lib/server/db';
+import {
+  getChatSessions,
+  getChatMessages,
+  createChatSession,
+  addChatMessage,
+  deleteChatSession,
+  clearAllChatSessions,
+} from '@/lib/server/aiChatService';
 import { sendWebPushToUser } from '@/lib/server/webPushService';
 import { runNotificationSchedulerCycle } from '@/lib/server/schedulerService';
 import {
@@ -488,13 +496,29 @@ export async function GET(request: NextRequest, context: { params: Promise<{ pat
     }
   }
 
-  // 9. AI Agent Sessions & Messages (Local-First: Managed on Device)
+  // 9. AI Agent Sessions & Messages (Backed by PostgreSQL Database)
+  if (pathStr === 'ai/agent/sessions' || pathStr === 'ai/sessions') {
+    try {
+      const list = await getChatSessions(userId || guestId);
+      return NextResponse.json(list);
+    } catch (err: any) {
+      console.warn('[GET ai/sessions] Error:', err);
+      return NextResponse.json([]);
+    }
+  }
+
   if (
-    pathStr === 'ai/agent/sessions' ||
-    pathStr === 'ai/sessions' ||
     ((pathStr.startsWith('ai/agent/sessions/') || pathStr.startsWith('ai/sessions/')) && pathStr.endsWith('/messages'))
   ) {
-    return NextResponse.json([]);
+    try {
+      const segments = pathStr.split('/');
+      const sId = segments[segments.length - 2];
+      const msgs = await getChatMessages(userId || guestId, sId);
+      return NextResponse.json(msgs);
+    } catch (err: any) {
+      console.warn('[GET ai/messages] Error:', err);
+      return NextResponse.json([]);
+    }
   }
 
   // 10-15. Personal Data Endpoints (Local-First: Stored in Client IndexedDB)
@@ -1605,7 +1629,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ pa
   }
 
   // 8. AI Agent Chat
-  if (pathStr === 'ai/agent/chat') {
+  if (pathStr === 'ai/agent/chat' || pathStr === 'ai/chat') {
     const { sessionId: requestedSessionId, message: userMsg, context: wsContext, history, model: selectedModel } = body;
     
     // Burst Rate Limiting: 40 AI requests per minute per IP / User
@@ -1682,9 +1706,22 @@ export async function POST(request: NextRequest, context: { params: Promise<{ pa
     );
     const updatedTokens = await consumeUserTokens(userId, isGuest, guestId, tokensUsed, lang);
 
-    const activeSessionId = requestedSessionId || (isGuest ? 'guest-session' : `session_${Date.now()}`);
+    const activeSessionId = requestedSessionId || (isGuest ? `guest_${Date.now()}` : `session_${Date.now()}`);
     const aiMsgId = `msg_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
     const nowIso = new Date().toISOString();
+
+    const finalSessionTitle = userMsg ? (userMsg.length > 30 ? userMsg.substring(0, 28) + '...' : userMsg) : 'Focentia AI';
+
+    // Persist session and chat messages in PostgreSQL database
+    try {
+      await createChatSession(userId || guestId, finalSessionTitle, activeSessionId);
+      if (userMsg) {
+        await addChatMessage(activeSessionId, userId || guestId, 'user', userMsg);
+      }
+      await addChatMessage(activeSessionId, userId || guestId, 'assistant', result.message, result.intent, result.payload);
+    } catch (dbSaveErr) {
+      console.warn('[API /ai/agent/chat] Database chat persistence notice:', dbSaveErr);
+    }
 
     const aiMessage = {
       id: aiMsgId,
@@ -1709,7 +1746,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ pa
 
     return NextResponse.json({
       sessionId: activeSessionId,
-      sessionTitle: userMsg ? userMsg.substring(0, 30) : 'Focentia AI',
+      sessionTitle: finalSessionTitle,
       aiMessage,
       tokenStatus: updatedTokens,
     });
@@ -2080,15 +2117,29 @@ export async function DELETE(request: NextRequest, context: { params: Promise<{ 
   const pathStr = path.join('/');
 
   const { userId, isGuest, userEmail, authProvider } = await extractAuth(request);
+  const guestId = request.headers.get('x-guest-id') || 'guest';
 
-  // 1. AI Agent Sessions (Local-First: Managed on Device)
-  if (
-    pathStr === 'ai/agent/sessions' ||
-    pathStr === 'ai/sessions' ||
-    pathStr.startsWith('ai/agent/sessions/') ||
-    pathStr.startsWith('ai/sessions/')
-  ) {
-    return NextResponse.json({ success: true, message: 'Sessions managed locally' });
+  // 1. AI Chat Sessions: DELETE /api/ai/sessions & /api/ai/sessions/:id
+  if (pathStr === 'ai/sessions' || pathStr === 'ai/agent/sessions') {
+    try {
+      await clearAllChatSessions(userId || guestId);
+      return NextResponse.json({ success: true });
+    } catch (err: any) {
+      return NextResponse.json({ error: err.message || 'Failed to clear chat sessions' }, { status: 500 });
+    }
+  }
+
+  if (pathStr.startsWith('ai/sessions/') || pathStr.startsWith('ai/agent/sessions/')) {
+    try {
+      const parts = pathStr.split('/');
+      const sessionId = parts[parts.length - 1];
+      if (sessionId) {
+        await deleteChatSession(sessionId, userId || guestId);
+      }
+      return NextResponse.json({ success: true });
+    } catch (err: any) {
+      return NextResponse.json({ error: err.message || 'Failed to delete chat session' }, { status: 500 });
+    }
   }
 
   if (!userId || isGuest) return NextResponse.json({ error: 'Unauthorized', code: ERROR_CODES.UNAUTHORIZED }, { status: 401 });

@@ -34,6 +34,7 @@ import { AIOrbFace } from "./AIOrbFace";
 import { useOrbMood, getOrbStatusLabel, type OrbMood } from "./useOrbMood";
 import { AIActionCard } from "./AIActionCard";
 import { AIRoadmapCard } from "./AIRoadmapCard";
+import { roadmapService } from "@/services/roadmapService";
 import styles from "./ai-agent.module.css";
 import { AIChatAnimatedTypingInput } from "./AIChatAnimatedTypingInput";
 import AIConsentModal from "../ai/AIConsentModal";
@@ -293,8 +294,30 @@ export function AIAgentPage() {
     );
   }, [messages]);
 
-  const isLimitExhausted = Boolean(tokenStatus?.isExhausted || (tokenStatus && tokenStatus.remaining <= 0));
+  const isLimitExhausted = Boolean(tokenStatus?.isExhausted || (tokenStatus && tokenStatus.remaining <= 0) || guestLimitExceeded);
   const isGuestLimit = Boolean(guestLimitExceeded || (isLimitExhausted && (isGuest || !user)));
+
+  const [nowTime, setNowTime] = useState<number>(() => Date.now());
+  useEffect(() => {
+    const timer = setInterval(() => setNowTime(Date.now()), 15000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const resetCountdownText = useMemo(() => {
+    if (!tokenStatus?.resetAt) return "";
+    const resetMs = new Date(tokenStatus.resetAt).getTime();
+    const diffMs = resetMs - nowTime;
+    if (diffMs <= 0) return isSystemBn ? "কিছুক্ষণের মধ্যে" : "shortly";
+    const hours = Math.floor(diffMs / (1000 * 60 * 60));
+    const mins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+    if (isSystemBn) {
+      if (hours > 0) return `${hours} ঘণ্টা ${mins} মিনিট পর`;
+      return `${mins} মিনিট পর`;
+    } else {
+      if (hours > 0) return `in ${hours}h ${mins}m`;
+      return `in ${mins}m`;
+    }
+  }, [tokenStatus?.resetAt, nowTime, isSystemBn]);
 
   // Measure visual viewport for mobile keyboard awareness
   const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
@@ -436,7 +459,7 @@ export function AIAgentPage() {
       addMindItem(content, "idea_capture");
       showToast(isSystemBn ? "আইডিয়াটি মাইন্ড ট্র্যাকারে যুক্ত হয়েছে!" : "Idea saved to Mind Hub!", "success");
     } else if (intent === "LEARNING_HUB" || intent === "SKILL_BUILDER") {
-      const folderName = payload.folderName || payload.skillName || payload.topic || payload.subject || payload.title || (isSystemBn ? "স্টাডি বিষয়" : "Study Topic");
+      const folderName = payload.folderName || payload.skillName || payload.topic || payload.subject || payload.title || (isSystemBn ? "লার্নিং টপিক" : "Learning Topic");
       const exists = state.learningFolders.some((f) => f.name.toLowerCase() === folderName.toLowerCase());
       if (!exists) {
         addLearningFolder(folderName);
@@ -613,7 +636,7 @@ export function AIAgentPage() {
 
         case "create_skill":
         case "create_learning_topic": {
-          const folderName = p.folderName || p.skillName || (isSystemBn ? "নতুন বিষয়" : "New Topic");
+          const folderName = p.folderName || p.skillName || p.topic || p.subject || p.title || (isSystemBn ? "লার্নিং টপিক" : "Learning Topic");
           addLearningFolder(folderName);
           showToast(isSystemBn ? `'${folderName}' টাইম লগে যুক্ত হয়েছে!` : `'${folderName}' added to Time Log!`, "success");
           break;
@@ -981,12 +1004,15 @@ export function AIAgentPage() {
                                 roadmap={(message.roadmap || (message.payload?.stages ? message.payload : message.structuredResponse?.roadmap)) as any}
                                 isBn={isSystemBn}
                                 onSave={(savedRoadmap) => {
-                                  const topicName = (savedRoadmap as any)?.subject || (savedRoadmap as any)?.title || "Study Topic";
-                                  const exists = state.learningFolders.some(
+                                  const topicName = (savedRoadmap as any)?.subject || (savedRoadmap as any)?.title || (isSystemBn ? "লার্নিং রোডম্যাপ" : "Learning Roadmap");
+                                  const existingFolder = state.learningFolders.find(
                                     (f) => f.name.toLowerCase() === topicName.toLowerCase()
                                   );
-                                  if (!exists) {
+                                  if (!existingFolder) {
                                     addLearningFolder(topicName);
+                                  } else if (existingFolder && !savedRoadmap.folderId) {
+                                    savedRoadmap.folderId = existingFolder.id;
+                                    roadmapService.saveRoadmap(savedRoadmap, user?.id);
                                   }
                                   showToast(
                                     isSystemBn
@@ -1116,6 +1142,7 @@ export function AIAgentPage() {
 
                           {message.payload &&
                             !message.roadmap &&
+                            !message.structuredResponse?.roadmap &&
                             !(message.payload && message.payload.stages) &&
                             (message.intent === "LEARNING_HUB" || message.intent === "SKILL_BUILDER") && (
                             <div className={styles.proposalCard}>
@@ -1129,7 +1156,7 @@ export function AIAgentPage() {
                                   message.payload.topic ||
                                   message.payload.subject ||
                                   message.payload.title ||
-                                  (isSystemBn ? "স্টাডি বিষয়" : "Study Topic")}
+                                  (isSystemBn ? "লার্নিং টপিক" : "Learning Topic")}
                               </div>
                               <div className={styles.proposalDesc}>
                                 {message.payload.targetHours ? `${message.payload.targetHours}h Target • ` : ""}
@@ -1301,22 +1328,21 @@ export function AIAgentPage() {
         {/* COMPOSER (Fixed at the bottom) */}
         <div className={`${styles.composerWrapper} ${isKeyboardOpen ? styles.composerWrapperKeyboardOpen : ""}`}>
           <div className={styles.composerContainer}>
-            {/* Token Exhaustion Alert */}
-            {tokenStatus?.isExhausted && (
+            {/* Sticky Token Limit Banner with Live Countdown */}
+            {isLimitExhausted && (
               <div className={styles.tokenBanner}>
                 <div className="flex items-center gap-2">
-                  <Clock size={14} />
-                  <span>
-                    {guestLimitExceeded
-                      ? isSystemBn
-                        ? "গেস্ট লিমিট শেষ। লগইন করে চালিয়ে যান।"
-                        : "Guest limit reached. Please log in."
-                      : isSystemBn
-                      ? "আজকের লিমিট শেষ।"
-                      : "Daily token limit reached."}
+                  <Clock size={14} className="shrink-0 text-amber-500" />
+                  <span className="font-semibold text-xs">
+                    {isSystemBn ? "লিমিট রিচ (সীমা সমাপ্ত)" : "Limit Reached"}
                   </span>
+                  {resetCountdownText && (
+                    <span className="text-[11px] opacity-85">
+                      • {isSystemBn ? `রিস্টোর হবে: ${resetCountdownText}` : `Restores: ${resetCountdownText}`}
+                    </span>
+                  )}
                 </div>
-                {guestLimitExceeded && (
+                {isGuestLimit && (
                   <button
                     type="button"
                     className={styles.tokenLoginBtn}
@@ -1361,14 +1387,16 @@ export function AIAgentPage() {
                   <AIChatAnimatedTypingInput
                     ref={textareaRef}
                     value={input}
-                    disabled={isThinking}
+                    disabled={isThinking || isLimitExhausted}
                     onChange={(e) => {
+                      if (isLimitExhausted) return;
                       const val = e.target.value;
                       setInput(val);
                       resetInactivityTimer();
                       requestAnimationFrame(adjustTextareaHeight);
                     }}
                     onKeyDown={(e) => {
+                      if (isLimitExhausted) return;
                       resetInactivityTimer();
                       if (e.key === "Enter" && !e.shiftKey) {
                         e.preventDefault();
@@ -1376,7 +1404,11 @@ export function AIAgentPage() {
                       }
                     }}
                     placeholder={
-                      messages && messages.length > 0
+                      isLimitExhausted
+                        ? isSystemBn
+                          ? `আজকের লিমিট শেষ। ${resetCountdownText ? `রিস্টোর হবে ${resetCountdownText}` : "রিসেট হওয়া পর্যন্ত অপেক্ষা করুন..."}`
+                          : `Daily limit reached. ${resetCountdownText ? `Restores ${resetCountdownText}` : "Please wait for reset..."}`
+                        : messages && messages.length > 0
                         ? isSystemBn
                           ? "গ্লোরিকে উত্তর দিন..."
                           : "Reply to Glory..."
@@ -1387,7 +1419,9 @@ export function AIAgentPage() {
                     rows={1}
                     className={`${styles.pillTextarea} composer-pill-textarea`}
                     aria-label={
-                      messages && messages.length > 0
+                      isLimitExhausted
+                        ? "Limit Reached"
+                        : messages && messages.length > 0
                         ? "Reply to Glory"
                         : "Chat with Glory"
                     }

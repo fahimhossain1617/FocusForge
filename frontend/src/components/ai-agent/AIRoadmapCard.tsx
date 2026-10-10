@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, useCallback } from "react";
+import React, { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import {
   CheckCircle2,
   Circle,
@@ -15,6 +15,8 @@ import {
   ArrowRight,
   Award
 } from "lucide-react";
+import confetti from "canvas-confetti";
+import { useAuth } from "@/context/AuthContext";
 import type { LearningRoadmap, RoadmapPriority } from "@/types/roadmap";
 import { calculateRoadmapProgress } from "@/types/roadmap";
 import { roadmapService } from "@/services/roadmapService";
@@ -32,11 +34,36 @@ export function AIRoadmapCard({
   onSave,
   onNavigate,
 }: AIRoadmapCardProps) {
+  const { user } = useAuth();
   const [roadmap, setRoadmap] = useState<LearningRoadmap>(initialRoadmap);
   const [isSaved, setIsSaved] = useState<boolean>(Boolean(initialRoadmap.isSaved));
   const [collapsedStages, setCollapsedStages] = useState<Record<string, boolean>>({});
+  const hasTriggeredCelebrationRef = useRef<boolean>(false);
+
+  // Sync if initialRoadmap changes
+  useEffect(() => {
+    setRoadmap(initialRoadmap);
+    setIsSaved(Boolean(initialRoadmap.isSaved));
+  }, [initialRoadmap]);
 
   const progress = useMemo(() => calculateRoadmapProgress(roadmap), [roadmap]);
+
+  // Trigger celebration once when fully completed
+  useEffect(() => {
+    if (progress.isFullyCompleted && !hasTriggeredCelebrationRef.current) {
+      hasTriggeredCelebrationRef.current = true;
+      try {
+        confetti({
+          particleCount: 80,
+          spread: 70,
+          origin: { y: 0.6 },
+          colors: ["#3B82F6", "#60A5FA", "#10B981", "#F59E0B", "#8B5CF6"]
+        });
+      } catch {}
+    } else if (!progress.isFullyCompleted) {
+      hasTriggeredCelebrationRef.current = false;
+    }
+  }, [progress.isFullyCompleted]);
 
   const toggleStageCollapse = (stageId: string) => {
     setCollapsedStages((prev) => ({ ...prev, [stageId]: !prev[stageId] }));
@@ -44,9 +71,10 @@ export function AIRoadmapCard({
 
   const handleToggleItem = useCallback(
     (topicId: string, subtaskId?: string) => {
-      const updated = roadmapService.toggleItemCompletion(roadmap.id, topicId, subtaskId);
+      const updated = roadmapService.toggleItemCompletion(roadmap.id, topicId, subtaskId, user?.id);
       if (updated) {
         setRoadmap({ ...updated });
+        if (onSave) onSave(updated);
       } else {
         // Update local state in-place if not yet saved to local storage
         const nextRoadmap = JSON.parse(JSON.stringify(roadmap)) as LearningRoadmap;
@@ -72,11 +100,11 @@ export function AIRoadmapCard({
         setRoadmap(nextRoadmap);
       }
     },
-    [roadmap]
+    [roadmap, user?.id, onSave]
   );
 
   const handleSaveRoadmap = () => {
-    const saved = roadmapService.saveRoadmap(roadmap);
+    const saved = roadmapService.saveRoadmap(roadmap, user?.id);
     setIsSaved(true);
     if (onSave) {
       onSave(saved);
@@ -307,6 +335,18 @@ export function AIRoadmapCard({
           );
         })}
       </div>
+
+      {/* WARM COMPLETION BANNER */}
+      {progress.isFullyCompleted && (
+        <div className="mx-3.5 sm:mx-4 my-2 p-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 dark:bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 flex items-center gap-3 animate-in fade-in duration-300">
+          <Award className="w-5 h-5 text-emerald-500 shrink-0" />
+          <div className="text-xs sm:text-sm font-semibold leading-relaxed">
+            {isBn
+              ? "অভিনন্দন! তুমি তোমার সম্পূর্ণ রোডম্যাপ সফলভাবে সম্পন্ন করেছো! তোমার শেখার এই দারুণ ধারাবাহিকতা অব্যাহত রাখো! 🎉"
+              : "Congratulations! You have completed your entire roadmap! Keep up this incredible learning momentum! 🎉"}
+          </div>
+        </div>
+      )}
 
       {/* FOOTER ACTIONS */}
       <div className="p-3 sm:p-4 border-t border-zinc-200/70 dark:border-zinc-800/80 bg-zinc-50/80 dark:bg-zinc-900/80 flex items-center justify-between gap-3 flex-wrap">
