@@ -237,10 +237,10 @@ Focentia is an active, functional productivity suite built with Next.js 16 App R
 ---
 
 ### Cross-Device Sync & Envelope-Key E2EE Architecture
-- **Current Implementation:** `lib/crypto.ts` provides complete Web Crypto AES-256-GCM envelope encryption with 12-byte IVs, cryptographically random 256-bit MEK, 250,000-iteration PBKDF2-HMAC-SHA-256 KEK derivation, and wrapped key envelope persistence in Supabase `user_encryption_keys`. `lib/sync.ts` & `services/syncService.ts` provide debounced, batched offline-first sync with monotonic `data_version` tracking and conflict resolution. Interactive modals (`PassphraseSetupModal.tsx`, `PassphraseUnlockModal.tsx`, `RecoveryKeyExportModal.tsx`) and live indicators (`SyncStatusIndicator.tsx`) are integrated seamlessly into UI navigation. Binary file attachments (images, PDFs) are encrypted client-side before upload to Supabase Storage.
-- **Verified Status:** **VERIFIED** (22/22 crypto tests passed, frontend and backend production builds passed with 0 errors).
+- **Current Implementation:** `lib/crypto.ts` provides complete Web Crypto AES-256-GCM envelope encryption with 12-byte IVs, cryptographically random 256-bit MEK, 250,000-iteration PBKDF2-HMAC-SHA-256 KEK derivation, and wrapped key envelope persistence in Supabase `user_encryption_keys`. `lib/sync.ts` & `services/syncService.ts` provide debounced, batched offline-first sync with monotonic `data_version` tracking and conflict resolution. Dual-layer connectivity monitoring in `services/connectivityService.ts` pairs browser events with real HTTP probe reachability so failed requests immediately update network status. Sync engine persists queue in IndexedDB across restarts, auto-flushes on reconnect with exponential backoff (1.5s to 24s), and resolves pull conflicts with last-write-wins by `updatedAt` without data loss. Subtle non-blocking sync status indicator in `MobileHeader.tsx` reflects offline/syncing/synced state.
+- **Verified Status:** **VERIFIED**
 - **Known Problems:** None.
-- **Important Files:** `frontend/src/lib/crypto.ts`, `frontend/src/lib/db.ts`, `frontend/src/lib/sync.ts`, `frontend/src/services/syncService.ts`, `frontend/src/components/encryption/*`, `supabase/migrations/026_user_encryption_keys_and_e2ee.sql`.
+- **Important Files:** `frontend/src/lib/crypto.ts`, `frontend/src/lib/db.ts`, `frontend/src/lib/sync.ts`, `frontend/src/services/connectivityService.ts`, `frontend/src/services/syncService.ts`, `frontend/src/components/encryption/*`, `frontend/src/components/navigation/MobileHeader.tsx`, `supabase/migrations/026_user_encryption_keys_and_e2ee.sql`.
 - **Dependencies:** `window.crypto.subtle`, `dexie`, `user_encryption_keys`, `encrypted_sync_records`.
 - **Unknowns:** None.
 
@@ -360,6 +360,20 @@ Focentia is an active, functional productivity suite built with Next.js 16 App R
 - **Verified Status:** **VERIFIED** (21/21 pipeline tests, 18/18 personality tests, 23/23 feature tools, 33/33 roadmap tests, 28/28 security audit tests, and 27/27 E2E tests passing. Frontend and backend production builds passing with 0 errors).
 - **Important Files:** `frontend/src/lib/server/aiService.ts`, `backend/src/services/aiService.ts`, `frontend/src/app/api/ai/transcribe/route.ts`, `frontend/src/components/ai-agent/AIAgentPage.tsx`, `frontend/src/components/ai-agent/AIOrbFace.tsx`, `frontend/src/components/ai-agent/ai-orb-face.module.css`, `frontend/src/components/ai-agent/useOrbMood.ts`, `frontend/src/hooks/useAIAgent.ts`, `frontend/src/types/aiAgent.ts`.
 - **Dependencies:** `@google/genai`.
+- **Unknowns:** None.
+
+---
+
+### Offline-First Architecture & Local Notifications Subsystem
+- **Current Implementation:**
+  1. **Dual Connectivity Engine (`connectivityService.ts`):** Merges browser/Capacitor OS events with real lightweight HTTP HEAD reachability probes. API client records connection failures and successes, eliminating false "online" claims during network stalls.
+  2. **100% Offline Core Subsystems:** Dashboard, Focus + Timer, Time Log, My Diary, Mind Space, Planner, and Notes & Files read and write directly to IndexedDB first (`focusDbService.ts`, `taskService.ts`, `localDbService.ts`).
+  3. **Graceful Online-Only Gating:** Glory AI enters sleeping state with exact message: *"You are currently offline. I'm sleeping right now, I'll help you again when you're back online."* Auto-wakes on reconnection; prevents all Gemini calls and token deductions offline. Diary/Mind Space voice inputs show offline notifications and block recording without crashes. Note Share & PDF export disable gracefully.
+  4. **Persistent Sync Queue & Exponential Backoff (`sync.ts`):** Changes are queued locally in IndexedDB `sync_queue` with client UUIDs. Auto-flushes on reconnect with exponential backoff (1.5s to 24s); last-write-wins by `updatedAt` pull conflict resolution preserves local records and tracks tombstones.
+  5. **Authoritative Local Notification Scheduler (`localNotificationScheduler.ts`):** Local scheduled alarms act as the sole source of truth (Capacitor LocalNotifications with `allowWhileIdle: true`, native Android bridge, and Service Worker persistent IndexedDB `focentia_reminders_db`). Automatically reschedules on task/planner/routine/setting edits and device reboot/update. Enforces Quiet Hours (10:00 PM - 7:00 AM) and individual setting toggles. Native Android app shows device permission prompt instead of browser wording.
+- **Verified Status:** **VERIFIED**
+- **Important Files:** `frontend/src/services/connectivityService.ts`, `frontend/src/services/localNotificationScheduler.ts`, `frontend/public/sw.js`, `frontend/src/lib/sync.ts`, `frontend/src/components/navigation/MobileHeader.tsx`, `frontend/src/components/pages/NotificationsPage.tsx`, `OFFLINE_TEST_CHECKLIST.md`.
+- **Dependencies:** `@capacitor/local-notifications`, Dexie IndexedDB, Service Worker API.
 - **Unknowns:** None.
 
 ---

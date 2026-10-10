@@ -77,9 +77,14 @@ export default function DiaryVoiceInput({
     if (!isOnline) {
       showToast(
         state.lang === "bn"
-          ? "আপনি বর্তমানে অফলাইনে আছেন।"
-          : "You are currently offline.",
+          ? "আপনি বর্তমানে অফলাইনে আছেন। ভয়েস ইনপুটের জন্য ইন্টারনেট প্রয়োজন।"
+          : "You are currently offline. Voice input needs internet.",
         "error"
+      );
+      onError?.(
+        state.lang === "bn"
+          ? "আপনি বর্তমানে অফলাইনে আছেন। ভয়েস ইনপুটের জন্য ইন্টারনেট প্রয়োজন।"
+          : "You are currently offline. Voice input needs internet."
       );
       return;
     }

@@ -20,14 +20,15 @@ import {
 import { toggleThemeWithCircularTransition } from "../../utils/themeTransition";
 import { useSync } from "../../hooks/useSync";
 import InstallPrompt from "../pwa/InstallPrompt";
+import SyncStatusIndicator from "../encryption/SyncStatusIndicator";
 
 export default function MobileHeader() {
   const { state, updateState, navigateTo, isSubViewActive } = useAppContext();
   const { user, isGuest, openAuth, promptLogout } = useAuth();
   const { t } = useTranslation();
   const { hasUnread, unreadCount } = useNotificationCenter();
-  // Runs background sync seamlessly without showing noisy indicators in header
-  useSync(user?.id);
+  // Runs background sync seamlessly and provides sync state
+  const { syncStatus, isSyncing, syncNow } = useSync(user?.id);
 
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
@@ -140,8 +141,16 @@ export default function MobileHeader() {
           </span>
         </button>
 
-        {/* Right Actions: Get App + Theme Toggle + Clean Unboxed Bell + 3-Dots Menu */}
+        {/* Right Actions: Get App + Sync Indicator + Theme Toggle + Bell + 3-Dots Menu */}
         <div className="flex items-center gap-1 sm:gap-1.5">
+          {/* Subtle Non-Blocking Sync Indicator */}
+          <SyncStatusIndicator
+            status={syncStatus}
+            isSyncing={isSyncing}
+            onTriggerSync={syncNow}
+            lang={state.lang}
+          />
+
           {/* Get App PWA Button (Visible only when not installed / web browser) */}
           <InstallPrompt variant="header" />
 

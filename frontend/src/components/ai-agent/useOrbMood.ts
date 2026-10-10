@@ -134,6 +134,11 @@ export function useOrbMood({
   const [isGiggling, setIsGiggling] = useState(false);
   const [isEnjoying, setIsEnjoying] = useState(false);
   const [customThought, setCustomThought] = useState<string | null>(() => {
+    if (!isOnline) {
+      return isBn
+        ? "তুমি বর্তমানে অফলাইনে আছো। আমি এখন ঘুমাচ্ছি, তুমি আবার অনলাইনে আসলে তোমাকে সাহায্য করবো।"
+        : "You are currently offline. I'm sleeping right now, I'll help you again when you're back online.";
+    }
     if (isLimitExhausted || isGuestLimit) {
       return isBn
         ? "তোমার আজকের লিমিট শেষ হয়ে গেছে, তাই আমি একটু রেস্ট নিচ্ছি। লিমিট রিসেট হলে আবার জেগে তোমাকে সাহায্য করবো!"
@@ -154,8 +159,8 @@ export function useOrbMood({
       setMood("offline");
       setCustomThought(
         isBn
-          ? "মনে হচ্ছে তুমি অফলাইনে আছো। আমি একটু বিশ্রাম নিই, অনলাইন হলে ডেকে দিও!"
-          : "Looks like you're offline. I'll rest for a bit. Call me when you're back online!"
+          ? "তুমি বর্তমানে অফলাইনে আছো। আমি এখন ঘুমাচ্ছি, তুমি আবার অনলাইনে আসলে তোমাকে সাহায্য করবো।"
+          : "You are currently offline. I'm sleeping right now, I'll help you again when you're back online."
       );
     } else if (mood === "offline") {
       setMood("idle");
@@ -304,8 +309,8 @@ export function useOrbMood({
       setMood("offline");
       setCustomThought(
         isBn
-          ? "বর্তমানে কোনো ইন্টারনেট সংযোগ নেই। অনলাইন হলে আবার কথা বলব!"
-          : "No internet connection right now. Let's chat once you're back online!"
+          ? "তুমি বর্তমানে অফলাইনে আছো। আমি এখন ঘুমাচ্ছি, তুমি আবার অনলাইনে আসলে তোমাকে সাহায্য করবো।"
+          : "You are currently offline. I'm sleeping right now, I'll help you again when you're back online."
       );
       return;
     }

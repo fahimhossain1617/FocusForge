@@ -805,7 +805,12 @@ export function AIAgentPage() {
     }
     if (!value.trim() || guestLimitExceeded) return;
     if (!isOnline) {
-      showToast(isSystemBn ? "তুমি বর্তমানে অফলাইনে আছো।" : "You are currently offline.", "error");
+      showToast(
+        isSystemBn 
+          ? "তুমি বর্তমানে অফলাইনে আছো। আমি এখন ঘুমাচ্ছি, তুমি আবার অনলাইনে আসলে তোমাকে সাহায্য করবো।" 
+          : "You are currently offline. I'm sleeping right now, I'll help you again when you're back online.", 
+        "error"
+      );
       return;
     }
     setInput("");
@@ -821,7 +826,12 @@ export function AIAgentPage() {
   const startVoice = async () => {
     if (guestLimitExceeded) return;
     if (!isOnline) {
-      showToast(isSystemBn ? "তুমি বর্তমানে অফলাইনে আছো।" : "You are currently offline.", "error");
+      showToast(
+        isSystemBn 
+          ? "তুমি বর্তমানে অফলাইনে আছো। আমি এখন ঘুমাচ্ছি, তুমি আবার অনলাইনে আসলে তোমাকে সাহায্য করবো।" 
+          : "You are currently offline. I'm sleeping right now, I'll help you again when you're back online.", 
+        "error"
+      );
       return;
     }
     baseInputRef.current = input;
@@ -1398,16 +1408,16 @@ export function AIAgentPage() {
                   <AIChatAnimatedTypingInput
                     ref={textareaRef}
                     value={input}
-                    disabled={isThinking || isLimitExhausted}
+                    disabled={!isOnline || isThinking || isLimitExhausted}
                     onChange={(e) => {
-                      if (isLimitExhausted) return;
+                      if (!isOnline || isLimitExhausted) return;
                       const val = e.target.value;
                       setInput(val);
                       resetInactivityTimer();
                       requestAnimationFrame(adjustTextareaHeight);
                     }}
                     onKeyDown={(e) => {
-                      if (isLimitExhausted) return;
+                      if (!isOnline || isLimitExhausted) return;
                       resetInactivityTimer();
                       if (e.key === "Enter" && !e.shiftKey) {
                         e.preventDefault();
@@ -1415,7 +1425,11 @@ export function AIAgentPage() {
                       }
                     }}
                     placeholder={
-                      isLimitExhausted
+                      !isOnline
+                        ? isSystemBn
+                          ? "তুমি বর্তমানে অফলাইনে আছো। আমি এখন ঘুমাচ্ছি..."
+                          : "You are currently offline. I'm sleeping right now..."
+                        : isLimitExhausted
                         ? isSystemBn
                           ? `আজকের লিমিট শেষ। ${resetCountdownText ? `রিস্টোর হবে ${resetCountdownText}` : "রিসেট হওয়া পর্যন্ত অপেক্ষা করুন..."}`
                           : `Daily limit reached. ${resetCountdownText ? `Restores ${resetCountdownText}` : "Please wait for reset..."}`
@@ -1497,13 +1511,16 @@ export function AIAgentPage() {
                   <div className={styles.modelMenuWrapper} ref={modelMenuRef}>
                     <button
                       type="button"
-                      className={`${styles.pillModelBtn} ${modelMenuOpen ? styles.pillModelBtnActive : ""}`}
-                      onClick={() => setModelMenuOpen((prev) => !prev)}
+                      disabled={!isOnline}
+                      className={`${styles.pillModelBtn} ${modelMenuOpen ? styles.pillModelBtnActive : ""} ${!isOnline ? "opacity-50 cursor-not-allowed" : ""}`}
+                      onClick={() => !isOnline ? null : setModelMenuOpen((prev) => !prev)}
                       aria-label="Select AI Model"
                       aria-haspopup="true"
                       aria-expanded={modelMenuOpen}
                       title={
-                        modelMode === "fast"
+                        !isOnline
+                          ? (isSystemBn ? "অফলাইন অবস্থায় মডেল পরিবর্তন সম্ভব নয়" : "Model selection unavailable offline")
+                          : modelMode === "fast"
                           ? isSystemBn ? "মডেল: Focentia 2.1 (দ্রুত প্রতিক্রিয়া)" : "Select AI model (Current: Focentia 2.1)"
                           : isSystemBn ? "মডেল: Focentia Pro (গভীর গবেষণা ও পরিকল্পনা)" : "Select AI model (Current: Focentia Pro)"
                       }
@@ -1589,11 +1606,17 @@ export function AIAgentPage() {
                   {/* Mic / Stop Icon Button */}
                   <button
                     type="button"
-                    className={`${styles.pillIconBtn} ${isVoiceListening ? styles.pillIconBtnActive : ""}`}
+                    className={`${styles.pillIconBtn} ${isVoiceListening ? styles.pillIconBtnActive : ""} ${!isOnline ? "opacity-50 cursor-not-allowed" : ""}`}
                     onClick={isVoiceListening ? stopVoice : startVoice}
-                    disabled={isThinking || tokenStatus?.isExhausted}
+                    disabled={!isOnline || isThinking || tokenStatus?.isExhausted}
                     aria-label={isVoiceListening ? (isSystemBn ? "ভয়েস বন্ধ করুন" : "Stop voice input") : (isSystemBn ? "ভয়েস শুরু করুন" : "Start voice input")}
-                    title={isVoiceListening ? (isSystemBn ? "ভয়েস চালু আছে (ক্লিক করে থামান)" : "Listening... Click to stop") : (isSystemBn ? "ভয়েস ইনপুট" : "Voice input")}
+                    title={
+                      !isOnline
+                        ? (isSystemBn ? "অফলাইনে ভয়েস ইনপুট কাজ করবে না" : "Voice input requires internet")
+                        : isVoiceListening
+                        ? (isSystemBn ? "ভয়েস চালু আছে (ক্লিক করে থামান)" : "Listening... Click to stop")
+                        : (isSystemBn ? "ভয়েস ইনপুট" : "Voice input")
+                    }
                   >
                     {isVoiceListening ? <Square size={13} fill="currentColor" /> : <Mic size={17} strokeWidth={1.8} />}
                   </button>

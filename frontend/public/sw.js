@@ -27,9 +27,62 @@ const STATIC_ASSETS = [
 ];
 
 // Background reminder storage and active timers map
+// Background reminder storage and active timers map
 let activeScheduledReminders = [];
 const activeReminderTimers = new Map();
 const triggeredReminderIds = new Set();
+
+// ==================== IndexedDB Persistence for Scheduled Reminders ====================
+function openRemindersDB() {
+  return new Promise((resolve) => {
+    if (typeof indexedDB === 'undefined') return resolve(null);
+    try {
+      const request = indexedDB.open('focentia_reminders_db', 1);
+      request.onupgradeneeded = (e) => {
+        const db = e.target.result;
+        if (!db.objectStoreNames.contains('reminders')) {
+          db.createObjectStore('reminders', { keyPath: 'id' });
+        }
+      };
+      request.onsuccess = (e) => resolve(e.target.result);
+      request.onerror = () => resolve(null);
+    } catch {
+      resolve(null);
+    }
+  });
+}
+
+async function saveRemindersToIDB(reminders) {
+  if (!Array.isArray(reminders)) return;
+  const db = await openRemindersDB();
+  if (!db) return;
+  try {
+    const tx = db.transaction('reminders', 'readwrite');
+    const store = tx.objectStore('reminders');
+    store.clear();
+    for (const r of reminders) {
+      store.put(r);
+    }
+  } catch (err) {
+    console.warn('[SW] IDB saveReminders warning:', err);
+  }
+}
+
+async function loadRemindersFromIDB() {
+  const db = await openRemindersDB();
+  if (!db) return [];
+  return new Promise((resolve) => {
+    try {
+      const tx = db.transaction('reminders', 'readonly');
+      const store = tx.objectStore('reminders');
+      const req = store.getAll();
+      req.onsuccess = () => resolve(req.result || []);
+      req.onerror = () => resolve([]);
+    } catch {
+      resolve([]);
+    }
+  });
+}
 
 function clearAllReminderTimers() {
   for (const timer of activeReminderTimers.values()) {
@@ -86,10 +139,14 @@ async function triggerScheduledNotification(reminder) {
   }
 }
 
-function scheduleReminders(reminders) {
+function scheduleReminders(reminders, persist = true) {
   if (!Array.isArray(reminders)) return;
   clearAllReminderTimers();
   activeScheduledReminders = reminders;
+
+  if (persist) {
+    saveRemindersToIDB(reminders);
+  }
 
   const now = Date.now();
   for (const item of reminders) {
@@ -108,6 +165,14 @@ function scheduleReminders(reminders) {
   }
 }
 
+// Restore and arm scheduled reminders from IndexedDB
+async function restoreAndArmReminders() {
+  const saved = await loadRemindersFromIDB();
+  if (Array.isArray(saved) && saved.length > 0) {
+    scheduleReminders(saved, false);
+  }
+}
+
 // Message listener to trigger immediate skip waiting or schedule reminders from client
 self.addEventListener('message', (event) => {
   if (!event.data) return;
@@ -115,7 +180,7 @@ self.addEventListener('message', (event) => {
   if (event.data.type === 'SKIP_WAITING' || event.data === 'skipWaiting') {
     self.skipWaiting();
   } else if (event.data.type === 'SCHEDULE_REMINDERS') {
-    scheduleReminders(event.data.reminders);
+    scheduleReminders(event.data.reminders, true);
   } else if (event.data.type === 'CANCEL_REMINDER' && event.data.id) {
     triggeredReminderIds.add(event.data.id);
     const timer = activeReminderTimers.get(event.data.id);
@@ -130,8 +195,9 @@ self.addEventListener('message', (event) => {
 self.addEventListener('periodicsync', (event) => {
   if (event.tag === 'focentia-reminders') {
     event.waitUntil((async () => {
+      const reminders = activeScheduledReminders.length > 0 ? activeScheduledReminders : await loadRemindersFromIDB();
       const now = Date.now();
-      for (const item of activeScheduledReminders) {
+      for (const item of reminders) {
         if (!triggeredReminderIds.has(item.id) && item.targetTimestamp <= now && now - item.targetTimestamp < 15 * 60 * 1000) {
           await triggerScheduledNotification(item);
         }
@@ -151,18 +217,21 @@ self.addEventListener('install', (event) => {
   );
 });
 
-// Activate: Clean up any outdated caches
+// Activate: Clean up any outdated caches and restore reminders
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((keys) => {
-      return Promise.all(
-        keys.map((key) => {
-          if (key !== CACHE_NAME) {
-            return caches.delete(key);
-          }
-        })
-      );
-    }).then(() => self.clients.claim())
+    Promise.all([
+      caches.keys().then((keys) => {
+        return Promise.all(
+          keys.map((key) => {
+            if (key !== CACHE_NAME) {
+              return caches.delete(key);
+            }
+          })
+        );
+      }),
+      restoreAndArmReminders()
+    ]).then(() => self.clients.claim())
   );
 });
 

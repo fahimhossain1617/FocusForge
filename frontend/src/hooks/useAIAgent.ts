@@ -23,6 +23,7 @@ import type {
 } from "@/types/aiAgent";
 import { useAuth } from "@/context/AuthContext";
 import { aiConsentService } from "@/services/aiConsentService";
+import { connectivityService } from "@/services/connectivityService";
 
 let memoryMessages: AgentMessage[] | null = null;
 let memoryActiveSessionId: string | null = null;
@@ -409,6 +410,12 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
     if (!content.trim()) { 
       setError(language === "bn" ? "প্রথমে তোমার প্রশ্ন বা টাস্ক লেখো।" : "Tell Focentia what you need help with first."); 
       return; 
+    }
+    if (!connectivityService.isOnline()) {
+      setError(language === "bn" 
+        ? "তুমি বর্তমানে অফলাইনে আছো। আমি এখন ঘুমাচ্ছি, তুমি আবার অনলাইনে আসলে তোমাকে সাহায্য করবো।" 
+        : "You are currently offline. I'm sleeping right now, I'll help you again when you're back online.");
+      return;
     }
     setError(null); 
 

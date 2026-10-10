@@ -135,6 +135,15 @@ export class VoiceSessionManager {
       return;
     }
 
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      const msg = this.language === "bn-BD"
+        ? "আপনি বর্তমানে অফলাইনে আছেন। ভয়েস ইনপুটের জন্য ইন্টারনেট প্রয়োজন।"
+        : "You are currently offline. Voice input needs internet.";
+      this.setState("IDLE");
+      this.callbacks.onError?.(msg);
+      return;
+    }
+
     const SpeechRecognitionClass = this.getSpeechRecognitionClass();
     if (!SpeechRecognitionClass) {
       const msg = this.language === "bn-BD"

@@ -1,5 +1,6 @@
 import { supabase } from './supabaseClient';
 import { getBackendUrl } from './backendUrl';
+import { connectivityService } from '../services/connectivityService';
 
 /**
  * A resilient API client wrapper around fetch that automatically handles adding
@@ -58,18 +59,22 @@ export async function fetchBackend<T>(endpoint: string, options: RequestInit = {
 
   try {
     response = await executeFetch(primaryUrl, 10000);
+    connectivityService.reportRequestSuccess();
   } catch (err: any) {
     // If primary backend failed (e.g. port 5000 not started or offline) and primary was different from relative:
     if (primaryUrl !== relativeUrl && !options.signal?.aborted) {
       try {
         response = await executeFetch(relativeUrl, 10000);
+        connectivityService.reportRequestSuccess();
       } catch (fallbackErr: any) {
+        connectivityService.reportRequestFailure();
         if (fallbackErr.name === 'AbortError' && !options.signal) {
           throw new Error('Request timed out. Please check your connection and try again.');
         }
         throw fallbackErr;
       }
     } else {
+      connectivityService.reportRequestFailure();
       if (err.name === 'AbortError' && !options.signal) {
         throw new Error('Request timed out. Please check your connection and try again.');
       }

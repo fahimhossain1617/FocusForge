@@ -17,6 +17,7 @@ import {
   Check,
 } from "lucide-react";
 import { AppNotification } from "../../types";
+import { localNotificationScheduler } from "../../services/localNotificationScheduler";
 
 interface NotificationCenterProps {
   isOpen: boolean;
@@ -108,6 +109,7 @@ export default function NotificationCenter({ isOpen, onClose }: NotificationCent
 
   const isLight = state.theme?.mode === "light";
   const isBn = state.lang === "bn";
+  const isNative = localNotificationScheduler.isNativeAndroid();
   const panelRef = useRef<HTMLDivElement>(null);
 
   // Clean up selectedIds that are no longer in notifications
@@ -358,14 +360,23 @@ export default function NotificationCenter({ isOpen, onClose }: NotificationCent
                 <div className="flex items-center gap-2 min-w-0">
                   <Info size={14} className="text-blue-600 dark:text-blue-400 shrink-0" />
                   <p className="text-xs">
-                    {isBn
+                    {isNative
+                      ? isBn
+                        ? "সময়মতো রিমাইন্ডার পেতে নোটিফিকেশন অনুমতি দিন"
+                        : "Allow notifications for timely reminders"
+                      : isBn
                       ? "সময়মতো রিমাইন্ডার পেতে ব্রাউজার অনুমতি দিন"
                       : "Allow browser notifications for timely reminders"}
                   </p>
                 </div>
                 <button
                   type="button"
-                  onClick={requestBrowserPermission}
+                  onClick={async () => {
+                    if (isNative) {
+                      await localNotificationScheduler.requestPermissions();
+                    }
+                    await requestBrowserPermission();
+                  }}
                   className="px-3 py-1 text-[11px] font-bold bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all shrink-0 cursor-pointer active:scale-95 shadow-none"
                 >
                   {isBn ? "অনুমতি দিন" : "Enable"}

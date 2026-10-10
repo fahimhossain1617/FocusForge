@@ -18,6 +18,7 @@ import {
   X,
 } from "lucide-react";
 import { AppNotification } from "../../types";
+import { localNotificationScheduler } from "../../services/localNotificationScheduler";
 
 // Relative time formatter helper
 function formatTimeAgo(timestampStr: string, isBn: boolean): string {
@@ -104,6 +105,7 @@ export default function NotificationsPage() {
 
   const isLight = state.theme?.mode === "light";
   const isBn = state.lang === "bn";
+  const isNative = localNotificationScheduler.isNativeAndroid();
 
   // Hold / long press refs to handle selection without triggering normal click
   const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -389,20 +391,29 @@ export default function NotificationsPage() {
         )}
       </div>
 
-      {/* 3. Browser Permission Notice (Clean, flat directly on interface, NO enclosing box) */}
+      {/* 3. Browser / Native Permission Notice */}
       {browserPermission === "default" && (
         <div className="py-2 flex items-center justify-between gap-3 text-slate-600 dark:text-slate-300">
           <div className="flex items-center gap-2 min-w-0">
             <Info size={16} className="text-slate-500 dark:text-slate-400 shrink-0" />
             <p className="text-xs sm:text-sm">
-              {isBn
+              {isNative
+                ? isBn
+                  ? "গুরুত্বপূর্ণ টাস্ক ও সেশনের সময়মতো নোটিফিকেশন পেতে ডিভাইসের নোটিফিকেশন অনুমতি দিন।"
+                  : "Enable app notifications to stay on track with scheduled tasks and reminders."
+                : isBn
                 ? "গুরুত্বপূর্ণ টাস্ক ও সেশনের সময়মতো নোটিফিকেশন পেতে ব্রাউজার পারমিশন দিন।"
                 : "Enable browser notifications to stay on track with scheduled tasks and reminders."}
             </p>
           </div>
           <button
             type="button"
-            onClick={requestBrowserPermission}
+            onClick={async () => {
+              if (isNative) {
+                await localNotificationScheduler.requestPermissions();
+              }
+              await requestBrowserPermission();
+            }}
             className="px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-blue-600 hover:bg-blue-700 text-white shrink-0 cursor-pointer transition-colors"
           >
             {isBn ? "অনুমতি দিন" : "Enable"}

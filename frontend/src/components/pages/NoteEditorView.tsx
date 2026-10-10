@@ -128,8 +128,8 @@ export default function NoteEditorView({
     if (!isOnline) {
       showToast(
         state.lang === 'bn'
-          ? "আপনি বর্তমানে অফলাইনে আছেন।"
-          : "You are currently offline.",
+          ? "আপনি বর্তমানে অফলাইনে আছেন। পিডিএফ ডাউনলোডের জন্য ইন্টারনেট প্রয়োজন।"
+          : "You are currently offline. Download as PDF requires internet.",
         'error'
       );
       setMoreOpen(false);
@@ -149,6 +149,17 @@ export default function NoteEditorView({
   };
 
   const share = async () => { 
+    if (!isOnline) {
+      showToast(
+        state.lang === 'bn'
+          ? "আপনি বর্তমানে অফলাইনে আছেন। নোট শেয়ার করার জন্য ইন্টারনেট প্রয়োজন।"
+          : "You are currently offline. Share requires internet.",
+        'error'
+      );
+      setMoreOpen(false);
+      return;
+    }
+
     const text = blocks
       .map((block) => {
         if (block.type === "image") return `[Image: ${block.caption || "Image"}]`;
@@ -157,17 +168,6 @@ export default function NoteEditorView({
         return block.content.replace(/<[^>]*>/g, "");
       })
       .join("\n"); 
-
-    if (!isOnline) {
-      showToast(
-        state.lang === 'bn'
-          ? "আপনি বর্তমানে অফলাইনে আছেন।"
-          : "You are currently offline.",
-        'error'
-      );
-      setMoreOpen(false);
-      return;
-    }
 
     try { 
       if (navigator.share) {
@@ -513,12 +513,21 @@ export default function NoteEditorView({
             </button>
             {shouldRenderMore && (
               <div className={`note-more-menu ${isExitingMore ? "motion-dropdown-exit" : "motion-dropdown"}`}>
-                <button type="button" onClick={share}>
+                <button 
+                  type="button" 
+                  onClick={share}
+                  disabled={!isOnline}
+                  className={!isOnline ? "opacity-50 cursor-not-allowed" : ""}
+                  title={!isOnline ? (isBn ? "ইন্টারনেট সংযোগ প্রয়োজন" : "Share requires an active internet connection.") : undefined}
+                >
                   <Share2 size={15} /> {isBn ? "নোট শেয়ার করুন" : "Share Note"}
                 </button>
                 <button 
                   type="button" 
                   onClick={handleDownloadPdf}
+                  disabled={!isOnline}
+                  className={!isOnline ? "opacity-50 cursor-not-allowed" : ""}
+                  title={!isOnline ? (isBn ? "ইন্টারনেট সংযোগ প্রয়োজন" : "PDF download requires an active internet connection.") : undefined}
                 >
                   <Download size={15} /> {isBn ? "PDF ডাউনলোড করুন" : "Download as PDF"}
                 </button>

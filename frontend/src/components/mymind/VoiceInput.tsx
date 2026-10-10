@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useCallback } from 'react';
 import { Mic, Square, Languages } from 'lucide-react';
 import { useContinuousSpeech } from '@/hooks/useContinuousSpeech';
 import VoiceWaveform from '@/components/voice/VoiceWaveform';
+import { useAppContext } from '@/context/AppContext';
 
 interface VoiceInputProps {
   value?: string;
@@ -93,7 +94,23 @@ export default function VoiceInput({
     onListeningChange?.(isListening);
   }, [isListening, onListeningChange]);
 
+  const { isOnline, showToast, state } = useAppContext();
+
   const toggleListening = () => {
+    if (isListening) {
+      baseToggleListening();
+      return;
+    }
+
+    if (!isOnline) {
+      const msg = state?.lang === 'bn' || lang === 'bn-BD'
+        ? "আপনি বর্তমানে অফলাইনে আছেন। ভয়েস ইনপুটের জন্য ইন্টারনেট প্রয়োজন।"
+        : "You are currently offline. Voice input needs internet.";
+      showToast(msg, "error");
+      onError?.(msg);
+      return;
+    }
+
     const activeText = incomingValue !== undefined && incomingValue !== '' ? incomingValue : text;
     baseToggleListening(activeText);
     textareaRef.current?.focus();

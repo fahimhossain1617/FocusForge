@@ -37,6 +37,8 @@ import { reviewService } from '../services/reviewService';
 import { syncService } from '../services/syncService';
 import { notificationService } from '../services/notificationService';
 import { notificationCenterService } from '../services/notificationCenterService';
+import { connectivityService } from '../services/connectivityService';
+import { localNotificationScheduler } from '../services/localNotificationScheduler';
 
 
 const defaultCategories = ['Programming', 'Study', 'University', 'Exam', 'Personal', 'Health', 'Project', 'Business'];
@@ -210,10 +212,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [isPageLoading, setIsPageLoading] = useState(false);
   const [isSubViewActive, setSubViewActive] = useState(false);
   const [isOnline, setIsOnline] = useState<boolean>(() => {
-    if (typeof navigator !== "undefined" && typeof navigator.onLine === "boolean") {
-      return navigator.onLine;
-    }
-    return true;
+    return connectivityService.isOnline();
   });
   const [toasts, setToasts] = useState<{ id: string; message: string; type: string }[]>([]);
   const stateRef = useRef<AppState>(state);
@@ -221,6 +220,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     stateRef.current = state;
   }, [state]);
+
+  // Subscribe to live dual-layer reachability & connectivity changes
+  useEffect(() => {
+    const unsubscribe = connectivityService.subscribe((online) => {
+      setIsOnline(online);
+    });
+    return () => {
+      unsubscribe();
+    };
+  }, []);
 
   // Track active user identity and request generation to prevent async request races
   const activeUserIdRef = useRef<string | null>(null);
@@ -399,6 +408,30 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       if (cloudTimerRef.current) clearTimeout(cloudTimerRef.current);
     };
   }, [state, isLoaded]);
+
+  // Auto-reschedule local notifications whenever tasks, planner time blocks, routines, or settings change
+  useEffect(() => {
+    if (!isLoaded) return;
+    localNotificationScheduler.debounceReschedule({
+      tasks: state.tasks,
+      focusSessions: state.focusSessions,
+      learningFolders: state.learningFolders,
+      learningLogs: state.learningLogs,
+      routineTemplates: state.routineTemplates,
+      notifPreferences: state.notifPreferences,
+      lang: state.lang,
+      userId: activeUserIdRef.current,
+    });
+  }, [
+    isLoaded,
+    state.tasks,
+    state.focusSessions,
+    state.learningFolders,
+    state.learningLogs,
+    state.routineTemplates,
+    state.notifPreferences,
+    state.lang,
+  ]);
 
   // Synchronize state on Auth State changes (Login, Logout, Account Switch)
   useEffect(() => {
@@ -683,11 +716,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     trackMeaningfulAction('add_mind_thought');
 
-    // Asynchronously persist to Supabase if logged in
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
-        mindService.saveMindItem(newItem, session.user.id);
-      }
+    // Persist immediately to local database
+    const currentUserId = activeUserIdRef.current || 'guest';
+    mindService.saveMindItem(newItem, currentUserId).catch((err) => {
+      console.warn("[AppContext] mindService save warning:", err);
     });
   }, [trackMeaningfulAction]);
 
@@ -699,10 +731,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       ),
     }));
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
-        mindService.updateMindItem(id, content, session.user.id);
-      }
+    const currentUserId = activeUserIdRef.current || 'guest';
+    mindService.updateMindItem(id, content, currentUserId).catch((err) => {
+      console.warn("[AppContext] mindService update warning:", err);
     });
   }, []);
 
@@ -712,10 +743,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       mindItems: prev.mindItems.filter((item) => item.id !== id),
     }));
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
-        mindService.deleteMindItem(id, session.user.id);
-      }
+    const currentUserId = activeUserIdRef.current || 'guest';
+    mindService.deleteMindItem(id, currentUserId).catch((err) => {
+      console.warn("[AppContext] mindService delete warning:", err);
     });
   }, []);
 
@@ -848,13 +878,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     };
     setState((prev) => ({ ...prev, notes: [newNote, ...prev.notes] }));
 
-    // Persist to Supabase PostgreSQL
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
-        noteService.saveNote(newNote, session.user.id).catch((err) => {
-          console.warn("[AppContext] Failed to save note to Supabase:", err);
-        });
-      }
+    // Persist immediately to local database
+    const currentUserId = activeUserIdRef.current || 'guest';
+    noteService.saveNote(newNote, currentUserId).catch((err) => {
+      console.warn("[AppContext] Failed to save note to local DB:", err);
     });
 
     trackMeaningfulAction('create_note');
@@ -867,13 +894,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       notes: prev.notes.map((n) => (n.id === id ? { ...n, ...updates, updatedAt: new Date().toISOString() } : n)),
     }));
 
-    // Update in Supabase PostgreSQL
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
-        noteService.updateNote(id, updates, session.user.id).catch((err) => {
-          console.warn("[AppContext] Failed to update note in Supabase:", err);
-        });
-      }
+    const currentUserId = activeUserIdRef.current || 'guest';
+    noteService.updateNote(id, updates, currentUserId).catch((err) => {
+      console.warn("[AppContext] Failed to update note in local DB:", err);
     });
   }, []);
 
@@ -883,13 +906,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       notes: prev.notes.filter((n) => n.id !== id),
     }));
 
-    // Delete from Supabase PostgreSQL
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
-        noteService.deleteNote(id, session.user.id).catch((err) => {
-          console.warn("[AppContext] Failed to delete note from Supabase:", err);
-        });
-      }
+    const currentUserId = activeUserIdRef.current || 'guest';
+    noteService.deleteNote(id, currentUserId).catch((err) => {
+      console.warn("[AppContext] Failed to delete note from local DB:", err);
     });
   }, []);
 
