@@ -26,22 +26,21 @@ export const requireAuth = async (req: AuthenticatedRequest, res: Response, next
 
     const token = authHeader ? authHeader.replace(/^Bearer\s+/i, '').trim() : '';
 
-    if (token === 'guest' || token === supabaseAnonKey || apikey === supabaseAnonKey) {
+    // If a user JWT token is provided, verify it first
+    if (token && token !== 'guest' && token !== supabaseAnonKey) {
+      const { data: { user }, error } = await supabase.auth.getUser(token);
+      if (!error && user) {
+        req.user = user;
+        return next();
+      }
+    }
+
+    if (!token || token === 'guest' || token === supabaseAnonKey || apikey === supabaseAnonKey) {
       req.user = { id: 'guest', isGuest: true };
       return next();
     }
 
-    // Verify the JWT token using Supabase for logged-in users
-    const { data: { user }, error } = await supabase.auth.getUser(token);
-
-    if (error || !user) {
-      // Gracefully fall back to guest mode
-      req.user = { id: 'guest', isGuest: true };
-      return next();
-    }
-
-    // Attach user to request for downstream handlers
-    req.user = user;
+    req.user = { id: 'guest', isGuest: true };
     next();
   } catch (err) {
     console.error('Auth middleware error:', err);

@@ -67,14 +67,18 @@ export async function fetchBackend<T>(endpoint: string, options: RequestInit = {
         response = await executeFetch(relativeUrl, 10000);
         connectivityService.reportRequestSuccess();
       } catch (fallbackErr: any) {
-        connectivityService.reportRequestFailure();
+        if (!options.signal?.aborted) {
+          connectivityService.reportRequestFailure();
+        }
         if (fallbackErr.name === 'AbortError' && !options.signal) {
           throw new Error('Request timed out. Please check your connection and try again.');
         }
         throw fallbackErr;
       }
     } else {
-      connectivityService.reportRequestFailure();
+      if (!options.signal?.aborted) {
+        connectivityService.reportRequestFailure();
+      }
       if (err.name === 'AbortError' && !options.signal) {
         throw new Error('Request timed out. Please check your connection and try again.');
       }

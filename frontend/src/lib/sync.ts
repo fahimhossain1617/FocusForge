@@ -248,7 +248,6 @@ class SyncEngine {
             }
           } catch (pushErr: any) {
             console.warn("[SyncEngine] Push phase failed:", pushErr?.message);
-            connectivityService.reportRequestFailure();
             this.setStatus("sync_failed", pushErr?.message);
             this.scheduleRetry(cleanUserId);
             return {
@@ -281,7 +280,6 @@ class SyncEngine {
         });
       } catch (pullErr: any) {
         console.warn("[SyncEngine] Pull phase failed:", pullErr?.message);
-        connectivityService.reportRequestFailure();
         this.setStatus("sync_failed", pullErr?.message);
         this.scheduleRetry(cleanUserId);
         return {

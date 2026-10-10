@@ -991,23 +991,32 @@ export function AIAgentPage() {
             <>
               <div className={styles.conversation} aria-live="polite">
                 {(() => {
-                  const validMessages = messages.filter(
-                    (message) =>
-                      message.intent !== "FAILED_TO_SEND" &&
-                      !message.id?.startsWith("failed_") &&
-                      message.content !== "Failed to send" &&
-                      message.content !== "ফেইল্ড টু সেন্ড"
-                  );
                   let lastAiMessageId: string | null = null;
-                  for (let i = validMessages.length - 1; i >= 0; i--) {
-                    if (validMessages[i].role !== "user") {
-                      lastAiMessageId = validMessages[i].id;
+                  for (let i = messages.length - 1; i >= 0; i--) {
+                    if (messages[i].role !== "user" && messages[i].intent !== "FAILED_TO_SEND") {
+                      lastAiMessageId = messages[i].id;
                       break;
                     }
                   }
 
-                  return validMessages.map((message) => {
+                  return messages.map((message) => {
                     const isUser = message.role === "user";
+                    const isFailed = message.intent === "FAILED_TO_SEND" || message.id?.startsWith("failed_");
+
+                    if (isFailed) {
+                      return (
+                        <div
+                          key={message.id}
+                          className={`${styles.messageRow} ${styles.messageRowAssistant}`}
+                        >
+                          <div className="flex items-center gap-1.5 text-xs text-rose-500/90 dark:text-rose-400 bg-rose-500/10 border border-rose-500/20 px-3 py-1.5 rounded-full select-none max-w-fit">
+                            <AlertCircle size={13} className="shrink-0 text-rose-500" />
+                            <span>{message.content}</span>
+                          </div>
+                        </div>
+                      );
+                    }
+
                     const isLatestAiMessage = !isUser && message.id === lastAiMessageId;
                     return (
                       <div
@@ -1408,16 +1417,16 @@ export function AIAgentPage() {
                   <AIChatAnimatedTypingInput
                     ref={textareaRef}
                     value={input}
-                    disabled={!isOnline || isThinking || isLimitExhausted}
+                    disabled={isThinking || isLimitExhausted}
                     onChange={(e) => {
-                      if (!isOnline || isLimitExhausted) return;
+                      if (isLimitExhausted) return;
                       const val = e.target.value;
                       setInput(val);
                       resetInactivityTimer();
                       requestAnimationFrame(adjustTextareaHeight);
                     }}
                     onKeyDown={(e) => {
-                      if (!isOnline || isLimitExhausted) return;
+                      if (isLimitExhausted) return;
                       resetInactivityTimer();
                       if (e.key === "Enter" && !e.shiftKey) {
                         e.preventDefault();

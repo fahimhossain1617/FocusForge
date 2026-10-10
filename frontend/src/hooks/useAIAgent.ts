@@ -148,8 +148,17 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
     setOrbState("idle");
 
     const isBn = (customLang || initialLang) === "bn";
-    const failedText = isBn ? "ফেইল্ড টু সেন্ড" : "Failed to send";
+    const failedText = isBn ? "মেসেজ ফেইলড টু সেন্ড" : "Message failed to send";
     setError(failedText);
+
+    const failedMsg: AgentMessage = {
+      id: "failed_" + Date.now(),
+      role: "assistant",
+      intent: "FAILED_TO_SEND",
+      content: failedText,
+      createdAt: new Date(),
+    };
+    setMessages((items) => [...items, failedMsg]);
   }, [initialLang]);
   
   const loadedSessionRef = useRef<string | null>(activeSessionId);

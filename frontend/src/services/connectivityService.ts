@@ -65,8 +65,8 @@ class ConnectivityService {
    * Current online status
    */
   public isOnline(): boolean {
-    if (typeof navigator !== "undefined" && !navigator.onLine) {
-      return false;
+    if (typeof navigator !== "undefined") {
+      return navigator.onLine;
     }
     return this.onlineStatus;
   }
@@ -136,7 +136,7 @@ class ConnectivityService {
 
       clearTimeout(timeoutId);
 
-      const reachable = res !== null && (res.status >= 200 && res.status < 400 || res.status === 404);
+      const reachable = res !== null && ((res.status >= 200 && res.status < 400) || res.status === 404);
       if (notifyOnChange) {
         this.setOnline(reachable);
       } else {
@@ -144,10 +144,14 @@ class ConnectivityService {
       }
       return reachable;
     } catch {
-      if (notifyOnChange) {
-        this.setOnline(false);
+      // If probe network fetch failed but navigator is still online, do not abruptly force offline
+      if (typeof navigator !== "undefined" && !navigator.onLine) {
+        if (notifyOnChange) {
+          this.setOnline(false);
+        }
+        return false;
       }
-      return false;
+      return true;
     } finally {
       this.isCheckingReachability = false;
     }
@@ -157,14 +161,8 @@ class ConnectivityService {
    * Called by API client / sync engine when a network request fails due to connection loss.
    */
   public reportRequestFailure(): void {
-    if (this.onlineStatus) {
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
       this.setOnline(false);
-
-      // Schedule a probe in 4s to check if connection returned
-      if (this.reachabilityTimer) clearTimeout(this.reachabilityTimer);
-      this.reachabilityTimer = setTimeout(() => {
-        this.verifyReachability(true);
-      }, 4000);
     }
   }
 
