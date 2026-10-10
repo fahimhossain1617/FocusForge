@@ -101,11 +101,11 @@ Focentia is an active, functional productivity suite built with Next.js 16 App R
 ---
 
 ### Learning / Skill Features (Time Log)
-- **Current Implementation:** `LearningHubPage.tsx`, `learningDbService.ts`. Folder-based topic structures, daily practice logs, duration tracking, date-based streak calculations, and topic roadmaps. Inactivity gaps displayed as clean, unboxed normal text in both main skill cards and skill detail hero header.
+- **Current Implementation:** `LearningHubPage.tsx`, `learningDbService.ts`, `roadmapService.ts`, `AIRoadmapCard.tsx`. Folder-based topic structures, daily practice logs, duration tracking, date-based streak calculations, and topic roadmaps. Direct integration between AI roadmaps and Time Log topics: each topic card displays an interactive Roadmap badge button with derived progress metrics. Clicking the button opens a dedicated full-fidelity roadmap modal synced in real-time with local persistence. Inactivity gaps displayed as clean, unboxed normal text in both main skill cards and skill detail hero header.
 - **Verified Status:** **VERIFIED**
 - **Known Problems:** None.
-- **Important Files:** `frontend/src/components/pages/LearningHubPage.tsx`, `frontend/src/services/learningDbService.ts`.
-- **Dependencies:** `AppContext.tsx`, `learning_folders`, `learning_logs` tables.
+- **Important Files:** `frontend/src/components/pages/LearningHubPage.tsx`, `frontend/src/services/learningDbService.ts`, `frontend/src/services/roadmapService.ts`, `frontend/src/components/ai-agent/AIRoadmapCard.tsx`.
+- **Dependencies:** `AppContext.tsx`, `learning_folders`, `learning_logs` tables, `roadmapService.ts`.
 - **Unknowns:** None.
 
 ---
@@ -132,6 +132,7 @@ Focentia is an active, functional productivity suite built with Next.js 16 App R
       - **Focentia 2.1 Consumption:** Light / minimal consumption per turn (0.5x multiplier, minimum 5 tokens).
       - **Focentia Pro Consumption:** Higher consumption per turn (2.0x multiplier, minimum 30 tokens).
       - **Zero UI Exposure:** Zero numbers, token balances, or calculations are rendered in the client UI. The user only receives an informative Bengali/English notification when their daily limit or guest limit has been exhausted.
+  16. **Interactive Time Selection, Pre-Roadmap Clarification & Action Deep-Linking:** Interactive per-item time picker inputs on planner proposal cards allowing users to choose study times before confirming; post-confirmation navigation buttons to target features (Planner, Time Log, Diary, Focus, Notes, Mind); automatic synchronization of roadmap subject names to Time Log topics; interactive roadmap viewing modals on Time Log folder cards with real-time completion tracking.
 - **Verified Status:** **VERIFIED** (Automated verification `scripts/verify_token_allocation.ts` passed: 5,000 auth vs 1,000 guest quotas, user-level account isolation, 4x consumption ratio between 2.1 and Pro, and provider usage scaling all confirmed).
 - **Known Problems:** Direct connection to IPv4 Supabase requires pooler URL (already configured). Free tier `gemini-3.6-flash` rate limit triggers graceful cascade to `gemini-3.5-flash-lite` and `gemini-3.8-flash`.
 - **Important Files:** `.agent/CAPABILITY_REGISTRY.md`, `frontend/src/components/ai-agent/AIAgentPage.tsx`, `frontend/src/components/ai-agent/AIOrbFace.tsx`, `frontend/src/components/ai-agent/useOrbMood.ts`, `frontend/src/components/ai-agent/AIRoadmapCard.tsx`, `frontend/src/services/roadmapService.ts`, `frontend/src/services/aiAgentService.ts`, `frontend/src/services/aiMemoryService.ts`, `frontend/src/services/aiConsentService.ts`, `frontend/src/services/aiActionValidator.ts`, `backend/src/services/aiActionValidator.ts`, `frontend/src/lib/server/aiServerTools.ts`, `backend/src/services/aiServerTools.ts`, `frontend/src/app/api/[...path]/route.ts`, `backend/src/routes/aiRoutes.ts`.

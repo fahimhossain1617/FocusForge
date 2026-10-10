@@ -108,17 +108,17 @@ export function AIRoadmapCard({
   };
 
   return (
-    <div className="w-full max-w-2xl my-3 overflow-hidden rounded-2xl border border-zinc-200/80 dark:border-zinc-800 bg-white/90 dark:bg-zinc-900/90 shadow-xl backdrop-blur-md transition-all">
+    <div className="w-full max-w-2xl my-3 overflow-hidden rounded-2xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-none transition-all">
       {/* HEADER */}
-      <div className="p-4 sm:p-5 border-b border-zinc-200/70 dark:border-zinc-800/80 bg-zinc-50/60 dark:bg-zinc-900/60">
-        <div className="flex items-center justify-between gap-3 mb-2">
-          <div className="flex items-center gap-2">
-            <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20">
-              <Layers size={13} />
+      <div className="p-3.5 sm:p-4 border-b border-zinc-200/70 dark:border-zinc-800/80 bg-zinc-50/60 dark:bg-zinc-900/60">
+        <div className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-2 mb-2">
+          <div className="flex items-center gap-1.5 flex-wrap min-w-0">
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[11px] font-semibold rounded-md bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 whitespace-nowrap shrink-0">
+              <Layers size={12} />
               {roadmap.subject || (isBn ? "লার্নিং রোডম্যাপ" : "Learning Roadmap")}
             </span>
             {roadmap.targetLevel && (
-              <span className="px-2 py-0.5 text-[11px] font-medium rounded-md bg-zinc-200/60 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400">
+              <span className="px-1.5 py-0.5 text-[10px] font-medium rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 whitespace-nowrap shrink-0 uppercase tracking-tight">
                 {roadmap.targetLevel.toUpperCase()}
               </span>
             )}
@@ -127,18 +127,18 @@ export function AIRoadmapCard({
           <button
             type="button"
             onClick={handleSaveRoadmap}
-            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+            className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold whitespace-nowrap shrink-0 transition-colors ${
               isSaved
                 ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30"
-                : "bg-indigo-600 hover:bg-indigo-500 text-white shadow-sm"
+                : "bg-blue-600 hover:bg-blue-500 text-white"
             }`}
           >
-            {isSaved ? <BookmarkCheck size={14} /> : <Bookmark size={14} />}
+            {isSaved ? <BookmarkCheck size={13} /> : <Bookmark size={13} />}
             <span>{isSaved ? (isBn ? "সংরক্ষিত" : "Saved") : (isBn ? "সেভ করুন" : "Save Plan")}</span>
           </button>
         </div>
 
-        <h3 className="text-base sm:text-lg font-bold text-zinc-900 dark:text-zinc-100 tracking-tight">
+        <h3 className="text-sm sm:text-base font-bold text-zinc-900 dark:text-zinc-100 tracking-tight leading-snug">
           {roadmap.title}
         </h3>
 
@@ -326,8 +326,13 @@ export function AIRoadmapCard({
         {onNavigate && (
           <button
             type="button"
-            onClick={() => onNavigate("learning")}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-200 transition-colors"
+            onClick={() => {
+              if (!isSaved) {
+                handleSaveRoadmap();
+              }
+              onNavigate("learning");
+            }}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-200 transition-colors"
           >
             <Compass size={13} />
             <span>{isBn ? "টাইম লগ খুলুন" : "Open Time Log"}</span>

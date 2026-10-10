@@ -436,8 +436,11 @@ export function AIAgentPage() {
       addMindItem(content, "idea_capture");
       showToast(isSystemBn ? "আইডিয়াটি মাইন্ড ট্র্যাকারে যুক্ত হয়েছে!" : "Idea saved to Mind Hub!", "success");
     } else if (intent === "LEARNING_HUB" || intent === "SKILL_BUILDER") {
-      const folderName = payload.folderName || payload.skillName || (isSystemBn ? "নতুন বিষয়" : "New Topic");
-      addLearningFolder(folderName);
+      const folderName = payload.folderName || payload.skillName || payload.topic || payload.subject || payload.title || (isSystemBn ? "স্টাডি বিষয়" : "Study Topic");
+      const exists = state.learningFolders.some((f) => f.name.toLowerCase() === folderName.toLowerCase());
+      if (!exists) {
+        addLearningFolder(folderName);
+      }
       showToast(isSystemBn ? `'${folderName}' টাইম লগে যুক্ত হয়েছে!` : `'${folderName}' added to Time Log!`, "success");
     } else if (intent === "MY_DIARY" || intent === "DIARY_ENTRY") {
       const diaryTitle = payload.title || (isSystemBn ? "আজকের ডায়েরি" : "Today's Diary Entry");
@@ -977,8 +980,20 @@ export function AIAgentPage() {
                               <AIRoadmapCard
                                 roadmap={(message.roadmap || (message.payload?.stages ? message.payload : message.structuredResponse?.roadmap)) as any}
                                 isBn={isSystemBn}
-                                onSave={() => {
-                                  showToast(isSystemBn ? "রোডম্যাপটি সফলভাবে সেভ করা হয়েছে!" : "Roadmap saved successfully!", "success");
+                                onSave={(savedRoadmap) => {
+                                  const topicName = (savedRoadmap as any)?.subject || (savedRoadmap as any)?.title || "Study Topic";
+                                  const exists = state.learningFolders.some(
+                                    (f) => f.name.toLowerCase() === topicName.toLowerCase()
+                                  );
+                                  if (!exists) {
+                                    addLearningFolder(topicName);
+                                  }
+                                  showToast(
+                                    isSystemBn
+                                      ? `'${topicName}' রোডম্যাপ সংরক্ষিত ও টাইম লগে যুক্ত হয়েছে!`
+                                      : `'${topicName}' roadmap saved to Time Log!`,
+                                    "success"
+                                  );
                                 }}
                                 onNavigate={(route) => navigateTo(route as any)}
                               />
@@ -992,8 +1007,12 @@ export function AIAgentPage() {
                                 <AIActionCard
                                   key={action.id}
                                   action={action}
-                                  onConfirm={(_actionId, selectedItemIds) => {
-                                    if (selectedItemIds && selectedItemIds.length > 0 && action.items && action.items.length > 0) {
+                                  onConfirm={(_actionId, selectedItemIds, updatedItemsOrAction) => {
+                                    if (updatedItemsOrAction && Array.isArray(updatedItemsOrAction)) {
+                                      handleExecutePartialAction(message.id, action, updatedItemsOrAction);
+                                    } else if (updatedItemsOrAction && typeof updatedItemsOrAction === "object" && updatedItemsOrAction.type) {
+                                      handleConfirmAction(message.id, updatedItemsOrAction);
+                                    } else if (selectedItemIds && selectedItemIds.length > 0 && action.items && action.items.length > 0) {
                                       const selectedItems = action.items.filter((item) => selectedItemIds.includes(item.id));
                                       handleExecutePartialAction(message.id, action, selectedItems);
                                     } else {
@@ -1095,14 +1114,22 @@ export function AIAgentPage() {
                             </div>
                           )}
 
-                          {message.payload && (message.intent === "LEARNING_HUB" || message.intent === "SKILL_BUILDER") && (
+                          {message.payload &&
+                            !message.roadmap &&
+                            !(message.payload && message.payload.stages) &&
+                            (message.intent === "LEARNING_HUB" || message.intent === "SKILL_BUILDER") && (
                             <div className={styles.proposalCard}>
                               <div className={styles.proposalBadge}>
                                 <CheckCircle2 size={13} />
                                 <span>{isSystemBn ? "টাইম লগে যুক্ত হয়েছে" : "Added to Time Log"}</span>
                               </div>
                               <div className={styles.proposalTitle}>
-                                {message.payload.folderName || message.payload.skillName || (isSystemBn ? "নতুন টপিক রোডম্যাপ" : "New Topic Roadmap")}
+                                {message.payload.folderName ||
+                                  message.payload.skillName ||
+                                  message.payload.topic ||
+                                  message.payload.subject ||
+                                  message.payload.title ||
+                                  (isSystemBn ? "স্টাডি বিষয়" : "Study Topic")}
                               </div>
                               <div className={styles.proposalDesc}>
                                 {message.payload.targetHours ? `${message.payload.targetHours}h Target • ` : ""}

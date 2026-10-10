@@ -40,6 +40,7 @@ export interface LearningRoadmap {
   createdAt: string;
   updatedAt: string;
   isSaved?: boolean;
+  folderId?: string;
 }
 
 export interface RoadmapProgress {

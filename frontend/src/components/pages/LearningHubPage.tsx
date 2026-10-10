@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, useMemo } from "react";
+import { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { useAppContext } from "../../context/AppContext";
 import { useAuth } from "../../context/AuthContext";
@@ -17,11 +17,16 @@ import {
   Search,
   BookOpen,
   Clock,
-  Flame
+  Flame,
+  Layers
 } from "lucide-react";
 import { useAnimateExit } from "../../hooks/useAnimateExit";
 import confetti from "canvas-confetti";
 import ConfirmDeleteModal from "../ui/ConfirmDeleteModal";
+import AIRoadmapCard from "../ai-agent/AIRoadmapCard";
+import { roadmapService } from "../../services/roadmapService";
+import type { LearningRoadmap } from "../../types/roadmap";
+import { calculateRoadmapProgress } from "../../types/roadmap";
 
 function formatHoursMins(totalMins: number): string {
   const h = Math.floor(totalMins / 60);
@@ -86,7 +91,7 @@ export default function LearningHubPage() {
     showToast,
     setSubViewActive,
   } = useAppContext();
-  const { requireAuth } = useAuth();
+  const { requireAuth, user } = useAuth();
   const { t } = useTranslation();
 
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
@@ -106,6 +111,35 @@ export default function LearningHubPage() {
   const [importantTopics, setImportantTopics] = useState("");
   const [isViewAllLogsOpen, setIsViewAllLogsOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<{ type: 'folder' | 'log'; id: string } | null>(null);
+
+  // Roadmaps associated with topics
+  const [roadmaps, setRoadmaps] = useState<LearningRoadmap[]>([]);
+  const [activeRoadmapModal, setActiveRoadmapModal] = useState<LearningRoadmap | null>(null);
+
+  useEffect(() => {
+    const list = roadmapService.getSavedRoadmaps(user?.id);
+    setRoadmaps(list);
+  }, [user?.id]);
+
+  const getRoadmapForFolder = useCallback(
+    (folder: { id: string; name: string }) => {
+      const fName = folder.name.trim().toLowerCase();
+      return (
+        roadmaps.find((r) => {
+          if (r.folderId && r.folderId === folder.id) return true;
+          const rSub = (r.subject || "").trim().toLowerCase();
+          const rTit = (r.title || "").trim().toLowerCase();
+          return (
+            rSub === fName ||
+            rTit === fName ||
+            rTit.includes(fName) ||
+            fName.includes(rSub)
+          );
+        }) || null
+      );
+    },
+    [roadmaps]
+  );
 
   const [mounted, setMounted] = useState(false);
 
@@ -531,6 +565,38 @@ export default function LearningHubPage() {
                           </span>
                         </div>
                       </div>
+
+                      {/* AI Roadmap Badge & Quick Access (If Roadmap Exists) */}
+                      {(() => {
+                        const folderRoadmap = getRoadmapForFolder(folder);
+                        if (!folderRoadmap) return null;
+                        const prog = calculateRoadmapProgress(folderRoadmap);
+                        return (
+                          <div
+                            className="mb-2.5 pt-2 flex items-center justify-between border-t border-slate-100 dark:border-white/[0.06]"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <button
+                              type="button"
+                              onClick={() => setActiveRoadmapModal(folderRoadmap)}
+                              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold text-blue-600 dark:text-blue-400 bg-blue-500/10 hover:bg-blue-500/15 border border-blue-500/20 transition-colors cursor-pointer"
+                              title={state.lang === "bn" ? "AI রোডম্যাপ দেখুন" : "View AI Roadmap"}
+                            >
+                              <Layers className="w-3.5 h-3.5" />
+                              <span>{state.lang === "bn" ? "রোডম্যাপ" : "Roadmap"}</span>
+                              {folderRoadmap.targetLevel && (
+                                <span className="text-[10px] opacity-80 uppercase">
+                                  • {folderRoadmap.targetLevel}
+                                </span>
+                              )}
+                            </button>
+
+                            <span className="text-[11px] font-mono text-muted-foreground">
+                              {prog.percentage}% {state.lang === "bn" ? "সম্পন্ন" : "done"}
+                            </span>
+                          </div>
+                        );
+                      })()}
                     </div>
 
                     {/* Bottom: 6 Topics Grid without dividing line */}
@@ -1348,6 +1414,47 @@ export default function LearningHubPage() {
         confirmLabel={state.lang === "bn" ? "মুছুন" : "Delete"}
         cancelLabel={state.lang === "bn" ? "বাতিল" : "Cancel"}
       />
+
+      {/* AI Roadmap Interactive Modal in Time Log */}
+      {mounted &&
+        activeRoadmapModal &&
+        createPortal(
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200"
+            onClick={() => setActiveRoadmapModal(null)}
+          >
+            <div
+              className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl bg-white dark:bg-[#111827] border border-slate-200 dark:border-white/10 shadow-none p-3.5 sm:p-5"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between pb-3 mb-2 border-b border-slate-200 dark:border-white/10">
+                <div className="flex items-center gap-2 min-w-0">
+                  <Layers className="w-5 h-5 text-blue-500 shrink-0" />
+                  <h2 className="text-sm sm:text-base font-bold text-foreground truncate">
+                    {activeRoadmapModal.title}
+                  </h2>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setActiveRoadmapModal(null)}
+                  className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer shrink-0"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <AIRoadmapCard
+                roadmap={activeRoadmapModal}
+                isBn={state.lang === "bn"}
+                onSave={(updated) => {
+                  setActiveRoadmapModal(updated);
+                  setRoadmaps(roadmapService.getSavedRoadmaps(user?.id));
+                }}
+              />
+            </div>
+          </div>,
+          document.body
+        )}
     </div>
   );
 }

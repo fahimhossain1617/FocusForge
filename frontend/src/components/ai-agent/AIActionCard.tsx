@@ -20,7 +20,7 @@ import type { ActionRequest, ActionItem } from "@/types/aiAgent";
 interface AIActionCardProps {
   action: ActionRequest;
   isBn?: boolean;
-  onConfirm: (actionId: string, selectedItemIds?: string[]) => void;
+  onConfirm: (actionId: string, selectedItemIds?: string[], updatedItemsOrAction?: any) => void;
   onCancel: (actionId: string) => void;
   onNavigate?: (route: string) => void;
 }
@@ -38,6 +38,23 @@ export function AIActionCard({
       return action.items.map((i) => i.id);
     }
     return [];
+  });
+
+  // Track editable study times per item
+  const [itemTimes, setItemTimes] = useState<Record<string, string>>(() => {
+    const map: Record<string, string> = {};
+    if (action.items && action.items.length > 0) {
+      action.items.forEach((item, idx) => {
+        const startHour = 10 + idx * 2;
+        map[item.id] = (item as any).time || item.payload?.time || `${String(startHour).padStart(2, "0")}:00`;
+      });
+    }
+    return map;
+  });
+
+  // Track single task time
+  const [singleTaskTime, setSingleTaskTime] = useState<string>(() => {
+    return action.parameters?.time || "10:00";
   });
 
   const toggleItem = (id: string) => {
@@ -194,11 +211,17 @@ export function AIActionCard({
           <span className="bg-muted/40 px-2 py-1 rounded-md border border-border/40 font-mono">
             📅 {action.parameters.targetDate}
           </span>
-          {action.parameters.time && (
-            <span className="bg-muted/40 px-2 py-1 rounded-md border border-border/40 font-mono">
-              ⏰ {action.parameters.time}
-            </span>
-          )}
+          <div className="flex items-center gap-1.5 bg-muted/40 px-2 py-0.5 rounded-md border border-border/40">
+            <span className="text-[11px] font-mono">⏰</span>
+            <input
+              type="time"
+              value={singleTaskTime}
+              disabled={!isPending}
+              onChange={(e) => setSingleTaskTime(e.target.value)}
+              className="bg-transparent text-[11px] font-mono text-foreground focus:outline-none cursor-pointer"
+              title={isBn ? "পড়ার সময় নির্বাচন করুন" : "Select study time"}
+            />
+          </div>
           {action.parameters.estimatedMinutes && (
             <span className="bg-muted/40 px-2 py-1 rounded-md border border-border/40">
               ⏱ {action.parameters.estimatedMinutes}m
@@ -207,34 +230,56 @@ export function AIActionCard({
         </div>
       )}
 
-      {/* Multi-Task Planning List with Checkboxes (Partial Approval) */}
+      {/* Multi-Task Planning List with Checkboxes & Interactive Time Selectors */}
       {action.type === "create_tasks" && action.items && action.items.length > 0 && (
-        <div className="space-y-1.5 my-2.5 bg-muted/20 p-2 rounded-xl border border-border/40 max-h-48 overflow-y-auto">
+        <div className="space-y-1.5 my-2.5 bg-muted/20 p-2 rounded-xl border border-border/40 max-h-56 overflow-y-auto">
           {action.items.map((item: ActionItem) => {
             const isChecked = selectedIds.includes(item.id);
+            const currentTime = itemTimes[item.id] || "10:00";
             return (
-              <label
+              <div
                 key={item.id}
-                className={`flex items-center gap-2.5 p-2 rounded-lg text-xs cursor-pointer transition-colors ${
+                className={`flex items-center justify-between gap-2 p-2 rounded-lg text-xs transition-colors ${
                   isChecked
                     ? "bg-primary/10 border border-primary/30 text-foreground font-medium"
                     : "bg-background/40 hover:bg-muted/30 text-muted-foreground"
                 }`}
               >
-                <input
-                  type="checkbox"
-                  checked={isChecked}
-                  disabled={!isPending}
-                  onChange={() => toggleItem(item.id)}
-                  className="rounded border-border text-primary focus:ring-primary w-3.5 h-3.5 shrink-0"
-                />
-                <div className="flex-1 min-w-0">
-                  <div className="truncate font-medium">{item.title}</div>
-                  {item.subtitle && (
-                    <div className="text-[10px] text-muted-foreground truncate">{item.subtitle}</div>
-                  )}
+                <label className="flex items-center gap-2.5 flex-1 min-w-0 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={isChecked}
+                    disabled={!isPending}
+                    onChange={() => toggleItem(item.id)}
+                    className="rounded border-border text-primary focus:ring-primary w-3.5 h-3.5 shrink-0"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <div className="truncate font-medium">{item.title}</div>
+                    {item.subtitle && (
+                      <div className="text-[10px] text-muted-foreground truncate">{item.subtitle}</div>
+                    )}
+                  </div>
+                </label>
+
+                {/* Interactive Time Selector */}
+                <div
+                  className="flex items-center gap-1 shrink-0 bg-background/80 px-1.5 py-0.5 rounded border border-border/50"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <Clock className="w-3 h-3 text-muted-foreground/70" />
+                  <input
+                    type="time"
+                    value={currentTime}
+                    disabled={!isPending}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setItemTimes((prev) => ({ ...prev, [item.id]: val }));
+                    }}
+                    className="bg-transparent text-[11px] font-mono text-foreground focus:outline-none cursor-pointer"
+                    title={isBn ? "পড়ার সময় নির্বাচন করুন" : "Select study time"}
+                  />
                 </div>
-              </label>
+              </div>
             );
           })}
         </div>
@@ -261,37 +306,55 @@ export function AIActionCard({
         </div>
       )}
 
-      {/* STATUS = COMPLETED (Success state with deep link) */}
+      {/* STATUS = COMPLETED (Success state with reliable deep link navigation) */}
       {isCompleted && (
         <div className="pt-1.5 flex flex-wrap items-center justify-between gap-2 border-t border-emerald-500/20">
           <div className="flex items-center gap-1.5 text-xs text-emerald-400 font-medium">
             <CheckCircle2 className="w-4 h-4" />
             <span>{action.resultMessage || (isBn ? "সম্পন্ন হয়েছে" : "Completed")}</span>
           </div>
-          {action.navigationRoute && onNavigate && (
-            <button
-              type="button"
-              onClick={() => onNavigate(action.navigationRoute!)}
-              className="px-3 py-1.5 text-xs rounded-lg bg-emerald-500 text-white font-medium hover:bg-emerald-600 transition-all flex items-center gap-1.5 shadow-sm"
-            >
-              <Compass className="w-3.5 h-3.5" />
-              <span>
-                {action.navigationRoute === "focus"
-                  ? isBn ? "ফোকাস খুলুন" : "Open Focus"
-                  : action.navigationRoute === "planner"
-                  ? isBn ? "প্ল্যানার দেখুন" : "View Planner"
-                  : action.navigationRoute === "diary"
-                  ? isBn ? "ডায়েরি দেখুন" : "View Diary"
-                  : action.navigationRoute === "mind"
-                  ? isBn ? "মাইন্ড হাব খুলুন" : "Open Mind Hub"
-                  : action.navigationRoute === "tasks"
-                  ? isBn ? "নোটস খুলুন" : "Open Notes"
-                  : action.navigationRoute === "learning"
-                  ? isBn ? "টাইম লগ খুলুন" : "Open Time Log"
-                  : isBn ? "ফিচার খুলুন" : "Open"}
-              </span>
-            </button>
-          )}
+          {(() => {
+            const targetNav = action.navigationRoute || (
+              action.type.includes("task") || action.type.includes("planner")
+                ? "planner"
+                : action.type.includes("focus")
+                ? "focus"
+                : action.type.includes("skill") || action.type.includes("learning")
+                ? "learning"
+                : action.type.includes("diary")
+                ? "diary"
+                : action.type.includes("note")
+                ? "tasks"
+                : action.type.includes("mind") || action.type.includes("idea") || action.type.includes("problem")
+                ? "mind"
+                : null
+            );
+            if (!targetNav || !onNavigate) return null;
+            return (
+              <button
+                type="button"
+                onClick={() => onNavigate(targetNav)}
+                className="px-3 py-1.5 text-xs rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-medium transition-colors flex items-center gap-1.5 shadow-none"
+              >
+                <Compass className="w-3.5 h-3.5" />
+                <span>
+                  {targetNav === "focus"
+                    ? isBn ? "ফোকাস খুলুন" : "Open Focus"
+                    : targetNav === "planner"
+                    ? isBn ? "প্ল্যানার দেখুন" : "View Planner"
+                    : targetNav === "diary"
+                    ? isBn ? "ডায়েরি দেখুন" : "View Diary"
+                    : targetNav === "mind"
+                    ? isBn ? "মাইন্ড হাব খুলুন" : "Open Mind Hub"
+                    : targetNav === "tasks"
+                    ? isBn ? "নোটস খুলুন" : "Open Notes"
+                    : targetNav === "learning"
+                    ? isBn ? "টাইম লগ খুলুন" : "Open Time Log"
+                    : isBn ? "ফিচার খুলুন" : "Open"}
+                </span>
+              </button>
+            );
+          })()}
         </div>
       )}
 
@@ -323,8 +386,31 @@ export function AIActionCard({
           <button
             type="button"
             disabled={isExecuting || (action.type === "create_tasks" && selectedIds.length === 0)}
-            onClick={() => onConfirm(action.id, selectedIds)}
-            className={`flex-1 px-3 py-2 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all shadow-sm ${
+            onClick={() => {
+              if (action.type === "create_tasks" && action.items) {
+                const updatedItems = action.items.map((item) => ({
+                  ...item,
+                  time: itemTimes[item.id] || (item as any).time || "10:00",
+                  payload: {
+                    ...(item.payload || {}),
+                    time: itemTimes[item.id] || item.payload?.time || "10:00",
+                  },
+                }));
+                onConfirm(action.id, selectedIds, updatedItems);
+              } else if (action.type === "create_task") {
+                const updatedAction = {
+                  ...action,
+                  parameters: {
+                    ...action.parameters,
+                    time: singleTaskTime,
+                  },
+                };
+                onConfirm(action.id, undefined, updatedAction);
+              } else {
+                onConfirm(action.id, selectedIds);
+              }
+            }}
+            className={`flex-1 px-3 py-2 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all shadow-none ${
               action.isDestructive
                 ? "bg-rose-600 hover:bg-rose-700 text-white"
                 : "bg-primary hover:bg-primary/90 text-primary-foreground"
