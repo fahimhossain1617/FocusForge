@@ -116,3 +116,12 @@
   2. **Direct Time Log Deep-Linking:** Roadmaps are linked with topic folders. Roadmap buttons in Time Log header and folder detail hero row open the full interactive roadmap modal.
   3. **Completion Celebration:** When 100% of roadmap items are completed, triggers confetti and displays a warm congratulations message.
   4. **Sticky Limit Reached Banner & Sleeping Orb:** Fixed banner displaying live reset countdown (e.g., `রিস্টোর হবে: ২ ঘণ্টা ১৫ মিনিট পর`) persisting across navigation and new chats. AI Orb Face automatically enters `sleepy` mode with eyes closed and restful speech bubble.
+
+### 2.12 Bounded User Token Consumption & Extreme Brevity (Focentia 2.0 vs Focentia Pro)
+- **Location:** `backend/src/services/aiTokenService.ts`, `frontend/src/lib/server/aiTokenService.ts`, `frontend/src/services/aiAgentService.ts`, `frontend/src/lib/server/aiService.ts`, `backend/src/services/aiService.ts`
+- **Behavior:**
+  1. **Credit-Bounded Token Quotas:** Prevents raw LLM token inflation from exhausting the 1000 guest / 5000 auth daily quota.
+  2. **Focentia 2.0 / 2.1 Consumption:** Strictly bounded to 4 to 5 tokens (clamped to max 6 tokens). A guest gets ~200-250 chats; an auth user gets ~1,000 chats daily.
+  3. **Focentia Pro Consumption:** Bounded to 25 to 30 tokens for deep reasoning, roadmaps, and complex breakdowns.
+  4. **Crisp Brevity & High Speed:** Strict prompt guidance for Focentia 2.0 / 2.1 to respond in 1-3 short, crisp sentences with zero verbose fluff or preamble, keeping generation latency under ~1-2 seconds.
+

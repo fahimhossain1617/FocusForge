@@ -64,7 +64,7 @@ async function runTests() {
   }
   console.log('PASS: Guest user tokens are strictly isolated per guest device/session!');
 
-  // Test 3: Model multipliers comparison (Focentia 2.1 vs Focentia Pro)
+  // Test 3: Model multipliers comparison (Focentia 2.0/2.1 vs Focentia Pro)
   console.log('\n[Check 3] Model Consumption Multipliers:');
   const samplePrompt = 'আজকের জন্য আমার পড়াশোনার একটা সুন্দর রুটিন তৈরি করে দাও। আমি ৩ ঘণ্টা পদার্থবিজ্ঞান এবং ২ ঘণ্টা গণিত পড়ব।';
   const sampleResponse = 'নিশ্চয়ই! তোমার জন্য ৫ ঘণ্টার একটি সুনির্দিষ্ট টাইম-ব্লক তৈরি করেছি। ৩ ঘণ্টা ফিজিক্স এবং ২ ঘণ্টা ম্যাথ।';
@@ -74,32 +74,38 @@ async function runTests() {
   const frontend21Tokens = estimateFrontendTokenUsage(samplePrompt, sampleResponse, 'focentia-2.1');
   const frontendProTokens = estimateFrontendTokenUsage(samplePrompt, sampleResponse, 'focentia-pro');
 
-  console.log(`Backend Focentia 2.1: ${backend21Tokens} tokens (0.5x small consumption)`);
-  console.log(`Backend Focentia Pro: ${backendProTokens} tokens (2.0x higher consumption)`);
+  console.log(`Backend Focentia 2.1: ${backend21Tokens} tokens (Expected: 4-5 tokens, max 6)`);
+  console.log(`Backend Focentia Pro: ${backendProTokens} tokens (Expected: 25-30 tokens)`);
   console.log(`Frontend Focentia 2.1: ${frontend21Tokens} tokens`);
   console.log(`Frontend Focentia Pro: ${frontendProTokens} tokens`);
 
   if (backend21Tokens !== frontend21Tokens || backendProTokens !== frontendProTokens) {
     throw new Error('FAILED: Backend and frontend token estimation are not synchronized!');
   }
-  if (backendProTokens <= backend21Tokens * 3) {
-    throw new Error(`FAILED: Pro tokens (${backendProTokens}) should be ~4x higher than 2.1 tokens (${backend21Tokens})!`);
+  if (backend21Tokens < 4 || backend21Tokens > 6) {
+    throw new Error(`FAILED: Focentia 2.1 tokens (${backend21Tokens}) must be between 4 and 6 tokens!`);
   }
-  console.log(`PASS: Focentia 2.1 consumes minimal tokens (${backend21Tokens}), Focentia Pro consumes larger tokens (${backendProTokens}). Exactly 4x ratio (0.5x vs 2.0x).`);
-
-  // Test 4: Provider Usage (geminiUsage) scaling
-  console.log('\n[Check 4] Provider Usage Scaling (geminiUsage):');
-  const mockUsage = { totalTokenCount: 100 };
-  const provider21 = estimateBackendTokenUsage('', '', 'focentia-2.1', mockUsage);
-  const providerPro = estimateBackendTokenUsage('', '', 'focentia-pro', mockUsage);
-
-  console.log(`100 Provider Tokens -> Focentia 2.1: ${provider21} tokens (0.5x = 50 tokens)`);
-  console.log(`100 Provider Tokens -> Focentia Pro: ${providerPro} tokens (2.0x = 200 tokens)`);
-
-  if (provider21 !== 50 || providerPro !== 200) {
-    throw new Error('FAILED: Provider usage scaling incorrect!');
+  if (backendProTokens < 25 || backendProTokens > 30) {
+    throw new Error(`FAILED: Pro tokens (${backendProTokens}) must be between 25 and 30 tokens!`);
   }
-  console.log('PASS: Provider usage scaling verified (50 vs 200)!');
+  console.log(`PASS: Focentia 2.1 consumes minimal tokens (${backend21Tokens}), Focentia Pro consumes bounded tokens (${backendProTokens}).`);
+
+  // Test 4: Provider Usage (geminiUsage) safety bounding
+  console.log('\n[Check 4] Provider Usage Scaling & Token Bounding Safety:');
+  const heavyGeminiUsage = { totalTokenCount: 2500 };
+  const provider21 = estimateBackendTokenUsage('user query', 'response', 'focentia-2.1', heavyGeminiUsage);
+  const providerPro = estimateBackendTokenUsage('user query', 'response', 'focentia-pro', heavyGeminiUsage);
+
+  console.log(`2500 Heavy Gemini Tokens -> Focentia 2.1: ${provider21} tokens (safely bounded <= 6 tokens)`);
+  console.log(`2500 Heavy Gemini Tokens -> Focentia Pro: ${providerPro} tokens (safely bounded 25-30 tokens)`);
+
+  if (provider21 < 4 || provider21 > 6) {
+    throw new Error(`FAILED: Focentia 2.1 under heavy usage (${provider21}) exceeded safe 4-6 token boundary!`);
+  }
+  if (providerPro < 25 || providerPro > 30) {
+    throw new Error(`FAILED: Pro under heavy usage (${providerPro}) violated 25-30 token boundary!`);
+  }
+  console.log('PASS: Provider usage bounded strictly (4-6 for 2.1, 25-30 for Pro)! User quota cannot be drained in 3 messages!');
 
   console.log('\nALL CHECKS PASSED SUCCESSFULLY!');
 }

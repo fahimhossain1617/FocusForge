@@ -133,26 +133,33 @@ export function estimateTokenUsage(
   modelMode: string = 'fast',
   geminiUsage?: { totalTokenCount?: number }
 ): number {
-  const isFast = modelMode === 'fast' || modelMode === 'focentia-2.1';
-  const isPlanning = modelMode === 'planning' || modelMode === 'deep' || modelMode === 'pro' || modelMode === 'focentia-pro';
+  const normalizedMode = (modelMode || '').toLowerCase().trim();
+  const isPlanning = 
+    normalizedMode === 'planning' || 
+    normalizedMode === 'deep' || 
+    normalizedMode === 'pro' || 
+    normalizedMode === 'focentia-pro';
 
-  if (geminiUsage?.totalTokenCount && geminiUsage.totalTokenCount > 0) {
-    if (isFast) return Math.max(5, Math.round(geminiUsage.totalTokenCount * 0.5));
-    if (isPlanning) return Math.max(30, Math.round(geminiUsage.totalTokenCount * 2.0));
-    return geminiUsage.totalTokenCount;
+  if (isPlanning) {
+    // Focentia Pro / Deep Planning: strictly 25 to 30 tokens per interaction
+    const responseLen = typeof responseText === 'string' ? responseText.length : 0;
+    if (responseLen > 350 || (geminiUsage?.totalTokenCount && geminiUsage.totalTokenCount > 1500)) {
+      return 30;
+    } else if (responseLen > 150) {
+      return 28;
+    }
+    return 25;
   }
 
-  const promptChars = promptText?.length || 0;
-  const responseChars = responseText?.length || 0;
-  const promptTokens = Math.ceil(promptChars / 3.5);
-  const responseTokens = Math.ceil(responseChars / 3.5);
-  const baseTokens = Math.max(10, promptTokens + responseTokens);
-
-  if (isFast) {
-    return Math.max(5, Math.round(baseTokens * 0.5));
-  } else if (isPlanning) {
-    return Math.max(30, Math.round(baseTokens * 2.0));
+  // Focentia 2.0 / 2.1 / Fast / Standard Mode: 4 to 5 tokens (strictly capped at max 6 tokens)
+  const promptLen = typeof promptText === 'string' ? promptText.length : 0;
+  const responseLen = typeof responseText === 'string' ? responseText.length : 0;
+  
+  if (responseLen > 400 || (geminiUsage?.totalTokenCount && geminiUsage.totalTokenCount > 1200)) {
+    return 6; // Maximum 6 tokens for larger replies
+  } else if (responseLen > 150 || promptLen > 250) {
+    return 5; // 5 tokens for medium replies
   }
-
-  return Math.max(15, baseTokens);
+  return 4; // Standard 4 tokens for short/crisp replies
 }
+

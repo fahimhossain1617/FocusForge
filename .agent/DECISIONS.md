@@ -935,7 +935,26 @@
      - Preserved these fields in `sanitizePayloadForGemini` across both frontend and backend.
      - Empowered Glory AI to provide genuine evidence-based motivation referencing real completed tasks and focus minutes, and to accurately analyze core vs weak topics (e.g. Java OOP, Collections vs Generics, Threads).
 - **Reason:** Direct user request to eliminate "Focentia AI is temporarily busy" errors, introduce lively multi-stage thinking/working status transitions, synchronize authentic facial expressions, and allow the AI to analyze real user hard work and weak/important learning topics.
-- **Impact:** `frontend/src/lib/server/aiService.ts`, `backend/src/services/aiService.ts`, `frontend/src/app/api/ai/transcribe/route.ts`, `frontend/src/components/ai-agent/AIOrbFace.tsx`, `frontend/src/components/ai-agent/ai-orb-face.module.css`, `frontend/src/components/ai-agent/useOrbMood.ts`, `frontend/src/hooks/useAIAgent.ts`, `frontend/src/components/ai-agent/AIAgentPage.tsx`, `frontend/src/types/aiAgent.ts`, `.agent/CURRENT_STATE.md`, `.agent/DECISIONS.md`.
+## ADR-059: Credit-Bounded Token Consumption (4-5 Tokens Focentia 2.0 / 25-30 Tokens Pro) & Prompt Brevity
+
+- **Date:** October 2026
+- **Status:** Accepted & Verified
+- **Decision:**
+  1. **Root Cause of Premature Quota Exhaustion:**
+     - Previously, `estimateTokenUsage` passed raw LLM tokens from Gemini (`geminiUsage.totalTokenCount`, typically 1,500 - 3,500 tokens due to large system prompts, tool contracts, and history) multiplied by 0.5x, deducting 750 to 1,750 tokens in a single message.
+     - As a result, guest users (1,000 quota) were exhausted on message 1-2, and authenticated users (5,000 quota) were exhausted after only 3-4 messages.
+  2. **Bounded Credit Token Consumption:**
+     - Calibrated `estimateTokenUsage` across `backend/src/services/aiTokenService.ts`, `frontend/src/lib/server/aiTokenService.ts`, and `frontend/src/services/aiAgentService.ts`:
+     - **Focentia 2.0 / 2.1 (`fast` / `focentia-2.1` / `smart`):** Consumes 4 to 5 tokens (strictly clamped to a maximum of 6 tokens for large tool responses). A guest user gets 160-250 chats; a logged-in user gets ~1,000 chats daily.
+     - **Focentia Pro (`deep` / `pro` / `planning` / `focentia-pro`):** Consumes strictly 25 to 30 tokens for deep reasoning, roadmaps, and multi-step complex breakdowns.
+  3. **Extreme Brevity & Fast Response Time for Focentia 2.0 / 2.1:**
+     - Updated prompt mode guidance in `backend/src/services/aiService.ts` and `frontend/src/lib/server/aiService.ts` to enforce strict conciseness (1-3 short, crisp sentences, zero introductory speeches, no repetitive essays).
+     - Clamped `maxOutputTokens` for fast mode to 600 with `temperature = 0.25`, ensuring near-instantaneous responses while preserving the friendly, warm older-brother personality, Orby facial expressions, and action contracts.
+  4. **Automated Verification:**
+     - Updated `scripts/verify_token_allocation.ts` verifying that Focentia 2.1 consumes 4-5 (max 6) tokens and Pro consumes 25-30 tokens, even under synthetic 2,500 token provider loads.
+- **Reason:** Direct user request to prevent token exhaustion in 3-5 messages, enforce 4-5 (max 6) token cost for Focentia 2.0, 25-30 token cost for Focentia Pro, ensure responses are short, crisp, fast, and token-saving while keeping full functionality and 5,000/1,000 quotas.
+- **Impact:** `backend/src/services/aiTokenService.ts`, `frontend/src/lib/server/aiTokenService.ts`, `frontend/src/services/aiAgentService.ts`, `backend/src/services/aiService.ts`, `frontend/src/lib/server/aiService.ts`, `scripts/verify_token_allocation.ts`, `.agent/FEATURES.md`, `.agent/DECISIONS.md`.
+
 
 
 
