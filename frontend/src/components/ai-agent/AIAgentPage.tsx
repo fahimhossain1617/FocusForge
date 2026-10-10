@@ -33,6 +33,7 @@ import { useContinuousSpeech } from "@/hooks/useContinuousSpeech";
 import { AIOrbFace } from "./AIOrbFace";
 import { useOrbMood, getOrbStatusLabel, type OrbMood } from "./useOrbMood";
 import { AIActionCard } from "./AIActionCard";
+import { AIRoadmapCard } from "./AIRoadmapCard";
 import styles from "./ai-agent.module.css";
 import { AIChatAnimatedTypingInput } from "./AIChatAnimatedTypingInput";
 import AIConsentModal from "../ai/AIConsentModal";
@@ -76,7 +77,7 @@ export function AIAgentPage() {
 
   // Model & Language State
   const [modelMode, setModelMode] = useState<"fast" | "deep">("fast");
-  const aiModel: AIAgentModel = modelMode === "deep" ? "planning" : "fast";
+  const aiModel: AIAgentModel = modelMode === "deep" ? "focentia-pro" : "focentia-2.1";
   const [modelMenuOpen, setModelMenuOpen] = useState(false);
   const [language, setLanguage] = useState<AIAgentLanguage>(isSystemBn ? "bn" : "en");
   const [input, setInput] = useState("");
@@ -280,6 +281,7 @@ export function AIAgentPage() {
     setManualMood,
     resetInactivityTimer
   } = useOrbMood({
+    orbState,
     isThinking,
     isTyping,
     userInput: input,
@@ -586,20 +588,33 @@ export function AIAgentPage() {
           navigateTo("planner");
           break;
         case "open_diary":
-          navigateTo("mind");
+          navigateTo("diary");
           break;
         case "open_notes":
+        case "open_tasks":
           navigateTo("tasks");
           break;
+        case "open_mind":
         case "open_problem_solver":
         case "open_idea_space":
           navigateTo("mind");
           break;
         case "open_dashboard":
+        case "open_today":
           navigateTo("today");
           break;
+        case "open_learning":
         case "open_skill_builder":
           navigateTo("learning");
+          break;
+        case "open_settings":
+          navigateTo("settings");
+          break;
+        case "open_profile":
+          navigateTo("profile");
+          break;
+        case "open_notifications":
+          navigateTo("notifications");
           break;
       }
 
@@ -907,6 +922,20 @@ export function AIAgentPage() {
                       >
                         <div className={isUser ? styles.userBubble : styles.assistantBubble}>
                           {message.content}
+
+                          {/* Interactive Learning Roadmap Card */}
+                          {(message.roadmap || (message.payload && message.payload.stages) || (message.structuredResponse && message.structuredResponse.roadmap)) && (
+                            <div className="w-full mt-2.5">
+                              <AIRoadmapCard
+                                roadmap={(message.roadmap || (message.payload?.stages ? message.payload : message.structuredResponse?.roadmap)) as any}
+                                isBn={isSystemBn}
+                                onSave={() => {
+                                  showToast(isSystemBn ? "রোডম্যাপটি সফলভাবে সেভ করা হয়েছে!" : "Roadmap saved successfully!", "success");
+                                }}
+                                onNavigate={(route) => navigateTo(route as any)}
+                              />
+                            </div>
+                          )}
 
                           {/* Interactive Production Action Cards */}
                           {message.actions && message.actions.length > 0 && (
@@ -1355,11 +1384,11 @@ export function AIAgentPage() {
                       aria-expanded={modelMenuOpen}
                       title={
                         modelMode === "fast"
-                          ? isSystemBn ? "মডেল নির্বাচন করুন (বর্তমান: Fast)" : "Select AI model (Current: Fast)"
-                          : isSystemBn ? "মডেল নির্বাচন করুন (বর্তমান: Deep)" : "Select AI model (Current: Deep)"
+                          ? isSystemBn ? "মডেল: Focentia 2.1 (দ্রুত প্রতিক্রিয়া)" : "Select AI model (Current: Focentia 2.1)"
+                          : isSystemBn ? "মডেল: Focentia Pro (গভীর গবেষণা ও পরিকল্পনা)" : "Select AI model (Current: Focentia Pro)"
                       }
                     >
-                      <span>{modelMode === "fast" ? "Fast" : "Deep"}</span>
+                      <span>{modelMode === "fast" ? "Focentia 2.1" : "Focentia Pro"}</span>
                       <ChevronDown size={13} className={`${styles.modelChevron} ${modelMenuOpen ? styles.modelChevronOpen : ""}`} />
                     </button>
 
@@ -1380,11 +1409,11 @@ export function AIAgentPage() {
                         >
                           <div className={styles.modelMenuInfo}>
                             <div className={styles.modelMenuTitleRow}>
-                              <span className={styles.modelMenuName}>Fast</span>
-                              <span className={styles.modelMenuBadge}>0.4s</span>
+                              <span className={styles.modelMenuName}>Focentia 2.1</span>
+                              <span className={styles.modelMenuBadge}>Speed</span>
                             </div>
                             <span className={styles.modelMenuDesc}>
-                              {isSystemBn ? "দ্রুত প্রতিক্রিয়া ও সহজ কাজ" : "Quick response & general tasks"}
+                              {isSystemBn ? "দ্রুত প্রতিক্রিয়া ও ছোট ছোট দৈনন্দিন কাজ" : "Fast response & everyday tasks"}
                             </span>
                           </div>
                           {modelMode === "fast" && (
@@ -1405,11 +1434,11 @@ export function AIAgentPage() {
                         >
                           <div className={styles.modelMenuInfo}>
                             <div className={styles.modelMenuTitleRow}>
-                              <span className={styles.modelMenuName}>Deep</span>
-                              <span className={styles.modelMenuBadgeDeep}>Planning</span>
+                              <span className={styles.modelMenuName}>Focentia Pro</span>
+                              <span className={styles.modelMenuBadgeDeep}>Research</span>
                             </div>
                             <span className={styles.modelMenuDesc}>
-                              {isSystemBn ? "গভীর চিন্তা ও বিস্তারিত পরিকল্পনা" : "Deep reasoning & task planning"}
+                              {isSystemBn ? "গভীর গবেষণা, বিস্তারিত বিশ্লেষণ ও বড় কাজ" : "Deep research, detailed reasoning & big projects"}
                             </span>
                           </div>
                           {modelMode === "deep" && (

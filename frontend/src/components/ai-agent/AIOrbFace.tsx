@@ -26,7 +26,7 @@ export interface AIOrbFaceProps {
 }
 
 export function AIOrbFace({
-  mood,
+  mood: propMood,
   orbState,
   statusLabel,
   reaction,
@@ -69,7 +69,8 @@ export function AIOrbFace({
   const [isBlinking, setIsBlinking] = useState(false);
 
   const isBn = language === "bn";
-  const effectiveMood: OrbMood = (orbState as OrbMood) || mood;
+  const mood: OrbMood = (orbState && orbState !== "idle") ? (orbState as OrbMood) : propMood;
+  const effectiveMood: OrbMood = mood;
 
   // Head tilt angle based on emotion and active state machine
   const headAngle = useMemo(() => {
@@ -79,6 +80,7 @@ export function AIOrbFace({
     if (effectiveMood === "sulky") return -3.0;
     if (
       effectiveMood === "playful" ||
+      effectiveMood === "laughing" ||
       effectiveMood === "excited" ||
       effectiveMood === "celebrating" ||
       effectiveMood === "success" ||
@@ -86,9 +88,17 @@ export function AIOrbFace({
     )
       return 4.5;
     if (effectiveMood === "proud") return -4.0;
-    if (effectiveMood === "caring" || effectiveMood === "supportive" || effectiveMood === "concerned") return 3.5;
+    if (
+      effectiveMood === "caring" ||
+      effectiveMood === "supportive" ||
+      effectiveMood === "empathetic" ||
+      effectiveMood === "encouraging" ||
+      effectiveMood === "concerned"
+    )
+      return 3.5;
     if (effectiveMood === "waiting_confirmation") return 4.0;
     if (effectiveMood === "focused" || effectiveMood === "working") return 1.5;
+    if (effectiveMood === "serious" || effectiveMood === "protective") return 0;
     if (isEnjoying) return -2.5;
     return 0;
   }, [effectiveMood, isGiggling, isEnjoying]);
@@ -156,6 +166,7 @@ export function AIOrbFace({
           allowCursorTracking = true;
           break;
         case "sleepy":
+        case "resting":
         case "offline":
         case "usage_limit":
           moodBiasX = 0;
@@ -169,6 +180,7 @@ export function AIOrbFace({
           break;
         case "excited":
         case "playful":
+        case "laughing":
           moodBiasX = 0.22;
           moodBiasY = -0.28;
           allowCursorTracking = true;
@@ -186,10 +198,18 @@ export function AIOrbFace({
           break;
         case "caring":
         case "supportive":
+        case "empathetic":
+        case "encouraging":
         case "concerned":
           moodBiasX = 0;
           moodBiasY = 0.1; // gentle centered gaze
           allowCursorTracking = true;
+          break;
+        case "serious":
+        case "protective":
+          moodBiasX = 0;
+          moodBiasY = 0; // firm, alert, watchful steady posture
+          allowCursorTracking = false;
           break;
         case "focused":
         case "attentive":
@@ -734,7 +754,13 @@ export function AIOrbFace({
                   strokeLinecap="round"
                   opacity="0.85"
                 >
-                  {mood === "sad" || mood === "error" ? (
+                  {mood === "serious" || mood === "protective" ? (
+                    /* Serious / Protective: Alert, firm, determined horizontal brows */
+                    <>
+                      <line x1="97" y1="92" x2="125" y2="92" stroke="#1e293b" strokeWidth="2.5" />
+                      <line x1="155" y1="92" x2="183" y2="92" stroke="#1e293b" strokeWidth="2.5" />
+                    </>
+                  ) : mood === "sad" || mood === "error" ? (
                     /* Sad / Error: Worried/apologetic inverted upward slanted brows */
                     <>
                       <path d="M 96 95 Q 110 86 124 93" fill="none" />
@@ -752,14 +778,14 @@ export function AIOrbFace({
                       <line x1="98" y1="93" x2="124" y2="93" />
                       <path d="M 156 88 Q 168 81 180 88" fill="none" />
                     </>
-                  ) : mood === "playful" || mood === "excited" || mood === "celebrating" || isGiggling ? (
-                    /* Playful / Excited: Joyfully raised brows */
+                  ) : mood === "playful" || mood === "laughing" || mood === "excited" || mood === "celebrating" || isGiggling ? (
+                    /* Playful / Laughing / Excited: Joyfully raised brows */
                     <>
                       <path d="M 98 88 Q 112 82 124 88" fill="none" />
                       <path d="M 156 88 Q 168 82 180 88" fill="none" />
                     </>
-                  ) : mood === "sleepy" || mood === "offline" || mood === "usage_limit" ? (
-                    /* Sleepy / Offline / Limit: Relaxed downward sloping brows */
+                  ) : mood === "sleepy" || mood === "resting" || mood === "offline" || mood === "usage_limit" ? (
+                    /* Sleepy / Resting / Offline / Limit: Relaxed downward sloping brows */
                     <>
                       <path d="M 100 96 Q 112 99 124 97" fill="none" />
                       <path d="M 156 97 Q 168 99 180 96" fill="none" />
@@ -782,8 +808,8 @@ export function AIOrbFace({
                       <path d="M 99 86 Q 112 79 125 86" fill="none" />
                       <path d="M 155 86 Q 168 79 181 86" fill="none" />
                     </>
-                  ) : mood === "caring" || mood === "supportive" || mood === "concerned" ? (
-                    /* Caring / Supportive / Concerned: Soft sympathetic upward slant in the middle */
+                  ) : mood === "caring" || mood === "supportive" || mood === "empathetic" || mood === "encouraging" || mood === "concerned" ? (
+                    /* Caring / Supportive / Empathetic / Encouraging / Concerned: Soft sympathetic upward slant in the middle */
                     <>
                       <path d="M 98 93 Q 112 86 124 93" fill="none" />
                       <path d="M 156 93 Q 168 86 182 93" fill="none" />
@@ -822,8 +848,8 @@ export function AIOrbFace({
                     <line x1="180" y1="114" x2="186" y2="108" stroke="#0f172a" strokeWidth="2.5" strokeLinecap="round" />
                     <line x1="178" y1="117" x2="185" y2="117" stroke="#0f172a" strokeWidth="2.2" strokeLinecap="round" />
                   </g>
-                ) : mood === "sleepy" || mood === "offline" || mood === "usage_limit" ? (
-                  /* B. Sleepy / Offline / Usage Limit: Peaceful Closed Sleeping Lines */
+                ) : mood === "sleepy" || mood === "resting" || mood === "offline" || mood === "usage_limit" ? (
+                  /* B. Sleepy / Resting / Offline / Usage Limit: Peaceful Closed Sleeping Lines */
                   <g>
                     <path
                       d="M 98 114 Q 112 122 126 114"
@@ -842,8 +868,8 @@ export function AIOrbFace({
                     />
                     <line x1="182" y1="114" x2="185" y2="111" stroke="#0f172a" strokeWidth="2.2" strokeLinecap="round" />
                   </g>
-                ) : mood === "happy" || mood === "excited" || mood === "celebrating" || isEnjoying ? (
-                  /* C. Happy / Excited / Celebrating / Enjoying: Arched Joyful Curved Eyes ^ ^ */
+                ) : mood === "happy" || mood === "laughing" || mood === "excited" || mood === "celebrating" || isEnjoying ? (
+                  /* C. Happy / Laughing / Excited / Celebrating / Enjoying: Arched Joyful Curved Eyes ^ ^ */
                   <g>
                     <path
                       d="M 98 114 Q 112 98 126 114"
@@ -923,7 +949,18 @@ export function AIOrbFace({
 
                 {/* REALISTIC MOUTH EXPRESSIONS */}
                 <g className={styles.faceFeaturesGroup}>
-                  {mood === "curious" ? (
+                  {mood === "serious" || mood === "protective" ? (
+                    /* Serious / Protective: Firm, calm, composed straight line */
+                    <line
+                      x1="134"
+                      y1="128"
+                      x2="146"
+                      y2="128"
+                      stroke="#0f172a"
+                      strokeWidth="2.4"
+                      strokeLinecap="round"
+                    />
+                  ) : mood === "curious" ? (
                     /* Curious: Tiny cute open 'o' mouth */
                     <ellipse cx="140" cy="128" rx="3.5" ry="4" fill="#0b1328" stroke="#0f172a" strokeWidth="1.2" />
                   ) : mood === "sulky" ? (
@@ -935,8 +972,8 @@ export function AIOrbFace({
                       strokeWidth="2.5"
                       strokeLinecap="round"
                     />
-                  ) : mood === "playful" || isGiggling ? (
-                    /* Playful: Open smiling mouth with pink tongue */
+                  ) : mood === "playful" || mood === "laughing" || isGiggling ? (
+                    /* Playful / Laughing: Open smiling mouth with pink tongue */
                     <g>
                       <path
                         d="M 131 123 Q 140 133 149 123"
@@ -952,8 +989,8 @@ export function AIOrbFace({
                         strokeWidth="0.8"
                       />
                     </g>
-                  ) : mood === "sleepy" || mood === "offline" || mood === "usage_limit" ? (
-                    /* Sleepy / Offline: Yawning or peaceful mouth */
+                  ) : mood === "sleepy" || mood === "resting" || mood === "offline" || mood === "usage_limit" ? (
+                    /* Sleepy / Resting / Offline: Yawning or peaceful mouth */
                     <g>
                       <ellipse cx="140" cy="129" rx="6.5" ry="8" fill="#090e21" stroke="#0f172a" strokeWidth="1.5" />
                       <ellipse cx="140" cy="133.5" rx="4.2" ry="2.8" fill="#ff4d79" />
@@ -984,8 +1021,8 @@ export function AIOrbFace({
                       strokeWidth="2.4"
                       strokeLinecap="round"
                     />
-                  ) : mood === "caring" || mood === "supportive" || mood === "concerned" ? (
-                    /* Caring / Supportive / Concerned: Warm, gentle comforting smile */
+                  ) : mood === "caring" || mood === "supportive" || mood === "empathetic" || mood === "encouraging" || mood === "concerned" ? (
+                    /* Caring / Supportive / Empathetic / Encouraging / Concerned: Warm, gentle comforting smile */
                     <path
                       d="M 134 125 Q 140 131 146 125"
                       fill="none"
@@ -1028,6 +1065,24 @@ export function AIOrbFace({
                 </g>
 
                 {/* ACCESSORIES & EMOTION SYMBOLS */}
+                {/* Serious / Protective: Glowing Protective Shield Badge 🛡️ */}
+                {(mood === "serious" || mood === "protective") && (
+                  <g transform="translate(196, 50)" filter="url(#softGlow)">
+                    <path
+                      d="M 0 0 L 8 -4 L 16 0 C 16 8 8 16 8 16 C 8 16 0 8 0 0 Z"
+                      fill="#2563eb"
+                      stroke="#38bdf8"
+                      strokeWidth="1.2"
+                      opacity="0.92"
+                    />
+                    <path
+                      d="M 4 4 L 8 2 L 12 4 C 12 8 8 12 8 12 C 8 12 4 8 4 4 Z"
+                      fill="#60a5fa"
+                      opacity="0.75"
+                    />
+                  </g>
+                )}
+
                 {/* Curious: Floating Question Mark ? */}
                 {mood === "curious" && (
                   <g transform="translate(196, 62)">
@@ -1052,8 +1107,8 @@ export function AIOrbFace({
                   </g>
                 )}
 
-                {/* Playful / Tickle: Floating Radiating Energy */}
-                {(mood === "playful" || isGiggling) && (
+                {/* Playful / Laughing / Tickle: Floating Radiating Energy */}
+                {(mood === "playful" || mood === "laughing" || isGiggling) && (
                   <g
                     stroke="#0284c7"
                     strokeWidth="3.2"
@@ -1067,8 +1122,8 @@ export function AIOrbFace({
                   </g>
                 )}
 
-                {/* Sleepy / Offline / Usage Limit: Floating Zzz */}
-                {(mood === "sleepy" || mood === "offline" || mood === "usage_limit") && (
+                {/* Sleepy / Resting / Offline / Usage Limit: Floating Zzz */}
+                {(mood === "sleepy" || mood === "resting" || mood === "offline" || mood === "usage_limit") && (
                   <g className={styles.sleepyZzzWrapper} transform="translate(196, 68)">
                     <text x="0" y="0" fill="#2563eb" fontSize="13" fontWeight="bold" className={styles.zzz1}>
                       z
@@ -1101,8 +1156,8 @@ export function AIOrbFace({
                   </g>
                 )}
 
-                {/* Caring / Supportive: Floating Pink Hearts */}
-                {(mood === "caring" || mood === "supportive") && (
+                {/* Caring / Supportive / Empathetic / Encouraging: Floating Pink Hearts */}
+                {(mood === "caring" || mood === "supportive" || mood === "empathetic" || mood === "encouraging") && (
                   <g transform="translate(194, 52)">
                     <path
                       d="M 0 -4 C -2 -11 -12 -10 -12 -3 C -12 4 -4 8 0 13 C 4 8 12 4 12 -3 C 12 -10 2 -11 0 -4 Z"
@@ -1117,6 +1172,27 @@ export function AIOrbFace({
                       filter="url(#softGlow)"
                       className={styles.floatingHeart2}
                       transform="translate(10, 20) rotate(22) scale(0.62)"
+                    />
+                  </g>
+                )}
+
+                {/* Serious / Protective: Glowing Cyber Shield Badge */}
+                {(mood === "serious" || mood === "protective") && (
+                  <g transform="translate(196, 52)" className={styles.seriousShieldBadge}>
+                    <path
+                      d="M 0 -10 L 10 -5 L 10 3 C 10 9 0 14 0 14 C 0 14 -10 9 -10 3 L -10 -5 Z"
+                      fill="#2563eb"
+                      stroke="#60a5fa"
+                      strokeWidth="1.5"
+                      filter="url(#softGlow)"
+                    />
+                    <path
+                      d="M -3 1 L -1 3 L 4 -2"
+                      fill="none"
+                      stroke="#ffffff"
+                      strokeWidth="1.4"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
                     />
                   </g>
                 )}
@@ -1169,8 +1245,8 @@ export function AIOrbFace({
                 </g>
               )}
 
-              {/* B. Caring / Supportive Hand Pose: Holding 3D Glowing Pink Heart with two paws */}
-              {(mood === "caring" || mood === "supportive") && (
+              {/* B. Caring / Supportive / Empathetic Hand Pose: Holding 3D Glowing Pink Heart with two paws */}
+              {(mood === "caring" || mood === "supportive" || mood === "empathetic" || mood === "encouraging") && (
                 <g transform="translate(140, 158)">
                   <g className={styles.pulsingHeart}>
                     <path

@@ -88,9 +88,6 @@ function decryptPassword(text: string): string {
 async function extractAuth(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
   const lang = searchParams.get('lang') || request.headers.get('x-app-lang') || 'bn';
-  const guestId = request.headers.get('x-guest-id') || 'guest';
-  const authHeader = request.headers.get('authorization') || '';
-  const token = authHeader.replace(/^Bearer\s+/i, '').trim();
   const rawXff = request.headers.get('x-forwarded-for');
   const xffList = rawXff ? rawXff.split(',').map((s) => s.trim()).filter(Boolean) : [];
   const clientIp =
@@ -99,6 +96,10 @@ async function extractAuth(request: NextRequest) {
     request.headers.get('x-vercel-proxied-for')?.split(',')[0]?.trim() ||
     (xffList.length > 0 ? xffList[xffList.length - 1] : null) ||
     '127.0.0.1';
+  const authHeader = request.headers.get('authorization') || '';
+  const token = authHeader.replace(/^Bearer\s+/i, '').trim();
+  const guestHeader = request.headers.get('x-guest-id');
+  const guestId = guestHeader && guestHeader !== 'guest' ? guestHeader : (clientIp || 'guest');
 
   let userId: string | null = null;
   let isGuest = true;
@@ -1606,15 +1607,32 @@ export async function POST(request: NextRequest, context: { params: Promise<{ pa
   // 8. AI Agent Chat
   if (pathStr === 'ai/agent/chat') {
     const { sessionId: requestedSessionId, message: userMsg, context: wsContext, history, model: selectedModel } = body;
+    
+    // Burst Rate Limiting: 40 AI requests per minute per IP / User
+    const chatRateLimitKey = `ai_agent_chat:${userId || guestId || clientIp}`;
+    if (!checkRateLimit(chatRateLimitKey, 40, 60000)) {
+      return NextResponse.json(
+        { error: 'AI request limit reached. Please slow down.' },
+        { status: 429 }
+      );
+    }
+
+    if (userMsg && typeof userMsg === 'string' && userMsg.length > 5000) {
+      return NextResponse.json(
+        { error: 'Message payload too large (max 5,000 characters).' },
+        { status: 400 }
+      );
+    }
+
     const tokenStatus = await getUserTokenStatus(userId, isGuest, guestId, lang);
     if (tokenStatus.isExhausted || tokenStatus.remaining <= 0) {
       const message = isGuest
         ? (lang === 'bn'
-            ? `আমি তোমাকে সাহায্য করতে খুব পছন্দ করি! 🥰 কিন্তু তুমি তো এখনও লগইন করোনি আর তোমার গেস্ট লিমিট শেষ হয়ে গেছে। একটু লগইন করে নাও না? তখন আমি আবার জেগে উঠে তোমাকে প্রাণখুলে সাহায্য করব! ততক্ষণ আমি একটু ঘুমিয়ে নিই... 😴💤`
-            : `I really love helping you! 🥰 But you haven't logged in yet and your guest limit is reached. Please log in! Once you log in, I'll wake up and help you with all my heart. Until then, let me take a quick nap... 😴💤`)
+            ? `আমি তোমাকে সাহায্য করতে পছন্দ করি। তবে তুমি তো এখনও লগইন করোনি আর তোমার গেস্ট লিমিট শেষ হয়ে গেছে। একটু লগইন করে নিলে আমি আবার জেগে তোমাকে সাহায্য করতে পারব। ততক্ষণ আমি একটু বিশ্রাম নিই।`
+            : `I'd love to help you! However, you haven't logged in yet and your guest limit is reached. Please log in so I can wake up and help you. Until then, I'll take a quick rest.`)
         : (lang === 'bn'
-            ? `আমি তোমাকে সাহায্য করতে চাই! কিন্তু আজকের জন্য তোমার ফ্রি লিমিট শেষ হয়ে গেছে।\n\n• লিমিট রিসেট হবে: ${tokenStatus.formattedResetDate}\n• বাকি সময়: ${tokenStatus.formattedRemainingTime}\n\nপ্লিজ একটু অপেক্ষা করো। লিমিট রিসেট হলে আমি আবার জেগে তোমাকে সাহায্য করব! ততক্ষণ আমি একটু ঘুমিয়ে নিই... 😴💤`
-            : `I really want to help you! But your daily limit for today has been reached.\n\n• Resets on: ${tokenStatus.formattedResetDate}\n• Remaining time: ${tokenStatus.formattedRemainingTime}\n\nPlease wait a little bit. Once it resets, I'll wake right up to help you! Until then, let me take a quick nap... 😴💤`);
+            ? `আমি তোমাকে সাহায্য করতে চাই, তবে আজকের জন্য তোমার ফ্রি লিমিট শেষ হয়ে গেছে।\n\n• লিমিট রিসেট হবে: ${tokenStatus.formattedResetDate}\n• বাকি সময়: ${tokenStatus.formattedRemainingTime}\n\nঅনুগ্রহ করে একটু অপেক্ষা করো। লিমিট রিসেট হলে আমি আবার জেগে তোমাকে সাহায্য করতে প্রস্তুত থাকব। ততক্ষণ আমি বিশ্রামে আছি।`
+            : `I really want to help you, but your daily limit for today has been reached.\n\n• Resets on: ${tokenStatus.formattedResetDate}\n• Remaining time: ${tokenStatus.formattedRemainingTime}\n\nPlease wait a little bit. Once it resets, I'll wake right up to help you! Until then, I'll be resting.`);
 
       const exhaustedAiMsg = {
         id: 'msg_exhausted_' + Date.now(),
@@ -1646,6 +1664,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ pa
         model: selectedModel || 'smart',
       });
     } catch (err: any) {
+      console.error('[API /ai/agent/chat] AI execution error:', err?.message || err);
       result = {
         intent: 'GREETING_OR_GENERAL',
         message: lang === 'bn'
@@ -1655,7 +1674,12 @@ export async function POST(request: NextRequest, context: { params: Promise<{ pa
       };
     }
 
-    const tokensUsed = estimateTokenUsage(JSON.stringify(body), JSON.stringify(result), selectedModel || 'smart');
+    const tokensUsed = estimateTokenUsage(
+      JSON.stringify(body), 
+      JSON.stringify(result), 
+      selectedModel || 'smart',
+      (result as any)?.geminiUsage
+    );
     const updatedTokens = await consumeUserTokens(userId, isGuest, guestId, tokensUsed, lang);
 
     const activeSessionId = requestedSessionId || (isGuest ? 'guest-session' : `session_${Date.now()}`);
@@ -1669,6 +1693,17 @@ export async function POST(request: NextRequest, context: { params: Promise<{ pa
       content: result.message,
       intent: result.intent,
       payload: result.payload,
+      actions: result.actions,
+      structuredResponse: result.structuredResponse,
+      proposal: result.proposal,
+      missingFields: result.missingFields,
+      clarifyingQuestion: result.clarifyingQuestion,
+      confirmationRequired: result.confirmationRequired,
+      emotion: result.emotion,
+      reaction: result.reaction,
+      roadmap: result.roadmap,
+      navigation: result.navigation,
+      type: result.type,
       createdAt: nowIso,
     };
 
@@ -1697,7 +1732,13 @@ export async function POST(request: NextRequest, context: { params: Promise<{ pa
 
     try {
       const result = await executeAIAction(actionKey, body);
-      const tokensUsed = estimateTokenUsage(JSON.stringify(body), JSON.stringify(result));
+      const actionModel = (body as any)?.model || (body as any)?.options?.model || 'smart';
+      const tokensUsed = estimateTokenUsage(
+        JSON.stringify(body), 
+        JSON.stringify(result),
+        actionModel,
+        (result as any)?.geminiUsage
+      );
       const tokenStatus = await consumeUserTokens(userId, isGuest, guestId, tokensUsed, lang);
       return NextResponse.json(typeof result === 'object' && !Array.isArray(result) ? { ...result, tokenStatus } : result);
     } catch (err: any) {

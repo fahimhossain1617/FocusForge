@@ -95,6 +95,7 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
   const [orbState, setOrbState] = useState<OrbState>("idle");
   const abortControllerRef = useRef<AbortController | null>(null);
   const typingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const orbResetTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Privacy & Improvement Modes: "improvement" (default) | "private"
   const [privacyMode, setPrivacyModeState] = useState<PrivacyMode>(() => {
@@ -135,6 +136,10 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
     if (typingIntervalRef.current) {
       clearInterval(typingIntervalRef.current);
       typingIntervalRef.current = null;
+    }
+    if (orbResetTimerRef.current) {
+      clearTimeout(orbResetTimerRef.current);
+      orbResetTimerRef.current = null;
     }
     setIsThinking(false);
     setIsTyping(false);
@@ -402,7 +407,7 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
     model: AIAgentModel = "smart"
   ) => {
     if (!content.trim()) { 
-      setError(language === "bn" ? "প্রথমে আপনার প্রশ্ন বা টাস্ক লিখুন।" : "Tell FocusForge what you need help with first."); 
+      setError(language === "bn" ? "প্রথমে তোমার প্রশ্ন বা টাস্ক লেখো।" : "Tell Focentia what you need help with first."); 
       return; 
     }
     setError(null); 
@@ -449,8 +454,8 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
           role: 'assistant',
           intent: 'REQUIRE_LOGIN',
           content: langParam === 'bn'
-            ? "আমি তোমাকে সাহায্য করতে খুব পছন্দ করি! 🥰 কিন্তু তুমি তো এখনও লগইন করোনি আর তোমার গেস্ট লিমিট শেষ হয়ে গেছে। একটু লগইন করে নাও না? তখন আমি আবার জেগে উঠে তোমাকে প্রাণখুলে সাহায্য করব! ততক্ষণ আমি একটু ঘুমিয়ে নিই... 😴💤"
-            : "I really love helping you! 🥰 But you haven't logged in yet and your guest limit is reached. Please log in! Once you log in, I'll wake up and help you with all my heart. Until then, let me take a quick nap... 😴💤",
+            ? "আমি তোমাকে সাহায্য করতে পছন্দ করি। তবে তুমি তো এখনও লগইন করোনি আর তোমার গেস্ট লিমিট শেষ হয়ে গেছে। একটু লগইন করে নিলে আমি আবার জেগে তোমাকে সাহায্য করতে পারব। ততক্ষণ আমি একটু বিশ্রাম নিই।"
+            : "I'd love to help you! However, you haven't logged in yet and your guest limit is reached. Please log in so I can wake up and help you. Until then, I'll take a quick rest.",
           payload: { requireLogin: true },
           createdAt: new Date()
         };
@@ -464,8 +469,8 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
           role: 'assistant',
           intent: 'LIMIT_EXHAUSTED',
           content: langParam === "bn"
-            ? `আমি তোমাকে সাহায্য করতে চাই! কিন্তু আজকের জন্য তোমার ফ্রি লিমিট শেষ হয়ে গেছে।\n\n• লিমিট রিসেট হবে: ${resetDateStr}\n• বাকি সময়: ${remTimeStr}\n\nপ্লিজ একটু অপেক্ষা করো। লিমিট রিসেট হলে আমি আবার জেগে তোমাকে সাহায্য করব! ততক্ষণ আমি একটু ঘুমিয়ে নিই... 😴💤`
-            : `I really want to help you! But your daily limit for today has been reached.\n\n• Resets on: ${resetDateStr}\n• Remaining time: ${remTimeStr}\n\nPlease wait a little bit. Once it resets, I'll wake right up to help you! Until then, let me take a quick nap... 😴💤`,
+            ? `আমি তোমাকে সাহায্য করতে চাই, তবে আজকের জন্য তোমার ফ্রি লিমিট শেষ হয়ে গেছে।\n\n• লিমিট রিসেট হবে: ${resetDateStr}\n• বাকি সময়: ${remTimeStr}\n\nঅনুগ্রহ করে একটু অপেক্ষা করো। লিমিট রিসেট হলে আমি আবার জেগে তোমাকে সাহায্য করতে প্রস্তুত থাকব। ততক্ষণ আমি বিশ্রামে আছি।`
+            : `I really want to help you, but your daily limit for today has been reached.\n\n• Resets on: ${resetDateStr}\n• Remaining time: ${remTimeStr}\n\nPlease wait a little bit. Once it resets, I'll wake right up to help you! Until then, I'll be resting.`,
           payload: { resetDate: resetDateStr, remainingTime: remTimeStr },
           createdAt: new Date()
         };
@@ -533,6 +538,7 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
         content: result.aiMessage.content,
         intent: result.aiMessage.intent,
         payload: (result.aiMessage as any).payload || (result.aiMessage as any).payload_json,
+        roadmap: (result.aiMessage as any).roadmap || (result.aiMessage as any).structuredResponse?.roadmap || ((result.aiMessage as any).payload && (result.aiMessage as any).payload.stages ? (result.aiMessage as any).payload : null),
         actions: result.aiMessage.actions || [],
         emotion: result.aiMessage.emotion,
         reaction: result.aiMessage.reaction,
@@ -581,20 +587,72 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
       }
 
       // Transition Orb state after response output
+      if (orbResetTimerRef.current) {
+        clearTimeout(orbResetTimerRef.current);
+        orbResetTimerRef.current = null;
+      }
+
       const hasPendingAction = normalizedAiMessage.actions && normalizedAiMessage.actions.some(
         a => a.status === 'pending' && a.confirmationRequired
       );
 
       if (hasPendingAction) {
         setOrbState("waiting_confirmation");
-      } else if (normalizedAiMessage.emotion === "sad" || normalizedAiMessage.emotion === "stressed" || normalizedAiMessage.emotion === "concerned") {
-        setOrbState("supportive");
-        setTimeout(() => setOrbState("idle"), 4000);
-      } else if (normalizedAiMessage.emotion === "happy" || normalizedAiMessage.emotion === "celebratory") {
-        setOrbState("happy");
-        setTimeout(() => setOrbState("idle"), 3500);
       } else {
-        setOrbState("idle");
+        const emo = normalizedAiMessage.emotion;
+        let nextOrbState: OrbState = "idle";
+        let durationMs = 4500;
+
+        if (emo === "serious" || emo === "protective") {
+          nextOrbState = "serious";
+          durationMs = 5000;
+        } else if (emo === "laughing" || emo === "playful") {
+          nextOrbState = emo;
+          durationMs = 4500;
+        } else if (emo === "empathetic" || emo === "supportive" || emo === "caring") {
+          nextOrbState = "empathetic";
+          durationMs = 5000;
+        } else if (emo === "encouraging") {
+          nextOrbState = "encouraging";
+          durationMs = 4500;
+        } else if (emo === "proud" || emo === "celebrating" || emo === "celebratory") {
+          nextOrbState = "proud";
+          durationMs = 5000;
+        } else if (emo === "curious") {
+          nextOrbState = "curious";
+          durationMs = 4200;
+        } else if (emo === "focused") {
+          nextOrbState = "focused";
+          durationMs = 4200;
+        } else if (emo === "sad" || emo === "concerned" || emo === "stressed") {
+          nextOrbState = "sad";
+          durationMs = 5000;
+        } else if (emo === "happy") {
+          nextOrbState = "happy";
+          durationMs = 4500;
+        } else if (emo === "sulky") {
+          nextOrbState = "sulky";
+          durationMs = 6000;
+        } else if (emo === "angry") {
+          nextOrbState = "angry";
+          durationMs = 4500;
+        } else if (emo === "excited") {
+          nextOrbState = "excited";
+          durationMs = 4500;
+        } else if (emo === "sleepy" || emo === "resting") {
+          nextOrbState = "sleepy";
+          durationMs = 6000;
+        } else {
+          nextOrbState = "idle";
+        }
+
+        setOrbState(nextOrbState);
+        if (nextOrbState !== "idle") {
+          orbResetTimerRef.current = setTimeout(() => {
+            setOrbState("idle");
+            orbResetTimerRef.current = null;
+          }, durationMs);
+        }
       }
 
       // Append assistant message to active chat list
@@ -606,8 +664,8 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
             role: 'assistant',
             intent: 'REQUIRE_LOGIN',
             content: langParam === 'bn'
-              ? "আমি তোমাকে সাহায্য করতে খুব পছন্দ করি! 🥰 কিন্তু তুমি তো এখনও লগইন করোনি আর তোমার গেস্ট লিমিট শেষ হয়ে গেছে। একটু লগইন করে নাও না? তখন আমি আবার জেগে উঠে তোমাকে প্রাণখুলে সাহায্য করব! ততক্ষণ আমি একটু ঘুমিয়ে নিই... 😴💤"
-              : "I really love helping you! 🥰 But you haven't logged in yet and your guest limit is reached. Please log in! Once you log in, I'll wake up and help you with all my heart. Until then, let me take a quick nap... 😴💤",
+              ? "আমি তোমাকে সাহায্য করতে পছন্দ করি। তবে তুমি তো এখনও লগইন করোনি আর তোমার গেস্ট লিমিট শেষ হয়ে গেছে। একটু লগইন করে নিলে আমি আবার জেগে তোমাকে সাহায্য করতে পারব। ততক্ষণ আমি একটু বিশ্রাম নিই।"
+              : "I'd love to help you! However, you haven't logged in yet and your guest limit is reached. Please log in so I can wake up and help you. Until then, I'll take a quick rest.",
             payload: { requireLogin: true },
             createdAt: new Date()
           };
@@ -642,8 +700,8 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
           role: "assistant",
           intent: 'REQUIRE_LOGIN',
           content: langParam === "bn"
-            ? "আমি তোমাকে সাহায্য করতে খুব পছন্দ করি! 🥰 কিন্তু তুমি তো এখনও লগইন করোনি আর তোমার গেস্ট লিমিট শেষ হয়ে গেছে। একটু লগইন করে নাও না? তখন আমি আবার জেগে উঠে তোমাকে প্রাণখুলে সাহায্য করব! ততক্ষণ আমি একটু ঘুমিয়ে নিই... 😴💤"
-            : "I really love helping you! 🥰 But you haven't logged in yet and your guest limit is reached. Please log in! Once you log in, I'll wake up and help you with all my heart. Until then, let me take a quick nap... 😴💤",
+            ? "আমি তোমাকে সাহায্য করতে পছন্দ করি। তবে তুমি তো এখনও লগইন করোনি আর তোমার গেস্ট লিমিট শেষ হয়ে গেছে। একটু লগইন করে নিলে আমি আবার জেগে তোমাকে সাহায্য করতে পারব। ততক্ষণ আমি একটু বিশ্রাম নিই।"
+            : "I'd love to help you! However, you haven't logged in yet and your guest limit is reached. Please log in so I can wake up and help you. Until then, I'll take a quick rest.",
           payload: { requireLogin: true },
           createdAt: new Date()
         };

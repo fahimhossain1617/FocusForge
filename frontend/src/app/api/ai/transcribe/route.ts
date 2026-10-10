@@ -21,10 +21,7 @@ export async function POST(req: NextRequest) {
     }
 
     const cleanBase64 = audio.replace(/^data:[^;]+;base64,/, "").trim();
-    const apiKey =
-      process.env.GEMINI_API_KEY ||
-      process.env.NEXT_PUBLIC_GEMINI_API_KEY ||
-      process.env["NEXT_PUBLIC-GEMINI_API_KEY"];
+    const apiKey = process.env.GEMINI_API_KEY;
 
     if (!apiKey) {
       return NextResponse.json(

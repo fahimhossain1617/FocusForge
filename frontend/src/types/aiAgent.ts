@@ -1,7 +1,8 @@
 import type { Task } from "@/types";
+import type { LearningRoadmap } from "./roadmap";
 
 export type AIAgentLanguage = "auto" | "bn" | "en";
-export type AIAgentModel = "smart" | "fast" | "planning";
+export type AIAgentModel = "smart" | "fast" | "planning" | "focentia-2.1" | "focentia-pro";
 export type AIAgentIntent =
   | "NAVIGATION"
   | "PROBLEM_SOLVER" 
@@ -24,6 +25,7 @@ export type PrivacyMode = "improvement" | "private" | "disappearing";
 export type OrbState =
   | "idle"
   | "listening"
+  | "attentive"
   | "thinking"
   | "composing"
   | "working"
@@ -34,11 +36,48 @@ export type OrbState =
   | "curious"
   | "concerned"
   | "encouraging"
-  | "error";
+  | "playful"
+  | "laughing"
+  | "focused"
+  | "empathetic"
+  | "proud"
+  | "celebrating"
+  | "serious"
+  | "protective"
+  | "sad"
+  | "sleepy"
+  | "resting"
+  | "error"
+  | "sulky"
+  | "angry"
+  | "excited";
+
+export type AgentEmotion =
+  | "neutral"
+  | "happy"
+  | "playful"
+  | "laughing"
+  | "curious"
+  | "thinking"
+  | "focused"
+  | "empathetic"
+  | "concerned"
+  | "encouraging"
+  | "supportive"
+  | "proud"
+  | "celebrating"
+  | "serious"
+  | "protective"
+  | "sad"
+  | "sleepy"
+  | "sulky"
+  | "angry"
+  | "excited";
 
 export type ActionType =
   // Navigation
   | "open_dashboard"
+  | "open_today"
   | "open_focus"
   | "open_planner"
   | "open_tasks"
@@ -49,7 +88,9 @@ export type ActionType =
   | "open_diary"
   | "open_learning"
   | "open_skill_builder"
+  | "open_profile"
   | "open_settings"
+  | "open_notifications"
   // Focus
   | "create_focus_session"
   // Planner & Tasks
@@ -82,6 +123,7 @@ export type ActionType =
 
 export type ActionStatus =
   | "pending"
+  | "ready"
   | "confirmed"
   | "executing"
   | "completed"
@@ -109,6 +151,9 @@ export interface ActionRequest {
   resultMessage?: string;
   navigationRoute?: string;
   items?: ActionItem[]; // For multi-action planning (e.g. 3 tasks)
+  confirmationToken?: string;
+  createdAtTimestamp?: number;
+  expiresAt?: string;
 }
 
 export interface WorkspaceContext {
@@ -133,6 +178,31 @@ export interface ProposedAction {
   payload: Partial<Task> & { taskId?: number };
 }
 
+export interface StructuredAIResponse {
+  type: "text" | "clarification" | "action_proposal" | "action_result" | "roadmap" | "error";
+  message: string;
+  status: "success" | "pending_clarification" | "pending_confirmation" | "executed" | "error";
+  missingFields?: string[];
+  clarifyingQuestion?: string | null;
+  proposal?: {
+    actionType: ActionType | string;
+    title: string;
+    parameters: Record<string, any>;
+    confirmationRequired: boolean;
+    isDestructive?: boolean;
+  } | null;
+  confirmationRequired?: boolean;
+  actionId?: string | null;
+  navigation?: string | null;
+  data?: Record<string, any> | null;
+  intent?: AIAgentIntent;
+  payload?: any;
+  roadmap?: LearningRoadmap | null;
+  actions?: ActionRequest[];
+  emotion?: string;
+  reaction?: string | null;
+}
+
 export interface AgentMessage {
   id: string;
   role: "user" | "assistant";
@@ -140,8 +210,11 @@ export interface AgentMessage {
   createdAt: Date;
   intent?: AIAgentIntent;
   payload?: any;
+  roadmap?: LearningRoadmap | null;
   actions?: ActionRequest[];
+  structuredResponse?: StructuredAIResponse;
   emotion?: string;
   reaction?: "❤️" | "✨" | "👍" | "😊" | "🎯" | string | null;
   privacyMode?: PrivacyMode;
 }
+

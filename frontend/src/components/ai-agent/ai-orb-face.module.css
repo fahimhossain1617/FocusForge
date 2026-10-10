@@ -780,3 +780,135 @@
     opacity: 1;
   }
 }
+
+/* 🛡️ Serious & Protective: Shield Badge Animation */
+.seriousShieldBadge {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: shieldPulse 2.8s ease-in-out infinite alternate;
+}
+
+@keyframes shieldPulse {
+  0% {
+    transform: scale(0.95);
+    filter: drop-shadow(0 0 4px rgba(59, 130, 246, 0.4));
+  }
+  100% {
+    transform: scale(1.05);
+    filter: drop-shadow(0 0 10px rgba(59, 130, 246, 0.8));
+  }
+}
+
+/* ⭐ Proud & Celebrating: Golden Stars */
+.proudStar1 {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: starTwinkle1 2.2s ease-in-out infinite alternate;
+}
+
+.proudStar2 {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: starTwinkle2 2.6s ease-in-out infinite alternate 0.4s;
+}
+
+@keyframes starTwinkle1 {
+  0% {
+    transform: scale(0.8) rotate(-10deg);
+    opacity: 0.7;
+  }
+  100% {
+    transform: scale(1.15) rotate(15deg);
+    opacity: 1;
+  }
+}
+
+@keyframes starTwinkle2 {
+  0% {
+    transform: translate(-6px, 20px) scale(0.75) rotate(10deg);
+    opacity: 0.6;
+  }
+  100% {
+    transform: translate(-6px, 20px) scale(1.1) rotate(-12deg);
+    opacity: 1;
+  }
+}
+
+/* 💖 Empathetic & Caring: Floating Hearts & Pulsing Heart */
+.floatingHeart1 {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: heartFloat1 3s ease-in-out infinite alternate;
+}
+
+.floatingHeart2 {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: heartFloat2 3.4s ease-in-out infinite alternate 0.5s;
+}
+
+@keyframes heartFloat1 {
+  0% {
+    transform: rotate(14deg) scale(0.85) translateY(0);
+    opacity: 0.75;
+  }
+  100% {
+    transform: rotate(18deg) scale(1.05) translateY(-5px);
+    opacity: 1;
+  }
+}
+
+@keyframes heartFloat2 {
+  0% {
+    transform: translate(10px, 20px) rotate(22deg) scale(0.58);
+    opacity: 0.6;
+  }
+  100% {
+    transform: translate(10px, 16px) rotate(26deg) scale(0.72);
+    opacity: 0.95;
+  }
+}
+
+.pulsingHeart {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: heartPulse 1.8s ease-in-out infinite;
+}
+
+@keyframes heartPulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.08);
+  }
+}
+
+/* ♿ Reduced Motion Accessibility Support */
+@media (prefers-reduced-motion: reduce) {
+  .orbMotionWrapper,
+  .orbGiggling,
+  .orbFloating,
+  .headGroup,
+  .speechBubbleWrapper,
+  .speechBubbleLeftWrapper,
+  .thoughtCloudWrapper,
+  .sadTeardropLeft,
+  .sadTeardropRight,
+  .sadSweatdrop,
+  .seriousShieldBadge,
+  .proudStar1,
+  .proudStar2,
+  .floatingHeart1,
+  .floatingHeart2,
+  .pulsingHeart,
+  .dotPulse1,
+  .dotPulse2,
+  .dotPulse3,
+  .typingDot1,
+  .typingDot2,
+  .typingDot3 {
+    animation: none !important;
+    transition: opacity 0.15s ease-out, transform 0.15s ease-out !important;
+  }
+}

@@ -55,7 +55,7 @@ export default function AIConsentModal({ isOpen, userId, lang = "bn", onClose }:
               {isBn ? "এআই ইমপ্রুভমেন্ট ও প্রাইভেসি" : "AI Improvement & Privacy"}
             </h2>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              {isBn ? "আপনার এআই অভিজ্ঞতা ও গোপনীয়তা নিয়ন্ত্রণ করুন" : "Manage your AI privacy and improvement preferences"}
+              {isBn ? "তোমার এআই অভিজ্ঞতা ও গোপনীয়তা নিয়ন্ত্রণ করো" : "Manage your AI privacy and improvement preferences"}
             </p>
           </div>
         </div>
@@ -63,8 +63,8 @@ export default function AIConsentModal({ isOpen, userId, lang = "bn", onClose }:
         <div className="text-xs sm:text-sm text-slate-700 dark:text-slate-300 space-y-3 mb-6 bg-slate-50 dark:bg-white/[0.03] p-4 rounded-xl border border-slate-200 dark:border-white/10">
           <p className="leading-relaxed">
             {isBn
-              ? "FocusForge সম্পূর্ণ গোপনীয়তা মেনে চলে। আপনি কি চান এআই আপনার পছন্দ মনে রেখে উত্তর আরও পার্সোনালাইজ করুক? আপনি যেকোনো সময় সেটিংস থেকে এটি পরিবর্তন করতে পারবেন।"
-              : "FocusForge is privacy-first. Would you like the AI to remember preferences to personalize future answers? You can change this at any time in Settings."}
+              ? "ফোসেন্টিয়া সম্পূর্ণ গোপনীয়তা মেনে চলে। তুমি কি চাও এআই তোমার পছন্দ মনে রেখে উত্তর আরও পার্সোনালাইজ করুক? তুমি যেকোনো সময় সেটিংস থেকে এটি পরিবর্তন করতে পারবে।"
+              : "Focentia is privacy-first. Would you like the AI to remember preferences to personalize future answers? You can change this at any time in Settings."}
           </p>
           <div className="flex items-center gap-2 text-xs text-slate-800 dark:text-slate-200 font-medium">
             <Lock className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />

@@ -33,7 +33,13 @@
 | **Cross-Device Sync & Relay** | **VERIFIED** | `frontend/src/lib/sync.ts`, `services/syncService.ts` | `/api/sync/push`, `/api/sync/pull` | None. Debounced, batched offline-first sync engine. |
 | **Zero-Knowledge Envelope E2EE** | **VERIFIED** | `frontend/src/lib/crypto.ts`, `components/encryption/*` | Web Crypto (AES-256-GCM, PBKDF2-SHA256), `user_encryption_keys` | None. 256-bit MEK, 250k PBKDF2 KEK, wrapped key envelope in Supabase. |
 | **Privacy-First AI Consent** | **VERIFIED** | `frontend/src/services/aiConsentService.ts`, `AIConsentModal.tsx` | `localStorage` | None. Local-first personal chats; "Keep My Chats Private" default; improvement is strict opt-in. |
+| **Intelligent Learning Roadmaps** | **VERIFIED** | `frontend/src/components/ai-agent/AIRoadmapCard.tsx`, `services/roadmapService.ts` | `types/roadmap.ts`, `@google/genai` | None. Dynamic Gemini generation, derived progress, local persistence, interactive checklist. |
+| **Realistic AI Status Lifecycle** | **VERIFIED** | `frontend/src/services/aiStatusEvents.ts`, `useOrbMood.ts` | `AIOrbFace.tsx` | None. Contextual truthful status events in Bengali and English based on active lifecycle. || **AI Capability Registry & Typed Tools** | **VERIFIED** | `frontend/src/services/aiActionValidator.ts`, `backend/src/services/aiServerTools.ts` | `.agent/CAPABILITY_REGISTRY.md`, `@google/genai` | None. 11 typed server read/query tools, zero-hallucination schemas, tenant isolation. |
+| **AI Production Hardening & E2E Acceptance** | **VERIFIED** | `scripts/test_phase4_e2e_verification.js` | Supabase Auth, PostgreSQL, Dexie.js | None. 27/27 tests passed covering multi-tenant isolation, confirmation integrity, 10 user journeys, latency, and Bengali Unicode. |
+| **AI Personality & Emotional Intelligence (Phase 6)** | **VERIFIED** | `frontend/src/lib/server/aiService.ts`, `backend/src/services/aiService.ts` | `@google/genai` | None. Caring older brother persona, exam anxiety handling, non-judgmental support, evidence-based motivation. |
+| **Dynamic Emotional Facial Expressions (Final Phase)** | **VERIFIED** | `frontend/src/components/ai-agent/AIOrbFace.tsx`, `useOrbMood.ts`, `ai-orb-face.module.css` | SVG, LERP physics | None. 24 expression states, responsive SVG eyebrow/eye/mouth shapes, glowing shield badge, twinkling stars, floating hearts, reduced-motion accessibility. |
 | **Auth-Only Cloud DB** | **VERIFIED** | `frontend/src/lib/server/db.ts`, `supabase/migrations/` | Supabase pooler, `026_user_encryption_keys_and_e2ee.sql` | None. Zero plaintext personal data in cloud DB. |
+
 
 ---
 
@@ -59,6 +65,39 @@
 - **Location:** `frontend/src/components/diary/DiaryHome.tsx`, `frontend/src/components/diary/DiaryEditor.tsx`
 - **Behavior:** Organizes reflections into custom topics with personalized theme styling. Supports rich markdown formatting, image attachments, table-of-contents navigation, and search across entries.
 
-### 2.6 AI Agent & Dynamic Productivity Actions
-- **Location:** `frontend/src/components/ai-agent/AIAgentPage.tsx`, `frontend/src/services/aiAgentService.ts`, `frontend/src/lib/server/aiService.ts`
-- **Behavior:** Powered by Gemini models to provide daily planning assistance, task breakdown, thought synthesis, and direct tool execution. Parameter validation in `aiActionValidator.ts` guards against invalid inputs, and destructive operations trigger explicit confirmation dialogs.
+### 2.6 AI Agent (Focentia AI) & Dual Model Intelligence Pipeline (Focentia 2.1 & Focentia Pro)
+- **Location:** `frontend/src/components/ai-agent/AIAgentPage.tsx`, `frontend/src/services/aiAgentService.ts`, `frontend/src/lib/server/aiService.ts`, `backend/src/services/aiService.ts`
+- **Behavior:** Powered by Google Gemini with dual-tier model selection:
+  - **Focentia 2.1 (Fast Mode):** Ultra-fast lightweight execution (~1.1s latency via `gemini-3.5-flash-lite`, with fallbacks to `gemini-flash-lite-latest`, `gemini-flash-latest`, `gemini-3.7-flash`). Tailored for quick replies, everyday tasks, rapid answers, and concise check-ins (0.5x token multiplier).
+  - **Focentia Pro (Deep Research & Planning Mode):** High-capacity deep reasoning via `gemini-3.8-flash` and `gemini-3.7-flash` (40s timeout, 6,000 max output tokens, 0.65 temperature). Conducts deep research, thorough milestone planning, comprehensive academic/technical explanations, and multi-step complex tasks (2.0x token multiplier).
+  - Delivers open-ended academic and coding explanations, multi-turn clarification when task details (date/time) are missing, structured task and roadmap proposals, explicit confirmation gates before any user data mutations, and strict Bengali Unicode integrity with "তুমি" tone. All hardcoded/canned task responses completely eliminated.
+
+### 2.7 Application Capability Registry & Secure Typed Tools (Phase 2)
+- **Location:** `.agent/CAPABILITY_REGISTRY.md`, `frontend/src/services/aiActionValidator.ts`, `backend/src/services/aiActionValidator.ts`, `frontend/src/lib/server/aiServerTools.ts`, `backend/src/services/aiServerTools.ts`
+- **Behavior:**
+  1. **Typed Capability Registry:** Full mapping of routes, schemas, field constraints, backend repositories, and confirmation policies for Planner, Focus, Time Log, Notes & Files, Mind Space, My Diary, Performance analytics, and App Settings.
+  2. **Zero-Hallucination Schemas:** Strict schema enforcement preventing hallucinated fields (e.g., Time Log only supports `folderName`/`topics`, `practiceMinutes`, `watchMinutes`, `practiceDetails`, `blockers`, `importantTopics`; no invented milestones or stages).
+  3. **Mandatory Clarification & Mutation Gate:** Incomplete user requests automatically trigger clarification questions (`status: "pending_clarification"`, `type: "clarification"`). Fully qualified mutations require explicit user confirmation (`confirmationRequired: true`) with server-issued IDs.
+  4. **Narrow Server Read Tools:** Exposes 11 typed server-side read/query tools (`search_planner_entries`, `get_planner_entries_for_date`, `propose_planner_entries`, `get_time_log_topics`, `search_notes_and_files`, `get_note_or_file_content`, `search_diary_entries`, `get_diary_entry`, `get_performance_report`, `get_available_app_destinations`, `prepare_navigation`) with strict tenant isolation (`WHERE user_id = $1`) and automatic credential redaction.
+  5. **Atomic Batch Operations:** Supports multi-item planner creation (`create_tasks`) with atomic validation.
+
+### 2.8 Human-Centered Personality & Emotional Intelligence (Phase 6)
+- **Location:** `frontend/src/lib/server/aiService.ts`, `backend/src/services/aiService.ts`, `frontend/src/hooks/useAIAgent.ts`
+- **Behavior:** Implements the caring older brother persona (বড় ভাইয়ের মতো স্নেহশীল ও নির্ভরতার সুর). Features natural humor, playful wit, exam anxiety reassurance without making false grade promises, non-judgmental support during demotivation and procrastination, evidence-based encouragement grounded strictly in authentic verified application data, and optional contextual feature bridging.
+
+### 2.9 Zero-Emoji Text Persona & Dynamic Emotional Facial Expressions (`AIOrbFace`)
+- **Location:** `frontend/src/components/ai-agent/AIOrbFace.tsx`, `useOrbMood.ts`, `ai-orb-face.module.css`, `frontend/src/lib/server/aiService.ts`, `backend/src/services/aiService.ts`, `frontend/src/hooks/useAIAgent.ts`
+- **Behavior:**
+  1. **Strict Zero-Keyboard-Emoji Text Rule:** Prohibits keyboard emojis (🥰, 😴, 💤, 😊, 🥺, 😅, 💖, etc.) in AI text responses and system fallback messages, delivering articulate, mature, and natural text.
+  2. **Dynamic Orby Facial Expressions:** Channels all emotional expression visually through the interactive Orby face. Features 24+ typed expression states:
+     - `sulky`: Half-lidded bombastic side-eye look with downturned pout and comic puff for study scolding/reminders (e.g. "পড়তে বসো", procrastination).
+     - `laughing` & `playful`: Arched joyful eyes with pink tongue and vibrating energy for jokes and requested laughter.
+     - `celebrating` & `proud`: Twinkling golden stars and cheerful high head tilt for accomplishments.
+     - `empathetic` & `sad`: Teary pleading eyes, glistening glints, apologetic soft pout, floating hearts, and pulsing 3D heart hand pose for sadness/distress.
+     - `serious` & `protective`: Alert horizontal brows, cyber shield badge for security and safety.
+     - `curious` & `thinking`: Arched brows, floating question mark or hand on chin pensive pose.
+     - `sleepy`: Peaceful closed sleeping lines and floating Zzz.
+  3. **Zero Latency Penalty:** All facial expressions are determined in a single turn by Gemini via the existing JSON `"emotion"` contract, ensuring instant animations without additional API calls.
+
+
+

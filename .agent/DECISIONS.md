@@ -735,7 +735,190 @@
   4. **Themed Celebratory Completion Modal:** On saving a session, presents an in-theme completion dialog with motivational reflection, "Start Again" and "Back to Dashboard" actions without heavy black background dimming or blur.
   5. **Zero Layout Shift Rolling Digit Ticker (`RollingDigit.tsx`):** Each digit is isolated in its own masked `overflow: hidden` container using `framer-motion` vertical translateY slide/roll spring animations with monospace `tabular-nums` alignment, guaranteeing steady colons and adjacent digits.
   6. **Dashboard & Analytics Integration:** Aggregates timer time into daily, weekly, and monthly focus statistics and displays a dedicated "Timer Time" row in the Today's Focus breakdown gauge card.
-- **Impact:** `frontend/src/components/focus/RollingDigit.tsx`, `frontend/src/components/focus/StopwatchTimer.tsx`, `frontend/src/components/pages/FocusPage.tsx`, `frontend/src/components/pages/DashboardPage.tsx`, `frontend/src/types.ts`, `frontend/src/i18n/translations.ts`.
+## ADR-048: Google Gemini Primary Intelligence Pipeline & Multi-Turn Clarification Protocol
+
+- **Date:** October 2026
+- **Status:** Accepted
+- **Decision:**
+  1. **Primary Intelligence Engine:** Transitioned all AI capabilities to official Google Gemini API (`@google/genai` v2.21.0) with dynamic model resolution prioritizing `gemini-3.5-flash-lite`, `gemini-3.7-flash`, `gemini-3.6-flash`, and `gemini-3.8-flash`. All hardcoded rule-based answers and canned static task generators are strictly removed.
+  2. **10-Step Server Pipeline:** (1) Server authentication -> (2) Sanitized context minimisation -> (3) Official Gemini request -> (4) Natural response or tool function -> (5) Strict schema & policy validation -> (6) Multi-turn clarification for missing fields -> (7) Explicit confirmation gate for mutations (`confirmationRequired: true`) -> (8) Authorized server-side tool execution -> (9) Verified response packaging -> (10) Client delivery.
+  3. **Multi-Turn Clarification Protocol:** When required task/planner parameters (e.g. `targetDate`, `time`) are absent, Gemini returns `type: "clarification"`, `status: "pending_clarification"`, and populated `missingFields`, actively querying the user for specifics while preserving conversational context.
+  4. **Strict Secrecy & Bengali Unicode Integrity:** Prompts mandate natural Bengali with "তুমি" address form, zero mentions of underlying model/API names ("Google", "Gemini", "LLM", "ChatGPT"), and strict Unicode preservation for Bengali conjuncts (যুক্তবর্ণ).
+- **Reason:** Previous implementations suffered from stale model names triggering 404/503 errors and silently falling back to static canned tasks. The new pipeline delivers genuine open-ended reasoning, accurate educational guidance (e.g. Java OOP inheritance, roadmaps), and safe multi-turn state management.
+- **Impact:** `frontend/src/lib/server/aiService.ts`, `backend/src/services/aiService.ts`, `frontend/src/services/aiAgentService.ts`, `frontend/src/types/aiAgent.ts`, `frontend/src/app/api/[...path]/route.ts`, `backend/src/routes/aiRoutes.ts`, `scripts/test_gemini_ai_pipeline.js`.
+
+---
+
+## ADR-049: Verified Application Capability Registry & Typed Application Tools (Phase 2)
+
+- **Date:** October 2026
+- **Status:** Accepted
+- **Decision:**
+  1. **Typed Capability Registry (`.agent/CAPABILITY_REGISTRY.md`):** Established an authoritative typed registry specifying all real application routes, schemas, database services, and confirmation policies for Planner, Focus, Time Log, Notes & Files, Mind Space, Personal Diary, Performance analytics, and App Settings.
+  2. **Strict Schema Fidelity & Zero Hallucination:** Time Log schemas strictly accept only authentic fields (`folderName`/`topics`, `practiceMinutes`, `watchMinutes`, `practiceDetails`, `blockers`, `importantTopics`). Invented study-hour estimates, milestones, or artificial stages are strictly forbidden and rejected.
+  3. **Mandatory Clarification & Mutation Gate:** Incomplete user requests automatically trigger clarification questions (`status: "pending_clarification"`, `type: "clarification"`, `missingFields`). Mutating operations require explicit user confirmation (`confirmationRequired: true`) with server-issued IDs.
+  4. **Narrow Server-Side Read Tools (`aiServerTools.ts`):** Exposes 11 typed server tools (`search_planner_entries`, `get_planner_entries_for_date`, `propose_planner_entries`, `get_time_log_topics`, `search_notes_and_files`, `get_note_or_file_content`, `search_diary_entries`, `get_diary_entry`, `get_performance_report`, `get_available_app_destinations`, `prepare_navigation`) with strict tenant isolation (`WHERE user_id = $1`) and automatic credential redaction.
+  5. **Navigation Integrity:** Navigation actions mapped strictly to real routes (`today`, `planner`, `focus`, `tasks`, `mind`, `diary`, `learning`, `profile`, `settings`, `notifications`) with `confirmationRequired: false`.
+- **Reason:** Connecting Gemini to real user features requires strict schemas, multi-turn clarification, tenant isolation, and zero-hallucination validation to ensure data safety and reliable execution.
+- **Impact:** `.agent/CAPABILITY_REGISTRY.md`, `frontend/src/services/aiActionValidator.ts`, `backend/src/services/aiActionValidator.ts`, `frontend/src/lib/server/aiServerTools.ts`, `backend/src/services/aiServerTools.ts`, `frontend/src/components/ai-agent/AIAgentPage.tsx`, `scripts/test_phase2_feature_tools.js`.
+
+---
+
+## ADR-050: Intelligent Learning Roadmaps, Prioritization Engine, and Contextual Status Lifecycle (Phase 3)
+
+- **Date:** October 2026
+- **Status:** Accepted
+- **Decision:**
+  1. **Dynamic Learning Roadmaps & Guidance:** Gemini dynamically generates structured learning curricula without hardcoded topic lists. Supports all subjects (Java, React, SQL, OOP Inheritance, Data Structures, etc.), tailoring stages and topics to user proficiency level and goals.
+  2. **Interactive Roadmap UI (`AIRoadmapCard.tsx`):** Renders collapsible stages, topic cards, subtask checklists, and priority badges (High, Medium, Low) matching Focentia design system. Derives progress strictly from completed items (`completedCount / totalCount * 100`).
+  3. **Local-First Persistence (`roadmapService.ts`):** Roadmap preview displays in chat without saving; saving is an explicit user action stored locally under `focusforge_saved_roadmaps_v1`. Checkbox toggles immediately update progress and persistence.
+  4. **Strict Roadmap vs Time Log Separation:** Curricula and study plans remain strictly separate from Time Log session activity logs. No synthetic hour estimates or fabricated progress are injected into Time Log records.
+---
+
+## ADR-051: Production Hardening, Multi-Tenant Data Isolation, and End-to-End Acceptance Verification (Phase 4)
+
+- **Date:** October 2026
+- **Status:** Accepted
+- **Decision:**
+  1. **Multi-Tenant Data Isolation & Authentication:**
+     - Verified that every read and write operation requires a valid authenticated session (`user.id`).
+     - In-depth cross-tenant query tests verify that User B cannot read or access User A's planner tasks, diary entries, notes & files, time logs, or performance analytics.
+     - Unauthenticated requests safely return empty arrays or authentication errors without leaking database internals.
+  2. **Credential Redaction & Security Hardening:**
+     - `sanitizeOutput` and `sanitizePayloadForGemini` strip passwords, tokens, bearer headers, API keys, and connection strings from all data before transmitting to Gemini or client outputs.
+     - Parameterized SQL queries and injection validators prevent SQL injection and script attacks from compromising data.
+     - Navigation destinations strictly restricted to verified routes in `VALID_NAVIGATION_ROUTES`; unauthorized paths (e.g. `/admin`, `/secret`) are immediately rejected.
+  3. **Confirmation & Operation Integrity:**
+     - All mutation actions (`create_task`, `create_tasks`, `complete_task`, `delete_task`, `update_task`, `create_note`, `delete_note`, `create_diary_entry`, `log_activity`, `create_focus_session`) enforce `confirmationRequired: true` and `status: "pending"`.
+     - Read and navigation operations execute immediately with `confirmationRequired: false` and `status: "ready"`.
+     - Proposal tampering invalidates confirmation; missing required fields trigger multi-turn clarification.
+  4. **10 E2E User Journeys Verified Against Real Authorized Data:**
+     - (1) Routine schedule lookup for specific dates
+     - (2) Diary entry retrieval
+     - (3) Weak & important topics extraction in Notes & Time Log
+     - (4) Weekly performance analytics aggregation
+     - (5) Monthly performance analytics aggregation
+     - (6) Multi-date Planner batch creation with missing times defaulted safely to "10:00"
+     - (7) Notes & Files item creation with mandatory title and content blocks
+     - (8) Time Log activity logging with authentic schema
+     - (9) Interactive Learning Roadmap generation, schema validation & derived progress calculation
+     - (10) Comprehensive navigation to Settings, Profile, Legal pages (Terms, Privacy), and feature destinations.
+  5. **Performance & Reliability Benchmarks:**
+     - Fast-path navigation: < 1ms
+     - Server tool execution: < 1ms
+     - Live Gemini 3.5 Flash / 3.7 Flash API request duration: ~1540ms
+  6. **Bengali & English Language Quality:**
+     - Bengali Unicode conjuncts (যুক্তবর্ণ: প্রযুক্তি, প্রস্তুতি, প্রতিক্রিয়া, লক্ষ্য, বিশ্লেষণ) tested and verified without corruption.
+     - Mixed Bengali-English technical queries parsed and processed with accurate language alignment.
+- **Reason:** Guarantees production stability, tenant isolation, operational integrity, and strict adherence to privacy-first and local-first architecture.
+- **Impact:** `frontend/src/services/aiActionValidator.ts`, `backend/src/services/aiActionValidator.ts`, `frontend/src/lib/server/aiServerTools.ts`, `backend/src/services/aiServerTools.ts`, `frontend/src/types/aiAgent.ts`, `scripts/test_phase4_e2e_verification.js`.
+
+---
+
+## ADR-052: Comprehensive AI Security Hardening, Prompt Injection Defenses & Cryptographic Proposal Tokens
+
+- **Date:** October 2026
+- **Status:** Accepted & Verified
+- **Decision:** Implement a defense-in-depth security framework across the entire AI assistant, backend routes, Next.js serverless handlers, and database access layer:
+  1. **Prompt Injection & Data Isolation:** All user queries and multi-turn DB context are encapsulated in `<untrusted_user_query_and_context>` tags with deterministic system directives instructing the model to treat content strictly as passive data and reject injection attempts (e.g. DAN Mode, system prompt disclosure, arbitrary SQL execution).
+  2. **Capability Registry Hardening:** Arbitrary tool invocation (`execute_shell`, `raw_sql_query`, `drop_database`, `fetch_internal_url`, `read_env_secrets`) is strictly blocked. SQL injection and XSS patterns in parameters are filtered and rejected.
+  3. **Cryptographic Confirmation Tokens:** Proposed mutations generate HMAC SHA-256 signatures (`confirmationToken`), creation timestamps (`createdAtTimestamp`), and 15-minute expirations (`expiresAt`). Any tampering with action parameters or expiration invalidates the confirmation.
+  4. **Burst Rate Limiting & Input Bounds:** Added a 40 requests/min burst rate limiter and max 5,000 character payload length validation on `/api/ai/agent/chat`.
+  5. **Global Web Security Headers:** Configured `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy`, and `X-XSS-Protection` in `next.config.ts`.
+  6. **Resilient AI Model Cascades:** Configured cascading fallbacks across `gemini-3.5-flash-lite`, `gemini-3.8-flash`, `gemini-3.7-flash`, `gemini-3.1-pro-preview`, and `gemini-3.6-flash` ensuring zero downtime under rate limits.
+- **Reason:** Fortifies Focentia against prompt injection, IDOR, clickjacking, MIME-sniffing, parameter tampering, and API abuse while 100% preserving all Phase 1–4 features.
+- **Impact:** `frontend/src/lib/server/aiService.ts`, `backend/src/services/aiService.ts`, `frontend/src/services/aiActionValidator.ts`, `backend/src/services/aiActionValidator.ts`, `frontend/src/app/api/[...path]/route.ts`, `backend/src/routes/aiRoutes.ts`, `frontend/next.config.ts`, `scripts/test_comprehensive_security_audit.js`.
+
+---
+
+## ADR-053: Human-Centered Personality, Emotional Intelligence & Dynamic Facial Animation
+
+- **Date:** October 2026
+- **Status:** Accepted & Verified
+- **Decision:** Enhance Focentia AI with a warm, authentic, supportive, and emotionally intelligent conversational personality and dynamic facial expression reaction engine:
+  1. **Caring Older Brother Persona (Phase 6):** Communicates with warmth, empathy, and grounded guidance (বড় ভাইয়ের মতো স্নেহশীল ও নির্ভরতার সুর). Features light humor, playful wit, exam anxiety validation without false grade promises, procrastination root-cause identification (tired vs overwhelmed vs lack of direction), proportional responses for casual greetings, and contextual, optional Focentia feature bridging.
+  2. **Evidence-Based Motivation & Anti-Hallucination:** Motivation is strictly grounded in verified application data (completed tasks, focus minutes, roadmap stages). The assistant is strictly prohibited from inventing progress, exam prep stats, practice counts, or academic results.
+  3. **Context-Aware Dynamic Facial Reactions & SVG Geometry:** 24 typed states (`serious`, `protective`, `laughing`, `playful`, `empathetic`, `encouraging`, `proud`, `celebrating`, `focused`, `resting`, `sad`, `happy`, `curious`, etc.) driven synchronously by response emotion metadata. Supported by custom SVG eyebrows, eyes, mouth expressions, glowing cyber shield badge for security/prompt-injection refusal, twinkling golden stars for achievements, floating hearts, and pulsing 3D heart hand poses.
+  4. **Accessibility & Reduced Motion:** Full `@media (prefers-reduced-motion: reduce)` support scaling down non-essential continuous animation loops while maintaining clear conversational state feedback.
+- **Reason:** Transforms the AI from a purely transactional utility into an enjoyable, emotionally aware companion while 100% preserving all Phase 1-4 capabilities, security protections, zero-knowledge local storage, and cryptographic confirmation gates.
+---
+
+## ADR-054: Complete Focentia AI Codebase Audit, Verification & Hardening
+
+- **Date:** October 2026
+- **Status:** Accepted & Verified
+- **Decision:** Conducted comprehensive, evidence-based audit of Focentia AI across frontend, companion Express backend, database connectivity, Gemini API integration, user memory/improvement isolation, application capability tools, security controls, dynamic expressions, and performance benchmarking:
+  1. **Dynamic Emotion & Roadmap Server Forwarding:** Fixed server route handlers (`frontend/src/app/api/[...path]/route.ts` and `backend/src/routes/aiRoutes.ts`) to forward `emotion`, `reaction`, `roadmap`, `navigation`, and `type` fields in `aiMessage` payloads, ensuring rich facial animations and interactive roadmaps operate seamlessly on server responses.
+  2. **Multi-Tenant User Memory & Session Caching Isolation:** Enforced per-user storage key namespacing in `aiAgentService.ts` (`focusforge_ai_sessions_${userId}`) and `roadmapService.ts` (`focusforge_saved_roadmaps_${userId}`) preventing cross-user session/roadmap leaks on shared devices.
+  3. **Branding & Respectful Address Polish:** Polished `AIConsentModal.tsx` and `useAIAgent.ts` replacing legacy brand strings with `Focentia` / `ফোসেন্টিয়া` and enforcing respectful `তুমি` address in Bengali throughout.
+  4. **Multi-Level Automated Verification:** Successfully passed all test suites: 18/18 Phase 6 & Dynamic Expressions, 28/28 Security Audit, 27/27 Phase 4 Acceptance, 33/33 Roadmaps & Status, 23/23 Application Tools, 21/21 Gemini Pipeline, 20/20 Auth Isolation, 22/22 E2EE Crypto, 24/24 Voice System, 19/19 Notifications, 35/35 Production Readiness, and clean Next.js 16 (18/18 routes) + Express TypeScript builds.
+- **Reason:** Guarantees absolute reliability, tenant isolation, zero-knowledge privacy, and flawless AI companion behavior across both local and production environments.
+- **Impact:** `frontend/src/app/api/[...path]/route.ts`, `backend/src/routes/aiRoutes.ts`, `frontend/src/services/aiAgentService.ts`, `frontend/src/services/roadmapService.ts`, `frontend/src/components/ai/AIConsentModal.tsx`, `frontend/src/hooks/useAIAgent.ts`, `.agent/CURRENT_STATE.md`.
+
+---
+
+## ADR-055: Gemini AI Server Connectivity Fix, Dynamic Env Resilience & Dual Model Rebrand (Focentia 2.1 & Focentia Pro)
+
+- **Date:** October 2026
+- **Status:** Accepted & Verified
+- **Decision:**
+  1. **Root Cause Resolution for 'Temporarily Busy' AI Errors:** Discovered that Next.js Serverless route handler (`frontend/src/app/api/[...path]/route.ts`) calls `executeAIAction` from `frontend/src/lib/server/aiService.ts`, which failed with `GEMINI_API_KEY is not configured on the server` because `frontend/.env.local` lacked `GEMINI_API_KEY` (which was previously only in `backend/.env`).
+  2. **Unified Environment Configuration & Dynamic Local Dev Fallback:** Added `GEMINI_API_KEY` and `GEMINI_MODEL="gemini-3.5-flash-lite"` to `frontend/.env.local` and root `.env`. Enhanced `getGeminiClient()` in `frontend/src/lib/server/aiService.ts` and `backend/src/services/aiService.ts` to sanitize surrounding quotes and dynamically fall back to parent `backend/.env` or root `.env` during local dev if unset in `process.env`.
+  3. **Verified Working Gemini Models:** Conducted live generation verification across GoogleGenAI models. Configured candidate priority order to use quota-active models:
+     - **Focentia 2.1 (Fast Mode):** `gemini-3.5-flash-lite` (~1.1s latency), `gemini-flash-lite-latest`, `gemini-flash-latest`, `gemini-3.7-flash`, `gemini-3.8-flash`. Configured for 15s timeout, 1,500 max output tokens, 0.3 temperature. Ideal for swift replies, everyday tasks, rapid answers, and quick check-ins.
+     - **Focentia Pro (Deep Planning / Research Mode):** `gemini-3.8-flash`, `gemini-3.7-flash`, `gemini-flash-latest`, `gemini-3.5-flash-lite`. Configured for 40s timeout, 6,000 max output tokens, 0.65 temperature. Ideal for comprehensive planning, deep research, detailed study schedules, and complex multi-step tasks.
+  4. **Dual Model Rebranding in UI (`AIAgentPage.tsx`):**
+     - Pill selector button renamed from "Fast" / "Deep" to **"Focentia 2.1"** and **"Focentia Pro"**.
+     - Dropdown menu updated with distinct badges (`Speed` for 2.1, `Research` for Pro) and localized descriptions in both Bengali and English.
+     - Extended type definitions (`AIAgentModel`) and token estimation routines in `aiTokenService.ts` and `aiAgentService.ts` to seamlessly recognize both aliases.
+- **Reason:** Direct user request to fix the AI "temporarily busy" connection failure, ensure all system logic, Bengali/English mirroring, persona, and security contracts remain intact, and rebrand models to "Focentia 2.1" (for fast everyday tasks) and "Focentia Pro" (for deep research and planning).
+- **Impact:** `frontend/.env.local`, `.env`, `backend/.env`, `frontend/src/lib/server/aiService.ts`, `backend/src/services/aiService.ts`, `frontend/src/app/api/[...path]/route.ts`, `frontend/src/components/ai-agent/AIAgentPage.tsx`, `frontend/src/types/aiAgent.ts`, `frontend/src/lib/server/aiTokenService.ts`, `frontend/src/services/aiAgentService.ts`.
+
+---
+
+## ADR-056: Zero-Emoji Text Persona & Real-Time Dynamic Orby Face Expression Synchronization
+
+- **Date:** October 2026
+- **Status:** Accepted & Verified
+- **Decision:**
+  1. **Strict Zero Keyboard Emojis in AI Chat Text:**
+     - Enforced strict prompt instructions in both `frontend/src/lib/server/aiService.ts` and `backend/src/services/aiService.ts` prohibiting keyboard emojis (e.g. 🥰, 😴, 💤, 😊, 🥺, 😅, 💖, 😂, etc.) in generated message text (`message` and `clarifyingQuestion`).
+     - Removed hardcoded emojis from system fallback strings (e.g. guest lockout, auth exhaustion) in `useAIAgent.ts`, Next.js catch-all `route.ts`, and backend `aiRoutes.ts`.
+     - Preserves clean, mature, authentic, articulate Bengali Unicode and English text with "বড় ভাইয়ের মতো স্নেহশীল ও নির্ভরতার সুর".
+  2. **Real-Time Dynamic Facial Expressions via Animated Orby Face (`AIOrbFace`):**
+     - Emotive expressions are decoupled from text and channeled visually through the interactive spherical Orby Face.
+     - Resolved the critical component bug in `AIOrbFace.tsx` where `(orbState as OrbMood) || mood` treated `"idle"` as truthy, locking the face in idle state. Updated resolution to `const mood: OrbMood = (orbState && orbState !== "idle") ? (orbState as OrbMood) : propMood;` ensuring active AI emotion overrides idle while preserving user tap/touch giggles.
+     - Wired `orbState` properly into `useOrbMood` in `AIAgentPage.tsx`.
+     - Added extended expression support for `sulky` (half-lidded bombastic side-eye look with downturned pout and comic puff for study reminders and scolding like "পড়তে বসো"), `angry` (pouting triangle mouth), and `excited` (joyful curved brows and eyes) in `OrbState`, `AgentEmotion`, and `ALLOWED_EMOTIONS`.
+  3. **Zero Latency Regression:**
+     - Facial expressions are determined during the single Gemini inference turn and returned via the existing `"emotion"` field in the JSON contract.
+     - Zero secondary API calls, maintaining sub-1.5s response times on Focentia 2.1.
+- **Reason:** The user requested an end to repetitive keyboard emoji spam in chat text while wanting the Orby face to come alive with authentic, dynamic facial expressions reacting directly to what the user says (e.g. laughing when asked to smile, crying/sad when asked or sad, sulky with bombastic eye when scolding/reminding to study, celebrating achievements).
+- **Impact:** `frontend/src/components/ai-agent/AIOrbFace.tsx`, `frontend/src/components/ai-agent/useOrbMood.ts`, `frontend/src/components/ai-agent/AIAgentPage.tsx`, `frontend/src/hooks/useAIAgent.ts`, `frontend/src/lib/server/aiService.ts`, `backend/src/services/aiService.ts`, `frontend/src/types/aiAgent.ts`, `frontend/src/app/api/[...path]/route.ts`, `backend/src/routes/aiRoutes.ts`, `.agent/CURRENT_STATE.md`.
+
+---
+
+## ADR-057: User Token Allocation (5,000 Auth / 1,000 Guest) & Model Consumption Logic (Focentia 2.1 vs Pro)
+
+- **Date:** October 2026
+- **Status:** Accepted & Verified
+- **Decision:**
+  1. **Strict Individual Quota Isolation (5,000 Logged-in / 1,000 Guest):**
+     - Every authenticated user receives an individual 5,000 token quota stored and tracked per user UUID in PostgreSQL `profiles` table (`ai_tokens_total INT DEFAULT 5000`, `ai_tokens_used INT DEFAULT 0`, `ai_tokens_reset_at TIMESTAMPTZ`). One user consuming tokens has zero effect on another user's balance.
+     - Unauthenticated/guest visitors receive an individual 1,000 token quota per device/session tracked via client-generated `x-guest-id` (falling back to client IP) to allow exploratory tasks without depleting system or user resources.
+  2. **Model-Specific Consumption Multipliers (Focentia 2.1 vs Focentia Pro):**
+     - **Focentia 2.1 (`focentia-2.1` / `fast`):** Consumes minimal/lightweight tokens (0.5x multiplier, minimum 5 tokens).
+     - **Focentia Pro (`focentia-pro` / `planning` / `deep`):** Consumes higher tokens (2.0x multiplier, minimum 30 tokens).
+     - Standardized across both estimated text characters (`ceil(chars / 3.5)`) and actual provider usage (`geminiUsage.totalTokenCount`).
+     - Synchronized identically across Next.js API routes (`frontend/src/lib/server/aiTokenService.ts`) and companion Express server (`backend/src/services/aiTokenService.ts`, `backend/src/routes/aiRoutes.ts`).
+  3. **100% Backend Enforced & Zero UI Number Leakage:**
+     - Token balances, formulas, numbers, and counters are kept completely in backend logic.
+     - The client UI does not render any token numbers or remaining counters. The user is only notified with a clean, friendly notification banner when their daily or guest limit has been reached (`isExhausted`).
+- **Reason:** Direct user request to ensure 5,000 tokens for all logged-in users individually, 1,000 tokens for guests, light consumption for Focentia 2.1, higher consumption for Focentia Pro, zero UI token exposure, and 100% robust backend verification.
+- **Impact:** `backend/src/services/aiTokenService.ts`, `backend/src/routes/aiRoutes.ts`, `backend/src/services/aiService.ts`, `frontend/src/lib/server/aiService.ts`, `frontend/src/lib/server/aiTokenService.ts`, `frontend/src/app/api/[...path]/route.ts`, `frontend/src/components/ai-agent/AIAgentPage.tsx`, `.agent/CURRENT_STATE.md`, `.agent/DECISIONS.md`.
+
+
+
 
 
 

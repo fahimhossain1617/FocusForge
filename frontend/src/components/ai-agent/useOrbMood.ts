@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import type { AppState } from "@/types";
 import type { OrbState } from "@/types/aiAgent";
+import { detectContextualStatusEvent, getStatusText } from "@/services/aiStatusEvents";
 
 export type OrbMood =
   | "idle"
@@ -24,11 +25,17 @@ export type OrbMood =
   | "sad"
   | "sleepy"
   | "caring"
+  | "empathetic"
   | "curious"
   | "focused"
   | "playful"
+  | "laughing"
   | "celebrating"
   | "supportive"
+  | "encouraging"
+  | "serious"
+  | "protective"
+  | "resting"
   | "offline"
   | "usage_limit"
   | "error";
@@ -44,16 +51,33 @@ export function getOrbStatusLabel(state: OrbMood | OrbState, isBn: boolean): str
     case "processing":
       return isBn ? "কাজ করছি…" : "Working…";
     case "waiting_confirmation":
-      return isBn ? "তোমার অনুমতির অপেক্ষায়…" : "Waiting for confirmation…";
+      return isBn ? "অনুমোদনের অপেক্ষায়…" : "Waiting for confirmation…";
     case "success":
     case "celebrating":
-      return isBn ? "হয়ে গেছে" : "Done";
+      return isBn ? "সম্পন্ন হয়েছে" : "Completed";
     case "supportive":
     case "caring":
+    case "empathetic":
       return isBn ? "পাশে আছি" : "Here for you";
+    case "encouraging":
+      return isBn ? "তুমি পারবে!" : "You got this!";
+    case "proud":
+      return isBn ? "দারুণ অগ্রগতি!" : "Proud of you!";
+    case "serious":
+    case "protective":
+      return isBn ? "সুরক্ষা বজায় রাখা হচ্ছে" : "Protected";
+    case "focused":
+      return isBn ? "মনোযোগ দিচ্ছি" : "Focused";
+    case "sulky":
+      return isBn ? "পড়তে বসো কিন্তু!" : "Focus & study!";
+    case "angry":
+      return isBn ? "রাগ হয়েছে" : "Pouting";
+    case "excited":
+      return isBn ? "খুব রোমাঞ্চিত!" : "Excited!";
     case "error":
       return isBn ? "ত্রুটি হয়েছে" : "Something went wrong";
     case "sleepy":
+    case "resting":
       return isBn ? "বিশ্রামে" : "Resting";
     case "offline":
       return isBn ? "অফলাইন" : "Offline";
@@ -151,11 +175,15 @@ export function useOrbMood({
   useEffect(() => {
     if (isGiggling || !isOnline || isLimitExhausted || isGuestLimit) return;
 
+    const currentQuery = lastUserMessage || userInput || "";
+    const contextualEvent = detectContextualStatusEvent(currentQuery);
+    const dynamicStatusText = getStatusText(contextualEvent, isBn);
+
     if (orbState) {
       switch (orbState) {
         case "thinking":
           setMood("thinking");
-          setCustomThought(isBn ? "AI ভাবছে..." : "AI is thinking...");
+          setCustomThought(dynamicStatusText);
           return;
         case "composing":
           setMood("typing");
@@ -163,19 +191,57 @@ export function useOrbMood({
           return;
         case "working":
           setMood("working");
-          setCustomThought(isBn ? "কাজ করছি…" : "Working…");
+          setCustomThought(isBn ? "পরিবর্তন সংরক্ষণ করছি…" : "Saving your changes…");
           return;
         case "waiting_confirmation":
           setMood("waiting_confirmation");
-          setCustomThought(isBn ? "তোমার অনুমতির অপেক্ষায়…" : "Waiting for your confirmation…");
+          setCustomThought(isBn ? "তোমার অনুমোদনের অপেক্ষায়…" : "Waiting for your confirmation…");
           return;
         case "success":
           setMood("success");
-          setCustomThought(isBn ? "হয়ে গেছে" : "Done");
+          setCustomThought(isBn ? "সফলভাবে সম্পন্ন হয়েছে" : "Completed successfully");
           return;
         case "supportive":
           setMood("supportive");
           setCustomThought(isBn ? "আমি পাশে আছি" : "I'm right here");
+          return;
+        case "empathetic":
+          setMood("empathetic");
+          setCustomThought(isBn ? "আমি তোমার পাশে আছি" : "I'm right here with you");
+          return;
+        case "encouraging":
+          setMood("encouraging");
+          setCustomThought(isBn ? "তুমি নিশ্চয়ই পারবে!" : "You got this!");
+          return;
+        case "proud":
+        case "celebrating":
+          setMood("proud");
+          setCustomThought(isBn ? "দারুণ অগ্রগতি! গর্ব হচ্ছে।" : "Super proud of your progress!");
+          return;
+        case "serious":
+        case "protective":
+          setMood("serious");
+          setCustomThought(isBn ? "সুরক্ষা ও নিরাপত্তা নিশ্চিত করছি।" : "Ensuring security and privacy.");
+          return;
+        case "playful":
+          setMood("playful");
+          return;
+        case "laughing":
+          setMood("laughing");
+          return;
+        case "focused":
+          setMood("focused");
+          return;
+        case "attentive":
+        case "listening":
+          setMood("attentive");
+          return;
+        case "sad":
+          setMood("sad");
+          return;
+        case "sleepy":
+        case "resting":
+          setMood("sleepy");
           return;
         case "error":
           setMood("error");
@@ -190,8 +256,15 @@ export function useOrbMood({
         case "concerned":
           setMood("concerned");
           return;
-        case "encouraging":
-          setMood("caring");
+        case "sulky":
+          setMood("sulky");
+          setCustomThought(isBn ? "পড়তে বসো কিন্তু! ফাঁকিবাজি নয়।" : "Time to focus and study!");
+          return;
+        case "angry":
+          setMood("angry");
+          return;
+        case "excited":
+          setMood("excited");
           return;
         case "idle":
           setMood("idle");
@@ -202,21 +275,21 @@ export function useOrbMood({
 
     if (isThinking) {
       setMood("thinking");
-      setCustomThought(isBn ? "AI ভাবছে..." : "AI is thinking...");
+      setCustomThought(dynamicStatusText);
     } else if (isTyping) {
       setMood("typing");
       setCustomThought(null);
     } else if (isWorking) {
       setMood("working");
-      setCustomThought(isBn ? "কাজ করছি…" : "Working…");
+      setCustomThought(isBn ? "পরিবর্তন সংরক্ষণ করছি…" : "Saving your changes…");
     } else if (isWaitingConfirmation) {
       setMood("waiting_confirmation");
-      setCustomThought(isBn ? "তোমার অনুমতির অপেক্ষায়…" : "Waiting for your confirmation…");
+      setCustomThought(isBn ? "তোমার অনুমোদনের অপেক্ষায়…" : "Waiting for your confirmation…");
     } else if (mood === "thinking" || mood === "typing" || mood === "working" || mood === "waiting_confirmation") {
       setMood("idle");
       setCustomThought(null);
     }
-  }, [orbState, isThinking, isTyping, isWorking, isWaitingConfirmation, isGiggling, isOnline, isLimitExhausted, isGuestLimit, isBn, mood]);
+  }, [orbState, isThinking, isTyping, isWorking, isWaitingConfirmation, isGiggling, isOnline, isLimitExhausted, isGuestLimit, isBn, mood, lastUserMessage, userInput]);
 
   // 4. TRIGGER GIGGLE / TAP INTERACTION
   const triggerGiggle = useCallback((source: "touch" | "mouse" = "touch") => {

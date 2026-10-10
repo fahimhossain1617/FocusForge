@@ -133,9 +133,12 @@ export function estimateTokenUsage(
   modelMode: string = 'fast',
   geminiUsage?: { totalTokenCount?: number }
 ): number {
+  const isFast = modelMode === 'fast' || modelMode === 'focentia-2.1';
+  const isPlanning = modelMode === 'planning' || modelMode === 'deep' || modelMode === 'pro' || modelMode === 'focentia-pro';
+
   if (geminiUsage?.totalTokenCount && geminiUsage.totalTokenCount > 0) {
-    if (modelMode === 'fast') return Math.max(5, Math.round(geminiUsage.totalTokenCount * 0.5));
-    if (modelMode === 'planning') return Math.max(30, Math.round(geminiUsage.totalTokenCount * 2.0));
+    if (isFast) return Math.max(5, Math.round(geminiUsage.totalTokenCount * 0.5));
+    if (isPlanning) return Math.max(30, Math.round(geminiUsage.totalTokenCount * 2.0));
     return geminiUsage.totalTokenCount;
   }
 
@@ -145,9 +148,9 @@ export function estimateTokenUsage(
   const responseTokens = Math.ceil(responseChars / 3.5);
   const baseTokens = Math.max(10, promptTokens + responseTokens);
 
-  if (modelMode === 'fast') {
+  if (isFast) {
     return Math.max(5, Math.round(baseTokens * 0.5));
-  } else if (modelMode === 'planning') {
+  } else if (isPlanning) {
     return Math.max(30, Math.round(baseTokens * 2.0));
   }
 

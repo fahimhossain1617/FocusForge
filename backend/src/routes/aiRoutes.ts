@@ -25,11 +25,11 @@ async function checkTokensOrReject(req: any, res: any) {
   if (status.isExhausted || status.remaining <= 0) {
     const message = isGuest
       ? (lang === 'bn'
-          ? `আমি তোমাকে সাহায্য করতে খুব পছন্দ করি! 🥰 কিন্তু তুমি তো এখনও লগইন করোনি আর তোমার গেস্ট লিমিট শেষ হয়ে গেছে। একটু লগইন করে নাও না? তখন আমি আবার জেগে উঠে তোমাকে প্রাণখুলে সাহায্য করব! ততক্ষণ আমি একটু ঘুমিয়ে নিই... 😴💤`
-          : `I really love helping you! 🥰 But you haven't logged in yet and your guest limit is reached. Please log in! Once you log in, I'll wake up and help you with all my heart. Until then, let me take a quick nap... 😴💤`)
+          ? `আমি তোমাকে সাহায্য করতে পছন্দ করি। তবে তুমি তো এখনও লগইন করোনি আর তোমার গেস্ট লিমিট শেষ হয়ে গেছে। একটু লগইন করে নিলে আমি আবার জেগে তোমাকে সাহায্য করতে পারব। ততক্ষণ আমি একটু বিশ্রাম নিই।`
+          : `I'd love to help you! However, you haven't logged in yet and your guest limit is reached. Please log in so I can wake up and help you. Until then, I'll take a quick rest.`)
       : (lang === 'bn'
-          ? `আমি তোমাকে সাহায্য করতে চাই! কিন্তু আজকের জন্য তোমার ফ্রি লিমিট শেষ হয়ে গেছে।\n\n• লিমিট রিসেট হবে: ${status.formattedResetDate}\n• বাকি সময়: ${status.formattedRemainingTime}\n\nপ্লিজ একটু অপেক্ষা করো। লিমিট রিসেট হলে আমি আবার জেগে তোমাকে সাহায্য করব! ততক্ষণ আমি একটু ঘুমিয়ে নিই... 😴💤`
-          : `I really want to help you! But your daily limit for today has been reached.\n\n• Resets on: ${status.formattedResetDate}\n• Remaining time: ${status.formattedRemainingTime}\n\nPlease wait a little bit. Once it resets, I'll wake right up to help you! Until then, let me take a quick nap... 😴💤`);
+          ? `আমি তোমাকে সাহায্য করতে চাই, তবে আজকের জন্য তোমার ফ্রি লিমিট শেষ হয়ে গেছে।\n\n• লিমিট রিসেট হবে: ${status.formattedResetDate}\n• বাকি সময়: ${status.formattedRemainingTime}\n\nঅনুগ্রহ করে একটু অপেক্ষা করো। লিমিট রিসেট হলে আমি আবার জেগে তোমাকে সাহায্য করতে প্রস্তুত থাকব। ততক্ষণ আমি বিশ্রামে আছি।`
+          : `I really want to help you, but your daily limit for today has been reached.\n\n• Resets on: ${status.formattedResetDate}\n• Remaining time: ${status.formattedRemainingTime}\n\nPlease wait a little bit. Once it resets, I'll wake right up to help you! Until then, I'll be resting.`);
 
     res.status(429).json({
       error: 'AI_TOKENS_EXHAUSTED',
@@ -47,8 +47,14 @@ async function checkTokensOrReject(req: any, res: any) {
 async function deductTokens(req: any, promptData: any, responseData: any) {
   try {
     const { isGuest, userId, guestId, lang } = getRequestClientMeta(req);
-    const modelMode = req.body?.model || 'smart';
-    const tokensUsed = estimateTokenUsage(JSON.stringify(promptData ?? ''), JSON.stringify(responseData ?? ''), modelMode);
+    const modelMode = req.body?.model || req.body?.options?.model || 'smart';
+    const geminiUsage = responseData?.geminiUsage;
+    const tokensUsed = estimateTokenUsage(
+      JSON.stringify(promptData ?? ''),
+      JSON.stringify(responseData ?? ''),
+      modelMode,
+      geminiUsage
+    );
     return await consumeUserTokens(userId, isGuest, guestId, tokensUsed, lang);
   } catch (err) {
     console.warn('[AI Routes] Token deduction error:', err);
@@ -251,16 +257,23 @@ router.post('/agent/chat', async (req, res) => {
     const { isGuest, userId, guestId, lang } = getRequestClientMeta(req);
     let { sessionId, message, context, history, model, privacyMode } = req.body;
 
+    if (!message || typeof message !== 'string' || message.trim().length === 0) {
+      return res.status(400).json({ error: 'Message is required' });
+    }
+    if (message.length > 5000) {
+      return res.status(400).json({ error: 'Message payload too large (max 5,000 characters).' });
+    }
+
     const initialTokenStatus = await getUserTokenStatus(userId, isGuest, guestId, lang);
 
     if (initialTokenStatus.isExhausted || initialTokenStatus.remaining <= 0) {
       const exhaustedMessage = isGuest
         ? (lang === 'bn'
-            ? `তোমার গেস্ট লিমিট শেষ হয়ে গেছে। আনলিমিটেড ব্যবহার ও ক্লাউড সেভ সুবিধা পেতে প্লিজ একটু লগইন করে নাও না? 🥰`
+            ? `তোমার গেস্ট লিমিট শেষ হয়ে গেছে। সব ফিচার ও ক্লাউড সেভ সুবিধা পেতে অনুগ্রহ করে একটু লগইন করে নাও।`
             : `Your guest limit has been reached. Please log in to unlock full access and cloud sync.`)
         : (lang === 'bn'
-            ? `তোমার আজকের ফ্রি লিমিট শেষ হয়ে গেছে।\n\n• লিমিট রিসেট হওয়ার তারিখ: ${initialTokenStatus.formattedResetDate}\n• অবশিষ্ট সময়: ${initialTokenStatus.formattedRemainingTime}\n\nঅনুগ্রহ করে রিসেট হওয়া পর্যন্ত একটু অপেক্ষা করো। লিমিট রিসেট হওয়ার পর Focentia AI Agent আবার জেগে তোমাকে সাহায্য করতে প্রস্তুত থাকবে! 😴💤`
-            : `Your daily limit has been reached.\n\n• Resets on: ${initialTokenStatus.formattedResetDate}\n• Remaining time: ${initialTokenStatus.formattedRemainingTime}\n\nPlease wait until the reset time. Once refreshed, Focentia AI Agent will be fully ready to assist you!`);
+            ? `তোমার আজকের ফ্রি লিমিট শেষ হয়ে গেছে।\n\n• লিমিট রিসেট হওয়ার তারিখ: ${initialTokenStatus.formattedResetDate}\n• অবশিষ্ট সময়: ${initialTokenStatus.formattedRemainingTime}\n\nঅনুগ্রহ করে রিসেট হওয়া পর্যন্ত একটু অপেক্ষা করো। লিমিট রিসেট হওয়ার পর Focentia AI আবার জেগে তোমাকে সাহায্য করতে প্রস্তুত থাকবে। ততক্ষণ আমি বিশ্রামে আছি।`
+            : `Your daily limit has been reached.\n\n• Resets on: ${initialTokenStatus.formattedResetDate}\n• Remaining time: ${initialTokenStatus.formattedRemainingTime}\n\nPlease wait until the reset time. Once refreshed, Focentia AI will be fully ready to assist you! Until then, I'll be resting.`);
 
       return res.json({
         sessionId: sessionId || (isGuest ? 'guest-session' : `session_${Date.now()}`),
@@ -353,6 +366,17 @@ router.post('/agent/chat', async (req, res) => {
           content: result.message,
           intent: result.intent,
           payload_json: result.payload || null,
+          actions: result.actions,
+          structuredResponse: result.structuredResponse,
+          proposal: result.proposal,
+          missingFields: result.missingFields,
+          clarifyingQuestion: result.clarifyingQuestion,
+          confirmationRequired: result.confirmationRequired,
+          emotion: result.emotion,
+          reaction: result.reaction,
+          roadmap: result.roadmap,
+          navigation: result.navigation,
+          type: result.type,
           created_at: new Date().toISOString()
         }
       });
@@ -385,7 +409,21 @@ router.post('/agent/chat', async (req, res) => {
 
     // 5. Save User Message & AI Message in DB
     await addChatMessage(sessionId, userId, 'user', message);
-    const aiMessage = await addChatMessage(sessionId, userId, 'assistant', result.message, result.intent, result.payload);
+    const dbAiMessage = await addChatMessage(sessionId, userId, 'assistant', result.message, result.intent, result.payload);
+    const aiMessage = {
+      ...dbAiMessage,
+      actions: result.actions,
+      structuredResponse: result.structuredResponse,
+      proposal: result.proposal,
+      missingFields: result.missingFields,
+      clarifyingQuestion: result.clarifyingQuestion,
+      confirmationRequired: result.confirmationRequired,
+      emotion: result.emotion,
+      reaction: result.reaction,
+      roadmap: result.roadmap,
+      navigation: result.navigation,
+      type: result.type,
+    };
     
     res.json({ sessionId, sessionTitle, aiMessage, tokenStatus });
   } catch (error: any) {

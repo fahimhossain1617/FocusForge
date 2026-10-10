@@ -175,7 +175,13 @@ async function consumeUserTokens(userId, isGuest = false, guestId, tokensToConsu
     };
 }
 function estimateTokenUsage(promptText = '', responseText = '', modelMode = 'smart', geminiUsage) {
+    const isFast = modelMode === 'fast' || modelMode === 'focentia-2.1';
+    const isPlanning = modelMode === 'planning' || modelMode === 'deep' || modelMode === 'pro' || modelMode === 'focentia-pro';
     if (geminiUsage?.totalTokenCount && geminiUsage.totalTokenCount > 0) {
+        if (isFast)
+            return Math.max(5, Math.round(geminiUsage.totalTokenCount * 0.5));
+        if (isPlanning)
+            return Math.max(30, Math.round(geminiUsage.totalTokenCount * 2.0));
         return geminiUsage.totalTokenCount;
     }
     const promptChars = promptText?.length || 0;
@@ -184,13 +190,13 @@ function estimateTokenUsage(promptText = '', responseText = '', modelMode = 'sma
     const promptTokens = Math.ceil(promptChars / 3.5);
     const responseTokens = Math.ceil(responseChars / 3.5);
     const baseTokens = Math.max(10, promptTokens + responseTokens);
-    if (modelMode === 'fast') {
-        // Fast response uses least tokens
-        return Math.max(8, Math.round(baseTokens * 0.75));
+    if (isFast) {
+        // Fast response / Focentia 2.1 uses minimal tokens (0.5x multiplier)
+        return Math.max(5, Math.round(baseTokens * 0.5));
     }
-    else if (modelMode === 'planning') {
-        // Deep planning uses most tokens
-        return Math.max(25, Math.round(baseTokens * 1.4));
+    else if (isPlanning) {
+        // Deep planning / Focentia Pro uses more tokens (2.0x multiplier)
+        return Math.max(30, Math.round(baseTokens * 2.0));
     }
-    return baseTokens;
+    return Math.max(15, baseTokens);
 }
