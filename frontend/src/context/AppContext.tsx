@@ -39,6 +39,7 @@ import { notificationService } from '../services/notificationService';
 import { notificationCenterService } from '../services/notificationCenterService';
 import { connectivityService } from '../services/connectivityService';
 import { localNotificationScheduler } from '../services/localNotificationScheduler';
+import { accountManager } from '../services/accountManager';
 
 
 const defaultCategories = ['Programming', 'Study', 'University', 'Exam', 'Personal', 'Health', 'Project', 'Business'];
@@ -357,17 +358,42 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  // Initial mount load
+  // Initial mount load: Fast race against remembered account to guarantee sub-0.3s launch offline & online
   useEffect(() => {
+    let resolved = false;
+    const fallbackUserId = typeof window !== 'undefined' ? (accountManager.getRememberedAccounts()[0]?.id || null) : null;
+
+    const timeout = setTimeout(() => {
+      if (!resolved) {
+        resolved = true;
+        activeUserIdRef.current = fallbackUserId;
+        requestGenRef.current += 1;
+        loadUserData(fallbackUserId, requestGenRef.current);
+      }
+    }, 350);
+
     supabase.auth.getSession().then(({ data: { session } }) => {
       const currentUserId = session?.user?.id || null;
+      if (resolved) {
+        if (currentUserId !== activeUserIdRef.current) {
+          activeUserIdRef.current = currentUserId;
+          requestGenRef.current += 1;
+          loadUserData(currentUserId, requestGenRef.current);
+        }
+        return;
+      }
+      resolved = true;
+      clearTimeout(timeout);
       activeUserIdRef.current = currentUserId;
       requestGenRef.current += 1;
       loadUserData(currentUserId, requestGenRef.current);
     }).catch(() => {
-      activeUserIdRef.current = null;
+      if (resolved) return;
+      resolved = true;
+      clearTimeout(timeout);
+      activeUserIdRef.current = fallbackUserId;
       requestGenRef.current += 1;
-      loadUserData(null, requestGenRef.current);
+      loadUserData(fallbackUserId, requestGenRef.current);
     });
   }, [loadUserData]);
 

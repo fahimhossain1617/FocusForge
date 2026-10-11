@@ -352,7 +352,7 @@ class LocalNotificationScheduler {
       }
     }
 
-    // 3. Focus Session Reminders (Morning ~09:00 & Evening ~18:30)
+    // 3. Focus Session Reminders (Morning ~09:00, Noon/Afternoon ~13:30 & Evening ~18:30)
     if (prefs.focusSessionReminder !== false) {
       const hasFocusToday = focusSessions.some((s: any) => {
         const sDate = s.date || (s.startTime ? s.startTime.split("T")[0] : "");
@@ -361,7 +361,7 @@ class LocalNotificationScheduler {
 
       if (!hasFocusToday) {
         const [y, mon, d] = todayStr.split("-").map(Number);
-        // Morning focus
+        // A. Morning focus (~09:00)
         const mornDate = new Date(y, (mon || 1) - 1, d || 1, 9, 0, 0, 0);
         const mornMs = mornDate.getTime();
         if (mornMs > now - 15 * 60 * 1000) {
@@ -386,7 +386,32 @@ class LocalNotificationScheduler {
           }
         }
 
-        // Evening focus
+        // B. Noon / Afternoon focus (~13:30)
+        const noonDate = new Date(y, (mon || 1) - 1, d || 1, 13, 30, 0, 0);
+        const noonMs = noonDate.getTime();
+        if (noonMs > now - 15 * 60 * 1000) {
+          const inQuiet = quietHoursEnabled && this.isInsideQuietHours(noonMs, quietHoursStart, quietHoursEnd);
+          if (!inQuiet) {
+            const tpl = notificationRotationManager.getNext("focus_reminder", lang, {}, userId || undefined);
+            const id = `focus_rem_noon_${todayStr}`;
+            scheduled.push({
+              id,
+              numericId: this.hashToNumericId(id),
+              category: "focus_reminder",
+              priority: 4,
+              title: tpl.title,
+              body: tpl.message,
+              actionRoute: "focus",
+              targetTimestamp: noonMs,
+              targetTimeISO: noonDate.toISOString(),
+              dueDate: todayStr,
+              isUrgent: false,
+              sound,
+            });
+          }
+        }
+
+        // C. Evening focus (~18:30)
         const eveDate = new Date(y, (mon || 1) - 1, d || 1, 18, 30, 0, 0);
         const eveMs = eveDate.getTime();
         if (eveMs > now - 15 * 60 * 1000) {
@@ -643,7 +668,7 @@ class LocalNotificationScheduler {
     this.precisionTimer = setInterval(() => {
       const now = Date.now();
       for (const item of this.activeReminders) {
-        if (item.targetTimestamp <= now && now - item.targetTimestamp < 45000) {
+        if (item.targetTimestamp <= now && now - item.targetTimestamp < 30 * 60 * 1000) {
           if (!notificationService.hasBeenSent(item.id)) {
             notificationService.send({
               id: item.id,

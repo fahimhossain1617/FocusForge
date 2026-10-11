@@ -501,17 +501,7 @@ class NotificationService {
       return true;
     }
 
-    // Only dispatch native OS notification if the app is in the background / hidden / unfocused,
-    // or if the alert is marked urgent. When actively focused in-app, the white Orb banner handles UI.
-    const isAppActiveInForeground =
-      typeof document !== "undefined" &&
-      document.visibilityState === "visible" &&
-      typeof document.hasFocus === "function" &&
-      document.hasFocus();
-
-    if (isAppActiveInForeground && !payload.isUrgent) {
-      return true;
-    }
+    // Deliver system notification so alert triggers whether the app is in foreground or background.
 
     try {
       const iconUrl = payload.icon || "/icons/icon-192x192.png";

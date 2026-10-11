@@ -264,7 +264,26 @@ class ReminderSyncService {
           });
         }
 
-        // B. Evening Focus Nudge (~18:30 with jitter -20 to +40 -> 18:10 to 19:10)
+        // B. Noon / Afternoon Focus Nudge (~13:30 with jitter -15 to +25 -> 13:15 to 13:55)
+        const noonJitter = this.getDailyJitterMinutes(userId, todayStr, 'focus_noon', -15, 25);
+        const noonFocusDate = this.parseLocalDateTimeWithJitter(todayStr, '13:30', noonJitter);
+        if (noonFocusDate.getTime() > now - 15 * 60 * 1000) {
+          const focusTemplate = notificationRotationManager.getNext('focus_reminder', lang, {}, userId || undefined);
+          scheduledList.push({
+            id: `focus_rem_noon_${todayStr}`,
+            category: 'focus_reminder',
+            priority: 4,
+            title: focusTemplate.title,
+            body: focusTemplate.message,
+            actionRoute: 'focus',
+            targetTime: noonFocusDate.toISOString(),
+            dueDate: todayStr,
+            timezone,
+            isUrgent: false,
+          });
+        }
+
+        // C. Evening Focus Nudge (~18:30 with jitter -20 to +40 -> 18:10 to 19:10)
         const eveJitter = this.getDailyJitterMinutes(userId, todayStr, 'focus_evening', -20, 40);
         const eveFocusDate = this.parseLocalDateTimeWithJitter(todayStr, '18:30', eveJitter);
         if (eveFocusDate.getTime() > now - 15 * 60 * 1000) {

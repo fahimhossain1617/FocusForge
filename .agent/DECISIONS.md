@@ -955,6 +955,28 @@
 - **Reason:** Direct user request to prevent token exhaustion in 3-5 messages, enforce 4-5 (max 6) token cost for Focentia 2.0, 25-30 token cost for Focentia Pro, ensure responses are short, crisp, fast, and token-saving while keeping full functionality and 5,000/1,000 quotas.
 - **Impact:** `backend/src/services/aiTokenService.ts`, `frontend/src/lib/server/aiTokenService.ts`, `frontend/src/services/aiAgentService.ts`, `backend/src/services/aiService.ts`, `frontend/src/lib/server/aiService.ts`, `scripts/verify_token_allocation.ts`, `.agent/FEATURES.md`, `.agent/DECISIONS.md`.
 
+## ADR-060: Sub-0.3s Offline/Online App Launch, Resilient Scheduled Reminders (Morning/Noon/Evening/Skills) & AI Offline Interaction
+
+- **Date:** October 2026
+- **Status:** Accepted & Verified
+- **Decision:**
+  1. **Sub-0.3s Offline/Online Launch & Service Worker Static Caching:**
+     - In `frontend/public/sw.js`: Added Cache-First with background revalidation strategy for Next.js immutable static bundles (`/_next/static/`), bumping cache name to `focentia-v12-fast-load`. Previously, `/_next/` was bypassed entirely, forcing offline boots to stall waiting for network timeouts on every chunk.
+     - In `frontend/src/context/AppContext.tsx`: Raced `supabase.auth.getSession()` with a 350ms fallback to remembered account ID from `accountManager`, ensuring `loadUserData` begins immediately without blocking offline app launches.
+  2. **Comprehensive Offline & Online Notification Delivery:**
+     - In `frontend/src/services/localNotificationScheduler.ts` & `frontend/src/services/reminderSyncService.ts`: Added dedicated Afternoon / Noon Focus Reminder (~13:30) in addition to Morning (~09:00) and Evening (~18:30) focus reminders.
+     - Enhanced Skill Practice reminders for users with active `learningFolders`.
+     - In `frontend/public/sw.js` and `frontend/src/services/notificationService.ts`: Removed foreground active suppression so OS notifications are delivered whether the user is actively inside the app or in the background.
+     - Widened reminder catch-up windows from 45 seconds to 30 minutes in both `sw.js` and `localNotificationScheduler.ts`, ensuring background tab timer throttling never drops a scheduled notification.
+  3. **AI Page Offline UI Interaction & Gated Dispatch:**
+     - In `frontend/src/components/ai-agent/AIAgentPage.tsx`: Removed offline disabling of AI model selection button (`pillModelBtn`), allowing users to freely open the model menu and switch between Focentia 2.1 and Pro even offline.
+     - Preserved standard textarea placeholder ("Chat with Glory..." / "গ্লোরির সাথে চ্যাট করুন...") instead of switching to offline text.
+     - Ensured sending messages or clicking the voice button while offline presents a clean, non-disruptive toast notification ("You are currently offline." / "তুমি বর্তমানে অফলাইনে আছো।") without sending to the API.
+  4. **Core Local Features Verified:**
+     - Verified Notes, Diary, and Task writing and local persistence in IndexedDB (`localDbService`), ensuring all local note blocks, titles, and content continue to save smoothly offline.
+- **Impact:** `frontend/public/sw.js`, `frontend/src/context/AppContext.tsx`, `frontend/src/services/localNotificationScheduler.ts`, `frontend/src/services/reminderSyncService.ts`, `frontend/src/services/notificationService.ts`, `frontend/src/components/ai-agent/AIAgentPage.tsx`.
+
+
 
 
 

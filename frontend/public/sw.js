@@ -1,5 +1,5 @@
 // Focentia Progressive Web App Service Worker
-const CACHE_NAME = 'focentia-v11-web-push';
+const CACHE_NAME = 'focentia-v12-fast-load';
 
 const STATIC_ASSETS = [
   '/',
@@ -96,14 +96,7 @@ async function triggerScheduledNotification(reminder) {
   triggeredReminderIds.add(reminder.id);
 
   try {
-    // Check if any client is open and actively focused
-    const clientList = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
-    const hasFocusedClient = clientList.some((c) => c.visibilityState === 'visible' && c.focused);
-
-    // If user is actively focused in the app, the in-app banner will display it without duplicate OS noise.
-    if (hasFocusedClient && !reminder.isUrgent) {
-      return;
-    }
+    // OS notification is delivered so user receives notifications whether inside or outside the app.
 
     const category = reminder.category || 'system';
     const actionRoute = reminder.actionRoute || '';
@@ -158,8 +151,8 @@ function scheduleReminders(reminders, persist = true) {
         activeReminderTimers.delete(item.id);
       }, delay);
       activeReminderTimers.set(item.id, timer);
-    } else if (delay >= -45000 && delay <= 0) {
-      // Within last 45 seconds: trigger immediately
+    } else if (delay >= -30 * 60 * 1000 && delay <= 0) {
+      // Due within last 30 minutes: trigger immediately
       triggerScheduledNotification(item);
     }
   }
@@ -250,7 +243,34 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 3. For Next.js internal dynamic bundles, bypass cache to avoid chunk mismatch
+  // 3. For Next.js immutable static bundles (chunks, css, media, fonts), serve Cache-First / Stale-While-Revalidate
+  if (url.pathname.startsWith('/_next/static/')) {
+    event.respondWith(
+      caches.match(request).then((cachedResponse) => {
+        if (cachedResponse) {
+          // Revalidate in background when online to keep cached chunks fresh
+          fetch(request).then((networkResponse) => {
+            if (networkResponse && networkResponse.status === 200) {
+              const responseClone = networkResponse.clone();
+              caches.open(CACHE_NAME).then((cache) => cache.put(request, responseClone));
+            }
+          }).catch(() => {});
+          return cachedResponse;
+        }
+
+        return fetch(request).then((networkResponse) => {
+          if (networkResponse && networkResponse.status === 200) {
+            const responseClone = networkResponse.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, responseClone));
+          }
+          return networkResponse;
+        }).catch(() => caches.match(request));
+      })
+    );
+    return;
+  }
+
+  // Bypass other dynamic Next.js internals (e.g. HMR, dev middleware)
   if (url.pathname.startsWith('/_next/')) {
     return;
   }

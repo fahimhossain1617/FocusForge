@@ -807,8 +807,8 @@ export function AIAgentPage() {
     if (!isOnline) {
       showToast(
         isSystemBn 
-          ? "তুমি বর্তমানে অফলাইনে আছো। আমি এখন ঘুমাচ্ছি, তুমি আবার অনলাইনে আসলে তোমাকে সাহায্য করবো।" 
-          : "You are currently offline. I'm sleeping right now, I'll help you again when you're back online.", 
+          ? "তুমি বর্তমানে অফলাইনে আছো।" 
+          : "You are currently offline.", 
         "error"
       );
       return;
@@ -828,8 +828,8 @@ export function AIAgentPage() {
     if (!isOnline) {
       showToast(
         isSystemBn 
-          ? "তুমি বর্তমানে অফলাইনে আছো। আমি এখন ঘুমাচ্ছি, তুমি আবার অনলাইনে আসলে তোমাকে সাহায্য করবো।" 
-          : "You are currently offline. I'm sleeping right now, I'll help you again when you're back online.", 
+          ? "তুমি বর্তমানে অফলাইনে আছো।" 
+          : "You are currently offline.", 
         "error"
       );
       return;
@@ -1434,11 +1434,7 @@ export function AIAgentPage() {
                       }
                     }}
                     placeholder={
-                      !isOnline
-                        ? isSystemBn
-                          ? "তুমি বর্তমানে অফলাইনে আছো। আমি এখন ঘুমাচ্ছি..."
-                          : "You are currently offline. I'm sleeping right now..."
-                        : isLimitExhausted
+                      isLimitExhausted
                         ? isSystemBn
                           ? `আজকের লিমিট শেষ। ${resetCountdownText ? `রিস্টোর হবে ${resetCountdownText}` : "রিসেট হওয়া পর্যন্ত অপেক্ষা করুন..."}`
                           : `Daily limit reached. ${resetCountdownText ? `Restores ${resetCountdownText}` : "Please wait for reset..."}`
@@ -1520,16 +1516,13 @@ export function AIAgentPage() {
                   <div className={styles.modelMenuWrapper} ref={modelMenuRef}>
                     <button
                       type="button"
-                      disabled={!isOnline}
-                      className={`${styles.pillModelBtn} ${modelMenuOpen ? styles.pillModelBtnActive : ""} ${!isOnline ? "opacity-50 cursor-not-allowed" : ""}`}
-                      onClick={() => !isOnline ? null : setModelMenuOpen((prev) => !prev)}
+                      className={`${styles.pillModelBtn} ${modelMenuOpen ? styles.pillModelBtnActive : ""}`}
+                      onClick={() => setModelMenuOpen((prev) => !prev)}
                       aria-label="Select AI Model"
                       aria-haspopup="true"
                       aria-expanded={modelMenuOpen}
                       title={
-                        !isOnline
-                          ? (isSystemBn ? "অফলাইন অবস্থায় মডেল পরিবর্তন সম্ভব নয়" : "Model selection unavailable offline")
-                          : modelMode === "fast"
+                        modelMode === "fast"
                           ? isSystemBn ? "মডেল: Focentia 2.1 (দ্রুত প্রতিক্রিয়া)" : "Select AI model (Current: Focentia 2.1)"
                           : isSystemBn ? "মডেল: Focentia Pro (গভীর গবেষণা ও পরিকল্পনা)" : "Select AI model (Current: Focentia Pro)"
                       }
@@ -1615,9 +1608,9 @@ export function AIAgentPage() {
                   {/* Mic / Stop Icon Button */}
                   <button
                     type="button"
-                    className={`${styles.pillIconBtn} ${isVoiceListening ? styles.pillIconBtnActive : ""} ${!isOnline ? "opacity-50 cursor-not-allowed" : ""}`}
+                    className={`${styles.pillIconBtn} ${isVoiceListening ? styles.pillIconBtnActive : ""}`}
                     onClick={isVoiceListening ? stopVoice : startVoice}
-                    disabled={!isOnline || isThinking || tokenStatus?.isExhausted}
+                    disabled={isThinking || tokenStatus?.isExhausted}
                     aria-label={isVoiceListening ? (isSystemBn ? "ভয়েস বন্ধ করুন" : "Stop voice input") : (isSystemBn ? "ভয়েস শুরু করুন" : "Start voice input")}
                     title={
                       !isOnline
