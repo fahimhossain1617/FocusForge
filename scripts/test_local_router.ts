@@ -220,6 +220,121 @@ async function runTestSuite() {
     `Allocated maxOutputTokens: ${resRoadmap.geminiConfig?.maxOutputTokens}`
   );
 
+  // TEST 10: Time Log Topics & Weak/Important Queries (0 Tokens, Full Local Inspection)
+  console.log('\n--- 10. Time Log Topics & Weak/Important Topics Queries ---');
+  const mockContext: any = {
+    tasks: [
+      {
+        id: 1,
+        title: 'বাংলা ব্যাকরণ রিভিশন',
+        targetDate: '2026-10-10',
+        time: '10:00 AM',
+        priority: 'high',
+        status: 'pending',
+      },
+      {
+        id: 2,
+        title: 'ইংরেজি রচনা লেখা',
+        targetDate: '2026-10-10',
+        time: '04:00 PM',
+        priority: 'medium',
+        status: 'completed',
+      },
+      {
+        id: 3,
+        title: 'গণিত বীজগণিত সমাধান',
+        targetDate: '2026-10-07',
+        time: '02:00 PM',
+        priority: 'high',
+        status: 'completed',
+      },
+    ],
+    learningTopics: [
+      {
+        name: 'বাংলা',
+        loggedMinutes: 180,
+        importantTopics: ['কারক ও বিভক্তি', 'সমাস', 'সন্ধি'],
+        weakTopics: ['ণ-ত্ব ও ষ-ত্ব বিধান', 'প্রত্যয়'],
+      },
+      {
+        name: 'English',
+        loggedMinutes: 120,
+        importantTopics: ['Tense', 'Preposition'],
+        weakTopics: ['Conditionals'],
+      },
+      {
+        name: 'সমাজ',
+        loggedMinutes: 60,
+        importantTopics: [],
+        weakTopics: [],
+      },
+    ],
+    notesCount: 5,
+    timeBlocksCount: 2,
+    productivityScore: 85,
+  };
+
+  const resTopicBangla = await routeUserMessage('আমার বাংলাতে কী কী ইম্পর্টেন্ট টপিক ছিল আর উইক টপিক ছিল বলো', mockContext);
+  assert(
+    'Query about "বাংলা" folder returns point-by-point important and weak topics at 0 tokens',
+    resTopicBangla.handledLocally &&
+      !resTopicBangla.shouldCallGemini &&
+      resTopicBangla.intent === 'TIMELOG_TOPIC_QUERY' &&
+      resTopicBangla.message.includes('কারক ও বিভক্তি') &&
+      resTopicBangla.message.includes('ণ-ত্ব ও ষ-ত্ব বিধান'),
+    `Path: LOCAL | Topics Found in Message: "${resTopicBangla.message.slice(0, 80)}..."`
+  );
+
+  const resTopicEmpty = await routeUserMessage('সমাজ ফোল্ডারের উইক টপিক ও ইম্পর্টেন্ট টপিক বলো', mockContext);
+  assert(
+    'Query about folder with no topics reports truthfully without hallucinating',
+    resTopicEmpty.handledLocally &&
+      !resTopicEmpty.shouldCallGemini &&
+      resTopicEmpty.message.includes('কোনো গুরুত্বপূর্ণ বা দুর্বল টপিক এন্ট্রি পাওয়া যায়নি'),
+    `Message: "${resTopicEmpty.message}"`
+  );
+
+  const resTopicNonExistent = await routeUserMessage('পদার্থবিজ্ঞান ফোল্ডারের উইক টপিক কী কী?', mockContext);
+  assert(
+    'Query about non-existent folder truthfully reports not found and suggests existing folders',
+    resTopicNonExistent.handledLocally &&
+      !resTopicNonExistent.shouldCallGemini &&
+      resTopicNonExistent.message.includes('খুঁজে পাওয়া যায়নি') &&
+      resTopicNonExistent.message.includes('বাংলা'),
+    `Message: "${resTopicNonExistent.message}"`
+  );
+
+  // TEST 11: Planner Date & Schedule Queries (Bengali Numerals & Accurate Lookup)
+  console.log('\n--- 11. Planner Date & Schedule Queries ---');
+  const resPlanner10th = await routeUserMessage('১০ তারিখে আমার কী রুটিন ছিল সেটা বলো', mockContext);
+  assert(
+    'Query "১০ তারিখে আমার কী রুটিন ছিল" finds scheduled tasks for 10th with time and status',
+    resPlanner10th.handledLocally &&
+      !resPlanner10th.shouldCallGemini &&
+      resPlanner10th.intent === 'PLANNER_DATE_QUERY' &&
+      resPlanner10th.message.includes('বাংলা ব্যাকরণ রিভিশন') &&
+      resPlanner10th.message.includes('ইংরেজি রচনা লেখা'),
+    `Path: LOCAL | Found Tasks: "${resPlanner10th.message.slice(0, 90)}..."`
+  );
+
+  const resPlanner7th = await routeUserMessage('৭ তারিখে কী কাজ ছিল?', mockContext);
+  assert(
+    'Query "৭ তারিখে কী কাজ ছিল?" finds math task for 7th',
+    resPlanner7th.handledLocally &&
+      !resPlanner7th.shouldCallGemini &&
+      resPlanner7th.message.includes('গণিত বীজগণিত সমাধান'),
+    `Message: "${resPlanner7th.message.slice(0, 80)}..."`
+  );
+
+  const resPlannerEmptyDate = await routeUserMessage('২৫ তারিখে আমার কী রুটিন ছিল?', mockContext);
+  assert(
+    'Query for empty planner date truthfully states no tasks scheduled without hallucinating',
+    resPlannerEmptyDate.handledLocally &&
+      !resPlannerEmptyDate.shouldCallGemini &&
+      resPlannerEmptyDate.message.includes('খুঁজে পাওয়া যায়নি'),
+    `Message: "${resPlannerEmptyDate.message.slice(0, 80)}..."`
+  );
+
   console.log('\n===============================================================');
   console.log(`   ALL TESTS COMPLETED: ${passedTests}/${totalTests} PASSED`);
   console.log('===============================================================\n');

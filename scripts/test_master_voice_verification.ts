@@ -102,6 +102,11 @@ class MockSpeechRecognition {
   removeEventListener: () => {},
   dispatchEvent: () => true,
 };
+try {
+  Object.defineProperty(globalThis.navigator, 'onLine', { value: true, configurable: true, writable: true });
+} catch {
+  (global as any).navigator = { onLine: true };
+}
 
 async function runMasterVoiceVerification() {
   console.log("===============================================================");

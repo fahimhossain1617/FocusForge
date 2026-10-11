@@ -41,6 +41,8 @@ export type LocalIntentType =
   | 'PLANNER_ACTION'
   | 'DIARY_ACTION'
   | 'TIMELOG_ACTION'
+  | 'TIMELOG_TOPIC_QUERY'
+  | 'PLANNER_DATE_QUERY'
   | 'LEARNING_TEACH_REQUEST'
   | 'STATS_PROGRESS'
   | 'APP_HELP'
@@ -103,7 +105,13 @@ const STATS_PROGRESS_REGEX = /\b(how\s*much\s*did\s*i\s*focus\s*today|how\s*many
 // 5. App Help Questions
 const APP_HELP_REGEX = /\b(how\s*to\s*start\s*a\s*focus\s*session|how\s*routines\s*work|how\s*does\s*planner\s*work|is\s*diary\s*private|what\s*does\s*the\s*orb\s*do|ফোকাস\s*সেশন\s*কীভাবে\s*চালায়|রুটিন\s*কীভাবে\s*কাজ\s*করে|ডায়েরি\s*কি\s*প্রাইভেট|অর্ব\s*কী\s*করে)\b/i;
 
-// 6. Big Task / Roadmap Patterns (Gemini Allowed)
+// 6. Time Log Topics & Weak/Important Query Patterns
+const TIMELOG_TOPIC_QUERY_REGEX = /(?:\b(important\s*topic|weak\s*topic|weakness|blocker|what\s*(are|were)\s*my\s*(important|weak)\s*topics|topics\s*in|topic\s*list)\b|ইম্পর্টেন্ট\s*টপিক|উইক\s*টপিক|দুর্বল\s*টপিক|গুরুত্বপূর্ণ\s*টপিক|বাধা|টপিক\s*ছিল|টপিক\s*আছে|কী\s*কী\s*টপিক|কি\s*কি\s*টপিক|ইম্পর্ট্যান্ট|কোন\s*কোন\s*টপিক|টপিকগুলো\s*বলো|টপিক\s*বলো)/i;
+
+// 7. Planner Schedule & Routine Query Patterns for Dates
+const PLANNER_DATE_QUERY_REGEX = /(?:\b(what\s*(is|was)\s*my\s*(routine|schedule|task|plan)|routine\s*on|schedule\s*on|tasks\s*on|what\s*did\s*i\s*have\s*on)\b|রুটিন\s*ছিল|কী\s*রুটিন|কি\s*রুটিন|টাস্ক\s*ছিল|কী\s*টাস্ক|কি\s*টাস্ক|কী\s*কী\s*কাজ|শিডিউল\s*ছিল|কী\s*শিডিউল|কি\s*শিডিউল|কী\s*প্ল্যান|কি\s*প্ল্যান|কাজের\s*তালিকা|(?:\d{1,2}|[০-৯]{1,2})\s*তারিখ[এের]*\s*(?:কী|কি|কেমন|রুটিন|কাজ|টাস্ক|ছিল|আছে)|রুটিন\s*(?:বলো|দেখাও|কী|কি|ছিল|আছে))/i;
+
+// 8. Big Task / Roadmap Patterns (Gemini Allowed)
 const ROADMAP_REGEX = /\b(roadmap|complete\s*(.*)\s*roadmap|30\s*day\s*plan|study\s*timetable\s*generation|goal\s*breakdown|রোডম্যাপ|৩০\s*দিনের\s*প্ল্যান|লার্নিং\s*রোডম্যাপ)\b/i;
 
 export function classifyIntent(norm: NormalizedInput): ClassifiedIntent {
@@ -219,7 +227,13 @@ export function classifyIntent(norm: NormalizedInput): ClassifiedIntent {
     return { intent: 'NAVIGATION_SETTINGS', confidence: 0.95, isBigTask: false };
   }
 
-  // 6. Productivity Actions
+  // 6. Productivity Queries & Actions
+  if (TIMELOG_TOPIC_QUERY_REGEX.test(text)) {
+    return { intent: 'TIMELOG_TOPIC_QUERY', confidence: 0.96, isBigTask: false };
+  }
+  if (PLANNER_DATE_QUERY_REGEX.test(text)) {
+    return { intent: 'PLANNER_DATE_QUERY', confidence: 0.96, isBigTask: false };
+  }
   if (PLANNER_ACTION_REGEX.test(text)) {
     return { intent: 'PLANNER_ACTION', confidence: 0.92, isBigTask: false };
   }
@@ -234,9 +248,6 @@ export function classifyIntent(norm: NormalizedInput): ClassifiedIntent {
   }
   if (STATS_PROGRESS_REGEX.test(text)) {
     return { intent: 'STATS_PROGRESS', confidence: 0.90, isBigTask: false };
-  }
-  if (APP_HELP_REGEX.test(text)) {
-    return { intent: 'APP_HELP', confidence: 0.90, isBigTask: false };
   }
 
   // Fallback

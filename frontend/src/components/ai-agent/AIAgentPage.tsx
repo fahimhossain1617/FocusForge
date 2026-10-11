@@ -159,11 +159,37 @@ export function AIAgentPage() {
     const learningTopics = (state.learningFolders || []).slice(0, 15).map((f: any) => {
       const logs = (state.learningLogs || []).filter((l: any) => l.folderId === f.id);
       const totalMins = logs.reduce((sum: number, l: any) => sum + (l.durationMinutes || 0), 0);
+
+      const importantSet = new Set<string>();
+      const weakSet = new Set<string>();
+
+      logs.forEach((l: any) => {
+        if (l.importantTopics && typeof l.importantTopics === "string") {
+          l.importantTopics
+            .split(/[,;\n]+/)
+            .map((s: string) => s.trim())
+            .filter(Boolean)
+            .forEach((s: string) => importantSet.add(s));
+        }
+        if (l.blockers && typeof l.blockers === "string") {
+          l.blockers
+            .split(/[,;\n]+/)
+            .map((s: string) => s.trim())
+            .filter(Boolean)
+            .forEach((s: string) => weakSet.add(s));
+        }
+      });
+
+      if (Array.isArray(f.weakTopics)) {
+        f.weakTopics.forEach((w: string) => typeof w === "string" && w.trim() && weakSet.add(w.trim()));
+      }
+
       return {
         name: f.name || f.title || "Topic",
         targetHours: f.targetHours || 0,
         loggedMinutes: totalMins,
-        weakTopics: Array.isArray(f.weakTopics) ? f.weakTopics : (f.notes ? [f.notes] : []),
+        importantTopics: Array.from(importantSet),
+        weakTopics: Array.from(weakSet),
         notes: f.notes || ""
       };
     });

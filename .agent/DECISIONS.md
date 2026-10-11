@@ -976,6 +976,58 @@
      - Verified Notes, Diary, and Task writing and local persistence in IndexedDB (`localDbService`), ensuring all local note blocks, titles, and content continue to save smoothly offline.
 - **Impact:** `frontend/public/sw.js`, `frontend/src/context/AppContext.tsx`, `frontend/src/services/localNotificationScheduler.ts`, `frontend/src/services/reminderSyncService.ts`, `frontend/src/services/notificationService.ts`, `frontend/src/components/ai-agent/AIAgentPage.tsx`.
 
+---
+
+## ADR-061: Notification Routing Alignment to Dedicated Interfaces & AI Roadmap Dynamic Token Sizing
+
+- **Date:** October 2026
+- **Status:** Accepted & Verified
+- **Decision:**
+  1. **Notification Target Route Alignment:**
+     - In `frontend/src/services/reminderSyncService.ts` and `frontend/src/services/localNotificationScheduler.ts`, updated `actionRoute` for task reminders (`task_pre_reminder`, `task_start`, `task_incomplete`) from `'tasks'` to `'planner'`.
+     - In `frontend/public/sw.js`, mapped `clickedAction === 'open_task'` directly to `targetRoute = 'planner'`.
+     - Added `case 'diary_reminder':` and `case 'diary':` with action `{ action: 'open_diary', title: 'Open Diary' }` across `sw.js`, `localNotificationScheduler.ts`, and `notificationService.ts` routing directly to `'diary'`.
+     - Ensures clicking on any notification or action button navigates directly to the intended interface:
+       - Task Reminder -> Planner (`planner`)
+       - Daily Plan -> Planner (`planner`)
+       - Focus Reminder -> Focus (`focus`)
+       - Skill / Time Log Reminder -> Time Log / Skill Hub (`learning`)
+       - Diary Reminder -> Personal Diary (`diary`)
+       - Progress / Streak -> Dashboard (`today`)
+  2. **AI Roadmap Direct Generation & Output Token Sizing:**
+     - Updated AI system prompts in `backend/src/services/aiService.ts` and `frontend/src/lib/server/aiService.ts` to instruct the model to generate the multi-stage curriculum roadmap directly (defaulting to beginner-friendly progression from fundamentals to advanced) without asking for clarification unless the subject is completely ambiguous.
+     - Added `isRoadmapOrPlan` dynamic allocation: requests containing roadmap or planning keywords (`/roadmap|রোডম্যাপ|plan|routine|রুটিন/i`) or pro models automatically receive up to 3,500 output tokens and 35,000ms timeout to prevent truncated JSON payloads during multi-stage roadmap generation.
+  3. **Verification:**
+     - Next.js production build (`npm run build --prefix frontend`): 19/19 routes passed with 0 errors.
+     - Backend TypeScript build (`npm run build --prefix backend`): Passed with 0 errors.
+     - Security audit (`scripts/test_comprehensive_security_audit.js`): 28/28 tests passed (including live Gemini multi-stage roadmap generation).
+     - Notification audit (`scripts/test_notification_pipeline.js` & `scripts/audit_notification_system.js`): 19/19 & 33/33 tests passed.
+- **Impact:** `frontend/src/services/reminderSyncService.ts`, `frontend/src/services/localNotificationScheduler.ts`, `frontend/public/sw.js`, `frontend/src/services/notificationService.ts`, `backend/src/services/aiService.ts`, `frontend/src/lib/server/aiService.ts`.
+
+---
+
+## ADR-062: AI Context Inspection for Time Log Topics & Planner Schedule Queries
+
+- **Date:** October 2026
+- **Status:** Accepted & Verified
+- **Decision:**
+  1. **Time Log Topics & Weak/Important Extraction:**
+     - In `frontend/src/components/ai-agent/AIAgentPage.tsx`, updated `WorkspaceContext.learningTopics` aggregation to iterate over all logs in `state.learningLogs` for each folder, collecting unique `importantTopics` and `weakTopics` (from `l.blockers` and `l.importantTopics`).
+     - Added `importantTopics?: string[]` to `WorkspaceContext.learningTopics` in `frontend/src/types/aiAgent.ts`.
+     - In `frontend/src/lib/ai/router/geminiClient.ts`, updated `sanitizeContextForGemini` to retain sanitized `tasks` and `learningTopics` (with `importantTopics`, `weakTopics`, and `loggedMinutes`).
+     - In `frontend/src/lib/server/aiService.ts` and `backend/src/services/aiService.ts`, enhanced the system prompt (`buildAgentChatPrompt`) to explicitly instruct Gemini on inspecting folder topics and daily planner tasks.
+  2. **Local-First Zero-Token Deterministic Query Handlers:**
+     - In `frontend/src/lib/ai/router/intents.ts`, introduced `TIMELOG_TOPIC_QUERY` and `PLANNER_DATE_QUERY` with comprehensive regex patterns recognizing English and Bengali queries (including Bengali digits `[০-৯]`).
+     - In `frontend/src/lib/ai/router/handlers.ts`:
+       - Enhanced `parseDatesFromText` with Bengali digit conversion (`০-৯` -> `0-9`) and timezone-safe date extraction.
+       - Implemented `TIMELOG_TOPIC_QUERY` handler: matches folder names in `context.learningTopics`, formats point-by-point lists of `importantTopics` and `weakTopics`, truthfully states when no topics exist without hallucinating, and reports non-existent folders with existing folder recommendations.
+       - Implemented `PLANNER_DATE_QUERY` handler: inspects `context.tasks` on target dates, formats numbered lists of scheduled tasks with time, priority, and completion status (`✅ সম্পন্ন` / `⏳ বাকি`), and truthfully reports empty planner days without guessing.
+  3. **Verification:**
+     - Automated test suite (`scripts/test_local_router.ts`): 28/28 tests passed (including dedicated tests for folder topic lookup, empty topic handling, non-existent folder guidance, and Bengali date routine retrieval).
+     - Frontend Next.js production build (`npm run build --prefix frontend`): 19/19 routes passed with 0 errors.
+     - Backend TypeScript build (`npm run build --prefix backend`): Passed with 0 errors.
+- **Impact:** `frontend/src/components/ai-agent/AIAgentPage.tsx`, `frontend/src/types/aiAgent.ts`, `frontend/src/lib/ai/router/geminiClient.ts`, `frontend/src/lib/ai/router/intents.ts`, `frontend/src/lib/ai/router/handlers.ts`, `frontend/src/lib/server/aiService.ts`, `backend/src/services/aiService.ts`.
+
 
 
 

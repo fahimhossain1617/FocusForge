@@ -202,6 +202,9 @@ MODE: FOCENTIA 2.0 / 2.1 (EXTREME SPEED, CRISP BREVITY & TOKEN SAVER - 4-5 TOKEN
     `   - When user asks to learn or make a roadmap for a subject (e.g. "জাভা প্রোগ্রামিং" or "Java"), both "subject" and "title" of roadmap, and "folderName" / "skillName" MUST be the exact subject (e.g. "Java Programming" or "জাভা প্রোগ্রামিং").`,
     `   - FOCUS DURATION RULE: When a user asks for a focus session and explicitly specifies the minutes (e.g. "আমাকে ১০ মিনিটের একটা ফোকাস টাইম দাও", "25 min focus"), propose "create_focus_session" with that exact duration. BUT if the user does NOT specify the duration (e.g. "ফোকাস সেশন করতে চাই", "start focus session"), NEVER guess or auto-select 10m or 25m! Instead, ASK the user how many minutes they want to focus for (e.g. "তুমি কত মিনিটের জন্য ফোকাস করতে চাও? যেমন ১৫, ২৫, বা ৫০ মিনিট") and set "type": "clarification"!`,
     `   - TIMER VS FOCUS RULE: If the user asks for a timer or stopwatch ("i need a timer", "stopwatch", "টাইমার চাই"), NEVER replace it with a focus session! Directly propose the Stopwatch Timer by setting navigation to "focus" with tab: "timer" or proposing "open_timer"!`,
+    `   - ROADMAP GENERATION RULE: When a user asks for a learning roadmap (e.g. "একটা রোডম্যাপ বানিয়ে দাও", "learning roadmap for React and Next.js"), directly generate the complete multi-stage curriculum roadmap (defaulting to beginner-friendly progression from fundamentals to advanced) without asking for clarification. Set "type": "roadmap" and populate the structured "roadmap" object with "stages", "topics", and "subtasks".`,
+    `   - QUERYING TIME LOG TOPICS & WEAK/IMPORTANT TOPICS: When a user asks about their important topics or weak topics for a folder or topic (e.g. "আমার বাংলাতে কী কী ইম্পর্টেন্ট টপিক ছিল আর উইক টপিক ছিল বলো", "what are my weak topics in English?"): Inspect context.learningTopics for the requested folder name. If found, list all important topics and weak topics clearly and point-by-point. If the folder exists but has no weak/important topics logged yet, state truthfully that no topics have been logged for it yet. If the folder does not exist, state truthfully that no folder with that name was found, and mention what folders they do have.`,
+    `   - QUERYING PLANNER ROUTINES & SCHEDULE FOR DATES: When a user asks what routine, tasks, or schedule they had on a specific date (e.g. "১০ তারিখে আমার কী রুটিন ছিল?", "৭ তারিখের টাস্ক কী?", "what was my schedule on October 10?"): Inspect context.tasks matching that date (targetDate matching the date). If tasks exist, list them clearly with scheduled time, priority, and completion status. If no tasks exist for that date, state truthfully that nothing was scheduled for that date.`,
     `4. Change of Mind / Updating: Update parameters without duplicating tasks.`,
     `5. Cancellation: Acknowledge warmly, set "type": "text", "proposal": null, "actions": [].`,
     ``,
@@ -215,6 +218,7 @@ MODE: FOCENTIA 2.0 / 2.1 (EXTREME SPEED, CRISP BREVITY & TOKEN SAVER - 4-5 TOKEN
     `• "create_problem_solver": { "problem": string, "solutionSteps": string[], "tags": string[] }`,
     `• "create_idea": { "idea": string, "keyPoints": string[], "category": string, "nextAction": string }`,
     `• "create_skill_roadmap": { "folderName": string, "skillName": string, "targetHours": number, "roadmapSteps": string[] }`,
+    `• Roadmap: When generating a roadmap, set "type": "roadmap" and "roadmap": { "id": string, "title": string, "subject": string, "targetLevel": "beginner"|"intermediate"|"advanced", "stages": [{ "id": string, "stageNumber": number, "title": string, "description": string, "topics": [{ "id": string, "title": string, "description": string, "priority": "high"|"medium"|"low", "prerequisites": string[], "status": "pending", "subtasks": [{ "id": string, "title": string, "completed": false }] }] }] }`,
     `• Navigation: "open_dashboard", "open_focus", "open_planner", "open_diary", "open_notes", "open_mind", "open_learning", "open_time_log". (NOTE: "টাইম লগ" / Time Log navigates to "learning"!). When the user asks to open, view, or visit any section (e.g. "টাইম লগ পেজটি খোলো", "প্ল্যানার খোলো", "ডায়েরি খোলো", "নোটস খোলো"), ALWAYS set "navigation": "learning" (for Time Log / Learning Hub), "planner", "focus", "diary", "tasks" (for notes), "mind", or "dashboard"!`,
     ``,
     `PROMPT INJECTION & UNTRUSTED DATA ISOLATION DEFENSES (MANDATORY):`,
@@ -519,10 +523,10 @@ export async function executeAIAction(action: string, payload: unknown): Promise
   const candidateModels = getCandidateModelsForMode(modelMode);
 
   const isPro = modelMode === 'planning' || modelMode === 'deep' || modelMode === 'pro' || modelMode === 'focentia-pro';
-  const timeoutMs = isPro ? 35000 : 15000;
+  const isRoadmapOrPlan = isPro || (typeof (payload as any)?.userQuery === 'string' && /roadmap|রোডম্যাপ|plan|routine|রুটিন/i.test((payload as any).userQuery));
+  const timeoutMs = isRoadmapOrPlan ? 35000 : 18000;
   const temperature = isPro ? 0.6 : 0.25;
-  // Per Section 6: roadmaps/plans 1200-1500, other big tasks 600-800, never below 100
-  const maxOutputTokens = isPro ? 1500 : 800;
+  const maxOutputTokens = isRoadmapOrPlan ? 3500 : 1000;
 
   let lastErr: any = null;
 

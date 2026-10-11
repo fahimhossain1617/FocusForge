@@ -247,7 +247,7 @@ class LocalNotificationScheduler {
               priority: 1,
               title: preTpl.title,
               body: preTpl.message,
-              actionRoute: "tasks",
+              actionRoute: "planner",
               targetTimestamp: preMs,
               targetTimeISO: new Date(preMs).toISOString(),
               dueDate: taskDate,
@@ -276,7 +276,7 @@ class LocalNotificationScheduler {
               priority: 1,
               title: startTpl.title,
               body: startTpl.message,
-              actionRoute: "tasks",
+              actionRoute: "planner",
               targetTimestamp: startMs,
               targetTimeISO: new Date(startMs).toISOString(),
               dueDate: taskDate,
@@ -307,7 +307,7 @@ class LocalNotificationScheduler {
                 priority: 2,
                 title: incompTpl.title,
                 body: incompTpl.message,
-                actionRoute: "tasks",
+                actionRoute: "planner",
                 targetTimestamp: incompMs,
                 targetTimeISO: new Date(incompMs).toISOString(),
                 dueDate: taskDate,
@@ -503,6 +503,34 @@ class LocalNotificationScheduler {
               sound,
             });
           }
+        }
+      }
+    }
+
+    // 6. Diary / Reflection Reminders (~21:15)
+    if (prefs.diaryReminder !== false) {
+      const [y, mon, d] = todayStr.split("-").map(Number);
+      const diaryDate = new Date(y, (mon || 1) - 1, d || 1, 21, 15, 0, 0);
+      const diaryMs = diaryDate.getTime();
+      if (diaryMs > now - 15 * 60 * 1000) {
+        const inQuiet = quietHoursEnabled && this.isInsideQuietHours(diaryMs, quietHoursStart, quietHoursEnd);
+        if (!inQuiet) {
+          const tpl = notificationRotationManager.getNext("diary_reminder", lang, {}, userId || undefined);
+          const id = `diary_rem_${todayStr}`;
+          scheduled.push({
+            id,
+            numericId: this.hashToNumericId(id),
+            category: "diary_reminder",
+            priority: 5,
+            title: tpl.title,
+            body: tpl.message,
+            actionRoute: "diary",
+            targetTimestamp: diaryMs,
+            targetTimeISO: diaryDate.toISOString(),
+            dueDate: todayStr,
+            isUrgent: false,
+            sound,
+          });
         }
       }
     }

@@ -178,6 +178,7 @@ export interface WorkspaceContext {
     name: string;
     targetHours?: number;
     loggedMinutes?: number;
+    importantTopics?: string[];
     weakTopics?: string[];
     notes?: string;
   }>;

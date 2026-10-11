@@ -88,7 +88,22 @@ export function sanitizeContextForGemini(context?: WorkspaceContext): any {
     focusMinutesToday: context.focusMinutesToday || 0,
     tasksCount: context.tasks?.length || 0,
     completedTasksCount: context.completedTasksCount || 0,
-    // Do NOT include diarySummary or raw notes content unless explicitly requested
+    tasks: (context.tasks || []).slice(0, 30).map((t: any) => ({
+      id: t.id,
+      title: t.title || t.name || '',
+      targetDate: t.targetDate || t.date || null,
+      time: t.time || null,
+      priority: t.priority || 'medium',
+      status: t.status || 'not_started',
+    })),
+    learningTopics: (context.learningTopics || []).slice(0, 15).map((lt: any) => ({
+      name: lt.name || 'Topic',
+      targetHours: lt.targetHours || 0,
+      loggedMinutes: lt.loggedMinutes || 0,
+      importantTopics: Array.isArray(lt.importantTopics) ? lt.importantTopics : [],
+      weakTopics: Array.isArray(lt.weakTopics) ? lt.weakTopics : [],
+      notes: lt.notes || '',
+    })),
   };
 }
 

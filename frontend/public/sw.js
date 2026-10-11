@@ -377,6 +377,12 @@ function getDefaultActions(category, actionRoute) {
         { action: 'open_learning', title: 'Practice' },
         { action: 'dismiss', title: 'Dismiss' }
       ];
+    case 'diary_reminder':
+    case 'diary':
+      return [
+        { action: 'open_diary', title: 'Open Diary' },
+        { action: 'dismiss', title: 'Dismiss' }
+      ];
     case 'task_completed':
     case 'focus_completed':
     case 'streak_milestone':
@@ -491,9 +497,11 @@ self.addEventListener('notificationclick', (event) => {
   } else if (clickedAction === 'view_plan') {
     targetRoute = 'planner';
   } else if (clickedAction === 'open_task') {
-    targetRoute = 'tasks';
+    targetRoute = 'planner';
   } else if (clickedAction === 'open_learning') {
     targetRoute = 'learning';
+  } else if (clickedAction === 'open_diary') {
+    targetRoute = 'diary';
   } else if (clickedAction === 'view_stats') {
     targetRoute = 'today';
   } else if (clickedAction === 'open_route' && notifData.actionRoute) {

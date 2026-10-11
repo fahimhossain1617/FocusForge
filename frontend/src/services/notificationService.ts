@@ -382,6 +382,11 @@ class NotificationService {
           { action: "open_learning", title: "Practice" },
           { action: "dismiss", title: "Dismiss" },
         ];
+      case "diary_reminder":
+        return [
+          { action: "open_diary", title: "Open Diary" },
+          { action: "dismiss", title: "Dismiss" },
+        ];
       case "task_completed":
       case "focus_completed":
       case "streak_milestone":

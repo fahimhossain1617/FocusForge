@@ -35,7 +35,12 @@ function parseDatesFromText(text: string): string[] {
   const now = new Date();
   const dates: string[] = [];
 
-  const formatDate = (d: Date) => d.toISOString().split('T')[0];
+  const formatDate = (d: Date) => {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  };
 
   if (t.includes('tomorrow') || t.includes('আগামীকাল') || t.includes('কাল') || t.includes('agamikal')) {
     const tomorrow = new Date(now);
@@ -45,17 +50,27 @@ function parseDatesFromText(text: string): string[] {
     dates.push(formatDate(now));
   }
 
-  // Day numbers like "7th", "8th", "7 and 8", "৭ তারিখ", "৮ তারিখ" (strip out time like 4pm first)
-  const withoutTime = t.replace(/\b\d{1,2}(?::\d{2})?\s*(?:am|pm)\b/gi, '');
-  const dayMatches = withoutTime.match(/\b(\d{1,2})(?:st|nd|rd|th)?\b/g);
+  // Convert Bengali digits to English digits
+  const bnToEnMap: Record<string, string> = {
+    '০': '0', '১': '1', '২': '2', '৩': '3', '৪': '4',
+    '৫': '5', '৬': '6', '৭': '7', '৮': '8', '৯': '9'
+  };
+  const normalizedDigits = t.replace(/[০-৯]/g, d => bnToEnMap[d] || d);
+
+  // Day numbers like "7th", "8th", "7 and 8", "৭ তারিখ", "৮ তারিখ", "১০ তারিখে" (strip out time like 4pm first)
+  const withoutTime = normalizedDigits.replace(/\b\d{1,2}(?::\d{2})?\s*(?:am|pm)\b/gi, '');
+  const dayMatches = withoutTime.match(/(?:\b|\D)(\d{1,2})(?:st|nd|rd|th|\s*তারিখ|\s*তারিখে)?(?:\b|\D)/g);
   if (dayMatches && (!dates.length || t.includes('and') || t.includes('ও') || t.includes('ebong'))) {
     dayMatches.forEach(m => {
-      const dayNum = parseInt(m, 10);
-      if (dayNum >= 1 && dayNum <= 31) {
-        const target = new Date(now.getFullYear(), now.getMonth(), dayNum);
-        const iso = formatDate(target);
-        if (!dates.includes(iso)) {
-          dates.push(iso);
+      const numMatch = m.match(/\d{1,2}/);
+      if (numMatch) {
+        const dayNum = parseInt(numMatch[0], 10);
+        if (dayNum >= 1 && dayNum <= 31) {
+          const target = new Date(now.getFullYear(), now.getMonth(), dayNum);
+          const iso = formatDate(target);
+          if (!dates.includes(iso)) {
+            dates.push(iso);
+          }
         }
       }
     });
@@ -781,6 +796,195 @@ export function handleLocalIntent(
         actions: [],
         orbEmotion: 'attentive',
         navigationRoute: targetRoute,
+        handledLocally: true,
+        tokenCost: 0,
+      };
+    }
+
+    // 11. Time Log Topics Query (Weak Topics, Important Topics)
+    case 'TIMELOG_TOPIC_QUERY': {
+      const learningTopics = context?.learningTopics || [];
+      const lowerText = text.toLowerCase();
+
+      // Find if a specific folder name is mentioned in user text
+      let targetFolder = learningTopics.find(lt => {
+        const name = (lt.name || '').toLowerCase().trim();
+        return name && (lowerText.includes(name) || lowerText.includes(name.replace(/\s+/g, '')));
+      });
+
+      const actions: ActionRequest[] = [];
+      const openTimeLogAct = buildActionRequest('open_learning', {}, isBn ? 'টাইম লগ খুলুন' : 'Open Time Log');
+      if (openTimeLogAct) actions.push(openTimeLogAct);
+
+      if (targetFolder) {
+        const impTopics = (targetFolder.importantTopics || []).filter(Boolean);
+        const weakTopics = (targetFolder.weakTopics || []).filter(Boolean);
+        const hasData = impTopics.length > 0 || weakTopics.length > 0;
+
+        let reply = '';
+        if (hasData) {
+          if (isBn) {
+            reply = `"${targetFolder.name}" ফোল্ডারের টপিক রিপোর্ট:\n\n` +
+              `📌 গুরুত্বপূর্ণ টপিক (Important Topics):\n` +
+              (impTopics.length > 0 ? impTopics.map(t => `• ${t}`).join('\n') : '• কোনো গুরুত্বপূর্ণ টপিক এন্ট্রি পাওয়া যায়নি।') +
+              `\n\n⚠️ দুর্বল টপিক (Weak Topics / Blockers):\n` +
+              (weakTopics.length > 0 ? weakTopics.map(t => `• ${t}`).join('\n') : '• কোনো দুর্বল টপিক এন্ট্রি পাওয়া যায়নি।') +
+              `\n\n⏱️ মোট শেখার সময়: ${targetFolder.loggedMinutes || 0} মিনিট।`;
+          } else {
+            reply = `Topic report for "${targetFolder.name}":\n\n` +
+              `📌 Important Topics:\n` +
+              (impTopics.length > 0 ? impTopics.map(t => `• ${t}`).join('\n') : '• None logged yet.') +
+              `\n\n⚠️ Weak Topics / Blockers:\n` +
+              (weakTopics.length > 0 ? weakTopics.map(t => `• ${t}`).join('\n') : '• None logged yet.') +
+              `\n\n⏱️ Total Logged Time: ${targetFolder.loggedMinutes || 0} minutes.`;
+          }
+        } else {
+          if (isBn) {
+            reply = `"${targetFolder.name}" ফোল্ডারে কোনো গুরুত্বপূর্ণ বা দুর্বল টপিক এন্ট্রি পাওয়া যায়নি। Time Log-এ সেশন যোগ করার সময় এগুলো লিখে সেভ করলে এখানে দেখতে পাবে।`;
+          } else {
+            reply = `No important or weak topics found for "${targetFolder.name}". You can add them while logging learning sessions in Time Log.`;
+          }
+        }
+
+        return {
+          message: prefix + reply,
+          intent: 'TIMELOG_TOPIC_QUERY',
+          actions,
+          orbEmotion: hasData ? 'focused' : 'thinking',
+          navigationRoute: 'learning',
+          handledLocally: true,
+          tokenCost: 0,
+        };
+      }
+
+      // Check if user specifically requested a non-existent folder
+      const folderKeywordMatch = text.match(/([A-Za-z\u0980-\u09FF]+)\s*(?:ফোল্ডার|বিষয়ে|বিষয়ে|সাবজেক্ট|টপিক)/i);
+      if (folderKeywordMatch && folderKeywordMatch[1]) {
+        const candidate = folderKeywordMatch[1].trim();
+        const nonFolderWords = ['সব', 'সকল', 'কোন', 'কোনো', 'আমার', 'টাইম', 'লগ', 'লার্নিং', 'সবগুলো'];
+        if (!nonFolderWords.includes(candidate.toLowerCase())) {
+          const folderNames = learningTopics.map(f => f.name).join(', ');
+          const notFoundBn = `"${candidate}" নামে কোনো ফোল্ডার বা বিষয় Time Log-এ খুঁজে পাওয়া যায়নি। তোমার বর্তমান ফোল্ডারগুলো হলো: ${folderNames || 'কোনো ফোল্ডার নেই'}।`;
+          const notFoundEn = `No folder named "${candidate}" found in Time Log. Your existing folders are: ${folderNames || 'None'}。`;
+          return {
+            message: prefix + (isBn ? notFoundBn : notFoundEn),
+            intent: 'TIMELOG_TOPIC_QUERY',
+            actions,
+            orbEmotion: 'thinking',
+            navigationRoute: 'learning',
+            handledLocally: true,
+            tokenCost: 0,
+          };
+        }
+      }
+
+      // If no folders exist at all
+      if (learningTopics.length === 0) {
+        const replyBn = `তোমার Time Log-এ এখনও কোনো ফোল্ডার বা টপিক খুঁজে পাওয়া যায়নি। নতুন স্কিল বা বিষয় ট্র্যাক করতে Time Log খুলতে পারো।`;
+        const replyEn = `No learning folders found in your Time Log. Open Time Log to create your first learning topic.`;
+        return {
+          message: prefix + (isBn ? replyBn : replyEn),
+          intent: 'TIMELOG_TOPIC_QUERY',
+          actions,
+          orbEmotion: 'thinking',
+          navigationRoute: 'learning',
+          handledLocally: true,
+          tokenCost: 0,
+        };
+      }
+
+      // Summarize all folders
+      let replyBn = `তোমার Time Log ফোল্ডারগুলোর গুরুত্বপূর্ণ ও দুর্বল টপিকসমূহ:\n`;
+      let replyEn = `Here are the important and weak topics across your Time Log folders:\n`;
+
+      learningTopics.forEach(folder => {
+        const imp = (folder.importantTopics || []).filter(Boolean);
+        const weak = (folder.weakTopics || []).filter(Boolean);
+        const folderName = folder.name || 'Untitled';
+
+        replyBn += `\n📁 ${folderName} (${folder.loggedMinutes || 0} মিনিট):\n`;
+        replyBn += `  📌 গুরুত্বপূর্ণ: ${imp.length > 0 ? imp.join(', ') : 'পাওয়া যায়নি'}\n`;
+        replyBn += `  ⚠️ দুর্বল: ${weak.length > 0 ? weak.join(', ') : 'পাওয়া যায়নি'}\n`;
+
+        replyEn += `\n📁 ${folderName} (${folder.loggedMinutes || 0} mins):\n`;
+        replyEn += `  📌 Important: ${imp.length > 0 ? imp.join(', ') : 'None'}\n`;
+        replyEn += `  ⚠️ Weak: ${weak.length > 0 ? weak.join(', ') : 'None'}\n`;
+      });
+
+      return {
+        message: prefix + (isBn ? replyBn : replyEn),
+        intent: 'TIMELOG_TOPIC_QUERY',
+        actions,
+        orbEmotion: 'focused',
+        navigationRoute: 'learning',
+        handledLocally: true,
+        tokenCost: 0,
+      };
+    }
+
+    // 12. Planner Schedule / Routine Query for Specific Dates
+    case 'PLANNER_DATE_QUERY': {
+      const dates = parseDatesFromText(norm.raw);
+      const targetDate = dates[0];
+      const allTasks = context?.tasks || [];
+
+      // Format date for readable display
+      const [, , dayStr] = targetDate.split('-');
+      const dayNum = parseInt(dayStr, 10);
+      const bnDigits = ['০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯'];
+      const enToBnDigits = (n: number | string) => String(n).replace(/\d/g, d => bnDigits[Number(d)]);
+      const displayDayBn = `${enToBnDigits(dayNum)} তারিখ`;
+      const displayDayEn = `${dayNum}th`;
+
+      // Filter tasks matching targetDate
+      const matchedTasks = allTasks.filter(t => {
+        if (!t.targetDate) return false;
+        return t.targetDate === targetDate || t.targetDate.startsWith(targetDate);
+      });
+
+      const actions: ActionRequest[] = [];
+      const openPlannerAct = buildActionRequest('open_planner', {}, isBn ? 'প্ল্যানার খুলুন' : 'Open Planner');
+      if (openPlannerAct) actions.push(openPlannerAct);
+
+      if (matchedTasks.length === 0) {
+        const emptyBn = `${displayDayBn} (${targetDate}) তোমার প্ল্যানারে কোনো টাস্ক বা রুটিন শিডিউল করা খুঁজে পাওয়া যায়নি। তুমি চাইলে এই দিনের জন্য নতুন টাস্ক যোগ করতে পারো!`;
+        const emptyEn = `No tasks or routines found scheduled in your Planner for ${displayDayEn} (${targetDate}). You can schedule new tasks anytime!`;
+        return {
+          message: prefix + (isBn ? emptyBn : emptyEn),
+          intent: 'PLANNER_DATE_QUERY',
+          actions,
+          orbEmotion: 'thinking',
+          navigationRoute: 'planner',
+          handledLocally: true,
+          tokenCost: 0,
+        };
+      }
+
+      let replyBn = `${displayDayBn}-এর প্ল্যানার রুটিন ও টাস্কসমূহ (${matchedTasks.length}টি):\n\n`;
+      let replyEn = `Planner routine and tasks for ${displayDayEn} (${matchedTasks.length}):\n\n`;
+
+      matchedTasks.forEach((t, i) => {
+        const title = t.title || 'Untitled Task';
+        const time = t.time ? ` [⏰ ${t.time}]` : '';
+        const priority = t.priority ? ` [${t.priority.toUpperCase()}]` : '';
+        const statusIcon = t.status === 'completed' ? '✅' : '⏳';
+        const statusTextBn = t.status === 'completed' ? 'সম্পন্ন' : 'বাকি';
+        const statusTextEn = t.status === 'completed' ? 'Done' : 'Pending';
+
+        replyBn += `${i + 1}. ${statusIcon} **${title}**${time}${priority} (${statusTextBn})\n`;
+        replyEn += `${i + 1}. ${statusIcon} **${title}**${time}${priority} (${statusTextEn})\n`;
+      });
+
+      const completedCount = matchedTasks.filter(t => t.status === 'completed').length;
+      replyBn += `\nমোট সম্পন্ন: ${enToBnDigits(completedCount)}/${enToBnDigits(matchedTasks.length)}টি।`;
+      replyEn += `\nProgress: ${completedCount}/${matchedTasks.length} completed.`;
+
+      return {
+        message: prefix + (isBn ? replyBn : replyEn),
+        intent: 'PLANNER_DATE_QUERY',
+        actions,
+        orbEmotion: 'focused',
+        navigationRoute: 'planner',
         handledLocally: true,
         tokenCost: 0,
       };
