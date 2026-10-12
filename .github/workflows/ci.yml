@@ -37,5 +37,5 @@ jobs:
         run: |
           cd frontend
           mkdir -p .vercel
-          echo '{"projectId":"prj_RiOFlNMIHkuCOeANAIKkO3PJI508","orgId":"team_f1GuX2gzvNrRJrQ0FqDJOHRh"}' > .vercel/project.json
-          npx -y vercel deploy --prod --token="$VERCEL_TOKEN" --yes
+          echo '{"projectId":"prj_RiOFlNMIHkuCOeANAIKkO3PJI508","orgId":"team_f1GuX2gzvNrRJrQ0FqDJOHRh","projectName":"frontend"}' > .vercel/project.json
+          npx -y vercel deploy --prod --token="$VERCEL_TOKEN" --yes --debug
