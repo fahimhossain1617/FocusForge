@@ -1,15 +1,13 @@
-name: CI & Build Verification
+name: CI & Vercel Auto-Deploy
 
 on:
   push:
     branches: [main]
-  pull_request:
-    branches: [main]
   workflow_dispatch:
 
 jobs:
-  verify:
-    name: Verify & Build
+  verify-and-deploy:
+    name: Verify & Deploy to Vercel
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
@@ -30,3 +28,17 @@ jobs:
 
       - name: Frontend TypeScript Typecheck
         run: npx --prefix frontend tsc --project frontend/tsconfig.json --noEmit
+
+      - name: Deploy to Vercel Production
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: team_f1GuX2gzvNrRJrQ0FqDJOHRh
+          VERCEL_PROJECT_ID: prj_RiOFlNMIHkuCOeANAIKkO3PJI508
+        run: |
+          if [ -n "$VERCEL_TOKEN" ]; then
+            echo "Deploying frontend to Vercel Production..."
+            npx -y vercel --cwd frontend --prod --token="$VERCEL_TOKEN" --yes
+          else
+            echo "ℹ️ VERCEL_TOKEN secret is not set yet in GitHub Secrets."
+            echo "Add VERCEL_TOKEN to GitHub repository secrets to enable direct Vercel auto-deployment."
+          fi
