@@ -29,7 +29,7 @@ jobs:
         run: npm run build --prefix backend
 
       - name: Frontend TypeScript Typecheck
-        run: npx --prefix frontend tsc --noEmit
+        run: npx --prefix frontend tsc --project frontend/tsconfig.json --noEmit
 
       - name: Run Glory AI Local Router Verification Suite
-        run: npx --prefix frontend tsx scripts/test_local_router.ts
+        run: npx --prefix backend tsx scripts/test_local_router.ts
