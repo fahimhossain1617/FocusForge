@@ -32,4 +32,4 @@ jobs:
         run: npx --prefix frontend tsc --project frontend/tsconfig.json --noEmit
 
       - name: Run Glory AI Local Router Verification Suite
-        run: npx --prefix backend tsx scripts/test_local_router.ts
+        run: npx -y tsx scripts/test_local_router.ts
