@@ -66,7 +66,7 @@ export default function ThoughtDetail({ thoughtId, navigate, previousView }: Tho
   const sourceInfo = getMindSourceInfo(thought, t);
 
   return (
-    <div className="motion-page max-w-6xl mx-auto w-full pb-14">
+    <div className="motion-page max-w-6xl mx-auto w-full px-4 sm:px-6 pb-14">
       <div className="flex items-center justify-between gap-3 mb-4">
         <button 
           type="button"

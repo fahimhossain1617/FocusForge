@@ -655,6 +655,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     };
 
     const handlePopState = (event: PopStateEvent) => {
+      if (event.state?.subView) {
+        return;
+      }
       const targetPage = event.state?.page || window.location.hash.replace(/^#\/?/, '').split('?')[0] || 'today';
       if (validPages.has(targetPage)) {
         navigateTo(targetPage, true);

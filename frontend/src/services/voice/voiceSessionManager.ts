@@ -42,7 +42,7 @@ export interface VoiceSessionCallbacks {
 
 export class VoiceSessionManager {
   private state: VoiceState = "IDLE";
-  private language: SupportedSpeechLang = "bn-BD";
+  private language: SupportedSpeechLang = "en-US";
 
   private sessionId: string = "";
   private epoch: number = 0;

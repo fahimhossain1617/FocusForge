@@ -5,7 +5,7 @@ import type { BlockType, NoteBlock } from "../../types";
 import { useAppContext } from "../../context/AppContext";
 import {
   Braces, Check, CheckSquare2, ChevronDown, Copy, Heading1, Heading2, Heading3, StickyNote, Sigma, Text,
-  Trash2, Palette, Highlighter, Square, RotateCcw, X, PenTool,
+  Trash2, Palette, Highlighter, Square, RotateCcw, RotateCw, X, PenTool,
   List, ListOrdered, Quote, Image as ImageIcon, FileText, Link2, ExternalLink, Download, Eye, Paperclip
 } from "lucide-react";
 import { HexColorPicker } from "react-colorful";
@@ -262,10 +262,16 @@ export default function BlockEditor({
         return;
       }
     }
-    if (event.key === "Backspace" && !block.content) {
+    const isBackspace = event.key === "Backspace" || (event as any).keyCode === 8;
+    const isDelete = event.key === "Delete" || (event as any).keyCode === 46;
+    if ((isBackspace || isDelete) && (!block.content || !block.content.trim())) {
       event.preventDefault();
-      if (block.type !== "paragraph") update(index, { type: "paragraph", isCompleted: undefined });
-      else remove(index);
+      if (block.type !== "paragraph") {
+        update(index, { type: "paragraph", isCompleted: undefined });
+      } else {
+        remove(index);
+      }
+      return;
     }
   };
 
@@ -532,9 +538,9 @@ function ColorToolbar({ block, onUpdate, onClose }: { block: NoteBlock; onUpdate
 
 function StickyBlock({ block, control, input, textareaRef, onDelete }: any) {
   return (
-    <div className="editor-block editor-block--sticky relative group my-4 p-5 sm:p-6 rounded-2xl border border-amber-500/25 bg-amber-500/[0.05] dark:bg-amber-500/[0.04]">
+    <div className="editor-block editor-block--sticky relative group my-4 p-4 sm:p-5 rounded-2xl border border-amber-500/30 bg-amber-500/[0.06] dark:bg-amber-500/[0.05]">
       {control}
-      <div className="flex items-center justify-between mb-3 px-0.5">
+      <div className="flex items-center justify-between mb-3 px-2 pt-1">
         <div className="sticky-label flex items-center gap-2 text-xs font-bold text-amber-500 dark:text-amber-400 select-none">
           <StickyNote size={15} />
           <span>QUICK NOTE</span>
@@ -542,10 +548,10 @@ function StickyBlock({ block, control, input, textareaRef, onDelete }: any) {
         <button
           type="button"
           onClick={onDelete}
-          className="text-red-400 hover:text-white bg-red-500/10 hover:bg-red-600 p-2 rounded-xl transition-colors cursor-pointer"
+          className="text-red-400 hover:text-white bg-red-500/10 hover:bg-red-600 p-1.5 rounded-lg transition-colors cursor-pointer"
           title="Delete Quick Note"
         >
-          <Trash2 size={15} />
+          <Trash2 size={14} />
         </button>
       </div>
 
@@ -561,7 +567,7 @@ function StickyBlock({ block, control, input, textareaRef, onDelete }: any) {
         }}
         rows={3}
         placeholder="Write a sticky note..."
-        className="w-full bg-transparent outline-none text-foreground placeholder:text-zinc-500 text-sm sm:text-base leading-relaxed resize-none overflow-hidden px-1 py-0.5"
+        className="w-full bg-transparent outline-none text-foreground placeholder:text-zinc-500 text-sm sm:text-base leading-relaxed resize-none overflow-hidden px-2.5 py-1.5"
         style={{ minHeight: "80px" }}
       />
     </div>
@@ -631,10 +637,10 @@ function CodeBlockItem({
   };
 
   return (
-    <div className="editor-block editor-block--code my-4 relative rounded-2xl border border-white/10 bg-[#0d1117] overflow-hidden">
+    <div className="editor-block editor-block--code my-4 relative rounded-2xl border border-white/10 bg-[#0d1117] overflow-visible">
       {control}
       {/* Code Header Toolbar */}
-      <div className="flex items-center justify-between px-3.5 py-2 bg-black/40 border-b border-white/5 select-none">
+      <div className="flex items-center justify-between px-3.5 py-2 bg-black/40 border-b border-white/5 select-none rounded-t-2xl">
         <div className="flex items-center gap-2">
           <span className="text-[11px] font-bold text-zinc-400 font-mono tracking-wider">CODE</span>
           
@@ -650,7 +656,7 @@ function CodeBlockItem({
             </button>
 
             {langMenuOpen && (
-              <div className="absolute left-0 top-full mt-1.5 w-36 max-h-48 overflow-y-auto rounded-xl border border-white/10 bg-[#161b22] py-1 shadow-xl z-50">
+              <div className="absolute left-0 top-full mt-1.5 w-36 max-h-48 overflow-y-auto rounded-xl border border-white/10 bg-[#161b22] py-1 shadow-2xl z-50">
                 {CODE_LANGUAGES.map((lang) => (
                   <button
                     key={lang.value}
@@ -882,24 +888,34 @@ function EditorBlock({
   if (block.type === "image") {
     const size = block.imageSize || "medium";
     const sizeConfig = {
-      small: { container: "max-w-[280px]", imgMaxH: "max-h-[200px]" },
-      medium: { container: "max-w-[420px]", imgMaxH: "max-h-[320px]" },
-      large: { container: "max-w-[620px]", imgMaxH: "max-h-[460px]" },
+      small: { container: "max-w-[280px]" },
+      medium: { container: "max-w-[480px]" },
+      large: { container: "max-w-[720px]" },
     }[size];
 
     const isRawHashCaption = block.caption && /^file_[0-9a-f]{16,}$/i.test(block.caption);
     const captionValue = isRawHashCaption ? "" : (block.caption || "");
+    const rotation = block.rotation || 0;
+
+    const handleRotate = () => {
+      const nextRotation = (rotation + 90) % 360;
+      onUpdateColor({ rotation: nextRotation });
+    };
 
     return (
-      <div className={`editor-block editor-block--image my-4 p-2.5 rounded-2xl border border-white/10 bg-black/20 group relative w-full ${sizeConfig.container} mx-auto transition-all duration-200 shadow-none`}>
+      <div className={`editor-block editor-block--image my-4 p-3.5 rounded-2xl border border-white/10 bg-white/[0.02] group relative w-full ${sizeConfig.container} mr-auto transition-all duration-200 shadow-none`}>
         {control}
-        <div className={`relative rounded-xl overflow-hidden ${sizeConfig.imgMaxH} flex items-center justify-center bg-black/40`}>
+        <div className="relative rounded-xl overflow-hidden flex items-center justify-start bg-transparent">
           {block.url ? (
             /* eslint-disable-next-line @next/next/no-img-element */
             <img
               src={block.url}
               alt={captionValue || "Note image"}
-              className={`w-auto h-auto max-w-full ${sizeConfig.imgMaxH} object-contain rounded-xl cursor-pointer select-none transition-transform duration-200 hover:scale-[1.01]`}
+              style={{
+                transform: rotation ? `rotate(${rotation}deg)` : undefined,
+                transition: "transform 0.2s ease",
+              }}
+              className="w-auto h-auto max-w-full max-h-[500px] object-contain rounded-xl cursor-pointer select-none transition-transform duration-200 hover:scale-[1.01]"
               onClick={() => onPreviewImage?.(block.url!)}
               title="Click to view full size"
             />
@@ -910,7 +926,7 @@ function EditorBlock({
             </div>
           )}
         </div>
-        <div className={`mt-2.5 px-2 flex ${size === "small" ? "flex-col gap-2 items-stretch" : "flex-row items-center justify-between gap-3"}`}>
+        <div className="mt-3 px-1 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
           <input
             type="text"
             value={captionValue}
@@ -918,7 +934,7 @@ function EditorBlock({
             placeholder="Add an image caption..."
             className="text-xs text-zinc-300 placeholder-zinc-500 bg-black/20 dark:bg-white/5 border border-white/10 rounded-xl outline-none py-2 px-3 focus:border-blue-500/50 transition-colors w-full"
           />
-          <div className={`flex items-center gap-1.5 ${size === "small" ? "justify-between" : "shrink-0"}`}>
+          <div className="flex items-center gap-1.5 shrink-0 justify-between sm:justify-end">
             <div className="flex items-center bg-white/5 p-0.5 rounded-lg border border-white/5">
               {(["small", "medium", "large"] as const).map((s) => (
                 <button
@@ -935,6 +951,14 @@ function EditorBlock({
                 </button>
               ))}
             </div>
+            <button
+              type="button"
+              onClick={handleRotate}
+              className="p-1.5 rounded-lg text-zinc-400 hover:text-white bg-white/5 hover:bg-white/10 border border-white/5 transition-colors cursor-pointer"
+              title="Rotate image 90°"
+            >
+              <RotateCw size={13} />
+            </button>
             {onReplaceImage && (
               <button
                 type="button"
@@ -1097,12 +1121,27 @@ function EditorBlock({
     const mathContent = block.content || "x^2 + y^2 = z^2";
     const formattedMath = mathContent.includes('\n') && !mathContent.includes('\\begin{') ? `\\begin{aligned} ${mathContent.replace(/\n/g, '\\\\')} \\end{aligned}` : mathContent;
     const output = katex.renderToString(formattedMath, { throwOnError: false, displayMode: true });
-    return <div className="editor-block editor-block--math relative">
-      {control}
-      <button type="button" onClick={onDelete} className="absolute top-2 right-2 text-zinc-500 hover:text-red-400 bg-zinc-900/50 hover:bg-red-500/10 p-1.5 rounded-md transition-colors z-30" title="Delete Math Block"><Trash2 size={14} /></button>
-      <div className="math-preview" dangerouslySetInnerHTML={{ __html: output }} />
-      <textarea ref={textarea} {...input} rows={1} placeholder="x^2 + y^2 = z^2 (Shift+Enter for new block)" />
-    </div>;
+    return (
+      <div className="editor-block editor-block--math relative my-4 p-4 sm:p-5 rounded-2xl border border-purple-500/30 bg-purple-950/20">
+        {control}
+        <button
+          type="button"
+          onClick={onDelete}
+          className="absolute top-3 right-3 text-zinc-400 hover:text-red-400 bg-black/30 hover:bg-red-500/10 p-1.5 rounded-lg transition-colors z-30"
+          title="Delete Math Block"
+        >
+          <Trash2 size={14} />
+        </button>
+        <div className="math-preview py-3 px-2 text-center" dangerouslySetInnerHTML={{ __html: output }} />
+        <textarea
+          ref={textarea}
+          {...input}
+          rows={1}
+          placeholder="x^2 + y^2 = z^2 (Shift+Enter for new block)"
+          className="w-full mt-2.5 px-3 py-2 rounded-xl bg-black/25 dark:bg-black/30 border border-white/10 outline-none font-mono text-xs sm:text-sm text-zinc-200 placeholder:text-zinc-500 focus:border-purple-500/50 transition-colors"
+        />
+      </div>
+    );
   }
 
   // ── Sticky ──

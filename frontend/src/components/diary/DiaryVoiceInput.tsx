@@ -49,7 +49,7 @@ export default function DiaryVoiceInput({
     setManualText,
     isSupported,
   } = useContinuousSpeech({
-    initialLang: "bn-BD",
+    initialLang: "en-US",
     onTranscriptChange: (nextVal) => {
       if (onValueChange) {
         onValueChange(nextVal);

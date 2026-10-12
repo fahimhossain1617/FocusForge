@@ -139,13 +139,12 @@ export function AIRoadmapCard({
   };
 
   return (
-    <div className="w-full max-w-2xl my-3 overflow-hidden rounded-2xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-none transition-all">
+    <div className="w-full max-w-2xl my-3 overflow-hidden rounded-2xl border border-slate-200 dark:border-white/10 bg-white dark:bg-[#111827] shadow-none transition-all">
       {/* HEADER */}
-      <div className="p-3.5 sm:p-4 border-b border-zinc-200/70 dark:border-zinc-800/80 bg-zinc-50/60 dark:bg-zinc-900/60">
+      <div className="p-3.5 sm:p-4 border-b border-slate-200 dark:border-white/10 bg-slate-50/50 dark:bg-white/[0.02]">
         <div className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-2 mb-2">
           <div className="flex items-center gap-1.5 flex-wrap min-w-0">
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[11px] font-semibold rounded-md bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 whitespace-nowrap shrink-0">
-              <Layers size={12} />
+            <span className="inline-flex items-center px-2 py-0.5 text-[11px] font-semibold rounded-md bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 whitespace-nowrap shrink-0">
               {roadmap.subject || (isBn ? "লার্নিং রোডম্যাপ" : "Learning Roadmap")}
             </span>
             {roadmap.targetLevel && (
@@ -339,10 +338,10 @@ export function AIRoadmapCard({
         })}
       </div>
 
-      {/* WARM COMPLETION BANNER */}
+      {/* WARM COMPLETION BANNER - Clean inline celebration without heavy box */}
       {progress.isFullyCompleted && (
-        <div className="mx-3.5 sm:mx-4 my-2 p-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 dark:bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 flex items-center gap-3 animate-in fade-in duration-300">
-          <Award className="w-5 h-5 text-emerald-500 shrink-0" />
+        <div className="mx-3.5 sm:mx-4 my-2 px-1 text-emerald-600 dark:text-emerald-400 flex items-center gap-2.5 animate-in fade-in duration-300">
+          <Award className="w-4 h-4 text-emerald-500 shrink-0" />
           <div className="text-xs sm:text-sm font-semibold leading-relaxed">
             {isBn
               ? "অভিনন্দন! তুমি তোমার সম্পূর্ণ রোডম্যাপ সফলভাবে সম্পন্ন করেছো! তোমার শেখার এই দারুণ ধারাবাহিকতা অব্যাহত রাখো!"

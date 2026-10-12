@@ -123,20 +123,7 @@ export default function LearningHubPage() {
 
   const getRoadmapForFolder = useCallback(
     (folder: { id: string; name: string }) => {
-      const fName = folder.name.trim().toLowerCase();
-      return (
-        roadmaps.find((r) => {
-          if (r.folderId && r.folderId === folder.id) return true;
-          const rSub = (r.subject || "").trim().toLowerCase();
-          const rTit = (r.title || "").trim().toLowerCase();
-          if (rSub === fName || rTit === fName) return true;
-          if (rSub && fName && (rSub.includes(fName) || fName.includes(rSub))) return true;
-          if (rTit && fName && (rTit.includes(fName) || fName.includes(rTit))) return true;
-          const fWords = fName.split(/\s+/).filter((w) => w.length > 2);
-          const rWords = `${rSub} ${rTit}`.split(/\s+/).filter((w) => w.length > 2);
-          return fWords.some((fw) => rWords.includes(fw));
-        }) || null
-      );
+      return roadmaps.find((r) => r.folderId === folder.id) || null;
     },
     [roadmaps]
   );
@@ -145,6 +132,19 @@ export default function LearningHubPage() {
 
   useEffect(() => {
     setSubViewActive(Boolean(selectedFolderId));
+    if (selectedFolderId) {
+      try {
+        window.history.pushState({ subView: 'learning-folder', page: 'learning' }, '', window.location.href);
+      } catch {}
+      const handlePop = () => {
+        setSelectedFolderId(null);
+      };
+      window.addEventListener('popstate', handlePop);
+      return () => {
+        window.removeEventListener('popstate', handlePop);
+        setSubViewActive(false);
+      };
+    }
     return () => setSubViewActive(false);
   }, [selectedFolderId, setSubViewActive]);
 
@@ -661,7 +661,13 @@ export default function LearningHubPage() {
             {/* Left: Back Button */}
             <button
               type="button"
-              onClick={() => setSelectedFolderId(null)}
+              onClick={() => {
+                if (typeof window !== "undefined" && window.history.state?.subView === 'learning-folder') {
+                  window.history.back();
+                } else {
+                  setSelectedFolderId(null);
+                }
+              }}
               className="inline-flex items-center justify-center w-9 h-9 -ml-1.5 rounded-full text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-black/5 dark:hover:bg-white/5 active:scale-95 transition-colors cursor-pointer"
               aria-label={t.learningHub.backToSkills}
               title={t.learningHub.backToSkills}
@@ -1465,8 +1471,7 @@ export default function LearningHubPage() {
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex items-center justify-between pb-3 mb-2 border-b border-slate-200 dark:border-white/10">
-                <div className="flex items-center gap-2 min-w-0">
-                  <Layers className="w-5 h-5 text-blue-500 shrink-0" />
+                <div className="flex items-center min-w-0">
                   <h2 className="text-sm sm:text-base font-bold text-foreground truncate">
                     {activeRoadmapModal.title}
                   </h2>

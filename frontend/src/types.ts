@@ -43,6 +43,7 @@ export interface NoteBlock {
   linkDomain?: string;
   caption?: string;
   imageSize?: 'small' | 'medium' | 'large';
+  rotation?: number;
 }
 
 export interface ThemePreferences {

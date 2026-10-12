@@ -94,7 +94,7 @@ export function AIAgentPage() {
     toggleLanguage: toggleVoiceLanguage,
     setManualText: setVoiceManualText,
   } = useContinuousSpeech({
-    initialLang: "bn-BD",
+    initialLang: "en-US",
     onTranscriptChange: (newText) => {
       setInput(newText);
       requestAnimationFrame(adjustTextareaHeight);
@@ -843,7 +843,7 @@ export function AIAgentPage() {
     if (textareaRef.current) {
       textareaRef.current.style.height = "auto";
     }
-    const aiMsg = await send(value, language, aiModel);
+    const aiMsg = await send(value, "auto", aiModel);
     if (aiMsg) {
       trackMeaningfulAction?.("ai_agent_interaction");
     }

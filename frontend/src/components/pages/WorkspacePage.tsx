@@ -25,6 +25,19 @@ export default function WorkspacePage() {
 
   useEffect(() => {
     setSubViewActive(view === 'editor');
+    if (view === 'editor') {
+      try {
+        window.history.pushState({ subView: 'workspace-editor', page: 'tasks' }, '', window.location.href);
+      } catch {}
+      const handlePop = () => {
+        setView('grid');
+      };
+      window.addEventListener('popstate', handlePop);
+      return () => {
+        window.removeEventListener('popstate', handlePop);
+        setSubViewActive(false);
+      };
+    }
     return () => setSubViewActive(false);
   }, [view, setSubViewActive]);
 
@@ -104,7 +117,13 @@ export default function WorkspacePage() {
             if (editingNote) deleteNote(editingNote.id); 
             setView('grid'); 
           }}
-          onBack={() => setView('grid')}
+          onBack={() => {
+            if (typeof window !== "undefined" && window.history.state?.subView === 'workspace-editor') {
+              window.history.back();
+            } else {
+              setView('grid');
+            }
+          }}
         />
       </div>
     );

@@ -1052,6 +1052,39 @@
      - Frontend typecheck (`tsc --noEmit --project frontend/tsconfig.json`): Passed with 0 errors.
 - **Impact:** `frontend/src/lib/ai/router/normalize.ts`, `frontend/src/lib/ai/router/intents.ts`, `frontend/src/lib/server/aiService.ts`, `backend/src/services/aiService.ts`, `frontend/src/services/aiAgentService.ts`, `scripts/test_local_router.ts`.
 
+---
+
+## ADR-064: Voice Default Language, Focus Analytics Sync, Block Editor Polish, and Subview Back Navigation
+
+- **Date:** October 2026
+- **Status:** Accepted & Verified
+- **Decision:**
+  1. **Voice Language & AI Chat Language Toggle:**
+     - Defaulted speech recognition and voice badge in all voice-enabled components (`VoiceInput.tsx`, `DiaryVoiceInput.tsx`, `AIAgentPage.tsx`, `voiceSessionManager.ts`, `useContinuousSpeech.ts`) to `'en-US'` (English) while allowing seamless manual toggle to Bengali (`'bn-BD'`).
+     - Maintained Glory AI chat dynamic language auto-mirroring: replies automatically mirror the language used in the user's text message (English queries receive English answers, Bengali queries receive Bengali answers).
+  2. **Focus Timer & Dashboard Analytics Synchronization:**
+     - Resolved timezone mismatch between UTC ISO timestamps and user local timezone (`getSessionLocalDate` using `new Date(raw)`) preventing saved timer sessions from vanishing on midnight borders.
+     - Aggregated stopwatch timer sessions and pomodoro intervals uniformly across daily stats, `weeklyData`, and `monthlyWeeks`.
+     - In Dashboard Focus card, added smooth inline 1-2 topic preview alongside a "View All" ("ভিউ অল") toggle button with inline animated expansion/collapse without jarring modal popups.
+  3. **Block Editor Layout, Margins & Polish:**
+     - Removed `overflow: hidden` on `.editor-block--code` allowing language selector menu (`JSON`, `C`, `C++`, etc.) to float outside cleanly with `z-50 shadow-2xl`.
+     - Enhanced Backspace and Delete key handling in `handleKeyDown` on empty paragraph blocks (`!block.content.trim()`), allowing consecutive empty blocks to be deleted cleanly.
+     - Added balanced internal padding/margins to Math block (`KaTeX`) formula input, Sticky Note block header and textarea, File/PDF blocks, Link preview blocks, and Image caption input.
+     - Removed forced black letterboxing around images, enabled natural portrait/landscape scaling with left-alignment, and added a 90° clockwise rotation button (`RotateCw`).
+     - Added `px-4 sm:px-6` responsive padding to `.note-editor-canvas` and removed the mobile `.editor-block { padding: 0; }` reset in `globals.css`.
+  4. **Thought Detail Margins & Subview Back Navigation:**
+     - Added `px-4 sm:px-6` to `ThoughtDetail.tsx` preventing text and controls from hitting mobile screen borders.
+     - Managed browser history states (`subView`) in `WorkspacePage` (note editor) and `LearningHubPage` (folder detail), and bypassed top-level route changes in `AppContext.tsx`'s `handlePopState`, ensuring hardware/browser back returns to parent list without routing to other tabs.
+  5. **AI Roadmap Folder Isolation & Modal Polish:**
+     - Replaced fuzzy string matching in `getRoadmapForFolder` with strict `r.folderId === folder.id` equality to prevent duplicate roadmaps across folders sharing names.
+     - Removed the `<Layers>` icon before title in roadmap modal.
+     - Cleaned up the congratulations banner in `AIRoadmapCard.tsx` from a heavy green box into an inline celebration message, and standardized modal colors to theme tokens.
+  6. **Verification:**
+     - Next.js production build (`npm run build --prefix frontend`): 19/19 routes passed with 0 errors.
+     - TypeScript compilation: Passed cleanly in 36.1s.
+- **Impact:** `frontend/src/app/globals.css`, `frontend/src/types.ts`, `frontend/src/components/workspace/BlockEditor.tsx`, `frontend/src/components/pages/NoteEditorView.tsx`, `frontend/src/components/pages/WorkspacePage.tsx`, `frontend/src/components/pages/LearningHubPage.tsx`, `frontend/src/components/pages/DashboardPage.tsx`, `frontend/src/components/focus/StopwatchTimer.tsx`, `frontend/src/components/mymind/ThoughtDetail.tsx`, `frontend/src/components/ai-agent/AIRoadmapCard.tsx`, `frontend/src/components/ai-agent/AIAgentPage.tsx`, `frontend/src/components/ai-agent/ai-agent.module.css`, `frontend/src/context/AppContext.tsx`, `frontend/src/services/voice/voiceSessionManager.ts`, `frontend/src/hooks/useContinuousSpeech.ts`.
+
+
 
 
 

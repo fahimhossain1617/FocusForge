@@ -3,6 +3,8 @@
 import React, { useState, useEffect, useRef, useCallback, memo } from "react";
 import { createPortal } from "react-dom";
 import { useAppContext } from "../../context/AppContext";
+import { useAuth } from "../../context/AuthContext";
+import { focusDbService } from "../../services/focusDbService";
 import { useTranslation } from "../../hooks/useTranslation";
 import { useAnimateExit } from "../../hooks/useAnimateExit";
 import { RollingDigit } from "./RollingDigit";
@@ -60,6 +62,7 @@ export const StopwatchTimer = memo(function StopwatchTimer({
   onActiveChange,
 }: StopwatchTimerProps) {
   const { state, updateState, showToast, navigateTo } = useAppContext();
+  const { user } = useAuth();
   const { t } = useTranslation();
 
   const [viewMode, setViewMode] = useState<TimerViewMode>("setup");
@@ -282,14 +285,16 @@ export const StopwatchTimer = memo(function StopwatchTimer({
       focusSessions: updatedSessions,
     });
 
-    // Also persist through localDb directly
+    // Also persist through localDb and focusDbService directly
+    const cleanUserId = user?.id || "guest";
     try {
       const { localDb } = await import("../../services/localDbService");
       await localDb.put("focus_sessions", {
         ...newSession,
-        userId: "guest",
+        userId: cleanUserId,
         updatedAt: new Date().toISOString(),
       });
+      focusDbService.saveFocusSession(newSession as any, cleanUserId).catch(() => {});
     } catch (e) {
       console.warn("[StopwatchTimer] Error persisting session:", e);
     }

@@ -20,7 +20,7 @@ export interface UseContinuousSpeechOptions {
 }
 
 export function useContinuousSpeech({
-  initialLang = 'bn-BD',
+  initialLang = 'en-US',
   onTranscriptChange,
   onTranscriptFinalized,
   onError,

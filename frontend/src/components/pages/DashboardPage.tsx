@@ -96,6 +96,18 @@ function formatMinutes(totalMins: number): string {
   return `${seconds}s`;
 }
 
+function getSessionLocalDate(s: { startedAt?: string; createdAt?: string }): string {
+  const raw = s.startedAt || s.createdAt;
+  if (!raw) return "";
+  try {
+    const d = new Date(raw);
+    if (!isNaN(d.getTime())) {
+      return getLocalDateString(d);
+    }
+  } catch {}
+  return raw.split("T")[0] || "";
+}
+
 export default function DashboardPage() {
   const { state, updateState, navigateTo, updateTask, addTask, isLoaded } = useAppContext();
   const { user } = useAuth();
@@ -148,13 +160,14 @@ export default function DashboardPage() {
 
       // Calculate real focus minutes, timer minutes, break minutes, and distractions strictly from focusSessions
       const daySessions = (state.focusSessions || []).filter((s) => {
-        const sDate = s.startedAt ? s.startedAt.split("T")[0] : "";
+        const sDate = getSessionLocalDate(s);
         return sDate === fullDate;
       });
       const pomodoroSessions = daySessions.filter((s) => s.sessionType !== "timer" && s.category !== "Timer");
       const timerSessions = daySessions.filter((s) => s.sessionType === "timer" || s.category === "Timer");
-      const focusMins = pomodoroSessions.reduce((acc, s) => acc + (s.durationMinutes || 0), 0);
+      const pomoMins = pomodoroSessions.reduce((acc, s) => acc + (s.durationMinutes || 0), 0);
       const timerMins = timerSessions.reduce((acc, s) => acc + (s.durationMinutes || 0), 0);
+      const totalFocusMins = pomoMins + timerMins;
       const breakMins = daySessions.reduce((acc, s) => acc + (s.breakMinutes || 0), 0);
       const distractionsCount = daySessions.reduce((acc, s) => acc + (Array.isArray(s.distractions) ? s.distractions.length : 0), 0);
 
@@ -168,8 +181,8 @@ export default function DashboardPage() {
         day: dayName,
         date: dateLabel,
         fullDate,
-        focusTime: formatMinutes(focusMins),
-        focusMinutes: focusMins,
+        focusTime: formatMinutes(totalFocusMins),
+        focusMinutes: totalFocusMins,
         timerTime: formatMinutes(timerMins),
         timerMinutes: timerMins,
         breakTime: formatMinutes(breakMins),
@@ -202,13 +215,14 @@ export default function DashboardPage() {
       const endStr = getLocalDateString(end);
 
       const weekSessions = (state.focusSessions || []).filter((s) => {
-        const sDate = s.startedAt ? s.startedAt.split("T")[0] : "";
+        const sDate = getSessionLocalDate(s);
         return sDate >= startStr && sDate <= endStr;
       });
       const pomodoroSessions = weekSessions.filter((s) => s.sessionType !== "timer" && s.category !== "Timer");
       const timerSessions = weekSessions.filter((s) => s.sessionType === "timer" || s.category === "Timer");
-      const focusMins = pomodoroSessions.reduce((acc, s) => acc + (s.durationMinutes || 0), 0);
+      const pomoMins = pomodoroSessions.reduce((acc, s) => acc + (s.durationMinutes || 0), 0);
       const timerMins = timerSessions.reduce((acc, s) => acc + (s.durationMinutes || 0), 0);
+      const totalFocusMins = pomoMins + timerMins;
       const breakMins = weekSessions.reduce((acc, s) => acc + (s.breakMinutes || 0), 0);
       const distractionsCount = weekSessions.reduce((acc, s) => acc + (Array.isArray(s.distractions) ? s.distractions.length : 0), 0);
 
@@ -219,7 +233,7 @@ export default function DashboardPage() {
       const doneCount = weekTasks.filter((t) => t.completed || t.status === "completed").length;
       const totalCount = weekTasks.length;
 
-      const totalActiveMins = focusMins + timerMins;
+      const totalActiveMins = totalFocusMins;
       const taskPercent = totalCount > 0 
         ? Math.round((doneCount / totalCount) * 100) 
         : (totalActiveMins > 0 ? Math.min(100, Math.round((totalActiveMins / 900) * 100)) : 0);
@@ -230,8 +244,8 @@ export default function DashboardPage() {
         startStr,
         endStr,
         percent: taskPercent,
-        focusTime: formatMinutes(focusMins),
-        focusMinutes: focusMins,
+        focusTime: formatMinutes(totalFocusMins),
+        focusMinutes: totalFocusMins,
         timerTime: formatMinutes(timerMins),
         timerMinutes: timerMins,
         breakTime: formatMinutes(breakMins),
@@ -424,14 +438,15 @@ export default function DashboardPage() {
 
     // Day calculations strictly from focusSessions
     const daySessions = (state.focusSessions || []).filter((s) => {
-      const sDate = s.startedAt ? s.startedAt.split("T")[0] : "";
+      const sDate = getSessionLocalDate(s);
       return sDate === selectedDate;
     });
     const pomodoroSessions = daySessions.filter((s) => s.sessionType !== "timer" && s.category !== "Timer");
     const timerSessions = daySessions.filter((s) => s.sessionType === "timer" || s.category === "Timer");
 
-    const totalFocusMins = pomodoroSessions.reduce((acc, s) => acc + (s.durationMinutes || 0), 0);
+    const pomoMins = pomodoroSessions.reduce((acc, s) => acc + (s.durationMinutes || 0), 0);
     const totalTimerMins = timerSessions.reduce((acc, s) => acc + (s.durationMinutes || 0), 0);
+    const totalFocusMins = pomoMins + totalTimerMins;
     const totalBreakMins = daySessions.reduce((acc, s) => acc + (s.breakMinutes || 0), 0);
 
     const distractionsList: string[] = [];
@@ -445,7 +460,7 @@ export default function DashboardPage() {
     const distractionCount = distractionsList.length;
     const distractionMins = distractionCount > 0 ? distractionCount * 2 : 0;
 
-    const totalActive = totalFocusMins + totalTimerMins + totalBreakMins + distractionMins;
+    const totalActive = totalFocusMins + totalBreakMins + distractionMins;
 
     const focusRatio = totalActive > 0 ? totalFocusMins / totalActive : 0;
     const breakRatio = totalActive > 0 ? totalBreakMins / totalActive : 0;
@@ -804,34 +819,34 @@ export default function DashboardPage() {
           </div>
 
           {/* Integrated Compact Distractions Info with expandable inline details */}
-          <div className="mt-3 pt-2 border-t border-[#E2E8F0] dark:border-white/5">
-            <div className="flex items-center justify-between text-xs">
-              <div className="flex items-center gap-1.5 text-[#52627A] dark:text-muted-foreground">
+          <div className="mt-3 pt-2.5 border-t border-[#E2E8F0] dark:border-white/5">
+            <div className="flex items-center justify-between text-xs gap-2">
+              <div className="flex items-center gap-1.5 text-[#52627A] dark:text-muted-foreground min-w-0">
                 <span className="w-2 h-2 rounded-full bg-[#D95C68] shrink-0" />
-                <span>{state.lang === 'bn' ? "দৈনিক বিক্ষেপ:" : "Daily Distractions:"}</span>
-                <span className="font-bold text-[#D95C68] font-mono tabular-nums">
-                  {selectedFocusStats.distractionCount > 0 ? `${selectedFocusStats.distractionCount}` : "0"}
+                <span className="shrink-0 font-medium">{state.lang === 'bn' ? "বিক্ষেপ:" : "Distractions:"}</span>
+                <span className="text-[11px] text-[#334155] dark:text-zinc-300 truncate font-medium">
+                  {selectedFocusStats.distractionsList && selectedFocusStats.distractionsList.length > 0
+                    ? selectedFocusStats.distractionsList.slice(0, 2).join(" · ")
+                    : (state.lang === 'bn' ? "কোনো বিক্ষেপ নেই" : "None logged")}
                 </span>
-                {selectedFocusStats.distractionCount > 0 && (
-                  <button
-                    type="button"
-                    onClick={() => setIsDistractionsOpen((prev) => !prev)}
-                    className="ml-1 p-0.5 rounded text-[#52627A] dark:text-muted-foreground hover:text-[#0F172A] dark:hover:text-white transition-colors cursor-pointer inline-flex items-center"
-                    title={isDistractionsOpen ? (state.lang === 'bn' ? "লুকান" : "Hide") : (state.lang === 'bn' ? "লিস্ট দেখুন" : "View list")}
-                    aria-label="Toggle distractions list"
-                  >
-                    <ChevronDown size={14} className={`transition-transform duration-200 ${isDistractionsOpen ? "rotate-180" : ""}`} />
-                  </button>
-                )}
               </div>
-              <span className="text-[11px] text-[#8290A5] dark:text-muted-foreground truncate max-w-[180px]">
-                {selectedFocusStats.distractionSummary}
-              </span>
+              {selectedFocusStats.distractionsList && selectedFocusStats.distractionsList.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setIsDistractionsOpen((prev) => !prev)}
+                  className="px-2.5 py-1 rounded-lg text-[11px] font-semibold text-blue-600 dark:text-blue-400 bg-blue-500/10 hover:bg-blue-500/20 active:scale-95 transition-all shrink-0 cursor-pointer flex items-center gap-1"
+                  title={isDistractionsOpen ? (state.lang === 'bn' ? "লুকান" : "Hide") : (state.lang === 'bn' ? "ভিউ অল" : "View All")}
+                  aria-label="Toggle distractions list"
+                >
+                  <span>{isDistractionsOpen ? (state.lang === 'bn' ? "লুকান" : "Hide") : (state.lang === 'bn' ? "ভিউ অল" : "View All")}</span>
+                  <ChevronDown size={12} className={`transition-transform duration-200 ${isDistractionsOpen ? "rotate-180" : ""}`} />
+                </button>
+              )}
             </div>
 
-            {/* Inline Distractions Breakdown (line-to-line separation, responsive, no glowing/shadows) */}
+            {/* Inline Distractions Breakdown (smoothly slides down directly under the focus box card, and collapses back up) */}
             {isDistractionsOpen && selectedFocusStats.distractionsList && selectedFocusStats.distractionsList.length > 0 && (
-              <div className="mt-2 pt-1 border-t border-[#E2E8F0] dark:border-white/5">
+              <div className="mt-2.5 pt-2 border-t border-[#E2E8F0] dark:border-white/5 animate-in fade-in slide-in-from-top-1 duration-200">
                 <div className="divide-y divide-[#E2E8F0] dark:divide-white/5">
                   {selectedFocusStats.distractionsList.map((distractionName, idx) => (
                     <div

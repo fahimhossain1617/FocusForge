@@ -61,7 +61,7 @@ export default function VoiceInput({
     toggleLanguage,
     setManualText,
   } = useContinuousSpeech({
-    initialLang: 'bn-BD',
+    initialLang: 'en-US',
     onTranscriptChange: (newText) => {
       if (handleTextChange) {
         handleTextChange(newText);
