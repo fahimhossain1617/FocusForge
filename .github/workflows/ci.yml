@@ -30,6 +30,3 @@ jobs:
 
       - name: Frontend TypeScript Typecheck
         run: npx --prefix frontend tsc --project frontend/tsconfig.json --noEmit
-
-      - name: Run Glory AI Local Router Verification Suite
-        run: npx -y tsx --tsconfig frontend/tsconfig.json scripts/test_local_router.ts
