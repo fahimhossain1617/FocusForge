@@ -32,13 +32,14 @@ jobs:
       - name: Deploy to Vercel Production
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          VERCEL_ORG_ID: team_f1GuX2gzvNrRJrQ0FqDJOHRh
-          VERCEL_PROJECT_ID: prj_RiOFlNMIHkuCOeANAIKkO3PJI508
         run: |
           if [ -n "$VERCEL_TOKEN" ]; then
-            echo "Deploying frontend to Vercel Production..."
-            npx -y vercel --cwd frontend --prod --token="$VERCEL_TOKEN" --yes
+            echo "Linking project and deploying frontend to Vercel Production..."
+            cd frontend
+            mkdir -p .vercel
+            echo '{"projectId":"prj_RiOFlNMIHkuCOeANAIKkO3PJI508","orgId":"team_f1GuX2gzvNrRJrQ0FqDJOHRh"}' > .vercel/project.json
+            npx -y vercel deploy --prod --token="$VERCEL_TOKEN" --yes
           else
-            echo "ℹ️ VERCEL_TOKEN secret is not set yet in GitHub Secrets."
-            echo "Add VERCEL_TOKEN to GitHub repository secrets to enable direct Vercel auto-deployment."
+            echo "VERCEL_TOKEN is not set in GitHub Secrets. Please add it to enable automatic deployment."
+            exit 1
           fi
