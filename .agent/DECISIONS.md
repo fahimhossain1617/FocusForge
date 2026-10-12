@@ -1028,6 +1028,31 @@
      - Backend TypeScript build (`npm run build --prefix backend`): Passed with 0 errors.
 - **Impact:** `frontend/src/components/ai-agent/AIAgentPage.tsx`, `frontend/src/types/aiAgent.ts`, `frontend/src/lib/ai/router/geminiClient.ts`, `frontend/src/lib/ai/router/intents.ts`, `frontend/src/lib/ai/router/handlers.ts`, `frontend/src/lib/server/aiService.ts`, `backend/src/services/aiService.ts`.
 
+---
+
+## ADR-063: Bengali Unicode Word Boundary & Nukta Normalization for Instant Replies & Gemini Lite ThinkingConfig Latency Guard
+
+- **Date:** October 2026
+- **Status:** Accepted & Verified
+- **Decision:**
+  1. **Bengali Unicode Word Boundary & Composite Character Normalization:**
+     - In `frontend/src/lib/ai/router/normalize.ts`: Added Bengali composite nukta character normalization (`য` + U+09BC nukta -> `য়` U+09DF, `ড` + nukta -> `ড়` U+09DD, `ঢ` + nukta -> `ঢ়` U+09DE) ensuring phonetic and Avro/Bijoy keyboard inputs match canonical representations.
+     - In `frontend/src/lib/ai/router/intents.ts`: Decoupled English regex word boundaries (`\b`) from Bengali phrases in `GREETING_REGEX`, `IDENTITY_REGEX`, `COMPLIMENT_REGEX`, `TEACH_REQUEST_REGEX`, `STATS_PROGRESS_REGEX`, and `APP_HELP_REGEX`. JavaScript's `\b` only matches ASCII `[a-zA-Z0-9_]`, causing queries like `"তোমার নাম কি"`, `"হ্যালো"`, and `"হাই"` to fail boundary tests and leak to remote Gemini API calls.
+     - Expanded conversational small-talk phrases (including `"তুমি কেমন আছো"`, `"how are you"`) to resolve locally at 0ms and 0 tokens.
+  2. **Gemini API Flash-Lite ThinkingConfig Guard & Model Latency Optimization:**
+     - In `frontend/src/lib/server/aiService.ts` and `backend/src/services/aiService.ts`: Added `!model.includes('lite')` guard before assigning `thinkingConfig: { thinkingBudget: 0 }`. The `gemini-3.5-flash-lite` model does not support thinking configurations and was failing with `400 INVALID_ARGUMENT`, causing a fallback cascade into high-latency reasoning models.
+     - In `frontend/src/services/aiAgentService.ts`: Updated legacy `CANDIDATE_GEMINI_MODELS` to modern `gemini-3.x` family (`gemini-3.5-flash-lite`, `gemini-3.6-flash`, `gemini-3.7-flash`, `gemini-3.8-flash`).
+     - Prioritized `gemini-3.7-flash` for Focentia Pro / deep mode, avoiding 503 high-demand spikes on `gemini-3.8-flash` while maintaining deep reasoning within ~2.9s–3.2s.
+  3. **Verification:**
+     - Local router suite (`scripts/test_local_router.ts`): 33/33 tests passed with 0 tokens and instant local resolution.
+     - Backend integration suite (`backend/scripts/verify-all-backend.js`): 22/22 tests passed.
+     - Master voice pipeline (`scripts/test_master_voice_verification.ts`): 24/24 tests passed.
+     - Auth isolation suite (`scripts/test_auth_isolation.ts`): 20/20 tests passed.
+     - Backend TypeScript build (`npm run build --prefix backend`): Passed with 0 errors.
+     - Frontend typecheck (`tsc --noEmit --project frontend/tsconfig.json`): Passed with 0 errors.
+- **Impact:** `frontend/src/lib/ai/router/normalize.ts`, `frontend/src/lib/ai/router/intents.ts`, `frontend/src/lib/server/aiService.ts`, `backend/src/services/aiService.ts`, `frontend/src/services/aiAgentService.ts`, `scripts/test_local_router.ts`.
+
+
 
 
 

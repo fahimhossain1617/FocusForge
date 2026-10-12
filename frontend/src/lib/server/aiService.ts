@@ -308,8 +308,8 @@ function getCandidateModelsForMode(modelMode: string = 'smart'): string[] {
   if (modelMode === 'planning' || modelMode === 'deep' || modelMode === 'pro' || modelMode === 'focentia-pro') {
     return [
       configured,
-      'gemini-3.8-flash',
       'gemini-3.7-flash',
+      'gemini-3.8-flash',
       'gemini-3.6-flash',
       'gemini-3.5-flash-lite',
     ].filter((m, i, arr): m is string => Boolean(m) && arr.indexOf(m) === i);
@@ -538,8 +538,8 @@ export async function executeAIAction(action: string, payload: unknown): Promise
         maxOutputTokens,
       };
 
-      // Disable hidden thinking budget on flash models so it does not eat output token limits
-      if (model.includes('flash')) {
+      // Disable hidden thinking budget on flash models (excluding flash-lite which does not support thinkingConfig)
+      if (model.includes('flash') && !model.includes('lite')) {
         configObj.thinkingConfig = { thinkingBudget: 0 };
       }
 

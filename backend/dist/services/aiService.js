@@ -298,8 +298,8 @@ function getCandidateModelsForMode(modelMode = 'smart') {
     if (modelMode === 'planning' || modelMode === 'deep' || modelMode === 'pro' || modelMode === 'focentia-pro') {
         return [
             configured,
-            'gemini-3.8-flash',
             'gemini-3.7-flash',
+            'gemini-3.8-flash',
             'gemini-3.6-flash',
             'gemini-3.5-flash-lite',
         ].filter((m, i, arr) => Boolean(m) && arr.indexOf(m) === i);
@@ -503,14 +503,19 @@ async function executeAIAction(action, payload) {
     let lastErr = null;
     for (const model of candidateModels) {
         try {
+            const configObj = {
+                responseMimeType: 'application/json',
+                temperature,
+                maxOutputTokens,
+            };
+            // Disable hidden thinking budget on flash models (excluding flash-lite which does not support thinkingConfig)
+            if (model.includes('flash') && !model.includes('lite')) {
+                configObj.thinkingConfig = { thinkingBudget: 0 };
+            }
             const fetchPromise = client.models.generateContent({
                 model,
                 contents: promptContent,
-                config: {
-                    responseMimeType: 'application/json',
-                    temperature,
-                    maxOutputTokens,
-                },
+                config: configObj,
             });
             const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error(`AI_MODEL_TIMEOUT (${model})`)), timeoutMs));
             const response = await Promise.race([fetchPromise, timeoutPromise]);

@@ -57,6 +57,41 @@ async function runTestSuite() {
     `Path: LOCAL | Tokens: ${resIntro.tokenCost} | Orb Emotion: ${resIntro.orbEmotion}`
   );
 
+  const resHelloBn = await routeUserMessage('হ্যালো');
+  assert(
+    'Query "হ্যালো" resolves locally with 0 tokens (Instant Bengali Greeting)',
+    resHelloBn.handledLocally && !resHelloBn.shouldCallGemini && resHelloBn.tokenCost === 0,
+    `Path: LOCAL | Tokens: ${resHelloBn.tokenCost} | Reply: "${resHelloBn.message.slice(0, 50)}..."`
+  );
+
+  const resHiBn = await routeUserMessage('হাই');
+  assert(
+    'Query "হাই" resolves locally with 0 tokens (Instant Bengali Greeting)',
+    resHiBn.handledLocally && !resHiBn.shouldCallGemini && resHiBn.tokenCost === 0,
+    `Path: LOCAL | Tokens: ${resHiBn.tokenCost} | Reply: "${resHiBn.message.slice(0, 50)}..."`
+  );
+
+  const resHowAreYouBn = await routeUserMessage('তুমি কেমন আছো');
+  assert(
+    'Query "তুমি কেমন আছো" resolves locally with 0 tokens',
+    resHowAreYouBn.handledLocally && !resHowAreYouBn.shouldCallGemini && resHowAreYouBn.tokenCost === 0,
+    `Path: LOCAL | Tokens: ${resHowAreYouBn.tokenCost} | Reply: "${resHowAreYouBn.message.slice(0, 50)}..."`
+  );
+
+  const resHowAreYouEn = await routeUserMessage('how are you');
+  assert(
+    'Query "how are you" resolves locally with 0 tokens',
+    resHowAreYouEn.handledLocally && !resHowAreYouEn.shouldCallGemini && resHowAreYouEn.tokenCost === 0,
+    `Path: LOCAL | Tokens: ${resHowAreYouEn.tokenCost} | Reply: "${resHowAreYouEn.message.slice(0, 50)}..."`
+  );
+
+  const resNameBn = await routeUserMessage('তোমার নাম কি');
+  assert(
+    'Query "তোমার নাম কি" resolves locally with 0 tokens',
+    resNameBn.handledLocally && !resNameBn.shouldCallGemini && resNameBn.tokenCost === 0,
+    `Path: LOCAL | Tokens: ${resNameBn.tokenCost} | Identity: "${resNameBn.message.slice(0, 50)}..."`
+  );
+
   // TEST 2: Motivation & Emotional Support
   console.log('\n--- 2. Motivation & Emotional Support (0 Tokens) ---');
   const resExam = await routeUserMessage("I'm scared of my exam");
