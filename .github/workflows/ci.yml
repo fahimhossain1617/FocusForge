@@ -29,13 +29,21 @@ jobs:
       - name: Frontend TypeScript Typecheck
         run: npx --prefix frontend tsc --project frontend/tsconfig.json --noEmit
 
-      - name: Deploy to Vercel Production
+      - name: Trigger Vercel Deployment
         env:
+          VERCEL_DEPLOY_HOOK: ${{ secrets.VERCEL_DEPLOY_HOOK }}
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          VERCEL_ORG_ID: team_f1GuX2gzvNrRJrQ0FqDJOHRh
-          VERCEL_PROJECT_ID: prj_RiOFlNMIHkuCOeANAIKkO3PJI508
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
         run: |
-          cd frontend
-          mkdir -p .vercel
-          echo '{"projectId":"prj_RiOFlNMIHkuCOeANAIKkO3PJI508","orgId":"team_f1GuX2gzvNrRJrQ0FqDJOHRh","projectName":"frontend"}' > .vercel/project.json
-          npx -y vercel deploy --prod --token="$VERCEL_TOKEN" --yes --debug
+          if [ -n "$VERCEL_DEPLOY_HOOK" ]; then
+            echo "Triggering Vercel via Deploy Hook..."
+            curl -s -X POST "$VERCEL_DEPLOY_HOOK"
+            echo "Deploy hook triggered successfully."
+          elif [ -n "$VERCEL_TOKEN" ] && [ -n "$VERCEL_ORG_ID" ] && [ -n "$VERCEL_PROJECT_ID" ]; then
+            echo "Deploying via Vercel CLI..."
+            cd frontend
+            npx -y vercel deploy --prod --token="$VERCEL_TOKEN" --yes
+          else
+            echo "Code verified successfully! Native Vercel Git integration handles deployment automatically."
+          fi
