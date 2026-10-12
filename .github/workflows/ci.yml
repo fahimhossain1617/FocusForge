@@ -30,10 +30,12 @@ jobs:
         run: npx --prefix frontend tsc --project frontend/tsconfig.json --noEmit
 
       - name: Deploy to Vercel Production
-        uses: amondnet/vercel-action@v25
-        with:
-          vercel-token: ${{ secrets.VERCEL_TOKEN }}
-          vercel-org-id: team_f1GuX2gzvNrRJrQ0FqDJOHRh
-          vercel-project-id: prj_RiOFlNMIHkuCOeANAIKkO3PJI508
-          vercel-args: '--prod'
-          working-directory: ./frontend
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: team_f1GuX2gzvNrRJrQ0FqDJOHRh
+          VERCEL_PROJECT_ID: prj_RiOFlNMIHkuCOeANAIKkO3PJI508
+        run: |
+          cd frontend
+          mkdir -p .vercel
+          echo '{"projectId":"prj_RiOFlNMIHkuCOeANAIKkO3PJI508","orgId":"team_f1GuX2gzvNrRJrQ0FqDJOHRh"}' > .vercel/project.json
+          npx -y vercel deploy --prod --token="$VERCEL_TOKEN" --yes
