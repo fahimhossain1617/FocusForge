@@ -1,0 +1,35 @@
+name: CI & Build Verification
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  verify:
+    name: Verify & Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Dependencies
+        run: |
+          npm install --prefix backend
+          npm install --prefix frontend
+
+      - name: Backend Build Check
+        run: npm run build --prefix backend
+
+      - name: Frontend TypeScript Typecheck
+        run: npx --prefix frontend tsc --noEmit
+
+      - name: Run Glory AI Local Router Verification Suite
+        run: npx --prefix frontend tsx scripts/test_local_router.ts
