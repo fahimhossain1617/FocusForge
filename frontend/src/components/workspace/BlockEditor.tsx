@@ -264,12 +264,14 @@ export default function BlockEditor({
     }
     const isBackspace = event.key === "Backspace" || (event as any).keyCode === 8;
     const isDelete = event.key === "Delete" || (event as any).keyCode === 46;
-    if ((isBackspace || isDelete) && (!block.content || !block.content.trim())) {
+    const isEmptyOrHash = !block.content || !block.content.trim() || block.content.trim() === "#";
+    if ((isBackspace || isDelete) && isEmptyOrHash) {
       event.preventDefault();
-      if (block.type !== "paragraph") {
-        update(index, { type: "paragraph", isCompleted: undefined });
-      } else {
+      setMenu((c) => ({ ...c, visible: false }));
+      if (blocks.length > 1) {
         remove(index);
+      } else {
+        update(index, { type: "paragraph", content: "", isCompleted: undefined });
       }
       return;
     }
@@ -540,7 +542,7 @@ function StickyBlock({ block, control, input, textareaRef, onDelete }: any) {
   return (
     <div className="editor-block editor-block--sticky relative group my-4 p-4 sm:p-5 rounded-2xl border border-amber-500/30 bg-amber-500/[0.06] dark:bg-amber-500/[0.05]">
       {control}
-      <div className="flex items-center justify-between mb-3 px-2 pt-1">
+      <div className="flex items-center justify-between mb-3 px-1 pt-0.5">
         <div className="sticky-label flex items-center gap-2 text-xs font-bold text-amber-500 dark:text-amber-400 select-none">
           <StickyNote size={15} />
           <span>QUICK NOTE</span>
@@ -567,7 +569,7 @@ function StickyBlock({ block, control, input, textareaRef, onDelete }: any) {
         }}
         rows={3}
         placeholder="Write a sticky note..."
-        className="w-full bg-transparent outline-none text-foreground placeholder:text-zinc-500 text-sm sm:text-base leading-relaxed resize-none overflow-hidden px-2.5 py-1.5"
+        className="w-full bg-transparent outline-none text-foreground placeholder:text-zinc-500 text-sm sm:text-base leading-relaxed resize-none overflow-hidden px-1 py-1"
         style={{ minHeight: "80px" }}
       />
     </div>
@@ -656,7 +658,7 @@ function CodeBlockItem({
             </button>
 
             {langMenuOpen && (
-              <div className="absolute left-0 top-full mt-1.5 w-36 max-h-48 overflow-y-auto rounded-xl border border-white/10 bg-[#161b22] py-1 shadow-2xl z-50">
+              <div className="absolute left-0 top-full mt-1.5 w-40 max-h-52 overflow-y-auto rounded-xl border border-white/10 bg-[#161b22] py-1 shadow-2xl z-[70] scrollbar-thin">
                 {CODE_LANGUAGES.map((lang) => (
                   <button
                     key={lang.value}
@@ -665,7 +667,7 @@ function CodeBlockItem({
                       onLanguage(lang.value);
                       setLangMenuOpen(false);
                     }}
-                    className={`w-full text-left px-3 py-1.5 text-xs transition-colors flex items-center justify-between ${
+                    className={`w-full text-left px-3 py-1.5 text-[11.5px] transition-colors flex items-center justify-between ${
                       currentLang === lang.value
                         ? "text-blue-400 bg-blue-500/10 font-bold"
                         : "text-zinc-300 hover:bg-white/5 hover:text-white"
@@ -732,6 +734,116 @@ function CodeBlockItem({
               minHeight: "140px",
             }}
           />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ───────────── Image Block Item with Auto Orientation & Controls ───────────── */
+
+function ImageBlockItem({
+  block,
+  control,
+  onUpdateColor,
+  onPreviewImage,
+  onReplaceImage
+}: {
+  block: NoteBlock;
+  control: React.ReactNode;
+  onUpdateColor: (patch: Partial<NoteBlock>) => void;
+  onPreviewImage?: (url: string) => void;
+  onReplaceImage?: (blockId: string) => void;
+}) {
+  const [isPortrait, setIsPortrait] = useState<boolean>(false);
+  const size = block.imageSize || "medium";
+
+  // Dynamic responsive sizing based on auto-detected orientation
+  const containerMaxWidth = isPortrait
+    ? size === "small" ? "max-w-[240px]" : size === "large" ? "max-w-[460px]" : "max-w-[340px]"
+    : size === "small" ? "max-w-[320px]" : size === "large" ? "max-w-[760px]" : "max-w-[540px]";
+
+  const isRawHashCaption = block.caption && /^file_[0-9a-f]{16,}$/i.test(block.caption);
+  const captionValue = isRawHashCaption ? "" : (block.caption || "");
+  const rotation = block.rotation || 0;
+
+  const handleRotate = () => {
+    const nextRotation = (rotation + 90) % 360;
+    onUpdateColor({ rotation: nextRotation });
+  };
+
+  return (
+    <div className={`editor-block editor-block--image my-4 p-3.5 sm:p-4 rounded-2xl border border-white/10 bg-white/[0.02] group relative w-full ${containerMaxWidth} mr-auto transition-all duration-200 shadow-none`}>
+      {control}
+      <div className="relative rounded-xl overflow-hidden flex items-center justify-start bg-transparent">
+        {block.url ? (
+          /* eslint-disable-next-line @next/next/no-img-element */
+          <img
+            src={block.url}
+            alt={captionValue || "Note image"}
+            onLoad={(e) => {
+              const img = e.currentTarget;
+              if (img.naturalHeight && img.naturalWidth) {
+                setIsPortrait(img.naturalHeight > img.naturalWidth);
+              }
+            }}
+            style={{
+              transform: rotation ? `rotate(${rotation}deg)` : undefined,
+              transition: "transform 0.2s ease",
+            }}
+            className="w-auto h-auto max-w-full max-h-[520px] object-contain rounded-xl cursor-pointer select-none transition-transform duration-200 hover:scale-[1.01]"
+            onClick={() => onPreviewImage?.(block.url!)}
+            title="Click to view full size"
+          />
+        ) : (
+          <div className="p-8 text-center text-zinc-500 flex flex-col items-center gap-2">
+            <ImageIcon size={32} />
+            <span className="text-xs">Image loading...</span>
+          </div>
+        )}
+      </div>
+      <div className="mt-3.5 px-0.5 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
+        <input
+          type="text"
+          value={captionValue}
+          onChange={(e) => onUpdateColor({ caption: e.target.value })}
+          placeholder="Add an image caption..."
+          className="text-xs text-zinc-300 placeholder-zinc-500 bg-black/20 dark:bg-white/5 border border-white/10 rounded-xl outline-none py-2 px-3.5 focus:border-blue-500/50 transition-colors w-full"
+        />
+        <div className="flex items-center gap-1.5 shrink-0 justify-between sm:justify-end">
+          <div className="flex items-center bg-white/5 p-0.5 rounded-lg border border-white/5">
+            {(["small", "medium", "large"] as const).map((s) => (
+              <button
+                key={s}
+                type="button"
+                onClick={() => onUpdateColor({ imageSize: s })}
+                className={`px-2 py-0.5 text-[10px] font-bold rounded transition-colors ${(block.imageSize || "medium") === s
+                  ? "bg-blue-600 text-white shadow-none"
+                  : "text-zinc-400 hover:text-zinc-200 hover:bg-white/5"
+                  }`}
+                title={`${s.charAt(0).toUpperCase() + s.slice(1)} size`}
+              >
+                {s === "small" ? "S" : s === "medium" ? "M" : "L"}
+              </button>
+            ))}
+          </div>
+          <button
+            type="button"
+            onClick={handleRotate}
+            className="p-1.5 rounded-lg text-zinc-400 hover:text-white bg-white/5 hover:bg-white/10 border border-white/5 transition-colors cursor-pointer"
+            title="Rotate image 90°"
+          >
+            <RotateCw size={13} />
+          </button>
+          {onReplaceImage && (
+            <button
+              type="button"
+              onClick={() => onReplaceImage(block.id)}
+              className="text-[11px] font-semibold text-blue-400 hover:text-blue-300 px-2.5 py-1 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 transition-colors cursor-pointer"
+            >
+              Replace
+            </button>
+          )}
         </div>
       </div>
     </div>
@@ -886,91 +998,14 @@ function EditorBlock({
 
   // ── Image Block ──
   if (block.type === "image") {
-    const size = block.imageSize || "medium";
-    const sizeConfig = {
-      small: { container: "max-w-[280px]" },
-      medium: { container: "max-w-[480px]" },
-      large: { container: "max-w-[720px]" },
-    }[size];
-
-    const isRawHashCaption = block.caption && /^file_[0-9a-f]{16,}$/i.test(block.caption);
-    const captionValue = isRawHashCaption ? "" : (block.caption || "");
-    const rotation = block.rotation || 0;
-
-    const handleRotate = () => {
-      const nextRotation = (rotation + 90) % 360;
-      onUpdateColor({ rotation: nextRotation });
-    };
-
     return (
-      <div className={`editor-block editor-block--image my-4 p-3.5 rounded-2xl border border-white/10 bg-white/[0.02] group relative w-full ${sizeConfig.container} mr-auto transition-all duration-200 shadow-none`}>
-        {control}
-        <div className="relative rounded-xl overflow-hidden flex items-center justify-start bg-transparent">
-          {block.url ? (
-            /* eslint-disable-next-line @next/next/no-img-element */
-            <img
-              src={block.url}
-              alt={captionValue || "Note image"}
-              style={{
-                transform: rotation ? `rotate(${rotation}deg)` : undefined,
-                transition: "transform 0.2s ease",
-              }}
-              className="w-auto h-auto max-w-full max-h-[500px] object-contain rounded-xl cursor-pointer select-none transition-transform duration-200 hover:scale-[1.01]"
-              onClick={() => onPreviewImage?.(block.url!)}
-              title="Click to view full size"
-            />
-          ) : (
-            <div className="p-8 text-center text-zinc-500 flex flex-col items-center gap-2">
-              <ImageIcon size={32} />
-              <span className="text-xs">Image loading...</span>
-            </div>
-          )}
-        </div>
-        <div className="mt-3 px-1 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
-          <input
-            type="text"
-            value={captionValue}
-            onChange={(e) => onUpdateColor({ caption: e.target.value })}
-            placeholder="Add an image caption..."
-            className="text-xs text-zinc-300 placeholder-zinc-500 bg-black/20 dark:bg-white/5 border border-white/10 rounded-xl outline-none py-2 px-3 focus:border-blue-500/50 transition-colors w-full"
-          />
-          <div className="flex items-center gap-1.5 shrink-0 justify-between sm:justify-end">
-            <div className="flex items-center bg-white/5 p-0.5 rounded-lg border border-white/5">
-              {(["small", "medium", "large"] as const).map((s) => (
-                <button
-                  key={s}
-                  type="button"
-                  onClick={() => onUpdateColor({ imageSize: s })}
-                  className={`px-2 py-0.5 text-[10px] font-bold rounded transition-colors ${(block.imageSize || "medium") === s
-                    ? "bg-blue-600 text-white shadow-none"
-                    : "text-zinc-400 hover:text-zinc-200 hover:bg-white/5"
-                    }`}
-                  title={`${s.charAt(0).toUpperCase() + s.slice(1)} size`}
-                >
-                  {s === "small" ? "S" : s === "medium" ? "M" : "L"}
-                </button>
-              ))}
-            </div>
-            <button
-              type="button"
-              onClick={handleRotate}
-              className="p-1.5 rounded-lg text-zinc-400 hover:text-white bg-white/5 hover:bg-white/10 border border-white/5 transition-colors cursor-pointer"
-              title="Rotate image 90°"
-            >
-              <RotateCw size={13} />
-            </button>
-            {onReplaceImage && (
-              <button
-                type="button"
-                onClick={() => onReplaceImage(block.id)}
-                className="text-[11px] font-semibold text-blue-400 hover:text-blue-300 px-2.5 py-1 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 transition-colors cursor-pointer"
-              >
-                Replace
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
+      <ImageBlockItem
+        block={block}
+        control={control}
+        onUpdateColor={onUpdateColor}
+        onPreviewImage={onPreviewImage}
+        onReplaceImage={onReplaceImage}
+      />
     );
   }
 
@@ -1041,11 +1076,12 @@ function EditorBlock({
                 target="_blank"
                 rel="noopener noreferrer"
                 download={block.fileName || (isPdf ? "document.pdf" : "document")}
-                className="p-2 rounded-xl text-white bg-blue-600/80 hover:bg-blue-600 flex items-center justify-center transition-colors cursor-pointer shadow-none"
+                className="px-3 py-1.5 rounded-xl text-white bg-blue-600/80 hover:bg-blue-600 flex items-center justify-center gap-1.5 text-xs font-semibold transition-colors cursor-pointer shadow-none"
                 title="Download document"
                 aria-label="Download document"
               >
-                <Download size={14} />
+                <Download size={13} />
+                <span>Download</span>
               </a>
             </>
           )}
@@ -1079,7 +1115,7 @@ function EditorBlock({
             href={block.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="px-3.5 py-2 rounded-xl text-xs font-semibold bg-blue-600/20 hover:bg-blue-600 text-blue-300 hover:text-white flex items-center gap-1.5 transition-all shrink-0 cursor-pointer"
+            className="px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-blue-600/20 hover:bg-blue-600 text-blue-300 hover:text-white flex items-center gap-1.5 transition-all shrink-0 cursor-pointer"
           >
             <span>Open</span>
             <ExternalLink size={13} />
@@ -1124,22 +1160,30 @@ function EditorBlock({
     return (
       <div className="editor-block editor-block--math relative my-4 p-4 sm:p-5 rounded-2xl border border-purple-500/30 bg-purple-950/20">
         {control}
-        <button
-          type="button"
-          onClick={onDelete}
-          className="absolute top-3 right-3 text-zinc-400 hover:text-red-400 bg-black/30 hover:bg-red-500/10 p-1.5 rounded-lg transition-colors z-30"
-          title="Delete Math Block"
-        >
-          <Trash2 size={14} />
-        </button>
-        <div className="math-preview py-3 px-2 text-center" dangerouslySetInnerHTML={{ __html: output }} />
-        <textarea
-          ref={textarea}
-          {...input}
-          rows={1}
-          placeholder="x^2 + y^2 = z^2 (Shift+Enter for new block)"
-          className="w-full mt-2.5 px-3 py-2 rounded-xl bg-black/25 dark:bg-black/30 border border-white/10 outline-none font-mono text-xs sm:text-sm text-zinc-200 placeholder:text-zinc-500 focus:border-purple-500/50 transition-colors"
-        />
+        <div className="flex items-center justify-between mb-3 px-1">
+          <div className="flex items-center gap-2 text-xs font-bold text-purple-400 select-none">
+            <Sigma size={15} />
+            <span>MATH EQUATION</span>
+          </div>
+          <button
+            type="button"
+            onClick={onDelete}
+            className="text-red-400 hover:text-white bg-red-500/10 hover:bg-red-600 p-1.5 rounded-lg transition-colors cursor-pointer"
+            title="Delete Math Block"
+          >
+            <Trash2 size={14} />
+          </button>
+        </div>
+        <div className="math-preview py-3.5 px-3 text-center overflow-x-auto" dangerouslySetInnerHTML={{ __html: output }} />
+        <div className="mt-3 px-1">
+          <textarea
+            ref={textarea}
+            {...input}
+            rows={1}
+            placeholder="x^2 + y^2 = z^2 (Shift+Enter for new block)"
+            className="w-full px-3.5 py-2.5 rounded-xl bg-black/25 dark:bg-black/30 border border-white/10 outline-none font-mono text-xs sm:text-sm text-zinc-200 placeholder:text-zinc-500 focus:border-purple-500/50 transition-colors"
+          />
+        </div>
       </div>
     );
   }

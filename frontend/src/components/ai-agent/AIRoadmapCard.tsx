@@ -139,16 +139,16 @@ export function AIRoadmapCard({
   };
 
   return (
-    <div className="w-full max-w-2xl my-3 overflow-hidden rounded-2xl border border-slate-200 dark:border-white/10 bg-white dark:bg-[#111827] shadow-none transition-all">
+    <div className="w-full max-w-2xl my-3 overflow-hidden rounded-2xl border border-border bg-card text-foreground shadow-none transition-all">
       {/* HEADER */}
-      <div className="p-3.5 sm:p-4 border-b border-slate-200 dark:border-white/10 bg-slate-50/50 dark:bg-white/[0.02]">
+      <div className="p-3.5 sm:p-4 border-b border-border bg-muted/20">
         <div className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-2 mb-2">
           <div className="flex items-center gap-1.5 flex-wrap min-w-0">
             <span className="inline-flex items-center px-2 py-0.5 text-[11px] font-semibold rounded-md bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 whitespace-nowrap shrink-0">
               {roadmap.subject || (isBn ? "লার্নিং রোডম্যাপ" : "Learning Roadmap")}
             </span>
             {roadmap.targetLevel && (
-              <span className="px-1.5 py-0.5 text-[10px] font-medium rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 whitespace-nowrap shrink-0 uppercase tracking-tight">
+              <span className="px-1.5 py-0.5 text-[10px] font-medium rounded bg-muted text-muted-foreground whitespace-nowrap shrink-0 uppercase tracking-tight">
                 {roadmap.targetLevel.toUpperCase()}
               </span>
             )}
@@ -168,27 +168,27 @@ export function AIRoadmapCard({
           </button>
         </div>
 
-        <h3 className="text-sm sm:text-base font-bold text-zinc-900 dark:text-zinc-100 tracking-tight leading-snug">
+        <h3 className="text-sm sm:text-base font-bold text-foreground tracking-tight leading-snug">
           {roadmap.title}
         </h3>
 
         {roadmap.rationale && (
-          <p className="mt-1.5 text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed">
+          <p className="mt-1.5 text-xs text-muted-foreground leading-relaxed">
             {roadmap.rationale}
           </p>
         )}
 
         {/* PROGRESS BAR */}
-        <div className="mt-4 pt-3 border-t border-zinc-200/50 dark:border-zinc-800/60">
+        <div className="mt-4 pt-3 border-t border-border/60">
           <div className="flex items-center justify-between text-xs mb-1.5 font-medium">
-            <span className="text-zinc-600 dark:text-zinc-400">
+            <span className="text-muted-foreground">
               {isBn ? "অর্জিত অগ্রগতি" : "Overall Progress"}
             </span>
             <span className="text-indigo-600 dark:text-indigo-400 font-bold">
               {progress.percentage}% • {progress.completedTopics}/{progress.totalTopics} {isBn ? "টপিক" : "Topics"}
             </span>
           </div>
-          <div className="w-full h-2 rounded-full bg-zinc-200 dark:bg-zinc-800 overflow-hidden">
+          <div className="w-full h-2 rounded-full bg-muted overflow-hidden">
             <div
               className="h-full bg-gradient-to-r from-indigo-500 via-sky-500 to-emerald-400 transition-all duration-500 ease-out"
               style={{ width: `${progress.percentage}%` }}
@@ -206,31 +206,31 @@ export function AIRoadmapCard({
           return (
             <div
               key={stage.id || sIdx}
-              className="rounded-xl border border-zinc-200/80 dark:border-zinc-800 bg-zinc-50/40 dark:bg-zinc-900/40 overflow-hidden"
+              className="rounded-xl border border-border bg-muted/20 overflow-hidden"
             >
               {/* STAGE HEADER */}
               <button
                 type="button"
                 onClick={() => toggleStageCollapse(stage.id)}
-                className="w-full p-3 flex items-center justify-between gap-3 text-left hover:bg-zinc-100/60 dark:hover:bg-zinc-800/40 transition-colors"
+                className="w-full p-3 flex items-center justify-between gap-3 text-left hover:bg-muted/40 transition-colors"
               >
                 <div className="flex items-center gap-2.5">
                   <span className="flex items-center justify-center w-6 h-6 rounded-lg bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 text-xs font-bold">
                     {stage.stageNumber || sIdx + 1}
                   </span>
                   <div>
-                    <h4 className="text-xs sm:text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                    <h4 className="text-xs sm:text-sm font-semibold text-foreground">
                       {stage.title}
                     </h4>
                     {stage.description && (
-                      <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-0.5">
+                      <p className="text-[11px] text-muted-foreground mt-0.5">
                         {stage.description}
                       </p>
                     )}
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 text-xs text-zinc-400">
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
                   <span className="text-[11px]">
                     {stageDoneCount}/{stage.topics.length}
                   </span>
@@ -240,7 +240,7 @@ export function AIRoadmapCard({
 
               {/* TOPIC ITEMS */}
               {!isCollapsed && (
-                <div className="p-2 sm:p-3 pt-0 space-y-2 border-t border-zinc-200/40 dark:border-zinc-800/40">
+                <div className="p-2 sm:p-3 pt-0 space-y-2 border-t border-border/40">
                   {stage.topics.map((topic, tIdx) => {
                     const isCompleted = topic.status === "completed";
 
@@ -250,7 +250,7 @@ export function AIRoadmapCard({
                         className={`p-3 rounded-lg border transition-all ${
                           isCompleted
                             ? "bg-emerald-500/[0.04] dark:bg-emerald-500/[0.06] border-emerald-500/30"
-                            : "bg-white dark:bg-zinc-900/80 border-zinc-200/60 dark:border-zinc-800"
+                            : "bg-card border-border"
                         }`}
                       >
                         <div className="flex items-start justify-between gap-3">
@@ -270,14 +270,14 @@ export function AIRoadmapCard({
                               <span
                                 className={`text-xs sm:text-sm font-semibold tracking-tight transition-colors ${
                                   isCompleted
-                                    ? "text-zinc-400 dark:text-zinc-500 line-through"
-                                    : "text-zinc-900 dark:text-zinc-100"
+                                    ? "text-muted-foreground line-through"
+                                    : "text-foreground"
                                 }`}
                               >
                                 {topic.title}
                               </span>
                               {topic.description && (
-                                <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-1 leading-relaxed">
+                                <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
                                   {topic.description}
                                 </p>
                               )}
@@ -291,12 +291,12 @@ export function AIRoadmapCard({
 
                         {/* PREREQUISITES */}
                         {Array.isArray(topic.prerequisites) && topic.prerequisites.length > 0 && (
-                          <div className="mt-2.5 pt-2 flex items-center gap-1.5 flex-wrap text-[11px] text-zinc-500 border-t border-zinc-200/30 dark:border-zinc-800/30">
-                            <span className="font-medium text-zinc-400">{isBn ? "প্রয়োজনীয় ভিত্তি:" : "Prereq:"}</span>
+                          <div className="mt-2.5 pt-2 flex items-center gap-1.5 flex-wrap text-[11px] text-muted-foreground border-t border-border/40">
+                            <span className="font-medium text-muted-foreground">{isBn ? "প্রয়োজনীয় ভিত্তি:" : "Prereq:"}</span>
                             {topic.prerequisites.map((prereq, pIdx) => (
                               <span
                                 key={pIdx}
-                                className="px-2 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 text-[10.5px]"
+                                className="px-2 py-0.5 rounded bg-muted text-muted-foreground text-[10.5px]"
                               >
                                 {prereq}
                               </span>
@@ -312,16 +312,16 @@ export function AIRoadmapCard({
                                 key={sub.id || sIndex}
                                 type="button"
                                 onClick={() => handleToggleItem(topic.id, sub.id)}
-                                className="w-full flex items-center gap-2 text-left text-xs text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors"
+                                className="w-full flex items-center gap-2 text-left text-xs text-muted-foreground hover:text-foreground transition-colors"
                               >
-                                <span className="text-zinc-400">
+                                <span className="text-muted-foreground">
                                   {sub.completed ? (
                                     <CheckCircle2 size={13} className="text-emerald-500" />
                                   ) : (
                                     <Circle size={13} />
                                   )}
                                 </span>
-                                <span className={sub.completed ? "line-through text-zinc-400" : ""}>
+                                <span className={sub.completed ? "line-through text-muted-foreground" : ""}>
                                   {sub.title}
                                 </span>
                               </button>
@@ -359,8 +359,8 @@ export function AIRoadmapCard({
       )}
 
       {/* FOOTER ACTIONS */}
-      <div className="p-3 sm:p-4 border-t border-zinc-200/70 dark:border-zinc-800/80 bg-zinc-50/80 dark:bg-zinc-900/80 flex items-center justify-between gap-3 flex-wrap">
-        <div className="text-xs text-zinc-500 flex items-center gap-1.5">
+      <div className="p-3 sm:p-4 border-t border-border bg-muted/20 flex items-center justify-between gap-3 flex-wrap">
+        <div className="text-xs text-muted-foreground flex items-center gap-1.5">
           {progress.isFullyCompleted ? (
             <span className="inline-flex items-center gap-1 text-emerald-500 font-semibold">
               <Award size={14} />
@@ -387,7 +387,7 @@ export function AIRoadmapCard({
               }
               onNavigate("learning");
             }}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-200 transition-colors cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-muted hover:bg-muted/80 text-foreground transition-colors cursor-pointer"
           >
             <Compass size={13} />
             <span>{isBn ? "টাইম লগ খুলুন" : "Open Time Log"}</span>

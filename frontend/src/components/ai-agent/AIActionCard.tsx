@@ -175,9 +175,7 @@ export function AIActionCard({
       className={`mt-2.5 mb-1 rounded-xl p-3.5 border transition-all text-left max-w-md w-full ${
         action.isDestructive
           ? "bg-rose-500/10 border-rose-500/30 text-rose-200"
-          : isCompleted
-          ? "bg-emerald-500/10 border-emerald-500/30 text-foreground"
-          : "bg-background/80 dark:bg-[#121929] border-border/80 text-foreground shadow-lg backdrop-blur-md"
+          : "bg-card/90 border-border text-foreground shadow-sm backdrop-blur-md"
       }`}
       role="region"
       aria-label={action.title}

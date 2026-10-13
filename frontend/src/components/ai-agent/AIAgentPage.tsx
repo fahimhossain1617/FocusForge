@@ -80,7 +80,7 @@ export function AIAgentPage() {
   const [modelMode, setModelMode] = useState<"fast" | "deep">("fast");
   const aiModel: AIAgentModel = modelMode === "deep" ? "focentia-pro" : "focentia-2.1";
   const [modelMenuOpen, setModelMenuOpen] = useState(false);
-  const [language, setLanguage] = useState<AIAgentLanguage>(isSystemBn ? "bn" : "en");
+  const [language, setLanguage] = useState<AIAgentLanguage>("en");
   const [input, setInput] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
   const [moodMenuOpen, setMoodMenuOpen] = useState(false);
@@ -104,6 +104,11 @@ export function AIAgentPage() {
     },
   });
   const resetVoiceTranscript = () => setVoiceManualText("");
+
+  const handleToggleVoiceLanguage = useCallback(() => {
+    toggleVoiceLanguage();
+    setLanguage((prev) => (prev === "bn" ? "en" : "bn"));
+  }, [toggleVoiceLanguage]);
 
   const baseInputRef = useRef<string>("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -139,13 +144,6 @@ export function AIAgentPage() {
       document.removeEventListener("keydown", handleKeyDown);
     };
   }, []);
-
-  // Sync with global system language changes
-  useEffect(() => {
-    if (state?.lang) {
-      setLanguage(state.lang === "bn" ? "bn" : "en");
-    }
-  }, [state?.lang]);
 
   const context = useMemo(() => {
     const today = new Date().toISOString().split("T")[0];
@@ -251,7 +249,7 @@ export function AIAgentPage() {
     setIsConsentOpen,
     isPrivateMode,
     togglePrivateMode
-  } = useAIAgent(context, isSystemBn ? "bn" : "en");
+  } = useAIAgent(context, language);
 
   // Cleanly extract user's display name without awkward fallbacks like "there"
   const rawName = user?.displayName || user?.fullName || "";
@@ -1060,15 +1058,12 @@ export function AIAgentPage() {
                                 isBn={isSystemBn}
                                 onSave={(savedRoadmap) => {
                                   const topicName = (savedRoadmap as any)?.subject || (savedRoadmap as any)?.title || (isSystemBn ? "লার্নিং রোডম্যাপ" : "Learning Roadmap");
-                                  const existingFolder = state.learningFolders.find(
-                                    (f) => f.name.toLowerCase() === topicName.toLowerCase()
-                                  );
-                                  if (!existingFolder) {
-                                    addLearningFolder(topicName);
-                                  } else if (existingFolder && !savedRoadmap.folderId) {
-                                    savedRoadmap.folderId = existingFolder.id;
-                                    roadmapService.saveRoadmap(savedRoadmap, user?.id);
+                                  let targetFolderId = savedRoadmap.folderId;
+                                  if (!targetFolderId) {
+                                    targetFolderId = addLearningFolder(topicName);
+                                    savedRoadmap.folderId = targetFolderId;
                                   }
+                                  roadmapService.saveRoadmap(savedRoadmap, user?.id);
                                   showToast(
                                     isSystemBn
                                       ? `'${topicName}' রোডম্যাপ সংরক্ষিত ও টাইম লগে যুক্ত হয়েছে!`
@@ -1623,7 +1618,7 @@ export function AIAgentPage() {
                   <button
                     type="button"
                     className={styles.pillLangBtn}
-                    onClick={toggleVoiceLanguage}
+                    onClick={handleToggleVoiceLanguage}
                     title={voiceLang === "bn-BD" ? "Switch voice to English (EN)" : "বাংলা ভয়েস ইনপুট নির্বাচন করুন (বাং)"}
                     aria-label={voiceLang === "bn-BD" ? "Switch voice to English" : "Switch voice to Bangla"}
                   >

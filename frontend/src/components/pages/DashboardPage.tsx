@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   CalendarDays,
   Check,
@@ -96,7 +96,10 @@ function formatMinutes(totalMins: number): string {
   return `${seconds}s`;
 }
 
-function getSessionLocalDate(s: { startedAt?: string; createdAt?: string }): string {
+function getSessionLocalDate(s: { startedAt?: string; createdAt?: string; date?: string }): string {
+  if (s.date && typeof s.date === "string" && s.date.trim()) {
+    return s.date;
+  }
   const raw = s.startedAt || s.createdAt;
   if (!raw) return "";
   try {
@@ -845,21 +848,31 @@ export default function DashboardPage() {
             </div>
 
             {/* Inline Distractions Breakdown (smoothly slides down directly under the focus box card, and collapses back up) */}
-            {isDistractionsOpen && selectedFocusStats.distractionsList && selectedFocusStats.distractionsList.length > 0 && (
-              <div className="mt-2.5 pt-2 border-t border-[#E2E8F0] dark:border-white/5 animate-in fade-in slide-in-from-top-1 duration-200">
-                <div className="divide-y divide-[#E2E8F0] dark:divide-white/5">
-                  {selectedFocusStats.distractionsList.map((distractionName, idx) => (
-                    <div
-                      key={idx}
-                      className="py-1.5 text-xs text-[#334155] dark:text-zinc-300 flex items-center justify-between"
-                    >
-                      <span className="font-medium truncate">{distractionName}</span>
-                      <span className="text-[10px] text-[#94A3B8] dark:text-zinc-500 font-mono shrink-0 ml-2">#{idx + 1}</span>
+            <AnimatePresence>
+              {isDistractionsOpen && selectedFocusStats.distractionsList && selectedFocusStats.distractionsList.length > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.25, ease: "easeInOut" }}
+                  className="overflow-hidden"
+                >
+                  <div className="mt-2.5 pt-2 border-t border-[#E2E8F0] dark:border-white/5">
+                    <div className="divide-y divide-[#E2E8F0] dark:divide-white/5">
+                      {selectedFocusStats.distractionsList.map((distractionName, idx) => (
+                        <div
+                          key={idx}
+                          className="py-1.5 text-xs text-[#334155] dark:text-zinc-300 flex items-center justify-between"
+                        >
+                          <span className="font-medium truncate">{distractionName}</span>
+                          <span className="text-[10px] text-[#94A3B8] dark:text-zinc-500 font-mono shrink-0 ml-2">#{idx + 1}</span>
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
-              </div>
-            )}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         </section>
 

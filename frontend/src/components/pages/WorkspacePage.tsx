@@ -118,11 +118,8 @@ export default function WorkspacePage() {
             setView('grid'); 
           }}
           onBack={() => {
-            if (typeof window !== "undefined" && window.history.state?.subView === 'workspace-editor') {
-              window.history.back();
-            } else {
-              setView('grid');
-            }
+            setView('grid');
+            setEditingNote(null);
           }}
         />
       </div>

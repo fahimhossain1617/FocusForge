@@ -200,6 +200,8 @@ export interface FocusSession {
   completed: boolean;
   sessionType?: "focus" | "timer";
   elapsedSeconds?: number;
+  date?: string;
+  createdAt?: string;
 }
 
 export interface ScheduleDay {

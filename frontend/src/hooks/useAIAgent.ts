@@ -430,8 +430,8 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
 
     const banglishRegex = /\b(ami|amar|amake|amader|tumi|tomar|tomake|apni|apnar|apnake|korbo|korchi|korte|koro|korun|chai|dorkar|shikhbo|sikhbo|shekha|sikhte|shikhte|hobe|kemon|achho|achen|bhalo|parbo|parchi|parbona|ki|kibhabe|kivabe|kothay|kokhon|keno|kar|porbo|porte|porashona|ajke|aajke|ekhon|shuru|routine|plan|schedule|somossa|somosya|somosha|kothin|mon|kharap|bhabna|chinta|idea|notun|diary|journal|onubhuti|dhyan|monojog|focus|pomodoro|timer|note|notes|file|likhe|rakho|rakhbo|help|lagbe|ache|achhe|nai|nei)\b/i;
     const isContentBengali = /[\u0980-\u09FF]/.test(content) || banglishRegex.test(content);
-    const isContentPureEnglish = /^[a-zA-Z0-9\s.,!?'"()-]+$/.test(content.trim()) && !banglishRegex.test(content);
-    const langParam = isContentBengali ? "bn" : (isContentPureEnglish ? "en" : (language === "en" ? "en" : "bn"));
+    // User writes in English -> AI replies in English; User writes in Bengali -> AI replies in Bengali
+    const langParam: AIAgentLanguage = isContentBengali ? "bn" : "en";
     const isBn = langParam === "bn";
     const isGuestUser = isGuest || !user;
 

@@ -600,7 +600,6 @@ export default function LearningHubPage() {
                               className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold text-blue-600 dark:text-blue-400 bg-blue-500/10 hover:bg-blue-500/15 border border-blue-500/20 transition-colors cursor-pointer"
                               title={state.lang === "bn" ? "AI রোডম্যাপ দেখুন" : "View AI Roadmap"}
                             >
-                              <Layers className="w-3.5 h-3.5" />
                               <span>{state.lang === "bn" ? "রোডম্যাপ" : "Roadmap"}</span>
                               {folderRoadmap.targetLevel && (
                                 <span className="text-[10px] opacity-80 uppercase">
@@ -662,11 +661,7 @@ export default function LearningHubPage() {
             <button
               type="button"
               onClick={() => {
-                if (typeof window !== "undefined" && window.history.state?.subView === 'learning-folder') {
-                  window.history.back();
-                } else {
-                  setSelectedFolderId(null);
-                }
+                setSelectedFolderId(null);
               }}
               className="inline-flex items-center justify-center w-9 h-9 -ml-1.5 rounded-full text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-black/5 dark:hover:bg-white/5 active:scale-95 transition-colors cursor-pointer"
               aria-label={t.learningHub.backToSkills}
@@ -746,7 +741,6 @@ export default function LearningHubPage() {
                       className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-semibold text-blue-600 dark:text-blue-400 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/25 transition-all cursor-pointer shadow-none"
                       title={state.lang === "bn" ? "AI রোডম্যাপ দেখুন" : "View AI Roadmap"}
                     >
-                      <Layers className="w-3.5 h-3.5" />
                       <span>{state.lang === "bn" ? "রোডম্যাপ" : "Roadmap"}</span>
                       <span className="text-[11px] font-mono opacity-85">
                         • {prog.percentage}%
@@ -1467,10 +1461,10 @@ export default function LearningHubPage() {
             onClick={() => setActiveRoadmapModal(null)}
           >
             <div
-              className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl bg-white dark:bg-[#111827] border border-slate-200 dark:border-white/10 shadow-none p-3.5 sm:p-5"
+              className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl bg-card border border-border text-foreground shadow-2xl p-3.5 sm:p-5"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="flex items-center justify-between pb-3 mb-2 border-b border-slate-200 dark:border-white/10">
+              <div className="flex items-center justify-between pb-3 mb-2 border-b border-border">
                 <div className="flex items-center min-w-0">
                   <h2 className="text-sm sm:text-base font-bold text-foreground truncate">
                     {activeRoadmapModal.title}

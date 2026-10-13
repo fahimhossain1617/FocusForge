@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { useAppContext } from "../../context/AppContext";
 import { useAuth } from "../../context/AuthContext";
 import { focusDbService } from "../../services/focusDbService";
+import { getLocalDateString } from "../../services/taskService";
 import { useTranslation } from "../../hooks/useTranslation";
 import { useAnimateExit } from "../../hooks/useAnimateExit";
 import { RollingDigit } from "./RollingDigit";
@@ -265,12 +266,16 @@ export const StopwatchTimer = memo(function StopwatchTimer({
     // Save to topic history
     saveTopicToHistory(finalTaskName, elapsedSeconds);
 
+    const localDate = getLocalDateString();
+    const isoNow = new Date().toISOString();
     const newSession = {
       id: "timer_" + Date.now() + "_" + Math.random().toString(36).substring(2, 7),
       taskName: finalTaskName,
       category: "Timer",
+      date: localDate,
+      createdAt: isoNow,
       startedAt: new Date(Date.now() - elapsedSeconds * 1000).toISOString(),
-      endedAt: new Date().toISOString(),
+      endedAt: isoNow,
       durationMinutes: durationMinutes,
       breakMinutes: 0,
       distractions: [],

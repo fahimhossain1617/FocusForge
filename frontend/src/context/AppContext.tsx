@@ -31,7 +31,8 @@ import {
   fetchTasksFromBackend,
   fetchRoutineTemplatesFromBackend,
   saveRoutineTemplateToBackend,
-  deleteRoutineTemplateFromBackend
+  deleteRoutineTemplateFromBackend,
+  getLocalDateString
 } from '../services/taskService';
 import { reviewService } from '../services/reviewService';
 import { syncService } from '../services/syncService';
@@ -168,7 +169,7 @@ interface AppContextType {
   toasts: { id: string; message: string; type: string }[];
 
   // Learning Hub
-  addLearningFolder: (name: string) => void;
+  addLearningFolder: (name: string) => string;
   deleteLearningFolder: (id: string) => void;
   toggleLearningFolderCompletion: (id: string) => void;
   addLearningLog: (log: Omit<LearningLog, 'id'>) => void;
@@ -1333,12 +1334,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const startFocusSession = useCallback((taskName: string, category: string, taskId?: number, targetMinutes: number = 25): string => {
     const id = generateId();
+    const nowIso = new Date().toISOString();
     const session: FocusSession = {
       id,
       taskId,
       taskName,
       category,
-      startedAt: new Date().toISOString(),
+      date: getLocalDateString(),
+      startedAt: nowIso,
+      createdAt: nowIso,
       targetMinutes,
       durationMinutes: 0,
       breakMinutes: 0,
@@ -1483,6 +1487,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         learningDbService.saveFolder(newFolder, session.user.id);
       }
     });
+    return newFolder.id;
   }, [trackMeaningfulAction]);
 
   const deleteLearningFolder = useCallback((id: string) => {

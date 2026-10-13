@@ -178,12 +178,14 @@ export default function FocusPage() {
   // Callback references for clean timer handling
   const activeSessionIdRef = useRef<string | null>(null);
   activeSessionIdRef.current = activeSessionId;
+  const lastCompletedSessionIdRef = useRef<string | null>(null);
   const selectedTaskRef = useRef(selectedTask);
   selectedTaskRef.current = selectedTask;
 
   // --- AUTOMATIC COMPLETION HANDLER ---
   const handleWorkComplete = useCallback(() => {
     const currentSessionId = activeSessionIdRef.current;
+    lastCompletedSessionIdRef.current = currentSessionId;
     const task = selectedTaskRef.current;
 
     unregisterFocusLock();
@@ -224,7 +226,7 @@ export default function FocusPage() {
   }, [endFocusSession, unregisterFocusLock, updateHistoryMinutes, showToast, state.lang, t.focus.sessionCompletedToast]);
 
   const handleBreakComplete = useCallback(() => {
-    addBreakTime(selectedBreakDuration);
+    addBreakTime(selectedBreakDuration, lastCompletedSessionIdRef.current || undefined);
     setSessionPhase("break_completed");
 
     confetti({
