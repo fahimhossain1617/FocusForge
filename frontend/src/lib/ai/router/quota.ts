@@ -20,8 +20,8 @@ export async function checkQuotaGate(
   try {
     const status = await getAITokenStatus(lang);
     
-    // Check if remaining tokens are sufficient for a Gemini call (minimum ~100 tokens)
-    if (status.isExhausted || status.remaining < 50) {
+    // Check if remaining tokens are exhausted
+    if (status.isExhausted || status.remaining <= 0) {
       const isBn = lang === 'bn';
       const isGuest = !isAuth;
 

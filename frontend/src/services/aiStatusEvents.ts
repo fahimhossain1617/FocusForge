@@ -10,6 +10,11 @@ export type AIStatusEvent =
   | 'generating_roadmap'
   | 'checking_schedule'
   | 'querying_records'
+  | 'deep_research'
+  | 'cross_referencing'
+  | 'formulating_response'
+  | 'synthesizing_solution'
+  | 'finalizing_response'
   | 'waiting_confirmation'
   | 'executing_tool'
   | 'navigating'
@@ -59,6 +64,36 @@ export const AI_STATUS_DEFINITIONS: Record<AIStatusEvent, AIStatusMessage> = {
     event: 'querying_records',
     labelEn: 'Retrieving your notes & records…',
     labelBn: 'তোমার সেভ করা রেকর্ড ও বিষয়গুলো দেখছি…',
+    orbMood: 'working',
+  },
+  deep_research: {
+    event: 'deep_research',
+    labelEn: 'Conducting in-depth analysis…',
+    labelBn: 'গভীরভাবে পর্যালোচনা করছি…',
+    orbMood: 'thinking',
+  },
+  cross_referencing: {
+    event: 'cross_referencing',
+    labelEn: 'Cross-referencing context & data…',
+    labelBn: 'প্রাসঙ্গিক প্রেক্ষাপট ও তথ্য যাচাই করছি…',
+    orbMood: 'working',
+  },
+  formulating_response: {
+    event: 'formulating_response',
+    labelEn: 'Formulating response…',
+    labelBn: 'উত্তর প্রস্তুত করছি…',
+    orbMood: 'thinking',
+  },
+  synthesizing_solution: {
+    event: 'synthesizing_solution',
+    labelEn: 'Synthesizing comprehensive plan…',
+    labelBn: 'বিস্তারিত সমাধান ও পরিকল্পনা সাজাচ্ছি…',
+    orbMood: 'working',
+  },
+  finalizing_response: {
+    event: 'finalizing_response',
+    labelEn: 'Refining and composing response…',
+    labelBn: 'চূড়ান্ত প্রতিক্রিয়াটি গুছিয়ে লিখছি…',
     orbMood: 'working',
   },
   waiting_confirmation: {
@@ -152,4 +187,37 @@ export function detectContextualStatusEvent(userQuery: string): AIStatusEvent {
   }
 
   return 'understanding';
+}
+
+export interface ProgressiveStage {
+  delayMs: number;
+  text: string;
+  orbMood: 'thinking' | 'working';
+}
+
+export function getProgressiveStages(
+  userQuery: string,
+  modelMode: string = 'fast',
+  isBn: boolean = true
+): ProgressiveStage[] {
+  const normMode = (modelMode || '').toLowerCase().trim();
+  const isDeep = normMode === 'deep' || normMode === 'pro' || normMode === 'focentia-pro' || normMode === 'planning';
+  const initialEvent = detectContextualStatusEvent(userQuery);
+  const initialText = getStatusText(initialEvent, isBn);
+
+  if (!isDeep) {
+    // Focentia 2.1 — Fast, crisp, responsive
+    return [
+      { delayMs: 0, text: initialText, orbMood: 'thinking' },
+      { delayMs: 800, text: isBn ? 'উত্তর প্রস্তুত করছি…' : 'Formulating response…', orbMood: 'working' },
+    ];
+  }
+
+  // Focentia Pro — Deep analytical & structured research breakdown
+  return [
+    { delayMs: 0, text: isBn ? 'গভীরভাবে পর্যালোচনা করছি…' : 'Conducting in-depth analysis…', orbMood: 'thinking' },
+    { delayMs: 1400, text: isBn ? 'প্রাসঙ্গিক প্রেক্ষাপট ও তথ্য যাচাই করছি…' : 'Cross-referencing context & data…', orbMood: 'working' },
+    { delayMs: 3200, text: isBn ? 'বিস্তারিত সমাধান ও পরিকল্পনা সাজাচ্ছি…' : 'Synthesizing comprehensive plan…', orbMood: 'working' },
+    { delayMs: 5500, text: isBn ? 'চূড়ান্ত প্রতিক্রিয়াটি গুছিয়ে লিখছি…' : 'Refining and composing response…', orbMood: 'thinking' },
+  ];
 }

@@ -98,14 +98,16 @@ export function buildAgentChatPrompt(serializedPayload: string, modelMode: strin
 MODE: FOCENTIA PRO (DEEP RESEARCH, PLANNING & COMPREHENSIVE REASONING - 25-30 TOKENS)
 - Provide deep, thoughtful, and structured strategic breakdown, detailed explanations, and complete code/study plans.
 - Conduct thorough research and analytical deep-dives for complex, large-scale problems.
+- 100% FACTUAL & LOGICAL ACCURACY: Ground all reasoning in accurate facts, sound logic, and structured steps. Never output illogical, false, or hallucinatory information.
 - Include thorough study routines, realistic time-blocking, milestone advice, nuanced explanations, and in-depth educational guidance.
-- Ideal for big projects, deep thinking, in-depth learning, and multi-step complex tasks.`;
+- Keep explanations high-yield, crisp, and structured without redundant padding or fluff.`;
   } else {
     modeGuidance = `
 MODE: FOCENTIA 2.0 / 2.1 (EXTREME SPEED, CRISP BREVITY & TOKEN SAVER - 4-5 TOKENS)
 - CRITICAL TOKEN-SAVING DIRECTIVE: Speak concisely, shortly, crisply, and directly.
 - STRICT BREVITY: Answer directly in 1 to 3 short sentences. ZERO fluff, NO long introductory speeches, NO repetitive essays.
 - Keep the generated message short, punchy, and clear so the user gets fast replies while saving tokens.
+- 100% FACTUAL & LOGICAL ACCURACY: Never provide incorrect, ungrounded, or illogical advice. Accuracy must never be compromised for brevity.
 - When proposing an action (like planner task or focus timer), state it in one quick natural sentence.
 - Always preserve your warm, friendly, caring older-brother tone while being delightfully concise.`;
   }
@@ -140,6 +142,11 @@ MODE: FOCENTIA 2.0 / 2.1 (EXTREME SPEED, CRISP BREVITY & TOKEN SAVER - 4-5 TOKEN
     `   - All emotional expressions are conveyed VISUALLY through your animated Orby Face using the "emotion" JSON field. The interface renders real facial expressions (eyebrows, eyes, smile/pout, head movement) directly from that field.`,
     `   - Avoid repetitive corporate jargon, robotic phrasing, and canned motivational slogans.`,
     `   - Standard terms can stay in English when natural (e.g. Focus timer, Pomodoro, Deep work, Planner, Tasks, Schedule, Deadline, React, Python, JavaScript, OOP, Inheritance).`,
+    ``,
+    `FACTUAL ACCURACY, LOGICAL REASONING & MAXIMUM TOKEN CONSERVATION:`,
+    `- Absolute Factual & Logical Integrity: Provide 100% truthful, logically coherent, and accurate answers. Never hallucinate, guess blindly, or invent non-existent concepts.`,
+    `- Zero Unwanted Token Spend: Never include conversational boilerplate (e.g. "Certainly! I'd be more than happy to help you with that today..."), filler transitions, or unnecessary preamble. Start directly with the answer or action.`,
+    `- Compact & High-Yield Text: Keep explanations concise, clear, and direct. Do not pad responses with repetitive re-statements or superfluous adjectives.`,
     ``,
     `EMOTIONAL INTELLIGENCE & EMPATHY:`,
     `- When the user sounds sad, disappointed, stressed, overwhelmed, anxious, lonely, or demotivated:`,
@@ -526,7 +533,7 @@ export async function executeAIAction(action: string, payload: unknown): Promise
   const isRoadmapOrPlan = isPro || (typeof (payload as any)?.userQuery === 'string' && /roadmap|রোডম্যাপ|plan|routine|রুটিন/i.test((payload as any).userQuery));
   const timeoutMs = isRoadmapOrPlan ? 35000 : 18000;
   const temperature = isPro ? 0.6 : 0.25;
-  const maxOutputTokens = isRoadmapOrPlan ? 3500 : 1000;
+  const maxOutputTokens = isRoadmapOrPlan ? 2200 : 600;
 
   let lastErr: any = null;
 

@@ -1390,19 +1390,43 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const addBreakTime = useCallback((breakMinutes: number, sessionId?: string) => {
     if (breakMinutes <= 0) return;
+    const cleanUserId = activeUserIdRef.current || 'guest';
+    const today = getLocalDateString();
     let targetSessionId = sessionId;
+
     setState((prev) => {
       let updatedSessions = prev.focusSessions;
       if (sessionId) {
         updatedSessions = prev.focusSessions.map((s) =>
           s.id === sessionId ? { ...s, breakMinutes: (s.breakMinutes || 0) + breakMinutes } : s
         );
-      } else if (prev.focusSessions.length > 0) {
-        const lastSession = prev.focusSessions[prev.focusSessions.length - 1];
-        targetSessionId = lastSession.id;
-        updatedSessions = prev.focusSessions.map((s) =>
-          s.id === lastSession.id ? { ...s, breakMinutes: (s.breakMinutes || 0) + breakMinutes } : s
-        );
+      } else {
+        const todaySessions = prev.focusSessions.filter((s) => s.date === today && s.sessionType !== 'timer');
+        if (todaySessions.length > 0) {
+          const lastSession = todaySessions[todaySessions.length - 1];
+          targetSessionId = lastSession.id;
+          updatedSessions = prev.focusSessions.map((s) =>
+            s.id === lastSession.id ? { ...s, breakMinutes: (s.breakMinutes || 0) + breakMinutes } : s
+          );
+        } else {
+          const newId = "break_" + Date.now() + "_" + Math.random().toString(36).substring(2, 7);
+          targetSessionId = newId;
+          const newBreakSession: FocusSession = {
+            id: newId,
+            taskName: "Break",
+            category: "Break",
+            date: today,
+            startedAt: new Date().toISOString(),
+            endedAt: new Date().toISOString(),
+            durationMinutes: 0,
+            breakMinutes: breakMinutes,
+            distractions: [],
+            completed: true,
+            sessionType: "focus",
+          };
+          updatedSessions = [...prev.focusSessions, newBreakSession];
+          focusDbService.saveFocusSession(newBreakSession, cleanUserId).catch(() => {});
+        }
       }
 
       return {
@@ -1411,9 +1435,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       };
     });
 
-    const currentUserId = activeUserIdRef.current || 'guest';
     if (targetSessionId) {
-      focusDbService.addBreakTime(targetSessionId, breakMinutes, currentUserId).catch((err) => {
+      focusDbService.addBreakTime(targetSessionId, breakMinutes, cleanUserId).catch((err) => {
         console.warn("[AppContext] Error updating break time in DB:", err);
       });
     }

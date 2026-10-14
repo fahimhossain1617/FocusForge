@@ -464,6 +464,10 @@ export default function FocusPage() {
     }
 
     if (sessionPhase === "break_active") {
+      if (timer.elapsedSeconds >= 3) {
+        const elapsedMins = Math.round((timer.elapsedSeconds / 60) * 100) / 100;
+        addBreakTime(elapsedMins, lastCompletedSessionIdRef.current || undefined);
+      }
       timer.skipBreak();
       setSessionPhase("setup");
       navigateTo("dashboard");
@@ -536,6 +540,10 @@ export default function FocusPage() {
   };
 
   const handleSkipBreak = () => {
+    if (sessionPhase === "break_active" && timer.elapsedSeconds >= 3) {
+      const elapsedMins = Math.round((timer.elapsedSeconds / 60) * 100) / 100;
+      addBreakTime(elapsedMins, lastCompletedSessionIdRef.current || undefined);
+    }
     timer.skipBreak();
     setSessionPhase("setup");
     setSelectedTask({ name: "", category: "" });
@@ -1414,9 +1422,9 @@ export default function FocusPage() {
                 </span>
               </div>
 
-              {/* Break Duration Grid: 2m, 5m, 10m, 20m, 30m */}
-              <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 xs:gap-2.5 mb-2">
-                {[2, 5, 10, 20, 30].map((mins) => (
+              {/* Break Duration Grid: 2m, 3m, 5m, 10m, 20m, 30m */}
+              <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 xs:gap-2.5 mb-2">
+                {[2, 3, 5, 10, 20, 30].map((mins) => (
                   <button
                     key={mins}
                     onClick={() => handleSelectBreak(mins)}
@@ -1427,7 +1435,9 @@ export default function FocusPage() {
                       <span className="text-xs font-normal text-[#52627A] dark:text-muted-foreground ml-0.5">m</span>
                     </div>
                     <div className="text-[10px] text-[#52627A] dark:text-zinc-400 group-hover:text-[#111827] dark:group-hover:text-zinc-300 mt-0.5">
-                      {mins <= 5
+                      {mins <= 3
+                        ? state.lang === "bn" ? "খুব দ্রুত" : "Micro"
+                        : mins <= 5
                         ? state.lang === "bn" ? "দ্রুত" : "Quick"
                         : mins <= 10
                         ? state.lang === "bn" ? "মাঝারি" : "Short"

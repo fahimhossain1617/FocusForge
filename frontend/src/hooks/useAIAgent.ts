@@ -24,6 +24,8 @@ import type {
 import { useAuth } from "@/context/AuthContext";
 import { aiConsentService } from "@/services/aiConsentService";
 import { connectivityService } from "@/services/connectivityService";
+import { routeUserMessage } from "@/lib/ai/router";
+import { getProgressiveStages } from "@/services/aiStatusEvents";
 
 let memoryMessages: AgentMessage[] | null = null;
 let memoryActiveSessionId: string | null = null;
@@ -92,6 +94,7 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
   const [isThinking, setIsThinking] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
   const [streamingText, setStreamingText] = useState("");
+  const [thoughtText, setThoughtText] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [orbState, setOrbState] = useState<OrbState>("idle");
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -145,6 +148,7 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
     setIsThinking(false);
     setIsTyping(false);
     setStreamingText("");
+    setThoughtText(null);
     setOrbState("idle");
 
     const isBn = (customLang || initialLang) === "bn";
@@ -420,12 +424,6 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
       setError(language === "bn" ? "প্রথমে তোমার প্রশ্ন বা টাস্ক লেখো।" : "Tell Focentia what you need help with first."); 
       return; 
     }
-    if (!connectivityService.isOnline()) {
-      setError(language === "bn" 
-        ? "তুমি বর্তমানে অফলাইনে আছো। আমি এখন ঘুমাচ্ছি, তুমি আবার অনলাইনে আসলে তোমাকে সাহায্য করবো।" 
-        : "You are currently offline. I'm sleeping right now, I'll help you again when you're back online.");
-      return;
-    }
     setError(null); 
 
     const banglishRegex = /\b(ami|amar|amake|amader|tumi|tomar|tomake|apni|apnar|apnake|korbo|korchi|korte|koro|korun|chai|dorkar|shikhbo|sikhbo|shekha|sikhte|shikhte|hobe|kemon|achho|achen|bhalo|parbo|parchi|parbona|ki|kibhabe|kivabe|kothay|kokhon|keno|kar|porbo|porte|porashona|ajke|aajke|ekhon|shuru|routine|plan|schedule|somossa|somosya|somosha|kothin|mon|kharap|bhabna|chinta|idea|notun|diary|journal|onubhuti|dhyan|monojog|focus|pomodoro|timer|note|notes|file|likhe|rakho|rakhbo|help|lagbe|ache|achhe|nai|nei)\b/i;
@@ -435,9 +433,87 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
     const isBn = langParam === "bn";
     const isGuestUser = isGuest || !user;
 
-    // Local features (planner, diary, focus, motivation, navigation) cost 0 tokens and continue working even if quota is exhausted. Quota gating is handled before network Gemini calls.
+    // 1. OFFLINE GUARD (AI will not run offline - all messages require an active internet connection)
+    if (!connectivityService.isOnline()) {
+      const userMsg: AgentMessage = { 
+        id: crypto.randomUUID(), 
+        role: "user", 
+        content: content.trim(), 
+        createdAt: new Date() 
+      };
+      const offlineMsg: AgentMessage = {
+        id: crypto.randomUUID(),
+        role: "assistant",
+        content: isBn
+          ? "তুমি এখন অনলাইনে নেই, বর্তমানে অফলাইনে আছো। অফলাইনে থাকায় এই মুহূর্তে আমি তোমাকে কোনো সাহায্য করতে বা উত্তর দিতে পারছি না। অনুগ্রহ করে ইন্টারনেট সংযোগ চালু করো, আমি সবসময় তোমার পাশে আছি!"
+          : "You are not online right now, you are currently offline. Because you are offline, I cannot assist or answer at this moment. Please connect to the internet, I'll be right here to help you!",
+        intent: "GREETING_OR_GENERAL",
+        actions: [],
+        emotion: "supportive",
+        privacyMode,
+        createdAt: new Date()
+      };
+      setMessages((items) => [...items, userMsg, offlineMsg]);
+      setIsThinking(false);
+      setIsTyping(false);
+      setStreamingText("");
+      setThoughtText(null);
+      setOrbState("supportive");
+      setTimeout(() => setOrbState("idle"), 4000);
+      return offlineMsg;
+    }
 
-    // Optimistic user message
+    // Fast local routing check (Online only)
+    const userName = user?.displayName || user?.fullName || '';
+    const history = messages.slice(-8).map((m) => ({ role: m.role, content: m.content }));
+    const localResolution = await routeUserMessage(content, context, history, Boolean(user?.id), userName);
+
+    // 2. INSTANT LOCAL-FIRST PATH (Online only: Canned greetings, identity, local tools, planner, diary, timer navigation)
+    // Runs instantly (<20ms) when online, 0 token cost!
+    if (!localResolution.shouldCallGemini) {
+      const userMsg: AgentMessage = { 
+        id: crypto.randomUUID(), 
+        role: "user", 
+        content: content.trim(), 
+        createdAt: new Date() 
+      };
+
+      const localAiMessage: AgentMessage = {
+        id: crypto.randomUUID(),
+        role: "assistant",
+        content: localResolution.message,
+        intent: localResolution.intent as any,
+        actions: localResolution.actions || [],
+        roadmap: localResolution.roadmap || null,
+        emotion: localResolution.orbEmotion || "idle",
+        privacyMode,
+        createdAt: new Date()
+      };
+
+      setMessages((items) => [...items, userMsg, localAiMessage]);
+      setIsThinking(false);
+      setIsTyping(false);
+      setStreamingText("");
+      setThoughtText(null);
+
+      const emo = localAiMessage.emotion;
+      let nextOrbState: OrbState = "idle";
+      if (emo === "laughing" || emo === "playful") nextOrbState = "laughing";
+      else if (emo === "empathetic" || emo === "supportive" || emo === "caring") nextOrbState = "empathetic";
+      else if (emo === "encouraging") nextOrbState = "encouraging";
+      else if (emo === "proud" || emo === "celebrating" || emo === "celebratory") nextOrbState = "proud";
+      else if (emo === "happy") nextOrbState = "happy";
+      else if (emo === "focused") nextOrbState = "focused";
+      else nextOrbState = "idle";
+
+      setOrbState(nextOrbState);
+      if (nextOrbState !== "idle") {
+        setTimeout(() => setOrbState("idle"), 4000);
+      }
+      return localAiMessage;
+    }
+
+    // 3. DYNAMIC GEMINI API QUERY (Online)
     const userMsg: AgentMessage = { 
       id: crypto.randomUUID(), 
       role: "user", 
@@ -446,28 +522,28 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
     };
 
     setMessages((items) => [...items, userMsg]);
-
     setIsThinking(true);
-    setOrbState("thinking");
 
+    const stages = getProgressiveStages(content, model, isBn);
     const stageTimers: NodeJS.Timeout[] = [];
-    stageTimers.push(
-      setTimeout(() => {
-        setOrbState("working");
-      }, 1200)
-    );
-    stageTimers.push(
-      setTimeout(() => {
-        setOrbState("typing");
-      }, 2400)
-    );
+    stages.forEach((st) => {
+      if (st.delayMs === 0) {
+        setThoughtText(st.text);
+        setOrbState(st.orbMood);
+      } else {
+        stageTimers.push(
+          setTimeout(() => {
+            setThoughtText(st.text);
+            setOrbState(st.orbMood);
+          }, st.delayMs)
+        );
+      }
+    });
 
     const abortController = new AbortController();
     abortControllerRef.current = abortController;
 
     try {
-      const history = messages.slice(-8).map((m) => ({ role: m.role, content: m.content }));
-      
       const result = await sendAgentMessage(
         content,
         context,
@@ -521,11 +597,12 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
       setIsThinking(false);
       setOrbState("typing");
       setIsTyping(true);
+      setThoughtText(isBn ? "লিখছি…" : "Typing…");
 
-      // Brief realistic "AI is typing" stage before message display, as requested
-      await new Promise<void>((resolve) => setTimeout(resolve, 600));
+      // Short natural typing transition (snappy, no lagging delay)
+      await new Promise<void>((resolve) => setTimeout(resolve, 100));
 
-      // Grapheme/Token-safe streaming (NEVER splits multi-byte Bengali characters or vowel diacritics!)
+      // Fast, Token-safe streaming
       const fullText = normalizedAiMessage.content || "";
       if (fullText.length > 0) {
         const tokens = fullText.match(/\S+|\s+/g) || [fullText];
@@ -533,7 +610,7 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
 
         await new Promise<void>((resolve) => {
           let tokenIndex = 0;
-          const step = Math.max(2, Math.ceil(tokens.length / 10));
+          const step = Math.max(3, Math.ceil(tokens.length / 8));
 
           typingIntervalRef.current = setInterval(() => {
             tokenIndex += step;
@@ -546,15 +623,17 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
               setTimeout(() => {
                 setIsTyping(false);
                 setStreamingText("");
+                setThoughtText(null);
                 resolve();
               }, 40);
             } else {
               setStreamingText(tokens.slice(0, tokenIndex).join(''));
             }
-          }, 16);
+          }, 14);
         });
       } else {
         setIsTyping(false);
+        setThoughtText(null);
       }
 
       // Transition Orb state after response output
@@ -650,6 +729,7 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
       return normalizedAiMessage;
     } catch (err: any) {
       stageTimers.forEach((t) => clearTimeout(t));
+      setThoughtText(null);
       if (err?.name === 'AbortError' || abortController.signal.aborted) {
         setOrbState("idle");
         return;
@@ -721,6 +801,7 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
     isThinking,
     isTyping,
     streamingText,
+    thoughtText,
     stopGeneration,
     error, 
     send, 

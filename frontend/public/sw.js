@@ -1,9 +1,10 @@
 // Focentia Progressive Web App Service Worker
-const CACHE_NAME = 'focentia-v12-fast-load';
+const CACHE_NAME = 'focentia-v13-fast-load';
 
 const STATIC_ASSETS = [
   '/',
   '/manifest.json',
+  '/manifest.webmanifest',
   '/favicon.ico',
   '/favicon-32x32.png',
   '/favicon-16x16.png',
@@ -199,13 +200,26 @@ self.addEventListener('periodicsync', (event) => {
   }
 });
 
-// Install: Pre-cache app shell assets
+// Install: Pre-cache app shell assets reliably with Promise.allSettled
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(STATIC_ASSETS).catch((err) => {
-        console.warn('[SW] Pre-caching non-fatal warning:', err);
-      });
+    caches.open(CACHE_NAME).then(async (cache) => {
+      await Promise.allSettled(
+        STATIC_ASSETS.map(async (asset) => {
+          try {
+            const cleanAsset = asset.split('?')[0];
+            const res = await fetch(asset, { cache: 'no-cache' });
+            if (res && res.status === 200) {
+              await cache.put(asset, res.clone());
+              if (cleanAsset !== asset) {
+                await cache.put(cleanAsset, res);
+              }
+            }
+          } catch (err) {
+            console.warn('[SW] Pre-caching asset warning:', asset, err);
+          }
+        })
+      );
     }).then(() => self.skipWaiting())
   );
 });
@@ -246,7 +260,7 @@ self.addEventListener('fetch', (event) => {
   // 3. For Next.js immutable static bundles (chunks, css, media, fonts), serve Cache-First / Stale-While-Revalidate
   if (url.pathname.startsWith('/_next/static/')) {
     event.respondWith(
-      caches.match(request).then((cachedResponse) => {
+      caches.match(request, { ignoreSearch: true }).then((cachedResponse) => {
         if (cachedResponse) {
           // Revalidate in background when online to keep cached chunks fresh
           fetch(request).then((networkResponse) => {
@@ -264,7 +278,7 @@ self.addEventListener('fetch', (event) => {
             caches.open(CACHE_NAME).then((cache) => cache.put(request, responseClone));
           }
           return networkResponse;
-        }).catch(() => caches.match(request));
+        }).catch(() => caches.match(request, { ignoreSearch: true }));
       })
     );
     return;
@@ -282,7 +296,7 @@ self.addEventListener('fetch', (event) => {
 
   if (isStaticAsset) {
     event.respondWith(
-      caches.match(request).then((cachedResponse) => {
+      caches.match(request, { ignoreSearch: true }).then((cachedResponse) => {
         if (cachedResponse) {
           fetch(request).then((networkResponse) => {
             if (networkResponse && networkResponse.status === 200) {
@@ -300,24 +314,27 @@ self.addEventListener('fetch', (event) => {
           const responseClone = networkResponse.clone();
           caches.open(CACHE_NAME).then((cache) => cache.put(request, responseClone));
           return networkResponse;
-        });
+        }).catch(() => caches.match(request, { ignoreSearch: true }));
       })
     );
     return;
   }
 
-  // 5. HTML Navigation: Instant Cache-First with Background Revalidation for sub-0.3s launch
+  // 5. HTML Navigation: Instant Cache-First with Background Revalidation for sub-0.3s launch and 100% offline support
   if (request.mode === 'navigate') {
     event.respondWith(
       (async () => {
-        const cached = (await caches.match('/')) || (await caches.match(request));
+        const cached = (await caches.match(request, { ignoreSearch: true })) || (await caches.match('/', { ignoreSearch: true }));
 
-        // Background fetch to keep cached app shell updated
+        // Background fetch to keep cached app shell updated when online
         const fetchPromise = fetch(request)
           .then((networkResponse) => {
             if (networkResponse && networkResponse.status === 200) {
               const responseClone = networkResponse.clone();
-              caches.open(CACHE_NAME).then((cache) => cache.put('/', responseClone));
+              caches.open(CACHE_NAME).then((cache) => {
+                cache.put('/', responseClone.clone());
+                cache.put(request, responseClone);
+              });
             }
             return networkResponse;
           })
@@ -333,7 +350,10 @@ self.addEventListener('fetch', (event) => {
         const networkResponse = await fetchPromise;
         if (networkResponse) return networkResponse;
 
-        return cached || fetch(request);
+        const fallback = (await caches.match('/', { ignoreSearch: true })) || (await caches.match(request, { ignoreSearch: true }));
+        if (fallback) return fallback;
+
+        return fetch(request);
       })()
     );
     return;
@@ -341,7 +361,7 @@ self.addEventListener('fetch', (event) => {
 
   // Default: Network with cache fallback
   event.respondWith(
-    fetch(request).catch(() => caches.match(request))
+    fetch(request).catch(() => caches.match(request, { ignoreSearch: true }))
   );
 });
 

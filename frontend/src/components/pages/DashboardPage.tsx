@@ -161,16 +161,13 @@ export default function DashboardPage() {
       const dayName = dayNames[d.getDay()];
       const dateLabel = `${d.getDate()} ${monthNames[d.getMonth()]}`;
 
-      // Calculate real focus minutes, timer minutes, break minutes, and distractions strictly from focusSessions
+      // Calculate real focus minutes, break minutes, and distractions strictly from pomodoro focusSessions (Timer sessions are segregated)
       const daySessions = (state.focusSessions || []).filter((s) => {
         const sDate = getSessionLocalDate(s);
         return sDate === fullDate;
       });
       const pomodoroSessions = daySessions.filter((s) => s.sessionType !== "timer" && s.category !== "Timer");
-      const timerSessions = daySessions.filter((s) => s.sessionType === "timer" || s.category === "Timer");
-      const pomoMins = pomodoroSessions.reduce((acc, s) => acc + (s.durationMinutes || 0), 0);
-      const timerMins = timerSessions.reduce((acc, s) => acc + (s.durationMinutes || 0), 0);
-      const totalFocusMins = pomoMins + timerMins;
+      const totalFocusMins = pomodoroSessions.reduce((acc, s) => acc + (s.durationMinutes || 0), 0);
       const breakMins = daySessions.reduce((acc, s) => acc + (s.breakMinutes || 0), 0);
       const distractionsCount = daySessions.reduce((acc, s) => acc + (Array.isArray(s.distractions) ? s.distractions.length : 0), 0);
 
@@ -186,8 +183,6 @@ export default function DashboardPage() {
         fullDate,
         focusTime: formatMinutes(totalFocusMins),
         focusMinutes: totalFocusMins,
-        timerTime: formatMinutes(timerMins),
-        timerMinutes: timerMins,
         breakTime: formatMinutes(breakMins),
         breakMinutes: breakMins,
         distractionsCount,
@@ -222,10 +217,7 @@ export default function DashboardPage() {
         return sDate >= startStr && sDate <= endStr;
       });
       const pomodoroSessions = weekSessions.filter((s) => s.sessionType !== "timer" && s.category !== "Timer");
-      const timerSessions = weekSessions.filter((s) => s.sessionType === "timer" || s.category === "Timer");
-      const pomoMins = pomodoroSessions.reduce((acc, s) => acc + (s.durationMinutes || 0), 0);
-      const timerMins = timerSessions.reduce((acc, s) => acc + (s.durationMinutes || 0), 0);
-      const totalFocusMins = pomoMins + timerMins;
+      const totalFocusMins = pomodoroSessions.reduce((acc, s) => acc + (s.durationMinutes || 0), 0);
       const breakMins = weekSessions.reduce((acc, s) => acc + (s.breakMinutes || 0), 0);
       const distractionsCount = weekSessions.reduce((acc, s) => acc + (Array.isArray(s.distractions) ? s.distractions.length : 0), 0);
 
@@ -249,8 +241,6 @@ export default function DashboardPage() {
         percent: taskPercent,
         focusTime: formatMinutes(totalFocusMins),
         focusMinutes: totalFocusMins,
-        timerTime: formatMinutes(timerMins),
-        timerMinutes: timerMins,
         breakTime: formatMinutes(breakMins),
         breakMinutes: breakMins,
         distractionsCount,
@@ -404,23 +394,18 @@ export default function DashboardPage() {
     const clickedWeek = monthlyWeeks.find((w) => w.week === selectedDate);
     if (clickedWeek) {
       const focusMins = clickedWeek.focusMinutes;
-      const timerMins = clickedWeek.timerMinutes || 0;
-      const breakMins = clickedWeek.breakMinutes || Math.round(focusMins * 0.15);
-      const totalActive = focusMins + timerMins + breakMins;
+      const breakMins = clickedWeek.breakMinutes || 0;
+      const totalActive = focusMins + breakMins;
 
       const focusRatio = totalActive > 0 ? focusMins / totalActive : 0;
       const breakRatio = totalActive > 0 ? breakMins / totalActive : 0;
-      const timerRatio = totalActive > 0 ? timerMins / totalActive : 0;
 
       const focusLen = focusRatio * C;
       const breakLen = breakRatio * C;
-      const timerLen = timerRatio * C;
 
       return {
         focusTime: clickedWeek.focusTime,
         focusMinutes: focusMins,
-        timerTime: clickedWeek.timerTime,
-        timerMinutes: timerMins,
         breakTime: clickedWeek.breakTime || formatMinutes(breakMins),
         breakMinutes: breakMins,
         distractionCount: clickedWeek.distractionsCount || 0,
@@ -430,26 +415,19 @@ export default function DashboardPage() {
         totalActiveMinutes: totalActive,
         focusLen,
         breakLen,
-        timerLen,
-        distractionLen: 0,
         focusOffset: 0,
         breakOffset: -focusLen,
-        timerOffset: -(focusLen + breakLen),
-        distractionOffset: -(focusLen + breakLen + timerLen),
       };
     }
 
-    // Day calculations strictly from focusSessions
+    // Day calculations strictly from pomodoro focusSessions (Timer segregated)
     const daySessions = (state.focusSessions || []).filter((s) => {
       const sDate = getSessionLocalDate(s);
       return sDate === selectedDate;
     });
     const pomodoroSessions = daySessions.filter((s) => s.sessionType !== "timer" && s.category !== "Timer");
-    const timerSessions = daySessions.filter((s) => s.sessionType === "timer" || s.category === "Timer");
 
-    const pomoMins = pomodoroSessions.reduce((acc, s) => acc + (s.durationMinutes || 0), 0);
-    const totalTimerMins = timerSessions.reduce((acc, s) => acc + (s.durationMinutes || 0), 0);
-    const totalFocusMins = pomoMins + totalTimerMins;
+    const totalFocusMins = pomodoroSessions.reduce((acc, s) => acc + (s.durationMinutes || 0), 0);
     const totalBreakMins = daySessions.reduce((acc, s) => acc + (s.breakMinutes || 0), 0);
 
     const distractionsList: string[] = [];
@@ -461,47 +439,36 @@ export default function DashboardPage() {
       }
     });
     const distractionCount = distractionsList.length;
-    const distractionMins = distractionCount > 0 ? distractionCount * 2 : 0;
 
-    const totalActive = totalFocusMins + totalBreakMins + distractionMins;
+    // Circular gauge strictly represents Focus Time & Break Time
+    const totalActive = totalFocusMins + totalBreakMins;
 
     const focusRatio = totalActive > 0 ? totalFocusMins / totalActive : 0;
     const breakRatio = totalActive > 0 ? totalBreakMins / totalActive : 0;
-    const timerRatio = totalActive > 0 ? totalTimerMins / totalActive : 0;
-    const distractionRatio = totalActive > 0 ? distractionMins / totalActive : 0;
 
     const focusLen = focusRatio * C;
     const breakLen = breakRatio * C;
-    const timerLen = timerRatio * C;
-    const distractionLen = distractionRatio * C;
 
     return {
       focusTime: formatMinutes(totalFocusMins),
       focusMinutes: totalFocusMins,
-      timerTime: formatMinutes(totalTimerMins),
-      timerMinutes: totalTimerMins,
       breakTime: formatMinutes(totalBreakMins),
       breakMinutes: totalBreakMins,
       distractionCount,
       distractionsList,
-      distractionMinutes: distractionMins,
+      distractionMinutes: 0,
       distractionSummary: distractionsList.length > 0 ? distractionsList.slice(0, 2).join(" · ") : (distractionCount > 0 ? `${distractionCount} distractions logged` : "None logged"),
       totalActiveMinutes: totalActive,
       focusLen,
       breakLen,
-      timerLen,
-      distractionLen,
       focusOffset: 0,
       breakOffset: -focusLen,
-      timerOffset: -(focusLen + breakLen),
-      distractionOffset: -(focusLen + breakLen + timerLen),
     };
   }, [selectedDate, monthlyWeeks, state.focusSessions]);
 
   // Aggregated Weekly Totals
   const weeklySummary = useMemo(() => {
     const totalFocusMins = weeklyData.reduce((acc, d) => acc + d.focusMinutes, 0);
-    const totalTimerMins = weeklyData.reduce((acc, d) => acc + d.timerMinutes, 0);
     const totalBreakMins = weeklyData.reduce((acc, d) => acc + d.breakMinutes, 0);
     const totalDistractions = weeklyData.reduce((acc, d) => acc + d.distractionsCount, 0);
     const totalDone = weeklyData.reduce((acc, d) => acc + d.tasksDone, 0);
@@ -514,8 +481,6 @@ export default function DashboardPage() {
 
     return {
       focusTime: formatMinutes(totalFocusMins),
-      timerTime: formatMinutes(totalTimerMins),
-      totalTimerMins,
       breakTime: formatMinutes(totalBreakMins),
       distractionsCount: totalDistractions,
       tasksDoneRatio: `${totalDone} / ${totalTasks}`,
@@ -529,7 +494,6 @@ export default function DashboardPage() {
   // Aggregated Monthly Totals
   const monthlySummary = useMemo(() => {
     const totalFocusMins = monthlyWeeks.reduce((acc, w) => acc + w.focusMinutes, 0);
-    const totalTimerMins = monthlyWeeks.reduce((acc, w) => acc + w.timerMinutes, 0);
     const totalBreakMins = monthlyWeeks.reduce((acc, w) => acc + w.breakMinutes, 0);
     const totalDistractions = monthlyWeeks.reduce((acc, w) => acc + w.distractionsCount, 0);
     const totalDone = monthlyWeeks.reduce((acc, w) => acc + w.doneCount, 0);
@@ -542,8 +506,6 @@ export default function DashboardPage() {
 
     return {
       focusTime: formatMinutes(totalFocusMins),
-      timerTime: formatMinutes(totalTimerMins),
-      totalTimerMins,
       breakTime: formatMinutes(totalBreakMins),
       distractionsCount: totalDistractions,
       tasksDoneRatio: `${totalDone} / ${totalTasks}`,
@@ -759,36 +721,6 @@ export default function DashboardPage() {
                       strokeLinecap="round"
                     />
                   )}
-
-                  {/* 3. Timer Time Segment (#38BDF8) */}
-                  {selectedFocusStats.timerLen > 0 && (
-                    <circle
-                      cx="50"
-                      cy="50"
-                      r="38"
-                      fill="none"
-                      stroke="#38BDF8"
-                      strokeWidth="9"
-                      strokeDasharray={`${selectedFocusStats.timerLen} 238.761`}
-                      strokeDashoffset={selectedFocusStats.timerOffset}
-                      strokeLinecap="round"
-                    />
-                  )}
-
-                  {/* 4. Distraction Segment (#D95C68) */}
-                  {selectedFocusStats.distractionLen > 0 && (
-                    <circle
-                      cx="50"
-                      cy="50"
-                      r="38"
-                      fill="none"
-                      stroke="#D95C68"
-                      strokeWidth="9"
-                      strokeDasharray={`${selectedFocusStats.distractionLen} 238.761`}
-                      strokeDashoffset={selectedFocusStats.distractionOffset}
-                      strokeLinecap="round"
-                    />
-                  )}
                 </svg>
               </div>
 
@@ -808,15 +740,6 @@ export default function DashboardPage() {
                   </span>
                   <span className="font-bold text-[#10B981] dark:text-emerald-400 font-mono tabular-nums text-xs">{selectedFocusStats.breakTime}</span>
                 </div>
-                {selectedFocusStats.timerMinutes > 0 && (
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="flex items-center gap-2 text-[#52627A] dark:text-foreground font-medium">
-                      <span className="w-2.5 h-2.5 rounded-full bg-[#38BDF8] shrink-0" />
-                      {state.lang === 'bn' ? "টাইমার" : "Timer Time"}
-                    </span>
-                    <span className="font-bold text-[#38BDF8] dark:text-sky-400 font-mono tabular-nums text-xs">{selectedFocusStats.timerTime}</span>
-                  </div>
-                )}
               </div>
             </div>
           </div>
@@ -826,7 +749,11 @@ export default function DashboardPage() {
             <div className="flex items-center justify-between text-xs gap-2">
               <div className="flex items-center gap-1.5 text-[#52627A] dark:text-muted-foreground min-w-0">
                 <span className="w-2 h-2 rounded-full bg-[#D95C68] shrink-0" />
-                <span className="shrink-0 font-medium">{state.lang === 'bn' ? "বিক্ষেপ:" : "Distractions:"}</span>
+                <span className="shrink-0 font-medium">
+                  {state.lang === 'bn'
+                    ? `বিক্ষেপ (${selectedFocusStats.distractionCount}টি):`
+                    : `Distractions (${selectedFocusStats.distractionCount}):`}
+                </span>
                 <span className="text-[11px] text-[#334155] dark:text-zinc-300 truncate font-medium">
                   {selectedFocusStats.distractionsList && selectedFocusStats.distractionsList.length > 0
                     ? selectedFocusStats.distractionsList.slice(0, 2).join(" · ")
@@ -1136,22 +1063,13 @@ export default function DashboardPage() {
             </div>
 
             {/* Bottom Summary Metrics (Normal flat layout without heavy boxes) */}
-            <div className={`grid grid-cols-2 sm:grid-cols-3 ${weeklySummary.totalTimerMins > 0 ? "lg:grid-cols-6" : "lg:grid-cols-5"} gap-4 pt-4 border-t border-[#DCE5F0] dark:border-white/[0.06]`}>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 pt-4 border-t border-[#DCE5F0] dark:border-white/[0.06]">
               <div className="py-1">
                 <p className="text-xs text-[#52627A] dark:text-muted-foreground font-medium">
                   {state.lang === 'bn' ? "সাপ্তাহিক মোট ফোকাস" : "Total Weekly Focus"}
                 </p>
                 <p className="mt-1 text-lg sm:text-xl font-bold text-[#111827] dark:text-foreground tracking-tight">{weeklySummary.focusTime}</p>
               </div>
-
-              {weeklySummary.totalTimerMins > 0 && (
-                <div className="py-1">
-                  <p className="text-xs text-[#52627A] dark:text-muted-foreground font-medium">
-                    {state.lang === 'bn' ? "সাপ্তাহিক টাইমার" : "Total Weekly Timer"}
-                  </p>
-                  <p className="mt-1 text-lg sm:text-xl font-bold text-[#38BDF8] dark:text-sky-400 tracking-tight">{weeklySummary.timerTime}</p>
-                </div>
-              )}
 
               <div className="py-1">
                 <p className="text-xs text-[#52627A] dark:text-muted-foreground font-medium">
@@ -1273,22 +1191,13 @@ export default function DashboardPage() {
             </div>
 
             {/* Monthly Bottom Summary Metrics */}
-            <div className={`grid grid-cols-2 sm:grid-cols-3 ${monthlySummary.totalTimerMins > 0 ? "lg:grid-cols-6" : "lg:grid-cols-5"} gap-4 pt-4 border-t border-[#DCE5F0] dark:border-white/[0.06]`}>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 pt-4 border-t border-[#DCE5F0] dark:border-white/[0.06]">
               <div className="py-1">
                 <p className="text-xs text-slate-500 dark:text-muted-foreground font-medium">
                   {state.lang === 'bn' ? "মাসিক মোট ফোকাস" : "Total Monthly Focus"}
                 </p>
                 <p className="mt-1 text-lg sm:text-xl font-bold text-[#111827] dark:text-foreground tracking-tight">{monthlySummary.focusTime}</p>
               </div>
-
-              {monthlySummary.totalTimerMins > 0 && (
-                <div className="py-1">
-                  <p className="text-xs text-slate-500 dark:text-muted-foreground font-medium">
-                    {state.lang === 'bn' ? "মাসিক টাইমার" : "Total Monthly Timer"}
-                  </p>
-                  <p className="mt-1 text-lg sm:text-xl font-bold text-[#38BDF8] dark:text-sky-400 tracking-tight">{monthlySummary.timerTime}</p>
-                </div>
-              )}
 
               <div className="py-1">
                 <p className="text-xs text-slate-500 dark:text-muted-foreground font-medium">

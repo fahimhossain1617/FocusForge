@@ -127,7 +127,6 @@ export function useOrbMood({
 }: UseOrbMoodOptions) {
   const isBn = language === "bn" || (language === "auto" && appState?.lang === "bn") || appState?.lang === "bn";
   const [mood, setMood] = useState<OrbMood>(() => {
-    if (!isOnline) return "offline";
     if (isLimitExhausted || isGuestLimit) return "sleepy";
     return "idle";
   });
@@ -136,8 +135,8 @@ export function useOrbMood({
   const [customThought, setCustomThought] = useState<string | null>(() => {
     if (!isOnline) {
       return isBn
-        ? "তুমি বর্তমানে অফলাইনে আছো। আমি এখন ঘুমাচ্ছি, তুমি আবার অনলাইনে আসলে তোমাকে সাহায্য করবো।"
-        : "You are currently offline. I'm sleeping right now, I'll help you again when you're back online.";
+        ? "অফলাইন মোড — তোমার লোকাল ফিচার ও চ্যাট সম্পূর্ণ সক্রিয় আছে!"
+        : "Offline Mode — Your local tools and chat are fully active!";
     }
     if (isLimitExhausted || isGuestLimit) {
       return isBn
@@ -154,20 +153,20 @@ export function useOrbMood({
   const lastProcessedUserMsgRef = useRef<string>("");
   const lastIdleMsgTimeRef = useRef<number>(0);
 
-  // 1. OFFLINE HANDLING
+  // 1. OFFLINE HANDLING — Keeps Glory active and ready for local-first assistance
   useEffect(() => {
     if (!isOnline) {
-      setMood("offline");
+      setMood("idle");
       setCustomThought(
         isBn
-          ? "তুমি বর্তমানে অফলাইনে আছো। আমি এখন ঘুমাচ্ছি, তুমি আবার অনলাইনে আসলে তোমাকে সাহায্য করবো।"
-          : "You are currently offline. I'm sleeping right now, I'll help you again when you're back online."
+          ? "অফলাইন মোড — তোমার লোকাল ফিচার ও চ্যাট সম্পূর্ণ সক্রিয় আছে!"
+          : "Offline Mode — Your local tools and chat are fully active!"
       );
-    } else if (mood === "offline") {
+    } else if (customThought?.includes("অফলাইন মোড") || customThought?.includes("Offline Mode")) {
       setMood("idle");
       setCustomThought(null);
     }
-  }, [isOnline, isBn, mood]);
+  }, [isOnline, isBn]);
 
   // 2. USAGE LIMIT HANDLING - Sleeps peacefully with warm message
   useEffect(() => {
@@ -650,7 +649,7 @@ export function useOrbMood({
 
   // 11. UNIFIED SINGLE THOUGHT TEXT COMPUTATION
   const thoughtText = customThought || (
-    messagesCount === 0 && !userInput && !isThinking && !isTyping && isOnline && !isLimitExhausted && !isGuestLimit
+    messagesCount === 0 && !userInput && !isThinking && !isTyping && !isLimitExhausted && !isGuestLimit
       ? (mood === "idle" ? greetingText : null)
       : null
   );

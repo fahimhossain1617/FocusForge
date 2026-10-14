@@ -1082,7 +1082,116 @@
   6. **Verification:**
      - Next.js production build (`npm run build --prefix frontend`): 19/19 routes passed with 0 errors.
      - TypeScript compilation: Passed cleanly in 36.1s.
-- **Impact:** `frontend/src/app/globals.css`, `frontend/src/types.ts`, `frontend/src/components/workspace/BlockEditor.tsx`, `frontend/src/components/pages/NoteEditorView.tsx`, `frontend/src/components/pages/WorkspacePage.tsx`, `frontend/src/components/pages/LearningHubPage.tsx`, `frontend/src/components/pages/DashboardPage.tsx`, `frontend/src/components/focus/StopwatchTimer.tsx`, `frontend/src/components/mymind/ThoughtDetail.tsx`, `frontend/src/components/ai-agent/AIRoadmapCard.tsx`, `frontend/src/components/ai-agent/AIAgentPage.tsx`, `frontend/src/components/ai-agent/ai-agent.module.css`, `frontend/src/context/AppContext.tsx`, `frontend/src/services/voice/voiceSessionManager.ts`, `frontend/src/hooks/useContinuousSpeech.ts`.
+---
+
+## ADR-065: Timer Segregation from Dashboard, Precise Break Calculation & Distraction Inline UI Polish
+
+- **Date:** October 2026
+- **Status:** Accepted & Verified
+- **Decision:**
+  1. **Strict Dashboard Segregation of Stopwatch Timer:**
+     - Removed stopwatch timer sessions and summaries from `DashboardPage.tsx` calculations (`weeklyData`, `monthlyWeeks`, `selectedFocusStats`, `weeklySummary`, `monthlySummary`).
+     - Dashboard Focus statistics, radial donut chart, and summaries exclusively track actual Pomodoro Focus sessions (`sessionType !== "timer"` and `category !== "Timer"`).
+     - Removed the sky-blue `#38BDF8` timer stroke segment from the radial progress gauge and the timer breakdown row from the focus card.
+     - Bottom summary grids return cleanly to a balanced 5-column layout on desktop (`lg:grid-cols-5`).
+  2. **Timer Persistence & Database Connection:**
+     - Stopwatch timer records are stored directly in the local IndexedDB database (`focus_sessions` store via `localDb.getAllForUser` and `localDb.softDelete`).
+     - Stopwatch timer "Recent Tasks" and "View all" modal query the local database on mount to guarantee history persistence and synchronization across reloads, completely segregated from Dashboard focus statistics.
+  3. **Break Calculation Precision & Exact Accumulation:**
+     - Added `3m` micro-break preset option to the post-session break selection grid (`[2, 3, 5, 10, 20, 30]`).
+     - Added `elapsedSeconds` export to `useFocusTimer.ts`.
+     - In `FocusPage.tsx`, updated `handleSkipBreak` and back navigation (`handleBackAttempt`) to calculate the exact elapsed break seconds (`elapsedSecs / 60`) if the user skips or leaves an active break early, preventing dropped break minutes.
+     - In `AppContext.tsx`, updated `addBreakTime` to accurately accumulate break durations (`existing.breakMinutes + breakMinutes`) across multiple breaks (e.g. 2m + 5m = 7m) and persist them to local database and cloud sync without distortion.
+     - Removed artificial break fallback (`Math.round(focusMins * 0.15)`) from `DashboardPage.tsx` monthly calculations.
+  4. **Distraction UI & Gauge Polish:**
+     - Completely removed the red distraction segment (`#D95C68`) and artificial distraction minutes (`distractionCount * 2`) from the circular progress gauge in `DashboardPage.tsx`. The radial donut gauge now represents pure Pomodoro Focus Time and Break Time.
+     - Distractions section below the gauge clearly displays the authentic logged count (`বিক্ষেপ (Xটি):`), preview of 1-2 items, and an inline collapsible "View All" ("ভিউ অল") toggle button that expands directly underneath (accordion-style with `AnimatePresence`) with zero modals or popups.
+  5. **Verification:**
+     - Production build (`npm run build --prefix frontend`): 19/19 routes compiled successfully with 0 errors.
+     - TypeScript compilation: Passed cleanly with 0 type errors.
+     - Automated test suite (`scripts/test_local_router.ts`): 33/33 tests passed with 0 failures.
+- **Impact:** `frontend/src/components/pages/DashboardPage.tsx`, `frontend/src/components/pages/FocusPage.tsx`, `frontend/src/components/focus/StopwatchTimer.tsx`, `frontend/src/hooks/useFocusTimer.ts`, `frontend/src/context/AppContext.tsx`.
+
+---
+
+## ADR-066: Instant Local-First AI Preset Chat, Progressive Thinking Stages & Resilient Offline PWA Loading
+
+- **Date:** October 2026
+- **Status:** Accepted & Verified
+- **Decision:**
+  1. **Instant Local-First Canned Responses (<20ms, 0 Tokens):**
+     - Glory AI pre-set canned messages (greetings, identity, feature navigation for Planner, Focus, Timer, Notes, Diary) are evaluated deterministically on-device via `routeUserMessage`.
+     - When `!localResolution.shouldCallGemini`, `useAIAgent.ts` bypasses artificial delays, timers, and 600ms sleeps, instantly delivering the response to state in <20ms at zero token cost.
+     - Operates seamlessly offline and online.
+  2. **Authentic Progressive Dynamic Thinking States (`thoughtText`):**
+     - Dynamic Gemini API queries set real progressive stages via `getProgressiveStages` displayed above the AI Orb's head:
+       - **Foscentia 2.1 (Fast Mode):** Fast 2-stage progression (`তোমার অনুরোধটি বুঝছি…` -> `উত্তর প্রস্তুত করছি…`) before snappy typewriter stream.
+       - **Foscentia Pro (Deep Mode):** Deep multi-stage progression (`গভীরভাবে পর্যালোচনা করছি…` -> `প্রাসঙ্গিক প্রেক্ষাপট ও তথ্য যাচাই করছি…` -> `বিস্তারিত সমাধান ও পরিকল্পনা সাজাচ্ছি…` -> `চূড়ান্ত প্রতিক্রিয়াটি গুছিয়ে লিখছি…`) for structured plans and research.
+     - Connected directly to `<AIOrbFace thoughtText={...}>` in `AIAgentPage.tsx`.
+  3. **Graceful Offline Feature Segregation:**
+     - Local tools (IndexedDB, Planner, Timer, Notes, Diary, and Glory AI preset talk) operate 100% offline without blocking or crashes.
+     - When offline, queries requiring external internet/Gemini API are gracefully informed with an empathetic assistant message detailing that offline mode is active while local tools remain completely functional.
+  4. **PWA Offline Pre-Caching & Session Resilience:**
+     - Upgraded `sw.js` cache version to `focentia-v13-fast-load`, implemented `Promise.allSettled` for pre-caching, and added `{ ignoreSearch: true }` to navigate requests to ensure offline app shell loading on all sub-routes and queries.
+     - Added offline session preservation in `AuthContext.tsx` via `accountManager.getRememberedAccounts()`.
+- **Impact:** `frontend/public/sw.js`, `frontend/src/context/AuthContext.tsx`, `frontend/src/hooks/useAIAgent.ts`, `frontend/src/services/aiStatusEvents.ts`, `frontend/src/components/ai-agent/AIAgentPage.tsx`, `frontend/src/components/ai-agent/useOrbMood.ts`.
+
+---
+
+## ADR-067: Strict Gemini Token Conservation, Accurate Crisp Answers & Quota Gate Integrity
+
+- **Date:** October 2026
+- **Status:** Accepted & Verified
+- **Decision:**
+  1. **Strict Gemini Output Token Capping (`maxOutputTokens`):**
+     - Tightened `maxOutputTokens` across both Next.js App Router (`frontend/src/lib/server/aiService.ts`) and companion Express server (`backend/src/services/aiService.ts`):
+       - Standard / Fast queries (Foscentia 2.1): Capped at `600` output tokens (down from 1,000), strictly bounding output length and eliminating runaway token spend.
+       - Deep / Roadmap queries (Foscentia Pro): Capped at `2,200` output tokens (down from 3,500), accommodating multi-stage curriculum roadmaps while preventing bloated filler.
+  2. **Zero-Fluff System Prompt Directives with 100% Logical Accuracy:**
+     - Added explicit `FACTUAL ACCURACY, LOGICAL REASONING & MAXIMUM TOKEN CONSERVATION` directives to `buildAgentChatPrompt`:
+       - Zero conversational filler, introductory pleasantries ("Certainly! I'd be more than happy to..."), or repetitive preambles.
+       - 100% factual and logical integrity: never hallucinate fake facts, invent non-existent concepts, or provide contradictory advice.
+       - Crisp, high-yield answers in 1 to 3 short sentences for standard queries.
+  3. **Client Quota Gate Harmonization (`checkQuotaGate`):**
+     - Fixed `frontend/src/lib/ai/router/quota.ts` to block only when `status.isExhausted || status.remaining <= 0` (previously prematurely blocked when `remaining < 50`). This allows users to utilize all of their allocated tokens down to zero without losing ~10 turns.
+  4. **Quota Allocation & Exhaustion Zero-Token Enforcement:**
+     - Verified individual quotas: **5,000 tokens for authenticated users** and **1,000 tokens for guests**.
+     - When quota reaches 0, `/api/ai/agent/chat` immediately halts and responds with `LIMIT_EXHAUSTED` / `REQUIRE_LOGIN`, completely short-circuiting Gemini API calls and consuming exactly 0 external tokens.
+     - Sticky banner displays live reset countdown and AI Orb safely enters resting/sleeping state.
+  5. **Verification:**
+     - Frontend TypeScript typecheck (`tsc --noEmit`): Passed with 0 errors.
+     - Backend build (`npm run build --prefix backend`): Passed with 0 errors.
+- **Impact:** `frontend/src/lib/server/aiService.ts`, `backend/src/services/aiService.ts`, `frontend/src/lib/ai/router/quota.ts`, `.agent/CURRENT_STATE.md`.
+
+---
+
+## ADR-068: AI Online-Only Requirement, Polite Offline In-Chat Assistance & Control Guards
+
+- **Date:** October 2026
+- **Status:** Accepted & Verified
+- **Decision:**
+  1. **AI Chat Online-Only Enforcement (`useAIAgent.ts`):**
+     - Glory AI (both instant preset greetings and external Gemini queries) does not answer or execute actions offline.
+     - When offline, any submitted message adds the user's message to the conversation and returns an in-chat assistant reply:
+       *"তুমি এখন অনলাইনে নেই, বর্তমানে অফলাইনে আছো। অফলাইনে থাকায় এই মুহূর্তে আমি তোমাকে কোনো সাহায্য করতে বা উত্তর দিতে পারছি না। অনুগ্রহ করে ইন্টারনেট সংযোগ চালু করো, আমি সবসময় তোমার পাশে আছি!"*
+     - Instant preset messages execute instantly (<20ms) only when online.
+  2. **Text Bar Typing Allowed Offline:**
+     - The text bar remains active and typeable while offline (`disabled={isThinking || isLimitExhausted}`); upon submitting, the polite in-chat offline response is triggered.
+  3. **Mood & Model Selection Offline Protection:**
+     - Mood popover allows viewing available moods; attempting to use/select any mood while offline prevents the change and alerts:
+       *"তুমি এখন অফলাইনে আছো। অফলাইনে মুড ব্যবহার করা যাবে না।"*
+     - Attempting to switch AI models (Foscentia 2.1 / Pro) while offline prevents switching and alerts:
+       *"তুমি এখন অফলাইনে আছো। অফলাইনে মডেল পরিবর্তন করা যাবে না।"*
+  4. **Voice Input Online-Only Guard:**
+     - Clicking the microphone / voice input button while offline prevents activation and alerts:
+       *"তুমি এখন অফলাইনে আছো। ভয়েস ইনপুট ব্যবহার করতে ইন্টারনেট সংযোগ প্রয়োজন।"*
+     - Hardened global `useContinuousSpeech.ts` to block offline speech recognition.
+  5. **Verification:**
+     - Frontend TypeScript typecheck (`tsc --noEmit`): Passed with 0 errors.
+     - Backend build (`npm run build --prefix backend`): Passed with 0 errors.
+- **Impact:** `frontend/src/hooks/useAIAgent.ts`, `frontend/src/components/ai-agent/AIAgentPage.tsx`, `frontend/src/hooks/useContinuousSpeech.ts`.
+
+
 
 
 

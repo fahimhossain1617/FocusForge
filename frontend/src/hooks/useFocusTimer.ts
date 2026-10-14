@@ -209,6 +209,7 @@ export function useFocusTimer(options?: UseFocusTimerOptions) {
     seconds,
     display,
     progress,
+    elapsedSeconds,
     elapsedMinutes,
     start,
     pause,

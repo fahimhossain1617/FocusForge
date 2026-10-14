@@ -188,16 +188,52 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (session && session.user && isMounted) {
           await processAuthenticatedUser(session.user, true);
         } else if (isMounted && !processedUserIdRef.current) {
-          setUser(null);
-          const guestDisabled = accountManager.isGuestModePermanentlyDisabled();
-          setIsGuestModeDisabled(guestDisabled);
-          setLifecycle(guestDisabled ? "UNAUTHENTICATED" : "GUEST");
+          const remembered = accountManager.getRememberedAccounts()[0];
+          const isCurrentlyOffline = typeof navigator !== "undefined" && !navigator.onLine;
+
+          // If offline and a remembered user exists, maintain their authenticated offline session!
+          if (isCurrentlyOffline && remembered) {
+            await processAuthenticatedUser({
+              id: remembered.id,
+              email: remembered.email,
+              user_metadata: {
+                full_name: remembered.fullName,
+                display_name: remembered.displayName,
+                avatar_url: remembered.avatarUrl,
+              },
+              app_metadata: {
+                provider: remembered.authMethod === "google" ? "google" : "email",
+              },
+            }, true);
+          } else {
+            setUser(null);
+            const guestDisabled = accountManager.isGuestModePermanentlyDisabled();
+            setIsGuestModeDisabled(guestDisabled);
+            setLifecycle(guestDisabled ? "UNAUTHENTICATED" : "GUEST");
+          }
         }
       } catch (err) {
         console.warn("[AuthContext] Session init error:", err);
         if (isMounted && !processedUserIdRef.current) {
-          setUser(null);
-          setLifecycle("UNAUTHENTICATED");
+          const remembered = accountManager.getRememberedAccounts()[0];
+          const isCurrentlyOffline = typeof navigator !== "undefined" && !navigator.onLine;
+          if (isCurrentlyOffline && remembered) {
+            await processAuthenticatedUser({
+              id: remembered.id,
+              email: remembered.email,
+              user_metadata: {
+                full_name: remembered.fullName,
+                display_name: remembered.displayName,
+                avatar_url: remembered.avatarUrl,
+              },
+              app_metadata: {
+                provider: remembered.authMethod === "google" ? "google" : "email",
+              },
+            }, true);
+          } else {
+            setUser(null);
+            setLifecycle("UNAUTHENTICATED");
+          }
         }
       }
     }

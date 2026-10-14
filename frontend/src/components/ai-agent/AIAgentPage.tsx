@@ -234,6 +234,7 @@ export function AIAgentPage() {
     isThinking,
     isTyping,
     streamingText,
+    thoughtText: agentThoughtText,
     stopGeneration,
     error,
     send,
@@ -828,15 +829,6 @@ export function AIAgentPage() {
       stopVoiceListening();
     }
     if (!value.trim() || guestLimitExceeded) return;
-    if (!isOnline) {
-      showToast(
-        isSystemBn 
-          ? "তুমি বর্তমানে অফলাইনে আছো।" 
-          : "You are currently offline.", 
-        "error"
-      );
-      return;
-    }
     setInput("");
     if (textareaRef.current) {
       textareaRef.current.style.height = "auto";
@@ -852,9 +844,9 @@ export function AIAgentPage() {
     if (!isOnline) {
       showToast(
         isSystemBn 
-          ? "তুমি বর্তমানে অফলাইনে আছো।" 
-          : "You are currently offline.", 
-        "error"
+          ? "তুমি এখন অফলাইনে আছো। ভয়েস ইনপুট ব্যবহার করতে ইন্টারনেট সংযোগ প্রয়োজন।" 
+          : "You are currently offline. Voice input requires an internet connection.", 
+        "info"
       );
       return;
     }
@@ -999,7 +991,7 @@ export function AIAgentPage() {
                 <AIOrbFace
                   mood={mood}
                   orbState={orbState}
-                  thoughtText={thoughtText || greetingText}
+                  thoughtText={agentThoughtText || thoughtText || greetingText}
                   speechSide="top"
                   isThinking={isThinking}
                   isGiggling={isGiggling}
@@ -1360,7 +1352,7 @@ export function AIAgentPage() {
                   <AIOrbFace
                     mood={mood}
                     orbState={orbState}
-                    thoughtText={isTyping ? streamingText : thoughtText}
+                    thoughtText={isTyping ? streamingText : (agentThoughtText || thoughtText)}
                     speechSide="left"
                     isThinking={isThinking}
                     isTypingStream={isTyping}
@@ -1500,11 +1492,26 @@ export function AIAgentPage() {
 
                     {moodMenuOpen && (
                       <div className={styles.moodPopoverBottom} role="dialog" aria-label="Companion moods">
+                        {!isOnline && (
+                          <div className="px-3 py-1.5 mb-1.5 text-[11px] font-medium text-amber-500 bg-amber-500/10 rounded-lg text-center">
+                            {isSystemBn ? "তুমি এখন অফলাইনে আছো" : "You are currently offline"}
+                          </div>
+                        )}
                         <div className={styles.moodGrid}>
                           <button
                             type="button"
                             className={`${styles.moodItem} ${mood === "idle" ? styles.moodItemActive : ""}`}
                             onClick={() => {
+                              if (!isOnline) {
+                                showToast(
+                                  isSystemBn 
+                                    ? "তুমি এখন অফলাইনে আছো। অফলাইনে মুড ব্যবহার করা যাবে না।" 
+                                    : "You are currently offline. Cannot use moods while offline.",
+                                  "info"
+                                );
+                                setMoodMenuOpen(false);
+                                return;
+                              }
                               setManualMood(null);
                               setMoodMenuOpen(false);
                             }}
@@ -1519,6 +1526,16 @@ export function AIAgentPage() {
                               type="button"
                               className={`${styles.moodItem} ${mood === opt.id ? styles.moodItemActive : ""}`}
                               onClick={() => {
+                                if (!isOnline) {
+                                  showToast(
+                                    isSystemBn 
+                                      ? "তুমি এখন অফলাইনে আছো। অফলাইনে মুড ব্যবহার করা যাবে না।" 
+                                      : "You are currently offline. Cannot use moods while offline.",
+                                    "info"
+                                  );
+                                  setMoodMenuOpen(false);
+                                  return;
+                                }
                                 setManualMood(opt.id);
                                 setMoodMenuOpen(false);
                               }}
@@ -1563,6 +1580,16 @@ export function AIAgentPage() {
                           role="menuitem"
                           className={`${styles.modelMenuItem} ${modelMode === "fast" ? styles.modelMenuItemActive : ""}`}
                           onClick={() => {
+                            if (!isOnline) {
+                              showToast(
+                                isSystemBn 
+                                  ? "তুমি এখন অফলাইনে আছো। অফলাইনে মডেল পরিবর্তন করা যাবে না।" 
+                                  : "You are currently offline. Cannot change AI models while offline.",
+                                "info"
+                              );
+                              setModelMenuOpen(false);
+                              return;
+                            }
                             setModelMode("fast");
                             setModelMenuOpen(false);
                           }}
@@ -1588,6 +1615,16 @@ export function AIAgentPage() {
                           role="menuitem"
                           className={`${styles.modelMenuItem} ${modelMode === "deep" ? styles.modelMenuItemActive : ""}`}
                           onClick={() => {
+                            if (!isOnline) {
+                              showToast(
+                                isSystemBn 
+                                  ? "তুমি এখন অফলাইনে আছো। অফলাইনে মডেল পরিবর্তন করা যাবে না।" 
+                                  : "You are currently offline. Cannot change AI models while offline.",
+                                "info"
+                              );
+                              setModelMenuOpen(false);
+                              return;
+                            }
                             setModelMode("deep");
                             setModelMenuOpen(false);
                           }}

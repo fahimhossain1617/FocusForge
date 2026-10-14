@@ -86,6 +86,10 @@ export function useContinuousSpeech({
   const isFinalizing = voiceState === 'STOPPING' || voiceState === 'FINALIZING';
 
   const startListening = useCallback((currentManualText?: string) => {
+    if (typeof window !== 'undefined' && !navigator.onLine) {
+      onErrorRef.current?.(lang === 'bn-BD' ? 'তুমি এখন অফলাইনে আছো। ভয়েস ইনপুট ব্যবহার করতে ইন্টারনেট সংযোগ প্রয়োজন।' : 'You are currently offline. Voice input requires an internet connection.');
+      return;
+    }
     const base = currentManualText !== undefined ? currentManualText : text;
     void managerRef.current?.start({
       language: lang,

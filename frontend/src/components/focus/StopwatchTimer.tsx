@@ -86,6 +86,71 @@ export const StopwatchTimer = memo(function StopwatchTimer({
   });
   const [showHistoryModal, setShowHistoryModal] = useState(false);
 
+  // Load timer history from local database and merge with state
+  useEffect(() => {
+    let isMounted = true;
+    const loadFromDb = async () => {
+      try {
+        const { localDb } = await import("../../services/localDbService");
+        const cleanUserId = user?.id || "guest";
+        const allSessions = await localDb.getAllForUser<any>("focus_sessions", cleanUserId);
+        const timerSessions = (allSessions || []).filter(
+          (s: any) => s.sessionType === "timer" || s.category === "Timer"
+        );
+
+        if (timerSessions.length > 0 && isMounted) {
+          const aggregatedMap = new Map<string, { totalSeconds: number; lastDate?: string }>();
+          timerSessions.forEach((s: any) => {
+            const name = s.taskName?.trim();
+            if (!name) return;
+            const secs = s.elapsedSeconds || Math.round((s.durationMinutes || 0) * 60);
+            const dateStr = s.date || (s.startedAt ? s.startedAt.split("T")[0] : undefined);
+            const existing = aggregatedMap.get(name);
+            if (existing) {
+              existing.totalSeconds += secs;
+              if (dateStr && (!existing.lastDate || dateStr > existing.lastDate)) {
+                existing.lastDate = dateStr;
+              }
+            } else {
+              aggregatedMap.set(name, { totalSeconds: secs, lastDate: dateStr });
+            }
+          });
+
+          const items: TimerHistoryItem[] = Array.from(aggregatedMap.entries()).map(([name, data]) => ({
+            name,
+            totalSeconds: data.totalSeconds,
+            lastDate: data.lastDate,
+          }));
+
+          setTimerHistory((prev) => {
+            const combinedMap = new Map<string, TimerHistoryItem>();
+            items.forEach((it) => combinedMap.set(it.name, it));
+            prev.forEach((it) => {
+              const existing = combinedMap.get(it.name);
+              if (existing) {
+                existing.totalSeconds = Math.max(existing.totalSeconds, it.totalSeconds);
+              } else {
+                combinedMap.set(it.name, it);
+              }
+            });
+            const merged = Array.from(combinedMap.values()).slice(0, 50);
+            try {
+              localStorage.setItem("timer_task_history", JSON.stringify(merged));
+            } catch {}
+            return merged;
+          });
+        }
+      } catch (err) {
+        console.warn("[StopwatchTimer] Error loading timer history from localDb:", err);
+      }
+    };
+
+    loadFromDb();
+    return () => {
+      isMounted = false;
+    };
+  }, [user?.id]);
+
   // Modals
   const [showCompletionModal, setShowCompletionModal] = useState(false);
   const [lastSavedDurationStr, setLastSavedDurationStr] = useState("00:00:00");
@@ -179,7 +244,7 @@ export const StopwatchTimer = memo(function StopwatchTimer({
     });
   }, [state.lang]);
 
-  const deleteHistoryItem = (name: string) => {
+  const deleteHistoryItem = async (name: string) => {
     setTimerHistory((prev) => {
       const updated = prev.filter((item) => item.name !== name);
       try {
@@ -187,6 +252,25 @@ export const StopwatchTimer = memo(function StopwatchTimer({
       } catch {}
       return updated;
     });
+
+    try {
+      const { localDb } = await import("../../services/localDbService");
+      const cleanUserId = user?.id || "guest";
+      const allSessions = await localDb.getAllForUser<any>("focus_sessions", cleanUserId);
+      const toDelete = (allSessions || []).filter(
+        (s: any) => (s.sessionType === "timer" || s.category === "Timer") && s.taskName === name
+      );
+      for (const s of toDelete) {
+        await localDb.softDelete("focus_sessions", cleanUserId, s.id);
+      }
+      updateState({
+        focusSessions: (state.focusSessions || []).filter(
+          (s) => !( (s.sessionType === "timer" || s.category === "Timer") && s.taskName === name )
+        ),
+      });
+    } catch (err) {
+      console.warn("[StopwatchTimer] Error deleting timer history from localDb:", err);
+    }
   };
 
   // Start from setup screen -> enters active view directly
