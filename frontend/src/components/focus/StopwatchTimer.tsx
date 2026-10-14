@@ -36,6 +36,7 @@ interface TimerHistoryItem {
   name: string;
   totalSeconds: number;
   lastDate?: string;
+  lastTimestamp?: number;
 }
 
 // Clean helper to format duration in seconds/minutes/hours without floating decimals
@@ -78,7 +79,9 @@ export const StopwatchTimer = memo(function StopwatchTimer({
         const saved = localStorage.getItem("timer_task_history");
         if (saved) {
           const parsed = JSON.parse(saved);
-          if (Array.isArray(parsed)) return parsed;
+          if (Array.isArray(parsed)) {
+            return parsed.sort((a, b) => (b.lastTimestamp || 0) - (a.lastTimestamp || 0));
+          }
         }
       } catch {}
     }
@@ -86,7 +89,7 @@ export const StopwatchTimer = memo(function StopwatchTimer({
   });
   const [showHistoryModal, setShowHistoryModal] = useState(false);
 
-  // Load timer history from local database and merge with state
+  // Load timer history from local database and merge with state (newest first)
   useEffect(() => {
     let isMounted = true;
     const loadFromDb = async () => {
@@ -99,20 +102,22 @@ export const StopwatchTimer = memo(function StopwatchTimer({
         );
 
         if (timerSessions.length > 0 && isMounted) {
-          const aggregatedMap = new Map<string, { totalSeconds: number; lastDate?: string }>();
+          const aggregatedMap = new Map<string, { totalSeconds: number; lastDate?: string; lastTimestamp?: number }>();
           timerSessions.forEach((s: any) => {
             const name = s.taskName?.trim();
             if (!name) return;
             const secs = s.elapsedSeconds || Math.round((s.durationMinutes || 0) * 60);
             const dateStr = s.date || (s.startedAt ? s.startedAt.split("T")[0] : undefined);
+            const timeNum = s.startedAt ? new Date(s.startedAt).getTime() : (s.createdAt ? new Date(s.createdAt).getTime() : 0);
             const existing = aggregatedMap.get(name);
             if (existing) {
               existing.totalSeconds += secs;
-              if (dateStr && (!existing.lastDate || dateStr > existing.lastDate)) {
+              if (timeNum > (existing.lastTimestamp || 0)) {
+                existing.lastTimestamp = timeNum;
                 existing.lastDate = dateStr;
               }
             } else {
-              aggregatedMap.set(name, { totalSeconds: secs, lastDate: dateStr });
+              aggregatedMap.set(name, { totalSeconds: secs, lastDate: dateStr, lastTimestamp: timeNum });
             }
           });
 
@@ -120,6 +125,7 @@ export const StopwatchTimer = memo(function StopwatchTimer({
             name,
             totalSeconds: data.totalSeconds,
             lastDate: data.lastDate,
+            lastTimestamp: data.lastTimestamp,
           }));
 
           setTimerHistory((prev) => {
@@ -129,11 +135,17 @@ export const StopwatchTimer = memo(function StopwatchTimer({
               const existing = combinedMap.get(it.name);
               if (existing) {
                 existing.totalSeconds = Math.max(existing.totalSeconds, it.totalSeconds);
+                if ((it.lastTimestamp || 0) > (existing.lastTimestamp || 0)) {
+                  existing.lastTimestamp = it.lastTimestamp;
+                  existing.lastDate = it.lastDate;
+                }
               } else {
                 combinedMap.set(it.name, it);
               }
             });
-            const merged = Array.from(combinedMap.values()).slice(0, 50);
+            const merged = Array.from(combinedMap.values())
+              .sort((a, b) => (b.lastTimestamp || 0) - (a.lastTimestamp || 0))
+              .slice(0, 50);
             try {
               localStorage.setItem("timer_task_history", JSON.stringify(merged));
             } catch {}
@@ -233,7 +245,7 @@ export const StopwatchTimer = memo(function StopwatchTimer({
       const existing = prev.find((item) => item.name === cleanName);
       const updatedTotal = existing ? existing.totalSeconds + addedSeconds : addedSeconds;
       const updated = [
-        { name: cleanName, totalSeconds: updatedTotal, lastDate: today },
+        { name: cleanName, totalSeconds: updatedTotal, lastDate: today, lastTimestamp: Date.now() },
         ...prev.filter((item) => item.name !== cleanName),
       ].slice(0, 50);
 
@@ -296,7 +308,7 @@ export const StopwatchTimer = memo(function StopwatchTimer({
   };
 
   const handleBackAttempt = () => {
-    if (elapsedSeconds > 5 || isRunning) {
+    if (elapsedSeconds > 0 || isRunning) {
       setIsRunning(false);
       setShowExitConfirm(true);
     } else {
@@ -435,9 +447,9 @@ export const StopwatchTimer = memo(function StopwatchTimer({
   // =========================================================================
   if (viewMode === "active") {
     return (
-      <div className="w-full animate-in fade-in duration-200">
+      <div className="w-full min-h-[calc(100dvh-130px)] flex flex-col justify-between animate-in fade-in duration-200">
         {/* Top Navigation Bar: Back icon button on Left, Active status on Right */}
-        <div className="mb-4 sm:mb-6 flex items-center justify-between w-full">
+        <div className="flex items-center justify-between w-full shrink-0 pt-1 pb-2">
           <button
             type="button"
             onClick={handleBackAttempt}
@@ -466,8 +478,8 @@ export const StopwatchTimer = memo(function StopwatchTimer({
           </div>
         </div>
 
-        {/* Center Container: Centered Margins & Balanced Padding */}
-        <div className="max-w-2xl mx-auto flex flex-col items-center justify-center text-center py-4 sm:py-8">
+        {/* Center Container: Centered vertically in viewport on both mobile & desktop */}
+        <div className="max-w-2xl mx-auto w-full flex-1 flex flex-col items-center justify-center text-center my-auto py-6 sm:py-12">
           {/* Topic / Task Pill if provided */}
           {topicName && (
             <div className="mb-5 inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#F0F5FD] dark:bg-white/5 border border-[#DCE5F0] dark:border-white/10 text-xs sm:text-sm font-semibold text-[#111827] dark:text-zinc-200">
@@ -572,6 +584,9 @@ export const StopwatchTimer = memo(function StopwatchTimer({
           </div>
         </div>
 
+        {/* Optical spacing balance on bottom */}
+        <div className="h-6 shrink-0 pointer-events-none" />
+
         {/* Exit / Save Prompt Modal */}
         {exitConfirmAnim.shouldRender && typeof document !== "undefined" && createPortal(
           <div
@@ -588,38 +603,43 @@ export const StopwatchTimer = memo(function StopwatchTimer({
               }`}
             >
               <h4 className="text-base font-bold text-[#111827] dark:text-white mb-2">
-                {state.lang === "bn" ? "সেশন সেভ করবেন?" : "Save Current Session?"}
+                {state.lang === "bn" ? "টাইমার সেশন বন্ধ করবেন?" : "Exit Timer Session?"}
               </h4>
-              <p className="text-xs text-[#52627A] dark:text-zinc-400 mb-5">
+              <p className="text-xs text-[#52627A] dark:text-zinc-400 mb-5 leading-relaxed">
                 {state.lang === "bn"
-                  ? "বের হওয়ার আগে সেশনের সময়টুকু ড্যাশবোর্ডে সংরক্ষণ করতে চান?"
-                  : "Would you like to record this session time to your dashboard before leaving?"}
+                  ? "আপনি কি এই সেশনটি সংরক্ষণ করতে চান, মুছে বের হতে চান, নাকি টাইমার চালিয়ে যেতে চান?"
+                  : "Would you like to save this session, discard and stop the timer, or keep timing?"}
               </p>
               <div className="flex flex-col gap-2.5">
-                <button
-                  type="button"
-                  onClick={handleSaveAndStop}
-                  className="w-full py-2.5 px-4 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-500 text-white transition-colors cursor-pointer"
-                >
-                  {state.lang === "bn" ? "সেভ করে বের হোন" : "Save & Exit"}
-                </button>
+                {/* 1. Save and Exit */}
+                {elapsedSeconds > 0 && (
+                  <button
+                    type="button"
+                    onClick={handleSaveAndStop}
+                    className="w-full py-2.5 px-4 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-500 text-white transition-colors cursor-pointer shadow-none"
+                  >
+                    {state.lang === "bn" ? "সেশন সেভ করে বের হোন" : "Save & Exit"}
+                  </button>
+                )}
                 <div className="flex items-center gap-2">
+                  {/* 2. Stop and Discard */}
                   <button
                     type="button"
                     onClick={handleDiscardAndExit}
-                    className="flex-1 py-2 px-3 rounded-xl text-xs font-semibold text-[#52627A] dark:text-zinc-400 hover:text-red-500 dark:hover:text-red-400 bg-[#F7FAFE] dark:bg-white/5 border border-[#DCE5F0] dark:border-white/10 transition-colors cursor-pointer"
+                    className="flex-1 py-2 px-3 rounded-xl text-xs font-semibold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 bg-[#F7FAFE] dark:bg-white/5 border border-red-200 dark:border-red-500/20 transition-colors cursor-pointer"
                   >
-                    {state.lang === "bn" ? "মুছে বের হোন" : "Discard & Exit"}
+                    {state.lang === "bn" ? "টাইমার অফ করুন" : "Stop Timer"}
                   </button>
+                  {/* 3. Continue */}
                   <button
                     type="button"
                     onClick={() => {
                       setShowExitConfirm(false);
                       setIsRunning(true);
                     }}
-                    className="flex-1 py-2 px-3 rounded-xl text-xs font-semibold text-[#111827] dark:text-white bg-[#F0F5FD] dark:bg-white/10 border border-[#DCE5F0] dark:border-white/10 transition-colors cursor-pointer"
+                    className="flex-1 py-2 px-3 rounded-xl text-xs font-semibold text-[#111827] dark:text-white bg-[#F0F5FD] dark:bg-white/10 border border-[#DCE5F0] dark:border-white/10 hover:bg-blue-50 dark:hover:bg-white/15 transition-colors cursor-pointer"
                   >
-                    {state.lang === "bn" ? "চালিয়ে যান" : "Keep Timing"}
+                    {state.lang === "bn" ? "চালিয়ে যান" : "Continue"}
                   </button>
                 </div>
               </div>

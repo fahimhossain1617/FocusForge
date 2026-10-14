@@ -38,15 +38,20 @@ export const focusDbService = {
     sessionId: string,
     durationMinutes: number,
     completed: boolean,
-    userId?: string
+    userId?: string,
+    elapsedSeconds?: number
   ): Promise<void> {
     try {
       const cleanUserId = userId || "guest";
       const existing = await localDb.get<FocusSession>("focus_sessions", cleanUserId, sessionId);
       if (existing) {
+        const actualSecs = elapsedSeconds !== undefined
+          ? elapsedSeconds
+          : (existing.elapsedSeconds || Math.round(durationMinutes * 60));
         await localDb.put("focus_sessions", {
           ...existing,
           durationMinutes,
+          elapsedSeconds: actualSecs,
           completed,
           endedAt: new Date().toISOString(),
           userId: cleanUserId,

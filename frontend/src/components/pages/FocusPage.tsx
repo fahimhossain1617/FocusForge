@@ -149,9 +149,12 @@ export default function FocusPage() {
   const updateHistoryMinutes = useCallback((taskName: string, minutes: number) => {
     if (!taskName.trim() || minutes <= 0) return;
     setTaskHistory((prev) => {
-      const updated = prev.map((t) =>
-        t.name === taskName ? { ...t, totalMinutes: t.totalMinutes + minutes } : t
-      );
+      const existing = prev.find((t) => t.name === taskName);
+      const updatedTotal = existing ? existing.totalMinutes + minutes : minutes;
+      const updated = [
+        { name: taskName, totalMinutes: updatedTotal },
+        ...prev.filter((t) => t.name !== taskName),
+      ].slice(0, 50);
       try {
         localStorage.setItem("focus_task_history", JSON.stringify(updated));
       } catch {}
@@ -406,7 +409,9 @@ export default function FocusPage() {
   };
 
   const handleStartFocus = () => {
-    let effectiveDuration = timer.workMinutes;
+    const rawH = parseInt(hoursInputStr, 10) || 0;
+    const rawM = parseInt(minutesInputStr, 10) || 0;
+    let effectiveDuration = rawH * 60 + rawM;
 
     // If no duration set or left at 0, automatically default to 25 minutes
     if (!effectiveDuration || effectiveDuration <= 0) {
@@ -416,6 +421,8 @@ export default function FocusPage() {
       setCustomMinutes(25);
       setHoursInputStr("0");
       setMinutesInputStr("25");
+    } else {
+      timer.setPreset(effectiveDuration);
     }
 
     setShowDurationError(false);
@@ -434,12 +441,12 @@ export default function FocusPage() {
       finalTaskName,
       finalCategory,
       selectedTask.id,
-      timer.workMinutes
+      effectiveDuration
     );
     setActiveSessionId(sessionId);
     setSelectedTask({ id: selectedTask.id, name: finalTaskName, category: finalCategory });
     setSessionPhase("focus_active");
-    timer.start();
+    timer.start(effectiveDuration);
   };
 
   const handlePauseAttempt = () => {
@@ -452,19 +459,18 @@ export default function FocusPage() {
     setShowPauseModal(false);
   };
 
-  // Back Button Guard: Prompt with 3-attempt friction system if active
+  // Back Button Guard: Prompt with 3-choice modal (Save & Exit, Stop/Discard, Continue)
   const handleBackAttempt = () => {
     if (sessionPhase === "focus_active" && activeSessionId && timer.remaining > 0) {
       timer.pause();
       setTargetExitPage("dashboard");
       setPendingExitAction("back");
       setShowEarlyExitModal(true);
-      setExitAttempts((prev) => Math.min(prev + 1, 3));
       return;
     }
 
     if (sessionPhase === "break_active") {
-      if (timer.elapsedSeconds >= 3) {
+      if (timer.elapsedSeconds >= 1) {
         const elapsedMins = Math.round((timer.elapsedSeconds / 60) * 100) / 100;
         addBreakTime(elapsedMins, lastCompletedSessionIdRef.current || undefined);
       }
@@ -483,31 +489,42 @@ export default function FocusPage() {
     timer.start();
   };
 
-  // 3-Attempt Exit Friction Handler
-  const handleSecondaryModalAction = () => {
-    if (exitAttempts < 3) {
-      const nextAttempt = Math.min(exitAttempts + 1, 3);
-      setExitAttempts(nextAttempt);
-      showToast(
-        state.lang === "bn"
-          ? `সতর্কবার্তা: অন্তত ৩ বার চেষ্টার পরই সেশন ছাড়া সম্ভব (${nextAttempt}/৩)!`
-          : `Notice: Early exit requires 3 attempts (${nextAttempt}/3)!`,
-        "info"
-      );
-      return;
-    }
-
+  const handleSaveAndExitFocus = () => {
     if (activeSessionId) {
-      endFocusSession(activeSessionId, timer.elapsedMinutes, false);
+      const elapsedMins = Math.round((timer.elapsedSeconds / 60) * 100) / 100;
+      endFocusSession(activeSessionId, elapsedMins, false, timer.elapsedSeconds);
       showToast(
         state.lang === "bn"
-          ? `ফোকাস সমাপ্ত হয়েছে (${timer.elapsedMinutes} মিনিট সেভ হয়েছে)`
-          : `Focus ended early (${timer.elapsedMinutes}m recorded)`,
+          ? `ফোকাস সমাপ্ত হয়েছে (${timer.elapsedSeconds >= 60 ? `${elapsedMins} মিনিট` : `${timer.elapsedSeconds} সেকেন্ড`} সেভ হয়েছে)`
+          : `Focus recorded (${timer.elapsedSeconds >= 60 ? `${elapsedMins}m` : `${timer.elapsedSeconds}s`})`,
         "info"
       );
-      if (!selectedTask.id && timer.elapsedMinutes > 0) {
-        updateHistoryMinutes(selectedTask.name, timer.elapsedMinutes);
+      if (!selectedTask.id && elapsedMins > 0) {
+        updateHistoryMinutes(selectedTask.name, elapsedMins);
       }
+    }
+    unregisterFocusLock();
+    setActiveSessionId(null);
+    timer.reset();
+    setIsDeepFocus(false);
+    setShowEarlyExitModal(false);
+    setExitAttempts(0);
+    setPauseAttemptCount(0);
+    setSessionPhase("setup");
+    setSelectedTask({ name: "", category: "" });
+
+    if (pendingExitAction === "back" || pendingExitAction === "sidebar") {
+      navigateTo(targetExitPage || "dashboard");
+    }
+  };
+
+  const handleDiscardAndExitFocus = () => {
+    if (activeSessionId) {
+      endFocusSession(activeSessionId, 0, false, 0);
+      showToast(
+        state.lang === "bn" ? "সেশন সেভ ছাড়া বাতিল করা হয়েছে" : "Session discarded",
+        "info"
+      );
     }
     unregisterFocusLock();
     setActiveSessionId(null);
@@ -1102,14 +1119,14 @@ export default function FocusPage() {
                             type="text"
                             inputMode="numeric"
                             pattern="[0-9]*"
-                            value={isHoursFocused ? hoursInputStr : customHours}
-                            onFocus={() => {
+                            value={hoursInputStr}
+                            onFocus={(e) => {
                               setIsHoursFocused(true);
-                              setHoursInputStr("");
+                              e.target.select();
                             }}
                             onBlur={() => {
                               setIsHoursFocused(false);
-                              if (!hoursInputStr || isNaN(parseInt(hoursInputStr, 10))) {
+                              if (!hoursInputStr || hoursInputStr === "" || isNaN(parseInt(hoursInputStr, 10))) {
                                 setCustomHours(0);
                                 setHoursInputStr("0");
                               } else {
@@ -1123,9 +1140,11 @@ export default function FocusPage() {
                               setHoursInputStr(val);
                               const num = val === "" ? 0 : Math.min(12, parseInt(val, 10));
                               setCustomHours(num);
-                              const total = num * 60 + customMinutes;
-                              timer.setPreset(total);
-                              if (total > 0) setShowDurationError(false);
+                              const total = num * 60 + (parseInt(minutesInputStr, 10) || 0);
+                              if (total > 0) {
+                                timer.setPreset(total);
+                                setShowDurationError(false);
+                              }
                             }}
                             className="w-full text-center text-sm font-bold bg-transparent text-[#111827] dark:text-white outline-none border-0 shadow-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                           />
@@ -1160,14 +1179,14 @@ export default function FocusPage() {
                             type="text"
                             inputMode="numeric"
                             pattern="[0-9]*"
-                            value={isMinutesFocused ? minutesInputStr : customMinutes}
-                            onFocus={() => {
+                            value={minutesInputStr}
+                            onFocus={(e) => {
                               setIsMinutesFocused(true);
-                              setMinutesInputStr("");
+                              e.target.select();
                             }}
                             onBlur={() => {
                               setIsMinutesFocused(false);
-                              if (!minutesInputStr || isNaN(parseInt(minutesInputStr, 10))) {
+                              if (!minutesInputStr || minutesInputStr === "" || isNaN(parseInt(minutesInputStr, 10))) {
                                 setCustomMinutes(0);
                                 setMinutesInputStr("0");
                               } else {
@@ -1181,9 +1200,11 @@ export default function FocusPage() {
                               setMinutesInputStr(val);
                               const num = val === "" ? 0 : Math.min(120, parseInt(val, 10));
                               setCustomMinutes(num);
-                              const total = customHours * 60 + num;
-                              timer.setPreset(total);
-                              if (total > 0) setShowDurationError(false);
+                              const total = (parseInt(hoursInputStr, 10) || 0) * 60 + num;
+                              if (total > 0) {
+                                timer.setPreset(total);
+                                setShowDurationError(false);
+                              }
                             }}
                             className="w-full text-center text-sm font-bold bg-transparent text-[#111827] dark:text-white outline-none border-0 shadow-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                           />
@@ -1229,7 +1250,7 @@ export default function FocusPage() {
       {/* 2. ACTIVE FOCUS SESSION (Automatic Completion at 00:00)      */}
       {/* ============================================================ */}
       {sessionPhase === "focus_active" && (
-        <div className="w-full">
+        <div className="w-full min-h-[calc(100dvh-180px)] flex flex-col justify-between">
           {/* Top Bar for Active Session - Full width with left arrow & right status pill */}
           <div className="mb-4 sm:mb-6 flex items-center justify-between w-full">
             <button
@@ -1255,7 +1276,7 @@ export default function FocusPage() {
           </div>
 
           {/* Centered Timer Content */}
-          <div className="max-w-2xl mx-auto">
+          <div className="max-w-2xl mx-auto my-auto w-full">
             <div className="pt-1 pb-4 mb-5 text-center relative flex flex-col items-center">
               {/* Soft Ambient Background Glow - subtle and diffuse with no box shape */}
               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-blue-600/[0.08] rounded-full blur-3xl pointer-events-none" />
@@ -1466,7 +1487,7 @@ export default function FocusPage() {
       {/* 4. ACTIVE BREAK TIMER SCREEN                                 */}
       {/* ============================================================ */}
       {sessionPhase === "break_active" && (
-        <div className="w-full">
+        <div className="w-full min-h-[calc(100dvh-180px)] flex flex-col justify-between">
           {/* Top Bar for Break */}
           <div className="mb-4 sm:mb-6 flex items-center justify-between w-full">
             <button
@@ -1487,7 +1508,7 @@ export default function FocusPage() {
             </div>
           </div>
 
-          <div className="max-w-2xl mx-auto">
+          <div className="max-w-2xl mx-auto my-auto w-full">
             <div className="py-6 sm:py-8 mb-6 text-center relative flex flex-col items-center motion-reveal">
               {/* Emerald Ambient Background Glow */}
               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-emerald-500/[0.08] rounded-full blur-3xl pointer-events-none" />
@@ -1651,110 +1672,57 @@ export default function FocusPage() {
       {/* Early Exit Motivational Guard Modal (3-Attempt Friction System) */}
       {earlyExitAnim.shouldRender && (() => {
         const currentAttempt = Math.max(1, Math.min(exitAttempts, 3));
-        const isExitUnlocked = currentAttempt >= 3;
-
-        const modalTitle =
-          currentAttempt === 1
-            ? t.focus.attempt1Title
-            : currentAttempt === 2
-            ? t.focus.attempt2Title
-            : t.focus.attempt3Title;
-
-        const modalMessage =
-          currentAttempt === 1
-            ? t.focus.attempt1Message
-            : currentAttempt === 2
-            ? t.focus.attempt2Message
-            : t.focus.attempt3Message;
-
-        const modalSecondaryText =
-          currentAttempt === 1
-            ? t.focus.attempt1BtnTry
-            : currentAttempt === 2
-            ? t.focus.attempt2BtnTry
-            : t.focus.attempt3BtnQuit;
-
-        const modalPrimaryText =
-          currentAttempt === 1
-            ? t.focus.attempt1BtnKeep
-            : currentAttempt === 2
-            ? t.focus.attempt2BtnKeep
-            : t.focus.attempt3BtnKeep;
-
         const modalJSX = (
           <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 sm:p-6 overflow-y-auto" style={{ minHeight: "100dvh" }}>
-            <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={handleKeepFocusing}></div>
+            <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" onClick={handleKeepFocusing}></div>
             <div
-              className={`focus-dialog relative w-full max-w-sm sm:max-w-md my-auto border border-amber-500/20 rounded-2xl p-6 sm:p-8 shadow-2xl text-center ${
+              className={`focus-dialog relative w-full max-w-sm sm:max-w-md my-auto rounded-2xl border border-[#DCE5F0] dark:border-white/10 bg-white dark:bg-[#0c1222] p-6 text-center shadow-2xl ${
                 earlyExitAnim.isExiting ? "motion-exit-reveal" : "motion-reveal"
               }`}
-              style={{
-                boxShadow: "none",
-              }}
+              style={{ boxShadow: "none" }}
             >
-              {/* Attempt Progress Indicator: 3 steps */}
-              <div className="flex items-center justify-center gap-2 mb-3.5">
-                <div
-                  className={`h-1.5 rounded-full transition-all duration-300 ${
-                    currentAttempt >= 1 ? "w-8 bg-amber-400" : "w-3 bg-white/10"
-                  }`}
-                />
-                <div
-                  className={`h-1.5 rounded-full transition-all duration-300 ${
-                    currentAttempt >= 2 ? "w-8 bg-orange-400" : "w-3 bg-white/10"
-                  }`}
-                />
-                <div
-                  className={`h-1.5 rounded-full transition-all duration-300 ${
-                    currentAttempt >= 3 ? "w-8 bg-red-400" : "w-3 bg-white/10"
-                  }`}
-                />
-              </div>
-
-              {/* Motivational Glowing Icon */}
-              <div
-                className={`w-12 h-12 mx-auto rounded-xl flex items-center justify-center mb-3 transition-all duration-300 ${
-                  currentAttempt === 1
-                    ? "bg-amber-500/10 border border-amber-500/25"
-                    : currentAttempt === 2
-                    ? "bg-orange-500/10 border border-orange-500/25"
-                    : "bg-red-500/10 border border-red-500/25"
-                }`}
-              >
-                {currentAttempt === 1 && <ShieldAlert className="w-6 h-6 text-amber-400" />}
-                {currentAttempt === 2 && <Target className="w-6 h-6 text-orange-400" />}
-                {currentAttempt >= 3 && <Flame className="w-6 h-6 text-red-400 animate-pulse" />}
-              </div>
-
               {/* Title */}
-              <h2 className="text-base sm:text-lg font-semibold text-foreground mb-2 leading-tight">
-                {modalTitle}
+              <h2 className="text-base sm:text-lg font-bold text-[#111827] dark:text-white mb-2 leading-tight">
+                {state.lang === "bn" ? "ফোকাস সেশন বন্ধ করবেন?" : "Exit Focus Session?"}
               </h2>
 
               {/* Message */}
-              <p className="text-xs sm:text-sm text-muted-foreground mb-6 leading-relaxed px-1">
-                {modalMessage}
+              <p className="text-xs sm:text-sm text-[#52627A] dark:text-zinc-400 mb-6 leading-relaxed">
+                {state.lang === "bn"
+                  ? "আপনি কি বর্তমান সেশনের সময়টুকু সংরক্ষণ করতে চান, বাতিল করে বের হতে চান, নাকি ফোকাস চালিয়ে যাবেন?"
+                  : "Would you like to save your elapsed focus time, discard and exit, or keep focusing?"}
               </p>
 
-              {/* Action Buttons */}
-              <div className="flex items-center gap-3">
+              {/* 3 Action Buttons */}
+              <div className="flex flex-col gap-2.5">
+                {/* 1. Save and Exit */}
                 <button
-                  onClick={handleSecondaryModalAction}
-                  className={`flex-1 py-2.5 px-3 rounded-xl text-xs sm:text-sm font-bold transition-all text-center border cursor-pointer ${
-                    isExitUnlocked
-                      ? "btn-danger"
-                      : "btn-outline"
-                  }`}
+                  type="button"
+                  onClick={handleSaveAndExitFocus}
+                  className="w-full py-2.5 px-4 rounded-xl text-xs sm:text-sm font-bold bg-blue-600 hover:bg-blue-500 text-white transition-colors cursor-pointer shadow-none"
                 >
-                  {modalSecondaryText}
+                  {state.lang === "bn" ? "সেশন সেভ করে বের হোন" : "Save & Exit"}
                 </button>
 
-                <button
-                  onClick={handleKeepFocusing}
-                  className="btn-primary flex-1 py-2.5 px-3 rounded-xl text-xs sm:text-sm font-bold text-white transition-all text-center flex items-center justify-center gap-1.5 shadow-none cursor-pointer"
-                >
-                  {modalPrimaryText}
-                </button>
+                <div className="flex items-center gap-2">
+                  {/* 2. Discard and Exit */}
+                  <button
+                    type="button"
+                    onClick={handleDiscardAndExitFocus}
+                    className="flex-1 py-2 px-3 rounded-xl text-xs sm:text-sm font-semibold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 bg-[#F7FAFE] dark:bg-white/5 border border-red-200 dark:border-red-500/20 transition-colors cursor-pointer"
+                  >
+                    {state.lang === "bn" ? "টাইমার অফ করুন" : "Discard & Exit"}
+                  </button>
+
+                  {/* 3. Continue Focusing */}
+                  <button
+                    type="button"
+                    onClick={handleKeepFocusing}
+                    className="flex-1 py-2 px-3 rounded-xl text-xs sm:text-sm font-semibold text-[#111827] dark:text-white bg-[#F0F5FD] dark:bg-white/10 border border-[#DCE5F0] dark:border-white/10 hover:bg-blue-50 dark:hover:bg-white/15 transition-colors cursor-pointer"
+                  >
+                    {state.lang === "bn" ? "চালিয়ে যান" : "Continue"}
+                  </button>
+                </div>
               </div>
             </div>
           </div>

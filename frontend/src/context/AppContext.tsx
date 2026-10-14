@@ -156,7 +156,7 @@ interface AppContextType {
 
   // Focus Sessions
   startFocusSession: (taskName: string, category: string, taskId?: number, targetMinutes?: number) => string;
-  endFocusSession: (sessionId: string, durationMinutes: number, completed?: boolean) => void;
+  endFocusSession: (sessionId: string, durationMinutes: number, completed?: boolean, elapsedSeconds?: number) => void;
   addBreakTime: (breakMinutes: number, sessionId?: string) => void;
   addDistraction: (sessionId: string, content: string) => void;
 
@@ -1360,15 +1360,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return id;
   }, []);
 
-  const endFocusSession = useCallback((sessionId: string, durationMinutes: number, completed: boolean = true) => {
+  const endFocusSession = useCallback((sessionId: string, durationMinutes: number, completed: boolean = true, elapsedSeconds?: number) => {
     setState((prev) => {
       const session = prev.focusSessions.find((s) => s.id === sessionId);
       if (!session) return prev;
 
       const endedAt = new Date().toISOString();
+      const actualElapsedSecs = elapsedSeconds !== undefined
+        ? elapsedSeconds
+        : (session.elapsedSeconds || Math.round(durationMinutes * 60));
       const updatedSessions = prev.focusSessions.map((s) =>
         s.id === sessionId
-          ? { ...s, endedAt, durationMinutes, completed }
+          ? { ...s, endedAt, durationMinutes, completed, elapsedSeconds: actualElapsedSecs }
           : s
       );
 
@@ -1383,7 +1386,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     const currentUserId = activeUserIdRef.current || 'guest';
     // Async update in local DB and Supabase
-    focusDbService.endFocusSession(sessionId, durationMinutes, completed, currentUserId).catch((err) => {
+    focusDbService.endFocusSession(sessionId, durationMinutes, completed, currentUserId, elapsedSeconds).catch((err) => {
       console.warn("[AppContext] Error concluding focus session in DB:", err);
     });
   }, [trackMeaningfulAction]);

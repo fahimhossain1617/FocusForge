@@ -1191,6 +1191,28 @@
      - Backend build (`npm run build --prefix backend`): Passed with 0 errors.
 - **Impact:** `frontend/src/hooks/useAIAgent.ts`, `frontend/src/components/ai-agent/AIAgentPage.tsx`, `frontend/src/hooks/useContinuousSpeech.ts`.
 
+---
+
+- **Date:** 2026-10-14
+- **Decision:** Focus & Timer System UX Overhaul, Precise Elapsed Tracking, History Ordering, and Simplified Encryption Copy
+- **Context:**
+  1. E2EE Passphrase Modal had a leading icon and overly technical English terminology confusing general users.
+  2. History views needed to guarantee newest records appear at the very top (index 0).
+  3. Custom hour/minute duration inputs had restrictive backspace/clear behavior.
+  4. Short sessions (e.g., 10-20s) were rounded down to 0 minutes due to integer cutoffs instead of persisting actual elapsed time.
+  5. Stopwatch and focus active timers bunched up at the extreme top on mobile/laptop displays.
+  6. Back navigation during active timers needed an explicit modal asking to Save & Exit, Stop/Discard & Exit, or Continue.
+- **Key Changes:**
+  1. Simplified `PassphraseSetupModal.tsx` copy and removed leading header icon.
+  2. Implemented strict descending timestamp sorting for all history lists (`StopwatchTimer.tsx` and `FocusPage.tsx`), placing newly completed items at index 0.
+  3. Added `onFocus={(e) => e.target.select()}` and full backspace/deletion support on custom duration inputs with a 25m fallback if started empty.
+  4. Updated `useFocusTimer.ts`, `AppContext.tsx`, and `focusDbService.ts` to compute and persist exact elapsed seconds down to fractional minutes without truncating early exits (10-20s).
+  5. Centered active timer layouts vertically with `min-h` and `my-auto` flex containers.
+  6. Added 3-choice exit confirmation modal (Save & Exit, Stop Timer / Discard, Continue) on back button attempt during active focus/stopwatch sessions.
+- **Verification:** Frontend production build (`npm run build`) succeeded with 0 errors.
+- **Impact:** `frontend/src/components/encryption/PassphraseSetupModal.tsx`, `frontend/src/components/focus/StopwatchTimer.tsx`, `frontend/src/components/pages/FocusPage.tsx`, `frontend/src/context/AppContext.tsx`, `frontend/src/hooks/useFocusTimer.ts`, `frontend/src/services/focusDbService.ts`.
+
+
 
 
 

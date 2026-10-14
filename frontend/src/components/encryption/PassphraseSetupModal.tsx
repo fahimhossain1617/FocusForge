@@ -101,27 +101,22 @@ export default function PassphraseSetupModal({
           transition={{ duration: 0.25, ease: "easeOut" }}
           className="w-full max-w-lg rounded-3xl border border-[var(--color-border-subtle)] bg-[var(--color-surface-elevated)] p-6 sm:p-8 shadow-2xl overflow-hidden relative"
         >
-          {/* Header Icon */}
-          <div className="flex items-center gap-3.5 mb-5">
-            <div className="w-12 h-12 rounded-2xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center shrink-0">
-              <Shield className="w-6 h-6 text-blue-500" />
-            </div>
-            <div>
-              <h2 className="text-xl font-bold text-[var(--color-text-primary)] tracking-tight">
-                {generatedKey
-                  ? isBn
-                    ? "এনক্রিপশন সিক্রেট প্রস্তুত!"
-                    : "Encryption Vault Created!"
-                  : isBn
-                  ? "এন্ড-টু-এন্ড এনক্রিপশন সক্রিয় করুন"
-                  : "Enable End-to-End Encryption"}
-              </h2>
-              <p className="text-xs text-[var(--color-text-secondary)] mt-0.5">
-                {isBn
-                  ? "আপনার সমস্ত নোট, ডায়েরি এবং টাস্ক ক্লাউডে যাওয়ার আগেই এনক্রিপ্ট হবে।"
-                  : "Your notes, diary, and tasks are encrypted on this device before syncing."}
-              </p>
-            </div>
+          {/* Header Title (Clean, no leading icon, simple friendly words) */}
+          <div className="mb-5">
+            <h2 className="text-xl font-bold text-[var(--color-text-primary)] tracking-tight">
+              {generatedKey
+                ? isBn
+                  ? "সুরক্ষা সফলভাবে তৈরি হয়েছে!"
+                  : "Protection Activated!"
+                : isBn
+                ? "নোট ও টাস্ক সুরক্ষিত করুন"
+                : "Protect Your Private Notes"}
+            </h2>
+            <p className="text-xs text-[var(--color-text-secondary)] mt-1">
+              {isBn
+                ? "একটি সহজ পাসওয়ার্ড সেট করুন যাতে আপনার নোট, ডায়েরি ও টাস্ক আপনি ছাড়া কেউ দেখতে না পারে।"
+                : "Set a password so only you can unlock and read your notes, diary, and tasks."}
+            </p>
           </div>
 
           {!generatedKey ? (
@@ -129,7 +124,7 @@ export default function PassphraseSetupModal({
               {/* Passphrase Input */}
               <div>
                 <label className="block text-xs font-semibold text-[var(--color-text-primary)] mb-1.5">
-                  {isBn ? "মাস্টার এনক্রিপশন পাসফ্রেজ" : "Master Encryption Passphrase"} <span className="text-blue-500">*</span>
+                  {isBn ? "পাসওয়ার্ড তৈরি করুন" : "Create a Password"} <span className="text-blue-500">*</span>
                 </label>
                 <div className="relative">
                   <input
@@ -137,7 +132,7 @@ export default function PassphraseSetupModal({
                     required
                     value={passphrase}
                     onChange={(e) => setPassphrase(e.target.value)}
-                    placeholder={isBn ? "কমপক্ষে ৮ অক্ষরের শক্তিশালী পাসফ্রেজ..." : "Enter a strong passphrase (min 8 chars)..."}
+                    placeholder={isBn ? "কমপক্ষে ৮ অক্ষরের একটি পাসওয়ার্ড লিখুন..." : "Enter at least 8 characters..."}
                     className="w-full pl-3.5 pr-10 py-2.5 rounded-xl text-xs sm:text-sm bg-[var(--color-surface)] border border-[var(--color-border-subtle)] text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:border-blue-500 transition-colors"
                   />
                   <button
@@ -153,26 +148,26 @@ export default function PassphraseSetupModal({
               {/* Confirm Passphrase */}
               <div>
                 <label className="block text-xs font-semibold text-[var(--color-text-primary)] mb-1.5">
-                  {isBn ? "পাসফ্রেজ নিশ্চিত করুন" : "Confirm Passphrase"} <span className="text-blue-500">*</span>
+                  {isBn ? "পাসওয়ার্ড নিশ্চিত করুন" : "Confirm Password"} <span className="text-blue-500">*</span>
                 </label>
                 <input
                   type={showPassphrase ? "text" : "password"}
                   required
                   value={confirmPassphrase}
                   onChange={(e) => setConfirmPassphrase(e.target.value)}
-                  placeholder={isBn ? "পুনরায় একই পাসফ্রেজ লিখুন..." : "Re-enter your passphrase..."}
+                  placeholder={isBn ? "একই পাসওয়ার্ড আবার লিখুন..." : "Type your password again..."}
                   className="w-full px-3.5 py-2.5 rounded-xl text-xs sm:text-sm bg-[var(--color-surface)] border border-[var(--color-border-subtle)] text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:border-blue-500 transition-colors"
                 />
               </div>
 
-              {/* Zero-Knowledge Recovery Warning */}
+              {/* Recovery Warning with simple words */}
               <div className="p-3.5 rounded-2xl border border-amber-500/20 bg-amber-500/5 space-y-2">
                 <div className="flex items-start gap-2.5">
                   <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
                   <p className="text-xs text-[var(--color-text-primary)] font-medium leading-relaxed">
                     {isBn
-                      ? "জিরো-নলেজ আর্কিটেকচার: আপনি যদি এই পাসফ্রেজটি ভুলে যান, তবে Foscentia সার্ভার আপনার এনক্রিপ্ট করা ডেটা ডিক্রিপ্ট বা পুনরুদ্ধার করতে পারবে না।"
-                      : "Zero-Knowledge Guarantee: Focentia cannot read or recover your encrypted data if you lose this passphrase."}
+                      ? "জরুরি সতর্কতা: আমরা আপনার পাসওয়ার্ড সেভ রাখি না। আপনি পাসওয়ার্ড ভুলে গেলে আপনার লক করা নোট আর উদ্ধার করা সম্ভব নয়।"
+                      : "Important Notice: We do not store your password. If you lose or forget it, your locked private notes and tasks cannot be recovered."}
                   </p>
                 </div>
 
@@ -185,8 +180,8 @@ export default function PassphraseSetupModal({
                   />
                   <span>
                     {isBn
-                      ? "আমি বুঝেছি এবং এই পাসফ্রেজটি নিরাপদে সংরক্ষণ করব।"
-                      : "I understand and will keep my passphrase safe."}
+                      ? "আমি বুঝেছি এবং পাসওয়ার্ডটি মনে রাখব।"
+                      : "I understand and will remember my password."}
                   </span>
                 </label>
               </div>
@@ -213,7 +208,7 @@ export default function PassphraseSetupModal({
                   className="px-6 py-2.5 rounded-xl text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 transition-colors shadow-none cursor-pointer disabled:opacity-50 flex items-center gap-2"
                 >
                   <Lock size={14} />
-                  <span>{isSubmitting ? (isBn ? "তৈরি হচ্ছে..." : "Creating Vault...") : isBn ? "এনক্রিপশন সক্রিয় করুন" : "Enable Encryption"}</span>
+                  <span>{isSubmitting ? (isBn ? "সংরক্ষণ হচ্ছে..." : "Saving...") : isBn ? "সুরক্ষা চালু করুন" : "Turn On Protection"}</span>
                 </button>
               </div>
             </form>
@@ -222,12 +217,12 @@ export default function PassphraseSetupModal({
               <div className="p-4 rounded-2xl border border-emerald-500/20 bg-emerald-500/5 space-y-2 text-center">
                 <CheckCircle2 className="w-8 h-8 text-emerald-500 mx-auto" />
                 <p className="text-xs text-[var(--color-text-primary)] font-semibold">
-                  {isBn ? "আপনার সিক্রেট রিকভারি কি সুরক্ষিতভাবে তৈরি হয়েছে" : "Your Vault Has Been Initialized"}
+                  {isBn ? "আপনার ব্যাকআপ কি সুরক্ষিতভাবে তৈরি হয়েছে" : "Your Backup Key Has Been Created"}
                 </p>
                 <p className="text-[11px] text-[var(--color-text-secondary)]">
                   {isBn
-                    ? "অন্যান্য ডিভাইসে লগইন করার পর ডেটা অ্যাক্সেস করতে আপনার পাসফ্রেজ বা এই রিকভারি কি ব্যবহার করুন।"
-                    : "Use your passphrase or this backup key to unlock your encrypted data on new devices."}
+                    ? "অন্য কোনো ডিভাইসে লগইন করলে এই কি অথবা আপনার পাসওয়ার্ড দিয়ে নোট আনলক করতে পারবেন।"
+                    : "You can use this backup key or your password to unlock your notes on any new device."}
                 </p>
               </div>
 

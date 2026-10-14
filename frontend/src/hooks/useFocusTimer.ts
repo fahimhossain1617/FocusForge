@@ -194,7 +194,7 @@ export function useFocusTimer(options?: UseFocusTimerOptions) {
   const display = `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
   const elapsedSeconds = total > 0 ? Math.max(0, total - remaining) : 0;
   const elapsedMinutes = total > 0
-    ? (elapsedSeconds >= 30 ? Math.max(1, Math.floor(elapsedSeconds / 60)) : 0)
+    ? Math.round((elapsedSeconds / 60) * 100) / 100
     : 0;
   const progress = total > 0 ? Math.min(1, Math.max(0, 1 - remaining / total)) : 0;
 
