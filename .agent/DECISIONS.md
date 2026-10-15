@@ -1236,6 +1236,24 @@
   - `npx tsx scripts/test_auth_isolation.ts` -> 20/20 PASSED
 - **Impact:** `frontend/src/lib/server/db.ts`, `backend/src/services/db.ts`, `frontend/src/lib/server/rateLimiter.ts`, `frontend/src/lib/server/aiService.ts`, `backend/src/services/aiService.ts`, `frontend/src/lib/server/aiChatService.ts`, `backend/src/services/aiChatService.ts`, `frontend/src/app/api/[...path]/route.ts`, `frontend/src/app/api/ai/transcribe/route.ts`, `frontend/src/app/api/contact/route.ts`, `frontend/src/app/global-error.tsx`, `backend/src/server.ts`, `frontend/next.config.ts`.
 
+---
+
+## 2026-10-16 — Password Reset Login Routing & Complete Guest Data Isolation
+
+- **Context:**
+  1. Users completing password reset were accidentally getting routed into Guest Mode upon returning to or opening the app.
+  2. Guest mode AI chat sessions were reading and writing to cloud PostgreSQL with `WHERE user_id IS NULL`, causing conversation leakage across different guest devices.
+  3. Guest personal data (learning folders, logs, diary topics, tasks, notes) was only partially kept in `sessionStorage`, causing data to vanish when closing the browser tab or app.
+- **Decision:**
+  1. **Password Reset Gate:** Upon password reset completion in `reset-password/page.tsx`, set `focusforge_post_reset_login_required` with the target email, sign out any stale sessions, and redirect the user directly to `/login?reset=success&email=...`. Render a clear green success alert banner on `/login`. In `AuthContext.tsx`, prevent auto-falling back into Guest Mode if `focusforge_post_reset_login_required` is present, requiring explicit login with new credentials (or explicit choice to continue as guest).
+  2. **AI Chat Guest Isolation:** Strictly require a valid authenticated UUID in `aiChatService.ts`, `aiChatDb.ts`, and catch-all `route.ts`. Remove all shared `WHERE user_id IS NULL` server queries. Unauthenticated/guest users operate exclusively on local Dexie IndexedDB and `localStorage` with `userId = 'guest'`, completely eliminating cloud AI chat leakage.
+  3. **Guest Data Persistence:** In `AppContext.tsx`, persist guest application state to Dexie IndexedDB (`saveAppStateBackup('guest', state)`) and `saveStateToIndexedDB(state, 'guest')` and `localStorage.setItem('focusforge_data_guest', ...)`. Update `addLearningFolder`, `addLearningLog`, `saveDiaryTopic`, and related functions to persist to local Dexie with `targetUserId = session?.user?.id || 'guest'`, ensuring guest data remains 100% stable on the device across reloads without syncing to cloud.
+- **Verification:**
+  - Scope: 9 files changed, zero unapproved files touched.
+  - TypeScript & Production Build: `npm run build --prefix frontend` -> Code 0 (Turbopack, 19/19 routes compiled).
+- **Status:** **VERIFIED**
+
+
 
 
 

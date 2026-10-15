@@ -45,28 +45,18 @@ export interface ChatMessageRow {
 
 export async function getChatSessions(userId: string | null): Promise<ChatSessionRow[]> {
   try {
-    let query: string;
-    let params: any[];
-
-    if (userId) {
-      query = `
-        SELECT id, user_id, title, created_at, updated_at
-        FROM ai_chat_sessions
-        WHERE user_id = $1
-        ORDER BY updated_at DESC
-        LIMIT 50
-      `;
-      params = [userId];
-    } else {
-      query = `
-        SELECT id, user_id, title, created_at, updated_at
-        FROM ai_chat_sessions
-        WHERE user_id IS NULL
-        ORDER BY updated_at DESC
-        LIMIT 50
-      `;
-      params = [];
+    if (!userId) {
+      return [];
     }
+
+    const query = `
+      SELECT id, user_id, title, created_at, updated_at
+      FROM ai_chat_sessions
+      WHERE user_id = $1
+      ORDER BY updated_at DESC
+      LIMIT 50
+    `;
+    const params = [userId];
 
     const res = await pool.query(query, params);
     return res.rows.map(r => ({

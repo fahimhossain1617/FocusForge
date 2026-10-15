@@ -182,16 +182,22 @@ function ResetPasswordContent() {
     if (fullCode === "123456" || searchParams?.get("demo") === "1") {
       setLoading(true);
       setError(null);
-      if (email && typeof window !== "undefined") {
-        localStorage.setItem(`focusforge_reset_completed_${email.toLowerCase()}`, Date.now().toString());
+      const cleanEmail = email ? email.trim().toLowerCase() : "";
+      if (cleanEmail && typeof window !== "undefined") {
+        localStorage.setItem(`focusforge_reset_completed_${cleanEmail}`, Date.now().toString());
+        localStorage.setItem("focusforge_post_reset_login_required", "true");
+        localStorage.setItem("focusforge_post_reset_email", cleanEmail);
+        try {
+          supabase.auth.signOut();
+        } catch {}
       }
       setTimeout(() => {
         setIsSuccess(true);
         playSuccessSound();
-        showToast("Demo verification successful! Password reset.", "success");
+        showToast("Demo verification successful! Please log in with your new password.", "success");
         setTimeout(() => {
-          router.push("/");
-        }, 2800);
+          router.push(`/login?reset=success${cleanEmail ? `&email=${encodeURIComponent(cleanEmail)}` : ""}`);
+        }, 1800);
       }, 100);
       return;
     }
@@ -205,7 +211,8 @@ function ResetPasswordContent() {
     setError(null);
 
     try {
-      const res = await authService.verifyPasswordResetOtp(email, fullCode, password);
+      const cleanEmail = email.trim().toLowerCase();
+      const res = await authService.verifyPasswordResetOtp(cleanEmail, fullCode, password);
 
       if (!res.success) {
         if (res.isExpired) {
@@ -217,26 +224,23 @@ function ResetPasswordContent() {
         return;
       }
 
-      // Mark link as consumed/completed for one-time protection
+      // Mark link as consumed and record post-reset login required flag
       if (typeof window !== "undefined") {
-        localStorage.setItem(`focusforge_reset_completed_${email.toLowerCase()}`, Date.now().toString());
+        localStorage.setItem(`focusforge_reset_completed_${cleanEmail}`, Date.now().toString());
+        localStorage.setItem("focusforge_post_reset_login_required", "true");
+        localStorage.setItem("focusforge_post_reset_email", cleanEmail);
+        try {
+          await supabase.auth.signOut();
+        } catch {}
       }
 
       setIsSuccess(true);
       playSuccessSound();
-      showToast("Password has been reset successfully!", "success");
-
-      // Auto login with new credentials
-      try {
-        const loginRes = await authService.validateCredentials(email, password, true);
-        if (loginRes.user) {
-          onAuthSuccess(loginRes.user, true);
-        }
-      } catch {}
+      showToast("Password has been reset successfully! Please log in with your new password.", "success");
 
       setTimeout(() => {
-        router.push("/");
-      }, 2800);
+        router.push(`/login?reset=success&email=${encodeURIComponent(cleanEmail)}`);
+      }, 1800);
     } catch (err: any) {
       setError(err?.message || "Verification failed. Please try again.");
       setLoading(false);

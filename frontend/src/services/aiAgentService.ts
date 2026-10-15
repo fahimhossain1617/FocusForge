@@ -220,45 +220,45 @@ export async function getChatSessions(): Promise<ChatSession[]> {
   const token = await getToken();
   const guestId = getGuestId();
 
-  // 1. Try server database first
-  try {
-    const res = await fetch(`${getApiUrl()}/ai/sessions`, {
-      headers: {
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        "x-guest-id": guestId,
-      },
-    });
-    if (res.ok) {
-      const serverSessions = await res.json();
-      if (Array.isArray(serverSessions) && serverSessions.length > 0) {
-        return serverSessions.map((s: any) => ({
-          id: s.id,
-          title: s.title || "Chat",
-          user_id: s.user_id || null,
-          created_at: s.created_at,
-          updated_at: s.updated_at || s.created_at || new Date().toISOString(),
-        })).sort((a, b) => new Date(b.updated_at || 0).getTime() - new Date(a.updated_at || 0).getTime());
+  // 1. If authenticated, try server database
+  if (token) {
+    try {
+      const res = await fetch(`${getApiUrl()}/ai/sessions`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "x-guest-id": guestId,
+        },
+      });
+      if (res.ok) {
+        const serverSessions = await res.json();
+        if (Array.isArray(serverSessions) && serverSessions.length > 0) {
+          return serverSessions.map((s: any) => ({
+            id: s.id,
+            title: s.title || "Chat",
+            user_id: s.user_id || null,
+            created_at: s.created_at,
+            updated_at: s.updated_at || s.created_at || new Date().toISOString(),
+          })).sort((a, b) => new Date(b.updated_at || 0).getTime() - new Date(a.updated_at || 0).getTime());
+        }
       }
+    } catch (netErr) {
+      console.warn("[aiAgentService] Server sessions fetch notice:", netErr);
     }
-  } catch (netErr) {
-    console.warn("[aiAgentService] Server sessions fetch notice:", netErr);
   }
 
-  // 2. Fallback to localDb
+  // 2. Local-first fallback (Dexie localDb)
   try {
     const { data: { user } } = await supabase.auth.getUser();
-    const userId = user?.id || null;
-    if (userId) {
-      const sessions = await localDb.getAllForUser<any>("ai_sessions", userId, false);
-      if (sessions.length > 0) {
-        return sessions.map((s) => ({
-          id: s.id,
-          title: s.title || "Chat",
-          user_id: s.userId || userId,
-          created_at: s.createdAt,
-          updated_at: s.updatedAt || s.createdAt || new Date().toISOString(),
-        })).sort((a, b) => new Date(b.updated_at || 0).getTime() - new Date(a.updated_at || 0).getTime());
-      }
+    const effectiveUserId = user?.id || "guest";
+    const sessions = await localDb.getAllForUser<any>("ai_sessions", effectiveUserId, false);
+    if (sessions.length > 0) {
+      return sessions.map((s) => ({
+        id: s.id,
+        title: s.title || "Chat",
+        user_id: s.userId || effectiveUserId,
+        created_at: s.createdAt,
+        updated_at: s.updatedAt || s.createdAt || new Date().toISOString(),
+      })).sort((a, b) => new Date(b.updated_at || 0).getTime() - new Date(a.updated_at || 0).getTime());
     }
   } catch (err) {
     console.warn("[aiAgentService] Error reading local sessions:", err);
@@ -287,21 +287,20 @@ export async function createChatSession(title: string): Promise<ChatSession> {
   try {
     const { data: { user } } = await supabase.auth.getUser();
     const userId = user?.id || null;
+    const effectiveUserId = userId || "guest";
     const session: ChatSession = { id: newId, title, user_id: userId, updated_at: now, created_at: now };
-    if (userId) {
-      await localDb.put("ai_sessions", {
-        ...session,
-        userId,
-        createdAt: now,
-        updatedAt: now,
-      } as any);
-    } else {
-      if (typeof window !== "undefined") {
-        const existing = JSON.parse(localStorage.getItem("focusforge_guest_sessions_list") || sessionStorage.getItem("focusforge_guest_sessions_list") || "[]");
-        const updated = [session, ...existing];
-        localStorage.setItem("focusforge_guest_sessions_list", JSON.stringify(updated));
-        sessionStorage.setItem("focusforge_guest_sessions_list", JSON.stringify(updated));
-      }
+    
+    await localDb.put("ai_sessions", {
+      ...session,
+      userId: effectiveUserId,
+      createdAt: now,
+      updatedAt: now,
+    } as any);
+
+    if (!userId && typeof window !== "undefined") {
+      const existing = JSON.parse(localStorage.getItem("focusforge_guest_sessions_list") || "[]");
+      const updated = [session, ...existing.filter((s: any) => s.id !== newId)];
+      localStorage.setItem("focusforge_guest_sessions_list", JSON.stringify(updated));
     }
     return session;
   } catch {
@@ -429,51 +428,51 @@ export async function getChatMessages(sessionId: string): Promise<AgentMessage[]
   const token = await getToken();
   const guestId = getGuestId();
 
-  // 1. Try server database first
-  try {
-    const res = await fetch(`${getApiUrl()}/ai/sessions/${sessionId}/messages`, {
-      headers: {
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        "x-guest-id": guestId,
-      },
-    });
-    if (res.ok) {
-      const serverMsgs = await res.json();
-      if (Array.isArray(serverMsgs) && serverMsgs.length > 0) {
-        return serverMsgs.map((m: any) => ({
-          id: m.id,
-          role: m.role as "user" | "assistant",
-          content: m.content,
-          intent: m.intent,
-          payload: m.payload_json || m.payload,
-          roadmap: m.payload_json?.stages ? m.payload_json : null,
-          createdAt: new Date(m.created_at || m.createdAt || Date.now()),
-        }));
-      }
-    }
-  } catch (netErr) {
-    console.warn("[aiAgentService] Server messages fetch notice:", netErr);
-  }
-
-  // 2. Fallback to localDb
-  try {
-    const { data: { user } } = await supabase.auth.getUser();
-    const userId = user?.id || null;
-    if (userId) {
-      const msgs = await localDb.getAllForUser<any>("ai_messages", userId, false);
-      const sessionMsgs = msgs.filter((m) => m.sessionId === sessionId);
-      if (sessionMsgs.length > 0) {
-        return sessionMsgs
-          .sort((a, b) => new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime())
-          .map((m) => ({
+  // 1. If authenticated, try server database
+  if (token) {
+    try {
+      const res = await fetch(`${getApiUrl()}/ai/sessions/${sessionId}/messages`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "x-guest-id": guestId,
+        },
+      });
+      if (res.ok) {
+        const serverMsgs = await res.json();
+        if (Array.isArray(serverMsgs) && serverMsgs.length > 0) {
+          return serverMsgs.map((m: any) => ({
             id: m.id,
             role: m.role as "user" | "assistant",
             content: m.content,
             intent: m.intent,
-            payload: m.payload,
-            createdAt: new Date(m.createdAt || Date.now()),
+            payload: m.payload_json || m.payload,
+            roadmap: m.payload_json?.stages ? m.payload_json : null,
+            createdAt: new Date(m.created_at || m.createdAt || Date.now()),
           }));
+        }
       }
+    } catch (netErr) {
+      console.warn("[aiAgentService] Server messages fetch notice:", netErr);
+    }
+  }
+
+  // 2. Local-first fallback (Dexie localDb)
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    const effectiveUserId = user?.id || "guest";
+    const msgs = await localDb.getAllForUser<any>("ai_messages", effectiveUserId, false);
+    const sessionMsgs = msgs.filter((m) => m.sessionId === sessionId);
+    if (sessionMsgs.length > 0) {
+      return sessionMsgs
+        .sort((a, b) => new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime())
+        .map((m) => ({
+          id: m.id,
+          role: m.role as "user" | "assistant",
+          content: m.content,
+          intent: m.intent,
+          payload: m.payload,
+          createdAt: new Date(m.createdAt || Date.now()),
+        }));
     }
   } catch (err) {
     console.warn("[aiAgentService] Error reading local messages:", err);

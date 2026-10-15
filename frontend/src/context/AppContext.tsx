@@ -298,9 +298,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       let guestData: Partial<AppState> = {};
       if (!userId && (!dexieBackup && tasksList.length === 0 && notesList.length === 0) && typeof window !== 'undefined') {
         try {
-          const sessionRaw = sessionStorage.getItem('focusforge_guest_temp_data');
-          if (sessionRaw) {
-            guestData = JSON.parse(sessionRaw);
+          const localGuestRaw = localStorage.getItem('focusforge_data_guest') || sessionStorage.getItem('focusforge_guest_temp_data');
+          if (localGuestRaw) {
+            guestData = JSON.parse(localGuestRaw);
           }
         } catch {}
       }
@@ -421,12 +421,21 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       // Debounced privacy-preserving E2EE cross-device sync
       syncService.scheduleSync(currentUserId, 2500);
     } else {
-      // Guest mode: ONLY keep in sessionStorage as temporary data
+      // Guest mode: Persist locally in Dexie IndexedDB + localStorage on this device (100% offline, zero cloud sync)
+      settingsRepository.saveAppStateBackup('guest', state).catch(() => {});
+      settingsRepository.savePreferences('guest', {
+        theme: state.theme,
+        lang: state.lang,
+        notifPreferences: state.notifPreferences,
+        calendarPreferences: state.calendarPreferences,
+      }).catch(() => {});
+      saveStateToIndexedDB(state, 'guest');
       if (typeof window !== 'undefined') {
         try {
+          localStorage.setItem('focusforge_data_guest', JSON.stringify(state));
           sessionStorage.setItem('focusforge_guest_temp_data', JSON.stringify(state));
         } catch (err) {
-          console.warn("Guest sessionStorage warning:", err);
+          console.warn("Guest local storage warning:", err);
         }
       }
     }
@@ -1509,9 +1518,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }));
     trackMeaningfulAction('learning_folder');
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
-        learningDbService.saveFolder(newFolder, session.user.id);
-      }
+      const targetUserId = session?.user?.id || 'guest';
+      learningDbService.saveFolder(newFolder, targetUserId);
     });
     return newFolder.id;
   }, [trackMeaningfulAction]);
@@ -1523,9 +1531,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       learningLogs: prev.learningLogs.filter((l) => l.folderId !== id),
     }));
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
-        learningDbService.deleteFolder(id, session.user.id);
-      }
+      const targetUserId = session?.user?.id || 'guest';
+      learningDbService.deleteFolder(id, targetUserId);
     });
   }, []);
 
@@ -1542,8 +1549,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       return { ...prev, learningFolders: updatedFolders };
     });
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user && targetFolder) {
-        learningDbService.updateFolder(id, { completed: targetFolder.completed }, session.user.id);
+      const targetUserId = session?.user?.id || 'guest';
+      if (targetFolder) {
+        learningDbService.updateFolder(id, { completed: targetFolder.completed }, targetUserId);
       }
     });
   }, []);
@@ -1555,9 +1563,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       learningLogs: [...prev.learningLogs, newLog]
     }));
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
-        learningDbService.saveLog(newLog, session.user.id);
-      }
+      const targetUserId = session?.user?.id || 'guest';
+      learningDbService.saveLog(newLog, targetUserId);
     });
   }, []);
 
@@ -1567,9 +1574,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       learningLogs: prev.learningLogs.filter((l) => l.id !== id)
     }));
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
-        learningDbService.deleteLog(id, session.user.id);
-      }
+      const targetUserId = session?.user?.id || 'guest';
+      learningDbService.deleteLog(id, targetUserId);
     });
   }, []);
 
@@ -1584,10 +1590,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     });
 
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user && createdTopic) {
-        diaryDbService.saveDiaryTopic(createdTopic, session.user.id);
+      const targetUserId = session?.user?.id || 'guest';
+      if (createdTopic) {
+        diaryDbService.saveDiaryTopic(createdTopic, targetUserId);
         if (createdTopic.entries?.[0]) {
-          diaryDbService.saveDiaryEntry(createdTopic.id, createdTopic.entries[0], session.user.id);
+          diaryDbService.saveDiaryEntry(createdTopic.id, createdTopic.entries[0], targetUserId);
         }
       }
     });
@@ -1603,9 +1610,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const updatedTopic = updatedTopics.find(t => t.id === topicId);
       if (updatedTopic) {
         supabase.auth.getSession().then(({ data: { session } }) => {
-          if (session?.user) {
-            diaryDbService.saveDiaryTopic(updatedTopic, session.user.id);
-          }
+          const targetUserId = session?.user?.id || 'guest';
+          diaryDbService.saveDiaryTopic(updatedTopic, targetUserId);
         });
       }
       return { ...prev, diaryTopics: updatedTopics };
@@ -1619,9 +1625,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }));
 
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
-        diaryDbService.deleteDiaryTopic(topicId, session.user.id);
-      }
+      const targetUserId = session?.user?.id || 'guest';
+      diaryDbService.deleteDiaryTopic(topicId, targetUserId);
     });
   }, []);
 
@@ -1634,8 +1639,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     });
 
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user && createdEntry) {
-        diaryDbService.saveDiaryEntry(topicId, createdEntry, session.user.id);
+      const targetUserId = session?.user?.id || 'guest';
+      if (createdEntry) {
+        diaryDbService.saveDiaryEntry(topicId, createdEntry, targetUserId);
       }
     });
 
@@ -1649,9 +1655,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const updatedEntry = updatedTopic?.entries.find(e => e.id === entryId);
       if (updatedEntry) {
         supabase.auth.getSession().then(({ data: { session } }) => {
-          if (session?.user) {
-            diaryDbService.saveDiaryEntry(topicId, updatedEntry, session.user.id);
-          }
+          const targetUserId = session?.user?.id || 'guest';
+          diaryDbService.saveDiaryEntry(topicId, updatedEntry, targetUserId);
         });
       }
       return { ...prev, diaryTopics: updatedTopics };

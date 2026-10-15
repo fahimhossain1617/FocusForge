@@ -35,11 +35,22 @@ function LoginContent() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showSavedSheet, setShowSavedSheet] = useState(false);
+  const [resetSuccessNotice, setResetSuccessNotice] = useState(false);
 
-  // Pre-fill email from query parameters
+  // Pre-fill email from query parameters or post-reset flag
   useEffect(() => {
-    const emailParam = searchParams.get("email");
-    if (emailParam) {
+    const isResetSuccess = searchParams.get("reset") === "success";
+    const postResetRequired = typeof window !== "undefined" && localStorage.getItem("focusforge_post_reset_login_required") === "true";
+    const storedResetEmail = typeof window !== "undefined" ? localStorage.getItem("focusforge_post_reset_email") : null;
+    const emailParam = searchParams.get("email") || storedResetEmail;
+
+    if (isResetSuccess || postResetRequired) {
+      setResetSuccessNotice(true);
+      setShowSavedSheet(false);
+      if (emailParam) {
+        setEmail(emailParam);
+      }
+    } else if (emailParam) {
       setEmail(emailParam);
       setShowSavedSheet(false);
     } else if (rememberedAccounts.length > 0) {
@@ -87,6 +98,11 @@ function LoginContent() {
         return;
       }
 
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("focusforge_post_reset_login_required");
+        localStorage.removeItem("focusforge_post_reset_email");
+      }
+
       router.replace("/");
     } catch (err: any) {
       setError(err?.message || "An unexpected error occurred during login.");
@@ -114,6 +130,10 @@ function LoginContent() {
     if (isGuestModeDisabled) {
       showToast("Guest mode is no longer available on this browser profile.", "info");
       return;
+    }
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("focusforge_post_reset_login_required");
+      localStorage.removeItem("focusforge_post_reset_email");
     }
     navigateTo("today");
     router.push("/");
@@ -247,6 +267,16 @@ function LoginContent() {
         <h2 className="auth-title">Welcome back</h2>
         <p className="auth-lead mt-1">Log in to continue where you left off.</p>
       </div>
+
+      {resetSuccessNotice && (
+        <div className="mb-4 p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-left text-xs leading-relaxed text-emerald-200 flex items-start gap-2.5">
+          <span className="text-emerald-400 font-bold mt-0.5">✓</span>
+          <div>
+            <strong className="block text-emerald-300 font-semibold mb-0.5">পাসওয়ার্ড সফলভাবে পরিবর্তন হয়েছে!</strong>
+            আপনার একাউন্টে প্রবেশ করতে নতুন পাসওয়ার্ড দিয়ে লগইন করুন। (Password reset successful! Please log in with your new password.)
+          </div>
+        </div>
+      )}
 
       {/* Primary Login Form: Email -> Password -> Remember Me -> Login CTA */}
       <form onSubmit={handleSubmit}>

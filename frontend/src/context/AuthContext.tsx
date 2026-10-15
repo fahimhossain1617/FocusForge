@@ -185,6 +185,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         );
         const session = await Promise.race([sessionPromise, timeoutPromise]);
 
+        const postResetRequired = typeof window !== "undefined" && localStorage.getItem("focusforge_post_reset_login_required") === "true";
+        if (postResetRequired && isMounted) {
+          setUser(null);
+          setLifecycle("UNAUTHENTICATED");
+          const resetEmail = typeof window !== "undefined" ? (localStorage.getItem("focusforge_post_reset_email") || "") : "";
+          if (typeof window !== "undefined" && !window.location.pathname.startsWith("/login") && !window.location.pathname.startsWith("/reset-password")) {
+            router.push(`/login?reset=success${resetEmail ? `&email=${encodeURIComponent(resetEmail)}` : ""}`);
+          }
+          return;
+        }
+
         if (session && session.user && isMounted) {
           await processAuthenticatedUser(session.user, true);
         } else if (isMounted && !processedUserIdRef.current) {
@@ -383,6 +394,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       // Clean up guest data permanently (no migration to auth account)
       clearGuestData();
+
+      if (typeof window !== "undefined") {
+        try {
+          localStorage.removeItem("focusforge_post_reset_login_required");
+          localStorage.removeItem("focusforge_post_reset_email");
+        } catch {}
+      }
 
       const target = authModal.targetPage || authGuardModal.targetPage;
       const callback = authModal.onAuthenticated || authGuardModal.onAuthenticated;

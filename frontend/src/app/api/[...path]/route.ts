@@ -511,10 +511,11 @@ export async function GET(request: NextRequest, context: { params: Promise<{ pat
     }
   }
 
-  // 9. AI Agent Sessions & Messages (Backed by PostgreSQL Database)
+  // 9. AI Agent Sessions & Messages (Backed by PostgreSQL Database - Authenticated Only)
   if (pathStr === 'ai/agent/sessions' || pathStr === 'ai/sessions') {
+    if (!userId || isGuest) return NextResponse.json([]);
     try {
-      const list = await getChatSessions(userId || guestId);
+      const list = await getChatSessions(userId);
       return NextResponse.json(list);
     } catch (err: any) {
       console.warn('[GET ai/sessions] Error:', err);
@@ -525,10 +526,11 @@ export async function GET(request: NextRequest, context: { params: Promise<{ pat
   if (
     ((pathStr.startsWith('ai/agent/sessions/') || pathStr.startsWith('ai/sessions/')) && pathStr.endsWith('/messages'))
   ) {
+    if (!userId || isGuest) return NextResponse.json([]);
     try {
       const segments = pathStr.split('/');
       const sId = segments[segments.length - 2];
-      const msgs = await getChatMessages(userId || guestId, sId);
+      const msgs = await getChatMessages(userId, sId);
       return NextResponse.json(msgs);
     } catch (err: any) {
       console.warn('[GET ai/messages] Error:', err);
@@ -1729,15 +1731,17 @@ export async function POST(request: NextRequest, context: { params: Promise<{ pa
 
     const finalSessionTitle = userMsg ? (userMsg.length > 30 ? userMsg.substring(0, 28) + '...' : userMsg) : 'Focentia AI';
 
-    // Persist session and chat messages in PostgreSQL database
-    try {
-      await createChatSession(userId || guestId, finalSessionTitle, activeSessionId);
-      if (userMsg) {
-        await addChatMessage(activeSessionId, userId || guestId, 'user', userMsg);
+    // Persist session and chat messages in PostgreSQL database ONLY for authenticated users
+    if (userId && !isGuest) {
+      try {
+        await createChatSession(userId, finalSessionTitle, activeSessionId);
+        if (userMsg) {
+          await addChatMessage(activeSessionId, userId, 'user', userMsg);
+        }
+        await addChatMessage(activeSessionId, userId, 'assistant', result.message, result.intent, result.payload);
+      } catch (dbSaveErr) {
+        console.warn('[API /ai/agent/chat] Database chat persistence notice:', dbSaveErr);
       }
-      await addChatMessage(activeSessionId, userId || guestId, 'assistant', result.message, result.intent, result.payload);
-    } catch (dbSaveErr) {
-      console.warn('[API /ai/agent/chat] Database chat persistence notice:', dbSaveErr);
     }
 
     const aiMessage = {

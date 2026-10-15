@@ -26,6 +26,7 @@ import { aiConsentService } from "@/services/aiConsentService";
 import { connectivityService } from "@/services/connectivityService";
 import { routeUserMessage } from "@/lib/ai/router";
 import { getProgressiveStages } from "@/services/aiStatusEvents";
+import { localDb } from "@/services/localDbService";
 
 let memoryMessages: AgentMessage[] | null = null;
 let memoryActiveSessionId: string | null = null;
@@ -78,7 +79,7 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
     if (typeof window === "undefined") return [];
     try {
       const key = getSessionsCacheKey(currentUserId);
-      const storedCache = localStorage.getItem(key) || (currentUserId ? null : sessionStorage.getItem("focusforge_guest_sessions_list"));
+      const storedCache = localStorage.getItem(key) || (currentUserId ? null : (localStorage.getItem("focusforge_guest_sessions_list") || sessionStorage.getItem("focusforge_guest_sessions_list")));
       return storedCache ? JSON.parse(storedCache) : [];
     } catch {
       return [];
@@ -179,10 +180,22 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
       try {
         if (!isPrivateMode && activeSessionId && messages.length > 0) {
           const msgKey = getMsgCacheKey(currentUserId, activeSessionId);
+          localStorage.setItem(msgKey, JSON.stringify(messages));
           if (isGuest || !user) {
             sessionStorage.setItem(msgKey, JSON.stringify(messages));
-          } else {
-            localStorage.setItem(msgKey, JSON.stringify(messages));
+            // Also mirror guest messages into Dexie for reliable local persistence
+            messages.forEach((m) => {
+              localDb.put("ai_messages", {
+                id: m.id || `msg_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+                sessionId: activeSessionId,
+                userId: "guest",
+                role: m.role,
+                content: m.content,
+                intent: m.intent || null,
+                payload: m.payload || null,
+                createdAt: (m.createdAt instanceof Date ? m.createdAt.toISOString() : m.createdAt) || new Date().toISOString(),
+              } as any).catch(() => {});
+            });
           }
         }
       } catch {}
@@ -286,9 +299,7 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
     if (typeof window !== "undefined") {
       try {
         const msgKey = getMsgCacheKey(currentUserId, sessionId);
-        const savedMsgs = (isGuest || !user)
-          ? sessionStorage.getItem(msgKey)
-          : localStorage.getItem(msgKey);
+        const savedMsgs = localStorage.getItem(msgKey) || sessionStorage.getItem(msgKey);
         
         if (savedMsgs) {
           const parsed = JSON.parse(savedMsgs);
@@ -324,10 +335,9 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
         if (typeof window !== "undefined") {
           try {
             const msgKey = getMsgCacheKey(currentUserId, sessionId);
+            localStorage.setItem(msgKey, JSON.stringify(normalized));
             if (isGuest || !user) {
               sessionStorage.setItem(msgKey, JSON.stringify(normalized));
-            } else {
-              localStorage.setItem(msgKey, JSON.stringify(normalized));
             }
           } catch {}
         }
