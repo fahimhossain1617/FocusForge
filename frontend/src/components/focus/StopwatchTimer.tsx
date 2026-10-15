@@ -447,7 +447,7 @@ export const StopwatchTimer = memo(function StopwatchTimer({
   // =========================================================================
   if (viewMode === "active") {
     return (
-      <div className="w-full min-h-[calc(100dvh-130px)] flex flex-col justify-between animate-in fade-in duration-200">
+      <div className="w-full min-h-[calc(100dvh-130px)] flex flex-col justify-start animate-in fade-in duration-200">
         {/* Top Navigation Bar: Back icon button on Left, Active status on Right */}
         <div className="flex items-center justify-between w-full shrink-0 pt-1 pb-2">
           <button
@@ -478,8 +478,8 @@ export const StopwatchTimer = memo(function StopwatchTimer({
           </div>
         </div>
 
-        {/* Center Container: Centered vertically in viewport on both mobile & desktop */}
-        <div className="max-w-2xl mx-auto w-full flex-1 flex flex-col items-center justify-center text-center my-auto py-6 sm:py-12">
+        {/* Center Container: Positioned in upper section like reference picture 2 */}
+        <div className="max-w-2xl mx-auto w-full flex flex-col items-center justify-start text-center pt-8 sm:pt-14 pb-8">
           {/* Topic / Task Pill if provided */}
           {topicName && (
             <div className="mb-5 inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#F0F5FD] dark:bg-white/5 border border-[#DCE5F0] dark:border-white/10 text-xs sm:text-sm font-semibold text-[#111827] dark:text-zinc-200">

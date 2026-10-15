@@ -123,7 +123,15 @@ export default function BlockEditor({
   }), [menu.query]);
 
   const update = (index: number, patch: Partial<NoteBlock>) => { onDirty(); onChange(blocks.map((b, i) => i === index ? { ...b, ...patch } : b)); };
-  const focus = (id: string) => window.setTimeout(() => document.getElementById(`block-${id}`)?.focus(), 0);
+  const focus = (id: string) => window.setTimeout(() => {
+    const el = document.getElementById(`block-${id}`) as HTMLTextAreaElement | HTMLInputElement | null;
+    if (el) {
+      el.focus();
+      if (typeof el.selectionStart === "number") {
+        el.selectionStart = el.selectionEnd = el.value.length;
+      }
+    }
+  }, 10);
   const insertAfter = (index: number, type: BlockType) => {
     const effectiveType = (!isOnline && type !== "paragraph" && type !== "h1" && type !== "h2" && type !== "h3") ? "paragraph" : type;
     const next = newBlock(effectiveType);
@@ -131,7 +139,16 @@ export default function BlockEditor({
     onChange([...blocks.slice(0, index + 1), next, ...blocks.slice(index + 1)]);
     focus(next.id);
   };
-  const remove = (index: number) => { if (blocks.length === 1) { update(0, { type: "paragraph", content: "" }); return; } const prev = blocks[index - 1]; onDirty(); onChange(blocks.filter((_, i) => i !== index)); if (prev) focus(prev.id); };
+  const remove = (index: number) => {
+    if (blocks.length === 1) {
+      update(0, { type: "paragraph", content: "" });
+      return;
+    }
+    const targetBlock = blocks[index - 1] || blocks[index + 1];
+    onDirty();
+    onChange(blocks.filter((_, i) => i !== index));
+    if (targetBlock) focus(targetBlock.id);
+  };
   const duplicate = (index: number) => {
     if (!isOnline && blocks[index].type !== "paragraph" && blocks[index].type !== "h1" && blocks[index].type !== "h2" && blocks[index].type !== "h3") {
       showToast(state.lang === 'bn' ? "আপনি বর্তমানে অফলাইনে আছেন।" : "You are currently offline.", 'error');
@@ -262,9 +279,18 @@ export default function BlockEditor({
         return;
       }
     }
-    const isBackspace = event.key === "Backspace" || (event as any).keyCode === 8;
-    const isDelete = event.key === "Delete" || (event as any).keyCode === 46;
+    const isBackspace =
+      event.key === "Backspace" ||
+      (event as any).keyCode === 8 ||
+      (event.nativeEvent as any)?.key === "Backspace";
+    const isDelete =
+      event.key === "Delete" ||
+      (event as any).keyCode === 46 ||
+      (event.nativeEvent as any)?.key === "Delete";
+    const target = event.currentTarget as HTMLTextAreaElement | HTMLInputElement;
     const isEmptyOrHash = !block.content || !block.content.trim() || block.content.trim() === "#";
+    const isAtStart = target && typeof target.selectionStart === "number" && target.selectionStart === 0 && target.selectionEnd === 0;
+
     if ((isBackspace || isDelete) && isEmptyOrHash) {
       event.preventDefault();
       setMenu((c) => ({ ...c, visible: false }));
@@ -274,6 +300,77 @@ export default function BlockEditor({
         update(index, { type: "paragraph", content: "", isCompleted: undefined });
       }
       return;
+    }
+
+    if (isBackspace && isAtStart && index > 0) {
+      event.preventDefault();
+      setMenu((c) => ({ ...c, visible: false }));
+      const prevBlock = blocks[index - 1];
+      if (["paragraph", "h1", "h2", "h3", "bullet", "numbered", "quote", "todo"].includes(prevBlock.type)) {
+        const prevLen = prevBlock.content.length;
+        const mergedContent = prevBlock.content + block.content;
+        onDirty();
+        onChange(
+          blocks
+            .filter((_, i) => i !== index)
+            .map((b, i) => (i === index - 1 ? { ...b, content: mergedContent } : b))
+        );
+        window.setTimeout(() => {
+          const el = document.getElementById(`block-${prevBlock.id}`) as HTMLTextAreaElement | null;
+          if (el) {
+            el.focus();
+            el.selectionStart = el.selectionEnd = prevLen;
+          }
+        }, 10);
+        return;
+      }
+    }
+  };
+
+  const handleBeforeInput = (event: React.FormEvent<HTMLTextAreaElement | HTMLInputElement>, index: number) => {
+    const native = event.nativeEvent as InputEvent;
+    if (!native) return;
+    const isDeleteAction =
+      native.inputType === "deleteContentBackward" ||
+      native.inputType === "deleteContentForward" ||
+      native.inputType === "deleteByCut";
+
+    if (isDeleteAction) {
+      const block = blocks[index];
+      const target = event.currentTarget as HTMLTextAreaElement | HTMLInputElement;
+      const isEmptyOrHash = !block.content || !block.content.trim() || block.content.trim() === "#";
+      const isAtStart = target && typeof target.selectionStart === "number" && target.selectionStart === 0 && target.selectionEnd === 0;
+
+      if (isEmptyOrHash) {
+        event.preventDefault();
+        setMenu((c) => ({ ...c, visible: false }));
+        if (blocks.length > 1) {
+          remove(index);
+        } else {
+          update(index, { type: "paragraph", content: "", isCompleted: undefined });
+        }
+      } else if (isAtStart && native.inputType === "deleteContentBackward" && index > 0) {
+        event.preventDefault();
+        setMenu((c) => ({ ...c, visible: false }));
+        const prevBlock = blocks[index - 1];
+        if (["paragraph", "h1", "h2", "h3", "bullet", "numbered", "quote", "todo"].includes(prevBlock.type)) {
+          const prevLen = prevBlock.content.length;
+          const mergedContent = prevBlock.content + block.content;
+          onDirty();
+          onChange(
+            blocks
+              .filter((_, i) => i !== index)
+              .map((b, i) => (i === index - 1 ? { ...b, content: mergedContent } : b))
+          );
+          window.setTimeout(() => {
+            const el = document.getElementById(`block-${prevBlock.id}`) as HTMLTextAreaElement | null;
+            if (el) {
+              el.focus();
+              el.selectionStart = el.selectionEnd = prevLen;
+            }
+          }, 10);
+        }
+      }
     }
   };
 
@@ -286,6 +383,7 @@ export default function BlockEditor({
         block={block}
         onInput={(e) => handleInput(e, index)}
         onKeyDown={(e) => handleKeyDown(e, index)}
+        onBeforeInput={(e) => handleBeforeInput(e, index)}
         onToggle={() => update(index, { isCompleted: !block.isCompleted })}
         onDelete={() => remove(index)}
         onDuplicate={() => duplicate(index)}
@@ -773,9 +871,9 @@ function ImageBlockItem({
   };
 
   return (
-    <div className={`editor-block editor-block--image my-4 p-3.5 sm:p-4 rounded-2xl border border-white/10 bg-white/[0.02] group relative w-full ${containerMaxWidth} mr-auto transition-all duration-200 shadow-none`}>
+    <div className={`editor-block editor-block--image my-4 !p-4 sm:!p-5 rounded-2xl border border-white/10 bg-white/[0.02] group relative w-full ${containerMaxWidth} mx-auto transition-all duration-200 shadow-none`}>
       {control}
-      <div className="relative rounded-xl overflow-hidden flex items-center justify-start bg-transparent">
+      <div className="relative rounded-xl overflow-hidden flex items-center justify-center bg-transparent">
         {block.url ? (
           /* eslint-disable-next-line @next/next/no-img-element */
           <img
@@ -791,7 +889,7 @@ function ImageBlockItem({
               transform: rotation ? `rotate(${rotation}deg)` : undefined,
               transition: "transform 0.2s ease",
             }}
-            className="w-auto h-auto max-w-full max-h-[520px] object-contain rounded-xl cursor-pointer select-none transition-transform duration-200 hover:scale-[1.01]"
+            className="w-auto h-auto max-w-full max-h-[520px] object-contain rounded-xl cursor-pointer select-none transition-transform duration-200 hover:scale-[1.01] mx-auto block"
             onClick={() => onPreviewImage?.(block.url!)}
             title="Click to view full size"
           />
@@ -802,7 +900,7 @@ function ImageBlockItem({
           </div>
         )}
       </div>
-      <div className="mt-3.5 px-0.5 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
+      <div className="mt-3.5 pt-1 pb-1.5 px-0.5 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
         <input
           type="text"
           value={captionValue}
@@ -810,14 +908,14 @@ function ImageBlockItem({
           placeholder="Add an image caption..."
           className="text-xs text-zinc-300 placeholder-zinc-500 bg-black/20 dark:bg-white/5 border border-white/10 rounded-xl outline-none py-2 px-3.5 focus:border-blue-500/50 transition-colors w-full"
         />
-        <div className="flex items-center gap-1.5 shrink-0 justify-between sm:justify-end">
-          <div className="flex items-center bg-white/5 p-0.5 rounded-lg border border-white/5">
+        <div className="flex items-center gap-2 shrink-0 justify-between sm:justify-end my-1">
+          <div className="flex items-center bg-white/5 p-1 rounded-lg border border-white/10">
             {(["small", "medium", "large"] as const).map((s) => (
               <button
                 key={s}
                 type="button"
                 onClick={() => onUpdateColor({ imageSize: s })}
-                className={`px-2 py-0.5 text-[10px] font-bold rounded transition-colors ${(block.imageSize || "medium") === s
+                className={`px-2.5 py-1 text-[11px] font-bold rounded transition-colors ${(block.imageSize || "medium") === s
                   ? "bg-blue-600 text-white shadow-none"
                   : "text-zinc-400 hover:text-zinc-200 hover:bg-white/5"
                   }`}
@@ -830,16 +928,16 @@ function ImageBlockItem({
           <button
             type="button"
             onClick={handleRotate}
-            className="p-1.5 rounded-lg text-zinc-400 hover:text-white bg-white/5 hover:bg-white/10 border border-white/5 transition-colors cursor-pointer"
+            className="p-1.5 rounded-lg text-zinc-400 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 transition-colors cursor-pointer flex items-center justify-center"
             title="Rotate image 90°"
           >
-            <RotateCw size={13} />
+            <RotateCw size={14} />
           </button>
           {onReplaceImage && (
             <button
               type="button"
               onClick={() => onReplaceImage(block.id)}
-              className="text-[11px] font-semibold text-blue-400 hover:text-blue-300 px-2.5 py-1 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 transition-colors cursor-pointer"
+              className="text-xs font-semibold text-blue-400 hover:text-blue-300 px-3 py-1.5 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 transition-colors cursor-pointer flex items-center justify-center"
             >
               Replace
             </button>
@@ -858,6 +956,7 @@ function EditorBlock({
   listNumber = 1,
   onInput,
   onKeyDown,
+  onBeforeInput,
   onToggle,
   onDelete,
   onDuplicate,
@@ -875,6 +974,7 @@ function EditorBlock({
   listNumber?: number;
   onInput: (event: ChangeEvent<HTMLTextAreaElement | HTMLInputElement>) => void;
   onKeyDown: (event: KeyboardEvent<HTMLTextAreaElement | HTMLInputElement | HTMLDivElement>) => void;
+  onBeforeInput?: (event: React.FormEvent<HTMLTextAreaElement | HTMLInputElement>) => void;
   onToggle: () => void;
   onDelete: () => void;
   onDuplicate: () => void;
@@ -889,7 +989,7 @@ function EditorBlock({
 }) {
   const textarea = useRef<HTMLTextAreaElement>(null);
   useEffect(() => { if (textarea.current && block.type !== "code") { textarea.current.style.height = "0px"; textarea.current.style.height = `${textarea.current.scrollHeight}px`; } }, [block.content, block.type]);
-  const input = { id: `block-${block.id}`, value: block.content, onChange: onInput, onKeyDown };
+  const input = { id: `block-${block.id}`, value: block.content, onChange: onInput, onKeyDown, onBeforeInput };
 
   const control = (
     <div className="block-controls" style={{ zIndex: colorToolbarOpen ? 50 : 3 }}>
