@@ -69,6 +69,10 @@ export default function DiaryHome({ onOpenSidebar }: DiaryHomeProps) {
     requireAuth(() => {
       const newTopic = saveDiaryTopic(title, description || "", category, theme);
       showToast(t.diary?.saved || "Diary created", "success");
+      // If user is authenticated and vault setup was deferred, prompt setup on meaningful save
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("focusforge:request_vault_setup"));
+      }
       // Immediately open the newly created topic in EDIT mode so the user can write
       if (newTopic) {
         setActiveTopicId(newTopic.id);

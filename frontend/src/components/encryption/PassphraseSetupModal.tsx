@@ -101,21 +101,21 @@ export default function PassphraseSetupModal({
           transition={{ duration: 0.25, ease: "easeOut" }}
           className="w-full max-w-lg rounded-3xl border border-[var(--color-border-subtle)] bg-[var(--color-surface-elevated)] p-6 sm:p-8 shadow-2xl overflow-hidden relative"
         >
-          {/* Header Title (Clean, no leading icon, simple friendly words) */}
+          {/* Header Title (Clean, unified device sync & data protection) */}
           <div className="mb-5">
             <h2 className="text-xl font-bold text-[var(--color-text-primary)] tracking-tight">
               {generatedKey
                 ? isBn
-                  ? "সুরক্ষা সফলভাবে তৈরি হয়েছে!"
-                  : "Protection Activated!"
+                  ? "ডিভাইস সিঙ্ক ও সুরক্ষা সক্রিয় হয়েছে!"
+                  : "Device Sync & Protection Activated!"
                 : isBn
-                ? "নোট ও টাস্ক সুরক্ষিত করুন"
-                : "Protect Your Private Notes"}
+                ? "ডিভাইস সিঙ্ক ও ডেটা সুরক্ষা"
+                : "Device Sync & Data Protection"}
             </h2>
             <p className="text-xs text-[var(--color-text-secondary)] mt-1">
               {isBn
-                ? "একটি সহজ পাসওয়ার্ড সেট করুন যাতে আপনার নোট, ডায়েরি ও টাস্ক আপনি ছাড়া কেউ দেখতে না পারে।"
-                : "Set a password so only you can unlock and read your notes, diary, and tasks."}
+                ? "একটি মাস্টার পাসওয়ার্ড সেট করুন যাতে আপনার নোট, ডায়েরি ও টাস্ক সুরক্ষিত থাকে এবং একাধিক ডিভাইসে নিরাপদে সিঙ্ক হয়।"
+                : "Set a master password so your notes, diary, and tasks remain private and securely sync across your devices."}
             </p>
           </div>
 
@@ -124,7 +124,7 @@ export default function PassphraseSetupModal({
               {/* Passphrase Input */}
               <div>
                 <label className="block text-xs font-semibold text-[var(--color-text-primary)] mb-1.5">
-                  {isBn ? "পাসওয়ার্ড তৈরি করুন" : "Create a Password"} <span className="text-blue-500">*</span>
+                  {isBn ? "সিঙ্ক পাসওয়ার্ড তৈরি করুন" : "Create Sync Password"} <span className="text-blue-500">*</span>
                 </label>
                 <div className="relative">
                   <input
@@ -166,8 +166,8 @@ export default function PassphraseSetupModal({
                   <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
                   <p className="text-xs text-[var(--color-text-primary)] font-medium leading-relaxed">
                     {isBn
-                      ? "জরুরি সতর্কতা: আমরা আপনার পাসওয়ার্ড সেভ রাখি না। আপনি পাসওয়ার্ড ভুলে গেলে আপনার লক করা নোট আর উদ্ধার করা সম্ভব নয়।"
-                      : "Important Notice: We do not store your password. If you lose or forget it, your locked private notes and tasks cannot be recovered."}
+                      ? "জরুরি সতর্কতা: আমরা সার্ভারে আপনার পাসওয়ার্ড সংরক্ষণ করি না। অন্য যেকোনো ডিভাইসে (যেমন ল্যাপটপ বা নতুন ফোন) লগইন করলে এই পাসওয়ার্ড দিয়েই আপনি আপনার সব ডেটা সিঙ্ক ও আনলক করবেন।"
+                      : "Important Notice: We do not store your password on our servers. When logging in on another device (such as laptop or new phone), you will use this password to decrypt and sync your data."}
                   </p>
                 </div>
 
@@ -208,7 +208,7 @@ export default function PassphraseSetupModal({
                   className="px-6 py-2.5 rounded-xl text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 transition-colors shadow-none cursor-pointer disabled:opacity-50 flex items-center gap-2"
                 >
                   <Lock size={14} />
-                  <span>{isSubmitting ? (isBn ? "সংরক্ষণ হচ্ছে..." : "Saving...") : isBn ? "সুরক্ষা চালু করুন" : "Turn On Protection"}</span>
+                  <span>{isSubmitting ? (isBn ? "সংরক্ষণ হচ্ছে..." : "Saving...") : isBn ? "সিঙ্ক ও সুরক্ষা চালু করুন" : "Turn On Sync & Protection"}</span>
                 </button>
               </div>
             </form>
@@ -221,8 +221,8 @@ export default function PassphraseSetupModal({
                 </p>
                 <p className="text-[11px] text-[var(--color-text-secondary)]">
                   {isBn
-                    ? "অন্য কোনো ডিভাইসে লগইন করলে এই কি অথবা আপনার পাসওয়ার্ড দিয়ে নোট আনলক করতে পারবেন।"
-                    : "You can use this backup key or your password to unlock your notes on any new device."}
+                    ? "অন্য কোনো ডিভাইসে (যেমন ল্যাপটপ বা নতুন ফোন) লগইন করলে এই কি অথবা আপনার পাসওয়ার্ড দিয়ে নোট ও ডেটা আনলক করতে পারবেন।"
+                    : "You can use this backup key or your password to unlock and sync your data on any new device."}
                 </p>
               </div>
 

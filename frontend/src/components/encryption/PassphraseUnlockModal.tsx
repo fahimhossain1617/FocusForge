@@ -59,12 +59,12 @@ export default function PassphraseUnlockModal({
               <KeyRound className="w-7 h-7" />
             </div>
             <h2 className="text-xl font-bold text-[var(--color-text-primary)] tracking-tight">
-              {isBn ? "এনক্রিপ্ট করা ডেটা আনলক করুন" : "Unlock Encrypted Vault"}
+              {isBn ? "ডিভাইস সিঙ্ক আনলক করুন" : "Unlock Device Sync"}
             </h2>
             <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed max-w-xs mx-auto">
               {isBn
-                ? "আপনার ক্লাউড ব্যাকআপ ডিক্রিপ্ট এবং সিঙ্ক করতে আপনার মাস্টার পাসফ্রেজ বা রিকভারি কি দিন।"
-                : "Enter your master passphrase or recovery key to decrypt your notes, diary, and tasks."}
+                ? "আপনার পূর্বের ডিভাইসে সেট করা পাসওয়ার্ড বা রিকভারি কি দিন, যাতে আপনার সব নোট, ডায়েরি ও ডেটা এই ডিভাইসে সিঙ্ক হয়।"
+                : "Enter the sync password or recovery key set on your other device to decrypt and sync your notes, diary, and tasks."}
             </p>
           </div>
 
@@ -76,7 +76,7 @@ export default function PassphraseUnlockModal({
                 autoFocus
                 value={passphrase}
                 onChange={(e) => setPassphrase(e.target.value)}
-                placeholder={isBn ? "পাসফ্রেজ বা রিকভারি কি লিখুন..." : "Enter passphrase or FF-XXXX..."}
+                placeholder={isBn ? "আপনার সিঙ্ক পাসওয়ার্ড বা রিকভারি কি লিখুন..." : "Enter sync password or FF-XXXX..."}
                 className="w-full pl-3.5 pr-10 py-3 rounded-xl text-xs sm:text-sm bg-[var(--color-surface)] border border-[var(--color-border-subtle)] text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:border-purple-500 transition-colors"
               />
               <button
@@ -112,7 +112,7 @@ export default function PassphraseUnlockModal({
                 className="px-6 py-2.5 rounded-xl text-xs font-semibold text-white bg-purple-600 hover:bg-purple-700 transition-colors shadow-none cursor-pointer disabled:opacity-40 flex items-center gap-2"
               >
                 <ShieldCheck size={14} />
-                <span>{isSubmitting ? (isBn ? "আনলক হচ্ছে..." : "Unlocking...") : isBn ? "আনলক করুন" : "Unlock"}</span>
+                <span>{isSubmitting ? (isBn ? "সিঙ্ক ও আনলক হচ্ছে..." : "Unlocking...") : isBn ? "সিঙ্ক আনলক করুন" : "Unlock & Sync"}</span>
               </button>
             </div>
           </form>

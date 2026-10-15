@@ -49,6 +49,9 @@ export default function WorkspacePage() {
       blocks: [{ id: crypto.randomUUID?.() ?? Math.random().toString(36).slice(2), type: "paragraph", content: "" }],
       category: selectedCategory !== "All" ? selectedCategory : "Personal"
     });
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("focusforge:request_vault_setup"));
+    }
     setEditingNote(draft);
     setView('editor');
   };

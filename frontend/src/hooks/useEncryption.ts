@@ -66,7 +66,12 @@ export function useEncryption(userId?: string | null): UseEncryptionReturn {
         setRemoteEnvelope(res.envelope);
 
         // Check if device already has a stored local recovery passphrase to auto-unlock
-        const storedRecoveryKey = localStorage.getItem(`focentia_recovery_key_${cleanUserId}`);
+        const storedRecoveryKey =
+          (typeof window !== "undefined"
+            ? localStorage.getItem(`focentia_recovery_key_${cleanUserId}`) ||
+              localStorage.getItem(`focusforge_recovery_key_${cleanUserId}`)
+            : null);
+
         if (storedRecoveryKey) {
           try {
             await cryptoSession.unlockVault(cleanUserId, res.envelope, storedRecoveryKey);
@@ -79,15 +84,15 @@ export function useEncryption(userId?: string | null): UseEncryptionReturn {
         } else {
           setIsUnlocked(false);
         }
-      } else {
+      } else if (res && res.exists === false) {
         setHasRemoteVault(false);
         setRemoteEnvelope(null);
         setIsUnlocked(false);
       }
     } catch (err) {
       console.warn("[useEncryption] Vault status check notice:", err);
-      setHasRemoteVault(false);
-      setRemoteEnvelope(null);
+      // NOTE: Do NOT set hasRemoteVault(false) on network/auth errors!
+      // Setting hasRemoteVault(false) triggers needsSetup=true which mistakenly pops up the setup modal!
     } finally {
       setIsLoading(false);
     }
@@ -123,6 +128,8 @@ export function useEncryption(userId?: string | null): UseEncryptionReturn {
         const recoveryKey = generateRecoveryPhrase();
         try {
           localStorage.setItem(`focentia_recovery_key_${cleanUserId}`, passphrase);
+          localStorage.setItem(`focusforge_recovery_key_${cleanUserId}`, passphrase);
+          localStorage.removeItem(`focusforge_vault_dismissed_${cleanUserId}`);
         } catch {}
 
         setIsUnlocked(true);
@@ -170,6 +177,8 @@ export function useEncryption(userId?: string | null): UseEncryptionReturn {
         await cryptoSession.unlockVault(cleanUserId, envelope, passphrase);
         try {
           localStorage.setItem(`focentia_recovery_key_${cleanUserId}`, passphrase);
+          localStorage.setItem(`focusforge_recovery_key_${cleanUserId}`, passphrase);
+          sessionStorage.removeItem(`focusforge_unlock_dismissed_${cleanUserId}`);
         } catch {}
 
         setIsUnlocked(true);
@@ -198,7 +207,10 @@ export function useEncryption(userId?: string | null): UseEncryptionReturn {
   const exportRecoveryKey = useCallback((): string | null => {
     if (!cleanUserId) return null;
     try {
-      return localStorage.getItem(`focentia_recovery_key_${cleanUserId}`);
+      return (
+        localStorage.getItem(`focentia_recovery_key_${cleanUserId}`) ||
+        localStorage.getItem(`focusforge_recovery_key_${cleanUserId}`)
+      );
     } catch {
       return null;
     }

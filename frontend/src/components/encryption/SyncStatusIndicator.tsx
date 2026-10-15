@@ -65,12 +65,22 @@ export default function SyncStatusIndicator({
 
   const config = getStatusConfig();
 
+  const handleClick = () => {
+    if (status === "locked" && typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("focusforge:request_vault_setup"));
+      window.dispatchEvent(new CustomEvent("focusforge:request_vault_unlock"));
+    }
+    if (onTriggerSync) {
+      onTriggerSync();
+    }
+  };
+
   return (
     <button
       type="button"
-      onClick={onTriggerSync}
+      onClick={handleClick}
       disabled={isSyncing || status === "offline"}
-      title={isBn ? "সিঙ্ক স্ট্যাটাস (ক্লিক করে সিঙ্ক করুন)" : "Sync Status (Click to sync)"}
+      title={isBn ? "সিঙ্ক স্ট্যাটাস (ক্লিক করে সিঙ্ক বা আনলক করুন)" : "Sync Status (Click to sync or unlock)"}
       className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium border transition-all cursor-pointer select-none disabled:cursor-default ${config.color} ${className}`}
     >
       {config.icon}

@@ -84,8 +84,84 @@ export default function Home() {
     unlockVault,
   } = useEncryption(user?.id);
 
-  const [dismissedEncryptionSetup, setDismissedEncryptionSetup] = useState(false);
-  const [dismissedEncryptionUnlock, setDismissedEncryptionUnlock] = useState(false);
+  const [dismissedEncryptionSetup, setDismissedEncryptionSetup] = useState<boolean>(() => {
+    if (typeof window === "undefined" || !user?.id) return false;
+    try {
+      return localStorage.getItem(`focusforge_vault_dismissed_${user.id}`) === "true";
+    } catch {
+      return false;
+    }
+  });
+
+  const [dismissedEncryptionUnlock, setDismissedEncryptionUnlock] = useState<boolean>(() => {
+    if (typeof window === "undefined" || !user?.id) return false;
+    try {
+      return sessionStorage.getItem(`focusforge_unlock_dismissed_${user.id}`) === "true";
+    } catch {
+      return false;
+    }
+  });
+
+  // Sync dismissal state whenever the active authenticated user changes
+  useEffect(() => {
+    if (!user?.id || isGuest) {
+      setDismissedEncryptionSetup(false);
+      setDismissedEncryptionUnlock(false);
+      return;
+    }
+    try {
+      const isSetupDismissed = localStorage.getItem(`focusforge_vault_dismissed_${user.id}`) === "true";
+      setDismissedEncryptionSetup(isSetupDismissed);
+      const isUnlockDismissed = sessionStorage.getItem(`focusforge_unlock_dismissed_${user.id}`) === "true";
+      setDismissedEncryptionUnlock(isUnlockDismissed);
+    } catch {}
+  }, [user?.id, isGuest]);
+
+  // Listen for explicit user actions (e.g. creating notes/diary or manual sync) that request vault setup/unlock
+  useEffect(() => {
+    const handleOpenVaultSetup = () => {
+      setDismissedEncryptionSetup(false);
+      if (user?.id && typeof window !== "undefined") {
+        try {
+          localStorage.removeItem(`focusforge_vault_dismissed_${user.id}`);
+        } catch {}
+      }
+    };
+
+    const handleOpenVaultUnlock = () => {
+      setDismissedEncryptionUnlock(false);
+      if (user?.id && typeof window !== "undefined") {
+        try {
+          sessionStorage.removeItem(`focusforge_unlock_dismissed_${user.id}`);
+        } catch {}
+      }
+    };
+
+    window.addEventListener("focusforge:request_vault_setup", handleOpenVaultSetup);
+    window.addEventListener("focusforge:request_vault_unlock", handleOpenVaultUnlock);
+    return () => {
+      window.removeEventListener("focusforge:request_vault_setup", handleOpenVaultSetup);
+      window.removeEventListener("focusforge:request_vault_unlock", handleOpenVaultUnlock);
+    };
+  }, [user?.id]);
+
+  const handleDismissEncryptionSetup = () => {
+    setDismissedEncryptionSetup(true);
+    if (user?.id && typeof window !== "undefined") {
+      try {
+        localStorage.setItem(`focusforge_vault_dismissed_${user.id}`, "true");
+      } catch {}
+    }
+  };
+
+  const handleDismissEncryptionUnlock = () => {
+    setDismissedEncryptionUnlock(true);
+    if (user?.id && typeof window !== "undefined") {
+      try {
+        sessionStorage.setItem(`focusforge_unlock_dismissed_${user.id}`, "true");
+      } catch {}
+    }
+  };
 
   // If page was loaded with a password recovery hash/query, redirect immediately to reset password
   useEffect(() => {
@@ -330,7 +406,7 @@ export default function Home() {
       <PassphraseSetupModal
         isOpen={!isGuest && Boolean(user?.id) && encryptionNeedsSetup && !dismissedEncryptionSetup && !showOnboarding && launchDone}
         onComplete={setupVault}
-        onDismiss={() => setDismissedEncryptionSetup(true)}
+        onDismiss={handleDismissEncryptionSetup}
         lang={state.lang}
       />
 
@@ -338,7 +414,7 @@ export default function Home() {
       <PassphraseUnlockModal
         isOpen={!isGuest && Boolean(user?.id) && encryptionNeedsUnlock && !dismissedEncryptionUnlock && !showOnboarding && launchDone}
         onUnlock={unlockVault}
-        onCancel={() => setDismissedEncryptionUnlock(true)}
+        onCancel={handleDismissEncryptionUnlock}
         lang={state.lang}
       />
     </div>

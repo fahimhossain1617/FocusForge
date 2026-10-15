@@ -794,12 +794,22 @@ export default function SettingsPage() {
     setSyncResultNote(null);
     try {
       const res = await syncService.syncNow(user.id);
+      if (res.status === "locked" && typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("focusforge:request_vault_setup"));
+        window.dispatchEvent(new CustomEvent("focusforge:request_vault_unlock"));
+      }
       setSyncResultNote(
         state?.lang === "bn"
-          ? `সিঙ্ক সম্পন্ন! (${res.pushedCount} টি পাঠানো হয়েছে, ${res.pulledCount} টি আনা হয়েছে)`
-          : `Sync complete! (${res.pushedCount} pushed, ${res.pulledCount} pulled)`
+          ? (res.status === "locked" 
+              ? "ভল্ট লক করা আছে। সিঙ্ক সম্পন্ন করতে আপনার পাসওয়ার্ড দিন।" 
+              : `সিঙ্ক সম্পন্ন! (${res.pushedCount} টি পাঠানো হয়েছে, ${res.pulledCount} টি আনা হয়েছে)`)
+          : (res.status === "locked"
+              ? "Vault is locked. Enter your password to complete sync."
+              : `Sync complete! (${res.pushedCount} pushed, ${res.pulledCount} pulled)`)
       );
-      showToast(state?.lang === "bn" ? "সিঙ্ক সফলভাবে সম্পন্ন হয়েছে!" : "Sync completed successfully!", "success");
+      if (res.status !== "locked") {
+        showToast(state?.lang === "bn" ? "সিঙ্ক সফলভাবে সম্পন্ন হয়েছে!" : "Sync completed successfully!", "success");
+      }
     } catch (err: any) {
       setSyncResultNote(err?.message || "Sync failed");
       showToast(state?.lang === "bn" ? "সিঙ্ক সম্পন্ন করা যায়নি।" : "Sync failed.", "error");
