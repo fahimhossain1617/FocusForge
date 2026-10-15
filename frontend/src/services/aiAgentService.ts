@@ -5,6 +5,7 @@ import { aiMemoryService } from "./aiMemoryService";
 import { buildActionRequest, validateAndSanitizeAction } from "../lib/ai/aiActionValidator";
 import { 
   routeUserMessage, 
+  normalizeInput,
   pruneHistoryForGemini, 
   sanitizeContextForGemini, 
   buildRoadmapActionButtons,
@@ -801,8 +802,8 @@ async function generateClientGeminiResponse(
   if (signal?.aborted) {
     throw new DOMException('Aborted', 'AbortError');
   }
-  const banglishIndicators = /\b(ami|amar|tumi|tomar|apni|apnar|korbo|korchi|korte|chai|dorkar|shikhbo|hobe|kemon|achho|achen|bhalo|parbo|ki|kibhabe|kothay|kokhon|porbo|porte|porashona|ajke|aajke|ekhon|shuru|routine)\b/i;
-  const isBn = /[\u0980-\u09FF]/.test(message) || banglishIndicators.test(message) || (lang === "bn" && !/^[a-zA-Z0-9\s.,!?'"-]+$/.test(message.trim()));
+  const norm = normalizeInput(message);
+  const isBn = norm.detectedLang === 'bn';
   
   const q = (message || '').trim().toLowerCase();
   if (!q) {
@@ -854,7 +855,9 @@ export async function sendAgentMessage(
   }
 
   // 1. GLORY LOCAL-FIRST ROUTER: Deterministic on-device resolution (0 tokens)
-  const isBn = lang === 'bn';
+  const norm = normalizeInput(message);
+  const isBn = norm.detectedLang === 'bn';
+  const effectiveLang: AIAgentLanguage = isBn ? 'bn' : 'en';
   const { data: { user: currentUser } } = await supabase.auth.getUser();
   const isAuth = !!currentUser?.id;
   const userName = currentUser?.user_metadata?.name || currentUser?.user_metadata?.full_name || '';
@@ -863,7 +866,7 @@ export async function sendAgentMessage(
 
   if (!localResolution.shouldCallGemini) {
     const targetSessionId = (sessionId && isUuid.test(sessionId)) ? sessionId : crypto.randomUUID();
-    const currentTokenStatus = await getAITokenStatus(lang);
+    const currentTokenStatus = await getAITokenStatus(effectiveLang);
 
     const localAiMessage: AgentMessage = {
       id: crypto.randomUUID(),
@@ -921,7 +924,7 @@ export async function sendAgentMessage(
         'Content-Type': 'application/json',
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
         'x-guest-id': guestId,
-        'x-app-lang': lang,
+        'x-app-lang': effectiveLang,
       },
       body: JSON.stringify({ 
         sessionId: targetSessionId, 
@@ -951,7 +954,7 @@ export async function sendAgentMessage(
 
   // 4. Client-side Gemini Fallback if server returned no answer
   if (!resData || !resData.aiMessage?.content || resData.sessionId?.startsWith('session_')) {
-    const generated = await generateClientGeminiResponse(message, context, prunedHistory, lang, model, signal);
+    const generated = await generateClientGeminiResponse(message, context, prunedHistory, effectiveLang, model, signal);
     resData = {
       sessionId: targetSessionId,
       sessionTitle: undefined,

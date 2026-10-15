@@ -46,7 +46,7 @@ export function getGeminiConfigForTask(taskType: 'roadmap' | 'big_task' | 'fallb
     return {
       taskType: 'roadmap',
       modelPreference: 'gemini-3.8-flash',
-      maxOutputTokens: 1500, // Never below 1200 for structured roadmaps
+      maxOutputTokens: 1200, // Structured roadmap within economical token budget
     };
   }
 
@@ -54,14 +54,14 @@ export function getGeminiConfigForTask(taskType: 'roadmap' | 'big_task' | 'fallb
     return {
       taskType: 'big_task',
       modelPreference: 'gemini-3.7-flash',
-      maxOutputTokens: 800,
+      maxOutputTokens: 600,
     };
   }
 
   return {
     taskType: 'fallback',
     modelPreference: 'gemini-3.5-flash-lite',
-    maxOutputTokens: 400, // Never below 100
+    maxOutputTokens: 280, // Crisp conversational turn saving user tokens
   };
 }
 

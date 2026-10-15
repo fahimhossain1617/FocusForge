@@ -123,7 +123,7 @@ export function handleLocalIntent(
       const { reply } = getVariantFromPool('greetings', socialTemplates.greetings[langKey], userName);
       return {
         message: prefix + reply,
-        intent: 'GREETING_OR_GENERAL',
+        intent: 'GREETING',
         actions: [],
         orbEmotion: 'happy',
         handledLocally: true,
@@ -240,6 +240,20 @@ export function handleLocalIntent(
         intent: 'GREETING_OR_GENERAL',
         actions: [],
         orbEmotion: 'idle',
+        handledLocally: true,
+        tokenCost: 0,
+      };
+    }
+
+    case 'USER_CORRECTION': {
+      const reply = isBn
+        ? 'ভুলটি ধরিয়ে দেওয়ার জন্য অনেক ধন্যবাদ! কোথায় ভুল হয়েছে বা তোমার কী প্রয়োজন আমাকে বলো, আমি ঠিক করে দিচ্ছি।'
+        : 'Thank you for pointing that out! Please let me know what needs to be corrected or what you need, and I will fix it right away.';
+      return {
+        message: prefix + reply,
+        intent: 'USER_CORRECTION',
+        actions: [],
+        orbEmotion: 'attentive',
         handledLocally: true,
         tokenCost: 0,
       };

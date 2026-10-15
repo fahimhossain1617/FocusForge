@@ -1,5 +1,5 @@
 // Focentia Progressive Web App Service Worker
-const CACHE_NAME = 'focentia-build-1792091345699';
+const CACHE_NAME = 'focentia-build-1792093961133';
 
 const STATIC_ASSETS = [
   '/',

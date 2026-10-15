@@ -82,7 +82,7 @@ const BANGLISH_MAP: Record<string, string> = {
   'inshallah': 'ইনশাআল্লাহ',
 };
 
-const BANGLISH_INDICATORS = /\b(ami|amar|tumi|tomar|apni|apnar|korbo|korchi|korte|chai|dorkar|shikhbo|hobe|kemon|achho|acho|aso|achen|bhalo|valo|parbo|ki|kibhabe|kivabe|kothay|kokhon|porbo|porte|porashona|ajke|aajke|ekhon|shuru|routine|shikhte|khobor|dhonnobad|thik|ache|acche|bujhlam|bujhi)\b/i;
+const BANGLISH_INDICATORS = /\b(ami|amar|amake|amader|tumi|tomar|tomake|apni|apnar|apnake|korbo|korchi|korte|koro|korun|chai|dorkar|shikhbo|sikhbo|hobe|kemon|achho|acho|aso|achen|asen|bhalo|valo|parbo|parchi|kibhabe|kivabe|kothay|kokhon|porbo|porte|porashona|ajke|aajke|agamikal|ekhon|shuru|shesh|shikhte|khobor|dhonnobad|thik\s*ache|acche|bujhlam|bujhi|valobashi|bhalobashi|ghumaite|ghumiye|eta|oita|vul|bhul|hoyeche|hoyese|hoise|bolso|bolcho|bolsen|bolchen)\b/i;
 
 export function normalizeInput(input: string): NormalizedInput {
   const raw = input || '';

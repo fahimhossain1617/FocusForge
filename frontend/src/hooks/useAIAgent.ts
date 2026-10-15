@@ -24,7 +24,7 @@ import type {
 import { useAuth } from "@/context/AuthContext";
 import { aiConsentService } from "@/services/aiConsentService";
 import { connectivityService } from "@/services/connectivityService";
-import { routeUserMessage } from "@/lib/ai/router";
+import { routeUserMessage, normalizeInput } from "@/lib/ai/router";
 import { getProgressiveStages } from "@/services/aiStatusEvents";
 import { localDb } from "@/services/localDbService";
 
@@ -436,10 +436,9 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
     }
     setError(null); 
 
-    const banglishRegex = /\b(ami|amar|amake|amader|tumi|tomar|tomake|apni|apnar|apnake|korbo|korchi|korte|koro|korun|chai|dorkar|shikhbo|sikhbo|shekha|sikhte|shikhte|hobe|kemon|achho|achen|bhalo|parbo|parchi|parbona|ki|kibhabe|kivabe|kothay|kokhon|keno|kar|porbo|porte|porashona|ajke|aajke|ekhon|shuru|routine|plan|schedule|somossa|somosya|somosha|kothin|mon|kharap|bhabna|chinta|idea|notun|diary|journal|onubhuti|dhyan|monojog|focus|pomodoro|timer|note|notes|file|likhe|rakho|rakhbo|help|lagbe|ache|achhe|nai|nei)\b/i;
-    const isContentBengali = /[\u0980-\u09FF]/.test(content) || banglishRegex.test(content);
-    // User writes in English -> AI replies in English; User writes in Bengali -> AI replies in Bengali
-    const langParam: AIAgentLanguage = isContentBengali ? "bn" : "en";
+    const norm = normalizeInput(content);
+    // User writes in English -> AI replies in English; User writes in Bengali or Banglish -> AI replies in Bengali
+    const langParam: AIAgentLanguage = norm.detectedLang === "bn" ? "bn" : "en";
     const isBn = langParam === "bn";
     const isGuestUser = isGuest || !user;
 

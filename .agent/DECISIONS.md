@@ -1288,6 +1288,60 @@
   - TypeScript & Production Build: `npm run build --prefix frontend` -> Code 0 (Turbopack, 19/19 routes compiled).
 - **Status:** **VERIFIED**
 
+---
+
+## 2026-10-16 — AI Intent Precision, Language Matching & Sleep Mode Fixes
+
+- **Context:**
+  1. **AI Precision & Intent Grounding:** Ensure instant/canned messages only trigger when the user's intent truly matches—no random or ungrounded responses. Mid-sentence words like "nice", "great", or "routine" must never hijack user queries into canned small talk or action templates.
+  2. **Mistake & Correction Handling:** When the user points out a mistake or provides feedback, the AI must never generate illogical responses such as telling the user not to apologize ("ক্ষমা চাইতে হবে না তোমার"). Instead, it politely acknowledges the correction and directly invites or provides the accurate details.
+  3. **Strict Language Matching:**
+     - User speaks English $\rightarrow$ AI responds in English.
+     - User speaks Bengali (বাংলা লিপি) $\rightarrow$ AI responds in Bengali.
+     - User speaks Banglish (phonetic Bengali in Latin letters) $\rightarrow$ AI responds in 100% pure standard Bengali script (বাংলা লিপি).
+  4. **Sleep Mode Fix:** In the AI companion UI, selecting the "Sleep" ("ঘুমন্ত") mood icon previously failed because an unintended state effect immediately reset manual sleep back to "idle". The orb must stay asleep with gentle breathing and floating Zzz animations, waking up on tap (`triggerGiggle`), when typing in the composer, or when the mood is switched to Auto/another mode.
+  5. **Preservation:** Maintain all existing animations, speed/latency optimizations, token budgets, and UI structures with minimal diff.
+
+- **Decision:**
+  1. **Cleaned Banglish Indicators in `normalize.ts`:** Removed common English productivity keywords (`routine`, `plan`, `schedule`, `timer`, `focus`, `notes`, `help`, `diary`, `idea`, `file`) from `BANGLISH_INDICATORS` so English productivity prompts are never falsely classified as Bengali/Banglish. Expanded Banglish demonstrative/error terms (`eta`, `oita`, `vul`, `bhul`, `hoyeche`, `hoyese`, `hoise`, `bolso`, `bolcho`, `bolsen`, `bolchen`).
+  2. **Single Source of Truth in `useAIAgent.ts` & `aiAgentService.ts`:** Replaced fragmented local regexes with `normalizeInput` as the single authoritative analyzer for language detection. Passed dynamic `effectiveLang` and `isBanglish` to Gemini prompt builders.
+  3. **Bounded Intent Matching in `intents.ts`:** Wrapped small-talk and conversational regexes (`COMPLIMENT_REGEX`, `FAREWELL_REGEX`, `WHO_ARE_YOU_REGEX`, `WHAT_CAN_YOU_DO_REGEX`, `JOKES_REGEX`, `BORED_TIRED_REGEX`, `LOVE_YOU_REGEX`) with `^...$` anchors so mid-sentence keywords do not hijack user prompts. Removed bare programming keywords from `TIMELOG_ACTION_REGEX`.
+  4. **Dedicated `USER_CORRECTION` Handler in `handlers.ts`:** Added zero-token local acknowledgment and Gemini prompt guardrails that accept corrections with courteous gratitude without confused apologies.
+  5. **Bilingual Strict Prompt Directives in `aiService.ts` (Frontend & Backend):** Injected explicit directives into `buildAgentChatPrompt` requiring 100% English for English prompts, 100% pure standard Bengali script for Bengali/Banglish prompts, and strict mistake rectification rules.
+  6. **Sleep Mode Persistence in `useOrbMood.ts`:** Replaced the flawed effect dependency on `mood` with `limitTriggeredRef`, preventing premature resets of manual sleepy mood to idle. Removed the 6-second auto-reset for sleepy mode in `setManualMood`, ensuring the orb rests peacefully until tapped (`triggerGiggle`), typed in, or changed in the mood menu.
+
+- **Verification:**
+  - Scope Check: Targeted 9 files across frontend and backend.
+  - Automated Tests: 11/11 automated router/language test scenarios passed with 100% accuracy.
+- **Status:** **VERIFIED**
+
+---
+
+## 2026-10-16 — Strict AI Brevity, Token Economy & Speed Optimization
+
+- **Context:**
+  - The user requested strict token economy: avoid unnecessary token expenditure, long wordy essays, or filler preambles.
+  - The AI should provide concise, crisp, and direct answers (1 to 2 short sentences, max 3 for step-by-step instructions) so that API token consumption is minimized and users can chat much longer on their quotas.
+  - Responses in Focentia 2.1 must be very fast (snappy ~1s latency), while Focentia Pro can take slightly longer for structured research/planning without unnecessary lag or runaway token generation.
+  - Instant local messages (which cost 0 tokens) must remain preserved.
+
+- **Decision:**
+  1. **Strict Brevity Prompt Directives:** Injected strict token-saving directives into `buildAgentChatPrompt` across both `frontend/src/lib/server/aiService.ts` and `backend/src/services/aiService.ts`. Explicitly banned conversational filler, preambles (e.g. "Certainly!", "I can help with that", "অবশ্যই"), and repetitive summaries.
+  2. **Tuned Token Ceilings (`maxOutputTokens`):**
+     - Focentia 2.1 (Fast Mode): Capped at `320` tokens (down from 600-2200), ensuring ultra-compact JSON outputs, low inference latency (~1.0s), and minimal quota usage (strictly standard 4-token deduction).
+     - Focentia Pro (Roadmap): Capped at `1400` tokens (down from 2200-6000), providing ample room for multi-stage study roadmaps without runaway token generation.
+     - Focentia Pro (General): Capped at `800` tokens.
+     - Client Router Fallback (`geminiClient.ts`): Capped at `280` tokens for fallback turns.
+  3. **Low-Latency Timeouts & Temperatures:**
+     - Focentia 2.1: Timeout set to `10000ms` (10s), temperature `0.2` for direct, razor-sharp factual responses without creative rambling.
+     - Focentia Pro: Timeout set to `20000ms` / `28000ms`, temperature `0.45` for structured, high-yield planning.
+
+- **Verification:**
+  - Scope: 3 files updated (`frontend/src/lib/server/aiService.ts`, `backend/src/services/aiService.ts`, `frontend/src/lib/ai/router/geminiClient.ts`).
+  - Backend Build: `npm run build --prefix backend` -> Code 0.
+  - Frontend Build: `npm run build --prefix frontend` -> Code 0 (Turbopack, 19/19 routes compiled).
+- **Status:** **VERIFIED**
+
 
 
 

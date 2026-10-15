@@ -47,6 +47,7 @@ export type LocalIntentType =
   | 'STATS_PROGRESS'
   | 'APP_HELP'
   | 'BIG_TASK_ROADMAP'
+  | 'USER_CORRECTION'
   | 'UNKNOWN';
 
 export interface ClassifiedIntent {
@@ -58,16 +59,17 @@ export interface ClassifiedIntent {
 
 // 1. Social & Small Talk Patterns
 const GREETING_REGEX = /^(?:hi|hello|hey|heyy|heya|hiya|salam|assalamu\s*alaikum|halo|good\s*morning|good\s*afternoon|good\s*evening|shuvo\s*shokal|সুপ্রভাত|শুভ\s*সকাল|শুভ\s*সন্ধ্যা|সালাম|আসসালামু\s*আলাইকুম|হ্যালো|হাই|হায়|কেমন\s*আছো|কেমন\s*আছিস|কেমন\s*আছেন|কী\s*খবর|কি\s*খবর|কি\s*অবস্থা|কী\s*অবস্থা|ভালো\s*আছো|ভালো\s*আছেন|kemon\s*achho|kemon\s*acho|kemon\s*aso|kemon\s*achen|ki\s*khobor|ki\s*obostha|valo\s*acho|bhalo\s*acho)(?:\s+(?:there|glory|গ্লোরি|বন্ধু|friend|bro|vai|bhai|partner))?[!?.]*$|^(?:how\s*are\s*you|how\s*r\s*u|how\s*do\s*you\s*do|how\s*are\s*you\s*doing|how\s*is\s*it\s*going|whats\s*up|what's\s*up|sup|তুমি\s*কেমন\s*আছো|তুমি\s*কেমন\s*আছিস|আপনি\s*কেমন\s*আছেন)(?:\s+(?:glory|গ্লোরি|friend|there))?[!?.]*$/i;
-const FAREWELL_REGEX = /(?:\b(?:bye|goodbye|see\s*you|tata|allah\s*hafez|ta\s*ta|pore\s*kotha\s*hobe)\b|বিদায়|বাই|পরে\s*কথা\s*হবে|আল্লাহ\s*হাফেজ)/i;
-const WHO_ARE_YOU_REGEX = /(?:\b(?:who\s*are\s*you|introduce\s*yourself|what(?:'s|\s+is)\s+your\s+name|who\s+made\s+you|are\s+you\s+a\s+robot|tell\s+me\s+about\s+(?:focusforge|focentia|glory)|tumi\s*ke|tomar\s*naam\s*ki|tomar\s*nam\s*ki|tumi\s*ki\s*robot|who\s*is\s*glory|who\s*are\s*u)\b|তুমি\s*কে|তোমার\s*নাম\s*(?:কী|কি)|তোমার\s*পরিচয়|তোমার\s*পরিচয়|তুমি\s*(?:কি|কী)\s*রোবট|তোমার\s*কাজ\s*(?:কী|কি)|তোমাকে\s*কে\s*(?:বানিয়েছে|তৈরি\s*করেছে))/i;
-const WHAT_CAN_YOU_DO_REGEX = /(?:\b(?:what\s*can\s*you\s*do|what\s*do\s*you\s*do|features\s*of\s*(?:focusforge|focentia)|what\s*features\s*do\s*you\s*have|tumi\s*ki\s*korte\s*paro|help\s*me\s*with|what\s*are\s*your\s*features)\b|(?:কী|কি)\s*করতে\s*পারো|তোমার\s*কাজ\s*(?:কী|কি)|কীভাবে\s*সাহায্য\s*করবে|কিভাবে\s*সাহায্য\s*করবে|তুমি\s*(?:কী|কি)\s*করতে\s*পারো|তুমি\s*(?:কী|কি)\s*কাজ\s*করো|কী\s*কী\s*ফিচার\s*আছে|কি\s*কি\s*ফিচার\s*আছে)/i;
-const JOKES_REGEX = /(?:\b(?:tell\s*me\s*a\s*joke|joke|make\s*me\s*laugh|funny|joke\s*bolo|koutuk)\b|কৌতুক|মজার\s*কিছু|হাসাও)/i;
-const COMPLIMENT_REGEX = /(?:\b(?:you\s*are\s*great|you\s*are\s*awesome|good\s*job|nice|great|awesome|well\s*done|love\s*you\s*glory|thank\s*you|thanks|valo\s*laglo|dhonnobad|thx)\b|ধন্যবাদ|অনেক\s*ধন্যবাদ|থ্যাংক\s*ইউ|দারুণ|তুমি\s*সেরা|খুব\s*ভালো|অনেক\s*ভালো)/i;
-const FEELINGS_AGE_REGEX = /(?:\b(?:how\s*old\s*are\s*you|your\s*age|how\s*do\s*you\s*feel|tomar\s*boyos|tomar\s*age)\b|তোমার\s*বয়স\s*কত|তোমার\s*বয়স|কেমন\s*অনুভব\s*করছো)/i;
-const BORED_TIRED_REGEX = /(?:\b(?:i(?:'m|\s+am)\s+bored|i(?:'m|\s+am)\s+tired|exhausted|feeling\s+sleepy|boring\s*lagche|klanto\s*lagche)\b|বোরিং\s*লাগছে|ক্লান্ত\s*লাগছে|ঘুম\s*পাচ্ছে|ক্লান্ত)/i;
-const GOOD_NIGHT_REGEX = /(?:\b(?:good\s*night|night\s*glory|sleep\s*well|shuvo\s*ratri|ghumaite\s*jai|ghumiye\s*pori)\b|শুভ\s*রাত্রি|ঘুমাব|ঘুমাতে\s*যাই)/i;
-const LOVE_YOU_REGEX = /(?:\b(?:i\s*love\s*you|love\s*you|bhalobashi\s*tomake|valobashi)\b|তোমাকে\s*ভালোবাসি|তোমায়\s*ভালোবাসি|ভালোবাসি)/i;
-const ACK_REGEX = /^(ok|okay|hmm|hm|yes|no|yup|nope|thik\s*ache|আচ্ছা|ঠিক\s*আছে|ঠিক\s*আসে|হ্যাঁ|না|bujhlam|got\s*it|sure)$/i;
+const FAREWELL_REGEX = /^(?:bye|goodbye|see\s*you|see\s*you\s*later|tata|allah\s*hafez|ta\s*ta|pore\s*kotha\s*hobe|বিদায়|বাই|পরে\s*কথা\s*হবে|আল্লাহ\s*হাফেজ)[!?.]*$/i;
+const WHO_ARE_YOU_REGEX = /^(?:who\s*are\s*you|introduce\s*yourself|what(?:'s|\s+is)\s+your\s+name|who\s+made\s+you|are\s+you\s+a\s+robot|tell\s+me\s+about\s+(?:focusforge|focentia|glory)|tumi\s*ke|tomar\s*naam\s*ki|tomar\s*nam\s*ki|tumi\s*ki\s*robot|who\s*is\s*glory|who\s*are\s*u|তুমি\s*কে|তোমার\s*নাম\s*(?:কী|কি)|তোমার\s*পরিচয়|তোমার\s*পরিচয়|তুমি\s*(?:কি|কী)\s*রোবট|তোমার\s*কাজ\s*(?:কী|কি)|তোমাকে\s*কে\s*(?:বানিয়েছে|তৈরি\s*করেছে))[!?.]*$/i;
+const WHAT_CAN_YOU_DO_REGEX = /^(?:what\s*can\s*you\s*do|what\s*do\s*you\s*do|features\s*of\s*(?:focusforge|focentia)|what\s*features\s*do\s*you\s*have|tumi\s*ki\s*korte\s*paro|help\s*me\s*with|what\s*are\s*your\s*features|(?:কী|কি)\s*করতে\s*পারো|তোমার\s*কাজ\s*(?:কী|কি)|কীভাবে\s*সাহায্য\s*করবে|কিভাবে\s*সাহায্য\s*করবে|তুমি\s*(?:কী|কি)\s*করতে\s*পারো|তুমি\s*(?:কী|কি)\s*কাজ\s*করো|কী\s*কী\s*ফিচার\s*আছে|কি\s*কি\s*ফিচার\s*আছে)[!?.]*$/i;
+const JOKES_REGEX = /^(?:tell\s*me\s*a\s*joke|joke|make\s*me\s*laugh|funny|joke\s*bolo|koutuk|কৌতুক|মজার\s*কিছু|হাসাও|একটি\s*কৌতুক\s*বলো)[!?.]*$/i;
+const COMPLIMENT_REGEX = /^(?:you\s*are\s*(?:great|awesome|the\s*best)|good\s*job|well\s*done|thank\s*you(?:\s*so\s*much)?|thanks(?:\s*a\s*lot)?|thx|ধন্যবাদ|অনেক\s*ধন্যবাদ|থ্যাংক\s*ইউ|দারুণ(?:\s*হয়েছে)?|তুমি\s*সেরা|খুব\s*ভালো(?:\s*লেগেছে)?|অনেক\s*ভালো|valo\s*laglo|dhonnobad)(?:\s+(?:glory|গ্লোরি|friend|bro|vai|bhai))?[!?.]*$/i;
+const FEELINGS_AGE_REGEX = /^(?:how\s*old\s*are\s*you|your\s*age|how\s*do\s*you\s*feel|tomar\s*boyos|tomar\s*age|তোমার\s*বয়স\s*কত|তোমার\s*বয়স|কেমন\s*অনুভব\s*করছো)[!?.]*$/i;
+const BORED_TIRED_REGEX = /^(?:i(?:'m|\s+am)\s+(?:bored|tired|exhausted|sleepy)|feeling\s+sleepy|boring\s*lagche|klanto\s*lagche|বোরিং\s*লাগছে|ক্লান্ত\s*লাগছে|ঘুম\s*পাচ্ছে|আমি\s*ক্লান্ত|খুব\s*ক্লান্ত)[!?.]*$/i;
+const GOOD_NIGHT_REGEX = /^(?:good\s*night|night\s*glory|sleep\s*well|shuvo\s*ratri|ghumaite\s*jai|ghumiye\s*pori|শুভ\s*রাত্রি|ঘুমাব|ঘুমাতে\s*যাই)[!?.]*$/i;
+const LOVE_YOU_REGEX = /^(?:i\s*love\s*you|love\s*you(?:\s*glory)?|bhalobashi\s*tomake|valobashi\s*tomake|তোমাকে\s*ভালোবাসি|তোমায়\s*ভালোবাসি|ভালোবাসি\s*তোমাকে)[!?.]*$/i;
+const ACK_REGEX = /^(ok|okay|hmm|hm|yes|no|yup|nope|thik\s*ache|আচ্ছা|ঠিক\s*আছে|ঠিক\s*আসে|হ্যাঁ|না|bujhlam|got\s*it|sure)[!?.]*$/i;
+const USER_CORRECTION_REGEX = /(?:\b(?:you\s+are\s+wrong|you\s+made\s+a\s+mistake|that(?:'s|\s+is)\s+(?:wrong|incorrect|a\s+mistake)|wrong\s+answer|not\s+correct|(?:eta|oita)\s*(?:vul|bhul)|(?:vul|bhul)\s*(?:hoyeche|hoyese|hoise|bolso|bolcho|bolsen|korsen|koreso))\b|ভুল\s*(?:হয়েছে|বলছ|বলেছো|করলা|করেছ|উত্তর|হয়ে\s*গেছে)|এটা\s*ভুল|ভুল\s*তথ্য|ভুল\s*কথা|ভুল\s*হয়েছে|ভুল\s*বলেছ|ভুল\s*করেছ|ভুল\s*উত্তর|ঠিক\s*না)/i;
 
 // 2. Emotional Support & Motivation Patterns
 const EXAM_FEAR_REGEX = /(?:\b(?:scared\s*of\s*my\s*exam|exam\s*fear|fear\s*of\s*failure|scared\s*of\s*future|no\s*confidence|fail\s*করব|porikhar\s*bhoy|fail\s*korbo|fear\s*exam)\b|পরীক্ষার\s*ভয়|ভয়\s*করছে|আত্মবিশ্বাস\s*পাচ্ছি\s*না|ভবিষ্যৎ\s*নিয়ে\s*ভয়)/i;
@@ -94,11 +96,11 @@ const SETTINGS_DELETE_REGEX = /(?:\b(?:delete\s*account|delete\s*my\s*account|re
 const SETTINGS_SUPPORT_REGEX = /(?:\b(?:contact\s*support|report\s*a\s*problem|report\s*bug|feedback)\b|সমস্যা\s*রিপোর্ট|সাপোর্টে\s*যোগাযোগ)/i;
 
 // 4. Productivity Actions
-const TIMER_ACTION_REGEX = /(?:\b(timer|stopwatch|count\s*up|need\s*a\s*timer|give\s*me\s*a\s*timer|open\s*timer|start\s*timer)\b|টাইমার|স্টপওয়াচ|টাইমার\s*চাই|টাইমার\s*লাগবে|টাইমার\s*দাও|টাইমার\s*অপশন|স্টপওয়াচ\s*চাই|স্টপওয়াচ\s*লাগবে)/i;
-const FOCUS_SESSION_ACTION_REGEX = /(?:\b(focus\s*session|start\s*focus|deep\s*focus|pomodoro|let('s|\s+us)\s+focus|want\s+to\s+focus)\b|ফোকাস\s*সেশন|ফোকাস\s*করব|ফোকাস\s*শুরু|ডিপ\s*ফোকাস|পোমোডোরো|ফোকাস\s*টাইমার)/i;
+const TIMER_ACTION_REGEX = /(?:\b(need\s*a\s*timer|give\s*me\s*a\s*timer|open\s*timer|start\s*timer|stopwatch\s*please)\b|^timer$|^stopwatch$|টাইমার\s*চাই|টাইমার\s*লাগবে|টাইমার\s*দাও|টাইমার\s*চালু|স্টপওয়াচ\s*চাই|স্টপওয়াচ\s*লাগবে)/i;
+const FOCUS_SESSION_ACTION_REGEX = /(?:\b(start\s*focus\s*session|deep\s*focus\s*session|let('s|\s+us)\s+focus|want\s+to\s+focus\s+now)\b|ফোকাস\s*সেশন\s*শুরু|ফোকাস\s*করব|ডিপ\s*ফোকাস\s*শুরু|পোমোডোরো\s*চালু)/i;
 const PLANNER_ACTION_REGEX = /(?:\b(add\s+(.*)\s+(to\s+my\s+planner|in\s+planner|tomorrow|today|on\s+.*)|schedule\s+(.*)|add\s+these\s+tasks|schedule\s+task)\b|প্ল্যানারে\s+(.*)\s+যোগ|রুটিনে\s+(.*)\s+যোগ)/i;
 const DIARY_ACTION_REGEX = /(?:\b(want\s*to\s*write\s*a\s*diary|create\s*a\s*diary|make\s*a\s*diary\s*folder|my\s*mood\s*is\s*bad\s*today)\b|ডায়েরি\s*লিখতে\s*চাই|ডায়েরি\s*তৈরি\s*করো|ডায়েরি\s*ফোল্ডার|ডায়েরিতে\s*লিখব)/i;
-const TIMELOG_ACTION_REGEX = /(?:\b(want\s*to\s*learn\s*(.*)|learn\s+(java|python|c\+\+|javascript|react|physics|math|biology|chemistry|english)|track\s*hours|java\s*shikhte\s*chai)\b|টাইম\s*লগে\s*যোগ|শিখতে\s*চাই|পড়তে\s*চাই|জাভা|পাইথন|প্রোগ্রামিং|জাভা\s*শিখব|জাভা\s*শিখতে\s*চাই|কোডিং\s*শিখব)/i;
+const TIMELOG_ACTION_REGEX = /(?:\b(want\s*to\s*learn\s*(?:java|python|c\+\+|javascript|react|physics|math|biology|chemistry|english)|track\s*hours\s*for|add\s+to\s+time\s*log)\b|টাইম\s*লগে\s*যোগ|টাইম\s*লগে\s*রাখব|জাভা\s*শিখব|জাভা\s*শিখতে\s*চাই|পাইথন\s*শিখব|পাইথন\s*শিখতে\s*চাই)/i;
 const TEACH_REQUEST_REGEX = /(?:\b(?:teach\s*me|explain\s*(?:this|that|quantum|calculus|oop|newton)|solve\s*this|solve\s*my\s*math|shikhao\s*amake|bujhiye\s*dao)\b|আমাকে\s*শেখাও|আমাকে\s*বুঝিয়ে\s*দাও|সমাধান\s*করে\s*দাও)/i;
 const STATS_PROGRESS_REGEX = /(?:\b(?:how\s*much\s*did\s*i\s*focus\s*today|how\s*many\s*tasks\s*left|today(?:'s|\s+)\s*stats|my\s*streak|ajke\s*koto\s*shomoy)\b|আজকে\s*কতক্ষণ\s*পড়েছি|কয়টা\s*কাজ\s*বাকি|আজকের\s*পরিসংখ্যান)/i;
 
@@ -156,6 +158,9 @@ export function classifyIntent(norm: NormalizedInput): ClassifiedIntent {
   }
   if (FAREWELL_REGEX.test(text)) {
     return { intent: 'FAREWELL', confidence: 0.95, isBigTask: false };
+  }
+  if (USER_CORRECTION_REGEX.test(text)) {
+    return { intent: 'USER_CORRECTION', confidence: 0.96, isBigTask: false };
   }
   if (ACK_REGEX.test(text)) {
     return { intent: 'ACKNOWLEDGEMENT', confidence: 0.95, isBigTask: false };

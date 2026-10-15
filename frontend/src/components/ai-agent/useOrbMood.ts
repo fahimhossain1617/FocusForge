@@ -150,6 +150,7 @@ export function useOrbMood({
   const moodTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const giggleTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isManualOverrideRef = useRef<boolean>(false);
+  const limitTriggeredRef = useRef<boolean>(false);
   const lastProcessedUserMsgRef = useRef<string>("");
   const lastIdleMsgTimeRef = useRef<number>(0);
 
@@ -171,17 +172,20 @@ export function useOrbMood({
   // 2. USAGE LIMIT HANDLING - Sleeps peacefully with warm message
   useEffect(() => {
     if (isGuestLimit || isLimitExhausted) {
+      limitTriggeredRef.current = true;
       setMood("sleepy");
       setCustomThought(
         isBn
           ? "তোমার আজকের লিমিট শেষ হয়ে গেছে, তাই আমি একটু রেস্ট নিচ্ছি। লিমিট রিসেট হলে আবার জেগে তোমাকে সাহায্য করবো!"
           : "Your daily limit has been reached, so I'm taking a little rest. Once it resets, I'll wake right up to help you!"
       );
-    } else if (mood === "sleepy" || mood === "usage_limit") {
+    } else if (limitTriggeredRef.current) {
+      limitTriggeredRef.current = false;
+      isManualOverrideRef.current = false;
       setMood("idle");
       setCustomThought(null);
     }
-  }, [isGuestLimit, isLimitExhausted, isBn, mood]);
+  }, [isGuestLimit, isLimitExhausted, isBn]);
 
   // 3. CORE STATE MACHINE TRANSITIONS (Real events, no fake timeouts)
   useEffect(() => {
@@ -355,6 +359,7 @@ export function useOrbMood({
 
     // Wake up from sleep
     if (mood === "sleepy") {
+      isManualOverrideRef.current = false;
       setMood("happy");
       setIsEnjoying(true);
       setCustomThought(
@@ -476,11 +481,16 @@ export function useOrbMood({
       setCustomThought(null);
     }
 
-    moodTimeoutRef.current = setTimeout(() => {
-      isManualOverrideRef.current = false;
-      setMood("idle");
-      setCustomThought(null);
-    }, durationMs);
+    if (newMood === "sleepy") {
+      // Sleep mode remains active indefinitely until user taps, types, or starts interaction
+      if (moodTimeoutRef.current) clearTimeout(moodTimeoutRef.current);
+    } else {
+      moodTimeoutRef.current = setTimeout(() => {
+        isManualOverrideRef.current = false;
+        setMood("idle");
+        setCustomThought(null);
+      }, durationMs);
+    }
   }, [isBn]);
 
   // 6. INACTIVITY & SLEEP
@@ -505,6 +515,7 @@ export function useOrbMood({
   useEffect(() => {
     if (userInput) {
       if (isGuestLimit || isLimitExhausted || !isOnline) return;
+      isManualOverrideRef.current = false;
       setMood((current) => {
         if (current === "sleepy") {
           setCustomThought(null);
