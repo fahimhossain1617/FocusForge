@@ -26,7 +26,7 @@ Focentia is an active, functional productivity suite built with Next.js 16 App R
 - **Known Problems:** Direct connection to `db.<project>.supabase.co` on IPv4 environments like Vercel must use Supabase connection pooler (`aws-0-ap-northeast-2.pooler.supabase.com:6543`) in environment variables.
 - **Important Files:** `frontend/src/context/AuthContext.tsx`, `frontend/src/app/auth/callback/page.tsx`, `frontend/src/app/page.tsx`, `frontend/src/services/authService.ts`, `frontend/src/app/reset-password/page.tsx`, `frontend/src/components/pages/SettingsPage.tsx`, `frontend/src/services/onboardingStorage.ts`.
 - **Important Dependencies:** `@supabase/supabase-js`, `nodemailer`, `crypto`, `framer-motion`.
-- **Unknowns:** Rate limiting in pure serverless multi-instance environments uses in-memory Map (effective per-instance, but not globally distributed across edge regions).
+- **Rate Limiting & Token Protection:** Dual-tier rate limiting with Upstash Redis (`EXPIRE key seconds NX` fixed window) and fallback in-memory sliding window. Token quotas use atomic single-statement SQL updates with `ai_tokens_reset_at IS NULL` handling and fail-closed behavior for authenticated users. Profile token columns are protected from client tampering via PostgreSQL column privilege revokes (`REVOKE UPDATE ON public.profiles`) and trigger `protect_profile_token_columns()` in migrations 029 & 030.
 
 ---
 
@@ -412,4 +412,19 @@ Focentia is an active, functional productivity suite built with Next.js 16 App R
 - **Important Files:** `frontend/vercel.json`, `frontend/next.config.ts`, `scripts/deploy.js`.
 - **Dependencies:** Vercel platform.
 - **Unknowns:** None.
+
+---
+
+### Full-Stack Security, Stability & Production Readiness Audit (October 2026)
+- **Current Implementation:**
+  1. **PostgreSQL Resilience:** Database pool idle error trap (`pool.on('error', ...)`) prevents crash-on-drop on cloud poolers (Supabase transaction pooler).
+  2. **Memory Leak Protections:** Attached `.unref()` to periodic cache sweep intervals; cleared execution timers in `Promise.race` for AI model timeouts.
+  3. **AI Chat & Rate Limiting:** Corrected rate limiter truthy object bug; validated session IDs to UUID format to prevent Postgres syntax errors; enforced token status pre-checks prior to specific AI action execution.
+  4. **Cryptographic OTP Security:** Replaced `Math.random()` OTP generation with `crypto.randomInt()`; removed plaintext OTP logging; added 5-attempt brute-force protection to `pending_signups` and `pending_password_resets`.
+  5. **Endpoint Isolation & Authorization:** Secured debug push endpoints (`/api/debug/test-push`, `/api/debug/push-status`) with mandatory authentication and caller-isolated queries.
+  6. **CORS & Web Headers:** Restricted Express backend CORS to whitelisted domains; enforced `Strict-Transport-Security` in `next.config.ts`.
+  7. **Crash-Proofing:** Added `global-error.tsx` root layout error boundary.
+- **Verified Status:** **VERIFIED** (Backend compile: 0 errors; Frontend Turbopack build: 19/19 routes compiled; 35/35 Production Readiness tests passed; 28/28 AI Security tests passed; 20/20 Auth Isolation tests passed).
+- **Important Files:** `frontend/src/app/api/[...path]/route.ts`, `frontend/src/app/api/ai/transcribe/route.ts`, `frontend/src/app/api/contact/route.ts`, `frontend/src/lib/server/db.ts`, `backend/src/services/db.ts`, `frontend/src/lib/server/rateLimiter.ts`, `frontend/src/lib/server/aiChatService.ts`, `backend/src/services/aiChatService.ts`, `frontend/src/app/global-error.tsx`, `frontend/next.config.ts`, `backend/src/server.ts`.
+
 

@@ -1,6 +1,10 @@
+import { pool } from './db';
+
 const DEFAULT_AUTH_TOKENS = 5000;
 const DEFAULT_GUEST_TOKENS = 1000;
 const RESET_DURATION_MS = 24 * 60 * 60 * 1000; // 24 hours rolling reset
+
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export interface TokenStatus {
   total: number;
@@ -66,9 +70,54 @@ export async function getUserTokenStatus(
   guestId?: string,
   lang: string = 'bn'
 ): Promise<TokenStatus> {
+  // If user is authenticated and has a valid UUID, read authoritative state from database
+  if (!isGuest && userId && userId !== 'guest' && UUID_REGEX.test(userId)) {
+    try {
+      const { rows } = await pool.query(
+        `SELECT 
+           COALESCE(ai_tokens_total, 5000) AS total,
+           CASE WHEN ai_tokens_reset_at IS NULL OR ai_tokens_reset_at <= NOW() THEN 0 ELSE COALESCE(ai_tokens_used, 0) END AS used,
+           CASE WHEN ai_tokens_reset_at IS NULL OR ai_tokens_reset_at <= NOW() THEN NOW() + INTERVAL '24 hours' ELSE ai_tokens_reset_at END AS reset_at
+         FROM public.profiles
+         WHERE id = $1`,
+        [userId]
+      );
+      if (rows.length > 0) {
+        const total = Number(rows[0].total) || DEFAULT_AUTH_TOKENS;
+        const used = Number(rows[0].used) || 0;
+        const resetAtDate = new Date(rows[0].reset_at);
+        const remaining = Math.max(0, total - used);
+        const { formattedDate, formattedTimeRemaining } = formatResetTime(resetAtDate, lang);
+        return {
+          total,
+          used,
+          remaining,
+          resetAt: resetAtDate.toISOString(),
+          isExhausted: remaining <= 0,
+          formattedResetDate: formattedDate,
+          formattedRemainingTime: formattedTimeRemaining,
+        };
+      }
+    } catch (err: any) {
+      console.error('[AI Token Service] DB read error for auth user:', err?.message);
+      const now = new Date();
+      const retryReset = new Date(now.getTime() + 60 * 1000);
+      const { formattedDate, formattedTimeRemaining } = formatResetTime(retryReset, lang);
+      return {
+        total: DEFAULT_AUTH_TOKENS,
+        used: DEFAULT_AUTH_TOKENS,
+        remaining: 0,
+        resetAt: retryReset.toISOString(),
+        isExhausted: true,
+        formattedResetDate: formattedDate,
+        formattedRemainingTime: formattedTimeRemaining,
+      };
+    }
+  }
+
   const effectiveKey = (isGuest || !userId || userId === 'guest')
     ? `guest_${guestId || 'default'}`
-    : userId;
+    : userId || 'unknown';
 
   const quota = isGuest ? DEFAULT_GUEST_TOKENS : DEFAULT_AUTH_TOKENS;
   const now = new Date();
@@ -98,6 +147,10 @@ export async function getUserTokenStatus(
   };
 }
 
+/**
+ * Atomically check and deduct token quota in ONE single SQL operation.
+ * Prevents race conditions during concurrent AI requests.
+ */
 export async function consumeUserTokens(
   userId: string | null | undefined,
   isGuest: boolean = false,
@@ -105,9 +158,72 @@ export async function consumeUserTokens(
   tokensToConsume: number,
   lang: string = 'bn'
 ): Promise<TokenStatus> {
+  const safeTokens = Math.max(1, Math.min(100, Math.round(tokensToConsume)));
+
+  // If user is authenticated, execute atomic check-and-deduct in PostgreSQL
+  if (!isGuest && userId && userId !== 'guest' && UUID_REGEX.test(userId)) {
+    try {
+      const { rows } = await pool.query(
+        `UPDATE public.profiles
+         SET 
+           ai_tokens_used = CASE 
+             WHEN ai_tokens_reset_at IS NULL OR ai_tokens_reset_at <= NOW() THEN $1 
+             ELSE COALESCE(ai_tokens_used, 0) + $1 
+           END,
+           ai_tokens_reset_at = CASE 
+             WHEN ai_tokens_reset_at IS NULL OR ai_tokens_reset_at <= NOW() THEN NOW() + INTERVAL '24 hours' 
+             ELSE ai_tokens_reset_at 
+           END,
+           updated_at = NOW()
+         WHERE id = $2
+           AND (
+             ((ai_tokens_reset_at IS NULL OR ai_tokens_reset_at <= NOW()) AND COALESCE(ai_tokens_total, 5000) >= $1)
+             OR (ai_tokens_reset_at > NOW() AND (COALESCE(ai_tokens_total, 5000) - COALESCE(ai_tokens_used, 0)) >= $1)
+           )
+         RETURNING ai_tokens_total, ai_tokens_used, ai_tokens_reset_at`,
+        [safeTokens, userId]
+      );
+
+      if (rows.length > 0) {
+        const total = Number(rows[0].ai_tokens_total) || DEFAULT_AUTH_TOKENS;
+        const used = Number(rows[0].ai_tokens_used) || 0;
+        const resetAtDate = new Date(rows[0].ai_tokens_reset_at);
+        const remaining = Math.max(0, total - used);
+        const { formattedDate, formattedTimeRemaining } = formatResetTime(resetAtDate, lang);
+        return {
+          total,
+          used,
+          remaining,
+          resetAt: resetAtDate.toISOString(),
+          isExhausted: remaining <= 0,
+          formattedResetDate: formattedDate,
+          formattedRemainingTime: formattedTimeRemaining,
+        };
+      } else {
+        // Quota check failed atomically (exceeded remaining tokens or reset pending)
+        return getUserTokenStatus(userId, isGuest, guestId, lang);
+      }
+    } catch (err: any) {
+      console.error('[AI Token Service] DB atomic deduct error for auth user:', err?.message);
+      const now = new Date();
+      const retryReset = new Date(now.getTime() + 60 * 1000);
+      const { formattedDate, formattedTimeRemaining } = formatResetTime(retryReset, lang);
+      return {
+        total: DEFAULT_AUTH_TOKENS,
+        used: DEFAULT_AUTH_TOKENS,
+        remaining: 0,
+        resetAt: retryReset.toISOString(),
+        isExhausted: true,
+        formattedResetDate: formattedDate,
+        formattedRemainingTime: formattedTimeRemaining,
+      };
+    }
+  }
+
+  // Guest / fallback atomic memory deduction
   const effectiveKey = (isGuest || !userId || userId === 'guest')
     ? `guest_${guestId || 'default'}`
-    : userId;
+    : userId || 'unknown';
 
   const quota = isGuest ? DEFAULT_GUEST_TOKENS : DEFAULT_AUTH_TOKENS;
   const now = new Date();
@@ -121,7 +237,7 @@ export async function consumeUserTokens(
     };
   }
 
-  record.used = Math.min(record.total, record.used + tokensToConsume);
+  record.used = Math.min(record.total, record.used + safeTokens);
   memoryStore.set(effectiveKey, record);
 
   return getUserTokenStatus(userId, isGuest, guestId, lang);

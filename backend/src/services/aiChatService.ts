@@ -33,10 +33,14 @@ async function ensureAiChatTablesExist() {
   }
 }
 
+export function isValidUuid(id?: string | null): boolean {
+  if (!id) return false;
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+}
+
 export function sanitizeUserId(userId?: string | null): string | null {
   if (!userId) return null;
-  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(userId);
-  return isUuid ? userId : null;
+  return isValidUuid(userId) ? userId : null;
 }
 
 export async function getChatSessions(userId: string) {
@@ -63,6 +67,7 @@ export async function getChatSessions(userId: string) {
 }
 
 export async function getChatMessages(userId: string, sessionId: string) {
+  if (!isValidUuid(sessionId)) return [];
   await ensureAiChatTablesExist();
   const cleanId = sanitizeUserId(userId);
   // Verify ownership first
@@ -138,6 +143,7 @@ export async function createChatSession(userId: string | null, title: string = '
 }
 
 export async function updateChatSessionTitle(sessionId: string, userId: string | null, title: string) {
+  if (!isValidUuid(sessionId)) return null;
   await ensureAiChatTablesExist();
   const cleanId = sanitizeUserId(userId);
   let res;
@@ -163,6 +169,7 @@ export async function addChatMessage(
   intent?: string,
   payload_json?: any
 ) {
+  if (!isValidUuid(sessionId)) return null;
   await ensureAiChatTablesExist();
   const cleanId = sanitizeUserId(userId);
   // First, verify session ownership or auto-create if missing
@@ -207,6 +214,7 @@ export async function addChatMessage(
 }
 
 export async function deleteChatSession(sessionId: string, userId?: string | null) {
+  if (!isValidUuid(sessionId)) return { success: true };
   await ensureAiChatTablesExist();
   const cleanId = sanitizeUserId(userId);
   await pool.query('DELETE FROM ai_chat_messages WHERE session_id = $1', [sessionId]);

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { GoogleGenAI } from "@google/genai";
+import { checkRateLimitAsync, getClientIp } from "@/lib/server/rateLimiter";
 
 const FALLBACK_GEMINI_KEY = Buffer.from("QVEuQWI4Uk42S0NEMTc4S0dlQ2Rqd3NTNmFMcWQ0dXlON1pya0JHLTdyMWF6Ny1rdWVwSVE=", "base64").toString("utf-8");
 
@@ -13,6 +14,15 @@ const CANDIDATE_MODELS = [
 
 export async function POST(req: NextRequest) {
   try {
+    const clientIp = getClientIp(req);
+    const rateCheck = await checkRateLimitAsync(`ai_transcribe:${clientIp}`, 25, 60000);
+    if (!rateCheck.allowed) {
+      return NextResponse.json(
+        { error: "Too many transcription requests. Please wait a moment." },
+        { status: 429 }
+      );
+    }
+
     const body = await req.json().catch(() => ({}));
     const { audio, mimeType = "audio/webm", language = "auto" } = body;
 
@@ -21,6 +31,13 @@ export async function POST(req: NextRequest) {
     }
 
     const cleanBase64 = audio.replace(/^data:[^;]+;base64,/, "").trim();
+    if (cleanBase64.length > 10 * 1024 * 1024) {
+      return NextResponse.json(
+        { error: "Audio file too large. Maximum size is 10MB." },
+        { status: 400 }
+      );
+    }
+
     const apiKey = (process.env.GEMINI_API_KEY || "").trim() || FALLBACK_GEMINI_KEY;
 
     const ai = new GoogleGenAI({ apiKey });

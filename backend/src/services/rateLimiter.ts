@@ -8,7 +8,7 @@ const store = new Map<string, RateLimitRecord>();
 
 // Cleanup stale entries every 5 minutes
 if (typeof setInterval !== 'undefined') {
-  setInterval(() => {
+  const cleanupTimer = setInterval(() => {
     const now = Date.now();
     for (const [key, record] of store.entries()) {
       record.timestamps = record.timestamps.filter((ts) => now - ts < 3600000);
@@ -17,6 +17,9 @@ if (typeof setInterval !== 'undefined') {
       }
     }
   }, 300000);
+  if (cleanupTimer && typeof cleanupTimer.unref === 'function') {
+    cleanupTimer.unref();
+  }
 }
 
 /**
@@ -55,3 +58,58 @@ export function checkRateLimit(key: string, limit: number, windowMs: number): { 
     retryAfterSeconds: 0,
   };
 }
+
+/**
+ * Asynchronously check rate limit via Upstash Redis (if configured in env),
+ * seamlessly falling back to in-memory sliding window if env vars are absent or network errors.
+ */
+export async function checkRateLimitAsync(
+  key: string,
+  limit: number,
+  windowMs: number
+): Promise<{ allowed: boolean; remaining: number; retryAfterSeconds: number }> {
+  const upstashUrl = process.env.UPSTASH_REDIS_REST_URL;
+  const upstashToken = process.env.UPSTASH_REDIS_REST_TOKEN;
+
+  if (upstashUrl && upstashToken) {
+    try {
+      const redisKey = `ratelimit:${key}`;
+      const expireSeconds = Math.max(1, Math.ceil(windowMs / 1000));
+      
+      const response = await fetch(`${upstashUrl}/pipeline`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${upstashToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify([
+          ['INCR', redisKey],
+          ['EXPIRE', redisKey, expireSeconds, 'NX'],
+        ]),
+        signal: AbortSignal.timeout(1500),
+      });
+
+      if (response.ok) {
+        const results = await response.json();
+        const currentCount = Number(results[0]?.result) || 1;
+        if (currentCount > limit) {
+          return {
+            allowed: false,
+            remaining: 0,
+            retryAfterSeconds: expireSeconds,
+          };
+        }
+        return {
+          allowed: true,
+          remaining: Math.max(0, limit - currentCount),
+          retryAfterSeconds: 0,
+        };
+      }
+    } catch (redisErr: any) {
+      console.warn('[RateLimiter Backend] Upstash Redis check failed, falling back to memory:', redisErr?.message);
+    }
+  }
+
+  return checkRateLimit(key, limit, windowMs);
+}
+

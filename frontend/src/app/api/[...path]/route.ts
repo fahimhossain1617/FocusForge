@@ -57,7 +57,7 @@ import {
   validateGender,
   validatePassword,
 } from '@/lib/server/validation';
-import { checkRateLimit } from '@/lib/server/rateLimiter';
+import { checkRateLimit, checkRateLimitAsync } from '@/lib/server/rateLimiter';
 import {
   sendSupportNotificationToOwner,
   sendSupportConfirmationToUser,
@@ -180,7 +180,7 @@ export async function GET(request: NextRequest, context: { params: Promise<{ pat
   // 3. Username Availability Check: GET /api/user/check-username?username=...
   if (pathStr === 'user/check-username') {
     const username = searchParams.get('username') || '';
-    const rateCheck = checkRateLimit(`check_user:${clientIp}`, 30, 60000);
+    const rateCheck = await checkRateLimitAsync(`check_user:${clientIp}`, 30, 60000);
     if (!rateCheck.allowed) {
       return NextResponse.json({ error: 'Too many requests', code: ERROR_CODES.TOO_MANY_ATTEMPTS }, { status: 429 });
     }
@@ -387,18 +387,33 @@ export async function GET(request: NextRequest, context: { params: Promise<{ pat
 
   // 8.1. Debug / Push Status: GET /api/debug/test-push or /api/debug/push-status
   if (pathStr === 'debug/test-push' || pathStr === 'debug/push-status') {
+    if (!userId || isGuest) {
+      return NextResponse.json({ error: 'Unauthorized', code: ERROR_CODES.UNAUTHORIZED }, { status: 401 });
+    }
     try {
-      const targetUserId = userId || searchParams.get('userId');
+      const roles = await dbCheckUserRole(userId);
+      const isSupervisor = roles.includes('supervisor') || roles.includes('admin');
+
       let count = 0;
       let latestRows: any[] = [];
       try {
-        const countRes = await pool.query('SELECT count(*) FROM push_subscriptions');
-        count = parseInt(countRes.rows[0]?.count || '0', 10);
-        const latestRes = await pool.query('SELECT id, user_id, endpoint, created_at, updated_at FROM push_subscriptions ORDER BY created_at DESC LIMIT 5');
-        latestRows = latestRes.rows.map(r => ({
-          ...r,
-          endpointPreview: r.endpoint.slice(0, 50) + '...',
-        }));
+        if (isSupervisor) {
+          const countRes = await pool.query('SELECT count(*) FROM push_subscriptions');
+          count = parseInt(countRes.rows[0]?.count || '0', 10);
+          const latestRes = await pool.query('SELECT id, user_id, endpoint, created_at, updated_at FROM push_subscriptions ORDER BY created_at DESC LIMIT 5');
+          latestRows = latestRes.rows.map(r => ({
+            ...r,
+            endpointPreview: r.endpoint.slice(0, 50) + '...',
+          }));
+        } else {
+          const countRes = await pool.query('SELECT count(*) FROM push_subscriptions WHERE user_id = $1', [userId]);
+          count = parseInt(countRes.rows[0]?.count || '0', 10);
+          const latestRes = await pool.query('SELECT id, user_id, endpoint, created_at, updated_at FROM push_subscriptions WHERE user_id = $1 ORDER BY created_at DESC LIMIT 5', [userId]);
+          latestRows = latestRes.rows.map(r => ({
+            ...r,
+            endpointPreview: r.endpoint.slice(0, 50) + '...',
+          }));
+        }
       } catch (dbErr: any) {
         return NextResponse.json({ success: false, error: 'Database query error: ' + dbErr?.message }, { status: 500 });
       }
@@ -410,7 +425,7 @@ export async function GET(request: NextRequest, context: { params: Promise<{ pat
       return NextResponse.json({
         success: true,
         totalSubscriptions: count,
-        currentUser: userId || 'unauthenticated',
+        currentUser: userId,
         vapidConfig: {
           subject: vapidSubject,
           hasPublicKey: Boolean(vapidPublic),
@@ -593,7 +608,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ pa
     }
 
     // Rate limit: 5 requests per 10 minutes per IP
-    const rateCheck = checkRateLimit(`pre_signup:${clientIp}`, 5, 600000);
+    const rateCheck = await checkRateLimitAsync(`pre_signup:${clientIp}`, 5, 600000);
     if (!rateCheck.allowed) {
       return NextResponse.json({ error: 'Too many signup attempts. Please wait a few minutes.', code: ERROR_CODES.TOO_MANY_ATTEMPTS }, { status: 429 });
     }
@@ -606,7 +621,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ pa
       }
 
       // Generate cryptographically secure 6-digit OTP
-      const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+      const otpCode = crypto.randomInt(100000, 1000000).toString();
       const encryptedPassword = encryptPassword(password);
 
       // Store in pending_signups with 15 minutes expiry
@@ -625,8 +640,6 @@ export async function POST(request: NextRequest, context: { params: Promise<{ pa
 
       // Send OTP via email
       await sendVerificationOtpEmail(cleanEmail, otpCode, cleanName);
-
-      console.log(`[FocusForge Pre-Signup] OTP for ${cleanEmail}: ${otpCode}`);
 
       return NextResponse.json({
         success: true,
@@ -656,6 +669,12 @@ export async function POST(request: NextRequest, context: { params: Promise<{ pa
 
       const pending = res.rows[0];
 
+      // Check brute-force attempts limit
+      if ((pending.attempts || 0) >= 5) {
+        await pool.query('DELETE FROM public.pending_signups WHERE LOWER(email) = LOWER($1)', [cleanEmail]);
+        return NextResponse.json({ error: 'Too many incorrect attempts. Please sign up again.', isLocked: true }, { status: 429 });
+      }
+
       // Check expiry
       if (new Date(pending.expires_at).getTime() < Date.now()) {
         return NextResponse.json({ error: 'Verification code has expired. Please request a new code.', isExpired: true }, { status: 400 });
@@ -663,7 +682,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ pa
 
       // Check OTP code
       if (pending.otp_code !== cleanOtp) {
-        await pool.query('UPDATE public.pending_signups SET attempts = attempts + 1 WHERE email = $1', [cleanEmail]);
+        await pool.query('UPDATE public.pending_signups SET attempts = attempts + 1 WHERE LOWER(email) = LOWER($1)', [cleanEmail]);
         return NextResponse.json({ error: 'Incorrect verification code. Please check and try again.' }, { status: 400 });
       }
 
@@ -721,7 +740,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ pa
     const cleanEmail = email.trim().toLowerCase();
 
     // Check rate limit: 1 per 60 seconds
-    const rateCheck = checkRateLimit(`resend_otp:${cleanEmail}`, 1, 60000);
+    const rateCheck = await checkRateLimitAsync(`resend_otp:${cleanEmail}`, 1, 60000);
     if (!rateCheck.allowed) {
       return NextResponse.json({ error: `Please wait ${rateCheck.retryAfterSeconds} seconds before requesting a new code.` }, { status: 429 });
     }
@@ -733,7 +752,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ pa
       }
 
       const pending = res.rows[0];
-      const newOtpCode = Math.floor(100000 + Math.random() * 900000).toString();
+      const newOtpCode = crypto.randomInt(100000, 1000000).toString();
 
       await pool.query(
         `UPDATE public.pending_signups 
@@ -743,7 +762,6 @@ export async function POST(request: NextRequest, context: { params: Promise<{ pa
       );
 
       await sendVerificationOtpEmail(cleanEmail, newOtpCode, pending.full_name);
-      console.log(`[FocusForge Resend OTP] New OTP for ${cleanEmail}: ${newOtpCode}`);
 
       return NextResponse.json({ success: true, message: 'A fresh verification code has been dispatched to your email.' });
     } catch (err: any) {
@@ -770,7 +788,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ pa
     }
 
     // Rate limit: 5 requests per 10 minutes per IP
-    const rateCheck = checkRateLimit(`reset_otp:${cleanEmail}:${clientIp}`, 5, 600000);
+    const rateCheck = await checkRateLimitAsync(`reset_otp:${cleanEmail}:${clientIp}`, 5, 600000);
     if (!rateCheck.allowed) {
       return NextResponse.json({ error: 'Too many reset requests. Please wait a few minutes.', code: ERROR_CODES.TOO_MANY_ATTEMPTS }, { status: 429 });
     }
@@ -799,7 +817,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ pa
       const recipientName = meta.full_name || meta.display_name || meta.name || cleanEmail.split('@')[0];
 
       // Generate cryptographically secure 6-digit OTP
-      const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+      const otpCode = crypto.randomInt(100000, 1000000).toString();
       const encryptedPassword = newPassword ? encryptPassword(newPassword) : null;
 
       // Store in pending_password_resets with 15 minutes expiry
@@ -817,8 +835,6 @@ export async function POST(request: NextRequest, context: { params: Promise<{ pa
 
       // Send OTP via email
       await sendPasswordResetOtpEmail(cleanEmail, otpCode, recipientName);
-
-      console.log(`[FocusForge Reset OTP] OTP for ${cleanEmail}: ${otpCode}`);
 
       return NextResponse.json({
         success: true,
@@ -844,7 +860,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ pa
     const cleanEmail = email.trim().toLowerCase();
 
     // Check rate limit: 1 per 60 seconds
-    const rateCheck = checkRateLimit(`resend_reset_otp:${cleanEmail}`, 1, 60000);
+    const rateCheck = await checkRateLimitAsync(`resend_reset_otp:${cleanEmail}`, 1, 60000);
     if (!rateCheck.allowed) {
       return NextResponse.json({ error: `Please wait ${rateCheck.retryAfterSeconds} seconds before requesting a new code.` }, { status: 429 });
     }
@@ -856,7 +872,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ pa
       }
 
       const pending = res.rows[0];
-      const newOtpCode = Math.floor(100000 + Math.random() * 900000).toString();
+      const newOtpCode = crypto.randomInt(100000, 1000000).toString();
 
       await pool.query(
         `UPDATE public.pending_password_resets 
@@ -871,7 +887,6 @@ export async function POST(request: NextRequest, context: { params: Promise<{ pa
       const recipientName = meta.full_name || meta.display_name || cleanEmail.split('@')[0];
 
       await sendPasswordResetOtpEmail(cleanEmail, newOtpCode, recipientName);
-      console.log(`[FocusForge Resend Reset OTP] New OTP for ${cleanEmail}: ${newOtpCode}`);
 
       return NextResponse.json({ success: true, message: 'A fresh verification code has been dispatched to your email.' });
     } catch (err: any) {
@@ -896,6 +911,12 @@ export async function POST(request: NextRequest, context: { params: Promise<{ pa
 
       const pending = res.rows[0];
 
+      // Check brute-force attempts limit
+      if ((pending.attempts || 0) >= 5) {
+        await pool.query('DELETE FROM public.pending_password_resets WHERE LOWER(email) = LOWER($1)', [cleanEmail]);
+        return NextResponse.json({ error: 'Too many incorrect attempts. Please request a new verification code.', isLocked: true }, { status: 429 });
+      }
+
       // Check expiry
       if (new Date(pending.expires_at).getTime() < Date.now()) {
         return NextResponse.json({ error: 'Verification code has expired. Please request a new code.', isExpired: true }, { status: 400 });
@@ -903,7 +924,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ pa
 
       // Check OTP code
       if (pending.otp_code !== cleanOtp) {
-        await pool.query('UPDATE public.pending_password_resets SET attempts = attempts + 1 WHERE email = $1', [cleanEmail]);
+        await pool.query('UPDATE public.pending_password_resets SET attempts = attempts + 1 WHERE LOWER(email) = LOWER($1)', [cleanEmail]);
         return NextResponse.json({ error: 'Incorrect verification code. Please check and try again.' }, { status: 400 });
       }
 
@@ -1347,19 +1368,12 @@ export async function POST(request: NextRequest, context: { params: Promise<{ pa
 
   // 4.5. Full Isolation Debug Push: POST /api/debug/test-push
   if (pathStr === 'debug/test-push') {
+    if (!userId || isGuest) {
+      return NextResponse.json({ success: false, error: 'Authentication required' }, { status: 401 });
+    }
     try {
-      const targetUserId = userId || (body?.userId && body.userId !== 'guest' ? body.userId : null) || request.headers.get('x-user-id');
-      let subscriptionRow: any = null;
-
-      if (targetUserId && targetUserId !== 'guest') {
-        const { rows } = await pool.query('SELECT * FROM push_subscriptions WHERE user_id = $1 ORDER BY created_at DESC LIMIT 1', [targetUserId]);
-        subscriptionRow = rows[0];
-      }
-      
-      if (!subscriptionRow) {
-        const { rows } = await pool.query('SELECT * FROM push_subscriptions ORDER BY created_at DESC LIMIT 1');
-        subscriptionRow = rows[0];
-      }
+      const { rows } = await pool.query('SELECT * FROM push_subscriptions WHERE user_id = $1 ORDER BY created_at DESC LIMIT 1', [userId]);
+      const subscriptionRow = rows[0];
 
       const vapidSubject = process.env.VAPID_SUBJECT || 'mailto:focentia13@gmail.com';
       const vapidPublic = process.env.VAPID_PUBLIC_KEY || process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
@@ -1368,7 +1382,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ pa
       if (!subscriptionRow) {
         return NextResponse.json({
           success: false,
-          error: 'No push subscription found in database. Please click "Register / Sync Web Push" on your device first.',
+          error: 'No push subscription found for your account. Please click "Register / Sync Web Push" on your device first.',
           vapidConfig: {
             subject: vapidSubject,
             hasPublicKey: Boolean(vapidPublic),
@@ -1634,7 +1648,8 @@ export async function POST(request: NextRequest, context: { params: Promise<{ pa
     
     // Burst Rate Limiting: 40 AI requests per minute per IP / User
     const chatRateLimitKey = `ai_agent_chat:${userId || guestId || clientIp}`;
-    if (!checkRateLimit(chatRateLimitKey, 40, 60000)) {
+    const rateCheck = await checkRateLimitAsync(chatRateLimitKey, 40, 60000);
+    if (!rateCheck.allowed) {
       return NextResponse.json(
         { error: 'AI request limit reached. Please slow down.' },
         { status: 429 }
@@ -1667,8 +1682,9 @@ export async function POST(request: NextRequest, context: { params: Promise<{ pa
         createdAt: new Date().toISOString(),
       };
 
+      const isSessionUuid = requestedSessionId && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(requestedSessionId);
       return NextResponse.json({
-        sessionId: requestedSessionId || (isGuest ? 'guest-session' : `session_${Date.now()}`),
+        sessionId: isSessionUuid ? requestedSessionId : crypto.randomUUID(),
         sessionTitle: userMsg ? userMsg.substring(0, 25) : 'Focentia AI',
         aiMessage: exhaustedAiMsg,
         tokenStatus,
@@ -1706,7 +1722,8 @@ export async function POST(request: NextRequest, context: { params: Promise<{ pa
     );
     const updatedTokens = await consumeUserTokens(userId, isGuest, guestId, tokensUsed, lang);
 
-    const activeSessionId = requestedSessionId || (isGuest ? `guest_${Date.now()}` : `session_${Date.now()}`);
+    const isSessionUuid = requestedSessionId && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(requestedSessionId);
+    const activeSessionId = isSessionUuid ? requestedSessionId : crypto.randomUUID();
     const aiMsgId = `msg_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
     const nowIso = new Date().toISOString();
 
@@ -1767,6 +1784,23 @@ export async function POST(request: NextRequest, context: { params: Promise<{ pa
     if (actionName === 'breakdown') actionKey = 'taskBreakdown';
     if (actionName === 'parse-task') actionKey = 'parseTask';
 
+    // Rate limit check
+    const actionRateKey = `ai_action:${userId || guestId || clientIp}`;
+    const actionRate = await checkRateLimitAsync(actionRateKey, 30, 60000);
+    if (!actionRate.allowed) {
+      return NextResponse.json({ error: 'AI action limit reached. Please slow down.' }, { status: 429 });
+    }
+
+    // Check token quota BEFORE calling AI
+    const tokenStatus = await getUserTokenStatus(userId, isGuest, guestId, lang);
+    if (tokenStatus.isExhausted || tokenStatus.remaining <= 0) {
+      return NextResponse.json({
+        error: isGuest ? 'Guest limit reached. Please log in.' : 'Daily AI limit reached.',
+        isExhausted: true,
+        tokenStatus
+      }, { status: 429 });
+    }
+
     try {
       const result = await executeAIAction(actionKey, body);
       const actionModel = (body as any)?.model || (body as any)?.options?.model || 'smart';
@@ -1776,8 +1810,8 @@ export async function POST(request: NextRequest, context: { params: Promise<{ pa
         actionModel,
         (result as any)?.geminiUsage
       );
-      const tokenStatus = await consumeUserTokens(userId, isGuest, guestId, tokensUsed, lang);
-      return NextResponse.json(typeof result === 'object' && !Array.isArray(result) ? { ...result, tokenStatus } : result);
+      const updatedTokenStatus = await consumeUserTokens(userId, isGuest, guestId, tokensUsed, lang);
+      return NextResponse.json(typeof result === 'object' && !Array.isArray(result) ? { ...result, tokenStatus: updatedTokenStatus } : result);
     } catch (err: any) {
       return NextResponse.json({ error: err.message || 'AI execution failed' }, { status: 500 });
     }

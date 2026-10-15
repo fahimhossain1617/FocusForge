@@ -1,10 +1,20 @@
 import { NextResponse, after } from 'next/server';
 import { sendToGoogleAppsScript } from '@/lib/server/googleSheetsService';
+import { checkRateLimit, getClientIp } from '@/lib/server/rateLimiter';
 
 export const runtime = 'nodejs';
 
 export async function POST(request: Request) {
   try {
+    const clientIp = getClientIp(request);
+    const rateCheck = checkRateLimit(`contact_form:${clientIp}`, 10, 600000);
+    if (!rateCheck.allowed) {
+      return NextResponse.json(
+        { success: false, error: 'Too many submissions. Please wait a few minutes before trying again.' },
+        { status: 429 }
+      );
+    }
+
     const body = await request.json().catch(() => ({}));
     const {
       type = 'support', // 'support' | 'report' | 'feedback'
@@ -19,6 +29,13 @@ export async function POST(request: Request) {
     if (!trimmedMsg) {
       return NextResponse.json(
         { success: false, error: 'Message content is required.' },
+        { status: 400 }
+      );
+    }
+
+    if (trimmedMsg.length > 10000) {
+      return NextResponse.json(
+        { success: false, error: 'Message content is too long (maximum 10,000 characters).' },
         { status: 400 }
       );
     }

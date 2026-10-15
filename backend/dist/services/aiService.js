@@ -524,8 +524,18 @@ async function executeAIAction(action, payload) {
                 contents: promptContent,
                 config: configObj,
             });
-            const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error(`AI_MODEL_TIMEOUT (${model})`)), timeoutMs));
-            const response = await Promise.race([fetchPromise, timeoutPromise]);
+            let timer = null;
+            const timeoutPromise = new Promise((_, reject) => {
+                timer = setTimeout(() => reject(new Error(`AI_MODEL_TIMEOUT (${model})`)), timeoutMs);
+            });
+            let response;
+            try {
+                response = await Promise.race([fetchPromise, timeoutPromise]);
+            }
+            finally {
+                if (timer)
+                    clearTimeout(timer);
+            }
             if (response.text) {
                 const parsed = parseJson(response.text);
                 if (action === 'agentChat') {

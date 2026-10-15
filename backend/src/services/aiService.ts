@@ -551,11 +551,17 @@ export async function executeAIAction(action: string, payload: unknown): Promise
         config: configObj,
       });
 
-      const timeoutPromise = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error(`AI_MODEL_TIMEOUT (${model})`)), timeoutMs)
-      );
+      let timer: NodeJS.Timeout | null = null;
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        timer = setTimeout(() => reject(new Error(`AI_MODEL_TIMEOUT (${model})`)), timeoutMs);
+      });
 
-      const response = await Promise.race([fetchPromise, timeoutPromise]);
+      let response: any;
+      try {
+        response = await Promise.race([fetchPromise, timeoutPromise]);
+      } finally {
+        if (timer) clearTimeout(timer);
+      }
 
       if (response.text) {
         const parsed = parseJson(response.text);

@@ -1212,6 +1212,31 @@
 - **Verification:** Frontend production build (`npm run build`) succeeded with 0 errors.
 - **Impact:** `frontend/src/components/encryption/PassphraseSetupModal.tsx`, `frontend/src/components/focus/StopwatchTimer.tsx`, `frontend/src/components/pages/FocusPage.tsx`, `frontend/src/context/AppContext.tsx`, `frontend/src/hooks/useFocusTimer.ts`, `frontend/src/services/focusDbService.ts`.
 
+---
+
+- **Date:** 2026-10-15
+- **Decision:** Full-Stack Production Readiness, Security Hardening, Memory Leak Prevention, and Scale Audit
+- **Context:**
+  Systematic audit of frontend, backend, PostgreSQL database access, AI integration, rate limiting, and auth boundaries. Identified and fixed:
+  1. PostgreSQL pool unhandled `error` events and idle client disconnect crashes on poolers (`frontend/src/lib/server/db.ts` and `backend/src/services/db.ts`).
+  2. Memory leaks: Unref'd `setInterval` in `rateLimiter.ts` and un-cleared `setTimeout` in `Promise.race` inside `aiService.ts`.
+  3. AI Chat rate limiter evaluation bug (`if (!checkRateLimit(...))` returning a truthy object, bypassing rate limiting).
+  4. Non-UUID session strings causing PostgreSQL `invalid input syntax for type uuid` errors in `aiChatService.ts`.
+  5. Insecure OTP generation via `Math.random()` and plaintext OTP stdout logging; added 5-attempt brute-force protection to `pending_signups` and `pending_password_resets`.
+  6. Authorization leakage and IDOR in `POST /api/debug/test-push` and `GET /api/debug/push-status`.
+  7. Audio transcription and Contact form unmetered access; added IP rate limiting, 10MB payload size guard, and execution timeouts.
+  8. Unrestricted CORS in Express companion backend (`origin: true` replaced with strict origin validation).
+  9. Added HTTP Strict Transport Security (`Strict-Transport-Security`) header to `next.config.ts`.
+  10. Added `global-error.tsx` root layout error boundary to eliminate unhandled white screen crashes.
+- **Verification:**
+  - `npm run build --prefix backend` -> Code 0 (TypeScript compile passed)
+  - `npm run build --prefix frontend` -> Code 0 (Next.js 16 Turbopack production build passed, 19/19 routes compiled)
+  - `npx tsx scripts/verify_production_readiness.ts` -> 35/35 PASSED
+  - `node scripts/test_comprehensive_security_audit.js` -> 28/28 PASSED
+  - `npx tsx scripts/test_auth_isolation.ts` -> 20/20 PASSED
+- **Impact:** `frontend/src/lib/server/db.ts`, `backend/src/services/db.ts`, `frontend/src/lib/server/rateLimiter.ts`, `frontend/src/lib/server/aiService.ts`, `backend/src/services/aiService.ts`, `frontend/src/lib/server/aiChatService.ts`, `backend/src/services/aiChatService.ts`, `frontend/src/app/api/[...path]/route.ts`, `frontend/src/app/api/ai/transcribe/route.ts`, `frontend/src/app/api/contact/route.ts`, `frontend/src/app/global-error.tsx`, `backend/src/server.ts`, `frontend/next.config.ts`.
+
+
 
 
 

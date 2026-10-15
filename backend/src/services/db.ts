@@ -23,9 +23,12 @@ export const pool = (global as any).__focusforge_pg_pool__ || new Pool({
   ssl: isSsl ? { rejectUnauthorized: false } : undefined,
 });
 
-if (process.env.NODE_ENV !== 'production') {
-  (global as any).__focusforge_pg_pool__ = pool;
-}
+// Guard against unhandled idle client errors terminating the Node process
+pool.on('error', (err: any) => {
+  console.error('[pg-pool] Unexpected error on idle client:', err?.message || err);
+});
+
+(global as any).__focusforge_pg_pool__ = pool;
 
 // ==================== TASKS ====================
 

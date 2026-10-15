@@ -29,10 +29,33 @@ const app = (0, express_1.default)();
 const port = process.env.PORT || 5000;
 // Trust first reverse proxy (e.g. Vercel, Cloudflare, Nginx)
 app.set('trust proxy', 1);
+const allowedOrigins = [
+    process.env.FRONTEND_URL,
+    'https://focus-forge-fahimhossain1617-7909s-projects.vercel.app',
+    'http://localhost:3000',
+    'http://127.0.0.1:3000',
+    'http://localhost:5000',
+].filter(Boolean);
+if (process.env.ALLOWED_ORIGINS) {
+    process.env.ALLOWED_ORIGINS.split(',').forEach((o) => {
+        const trimmed = o.trim();
+        if (trimmed && !allowedOrigins.includes(trimmed)) {
+            allowedOrigins.push(trimmed);
+        }
+    });
+}
 // Middleware
 app.use((0, helmet_1.default)({ crossOriginResourcePolicy: false }));
 app.use((0, cors_1.default)({
-    origin: true,
+    origin: (origin, callback) => {
+        // Allow non-browser requests or same-origin / internal requests
+        if (!origin)
+            return callback(null, true);
+        if (allowedOrigins.includes(origin) || origin.endsWith('.vercel.app')) {
+            return callback(null, true);
+        }
+        return callback(new Error('Blocked by CORS policy'));
+    },
     credentials: true,
 }));
 app.use(express_1.default.json({ limit: '50mb' }));

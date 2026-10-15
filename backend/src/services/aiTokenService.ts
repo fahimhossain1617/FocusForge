@@ -99,40 +99,46 @@ export async function getUserTokenStatus(
     try {
       await ensureTokenColumns();
       const res = await pool.query(
-        'SELECT ai_tokens_total, ai_tokens_used, ai_tokens_reset_at FROM profiles WHERE id = $1',
+        `SELECT 
+           COALESCE(ai_tokens_total, 5000) AS total,
+           CASE WHEN ai_tokens_reset_at IS NULL OR ai_tokens_reset_at <= NOW() THEN 0 ELSE COALESCE(ai_tokens_used, 0) END AS used,
+           CASE WHEN ai_tokens_reset_at IS NULL OR ai_tokens_reset_at <= NOW() THEN NOW() + INTERVAL '24 hours' ELSE ai_tokens_reset_at END AS reset_at
+         FROM public.profiles
+         WHERE id = $1`,
         [userId]
       );
 
       if (res.rows.length > 0) {
-        let total = res.rows[0].ai_tokens_total ?? DEFAULT_AUTH_TOKENS;
-        let used = res.rows[0].ai_tokens_used ?? 0;
-        let resetAt = res.rows[0].ai_tokens_reset_at ? new Date(res.rows[0].ai_tokens_reset_at) : getNextResetDate();
-
-        // Check if reset period has elapsed
-        if (now >= resetAt) {
-          used = 0;
-          resetAt = getNextResetDate();
-          await pool.query(
-            'UPDATE profiles SET ai_tokens_used = $1, ai_tokens_reset_at = $2 WHERE id = $3',
-            [used, resetAt.toISOString(), userId]
-          );
-        }
-
+        const total = Number(res.rows[0].total) || DEFAULT_AUTH_TOKENS;
+        const used = Number(res.rows[0].used) || 0;
+        const resetAtDate = new Date(res.rows[0].reset_at);
         const remaining = Math.max(0, total - used);
-        const { formattedDate, formattedTimeRemaining } = formatResetTime(resetAt, lang);
+        const { formattedDate, formattedTimeRemaining } = formatResetTime(resetAtDate, lang);
 
         return {
           total,
           used,
           remaining,
-          resetAt: resetAt.toISOString(),
+          resetAt: resetAtDate.toISOString(),
           isExhausted: remaining <= 0,
           formattedResetDate: formattedDate,
           formattedRemainingTime: formattedTimeRemaining,
         };
       }
-    } catch (err) {
-      console.warn('[AI Token Service] Failed to read from profiles table, using memory store:', err);
+    } catch (err: any) {
+      console.error('[AI Token Service Backend] Failed to read from profiles table for auth user:', err?.message);
+      const now = new Date();
+      const retryReset = new Date(now.getTime() + 60 * 1000);
+      const { formattedDate, formattedTimeRemaining } = formatResetTime(retryReset, lang);
+      return {
+        total: DEFAULT_AUTH_TOKENS,
+        used: DEFAULT_AUTH_TOKENS,
+        remaining: 0,
+        resetAt: retryReset.toISOString(),
+        isExhausted: true,
+        formattedResetDate: formattedDate,
+        formattedRemainingTime: formattedTimeRemaining,
+      };
     }
   }
 
@@ -168,8 +174,80 @@ export async function consumeUserTokens(
   tokensToConsume: number = 100,
   lang: string = 'bn'
 ): Promise<TokenStatus> {
-  const status = await getUserTokenStatus(userId, isGuest, guestId, lang);
+  const safeTokens = Math.max(1, Math.min(100, Math.round(tokensToConsume)));
 
+  // Atomic check-and-deduct in PostgreSQL for authenticated users
+  if (!isGuest && userId && userId !== 'guest' && pool) {
+    try {
+      const { rows } = await pool.query(
+        `UPDATE public.profiles
+         SET 
+           ai_tokens_used = CASE 
+             WHEN ai_tokens_reset_at IS NULL OR ai_tokens_reset_at <= NOW() THEN $1 
+             ELSE COALESCE(ai_tokens_used, 0) + $1 
+           END,
+           ai_tokens_reset_at = CASE 
+             WHEN ai_tokens_reset_at IS NULL OR ai_tokens_reset_at <= NOW() THEN NOW() + INTERVAL '24 hours' 
+             ELSE ai_tokens_reset_at 
+           END,
+           updated_at = NOW()
+         WHERE id = $2
+           AND (
+             ((ai_tokens_reset_at IS NULL OR ai_tokens_reset_at <= NOW()) AND COALESCE(ai_tokens_total, 5000) >= $1)
+             OR (ai_tokens_reset_at > NOW() AND (COALESCE(ai_tokens_total, 5000) - COALESCE(ai_tokens_used, 0)) >= $1)
+           )
+         RETURNING ai_tokens_total, ai_tokens_used, ai_tokens_reset_at`,
+        [safeTokens, userId]
+      );
+
+      if (rows.length > 0) {
+        const total = Number(rows[0].ai_tokens_total) || DEFAULT_AUTH_TOKENS;
+        const used = Number(rows[0].ai_tokens_used) || 0;
+        const resetAtDate = new Date(rows[0].ai_tokens_reset_at);
+        const remaining = Math.max(0, total - used);
+        const { formattedDate, formattedTimeRemaining } = formatResetTime(resetAtDate, lang);
+        return {
+          total,
+          used,
+          remaining,
+          resetAt: resetAtDate.toISOString(),
+          isExhausted: remaining <= 0,
+          formattedResetDate: formattedDate,
+          formattedRemainingTime: formattedTimeRemaining,
+        };
+      } else {
+        const status = await getUserTokenStatus(userId, isGuest, guestId, lang);
+        const error: any = new Error('AI_TOKENS_EXHAUSTED');
+        error.code = 'TOKENS_EXHAUSTED';
+        error.tokenStatus = status;
+        throw error;
+      }
+    } catch (err: any) {
+      if (err.code === 'TOKENS_EXHAUSTED') throw err;
+      console.error('[AI Token Service Backend] DB atomic update error for auth user:', err?.message);
+      const now = new Date();
+      const retryReset = new Date(now.getTime() + 60 * 1000);
+      const { formattedDate, formattedTimeRemaining } = formatResetTime(retryReset, lang);
+      const error: any = new Error(
+        lang === 'bn'
+          ? 'সার্ভার ডেটাবেস সংযোগে সমস্যা হয়েছে, টোকেন কোটা আপডেট করা যাচ্ছে না। অনুগ্রহ করে কিছুক্ষণ পর আবার চেষ্টা করুন।'
+          : 'Database connection error while updating token quota. Please try again shortly.'
+      );
+      error.code = 'DB_TOKEN_ERROR';
+      error.tokenStatus = {
+        total: DEFAULT_AUTH_TOKENS,
+        used: DEFAULT_AUTH_TOKENS,
+        remaining: 0,
+        resetAt: retryReset.toISOString(),
+        isExhausted: true,
+        formattedResetDate: formattedDate,
+        formattedRemainingTime: formattedTimeRemaining,
+      };
+      throw error;
+    }
+  }
+
+  const status = await getUserTokenStatus(userId, isGuest, guestId, lang);
   if (status.isExhausted || status.remaining <= 0) {
     const error: any = new Error('AI_TOKENS_EXHAUSTED');
     error.code = 'TOKENS_EXHAUSTED';
@@ -179,43 +257,21 @@ export async function consumeUserTokens(
 
   const effectiveKey = (isGuest || !userId || userId === 'guest')
     ? `guest_${guestId || 'default'}`
-    : userId;
+    : userId || 'unknown';
 
-  const newUsed = Math.min(status.total, status.used + tokensToConsume);
+  const newUsed = Math.min(status.total, status.used + safeTokens);
   const newRemaining = Math.max(0, status.total - newUsed);
 
-  // Update in DB if authenticated
-  if (!isGuest && userId && userId !== 'guest' && pool) {
-    try {
-      await pool.query(
-        'UPDATE profiles SET ai_tokens_used = $1 WHERE id = $2',
-        [newUsed, userId]
-      );
-    } catch (err) {
-      console.warn('[AI Token Service] DB update error, falling back to memory store:', err);
-      const record = memoryStore.get(effectiveKey);
-      if (record) {
-        record.used = newUsed;
-      }
-    }
-  } else {
-    const record = memoryStore.get(effectiveKey);
-    if (record) {
-      record.used = newUsed;
-    }
+  const record = memoryStore.get(effectiveKey);
+  if (record) {
+    record.used = newUsed;
   }
 
-  const resetDate = new Date(status.resetAt);
-  const { formattedDate, formattedTimeRemaining } = formatResetTime(resetDate, lang);
-
   return {
-    total: status.total,
+    ...status,
     used: newUsed,
     remaining: newRemaining,
-    resetAt: status.resetAt,
     isExhausted: newRemaining <= 0,
-    formattedResetDate: formattedDate,
-    formattedRemainingTime: formattedTimeRemaining,
   };
 }
 
