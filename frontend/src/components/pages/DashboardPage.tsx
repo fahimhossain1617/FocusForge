@@ -904,9 +904,9 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Smooth Morphing Toggle: [ Weekly ] [ Monthly ] */}
+          {/* Smooth Morphing Mode Toggle: [ Weekly ] [ Monthly ] */}
           <div 
-            className="dashboard-period-toggle relative inline-flex items-center p-1 rounded-2xl bg-[#090f1d] dark:bg-[#070d1a] border border-[#1e293b]/70 dark:border-white/[0.08] shrink-0 self-start sm:self-auto select-none"
+            className="dashboard-period-toggle relative inline-flex items-center p-1 rounded-2xl bg-[#E5EDF7] dark:bg-[#070d1a] border border-[#DCE5F0] dark:border-white/[0.08] shrink-0 self-start sm:self-auto select-none transition-colors"
             role="tablist"
             aria-label="View Mode"
           >
@@ -919,16 +919,16 @@ export default function DashboardPage() {
                   role="tab"
                   aria-selected={isActive}
                   onClick={() => setProgressView(view)}
-                  className={`relative z-10 px-5 py-2 rounded-xl text-xs font-semibold tracking-wide transition-colors duration-200 cursor-pointer flex items-center justify-center outline-none select-none ${
+                  className={`relative z-10 min-w-[80px] sm:min-w-[88px] px-4 sm:px-5 py-1.5 sm:py-2 rounded-xl text-xs font-semibold tracking-wide transition-colors duration-200 cursor-pointer flex items-center justify-center outline-none select-none ${
                     isActive
                       ? "text-white font-bold"
-                      : "text-slate-400 hover:text-slate-200 dark:text-slate-400 dark:hover:text-slate-200"
+                      : "text-[#52627A] hover:text-[#111827] dark:text-slate-400 dark:hover:text-slate-200"
                   }`}
                 >
                   {isActive && (
                     <motion.div
                       layoutId="dashboardProgressActivePill"
-                      className="absolute inset-0 rounded-xl bg-blue-600"
+                      className="absolute inset-0 rounded-xl bg-[#223A5E] dark:bg-blue-600 shadow-sm"
                       transition={{
                         type: "spring",
                         stiffness: 420,

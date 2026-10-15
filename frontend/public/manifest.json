@@ -6,7 +6,7 @@
   "id": "/",
   "display": "standalone",
   "display_override": ["standalone", "minimal-ui", "window-controls-overlay"],
-  "orientation": "any",
+  "orientation": "portrait-primary",
   "background_color": "#090c19",
   "theme_color": "#090c19",
   "categories": ["productivity", "utilities"],

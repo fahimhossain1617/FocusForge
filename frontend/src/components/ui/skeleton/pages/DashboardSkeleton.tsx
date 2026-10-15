@@ -25,8 +25,8 @@ export default function DashboardSkeleton() {
         <div
           className="dashboard-card card rounded-2xl p-5 flex flex-col justify-between border"
           style={{
-            background: "var(--dashboard-card-bg, #111827)",
-            borderColor: "var(--dashboard-card-border, rgba(59, 130, 246, 0.12))",
+            background: "var(--dashboard-card-bg, var(--color-bg-card))",
+            borderColor: "var(--dashboard-card-border, var(--color-border-subtle))",
           }}
         >
           <div>
@@ -61,8 +61,8 @@ export default function DashboardSkeleton() {
         <div
           className="dashboard-card card rounded-2xl p-5 flex flex-col justify-between border"
           style={{
-            background: "var(--dashboard-card-bg, #111827)",
-            borderColor: "var(--dashboard-card-border, rgba(59, 130, 246, 0.12))",
+            background: "var(--dashboard-card-bg, var(--color-bg-card))",
+            borderColor: "var(--dashboard-card-border, var(--color-border-subtle))",
           }}
         >
           <div>
@@ -115,8 +115,8 @@ export default function DashboardSkeleton() {
         <div
           className="dashboard-card card rounded-2xl p-5 flex flex-col justify-between border"
           style={{
-            background: "var(--dashboard-card-bg, #111827)",
-            borderColor: "var(--dashboard-card-border, rgba(59, 130, 246, 0.12))",
+            background: "var(--dashboard-card-bg, var(--color-bg-card))",
+            borderColor: "var(--dashboard-card-border, var(--color-border-subtle))",
           }}
         >
           <div>
@@ -148,8 +148,8 @@ export default function DashboardSkeleton() {
       <div
         className="dashboard-card card rounded-2xl p-5 sm:p-7 border space-y-6"
         style={{
-          background: "var(--dashboard-card-bg, #111827)",
-          borderColor: "var(--dashboard-card-border, rgba(59, 130, 246, 0.12))",
+          background: "var(--dashboard-card-bg, var(--color-bg-card))",
+          borderColor: "var(--dashboard-card-border, var(--color-border-subtle))",
         }}
       >
         {/* Header Bar: Icon + Title + Toggle */}
@@ -237,7 +237,7 @@ export default function DashboardSkeleton() {
               key={card}
               className="p-4 rounded-xl border space-y-1.5"
               style={{
-                background: "rgba(15, 23, 42, 0.6)",
+                background: "var(--color-bg-secondary, var(--color-bg-card))",
                 borderColor: "var(--color-border-subtle)",
               }}
             >

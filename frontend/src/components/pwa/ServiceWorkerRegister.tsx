@@ -30,15 +30,9 @@ export default function ServiceWorkerRegister() {
       return;
     }
 
-    let refreshing = false;
-    const hadController = Boolean(navigator.serviceWorker.controller);
-
-    // When the new service worker takes over, avoid hard-reloading active screen to prevent disrupting user sessions
+    // When the new service worker takes over, log seamless activation without screen reload or flash
     const handleControllerChange = () => {
-      if (hadController && !refreshing) {
-        refreshing = true;
-        console.log("[PWA] Controller updated in background.");
-      }
+      console.log("[PWA] New version activated seamlessly in background (no reload).");
     };
 
     navigator.serviceWorker.addEventListener("controllerchange", handleControllerChange);
@@ -85,10 +79,10 @@ export default function ServiceWorkerRegister() {
             }
           };
 
-          // Periodically check for updates (every 2.5 minutes)
+          // Periodically check for updates (every 60 seconds while app is active)
           const interval = setInterval(() => {
             reg.update().catch(() => {});
-          }, 2.5 * 60 * 1000);
+          }, 60 * 1000);
 
           // Check for updates whenever user returns to the tab or app
           const handleVisibilityChange = () => {
@@ -97,13 +91,19 @@ export default function ServiceWorkerRegister() {
             }
           };
 
+          const handleOnline = () => {
+            reg.update().catch(() => {});
+          };
+
           document.addEventListener("visibilitychange", handleVisibilityChange);
           window.addEventListener("focus", handleVisibilityChange);
+          window.addEventListener("online", handleOnline);
 
           return () => {
             clearInterval(interval);
             document.removeEventListener("visibilitychange", handleVisibilityChange);
             window.removeEventListener("focus", handleVisibilityChange);
+            window.removeEventListener("online", handleOnline);
           };
         })
         .catch((err) => {

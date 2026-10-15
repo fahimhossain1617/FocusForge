@@ -92,20 +92,44 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark" suppressHydrationWarning>
       <head>
-        {/* Anti-Flicker Inline Dark Baseline & Pre-CSS Style - Placed BEFORE any CSS/JS */}
+        {/* Theme Pre-Hydration Init Script (Runs First Before Paint) */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var t=localStorage.getItem('focusforge_theme');var isDark=true;if(t){if(t==='light'){isDark=false;}else if(t==='system'){isDark=window.matchMedia('(prefers-color-scheme: dark)').matches;}else{isDark=true;}}else{var d=localStorage.getItem('focusforge_data');if(d){var s=JSON.parse(d);if(s&&s.theme&&s.theme.mode){if(s.theme.mode==='light'){isDark=false;}else if(s.theme.mode==='system'){isDark=window.matchMedia('(prefers-color-scheme: dark)').matches;}else{isDark=true;}}else{isDark=true;}}else{isDark=true;}}var root=document.documentElement;var themeHex=isDark?'#090c19':'#F3F7FC';if(isDark){root.dataset.theme='dark';root.classList.add('dark');root.classList.remove('light');root.style.colorScheme='dark';}else{root.dataset.theme='light';root.classList.remove('dark');root.classList.add('light');root.style.colorScheme='light';}var metaTheme=document.getElementById('ff-theme-color');if(metaTheme){metaTheme.setAttribute('content',themeHex);}}catch(e){}})();`,
+          }}
+        />
+
+        {/* Anti-Flicker Inline Dynamic Baseline Style */}
         <style
           dangerouslySetInnerHTML={{
             __html: `
               html, body {
+                margin: 0;
+                padding: 0;
+              }
+              html.light, html.light body, html[data-theme="light"], html[data-theme="light"] body {
+                background: #F3F7FC !important;
+                background-color: #F3F7FC !important;
+                color-scheme: light;
+              }
+              html.dark, html.dark body, html:not(.light), html:not(.light) body {
                 background: #090c19 !important;
                 background-color: #090c19 !important;
                 color-scheme: dark;
-                margin: 0;
-                padding: 0;
+              }
+              html.light #ff-boot-layer, html[data-theme="light"] #ff-boot-layer {
+                background-color: #F3F7FC !important;
+              }
+              html.dark #ff-boot-layer, html:not(.light) #ff-boot-layer {
+                background-color: #090c19 !important;
               }
             `,
           }}
         />
+
+        {/* Orientation Lock Meta for Mobile Browsers & PWAs */}
+        <meta name="screen-orientation" content="portrait" />
+        <meta name="x5-orientation" content="portrait" />
 
         {/* Launch Animation Gating & Session Storage Check (Runs Synchronously in Head) */}
         <script
@@ -190,8 +214,9 @@ export default function RootLayout({
                 position: relative;
                 flex: none;
                 transform-origin: center center;
+                rotate: 0deg !important;
                 will-change: transform, border-radius, opacity, box-shadow;
-                box-shadow: 0 12px 36px rgba(0, 0, 0, 0.35);
+                box-shadow: 0 12px 36px rgba(0, 0, 0, 0.25);
                 display: flex;
                 align-items: center;
                 justify-content: center;
@@ -205,7 +230,7 @@ export default function RootLayout({
                 height: 74%;
                 width: auto;
                 aspect-ratio: 520 / 630;
-                transform: translate(-50%, -50%);
+                transform: translate(-50%, -50%) rotate(0deg) !important;
                 display: block;
                 overflow: visible;
               }
@@ -276,13 +301,6 @@ export default function RootLayout({
                 visibility: visible;
               }
             `,
-          }}
-        />
-
-        {/* Theme Pre-Hydration Init Script */}
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `(function(){try{var t=localStorage.getItem('focusforge_theme');var isDark=true;if(t){if(t==='light'){isDark=false;}else if(t==='system'){isDark=window.matchMedia('(prefers-color-scheme: dark)').matches;}else{isDark=true;}}else{var d=localStorage.getItem('focusforge_data');if(d){var s=JSON.parse(d);if(s&&s.theme&&s.theme.mode){if(s.theme.mode==='light'){isDark=false;}else if(s.theme.mode==='system'){isDark=window.matchMedia('(prefers-color-scheme: dark)').matches;}else{isDark=true;}}else{isDark=true;}}else{isDark=true;}}var root=document.documentElement;var themeHex=isDark?'#090c19':'#F3F7FC';if(isDark){root.dataset.theme='dark';root.classList.add('dark');root.classList.remove('light');root.style.colorScheme='dark';}else{root.dataset.theme='light';root.classList.remove('dark');root.classList.add('light');root.style.colorScheme='light';}var metaTheme=document.getElementById('ff-theme-color');if(metaTheme){metaTheme.setAttribute('content',themeHex);}}catch(e){}})();`,
           }}
         />
 
@@ -490,8 +508,8 @@ export default function RootLayout({
     var dx = slotCenterX - badgeCenterX;
     var dy = slotCenterY - badgeCenterY;
 
-    // Fast, ultra-smooth, eye-soothing flight (~240ms)
-    var flightDuration = isSlowDebug ? 2500 : 240;
+    // Fast, ultra-smooth, eye-soothing flight (~230ms, strictly 0.22s-0.25s)
+    var flightDuration = isSlowDebug ? 2500 : 230;
     var targetRadius = Math.max(6, Math.round((parseInt(window.getComputedStyle(target.slot).borderRadius) || 8) / Math.max(scale, 0.1)));
 
     if (isSlowDebug) {
@@ -502,17 +520,17 @@ export default function RootLayout({
     bootLayer.style.background = 'transparent';
     bootBadge.style.zIndex = '999999';
 
-    // Badge flight animation: translation + scale + border-radius matching
+    // Badge flight animation: translation + scale + border-radius matching with strict 0deg rotation
     var flightAnim;
     try {
       flightAnim = bootBadge.animate([
         { 
-          transform: 'translate(0px, 0px) scale(1)',
+          transform: 'translate(0px, 0px) scale(1) rotate(0deg)',
           borderRadius: '50%',
-          boxShadow: '0 12px 36px rgba(0, 0, 0, 0.35)'
+          boxShadow: '0 12px 36px rgba(0, 0, 0, 0.25)'
         },
         { 
-          transform: 'translate(' + dx + 'px, ' + dy + 'px) scale(' + scale + ')',
+          transform: 'translate(' + dx + 'px, ' + dy + 'px) scale(' + scale + ') rotate(0deg)',
           borderRadius: '50%',
           boxShadow: '0 0px 0px rgba(0, 0, 0, 0)'
         }

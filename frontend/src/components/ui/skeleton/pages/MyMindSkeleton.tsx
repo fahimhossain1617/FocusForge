@@ -39,7 +39,7 @@ export default function MyMindSkeleton() {
           <div
             className="absolute bottom-0 left-0 right-0 p-3 flex items-center justify-between border-t"
             style={{
-              background: "rgba(10, 14, 26, 0.4)",
+              background: "var(--color-bg-secondary, var(--color-bg-card))",
               borderColor: "var(--color-border-subtle)",
             }}
           >

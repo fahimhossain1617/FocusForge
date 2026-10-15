@@ -1253,6 +1253,42 @@
   - TypeScript & Production Build: `npm run build --prefix frontend` -> Code 0 (Turbopack, 19/19 routes compiled).
 - **Status:** **VERIFIED**
 
+## 2026-10-16 — Skeleton Theme Isolation, Toggle Glitch Elimination, Splash Stabilization, & PWA Auto-Update
+
+- **Context:**
+  1. In Light Mode, initial skeletons and loading cards showed dark mode backgrounds due to premature hardcoded dark baseline CSS and inline styles in `layout.tsx` running prior to pre-hydration theme detection.
+  2. Weekly/Monthly toggle switch container in `DashboardPage.tsx` was hardcoded to dark `bg-[#090f1d]`, leaking dark colors and an unsightly flash during switching in Light Mode.
+  3. Mobile splash screen occasionally opened in landscape or rotated unpredictably because `orientation: any` was set in PWA manifests, and flight animation lacked explicit 0deg rotation lock.
+  4. Installed PWA on mobile devices was not picking up updates automatically after GitHub push and Vercel deployments because `controllerchange` deliberately bypassed reloading and `sw.js` lacked automatic build timestamp stamping.
+- **Decision:**
+  1. **Theme Pre-Hydration & Skeleton Variables:** Moved theme detection script to the very top of `<head>` in `layout.tsx`. Replaced hardcoded `#090c19` inline baseline with dynamic theme baseline rules (`html.light` gets `#F3F7FC !important`, `#ff-boot-layer` gets `#F3F7FC !important`). Added full light and dark skeleton token definitions (`--skeleton-base`, `--skeleton-highlight`, `--skeleton-border`, `--dashboard-card-bg`, `--dashboard-card-border`) in `globals.css` and removed hardcoded dark colors from `DashboardSkeleton.tsx` and `MyMindSkeleton.tsx`.
+  2. **Toggle Switch Theme Alignment:** Updated `.dashboard-period-toggle` in `DashboardPage.tsx` to `bg-[#E5EDF7] dark:bg-[#070d1a] border-[#DCE5F0] dark:border-white/[0.08]` with active pill `bg-[#223A5E] dark:bg-blue-600` and text `text-[#52627A] hover:text-[#111827] dark:text-slate-400 dark:hover:text-slate-200`, completely eliminating dark flash during switching.
+  3. **Mobile Splash Stabilization:** Locked `"orientation": "portrait-primary"` in `manifest.json` and `manifest.webmanifest`. Added `<meta name="screen-orientation" content="portrait" />` and `<meta name="x5-orientation" content="portrait" />`. Enforced `rotate: 0deg !important` and `transform: translate(-50%, -50%) rotate(0deg) !important` on boot badge and SVG mark. Tuned flight animation duration to 230ms (within 0.22s-0.25s) with smooth docking.
+  4. **PWA Automated Deployment Update:** Created `frontend/scripts/stamp_sw.js` and hooked into `package.json` build command (`node ./scripts/stamp_sw.js && next build`) to stamp unique cache versions on every build. In `ServiceWorkerRegister.tsx`, configured `controllerchange` to immediately trigger `window.location.reload()` when a new service worker activates, and added update checks every 60s, on focus, on visibilitychange, and on online events.
+- **Verification:**
+  - Scope: 12 files changed.
+  - TypeScript & Production Build: `npm run build --prefix frontend` -> Code 0 (Turbopack, 19/19 routes compiled, sw.js stamped).
+  - Notification and Service Worker Architecture tests: 5/5 PASSED.
+- **Status:** **VERIFIED**
+
+## 2026-10-16 — Focus-Identical Smooth Morphing Toggle & Silent PWA Updates
+
+- **Context:**
+  1. The user requested that the Weekly & Monthly progress toggle in `DashboardPage.tsx` have the exact same smooth morphing spring animation as the Focus and Timer switch in `FocusPage.tsx`, while strictly maintaining the two distinct UI colors for Light mode and Dark mode.
+  2. The PWA auto-update handler in `ServiceWorkerRegister.tsx` runs silent background updates (on launch, every 60s, on focus/visibilitychange, and on online reconnection) without any jarring screen reload or white flash.
+- **Decision:**
+  1. **Focus-Identical Smooth Morphing Toggle:** Implemented `motion.div` with `layoutId="dashboardProgressActivePill"` and spring physics (`type: "spring", stiffness: 420, damping: 30, mass: 0.7`) matching `FocusPage.tsx`. Applied balanced button min-width (`min-w-[80px] sm:min-w-[88px]`) so both tabs share identical bounding box widths, eliminating horizontal stretching/extending distortion while gliding.
+  2. **Strict Dual UI Color Separation:**
+     - Light Mode: Container `bg-[#E5EDF7] border-[#DCE5F0]`, active pill `bg-[#223A5E]` (luxury deep navy), inactive text `text-[#52627A] hover:text-[#111827]`.
+     - Dark Mode: Container `dark:bg-[#070d1a] dark:border-white/[0.08]`, active pill `dark:bg-blue-600` (electric blue), inactive text `dark:text-slate-400 dark:hover:text-slate-200`.
+     - Active text: `text-white font-bold` across both modes.
+  3. **Silent Background PWA Updates (Zero Flash / Zero Reload):** Removed `window.location.reload()` from `handleControllerChange` in `ServiceWorkerRegister.tsx`. The service worker activates in the background, cleans up outdated caches, claims clients via `self.clients.claim()`, and serves updated code seamlessly without interrupting the user's active session, screen reload, or white flash.
+- **Verification:**
+  - Scope: 2 files changed (`DashboardPage.tsx`, `ServiceWorkerRegister.tsx`).
+  - TypeScript & Production Build: `npm run build --prefix frontend` -> Code 0 (Turbopack, 19/19 routes compiled).
+- **Status:** **VERIFIED**
+
+
 
 
 

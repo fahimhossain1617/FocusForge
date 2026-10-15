@@ -110,6 +110,14 @@ body.light {
   --picker-text-primary: #111827;
   --picker-text-secondary: #52627A;
   --picker-text-muted: #8290A5;
+
+  /* Skeleton Loading Tokens - Light Mode */
+  --skeleton-base: #E5EDF7;
+  --skeleton-highlight: #F7FAFE;
+  --skeleton-border: #DCE5F0;
+  --dashboard-card-bg: #FFFFFF;
+  --dashboard-card-border: #DCE5F0;
+  --dashboard-card-shadow: none;
 }
 
 /* ==================== Base ==================== */
@@ -123,6 +131,14 @@ body.light {
   --picker-text-primary: #F8FAFC;
   --picker-text-secondary: #94A3B8;
   --picker-text-muted: #64748B;
+
+  /* Skeleton Loading Tokens - Dark Mode */
+  --skeleton-base: rgba(148, 163, 255, 0.07);
+  --skeleton-highlight: rgba(59, 130, 246, 0.15);
+  --skeleton-border: rgba(255, 255, 255, 0.07);
+  --dashboard-card-bg: #0F1729;
+  --dashboard-card-border: rgba(59, 130, 246, 0.12);
+  --dashboard-card-shadow: none;
 
   /* ── Base Spacing Scale (8px rhythm / 4px sub-rhythm) ── */
   --space-1: 4px;

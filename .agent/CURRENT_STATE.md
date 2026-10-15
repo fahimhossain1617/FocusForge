@@ -40,11 +40,24 @@ Focentia is an active, functional productivity suite built with Next.js 16 App R
 ---
 
 ### Dashboard & Focus Metrics
-- **Current Implementation:** `DashboardPage.tsx` aggregates metrics from Tasks, Pomodoro Focus Sessions, and Learning logs; calculates daily productivity scores, streak counters, and upcoming calendar schedules (`CalendarWidget.tsx`). Stopwatch Timer records and summaries are completely segregated from Dashboard metrics, preserving strict separation between Pomodoro Focus Sessions and Stopwatch Timers. Radial Donut gauge strictly tracks actual Pomodoro Focus Time (`#5B8DEF`) and Break Time (`#10B981`) without red distraction segments or synthetic minutes. Daily distraction metrics display authentic logged counts with an inline accordion breakdown directly underneath "View All" with zero popups/modals. Weekly and monthly performance charts compute segregated Pomodoro focus time and precise accumulated break times without synthetic fallbacks.
+- **Current Implementation:** `DashboardPage.tsx` aggregates metrics from Tasks, Pomodoro Focus Sessions, and Learning logs; calculates daily productivity scores, streak counters, and upcoming calendar schedules (`CalendarWidget.tsx`). Stopwatch Timer records and summaries are completely segregated from Dashboard metrics, preserving strict separation between Pomodoro Focus Sessions and Stopwatch Timers. Radial Donut gauge strictly tracks actual Pomodoro Focus Time (`#5B8DEF`) and Break Time (`#10B981`) without red distraction segments or synthetic minutes. Daily distraction metrics display authentic logged counts with an inline accordion breakdown directly underneath "View All" with zero popups/modals. Weekly and monthly performance charts compute segregated Pomodoro focus time and precise accumulated break times without synthetic fallbacks. Period toggle switch (`.dashboard-period-toggle`) implements the exact same organic spring morphing animation as the Focus & Timer switch (`layoutId="dashboardProgressActivePill"`, `stiffness: 420, damping: 30, mass: 0.7`) with balanced width (`min-w-[80px] sm:min-w-[88px]`) to glide smoothly without button extending/stretching glitches, while strictly maintaining dual-theme UI color separation (`bg-[#E5EDF7]` container, `#223A5E` pill in Light Mode; `#070d1a` container, `bg-blue-600` pill in Dark Mode).
 - **Verified Status:** **VERIFIED**
 - **Known Problems:** None.
 - **Important Files:** `frontend/src/components/pages/DashboardPage.tsx`, `frontend/src/components/pages/FocusPage.tsx`, `frontend/src/components/focus/StopwatchTimer.tsx`, `frontend/src/context/AppContext.tsx`, `frontend/src/services/focusDbService.ts`.
 - **Dependencies:** `AppContext.tsx`, `taskService.ts`, `focusDbService.ts`.
+- **Unknowns:** None.
+
+---
+
+### App Shell Skeleton, Splash Animation & PWA Deployment Auto-Update
+- **Current Implementation:**
+  1. **Dynamic Skeleton Theming:** `layout.tsx` runs theme pre-hydration in `<head>` prior to any style paint. `globals.css` declares dedicated `--skeleton-base`, `--skeleton-highlight`, `--skeleton-border`, and `--dashboard-card-bg` CSS tokens for both Light Mode (`#E5EDF7`, `#F7FAFE`, `#DCE5F0`, `#FFFFFF`) and Dark Mode (`rgba(148, 163, 255, 0.07)`, `rgba(59, 130, 246, 0.15)`, `rgba(255, 255, 255, 0.07)`, `#0F1729`). Page skeletons (`DashboardSkeleton.tsx`, `MyMindSkeleton.tsx`) use theme-aware semantic tokens instead of hardcoded dark colors.
+  2. **Mobile Splash Screen Stabilization:** `manifest.json` and `manifest.webmanifest` enforce `"orientation": "portrait-primary"`. `<head>` includes `<meta name="screen-orientation" content="portrait" />` and `<meta name="x5-orientation" content="portrait" />`. `#ff-boot-badge` and `.mk` enforce `rotate: 0deg !important` and `transform-origin: center center`. The flight animation is tuned to 230ms (0.23s) with smooth docking into the top-left logo slot.
+  3. **PWA Automated Deployment Updates (Silent & Flash-Free):** `package.json` build command executes `node ./scripts/stamp_sw.js && next build`, generating a new timestamped `CACHE_NAME` (`focentia-build-<timestamp>`) on every GitHub commit and Vercel build. `ServiceWorkerRegister.tsx` captures `controllerchange` and activates the update silently in the background WITHOUT `window.location.reload()`, with frequent update checks on mount, on focus, on `visibilitychange`, on `online`, and every 60 seconds. New assets and pages are served seamlessly without screen white-flashes, hard page reloads, or active session interruption.
+- **Verified Status:** **VERIFIED**
+- **Known Problems:** None.
+- **Important Files:** `frontend/src/app/layout.tsx`, `frontend/src/app/globals.css`, `frontend/public/manifest.json`, `frontend/public/manifest.webmanifest`, `frontend/public/sw.js`, `frontend/scripts/stamp_sw.js`, `frontend/src/components/pwa/ServiceWorkerRegister.tsx`, `frontend/next.config.ts`.
+- **Dependencies:** Service Worker API, Web App Manifest.
 - **Unknowns:** None.
 
 ---
