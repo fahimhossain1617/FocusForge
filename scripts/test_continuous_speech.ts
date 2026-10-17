@@ -67,7 +67,7 @@ async function runTests() {
   let isListening = false;
   let lang = 'bn-BD';
 
-  const allFinalTextRef = { current: '' };
+  const allFinalTextRef: { current: string } = { current: '' };
   const sessionFinalRef = { current: '' };
   const isListeningRef = { current: false };
   const langRef = { current: lang };
@@ -219,10 +219,10 @@ async function runTests() {
 
   // TEST 3: Browser 30s Socket Drop + 250ms Backoff Recovery
   const instance1 = recognitionRef;
-  instance1!.emitEnd();
+  (instance1 as any)?.emitEnd();
 
   // Before 250ms timeout fires:
-  if (allFinalTextRef.current !== "আজকের চিন্তা: প্রথম অনুচ্ছেদ যা অনেক বড়") {
+  if ((allFinalTextRef.current as string) !== "আজকের চিন্তা: প্রথম অনুচ্ছেদ যা অনেক বড়") {
     throw new Error("Text dropped upon socket termination!");
   }
   // Fast-forward 250ms timer
@@ -234,30 +234,30 @@ async function runTests() {
   console.log("✔ Test 3: Socket drop survived, 250ms backoff executed, new recognition instance started");
 
   // TEST 4: Second Speech Stream (30-60 seconds)
-  recognitionRef.emitResult([
+  (recognitionRef as any)?.emitResult([
     { transcript: "দ্বিতীয় অনুচ্ছেদও কোনো শব্দ না হারিয়ে যুক্ত হয়েছে", isFinal: true },
   ]);
   const expected2 = "আজকের চিন্তা: প্রথম অনুচ্ছেদ যা অনেক বড় দ্বিতীয় অনুচ্ছেদও কোনো শব্দ না হারিয়ে যুক্ত হয়েছে";
-  if (text !== expected2) throw new Error(`Expected: "${expected2}", got: "${text}"`);
+  if ((text as string) !== expected2) throw new Error(`Expected: "${expected2}", got: "${text}"`);
   console.log("✔ Test 4: Second stream accumulated seamlessly across session boundary");
 
   // TEST 5: Simulated audio-capture error (400ms recovery)
-  recognitionRef.emitError('audio-capture');
+  (recognitionRef as any)?.emitError('audio-capture');
   await new Promise((r) => setTimeout(r, 420));
   console.log("✔ Test 5: Handled audio-capture with 400ms backoff recovery");
 
   // TEST 6: Third Speech Stream (60-90+ seconds)
-  recognitionRef!.emitResult([
+  (recognitionRef as any)?.emitResult([
     { transcript: "এবং টানা দেড় মিনিট কথা বলার পরও অক্ষত", isFinal: true },
   ]);
   const expected3 = "আজকের চিন্তা: প্রথম অনুচ্ছেদ যা অনেক বড় দ্বিতীয় অনুচ্ছেদও কোনো শব্দ না হারিয়ে যুক্ত হয়েছে এবং টানা দেড় মিনিট কথা বলার পরও অক্ষত";
-  if (text !== expected3) throw new Error(`Expected: "${expected3}", got: "${text}"`);
+  if ((text as string) !== expected3) throw new Error(`Expected: "${expected3}", got: "${text}"`);
   console.log("✔ Test 6: Long 90s+ dictation verified uninterrupted");
 
   // TEST 7: Stop listening
   toggleListening();
   if (isListeningRef.current !== false) throw new Error("Failed to stop listening");
-  if (allFinalTextRef.current !== expected3) throw new Error("Final text not preserved on stop");
+  if ((allFinalTextRef.current as string) !== expected3) throw new Error("Final text not preserved on stop");
   console.log("✔ Test 7: Stop listening finalized text permanently");
 
   console.log("\nALL TESTS PASSED WITH 100% SUCCESS!");

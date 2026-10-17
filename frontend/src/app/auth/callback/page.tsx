@@ -83,8 +83,8 @@ function AuthCallbackContent() {
           }, 1500);
           return () => clearTimeout(timer);
         }
-      } catch (err: any) {
-        if (isMounted) setErrorMsg(err?.message || "Failed to process authentication redirect.");
+      } catch (err: unknown) {
+        if (isMounted) setErrorMsg((err as Error)?.message || "Failed to process authentication redirect.");
       }
     }
 

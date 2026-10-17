@@ -91,7 +91,7 @@ export default function RoutineLibraryModal({
     }
     setState((prev) => {
       const templates = [...(prev.routineTemplates || [])];
-      let templateIndex = templates.findIndex((t) => t.weekday === weekday);
+      const templateIndex = templates.findIndex((t) => t.weekday === weekday);
       const newTaskId = "rt_" + Date.now().toString(36) + Math.random().toString(36).substring(2, 6);
 
       if (templateIndex === -1) {

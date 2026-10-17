@@ -70,6 +70,7 @@ export function computeHmacSignature(str: string): string {
       }
       return Math.abs(hash).toString(16);
     }
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const crypto = require('crypto');
     return crypto.createHmac('sha256', 'focentia_action_integrity_token_2026').update(str).digest('hex').slice(0, 32);
   } catch {

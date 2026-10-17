@@ -154,8 +154,8 @@ export function useTranslations() {
   const lang = state.lang || 'en';
 
   const t = (key: string): string => {
-    // @ts-ignore
-    return i18n[lang]?.[key] || i18n['en'][key] || key;
+    const dict = i18n as Record<string, Record<string, string>>;
+    return dict[lang]?.[key] || dict['en']?.[key] || key;
   };
 
   return { t, lang };

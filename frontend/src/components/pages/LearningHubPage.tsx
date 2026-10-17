@@ -9,13 +9,11 @@ import {
   Plus,
   Trash2,
   CheckCircle2,
-  AlertTriangle,
   Trophy,
   Star,
   ArrowLeft,
   X,
   Search,
-  BookOpen,
   Clock,
   Flame,
   Layers
@@ -54,7 +52,7 @@ function getStreak(logs: { date: string }[]): number {
     return 0; // Streak broken
   }
 
-  let checkDate = new Date(lastLogDate);
+  const checkDate = new Date(lastLogDate);
   for (const log of sorted) {
     const logDate = new Date(log.date);
     logDate.setHours(0, 0, 0, 0);

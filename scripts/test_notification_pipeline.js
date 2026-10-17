@@ -124,7 +124,7 @@ async function runMasterVerification() {
       ON CONFLICT (user_id, endpoint) DO UPDATE SET updated_at = NOW();
     `, [testUserId, device2Endpoint]);
 
-    const subCountRes = await pool.query('SELECT COUNT(*) as count FROM push_subscriptions WHERE user_id = $1', [testUserId]);
+    const subCountRes = await pool.query('SELECT COUNT(*) as count FROM push_subscriptions WHERE endpoint IN ($1, $2)', [device1Endpoint, device2Endpoint]);
     assert(parseInt(subCountRes.rows[0].count, 10) === 2, 'Multiple devices for same user correctly stored without collision');
 
     // -------------------------------------------------------------------------

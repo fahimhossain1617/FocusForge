@@ -694,7 +694,7 @@ function extractMessageAndIntentFromJson(text: string, isBn: boolean): {
     const intentMatch = clean.match(/"intent"\s*:\s*"([A-Z_]+)"/);
     
     if (messageMatch && messageMatch[1]) {
-      let extractedMsg = messageMatch[1]
+      const extractedMsg = messageMatch[1]
         .replace(/\\n/g, '\n')
         .replace(/\\"/g, '"')
         .replace(/\\\\/g, '\\');

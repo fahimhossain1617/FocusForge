@@ -96,7 +96,7 @@ const SETTINGS_DELETE_REGEX = /(?:\b(?:delete\s*account|delete\s*my\s*account|re
 const SETTINGS_SUPPORT_REGEX = /(?:\b(?:contact\s*support|report\s*a\s*problem|report\s*bug|feedback)\b|সমস্যা\s*রিপোর্ট|সাপোর্টে\s*যোগাযোগ)/i;
 
 // 4. Productivity Actions
-const TIMER_ACTION_REGEX = /(?:\b(need\s*a\s*timer|give\s*me\s*a\s*timer|open\s*timer|start\s*timer|stopwatch\s*please)\b|^timer$|^stopwatch$|টাইমার\s*চাই|টাইমার\s*লাগবে|টাইমার\s*দাও|টাইমার\s*চালু|স্টপওয়াচ\s*চাই|স্টপওয়াচ\s*লাগবে)/i;
+const TIMER_ACTION_REGEX = /(?:\b(need\s*a\s*timer|give\s*me\s*a\s*timer|open\s*timer|start\s*timer|stopwatch\s*please)\b|^timer$|^stopwatch$|টাইমার\s*চাই|টাইমার\s*লাগবে|টাইমার\s*দরকার|টাইমার\s*দাও|টাইমার\s*চালু|স্টপওয়াচ\s*চাই|স্টপওয়াচ\s*লাগবে|স্টপওয়াচ\s*দরকার)/i;
 const FOCUS_SESSION_ACTION_REGEX = /(?:\b(start\s*focus\s*session|deep\s*focus\s*session|let('s|\s+us)\s+focus|want\s+to\s+focus\s+now)\b|ফোকাস\s*সেশন\s*শুরু|ফোকাস\s*করব|ডিপ\s*ফোকাস\s*শুরু|পোমোডোরো\s*চালু)/i;
 const PLANNER_ACTION_REGEX = /(?:\b(add\s+(.*)\s+(to\s+my\s+planner|in\s+planner|tomorrow|today|on\s+.*)|schedule\s+(.*)|add\s+these\s+tasks|schedule\s+task)\b|প্ল্যানারে\s+(.*)\s+যোগ|রুটিনে\s+(.*)\s+যোগ)/i;
 const DIARY_ACTION_REGEX = /(?:\b(want\s*to\s*write\s*a\s*diary|create\s*a\s*diary|make\s*a\s*diary\s*folder|my\s*mood\s*is\s*bad\s*today)\b|ডায়েরি\s*লিখতে\s*চাই|ডায়েরি\s*তৈরি\s*করো|ডায়েরি\s*ফোল্ডার|ডায়েরিতে\s*লিখব)/i;

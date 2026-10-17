@@ -42,7 +42,9 @@ export function useReviewPrompt() {
   // Ensure prompt only opens once per session
   const sessionShownRef = useRef(false);
   const promptStateRef = useRef<ReviewPromptState>(promptState);
-  promptStateRef.current = promptState;
+  useEffect(() => {
+    promptStateRef.current = promptState;
+  }, [promptState]);
 
   // Load initial prompt state from local storage and sync with Supabase if authenticated
   useEffect(() => {

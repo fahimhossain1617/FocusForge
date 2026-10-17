@@ -87,7 +87,7 @@ function parseDatesFromText(text: string): string[] {
  * Extracts task names from scheduling request
  */
 function extractTaskNames(text: string): string[] {
-  let clean = text
+  const clean = text
     .replace(/\b(add|schedule|to my planner|in planner|tomorrow|today|at|on|প্ল্যানারে|যোগ করো|যোগ|করব)\b/gi, '')
     // Remove date patterns like "7th and 8th", "7th", "8th", etc.
     .replace(/\b\d{1,2}(?:st|nd|rd|th)?(?:\s+(?:and|&|ও|এবং)\s+\d{1,2}(?:st|nd|rd|th)?)?\b/gi, '')
@@ -821,7 +821,7 @@ export function handleLocalIntent(
       const lowerText = text.toLowerCase();
 
       // Find if a specific folder name is mentioned in user text
-      let targetFolder = learningTopics.find(lt => {
+      const targetFolder = learningTopics.find(lt => {
         const name = (lt.name || '').toLowerCase().trim();
         return name && (lowerText.includes(name) || lowerText.includes(name.replace(/\s+/g, '')));
       });

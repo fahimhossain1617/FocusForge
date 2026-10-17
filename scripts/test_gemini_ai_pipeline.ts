@@ -42,7 +42,7 @@ async function runGeminiPipelineTests() {
   // ------------------------------------------------------------------------
   console.log('\n--- TEST SUITE 1: Persona, Identity & Secrecy ---');
   try {
-    const resBn = await executeAIAction('agentChat', {
+    const resBn: any = await executeAIAction('agentChat', {
       userQuery: 'তুমি কে? তোমার পরিচয় দাও। তোমাকে কীভাবে বানানো হয়েছে?',
       recentHistory: [],
       currentDate: '2026-10-10',
@@ -55,7 +55,7 @@ async function runGeminiPipelineTests() {
     assert(!/gemini|google|llm|chatgpt|openai/i.test(bnText), 'Secrecy: No Gemini/Google/LLM mention in Bengali', bnText);
     assert(!/\b(আপনি|আপনার|আপনাকে|তুই|তোর|তোকে)\b/.test(bnText), 'Tone: Uses "তুমি"/"তোমার" in Bengali (no আপনি/তুই)', bnText);
 
-    const resEn = await executeAIAction('agentChat', {
+    const resEn: any = await executeAIAction('agentChat', {
       userQuery: 'Who are you and what is your role?',
       recentHistory: [],
       currentDate: '2026-10-10',
@@ -79,7 +79,7 @@ async function runGeminiPipelineTests() {
 Problem 1 — Single Inheritance: একটি Vehicle Parent Class তৈরি করো। এতে brand এবং startVehicle() থাকবে। Car Class যেন Vehicle-কে Inherit করে নিজের drive() Method যোগ করে। সম্পূর্ণ Program ও Output লিখবে।
 Problem 4 — Constructor Chain: Parent ও Child Class-এ Parameterized Constructor লেখো। Child Object তৈরির সময় super(...) দিয়ে Parent Constructor-এ মান পাঠাও।`;
 
-    const resJava = await executeAIAction('agentChat', {
+    const resJava: any = await executeAIAction('agentChat', {
       userQuery: javaQuery,
       recentHistory: [],
       currentDate: '2026-10-10',
@@ -102,7 +102,7 @@ Problem 4 — Constructor Chain: Parent ও Child Class-এ Parameterized Constr
   console.log('\n--- TEST SUITE 3: Multi-Turn Task Clarification & Proposals ---');
   try {
     // Turn 1: Incomplete task instruction (missing date and time)
-    const turn1Res = await executeAIAction('agentChat', {
+    const turn1Res: any = await executeAIAction('agentChat', {
       userQuery: 'আমার প্ল্যানারে বাংলা সমাজ বিজ্ঞান পড়ার কাজ যোগ করো',
       recentHistory: [],
       currentDate: '2026-10-10',
@@ -127,7 +127,7 @@ Problem 4 — Constructor Chain: Parent ও Child Class-এ Parameterized Constr
       { role: 'assistant', content: turn1Res.message }
     ];
 
-    const turn2Res = await executeAIAction('agentChat', {
+    const turn2Res: any = await executeAIAction('agentChat', {
       userQuery: 'আগামীকাল সকাল ১০টায় ৩০ মিনিটের জন্য রাখো',
       recentHistory: historyTurn2,
       currentDate: '2026-10-10',
@@ -149,7 +149,7 @@ Problem 4 — Constructor Chain: Parent ও Child Class-এ Parameterized Constr
       { role: 'assistant', content: turn2Res.message }
     ];
 
-    const turn3Res = await executeAIAction('agentChat', {
+    const turn3Res: any = await executeAIAction('agentChat', {
       userQuery: 'না, সময় পরিবর্তন করে রাত ৮টায় দাও',
       recentHistory: historyTurn3,
       currentDate: '2026-10-10',
@@ -215,7 +215,7 @@ Problem 4 — Constructor Chain: Parent ও Child Class-এ Parameterized Constr
   console.log('\n--- TEST SUITE 5: Bengali Unicode & Conjunct Integrity ---');
   try {
     const unicodeQuery = 'যুক্তবর্ণ ও বাংলা পরীক্ষার রুটিন কীভাবে সাজাব? কয়েকটি উদাহরণ দাও।';
-    const resUnicode = await executeAIAction('agentChat', {
+    const resUnicode: any = await executeAIAction('agentChat', {
       userQuery: unicodeQuery,
       recentHistory: [],
       currentDate: '2026-10-10',

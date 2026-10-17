@@ -95,8 +95,16 @@ async function runAllTests() {
   console.log("\n--- 2. ZERO-KNOWLEDGE E2EE CRYPTO & INTEGRITY ---");
   const passphrase = "CorrectHorseBatteryStaple2026!";
   const salt = generateSalt();
+  const kdfMetadata = {
+    algorithm: "PBKDF2-SHA256" as const,
+    salt,
+    parameters: {
+      iterations: 600000,
+      hash: "SHA-256",
+    },
+  };
   const kek = await deriveKeyFromPassphrase(passphrase, salt);
-  const wrappedEnvelope = await wrapMasterKey(mekA, kek);
+  const wrappedEnvelope = await wrapMasterKey(mekA, kek, kdfMetadata);
 
   assert(wrappedEnvelope.version === 1, "Wrapped key envelope format is version 1");
   assert(wrappedEnvelope.algorithm === "AES-256-GCM", "Wrapped key envelope uses AES-256-GCM");

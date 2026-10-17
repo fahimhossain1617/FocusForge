@@ -53,8 +53,8 @@ async function runAutomaticSyncVerification() {
   assert(deviceBKey.type === "secret" && deviceBKey.algorithm.name === "AES-GCM", "Device B derives 256-bit AES-GCM account key for same user");
 
   // Test 3: Export raw keys to prove mathematical identity
-  const rawKeyA = await window.crypto.subtle.exportKey("raw", deviceAKey);
-  const rawKeyB = await window.crypto.subtle.exportKey("raw", deviceBKey);
+  const rawKeyA = await globalThis.crypto.subtle.exportKey("raw", deviceAKey);
+  const rawKeyB = await globalThis.crypto.subtle.exportKey("raw", deviceBKey);
   const isIdentical = Buffer.from(rawKeyA).equals(Buffer.from(rawKeyB));
   assert(isIdentical, "Device A and Device B keys are 100% mathematically identical with zero user passphrase input");
 

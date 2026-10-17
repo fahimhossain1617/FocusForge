@@ -26,7 +26,6 @@ import { Task, FocusSession, LearningFolder, LearningLog, RoutineTemplate, Notif
 import { notificationRotationManager } from "./notificationTemplates";
 import { getLocalDateString } from "./taskService";
 import notificationService from "./notificationService";
-import notificationCenterService from "./notificationCenterService";
 
 export interface ScheduledLocalNotificationItem {
   id: string;
@@ -154,7 +153,7 @@ class LocalNotificationScheduler {
    * Check if target timestamp is inside Quiet Hours (10:00 PM - 7:00 AM)
    */
   public isInsideQuietHours(
-    timestamp: number,
+    timestamp: number | Date,
     quietHoursStart = "22:00",
     quietHoursEnd = "07:00"
   ): boolean {
