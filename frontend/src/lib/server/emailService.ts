@@ -39,6 +39,9 @@ class EmailQueue {
         host,
         port,
         secure,
+        pool: true,
+        maxConnections: 5,
+        maxMessages: 100,
         auth: { user, pass },
       });
     } else {

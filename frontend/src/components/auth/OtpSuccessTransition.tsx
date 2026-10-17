@@ -57,7 +57,7 @@ export function OtpSuccessTransition({
                 <motion.div
                   key={`otp-box-cell-${i}`}
                   className={`auth-otp-cell ${hasDigit ? "has-digit" : ""} ${isFocused ? "is-focused" : ""}`}
-                  onClick={() => inputRefs.current[i]?.focus()}
+                  onClick={() => inputRefs.current[i]?.focus({ preventScroll: true })}
                   exit={{
                     // Converge toward the center (center is index 2.5)
                     x: (2.5 - i) * -26,
@@ -92,7 +92,6 @@ export function OtpSuccessTransition({
                         onChange={(e) => handleOtpChange(i, e.target.value)}
                         onKeyDown={(e) => handleKeyDown(i, e)}
                         onFocus={() => setActiveIdx(i)}
-                        onClick={(e) => (e.target as HTMLInputElement).select()}
                         onPaste={handlePaste}
                         aria-label={`Digit ${i + 1}`}
                         autoComplete="one-time-code"

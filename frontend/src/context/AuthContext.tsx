@@ -12,6 +12,7 @@ import { clearGuestData } from "../services/indexedDBStorage";
 import { onboardingStorage } from "../services/onboardingStorage";
 import { accountManager, RememberedAccount } from "../services/accountManager";
 import { cryptoSession } from "../lib/crypto";
+import notificationCenterService from "../services/notificationCenterService";
 import GuestTransitionModal from "../components/auth/GuestTransitionModal";
 import AccountSwitcherModal from "../components/auth/AccountSwitcherModal";
 
@@ -413,6 +414,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (isNewUser) {
         showToast(t.auth.welcomeToastNew, "success");
+        if (typeof window !== "undefined") {
+          try {
+            localStorage.setItem(`focusforge_new_user_shield_${authedUser.id}`, "true");
+            notificationCenterService.setUserId(authedUser.id);
+            notificationCenterService.clearAll();
+          } catch {}
+        }
       } else {
         showToast(t.auth.welcomeToastReturning, "success");
       }

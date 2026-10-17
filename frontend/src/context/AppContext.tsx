@@ -652,14 +652,33 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   // ==================== Toast ====================
 
+  const recentToastsRef = useRef<Map<string, number>>(new Map());
+
   const showToast = useCallback((message: string, type: string = 'success') => {
+    if (!message || !message.trim()) return;
+    const cleanMsg = message.trim();
+    const now = Date.now();
+
+    // Deduplication within 2.5s: prevent rapid duplicate toasts from firing across components
+    const lastShown = recentToastsRef.current.get(cleanMsg);
+    if (lastShown && now - lastShown < 2500) {
+      return;
+    }
+    recentToastsRef.current.set(cleanMsg, now);
+
     const id = generateId();
-    setTimeout(() => {
-      setToasts((prev) => [...prev, { id, message, type }]);
-    }, 0);
+    setToasts((prev) => {
+      // Remove any existing toast with the exact same message
+      const withoutDup = prev.filter((t) => t.message.trim() !== cleanMsg);
+      // Keep at most 1 previous toast so at most 2 exist on screen
+      const truncated = withoutDup.slice(-1);
+      return [...truncated, { id, message: cleanMsg, type }];
+    });
+
     setTimeout(() => {
       setToasts((prev) => prev.filter((t) => t.id !== id));
-    }, 3000);
+      recentToastsRef.current.delete(cleanMsg);
+    }, 2800);
   }, []);
 
   // ==================== Service Worker & Push Navigation Synchronization ====================

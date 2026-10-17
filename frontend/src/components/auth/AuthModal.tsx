@@ -123,7 +123,7 @@ export default function AuthModal() {
         }
         setOtpDigits(next);
         const focusIndex = Math.min(cleaned.length, 5);
-        otpInputRefs.current[focusIndex]?.focus();
+        otpInputRefs.current[focusIndex]?.focus({ preventScroll: true });
         return;
       }
     }
@@ -134,13 +134,13 @@ export default function AuthModal() {
     setOtpDigits(updated);
 
     if (char && index < 5) {
-      otpInputRefs.current[index + 1]?.focus();
+      otpInputRefs.current[index + 1]?.focus({ preventScroll: true });
     }
   };
 
   const handleOtpKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Backspace" && !otpDigits[index] && index > 0) {
-      otpInputRefs.current[index - 1]?.focus();
+      otpInputRefs.current[index - 1]?.focus({ preventScroll: true });
     }
   };
 
@@ -951,7 +951,7 @@ export default function AuthModal() {
                   value={digit}
                   onChange={(e) => handleOtpChange(idx, e.target.value)}
                   onKeyDown={(e) => handleOtpKeyDown(idx, e)}
-                  className="w-11 h-13 sm:w-12 sm:h-14 text-center text-xl font-bold rounded-xl bg-white/[0.05] border border-white/10 text-white focus:border-blue-500 focus:bg-blue-500/10 focus:outline-none transition-all"
+                  className="w-11 h-13 sm:w-12 sm:h-14 text-center text-xl font-bold rounded-xl bg-white/[0.05] border border-white/10 text-white focus:border-blue-500 focus:bg-blue-500/10 focus:outline-none transition-colors"
                 />
               ))}
             </div>

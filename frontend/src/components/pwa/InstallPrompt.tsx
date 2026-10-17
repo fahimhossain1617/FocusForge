@@ -13,6 +13,9 @@ interface InstallPromptProps {
   variant?: "sidebar" | "sidebar-collapsed" | "header" | "button";
 }
 
+// Module-level singleton guard across all mounted InstallPrompt instances (Sidebar, Header, etc.)
+let hasNotifiedInstallSuccess = false;
+
 export default function InstallPrompt({ variant = "sidebar" }: InstallPromptProps) {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [isInstalled, setIsInstalled] = useState<boolean>(false);
@@ -99,17 +102,19 @@ export default function InstallPrompt({ variant = "sidebar" }: InstallPromptProp
       setIsInstalled(false);
     };
 
-    // 5. Handle appinstalled event: Immediately hide entire installation UI
+    // 5. Handle appinstalled event: Immediately hide entire installation UI (Single Notification Guaranteed)
     const handleAppInstalled = () => {
       setIsInstalled(true);
       setDeferredPrompt(null);
-      showToast(isBn ? "Focentia সফলভাবে ইনস্টল হয়েছে!" : "Focentia installed successfully!", "success");
+      if (!hasNotifiedInstallSuccess) {
+        hasNotifiedInstallSuccess = true;
+        showToast(isBn ? "Focentia সফলভাবে ইনস্টল হয়েছে!" : "Focentia installed successfully!", "success");
+      }
     };
 
     window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
     window.addEventListener("pwa:beforeinstallprompt", handleCustomBeforeInstall as EventListener);
     window.addEventListener("appinstalled", handleAppInstalled);
-    window.addEventListener("pwa:installed", handleAppInstalled as EventListener);
 
     return () => {
       if (mediaQuery.removeEventListener) {
@@ -118,7 +123,6 @@ export default function InstallPrompt({ variant = "sidebar" }: InstallPromptProp
       window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
       window.removeEventListener("pwa:beforeinstallprompt", handleCustomBeforeInstall as EventListener);
       window.removeEventListener("appinstalled", handleAppInstalled);
-      window.removeEventListener("pwa:installed", handleAppInstalled as EventListener);
     };
   }, [checkInstallStatus, isBn, showToast]);
 
@@ -135,6 +139,7 @@ export default function InstallPrompt({ variant = "sidebar" }: InstallPromptProp
         const choice = await promptEvent.userChoice;
         if (choice.outcome === "accepted") {
           setIsInstalled(true);
+          showToast(isBn ? "Focentia ইনস্টল হচ্ছে..." : "Installing Focentia...", "info");
         }
         setDeferredPrompt(null);
         (window as unknown as { deferredPrompt?: null }).deferredPrompt = null;

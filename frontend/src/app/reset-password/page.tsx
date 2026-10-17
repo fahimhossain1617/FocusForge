@@ -197,8 +197,8 @@ function ResetPasswordContent() {
         showToast("Demo verification successful! Please log in with your new password.", "success");
         setTimeout(() => {
           router.push(`/login?reset=success${cleanEmail ? `&email=${encodeURIComponent(cleanEmail)}` : ""}`);
-        }, 1800);
-      }, 100);
+        }, 700);
+      }, 50);
       return;
     }
 
@@ -240,7 +240,7 @@ function ResetPasswordContent() {
 
       setTimeout(() => {
         router.push(`/login?reset=success&email=${encodeURIComponent(cleanEmail)}`);
-      }, 1800);
+      }, 700);
     } catch (err: any) {
       setError(err?.message || "Verification failed. Please try again.");
       setLoading(false);
@@ -261,6 +261,25 @@ function ResetPasswordContent() {
       return;
     }
 
+    // Handle SMS autofill or multi-character paste into input
+    if (clean.length > 1) {
+      const chars = clean.slice(0, 6).split("");
+      const updated = [...otp];
+      for (let i = 0; i < chars.length && index + i < 6; i++) {
+        updated[index + i] = chars[i];
+      }
+      setOtp(updated);
+      const nextIdx = Math.min(5, index + chars.length);
+      inputRefs.current[nextIdx]?.focus({ preventScroll: true });
+      setActiveIdx(nextIdx);
+
+      if (updated.every(Boolean) && updated.join("").length === 6) {
+        triggerVerifyOtp(updated.join(""));
+      }
+      return;
+    }
+
+    // Single character input
     const latestChar = clean.slice(-1);
     const updated = [...otp];
     updated[index] = latestChar;
@@ -269,8 +288,7 @@ function ResetPasswordContent() {
     if (index < 5 && latestChar) {
       const nextEl = inputRefs.current[index + 1];
       if (nextEl) {
-        nextEl.focus();
-        nextEl.select();
+        nextEl.focus({ preventScroll: true });
         setActiveIdx(index + 1);
       }
     }
@@ -290,8 +308,7 @@ function ResetPasswordContent() {
       if (index < 5) {
         const nextEl = inputRefs.current[index + 1];
         if (nextEl) {
-          nextEl.focus();
-          nextEl.select();
+          nextEl.focus({ preventScroll: true });
           setActiveIdx(index + 1);
         }
       }
@@ -310,20 +327,17 @@ function ResetPasswordContent() {
         setOtp(updated);
         const prevEl = inputRefs.current[index - 1];
         if (prevEl) {
-          prevEl.focus();
-          prevEl.select();
+          prevEl.focus({ preventScroll: true });
           setActiveIdx(index - 1);
         }
       }
     } else if (e.key === "ArrowLeft" && index > 0) {
       e.preventDefault();
-      inputRefs.current[index - 1]?.focus();
-      inputRefs.current[index - 1]?.select();
+      inputRefs.current[index - 1]?.focus({ preventScroll: true });
       setActiveIdx(index - 1);
     } else if (e.key === "ArrowRight" && index < 5) {
       e.preventDefault();
-      inputRefs.current[index + 1]?.focus();
-      inputRefs.current[index + 1]?.select();
+      inputRefs.current[index + 1]?.focus({ preventScroll: true });
       setActiveIdx(index + 1);
     }
   };

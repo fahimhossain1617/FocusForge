@@ -719,20 +719,18 @@ html.light .auth-pass-pill.met {
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: border-color 0.2s ease, transform 0.15s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
   cursor: text;
 }
 
 .auth-otp-cell.has-digit {
   border-color: #3b82f6;
   box-shadow: 0 0 6px rgba(59, 130, 246, 0.18);
-  transform: translateY(-1px);
 }
 
 .auth-otp-cell.is-focused {
   border-color: #60a5fa;
   box-shadow: 0 0 8px rgba(96, 165, 250, 0.25);
-  transform: scale(1.02);
 }
 
 /* Traveling Border Beam on focused / filled cell (Minimal soft glow) */

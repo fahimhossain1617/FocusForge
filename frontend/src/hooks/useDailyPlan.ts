@@ -39,12 +39,27 @@ export function useDailyPlan() {
     });
   }, [state.tasks]);
 
+  // Helper: Detect if active user is brand new and should be shielded from unprompted nudges
+  const isNewUserShieldActive = useCallback(() => {
+    if (typeof window === "undefined") return false;
+    if (userId && localStorage.getItem(`focusforge_new_user_shield_${userId}`) === "true") {
+      return true;
+    }
+    const hasAnyActivity =
+      (state.tasks && state.tasks.length > 0) ||
+      (state.focusSessions && state.focusSessions.length > 0) ||
+      (state.learningLogs && state.learningLogs.length > 0);
+
+    return !hasAnyActivity;
+  }, [userId, state.tasks, state.focusSessions, state.learningLogs]);
+
   // Helper: Check minimum 75-minute cooldown between automated engagement nudges
   const canSendAutomatedNudge = useCallback(() => {
+    if (isNewUserShieldActive()) return false;
     if (isUserBusyWithTaskNearby()) return false;
     const elapsed = Date.now() - lastAutomatedNudgeRef.current;
     return elapsed >= 75 * 60 * 1000; // 75 minutes minimum cooldown
-  }, [isUserBusyWithTaskNearby]);
+  }, [isNewUserShieldActive, isUserBusyWithTaskNearby]);
 
   // Sync active user identity and config with notification service
   useEffect(() => {
@@ -63,6 +78,7 @@ export function useDailyPlan() {
    */
   const checkDailyMorningPlan = useCallback(async () => {
     if (!prefs.enabled || prefs.dailyMorningPlan === false) return;
+    if (isNewUserShieldActive()) return;
 
     const todayStr = getLocalDateString();
     const notifId = `daily_plan_${todayStr}`;

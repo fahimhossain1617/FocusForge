@@ -55,6 +55,7 @@ function AuthCallbackContent() {
         if (data?.session?.user) {
           const user = data.session.user;
           const meta = user.user_metadata || {};
+          const isNew = Boolean(user.created_at && (Date.now() - new Date(user.created_at).getTime() < 180000));
           const displayName = meta.full_name || meta.display_name || meta.name || user.email?.split("@")[0] || "User";
 
           onAuthSuccess(
@@ -68,10 +69,12 @@ function AuthCallbackContent() {
               avatarUrl: meta.avatar_url,
               createdAt: user.created_at,
             },
-            false
+            isNew
           );
 
-          showToast("Successfully signed in!", "success");
+          if (!isNew) {
+            showToast("Successfully signed in!", "success");
+          }
           router.replace("/");
         } else {
           // If no session is found immediately, wait or redirect to login

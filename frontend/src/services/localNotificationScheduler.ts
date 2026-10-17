@@ -321,15 +321,20 @@ class LocalNotificationScheduler {
       }
     }
 
-    // 2. Daily Morning Plan Kickoff (~07:45)
-    if (prefs.dailyMorningPlan !== false) {
+    // Check if user is brand new (zero activity or explicit new user shield)
+    const hasAnyActivity = tasks.length > 0 || focusSessions.length > 0 || learningLogs.length > 0;
+    const isNewUserShield = typeof window !== "undefined" && userId && localStorage.getItem(`focusforge_new_user_shield_${userId}`) === "true";
+    const isBrandNew = !hasAnyActivity || Boolean(isNewUserShield);
+
+    // 2. Daily Morning Plan Kickoff (~07:45) - Only for established returning users
+    if (!isBrandNew && prefs.dailyMorningPlan !== false) {
       const planTime = prefs.dailyMorningPlanTime || "07:45";
       const [pH, pM] = planTime.split(":").map(Number);
       const [y, mon, d] = todayStr.split("-").map(Number);
       const planDate = new Date(y, (mon || 1) - 1, d || 1, pH || 7, pM || 45, 0, 0);
       const planMs = planDate.getTime();
 
-      if (planMs > now - 15 * 60 * 1000) {
+      if (planMs > now) {
         const inQuiet = quietHoursEnabled && this.isInsideQuietHours(planMs, quietHoursStart, quietHoursEnd);
         if (!inQuiet) {
           const tpl = notificationRotationManager.getNext("daily_plan", lang, {}, userId || undefined);
@@ -352,8 +357,8 @@ class LocalNotificationScheduler {
       }
     }
 
-    // 3. Focus Session Reminders (Morning ~09:00, Noon/Afternoon ~13:30 & Evening ~18:30)
-    if (prefs.focusSessionReminder !== false) {
+    // 3. Focus Session Reminders (Morning ~09:00, Noon/Afternoon ~13:30 & Evening ~18:30) - Only for established returning users
+    if (!isBrandNew && prefs.focusSessionReminder !== false) {
       const hasFocusToday = focusSessions.some((s: any) => {
         const sDate = s.date || (s.startTime ? s.startTime.split("T")[0] : "");
         return sDate === todayStr && (s.duration || s.completed);
@@ -364,7 +369,7 @@ class LocalNotificationScheduler {
         // A. Morning focus (~09:00)
         const mornDate = new Date(y, (mon || 1) - 1, d || 1, 9, 0, 0, 0);
         const mornMs = mornDate.getTime();
-        if (mornMs > now - 15 * 60 * 1000) {
+        if (mornMs > now) {
           const inQuiet = quietHoursEnabled && this.isInsideQuietHours(mornMs, quietHoursStart, quietHoursEnd);
           if (!inQuiet) {
             const tpl = notificationRotationManager.getNext("focus_reminder", lang, {}, userId || undefined);
@@ -389,7 +394,7 @@ class LocalNotificationScheduler {
         // B. Noon / Afternoon focus (~13:30)
         const noonDate = new Date(y, (mon || 1) - 1, d || 1, 13, 30, 0, 0);
         const noonMs = noonDate.getTime();
-        if (noonMs > now - 15 * 60 * 1000) {
+        if (noonMs > now) {
           const inQuiet = quietHoursEnabled && this.isInsideQuietHours(noonMs, quietHoursStart, quietHoursEnd);
           if (!inQuiet) {
             const tpl = notificationRotationManager.getNext("focus_reminder", lang, {}, userId || undefined);
@@ -414,7 +419,7 @@ class LocalNotificationScheduler {
         // C. Evening focus (~18:30)
         const eveDate = new Date(y, (mon || 1) - 1, d || 1, 18, 30, 0, 0);
         const eveMs = eveDate.getTime();
-        if (eveMs > now - 15 * 60 * 1000) {
+        if (eveMs > now) {
           const inQuiet = quietHoursEnabled && this.isInsideQuietHours(eveMs, quietHoursStart, quietHoursEnd);
           if (!inQuiet) {
             const tpl = notificationRotationManager.getNext("focus_reminder", lang, {}, userId || undefined);
@@ -438,14 +443,14 @@ class LocalNotificationScheduler {
       }
     }
 
-    // 4. Time Log & Skill Practice Reminders (~17:30)
-    if (prefs.skillReminders !== false && learningFolders.length > 0) {
+    // 4. Time Log & Skill Practice Reminders (~17:30) - Only for established returning users
+    if (!isBrandNew && prefs.skillReminders !== false && learningFolders.length > 0) {
       const hasLogToday = learningLogs.some((l) => l.date === todayStr);
       if (!hasLogToday) {
         const [y, mon, d] = todayStr.split("-").map(Number);
         const skillDate = new Date(y, (mon || 1) - 1, d || 1, 17, 30, 0, 0);
         const skillMs = skillDate.getTime();
-        if (skillMs > now - 15 * 60 * 1000) {
+        if (skillMs > now) {
           const inQuiet = quietHoursEnabled && this.isInsideQuietHours(skillMs, quietHoursStart, quietHoursEnd);
           if (!inQuiet) {
             const activeSkill = learningFolders[0]?.name || (lang === "bn" ? "স্কিল" : "Skill");
@@ -471,8 +476,8 @@ class LocalNotificationScheduler {
       }
     }
 
-    // 5. Inactivity Companion (~19:30)
-    if (prefs.inactivityReminders !== false) {
+    // 5. Inactivity Companion (~19:30) - Never for brand new accounts
+    if (!isBrandNew && prefs.inactivityReminders !== false) {
       const hasFocusToday = focusSessions.some((s: any) => {
         const sDate = s.date || (s.startTime ? s.startTime.split("T")[0] : "");
         return sDate === todayStr && (s.duration || s.completed);
@@ -483,7 +488,7 @@ class LocalNotificationScheduler {
         const [y, mon, d] = todayStr.split("-").map(Number);
         const inactDate = new Date(y, (mon || 1) - 1, d || 1, 19, 30, 0, 0);
         const inactMs = inactDate.getTime();
-        if (inactMs > now - 15 * 60 * 1000) {
+        if (inactMs > now) {
           const inQuiet = quietHoursEnabled && this.isInsideQuietHours(inactMs, quietHoursStart, quietHoursEnd);
           if (!inQuiet) {
             const tpl = notificationRotationManager.getNext("inactivity", lang, {}, userId || undefined);
@@ -507,12 +512,12 @@ class LocalNotificationScheduler {
       }
     }
 
-    // 6. Diary / Reflection Reminders (~21:15)
-    if (prefs.diaryReminder !== false) {
+    // 6. Diary / Reflection Reminders (~21:15) - Only for established returning users
+    if (!isBrandNew && prefs.diaryReminder !== false) {
       const [y, mon, d] = todayStr.split("-").map(Number);
       const diaryDate = new Date(y, (mon || 1) - 1, d || 1, 21, 15, 0, 0);
       const diaryMs = diaryDate.getTime();
-      if (diaryMs > now - 15 * 60 * 1000) {
+      if (diaryMs > now) {
         const inQuiet = quietHoursEnabled && this.isInsideQuietHours(diaryMs, quietHoursStart, quietHoursEnd);
         if (!inQuiet) {
           const tpl = notificationRotationManager.getNext("diary_reminder", lang, {}, userId || undefined);
@@ -696,7 +701,7 @@ class LocalNotificationScheduler {
     this.precisionTimer = setInterval(() => {
       const now = Date.now();
       for (const item of this.activeReminders) {
-        if (item.targetTimestamp <= now && now - item.targetTimestamp < 30 * 60 * 1000) {
+        if (item.targetTimestamp <= now && now - item.targetTimestamp < 60 * 1000) {
           if (!notificationService.hasBeenSent(item.id)) {
             notificationService.send({
               id: item.id,

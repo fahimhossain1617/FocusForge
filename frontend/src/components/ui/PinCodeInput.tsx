@@ -26,7 +26,7 @@ export default function PinCodeInput({
     if (autoFocus && !disabled && inputRefs.current[0]) {
       const firstEmptyIdx = digits.findIndex((d) => d === "");
       const targetIdx = firstEmptyIdx === -1 ? 5 : firstEmptyIdx;
-      inputRefs.current[targetIdx]?.focus();
+      inputRefs.current[targetIdx]?.focus({ preventScroll: true });
     }
   }, []);
 
@@ -51,7 +51,7 @@ export default function PinCodeInput({
     }
 
     onChange(newChars.join(""));
-    inputRefs.current[nextFocusIdx]?.focus();
+    inputRefs.current[nextFocusIdx]?.focus({ preventScroll: true });
   };
 
   const handleKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -61,7 +61,7 @@ export default function PinCodeInput({
         const newChars = [...digits];
         newChars[index - 1] = "";
         onChange(newChars.join(""));
-        inputRefs.current[index - 1]?.focus();
+        inputRefs.current[index - 1]?.focus({ preventScroll: true });
         e.preventDefault();
       } else if (digits[index]) {
         const newChars = [...digits];
@@ -69,9 +69,9 @@ export default function PinCodeInput({
         onChange(newChars.join(""));
       }
     } else if (e.key === "ArrowLeft" && index > 0) {
-      inputRefs.current[index - 1]?.focus();
+      inputRefs.current[index - 1]?.focus({ preventScroll: true });
     } else if (e.key === "ArrowRight" && index < 5) {
-      inputRefs.current[index + 1]?.focus();
+      inputRefs.current[index + 1]?.focus({ preventScroll: true });
     }
   };
 
@@ -81,7 +81,7 @@ export default function PinCodeInput({
     if (!pasteData) return;
     onChange(pasteData);
     const focusIdx = Math.min(5, pasteData.length);
-    inputRefs.current[focusIdx]?.focus();
+    inputRefs.current[focusIdx]?.focus({ preventScroll: true });
   };
 
   return (
@@ -104,15 +104,14 @@ export default function PinCodeInput({
             onChange={(e) => handleChange(idx, e)}
             onKeyDown={(e) => handleKeyDown(idx, e)}
             onPaste={handlePaste}
-            onFocus={(e) => e.target.select()}
             style={{ boxShadow: "none" }}
-            className={`w-10 h-12 sm:w-11 sm:h-13 text-center text-lg sm:text-xl font-bold font-mono rounded-xl outline-none transition-colors duration-150 box-border
+            className={`w-10 h-12 sm:w-11 sm:h-13 text-center text-lg sm:text-xl font-bold font-mono rounded-xl outline-none transition-colors duration-150 box-border border-2
               ${
                 error
-                  ? "border-2 border-red-500 bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-400"
+                  ? "border-red-500 bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-400"
                   : isFilled
-                  ? "border-2 border-[#1a6cff] bg-[#FFFFFF] text-[#111827] dark:bg-[#030816] dark:text-[#F5F7FA] dark:border-[#1a6cff]"
-                  : "border border-[#DCE5F0] bg-[#FFFFFF] text-[#111827] dark:border-slate-700/70 dark:bg-[#030816] dark:text-[#F5F7FA] focus:border-[#1a6cff] dark:focus:border-[#1a6cff]"
+                  ? "border-[#1a6cff] bg-[#FFFFFF] text-[#111827] dark:bg-[#030816] dark:text-[#F5F7FA]"
+                  : "border-[#DCE5F0] bg-[#FFFFFF] text-[#111827] dark:border-slate-700/70 dark:bg-[#030816] dark:text-[#F5F7FA] focus:border-[#1a6cff] dark:focus:border-[#1a6cff]"
               }
             `}
             aria-label={`PIN digit ${idx + 1}`}
