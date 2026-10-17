@@ -46,11 +46,13 @@ export interface SyncEngineResult {
 }
 
 type SyncStatusListener = (status: SyncStatus, note?: string) => void;
+type SyncPullListener = (pulledCount: number) => void;
 
 class SyncEngine {
   private isSyncing = false;
   private currentStatus: SyncStatus = "saved_locally";
   private listeners: Set<SyncStatusListener> = new Set();
+  private pullListeners: Set<SyncPullListener> = new Set();
   private debounceTimer: ReturnType<typeof setTimeout> | null = null;
   private retryTimer: ReturnType<typeof setTimeout> | null = null;
   private retryAttempt = 0;
@@ -93,6 +95,13 @@ class SyncEngine {
     listener(this.currentStatus);
     return () => {
       this.listeners.delete(listener);
+    };
+  }
+
+  public onPull(listener: SyncPullListener): () => void {
+    this.pullListeners.add(listener);
+    return () => {
+      this.pullListeners.delete(listener);
     };
   }
 
@@ -161,11 +170,6 @@ class SyncEngine {
       return { success: false, pushedCount: 0, pulledCount: 0, status: "offline" };
     }
 
-    if (!cryptoSession.isUnlocked(cleanUserId)) {
-      this.setStatus("locked", "Vault locked; sync paused");
-      return { success: false, pushedCount: 0, pulledCount: 0, status: "locked" };
-    }
-
     if (this.isSyncing) {
       return { success: true, pushedCount: 0, pulledCount: 0, status: this.currentStatus };
     }
@@ -177,7 +181,7 @@ class SyncEngine {
     let pulled = 0;
 
     try {
-      const masterKey = cryptoSession.getMasterKey(cleanUserId);
+      const masterKey = await cryptoSession.getOrDeriveMasterKey(cleanUserId);
       const deviceId = this.getDeviceId();
 
       // ======================================================================
@@ -360,6 +364,17 @@ class SyncEngine {
       // Success: Reset retry attempts and mark synced
       this.retryAttempt = 0;
       this.setStatus("synced");
+
+      if (pulled > 0) {
+        this.pullListeners.forEach((fn) => {
+          try {
+            fn(pulled);
+          } catch (listenerErr) {
+            console.warn("[SyncEngine] Pull listener error:", listenerErr);
+          }
+        });
+      }
+
       return { success: true, pushedCount: pushed, pulledCount: pulled, status: "synced" };
     } catch (err: any) {
       console.warn("[SyncEngine] Sync cycle notice:", err?.message);

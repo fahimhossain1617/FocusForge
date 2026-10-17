@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { useAppContext } from "../../context/AppContext";
 import { useAuth } from "../../context/AuthContext";
 import { useTranslation } from "../../hooks/useTranslation";
@@ -9,7 +10,7 @@ import {
   ChevronDown, ChevronRight, Check, ArrowLeft,
   Camera, Trash2, Eye, EyeOff, Upload,
   Mail, Phone, Calendar, Globe, MapPin, Edit3, X, AlertTriangle, Sparkles,
-  Key, RefreshCw, Copy, CheckCircle2
+  Key, RefreshCw, Copy, CheckCircle2, Cloud
 } from "lucide-react";
 import notificationService from "../../services/notificationService";
 import { userService } from "../../services/userService";
@@ -18,7 +19,6 @@ import { clearPersistedAppState } from "../../services/indexedDBStorage";
 import { localDb } from "../../services/localDbService";
 import { aiConsentService } from "../../services/aiConsentService";
 import { aiMemoryService } from "../../services/aiMemoryService";
-import { cryptoSyncService } from "../../services/cryptoSyncService";
 import { syncService } from "../../services/syncService";
 import FocusForgeDatePicker from "../ui/FocusForgeDatePicker";
 import FocusForgeSelect from "../ui/FocusForgeSelect";
@@ -88,6 +88,7 @@ function Toggle({
 }
 
 export default function SettingsPage() {
+  const router = useRouter();
   const { state, updateState, showToast, navigateTo, navigateBack } = useAppContext();
   const { user, isGuest, updateUserProfile, logout, openAuth } = useAuth();
   const { t } = useTranslation();
@@ -703,90 +704,9 @@ export default function SettingsPage() {
   const [showClearMemoryConfirm, setShowClearMemoryConfirm] = useState(false);
   const [isClearingMemory, setIsClearingMemory] = useState(false);
 
-  // E2EE Sync & Recovery Key State
-  const [activeRecoveryKey, setActiveRecoveryKey] = useState<string>("");
-  const [deviceAuthInputKey, setDeviceAuthInputKey] = useState<string>("");
+  // Cloud Sync State
   const [isSyncingNow, setIsSyncingNow] = useState<boolean>(false);
   const [syncResultNote, setSyncResultNote] = useState<string | null>(null);
-  const [keyCopied, setKeyCopied] = useState<boolean>(false);
-  const [isEditingPassphrase, setIsEditingPassphrase] = useState<boolean>(false);
-  const [newPassphraseInput, setNewPassphraseInput] = useState<string>("");
-  const [confirmPassphraseInput, setConfirmPassphraseInput] = useState<string>("");
-  const [showPassphraseInput, setShowPassphraseInput] = useState<boolean>(false);
-  const [passphraseError, setPassphraseError] = useState<string>("");
-  const [isUpdatingPassphrase, setIsUpdatingPassphrase] = useState<boolean>(false);
-
-  useEffect(() => {
-    if (typeof window !== "undefined" && user?.id) {
-      const key = cryptoSyncService.getRecoveryKey(user.id);
-      setActiveRecoveryKey(key || "");
-    }
-  }, [activeSubItem, user?.id]);
-
-  const handleCopyRecoveryKey = () => {
-    if (!activeRecoveryKey) return;
-    navigator.clipboard.writeText(activeRecoveryKey);
-    setKeyCopied(true);
-    showToast(state?.lang === "bn" ? "রিকভারি কি ক্লিপবোর্ডে কপি করা হয়েছে!" : "Recovery key copied to clipboard!", "success");
-    setTimeout(() => setKeyCopied(false), 2500);
-  };
-
-  const handleUpdatePassphrase = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user?.id) return;
-    if (newPassphraseInput.length < 6) {
-      setPassphraseError(state?.lang === "bn" ? "পাসফ্রেজ কমপক্ষে ৬ অক্ষরের হতে হবে।" : "Passphrase must be at least 6 characters long.");
-      return;
-    }
-    if (newPassphraseInput !== confirmPassphraseInput) {
-      setPassphraseError(state?.lang === "bn" ? "পাসফ্রেজ দুটি মিলছে না।" : "Passphrases do not match.");
-      return;
-    }
-    setPassphraseError("");
-    setIsUpdatingPassphrase(true);
-    try {
-      const ok = await cryptoSyncService.unlockEncryption(user.id, newPassphraseInput);
-      if (ok) {
-        showToast(state?.lang === "bn" ? "ডিভাইস এনক্রিপশন পাসফ্রেজ সফলভাবে আপডেট হয়েছে!" : "Device encryption passphrase updated successfully!", "success");
-        setIsEditingPassphrase(false);
-        setNewPassphraseInput("");
-        setConfirmPassphraseInput("");
-        const key = cryptoSyncService.getRecoveryKey(user.id);
-        setActiveRecoveryKey(key || "");
-      } else {
-        setPassphraseError(state?.lang === "bn" ? "পাসফ্রেজ আপডেট করতে সমস্যা হয়েছে।" : "Failed to update encryption passphrase.");
-      }
-    } catch (err: any) {
-      setPassphraseError(err?.message || "Failed to update passphrase.");
-    } finally {
-      setIsUpdatingPassphrase(false);
-    }
-  };
-
-  const handleAuthorizeWithKey = async () => {
-    if (!deviceAuthInputKey.trim() || !user?.id) return;
-    const ok = await cryptoSyncService.setRecoveryKey(user.id, deviceAuthInputKey.trim());
-    if (ok) {
-      setActiveRecoveryKey(cryptoSyncService.getRecoveryKey(user.id) || "");
-      setDeviceAuthInputKey("");
-      showToast(state?.lang === "bn" ? "ডিভাইস অথোরাইজেশন সফল হয়েছে!" : "Device successfully authorized with recovery key!", "success");
-      setIsSyncingNow(true);
-      try {
-        const res = await syncService.syncNow(user.id);
-        setSyncResultNote(
-          state?.lang === "bn"
-            ? `সিঙ্ক সম্পন্ন! ${res.pulledCount} টি রেকর্ড আনা হয়েছে, ${res.pushedCount} টি রেকর্ড পাঠানো হয়েছে।`
-            : `Sync complete! Pulled ${res.pulledCount} records, pushed ${res.pushedCount} records.`
-        );
-      } catch (e: any) {
-        setSyncResultNote(e?.message || "Sync failed");
-      } finally {
-        setIsSyncingNow(false);
-      }
-    } else {
-      showToast(state?.lang === "bn" ? "ভুল রিকভারি কি ফরম্যাট।" : "Invalid recovery key format.", "error");
-    }
-  };
 
   const handleTriggerSyncNow = async () => {
     if (!user?.id || isGuest) return;
@@ -794,22 +714,12 @@ export default function SettingsPage() {
     setSyncResultNote(null);
     try {
       const res = await syncService.syncNow(user.id);
-      if (res.status === "locked" && typeof window !== "undefined") {
-        window.dispatchEvent(new CustomEvent("focusforge:request_vault_setup"));
-        window.dispatchEvent(new CustomEvent("focusforge:request_vault_unlock"));
-      }
       setSyncResultNote(
         state?.lang === "bn"
-          ? (res.status === "locked" 
-              ? "ভল্ট লক করা আছে। সিঙ্ক সম্পন্ন করতে আপনার পাসওয়ার্ড দিন।" 
-              : `সিঙ্ক সম্পন্ন! (${res.pushedCount} টি পাঠানো হয়েছে, ${res.pulledCount} টি আনা হয়েছে)`)
-          : (res.status === "locked"
-              ? "Vault is locked. Enter your password to complete sync."
-              : `Sync complete! (${res.pushedCount} pushed, ${res.pulledCount} pulled)`)
+          ? `সিঙ্ক সম্পন্ন! (${res.pushedCount} টি পাঠানো হয়েছে, ${res.pulledCount} টি আনা হয়েছে)`
+          : `Sync complete! (${res.pushedCount} pushed, ${res.pulledCount} pulled)`
       );
-      if (res.status !== "locked") {
-        showToast(state?.lang === "bn" ? "সিঙ্ক সফলভাবে সম্পন্ন হয়েছে!" : "Sync completed successfully!", "success");
-      }
+      showToast(state?.lang === "bn" ? "সিঙ্ক সফলভাবে সম্পন্ন হয়েছে!" : "Sync completed successfully!", "success");
     } catch (err: any) {
       setSyncResultNote(err?.message || "Sync failed");
       showToast(state?.lang === "bn" ? "সিঙ্ক সম্পন্ন করা যায়নি।" : "Sync failed.", "error");
@@ -938,7 +848,7 @@ export default function SettingsPage() {
       label: t.settings.sections.privacy,
       icon: Shield,
       subItems: [
-        { id: "e2ee-sync", label: state?.lang === "bn" ? "E2EE সিঙ্ক ও রিকভারি কি" : "E2EE Sync & Recovery Key", icon: Key },
+        { id: "e2ee-sync", label: state?.lang === "bn" ? "ক্লাউড ডিভাইস সিঙ্ক" : "Cloud Device Sync", icon: Cloud },
         { id: "ai-privacy", label: state?.lang === "bn" ? "এআই প্রাইভেসি ও ইমপ্রুভমেন্ট" : "AI Privacy & Improvement", icon: Sparkles },
         { id: "privacy-policy", label: t.settings.privacy.privacyPolicyTitle },
         { id: "terms-of-service", label: t.settings.privacy.termsOfServiceTitle },
@@ -2618,6 +2528,8 @@ export default function SettingsPage() {
       // ---------------------------------------------------------------------
       // PRIVACY > E2EE SYNC & RECOVERY KEY
       // ---------------------------------------------------------------------
+      // PRIVACY > DEVICE CLOUD SYNC
+      // ---------------------------------------------------------------------
       case "e2ee-sync": {
         const isBn = state?.lang === "bn";
 
@@ -2625,10 +2537,10 @@ export default function SettingsPage() {
           return (
             <div className="space-y-6">
               <GuestPromptCard
-                heading={isBn ? "এন্ড-টু-এন্ড এনক্রিপ্টেড সিঙ্ক" : "End-to-End Encrypted Sync"}
+                heading={isBn ? "ডিভাইস ক্লাউড সিঙ্ক" : "Device Cloud Sync"}
                 text={isBn 
-                  ? "সকল ডিভাইসে এনক্রিপ্ট করা ডেটা স্বয়ংক্রিয়ভাবে সিঙ্ক করতে একটি অ্যাকাউন্টে লগইন বা সাইন আপ করুন।" 
-                  : "Sign up or log in to sync your encrypted data across your phone, tablet, laptop, and PC."}
+                  ? "সকল ডিভাইসে আপনার তথ্য স্বয়ংক্রিয়ভাবে সিঙ্ক করতে একটি অ্যাকাউন্টে লগইন বা সাইন আপ করুন।" 
+                  : "Sign up or log in to sync your data across your phone, tablet, laptop, and PC."}
               />
             </div>
           );
@@ -2638,208 +2550,48 @@ export default function SettingsPage() {
           <div className="space-y-6 max-w-2xl">
             <div>
               <h1 className="text-2xl font-bold text-[var(--color-text-primary)] tracking-tight">
-                {isBn ? "E2EE সিঙ্ক ও রিকভারি কি" : "E2EE Sync & Recovery Key"}
+                {isBn ? "ডিভাইস ক্লাউড সিঙ্ক" : "Device Cloud Sync"}
               </h1>
               <p className="text-xs text-[var(--color-text-muted)] mt-1">
                 {isBn 
-                  ? "আপনার ডেটা ডিভাইস থেকে বের হওয়ার আগেই AES-256-GCM দ্বারা এনক্রিপ্ট হয়। সার্ভার কখনোই আপনার ডেটা দেখতে পায় না।" 
-                  : "Your personal data is encrypted with AES-256-GCM before leaving this device. Zero-knowledge relay protects your privacy."}
+                  ? "সকল ডিভাইসে আপনার তথ্য স্বয়ংক্রিয়ভাবে সিঙ্ক ও সুরক্ষিত থাকে।" 
+                  : "Your data is automatically backed up and synced across all your devices."}
               </p>
             </div>
 
-            {/* Architecture Badge */}
-            <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-4 flex items-start gap-3">
-              <Shield className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
-              <div className="space-y-1">
-                <p className="text-xs font-semibold text-[var(--color-text-primary)]">
-                  {isBn ? "প্রাইভেসি-ফার্স্ট আর্কিটেকচার সক্রিয়" : "Privacy-First Architecture Active"}
-                </p>
-                <p className="text-[11px] text-[var(--color-text-secondary)] leading-relaxed">
+            {/* Cloud Sync Status & Information Card */}
+            <div className="rounded-2xl border border-[var(--color-border-subtle)] bg-[var(--color-surface-elevated)] p-6 space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="p-2 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400">
+                    <Cloud className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-semibold text-[var(--color-text-primary)]">
+                      {isBn ? "স্বয়ংক্রিয় ক্লাউড সিঙ্ক" : "Automatic Cloud Sync"}
+                    </h3>
+                    <p className="text-[11px] text-[var(--color-text-muted)] mt-0.5">
+                      {isBn ? "সকল ডিভাইসে একই অ্যাকাউন্ট ব্যবহারের সুবিধা" : "Use your account on all your devices"}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[11px] font-medium text-emerald-600 dark:text-emerald-400">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  <span>{isBn ? "সিঙ্ক সক্রিয়" : "Sync Active"}</span>
+                </div>
+              </div>
+
+              <div className="p-4 rounded-xl bg-[var(--color-surface)] border border-[var(--color-border-subtle)] space-y-2">
+                <p className="text-xs text-[var(--color-text-primary)] leading-relaxed">
                   {isBn
-                    ? "Supabase সার্ভারে কোনো প্লেইনটেক্সট পার্সোনাল ডেটা জমা থাকে না। শুধুমাত্র আপনার ডিভাইসসমূহে থাকা রিকভারি কি ডেটা ডিক্রিপ্ট করতে পারে।"
-                    : "Zero personal plaintext is stored in Supabase. Only your authorized devices holding your recovery key can decrypt your notes, diary, tasks, and memory."}
+                    ? "আপনার টাস্ক, নোট, ডায়েরি এবং রুটিনসহ সকল ডাটা আপনার অ্যাকাউন্টের সাথে স্বয়ংক্রিয়ভাবে সিঙ্ক হয়। আপনি যেকোনো ফোন, ট্যাবলেট বা কম্পিউটারে শুধু এই অ্যাকাউন্টে লগইন করলেই আপনার সব তথ্য সাথে সাথে পেয়ে যাবেন।"
+                    : "All your tasks, notes, diary entries, and routines are automatically saved and synced to your account. Simply sign in with this same account on any phone, tablet, or computer to access all your data instantly."}
                 </p>
-              </div>
-            </div>
-
-            {/* Recovery Key Display Card */}
-            <div className="rounded-2xl border border-[var(--color-border-subtle)] bg-[var(--color-surface-elevated)] p-6 space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Key className="w-4 h-4 text-blue-500" />
-                  <h3 className="text-sm font-semibold text-[var(--color-text-primary)]">
-                    {isBn ? "আপনার সিক্রেট রিকভারি কি" : "Your Secret Recovery Key"}
-                  </h3>
-                </div>
-                <button
-                  type="button"
-                  onClick={handleCopyRecoveryKey}
-                  className="px-3 py-1.5 rounded-lg text-xs font-medium text-blue-600 dark:text-blue-400 hover:bg-blue-500/10 border border-blue-500/20 transition-colors flex items-center gap-1.5 cursor-pointer"
-                >
-                  {keyCopied ? <CheckCircle2 size={13} /> : <Copy size={13} />}
-                  <span>{keyCopied ? (isBn ? "কপি হয়েছে!" : "Copied!") : (isBn ? "কপি করুন" : "Copy Key")}</span>
-                </button>
-              </div>
-
-              <p className="text-[11px] text-[var(--color-text-muted)]">
-                {isBn
-                  ? "নতুন ফোন, ট্যাবলেট বা কম্পিউটারে লগইন করার পর ডেটা অ্যাক্সেস করতে এই কি-টি প্রয়োজন হবে। এটি নিরাপদে সংরক্ষণ করুন।"
-                  : "Save this key securely. You will need it to authorize new devices or restore data after app reinstall."}
-              </p>
-
-              <div className="p-3.5 rounded-xl bg-[var(--color-surface)] border border-[var(--color-border-subtle)] font-mono text-xs text-[var(--color-text-primary)] break-all select-all tracking-wider text-center">
-                {activeRecoveryKey || "Generating key..."}
-              </div>
-            </div>
-
-            {/* Device Encryption Passphrase Management Card */}
-            <div className="rounded-2xl border border-[var(--color-border-subtle)] bg-[var(--color-surface-elevated)] p-6 space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Lock className="w-4 h-4 text-emerald-500" />
-                  <h3 className="text-sm font-semibold text-[var(--color-text-primary)]">
-                    {isBn ? "ডিভাইস এনক্রিপশন পাসফ্রেজ" : "Device Encryption Passphrase"}
-                  </h3>
-                </div>
-                {!isEditingPassphrase && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsEditingPassphrase(true);
-                      setPassphraseError("");
-                    }}
-                    className="px-3 py-1.5 rounded-lg text-xs font-medium text-blue-600 dark:text-blue-400 hover:bg-blue-500/10 border border-blue-500/20 transition-colors cursor-pointer"
-                  >
-                    {isBn ? "পাসফ্রেজ পরিবর্তন করুন" : "Change Passphrase"}
-                  </button>
-                )}
-              </div>
-
-              <p className="text-[11px] text-[var(--color-text-muted)]">
-                {isBn
-                  ? "এই পাসফ্রেজটি আপনার ডিভাইসের মাস্টার এনক্রিপশন কি (AES-256) নিরাপদে লক এবং আনলক করার জন্য ব্যবহৃত হয়।"
-                  : "This passphrase wraps your AES-256 Master Encryption Key so only you can unlock your synchronized vault."}
-              </p>
-
-              {isEditingPassphrase ? (
-                <form onSubmit={handleUpdatePassphrase} className="space-y-4 pt-2">
-                  <div>
-                    <label className="block text-xs font-medium text-[var(--color-text-primary)] mb-1.5">
-                      {isBn ? "নতুন এনক্রিপশন পাসফ্রেজ" : "New Encryption Passphrase"} <span className="text-blue-500">*</span>
-                    </label>
-                    <div className="relative">
-                      <input
-                        type={showPassphraseInput ? "text" : "password"}
-                        required
-                        value={newPassphraseInput}
-                        onChange={(e) => {
-                          setNewPassphraseInput(e.target.value);
-                          if (passphraseError) setPassphraseError("");
-                        }}
-                        placeholder={isBn ? "কমপক্ষে ৬ অক্ষরের পাসফ্রেজ লিখুন" : "Enter passphrase (min. 6 chars)"}
-                        className="w-full px-3.5 py-2.5 pr-10 rounded-xl bg-[var(--color-surface)] border border-[var(--color-border-subtle)] text-xs text-[var(--color-text-primary)] focus:outline-none focus:border-blue-500 min-h-[44px]"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassphraseInput(!showPassphraseInput)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] cursor-pointer"
-                        aria-label="Toggle passphrase visibility"
-                      >
-                        {showPassphraseInput ? <EyeOff size={15} /> : <Eye size={15} />}
-                      </button>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-medium text-[var(--color-text-primary)] mb-1.5">
-                      {isBn ? "পাসফ্রেজ নিশ্চিত করুন" : "Confirm Passphrase"} <span className="text-blue-500">*</span>
-                    </label>
-                    <input
-                      type={showPassphraseInput ? "text" : "password"}
-                      required
-                      value={confirmPassphraseInput}
-                      onChange={(e) => {
-                        setConfirmPassphraseInput(e.target.value);
-                        if (passphraseError) setPassphraseError("");
-                      }}
-                      placeholder={isBn ? "পাসফ্রেজটি পুনরায় লিখুন" : "Confirm passphrase"}
-                      className="w-full px-3.5 py-2.5 rounded-xl bg-[var(--color-surface)] border border-[var(--color-border-subtle)] text-xs text-[var(--color-text-primary)] focus:outline-none focus:border-blue-500 min-h-[44px]"
-                    />
-                  </div>
-
-                  {passphraseError && (
-                    <p className="text-xs text-red-500 font-medium">{passphraseError}</p>
-                  )}
-
-                  <div className="flex items-center gap-3 pt-1">
-                    <button
-                      type="submit"
-                      disabled={isUpdatingPassphrase || !newPassphraseInput}
-                      className="px-4 py-2.5 rounded-xl text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 transition-colors shadow-none cursor-pointer disabled:opacity-50 min-h-[42px]"
-                    >
-                      {isUpdatingPassphrase
-                        ? (isBn ? "আপডেট হচ্ছে..." : "Updating...")
-                        : (isBn ? "পাসফ্রেজ সংরক্ষণ করুন" : "Save Passphrase")}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsEditingPassphrase(false);
-                        setNewPassphraseInput("");
-                        setConfirmPassphraseInput("");
-                        setPassphraseError("");
-                      }}
-                      className="px-4 py-2.5 rounded-xl text-xs font-semibold text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface)] border border-[var(--color-border-subtle)] transition-colors cursor-pointer min-h-[42px]"
-                    >
-                      {isBn ? "বাতিল" : "Cancel"}
-                    </button>
-                  </div>
-                </form>
-              ) : (
-                <div className="flex items-center justify-between p-3.5 rounded-xl bg-[var(--color-surface)] border border-[var(--color-border-subtle)]">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-2 h-2 rounded-full bg-emerald-500" />
-                    <span className="text-xs text-[var(--color-text-primary)] font-medium">
-                      {isBn ? "ভল্ট এনক্রিপশন সক্রিয়" : "Vault Encryption Active"}
-                    </span>
-                  </div>
-                  <span className="text-[11px] text-[var(--color-text-muted)] font-mono">
-                    PBKDF2-SHA256 • AES-256
-                  </span>
-                </div>
-              )}
-            </div>
-
-            {/* Authorize New Device Card */}
-            <div className="rounded-2xl border border-[var(--color-border-subtle)] bg-[var(--color-surface-elevated)] p-6 space-y-4">
-              <div className="flex items-center gap-2">
-                <Shield className="w-4 h-4 text-purple-500" />
-                <h3 className="text-sm font-semibold text-[var(--color-text-primary)]">
-                  {isBn ? "অন্য ডিভাইস থেকে রিকভারি কি দিয়ে যুক্ত করুন" : "Authorize Device with Existing Key"}
-                </h3>
-              </div>
-              <p className="text-[11px] text-[var(--color-text-muted)]">
-                {isBn
-                  ? "আপনি যদি অন্য ডিভাইসে ইতিমধ্যে Focentia ব্যবহার করে থাকেন, তবে সেই ডিভাইসের রিকভারি কি এখানে পেস্ট করে এই ডিভাইসটি লিঙ্ক করুন।"
-                  : "If you already have Focentia set up on another device, paste its recovery key here to link this device."}
-              </p>
-
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={deviceAuthInputKey}
-                  onChange={(e) => setDeviceAuthInputKey(e.target.value)}
-                  placeholder="FF-XXXX-XXXX-XXXX..."
-                  className="flex-1 px-3.5 py-2.5 rounded-xl bg-[var(--color-surface)] border border-[var(--color-border-subtle)] text-xs text-[var(--color-text-primary)] font-mono focus:outline-none focus:border-blue-500"
-                />
-                <button
-                  type="button"
-                  onClick={handleAuthorizeWithKey}
-                  disabled={!deviceAuthInputKey.trim()}
-                  className="px-4 py-2.5 rounded-xl text-xs font-semibold text-white bg-[#1E3E7B] hover:bg-[#28539E] transition-colors cursor-pointer disabled:opacity-40"
-                >
-                  {isBn ? "অথোরাইজ" : "Authorize"}
-                </button>
+                <p className="text-[11px] text-[var(--color-text-muted)] leading-relaxed">
+                  {isBn
+                    ? "কোনো অতিরিক্ত পাসওয়ার্ড বা পিন সেটআপ করার প্রয়োজন নেই। সবকিছু সম্পূর্ণ স্বয়ংক্রিয়ভাবে ব্যাকগ্রাউন্ডে সংরক্ষিত ও সিঙ্ক হতে থাকবে।"
+                    : "No extra passwords or PINs required. Everything syncs seamlessly in the background whenever you are connected."}
+                </p>
               </div>
             </div>
 

@@ -35,10 +35,15 @@ export interface SyncRecordPayload {
 
 export const cryptoSyncService = {
   /**
-   * Generates a secure recovery passphrase on the user's device.
+   * Generates a secure 6-digit numeric recovery code on the user's device.
    */
   generateRecoveryKey(): string {
-    return generateRecoveryPhrase();
+    if (typeof window !== "undefined" && window.crypto?.getRandomValues) {
+      const arr = new Uint32Array(1);
+      window.crypto.getRandomValues(arr);
+      return ((arr[0] % 900000) + 100000).toString();
+    }
+    return Math.floor(100000 + Math.random() * 900000).toString();
   },
 
   /**
@@ -47,6 +52,43 @@ export const cryptoSyncService = {
   async deriveKey(passphrase: string, saltBytes: Uint8Array): Promise<CryptoKey> {
     const saltBase64 = bufferToBase64(saltBytes);
     return await deriveKeyFromPassphrase(passphrase, saltBase64, 250000);
+  },
+
+  /**
+   * Retrieves encryption key metadata including 30-day reset eligibility from the server.
+   */
+  async getKeyMetadata(userId: string): Promise<{
+    exists: boolean;
+    canReset: boolean;
+    daysRemaining: number;
+    lastResetAt: string | null;
+  }> {
+    const cleanUserId = userId?.trim();
+    if (!cleanUserId || cleanUserId === "guest") {
+      return { exists: false, canReset: true, daysRemaining: 0, lastResetAt: null };
+    }
+    try {
+      const res = await fetchBackend<{
+        exists: boolean;
+        canReset?: boolean;
+        daysRemaining?: number;
+        lastResetAt?: string;
+        envelope?: any;
+      }>("/api/crypto/keys", { method: "GET" });
+
+      if (!res || !res.exists) {
+        return { exists: false, canReset: true, daysRemaining: 0, lastResetAt: null };
+      }
+
+      return {
+        exists: true,
+        canReset: res.canReset !== undefined ? res.canReset : true,
+        daysRemaining: res.daysRemaining || 0,
+        lastResetAt: res.lastResetAt || null,
+      };
+    } catch {
+      return { exists: false, canReset: true, daysRemaining: 0, lastResetAt: null };
+    }
   },
 
   /**
@@ -77,12 +119,116 @@ export const cryptoSyncService = {
       if (typeof window !== "undefined") {
         try {
           localStorage.setItem(`focentia_recovery_key_${cleanUserId}`, passphrase);
+          localStorage.setItem(`focusforge_recovery_key_${cleanUserId}`, passphrase);
         } catch {}
       }
 
       return true;
     } catch (err) {
       console.warn("[cryptoSyncService] Unlock notice:", err);
+      return false;
+    }
+  },
+
+  /**
+   * Resets the user's 6-digit Device Sync Code following password verification.
+   * Enforces 30-day cooldown and permanently updates the key envelope in Supabase.
+   */
+  async resetSyncCode(
+    userId: string,
+    new6DigitCode: string
+  ): Promise<{ success: boolean; error?: string; daysRemaining?: number }> {
+    const cleanUserId = userId?.trim();
+    if (!cleanUserId || cleanUserId === "guest") {
+      return { success: false, error: "Invalid user session." };
+    }
+
+    const cleanCode = new6DigitCode.trim();
+    if (!/^\d{6}$/.test(cleanCode)) {
+      return { success: false, error: "Device sync code must be exactly 6 digits (numbers only)." };
+    }
+
+    try {
+      let envelope: any;
+
+      if (cryptoSession.isUnlocked(cleanUserId)) {
+        const res = await cryptoSession.changePassphrase(cleanUserId, cleanCode);
+        envelope = res.envelope;
+      } else {
+        const res = await cryptoSession.createNewEncryptionVault(cleanUserId, cleanCode);
+        envelope = res.envelope;
+      }
+
+      // Save to server with isReset: true to record 30-day cooldown
+      const res = await fetchBackend<{ success: boolean; error?: string; daysLeft?: number }>("/api/crypto/keys", {
+        method: "POST",
+        body: JSON.stringify({ envelope, isReset: true }),
+      });
+
+      if (!res || !res.success) {
+        return {
+          success: false,
+          error: res?.error || "Failed to update device sync code on server.",
+          daysRemaining: res?.daysLeft,
+        };
+      }
+
+      // Store new code locally for persistent auto-unlock
+      if (typeof window !== "undefined") {
+        try {
+          localStorage.setItem(`focentia_recovery_key_${cleanUserId}`, cleanCode);
+          localStorage.setItem(`focusforge_recovery_key_${cleanUserId}`, cleanCode);
+          localStorage.removeItem(`focusforge_unlock_dismissed_${cleanUserId}`);
+          sessionStorage.removeItem(`focusforge_unlock_dismissed_${cleanUserId}`);
+        } catch {}
+      }
+
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err?.message || "Failed to reset device sync code." };
+    }
+  },
+
+  /**
+   * Securely updates the user's sync passphrase without decrypting/re-encrypting the whole database.
+   * Re-wraps the Master Encryption Key with the new passphrase and updates Supabase.
+   */
+  async updatePassphrase(userId: string, newPassphrase: string): Promise<boolean> {
+    const cleanUserId = userId?.trim();
+    if (!cleanUserId || cleanUserId === "guest" || !newPassphrase) return false;
+
+    try {
+      // Ensure vault is unlocked
+      if (!cryptoSession.isUnlocked(cleanUserId)) {
+        const currentKey = this.getRecoveryKey(cleanUserId);
+        if (currentKey) {
+          await this.unlockEncryption(cleanUserId, currentKey);
+        }
+      }
+
+      const { envelope } = await cryptoSession.changePassphrase(cleanUserId, newPassphrase);
+
+      // Save updated envelope to Supabase
+      const res = await fetchBackend<{ success: boolean }>("/api/crypto/keys", {
+        method: "POST",
+        body: JSON.stringify({ envelope }),
+      });
+
+      if (!res || !res.success) {
+        throw new Error("Failed to save updated key envelope on server");
+      }
+
+      // Store updated passphrase locally for seamless auto-unlock on this device
+      if (typeof window !== "undefined") {
+        try {
+          localStorage.setItem(`focentia_recovery_key_${cleanUserId}`, newPassphrase);
+          localStorage.setItem(`focusforge_recovery_key_${cleanUserId}`, newPassphrase);
+        } catch {}
+      }
+
+      return true;
+    } catch (err) {
+      console.warn("[cryptoSyncService] Update passphrase failed:", err);
       return false;
     }
   },

@@ -11,6 +11,7 @@ import { useAuth } from "../../context/AuthContext";
 import { useAppContext } from "../../context/AppContext";
 import { User, Users, Trash2, ArrowRight } from "lucide-react";
 import { RememberedAccount } from "../../services/accountManager";
+import { motion, AnimatePresence } from "framer-motion";
 
 
 function LoginContent() {
@@ -169,232 +170,249 @@ function LoginContent() {
   };
 
   // ----------------------------------------------------
-  // VIEW: RESET LINK SENT CONFIRMATION
+  // UNIFIED AUTH LAYOUT WITH SMOOTH VIEW TRANSITIONS
   // ----------------------------------------------------
-  if (viewMode === "reset-sent") {
-    return (
-      <AuthLayout screen="login" showBack onBack={() => { setViewMode("login"); setError(null); }}>
-        <h2 className="auth-title">Check your email</h2>
-        <p className="auth-lead">
-          We’ve sent a password reset link to <strong className="text-white">{email}</strong>.
-        </p>
-
-        <div className="my-5 p-3.5 rounded-xl bg-blue-500/10 border border-blue-500/30 text-left text-xs leading-relaxed text-blue-200">
-          <strong className="block text-white font-semibold mb-1">Check your Gmail Spam folder:</strong>
-          If you don’t see the email in your inbox within a few minutes, please check your <strong>Spam</strong> or <strong>Junk</strong> folder, as password reset links often land there.
-        </div>
-
-        <button
-          type="button"
-          onClick={() => { setViewMode("login"); setError(null); }}
-          className="auth-cta mb-3"
-        >
-          Back to log in
-        </button>
-
-        <div className="text-center text-xs text-slate-400">
-          Didn’t receive it?{" "}
-          <button
-            type="button"
-            onClick={handleForgotPasswordSubmit}
-            disabled={loading}
-            className="text-blue-400 font-semibold hover:underline bg-transparent border-0 p-0 cursor-pointer"
+  return (
+    <AuthLayout
+      screen="login"
+      showBack={viewMode !== "login"}
+      onBack={() => {
+        setViewMode("login");
+        setError(null);
+      }}
+    >
+      <AnimatePresence mode="wait" initial={false}>
+        {viewMode === "reset-sent" ? (
+          <motion.div
+            key="reset-sent"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
           >
-            Resend reset link
-          </button>
-        </div>
-      </AuthLayout>
-    );
-  }
+            <h2 className="auth-title">Check your email</h2>
+            <p className="auth-lead">
+              We’ve sent a password reset link to <strong className="text-white">{email}</strong>.
+            </p>
 
-  // ----------------------------------------------------
-  // VIEW: FORGOT PASSWORD FORM (NO BLUR POPUP)
-  // ----------------------------------------------------
-  if (viewMode === "forgot") {
-    return (
-      <AuthLayout screen="login" showBack onBack={() => { setViewMode("login"); setError(null); }}>
-        <h2 className="auth-title">Reset password</h2>
-        <p className="auth-lead">
-          Enter your email address, and we will send a request with a reset link.
-        </p>
+            <div className="my-5 p-3.5 rounded-xl bg-blue-500/10 border border-blue-500/30 text-left text-xs leading-relaxed text-blue-200">
+              <strong className="block text-white font-semibold mb-1">Check your Gmail Spam folder:</strong>
+              If you don’t see the email in your inbox within a few minutes, please check your <strong>Spam</strong> or <strong>Junk</strong> folder, as password reset links often land there.
+            </div>
 
-        <form onSubmit={handleForgotPasswordSubmit} className="mt-5">
-          <div className="auth-row">
-            <label htmlFor="reset-email" className="auth-label">
-              Email address
-            </label>
-          </div>
-          <div className="auth-field">
-            {AuthIcons.mail}
-            <input
-              id="reset-email"
-              type="email"
-              placeholder="name@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              autoComplete="email"
-            />
-          </div>
-
-          {error && <div className="auth-bottom-error">{error}</div>}
-
-          <button type="submit" className="auth-cta mt-4" disabled={loading}>
-            {loading ? "Sending link..." : "Send reset link"}
-          </button>
-
-          <div className="auth-alt mt-4">
-            Remembered your password?{" "}
             <button
               type="button"
               onClick={() => { setViewMode("login"); setError(null); }}
-              className="text-blue-400 hover:underline"
+              className="auth-cta mb-3 cursor-pointer"
             >
               Back to log in
             </button>
-          </div>
-        </form>
-      </AuthLayout>
-    );
-  }
 
-  // ----------------------------------------------------
-  // VIEW: MAIN LOGIN
-  // ----------------------------------------------------
-  return (
-    <AuthLayout screen="login">
-      <div className="hidden lg:block mb-4">
-        <h2 className="auth-title">Welcome back</h2>
-        <p className="auth-lead mt-1">Log in to continue where you left off.</p>
-      </div>
-
-      {resetSuccessNotice && (
-        <div className="mb-4 p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-left text-xs leading-relaxed text-emerald-200 flex items-start gap-2.5">
-          <span className="text-emerald-400 font-bold mt-0.5">✓</span>
-          <div>
-            <strong className="block text-emerald-300 font-semibold mb-0.5">পাসওয়ার্ড সফলভাবে পরিবর্তন হয়েছে!</strong>
-            আপনার একাউন্টে প্রবেশ করতে নতুন পাসওয়ার্ড দিয়ে লগইন করুন। (Password reset successful! Please log in with your new password.)
-          </div>
-        </div>
-      )}
-
-      {/* Primary Login Form: Email -> Password -> Remember Me -> Login CTA */}
-      <form onSubmit={handleSubmit}>
-        <div className="auth-row items-center mb-1">
-          <label htmlFor="login-email" className="auth-label mb-0">
-            Email address
-          </label>
-          {rememberedAccounts.length > 0 && (
-            <button
-              type="button"
-              onClick={() => setShowSavedSheet(true)}
-              className="text-[11px] text-blue-400 hover:text-blue-300 font-medium flex items-center gap-1 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 px-2 py-0.5 rounded-full transition-all cursor-pointer"
-              title={`${rememberedAccounts.length} saved account${rememberedAccounts.length > 1 ? "s" : ""}`}
-            >
-              <Users size={12} className="text-blue-400" />
-              <span>Saved ({rememberedAccounts.length})</span>
-            </button>
-          )}
-        </div>
-        <div className="auth-field">
-          {AuthIcons.mail}
-          <input
-            id="login-email"
-            type="email"
-            placeholder="name@example.com"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            autoComplete="email"
-          />
-        </div>
-
-        <div className="auth-row">
-          <label htmlFor="login-password" className="auth-label">
-            Password
-          </label>
-          <button
-            type="button"
-            onClick={() => { setViewMode("forgot"); setError(null); }}
-            className="text-xs text-blue-400 hover:underline cursor-pointer"
+            <div className="text-center text-xs text-slate-400">
+              Didn’t receive it?{" "}
+              <button
+                type="button"
+                onClick={handleForgotPasswordSubmit}
+                disabled={loading}
+                className="text-blue-400 font-semibold hover:underline bg-transparent border-0 p-0 cursor-pointer"
+              >
+                Resend reset link
+              </button>
+            </div>
+          </motion.div>
+        ) : viewMode === "forgot" ? (
+          <motion.div
+            key="forgot"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
           >
-            Forgot password?
-          </button>
-        </div>
-        <div className="auth-field">
-          {AuthIcons.lock}
-          <input
-            id="login-password"
-            type={showPassword ? "text" : "password"}
-            placeholder="Enter your password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            autoComplete="current-password"
-          />
-          <button
-            type="button"
-            className="eye"
-            onClick={() => setShowPassword(!showPassword)}
-            aria-label={showPassword ? "Hide password" : "Show password"}
+            <h2 className="auth-title">Reset password</h2>
+            <p className="auth-lead">
+              Enter your email address, and we will send a request with a reset link.
+            </p>
+
+            <form onSubmit={handleForgotPasswordSubmit} className="mt-5">
+              <div className="auth-row">
+                <label htmlFor="reset-email" className="auth-label">
+                  Email address
+                </label>
+              </div>
+              <div className="auth-field">
+                {AuthIcons.mail}
+                <input
+                  id="reset-email"
+                  type="email"
+                  placeholder="name@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  autoComplete="email"
+                />
+              </div>
+
+              {error && <div className="auth-bottom-error">{error}</div>}
+
+              <button type="submit" className="auth-cta mt-4 cursor-pointer" disabled={loading}>
+                {loading ? "Sending link..." : "Send reset link"}
+              </button>
+
+              <div className="auth-alt mt-4">
+                Remembered your password?{" "}
+                <button
+                  type="button"
+                  onClick={() => { setViewMode("login"); setError(null); }}
+                  className="text-blue-400 hover:underline cursor-pointer"
+                >
+                  Back to log in
+                </button>
+              </div>
+            </form>
+          </motion.div>
+        ) : (
+          <motion.div
+            key="login"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
           >
-            {showPassword ? AuthIcons.eyeOff : AuthIcons.eye}
-          </button>
-        </div>
+            <div className="hidden lg:block mb-4">
+              <h2 className="auth-title">Welcome back</h2>
+              <p className="auth-lead mt-1">Log in to continue where you left off.</p>
+            </div>
 
-        <div
-          className="auth-check"
-          onClick={() => setRememberMe(!rememberMe)}
-          role="checkbox"
-          aria-checked={rememberMe}
-          tabIndex={0}
-          onKeyDown={(e) => {
-            if (e.key === " " || e.key === "Enter") {
-              e.preventDefault();
-              setRememberMe(!rememberMe);
-            }
-          }}
-        >
-          <span className={`box ${rememberMe ? "" : "unchecked"}`}>
-            {rememberMe && AuthIcons.check}
-          </span>
-          <span>Remember me</span>
-        </div>
+            {resetSuccessNotice && (
+              <div className="mb-4 p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-left text-xs leading-relaxed text-emerald-200 flex items-start gap-2.5">
+                <span className="text-emerald-400 font-bold mt-0.5">✓</span>
+                <div>
+                  <strong className="block text-emerald-300 font-semibold mb-0.5">পাসওয়ার্ড সফলভাবে পরিবর্তন হয়েছে!</strong>
+                  আপনার একাউন্টে প্রবেশ করতে নতুন পাসওয়ার্ড দিয়ে লগইন করুন। (Password reset successful! Please log in with your new password.)
+                </div>
+              </div>
+            )}
 
-        {/* Error placed at the bottom near CTA */}
-        {error && <div className="auth-bottom-error">{error}</div>}
+            {/* Primary Login Form: Email -> Password -> Remember Me -> Login CTA */}
+            <form onSubmit={handleSubmit}>
+              <div className="auth-row items-center mb-1">
+                <label htmlFor="login-email" className="auth-label mb-0">
+                  Email address
+                </label>
+                {rememberedAccounts.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setShowSavedSheet(true)}
+                    className="text-[11px] text-blue-400 hover:text-blue-300 font-medium flex items-center gap-1 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 px-2 py-0.5 rounded-full transition-all cursor-pointer"
+                    title={`${rememberedAccounts.length} saved account${rememberedAccounts.length > 1 ? "s" : ""}`}
+                  >
+                    <Users size={12} className="text-blue-400" />
+                    <span>Saved ({rememberedAccounts.length})</span>
+                  </button>
+                )}
+              </div>
+              <div className="auth-field">
+                {AuthIcons.mail}
+                <input
+                  id="login-email"
+                  type="email"
+                  placeholder="name@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  autoComplete="email"
+                />
+              </div>
 
-        <button type="submit" className="auth-cta mt-2" disabled={loading}>
-          {loading ? "Logging in..." : "Log in"}
-        </button>
+              <div className="auth-row">
+                <label htmlFor="login-password" className="auth-label">
+                  Password
+                </label>
+                <button
+                  type="button"
+                  onClick={() => { setViewMode("forgot"); setError(null); }}
+                  className="text-xs text-blue-400 hover:underline cursor-pointer"
+                >
+                  Forgot password?
+                </button>
+              </div>
+              <div className="auth-field">
+                {AuthIcons.lock}
+                <input
+                  id="login-password"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Enter your password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  autoComplete="current-password"
+                />
+                <button
+                  type="button"
+                  className="eye"
+                  onClick={() => setShowPassword(!showPassword)}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? AuthIcons.eyeOff : AuthIcons.eye}
+                </button>
+              </div>
 
-        <div className="auth-alt mt-3">
-          Don’t have an account? <Link href="/signup" className="text-blue-400 hover:underline">Create account</Link>
-        </div>
+              <div
+                className="auth-check"
+                onClick={() => setRememberMe(!rememberMe)}
+                role="checkbox"
+                aria-checked={rememberMe}
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === " " || e.key === "Enter") {
+                    e.preventDefault();
+                    setRememberMe(!rememberMe);
+                  }
+                }}
+              >
+                <span className={`box ${rememberMe ? "" : "unchecked"}`}>
+                  {rememberMe && AuthIcons.check}
+                </span>
+                <span>Remember me</span>
+              </div>
 
-        <div className="auth-or my-3">or continue with</div>
+              {/* Error placed at the bottom near CTA */}
+              {error && <div className="auth-bottom-error">{error}</div>}
 
-        {/* Continue with Google at bottom */}
-        <button
-          type="button"
-          className="auth-gbtn"
-          onClick={handleGoogleLogin}
-          disabled={loading}
-        >
-          {AuthIcons.google}
-          Continue with Google
-        </button>
+              <button type="submit" className="auth-cta mt-2 cursor-pointer" disabled={loading}>
+                {loading ? "Logging in..." : "Log in"}
+              </button>
 
-        {!isGuestModeDisabled && (
-          <button
-            type="button"
-            onClick={handleContinueAsGuest}
-            className="auth-guest mt-3"
-          >
-            or <u>continue as a guest</u>
-          </button>
+              <div className="auth-alt mt-3">
+                Don’t have an account? <Link href="/signup" className="text-blue-400 hover:underline">Create account</Link>
+              </div>
+
+              <div className="auth-or my-3">or continue with</div>
+
+              {/* Continue with Google at bottom */}
+              <button
+                type="button"
+                className="auth-gbtn cursor-pointer"
+                onClick={handleGoogleLogin}
+                disabled={loading}
+              >
+                {AuthIcons.google}
+                Continue with Google
+              </button>
+
+              {!isGuestModeDisabled && (
+                <button
+                  type="button"
+                  onClick={handleContinueAsGuest}
+                  className="auth-guest mt-3 cursor-pointer"
+                >
+                  or <u>continue as a guest</u>
+                </button>
+              )}
+            </form>
+          </motion.div>
         )}
-      </form>
+      </AnimatePresence>
 
       {/* Saved Accounts Bottom Sheet Modal */}
       {showSavedSheet && rememberedAccounts.length > 0 && (

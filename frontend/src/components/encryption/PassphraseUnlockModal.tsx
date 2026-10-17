@@ -1,8 +1,9 @@
 "use client";
 
 import React, { useState } from "react";
+import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Lock, KeyRound, Eye, EyeOff, ShieldCheck, AlertCircle } from "lucide-react";
+import PinCodeInput from "../ui/PinCodeInput";
 
 interface PassphraseUnlockModalProps {
   isOpen: boolean;
@@ -17,10 +18,10 @@ export default function PassphraseUnlockModal({
   onCancel,
   lang = "en",
 }: PassphraseUnlockModalProps) {
+  const router = useRouter();
   const isBn = lang === "bn";
 
   const [passphrase, setPassphrase] = useState("");
-  const [showPassphrase, setShowPassphrase] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -28,14 +29,27 @@ export default function PassphraseUnlockModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!passphrase.trim()) return;
+    const cleanPass = passphrase.trim();
+    if (!/^\d{6}$/.test(cleanPass)) {
+      setError(
+        isBn
+          ? "পিন কোড অবশ্যই ঠিক ৬টি সংখ্যার হতে হবে।"
+          : "Sync PIN must be exactly 6 numeric digits."
+      );
+      return;
+    }
 
     setError(null);
     setIsSubmitting(true);
     try {
-      const res = await onUnlock(passphrase.trim());
+      const res = await onUnlock(cleanPass);
       if (!res.success) {
-        setError(res.error || (isBn ? "ভুল পাসফ্রেজ। অনুগ্রহ করে আবার চেষ্টা করুন।" : "Unable to unlock vault. Invalid passphrase."));
+        setError(
+          res.error ||
+            (isBn
+              ? "ভুল পিন কোড। অনুগ্রহ করে আবার চেষ্টা করুন।"
+              : "Incorrect PIN. Please try again.")
+        );
       }
     } catch (err: any) {
       setError(err?.message || (isBn ? "একটি ত্রুটি ঘটেছে।" : "An error occurred."));
@@ -44,54 +58,68 @@ export default function PassphraseUnlockModal({
     }
   };
 
+  const handleForgotPinClick = () => {
+    if (onCancel) onCancel();
+    router.push("/reset-pin");
+  };
+
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md">
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/25 dark:bg-black/60">
         <motion.div
-          initial={{ opacity: 0, scale: 0.95, y: 15 }}
+          initial={{ opacity: 0, scale: 0.98, y: 10 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.95, y: 15 }}
-          transition={{ duration: 0.25, ease: "easeOut" }}
-          className="w-full max-w-md rounded-3xl border border-[var(--color-border-subtle)] bg-[var(--color-surface-elevated)] p-6 sm:p-8 shadow-2xl overflow-hidden"
+          exit={{ opacity: 0, scale: 0.98, y: 10 }}
+          transition={{ duration: 0.18, ease: "easeOut" }}
+          className="w-full max-w-[420px] rounded-[20px] border border-[#DCE5F0] dark:border-[rgba(26,108,255,0.22)] bg-[#FFFFFF] dark:bg-[#0F1729] p-6 sm:p-7 shadow-none overflow-hidden"
+          style={{ boxShadow: "none" }}
         >
-          <div className="text-center space-y-3 mb-6">
-            <div className="w-14 h-14 rounded-2xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center mx-auto text-purple-500">
-              <KeyRound className="w-7 h-7" />
-            </div>
-            <h2 className="text-xl font-bold text-[var(--color-text-primary)] tracking-tight">
-              {isBn ? "ডিভাইস সিঙ্ক আনলক করুন" : "Unlock Device Sync"}
+          {/* Header */}
+          <div className="mb-5 text-left">
+            <h2 className="text-xl font-bold font-['Sora'] tracking-tight text-[#111827] dark:text-[#F5F7FA]">
+              {isBn ? "ডিভাইস সিঙ্ক আনলক" : "Unlock Device Sync"}
             </h2>
-            <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed max-w-xs mx-auto">
+            <p className="text-xs sm:text-[13px] text-[#52627A] dark:text-[#94A3B8] font-['Manrope'] mt-1.5 leading-relaxed">
               {isBn
-                ? "আপনার পূর্বের ডিভাইসে সেট করা পাসওয়ার্ড বা রিকভারি কি দিন, যাতে আপনার সব নোট, ডায়েরি ও ডেটা এই ডিভাইসে সিঙ্ক হয়।"
-                : "Enter the sync password or recovery key set on your other device to decrypt and sync your notes, diary, and tasks."}
+                ? "অন্য ডিভাইসে ডেটা সিঙ্ক ও অ্যাক্সেস করতে আপনার ৬ ডিজিটের পিন দিন।"
+                : "Enter your 6-digit PIN to access your synced data on this device."}
             </p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="relative">
-              <input
-                type={showPassphrase ? "text" : "password"}
-                required
-                autoFocus
+            <div>
+              <label className="block text-xs font-semibold text-[#111827] dark:text-[#F5F7FA] mb-2 font-['Manrope'] text-left">
+                {isBn ? "৬ ডিজিটের পিন দিন" : "Enter 6-Digit PIN"}
+              </label>
+
+              {/* 6-box PIN input */}
+              <PinCodeInput
                 value={passphrase}
-                onChange={(e) => setPassphrase(e.target.value)}
-                placeholder={isBn ? "আপনার সিঙ্ক পাসওয়ার্ড বা রিকভারি কি লিখুন..." : "Enter sync password or FF-XXXX..."}
-                className="w-full pl-3.5 pr-10 py-3 rounded-xl text-xs sm:text-sm bg-[var(--color-surface)] border border-[var(--color-border-subtle)] text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:border-purple-500 transition-colors"
+                onChange={(val) => {
+                  setPassphrase(val);
+                  if (error) setError(null);
+                }}
+                disabled={isSubmitting}
+                autoFocus={true}
+                error={Boolean(error)}
+                idPrefix="unlock-pin"
               />
-              <button
-                type="button"
-                onClick={() => setShowPassphrase(!showPassphrase)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] cursor-pointer"
-              >
-                {showPassphrase ? <EyeOff size={16} /> : <Eye size={16} />}
-              </button>
+
+              {/* Forgot PIN link under boxes on right side */}
+              <div className="flex justify-end mt-2.5">
+                <button
+                  type="button"
+                  onClick={handleForgotPinClick}
+                  className="text-xs font-semibold text-[#1a6cff] dark:text-blue-400 hover:underline cursor-pointer transition-colors bg-transparent border-0 p-0"
+                >
+                  {isBn ? "ফরগেট পিন?" : "Forgot PIN?"}
+                </button>
+              </div>
             </div>
 
             {error && (
-              <div className="flex items-center gap-2 p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 text-xs">
-                <AlertCircle size={14} className="shrink-0" />
-                <span>{error}</span>
+              <div className="p-2.5 rounded-xl bg-red-50 dark:bg-red-500/15 border border-red-200 dark:border-red-500/35 text-red-700 dark:text-red-200 text-xs text-left leading-relaxed">
+                {error}
               </div>
             )}
 
@@ -100,7 +128,9 @@ export default function PassphraseUnlockModal({
                 <button
                   type="button"
                   onClick={onCancel}
-                  className="px-4 py-2.5 rounded-xl text-xs font-semibold text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)] transition-colors cursor-pointer"
+                  disabled={isSubmitting}
+                  style={{ boxShadow: "none", transform: "none", filter: "none" }}
+                  className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800/80 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-700/60 cursor-pointer transition-colors"
                 >
                   {isBn ? "পরে করুন" : "Later"}
                 </button>
@@ -108,11 +138,17 @@ export default function PassphraseUnlockModal({
 
               <button
                 type="submit"
-                disabled={isSubmitting || !passphrase.trim()}
-                className="px-6 py-2.5 rounded-xl text-xs font-semibold text-white bg-purple-600 hover:bg-purple-700 transition-colors shadow-none cursor-pointer disabled:opacity-40 flex items-center gap-2"
+                disabled={isSubmitting || passphrase.length !== 6}
+                style={{ boxShadow: "none", transform: "none", filter: "none" }}
+                className="h-[42px] px-6 rounded-xl bg-[#1a6cff] text-white font-['Sora'] font-bold text-xs sm:text-[13px] cursor-pointer disabled:opacity-40 border-0"
               >
-                <ShieldCheck size={14} />
-                <span>{isSubmitting ? (isBn ? "সিঙ্ক ও আনলক হচ্ছে..." : "Unlocking...") : isBn ? "সিঙ্ক আনলক করুন" : "Unlock & Sync"}</span>
+                {isSubmitting
+                  ? isBn
+                    ? "আনলক হচ্ছে..."
+                    : "Unlocking..."
+                  : isBn
+                  ? "সিঙ্ক আনলক করুন"
+                  : "Unlock & Sync"}
               </button>
             </div>
           </form>

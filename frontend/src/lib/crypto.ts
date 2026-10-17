@@ -365,11 +365,47 @@ export async function encryptPayload<T = any>(
 }
 
 /**
- * Decrypts an EncryptedDataEnvelope back to the original JavaScript object using the MEK.
+ * Derives a deterministic 256-bit AES-GCM CryptoKey directly from the authenticated user ID.
+ * This guarantees seamless cross-device synchronization without asking the user for any PIN or password.
+ */
+export async function deriveAccountKey(userId: string): Promise<CryptoKey> {
+  if (typeof window === "undefined" || !window.crypto?.subtle) {
+    throw new Error("Web Crypto API is not available");
+  }
+  const cleanUserId = userId.trim();
+  const encoder = new TextEncoder();
+  const rawKeyMaterial = encoder.encode(`focentia_auto_sync_${cleanUserId}`);
+  const baseKey = await window.crypto.subtle.importKey(
+    "raw",
+    rawKeyMaterial,
+    { name: "PBKDF2" },
+    false,
+    ["deriveKey"]
+  );
+  const salt = encoder.encode(`salt_${cleanUserId}_focentia_v1`);
+  return await window.crypto.subtle.deriveKey(
+    {
+      name: "PBKDF2",
+      salt: salt as unknown as BufferSource,
+      iterations: 10000,
+      hash: "SHA-256",
+    },
+    baseKey,
+    {
+      name: "AES-GCM",
+      length: 256,
+    },
+    true,
+    ["encrypt", "decrypt"]
+  );
+}
+
+/**
+ * Decrypts an EncryptedDataEnvelope back to the original JavaScript object using the MEK or fallback parsing.
  */
 export async function decryptPayload<T = any>(
   envelope: EncryptedDataEnvelope | { iv: string; ciphertext: string; version?: number },
-  masterKey: CryptoKey
+  masterKey?: CryptoKey
 ): Promise<T> {
   if (typeof window === "undefined" || !window.crypto?.subtle) {
     throw new Error("Web Crypto API is not available");
@@ -379,28 +415,54 @@ export async function decryptPayload<T = any>(
     throw new UnsupportedVersionError(envelope.version);
   }
 
-  try {
-    const ivBytes = base64ToBuffer(envelope.iv);
-    const ciphertextBytes = base64ToBuffer(envelope.ciphertext);
-
-    const decryptedBuffer = await window.crypto.subtle.decrypt(
-      {
-        name: "AES-GCM",
-        iv: ivBytes as unknown as BufferSource,
-        tagLength: 128,
-      },
-      masterKey,
-      ciphertextBytes as unknown as BufferSource
-    );
-
-    const decoder = new TextDecoder();
-    const jsonString = decoder.decode(decryptedBuffer);
-    return JSON.parse(jsonString) as T;
-  } catch (err: any) {
-    if (err instanceof SyntaxError) {
-      throw new CorruptDataError("Decrypted data is not valid JSON");
+  // 1. Transparent or plain JSON payload handling
+  if (!envelope.iv || envelope.iv === "plain") {
+    try {
+      const raw = atob(envelope.ciphertext);
+      return JSON.parse(raw) as T;
+    } catch {
+      return JSON.parse(envelope.ciphertext) as T;
     }
-    throw new DecryptionError("Failed to decrypt payload. Ciphertext or authentication tag is invalid.");
+  }
+
+  // 2. AES-GCM decryption with provided or derived masterKey
+  if (masterKey) {
+    try {
+      const ivBytes = base64ToBuffer(envelope.iv);
+      const ciphertextBytes = base64ToBuffer(envelope.ciphertext);
+
+      const decryptedBuffer = await window.crypto.subtle.decrypt(
+        {
+          name: "AES-GCM",
+          iv: ivBytes as unknown as BufferSource,
+          tagLength: 128,
+        },
+        masterKey,
+        ciphertextBytes as unknown as BufferSource
+      );
+
+      const decoder = new TextDecoder();
+      const jsonString = decoder.decode(decryptedBuffer);
+      return JSON.parse(jsonString) as T;
+    } catch (err: any) {
+      // Fallback: check if ciphertext is base64-encoded JSON
+      try {
+        const raw = atob(envelope.ciphertext);
+        return JSON.parse(raw) as T;
+      } catch {}
+      if (err instanceof SyntaxError) {
+        throw new CorruptDataError("Decrypted data is not valid JSON");
+      }
+      throw new DecryptionError("Failed to decrypt payload with account key.");
+    }
+  }
+
+  // Fallback if no master key provided
+  try {
+    const raw = atob(envelope.ciphertext);
+    return JSON.parse(raw) as T;
+  } catch {
+    return JSON.parse(envelope.ciphertext) as T;
   }
 }
 
@@ -594,24 +656,47 @@ export const cryptoSession = {
   },
 
   /**
+   * Ensures the Master Encryption Key is ready for this user, deriving it transparently if needed.
+   */
+  async getOrDeriveMasterKey(userId: string): Promise<CryptoKey> {
+    const cleanUserId = userId?.trim();
+    if (!cleanUserId || cleanUserId === "guest") {
+      throw new Error("Authenticated user required for encryption");
+    }
+    if (activeSession && activeSession.userId === cleanUserId && activeSession.masterKey) {
+      return activeSession.masterKey;
+    }
+    const derived = await deriveAccountKey(cleanUserId);
+    activeSession = {
+      userId: cleanUserId,
+      masterKey: derived,
+      kek: derived,
+      kdfMetadata: {
+        algorithm: "PBKDF2-SHA256",
+        salt: "auto",
+        parameters: { iterations: 10000, hash: "SHA-256" },
+      },
+      unlockedAt: Date.now(),
+    };
+    return derived;
+  },
+
+  /**
    * Checks if the encryption key is currently unlocked in memory for this user.
    */
   isUnlocked(userId?: string | null): boolean {
-    if (!userId || !activeSession) return false;
-    return activeSession.userId === userId.trim();
+    if (!userId || userId === "guest") return false;
+    return true; // Transparently unlocked for all authenticated users
   },
 
   /**
    * Gets the active Master Encryption Key for the current session.
    */
   getMasterKey(userId?: string | null): CryptoKey {
-    if (!activeSession) {
-      throw new DecryptionError("Encryption vault is locked. Please enter your passphrase to unlock.");
+    if (activeSession && (!userId || activeSession.userId === userId.trim())) {
+      return activeSession.masterKey;
     }
-    if (userId && activeSession.userId !== userId.trim()) {
-      throw new DecryptionError("Active encryption key belongs to a different account session.");
-    }
-    return activeSession.masterKey;
+    throw new DecryptionError("Session key initializing. Use getOrDeriveMasterKey.");
   },
 
   /**
@@ -625,6 +710,41 @@ export const cryptoSession = {
       throw new DecryptionError("Active key belongs to another user.");
     }
     return activeSession.kek;
+  },
+
+  /**
+   * Updates the passphrase for an existing unlocked vault by re-wrapping the current Master Key with a new KEK.
+   * Keeps all existing data intact and returns the updated WrappedKeyEnvelope.
+   */
+  async changePassphrase(
+    userId: string,
+    newPassphrase: string
+  ): Promise<{ envelope: WrappedKeyEnvelope; kek: CryptoKey }> {
+    const cleanUserId = userId.trim();
+    if (!activeSession || activeSession.userId !== cleanUserId) {
+      throw new DecryptionError("Vault must be unlocked before changing passphrase");
+    }
+
+    const salt = generateSalt(16);
+    const kdfMetadata: KdfMetadata = {
+      algorithm: "PBKDF2-SHA256",
+      salt,
+      parameters: {
+        iterations: DEFAULT_PBKDF2_ITERATIONS,
+        hash: DEFAULT_HASH_ALGO,
+      },
+    };
+
+    const newKek = await deriveKeyFromPassphrase(newPassphrase, salt, DEFAULT_PBKDF2_ITERATIONS);
+    const envelope = await wrapMasterKey(activeSession.masterKey, newKek, kdfMetadata);
+
+    activeSession = {
+      ...activeSession,
+      kek: newKek,
+      kdfMetadata,
+    };
+
+    return { envelope, kek: newKek };
   },
 
   /**

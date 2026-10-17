@@ -181,7 +181,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
         const sessionPromise = authService.getSession();
         const timeoutPromise = new Promise<{ user: null; rememberMe: false }>((resolve) =>
-          setTimeout(() => resolve({ user: null, rememberMe: false }), 2000)
+          setTimeout(() => resolve({ user: null, rememberMe: false }), 5000)
         );
         const session = await Promise.race([sessionPromise, timeoutPromise]);
 
@@ -200,10 +200,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           await processAuthenticatedUser(session.user, true);
         } else if (isMounted && !processedUserIdRef.current) {
           const remembered = accountManager.getRememberedAccounts()[0];
-          const isCurrentlyOffline = typeof navigator !== "undefined" && !navigator.onLine;
 
-          // If offline and a remembered user exists, maintain their authenticated offline session!
-          if (isCurrentlyOffline && remembered) {
+          // If a remembered user exists, maintain their authenticated session seamlessly!
+          if (remembered) {
             await processAuthenticatedUser({
               id: remembered.id,
               email: remembered.email,
@@ -223,12 +222,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setLifecycle(guestDisabled ? "UNAUTHENTICATED" : "GUEST");
           }
         }
+
+        // Proactively request Android / Web persistent storage to keep data on uninstall ("Keep app data")
+        if (typeof navigator !== "undefined" && navigator.storage && navigator.storage.persist) {
+          navigator.storage.persist().catch(() => {});
+        }
       } catch (err) {
         console.warn("[AuthContext] Session init error:", err);
         if (isMounted && !processedUserIdRef.current) {
           const remembered = accountManager.getRememberedAccounts()[0];
-          const isCurrentlyOffline = typeof navigator !== "undefined" && !navigator.onLine;
-          if (isCurrentlyOffline && remembered) {
+          if (remembered) {
             await processAuthenticatedUser({
               id: remembered.id,
               email: remembered.email,

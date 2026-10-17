@@ -170,15 +170,31 @@ router.get('/keys', requireAuth, async (req: AuthenticatedRequest, res: Response
       wrappedKeyCiphertext = parts[1];
     }
 
+    const params = typeof row.kdf_params === 'string' ? JSON.parse(row.kdf_params) : (row.kdf_params || {});
+    const lastResetAt = params.last_reset_at || null;
+    let canReset = true;
+    let daysRemaining = 0;
+    if (lastResetAt) {
+      const elapsedMs = Date.now() - new Date(lastResetAt).getTime();
+      const thirtyDaysMs = 30 * 24 * 60 * 60 * 1000;
+      if (elapsedMs < thirtyDaysMs) {
+        canReset = false;
+        daysRemaining = Math.ceil((thirtyDaysMs - elapsedMs) / (24 * 60 * 60 * 1000));
+      }
+    }
+
     res.json({
       exists: true,
+      canReset,
+      daysRemaining,
+      lastResetAt,
       envelope: {
         version: row.key_version,
         algorithm: row.algorithm,
         kdf: {
           algorithm: row.kdf_algorithm,
           salt: row.kdf_salt,
-          parameters: typeof row.kdf_params === 'string' ? JSON.parse(row.kdf_params) : (row.kdf_params || {}),
+          parameters: params,
         },
         iv,
         wrappedKeyCiphertext,
@@ -202,12 +218,43 @@ router.post('/keys', requireAuth, async (req: AuthenticatedRequest, res: Respons
     return res.status(401).json({ error: 'Authentication required' });
   }
 
-  const { envelope } = req.body;
+  const { envelope, isReset } = req.body;
   if (!envelope || !envelope.wrappedKeyCiphertext || !envelope.kdf) {
     return res.status(400).json({ error: 'Invalid envelope payload' });
   }
 
   try {
+    if (isReset) {
+      // Enforce 30-day cooldown on server
+      const existingCheck = await pool.query(
+        `SELECT kdf_params FROM user_encryption_keys WHERE user_id = $1`,
+        [userId]
+      );
+      if (existingCheck.rows.length > 0) {
+        const rawParams = existingCheck.rows[0].kdf_params;
+        const params = typeof rawParams === 'string' ? JSON.parse(rawParams) : (rawParams || {});
+        if (params.last_reset_at) {
+          const elapsedMs = Date.now() - new Date(params.last_reset_at).getTime();
+          const thirtyDaysMs = 30 * 24 * 60 * 60 * 1000;
+          if (elapsedMs < thirtyDaysMs) {
+            const daysLeft = Math.ceil((thirtyDaysMs - elapsedMs) / (24 * 60 * 60 * 1000));
+            return res.status(429).json({
+              error: `Device sync code can only be changed once every 30 days. Please wait ${daysLeft} more day${daysLeft > 1 ? 's' : ''}.`,
+              daysLeft,
+              canReset: false
+            });
+          }
+        }
+      }
+    }
+
+    const paramsObj = typeof envelope.kdf.parameters === 'object' && envelope.kdf.parameters !== null
+      ? { ...envelope.kdf.parameters }
+      : {};
+    if (isReset) {
+      paramsObj.last_reset_at = new Date().toISOString();
+    }
+
     const serializedWrappedKey = `${envelope.iv || ''}:${envelope.wrappedKeyCiphertext}`;
     await pool.query(
       `
@@ -231,12 +278,12 @@ router.post('/keys', requireAuth, async (req: AuthenticatedRequest, res: Respons
         envelope.algorithm || 'AES-256-GCM',
         envelope.kdf.algorithm || 'PBKDF2-SHA256',
         envelope.kdf.salt,
-        JSON.stringify(envelope.kdf.parameters || {}),
+        JSON.stringify(paramsObj),
         serializedWrappedKey,
       ]
     );
 
-    res.json({ success: true });
+    res.json({ success: true, lastResetAt: paramsObj.last_reset_at || null });
   } catch (err: any) {
     console.warn('[SyncRoutes] Save encryption keys error:', err?.message);
     res.status(500).json({ error: err?.message || 'Failed to save encryption keys' });

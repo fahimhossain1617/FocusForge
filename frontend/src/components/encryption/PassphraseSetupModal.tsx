@@ -2,8 +2,7 @@
 
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Shield, Lock, Eye, EyeOff, CheckCircle2, AlertTriangle, Key, Copy, Check } from "lucide-react";
-import { useTranslation } from "../../hooks/useTranslation";
+import PinCodeInput from "../ui/PinCodeInput";
 
 interface PassphraseSetupModalProps {
   isOpen: boolean;
@@ -18,12 +17,10 @@ export default function PassphraseSetupModal({
   onDismiss,
   lang = "en",
 }: PassphraseSetupModalProps) {
-  const { t } = useTranslation();
   const isBn = lang === "bn";
 
   const [passphrase, setPassphrase] = useState("");
   const [confirmPassphrase, setConfirmPassphrase] = useState("");
-  const [showPassphrase, setShowPassphrase] = useState(false);
   const [confirmedWarning, setConfirmedWarning] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -38,20 +35,21 @@ export default function PassphraseSetupModal({
     e.preventDefault();
     setError(null);
 
-    if (passphrase.length < 8) {
+    const cleanPass = passphrase.trim();
+    if (!/^\d{6}$/.test(cleanPass)) {
       setError(
         isBn
-          ? "পাসফ্রেজ কমপক্ষে ৮ অক্ষরের হতে হবে।"
-          : "Passphrase must be at least 8 characters long."
+          ? "পিন কোড অবশ্যই ঠিক ৬টি সংখ্যার হতে হবে।"
+          : "Sync PIN must be exactly 6 numeric digits."
       );
       return;
     }
 
-    if (passphrase !== confirmPassphrase) {
+    if (cleanPass !== confirmPassphrase.trim()) {
       setError(
         isBn
-          ? "পাসফ্রেজ দুটি মেলেনি। অনুগ্রহ করে আবার পরীক্ষা করুন।"
-          : "Passphrases do not match. Please verify and try again."
+          ? "পিন দুটি মেলেনি। অনুগ্রহ করে আবার পরীক্ষা করুন।"
+          : "PINs do not match. Please verify and try again."
       );
       return;
     }
@@ -59,8 +57,8 @@ export default function PassphraseSetupModal({
     if (!confirmedWarning) {
       setError(
         isBn
-          ? "অনুগ্রহ করে নিশ্চিত করুন যে আপনি রিকভারি সতর্কতা পড়েছেন।"
-          : "Please confirm that you understand the recovery warning."
+          ? "অনুগ্রহ করে নিশ্চিত করুন যে আপনি সতর্কতা পড়েছেন।"
+          : "Please confirm that you understand the security notice."
       );
       return;
     }
@@ -71,7 +69,7 @@ export default function PassphraseSetupModal({
       if (res.success) {
         setGeneratedKey(res.recoveryKey || passphrase);
       } else {
-        setError(res.error || (isBn ? "এনক্রিপশন সেটআপ ব্যর্থ হয়েছে।" : "Encryption setup failed."));
+        setError(res.error || (isBn ? "সেটআপ ব্যর্থ হয়েছে।" : "Setup failed."));
       }
     } catch (err: any) {
       setError(err?.message || (isBn ? "একটি ত্রুটি ঘটেছে।" : "An unexpected error occurred."));
@@ -93,140 +91,136 @@ export default function PassphraseSetupModal({
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md">
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/25 dark:bg-black/60">
         <motion.div
-          initial={{ opacity: 0, scale: 0.95, y: 15 }}
+          initial={{ opacity: 0, scale: 0.98, y: 10 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.95, y: 15 }}
-          transition={{ duration: 0.25, ease: "easeOut" }}
-          className="w-full max-w-lg rounded-3xl border border-[var(--color-border-subtle)] bg-[var(--color-surface-elevated)] p-6 sm:p-8 shadow-2xl overflow-hidden relative"
+          exit={{ opacity: 0, scale: 0.98, y: 10 }}
+          transition={{ duration: 0.18, ease: "easeOut" }}
+          className="w-full max-w-[420px] rounded-[20px] border border-[#DCE5F0] dark:border-[rgba(26,108,255,0.22)] bg-[#FFFFFF] dark:bg-[#0F1729] p-6 sm:p-7 shadow-none overflow-hidden"
+          style={{ boxShadow: "none" }}
         >
-          {/* Header Title (Clean, unified device sync & data protection) */}
-          <div className="mb-5">
-            <h2 className="text-xl font-bold text-[var(--color-text-primary)] tracking-tight">
+          {/* Header Title */}
+          <div className="mb-5 text-left">
+            <h2 className="text-xl font-bold font-['Sora'] tracking-tight text-[#111827] dark:text-[#F5F7FA]">
               {generatedKey
                 ? isBn
-                  ? "ডিভাইস সিঙ্ক ও সুরক্ষা সক্রিয় হয়েছে!"
-                  : "Device Sync & Protection Activated!"
+                  ? "ডিভাইস সিঙ্ক সক্রিয় হয়েছে"
+                  : "Device Sync Activated"
                 : isBn
-                ? "ডিভাইস সিঙ্ক ও ডেটা সুরক্ষা"
-                : "Device Sync & Data Protection"}
+                ? "ডিভাইস সিঙ্ক পিন সেট করুন"
+                : "Set Device Sync PIN"}
             </h2>
-            <p className="text-xs text-[var(--color-text-secondary)] mt-1">
+            <p className="text-xs sm:text-[13px] text-[#52627A] dark:text-[#94A3B8] font-['Manrope'] mt-1.5 leading-relaxed">
               {isBn
-                ? "একটি মাস্টার পাসওয়ার্ড সেট করুন যাতে আপনার নোট, ডায়েরি ও টাস্ক সুরক্ষিত থাকে এবং একাধিক ডিভাইসে নিরাপদে সিঙ্ক হয়।"
-                : "Set a master password so your notes, diary, and tasks remain private and securely sync across your devices."}
+                ? "অন্য ডিভাইসে ডেটা সিঙ্ক ও অ্যাক্সেস করতে ৬টি সংখ্যার একটি পিন দিন।"
+                : "Set a 6-digit numeric PIN to decrypt and sync your data across all your devices."}
             </p>
           </div>
 
           {!generatedKey ? (
             <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Passphrase Input */}
+              {/* 6-Digit Sync PIN */}
               <div>
-                <label className="block text-xs font-semibold text-[var(--color-text-primary)] mb-1.5">
-                  {isBn ? "সিঙ্ক পাসওয়ার্ড তৈরি করুন" : "Create Sync Password"} <span className="text-blue-500">*</span>
+                <label className="block text-xs font-semibold text-[#111827] dark:text-[#F5F7FA] mb-2 font-['Manrope'] text-left">
+                  {isBn ? "৬ ডিজিটের পিন" : "6-Digit Sync PIN"}
                 </label>
-                <div className="relative">
-                  <input
-                    type={showPassphrase ? "text" : "password"}
-                    required
-                    value={passphrase}
-                    onChange={(e) => setPassphrase(e.target.value)}
-                    placeholder={isBn ? "কমপক্ষে ৮ অক্ষরের একটি পাসওয়ার্ড লিখুন..." : "Enter at least 8 characters..."}
-                    className="w-full pl-3.5 pr-10 py-2.5 rounded-xl text-xs sm:text-sm bg-[var(--color-surface)] border border-[var(--color-border-subtle)] text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:border-blue-500 transition-colors"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassphrase(!showPassphrase)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] cursor-pointer"
-                  >
-                    {showPassphrase ? <EyeOff size={16} /> : <Eye size={16} />}
-                  </button>
-                </div>
-              </div>
-
-              {/* Confirm Passphrase */}
-              <div>
-                <label className="block text-xs font-semibold text-[var(--color-text-primary)] mb-1.5">
-                  {isBn ? "পাসওয়ার্ড নিশ্চিত করুন" : "Confirm Password"} <span className="text-blue-500">*</span>
-                </label>
-                <input
-                  type={showPassphrase ? "text" : "password"}
-                  required
-                  value={confirmPassphrase}
-                  onChange={(e) => setConfirmPassphrase(e.target.value)}
-                  placeholder={isBn ? "একই পাসওয়ার্ড আবার লিখুন..." : "Type your password again..."}
-                  className="w-full px-3.5 py-2.5 rounded-xl text-xs sm:text-sm bg-[var(--color-surface)] border border-[var(--color-border-subtle)] text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:border-blue-500 transition-colors"
+                <PinCodeInput
+                  value={passphrase}
+                  onChange={(val) => {
+                    setPassphrase(val);
+                    if (error) setError(null);
+                  }}
+                  disabled={isSubmitting}
+                  autoFocus
+                  error={Boolean(error)}
+                  idPrefix="setup-pin"
                 />
               </div>
 
-              {/* Recovery Warning with simple words */}
-              <div className="p-3.5 rounded-2xl border border-amber-500/20 bg-amber-500/5 space-y-2">
-                <div className="flex items-start gap-2.5">
-                  <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
-                  <p className="text-xs text-[var(--color-text-primary)] font-medium leading-relaxed">
-                    {isBn
-                      ? "জরুরি সতর্কতা: আমরা সার্ভারে আপনার পাসওয়ার্ড সংরক্ষণ করি না। অন্য যেকোনো ডিভাইসে (যেমন ল্যাপটপ বা নতুন ফোন) লগইন করলে এই পাসওয়ার্ড দিয়েই আপনি আপনার সব ডেটা সিঙ্ক ও আনলক করবেন।"
-                      : "Important Notice: We do not store your password on our servers. When logging in on another device (such as laptop or new phone), you will use this password to decrypt and sync your data."}
-                  </p>
-                </div>
+              {/* Confirm 6-Digit PIN */}
+              <div>
+                <label className="block text-xs font-semibold text-[#111827] dark:text-[#F5F7FA] mb-2 font-['Manrope'] text-left">
+                  {isBn ? "পিন পুনরায় নিশ্চিত করুন" : "Confirm 6-Digit PIN"}
+                </label>
+                <PinCodeInput
+                  value={confirmPassphrase}
+                  onChange={(val) => {
+                    setConfirmPassphrase(val);
+                    if (error) setError(null);
+                  }}
+                  disabled={isSubmitting}
+                  autoFocus={false}
+                  error={Boolean(error)}
+                  idPrefix="setup-confirm-pin"
+                />
+              </div>
 
-                <label className="flex items-center gap-2.5 pt-1 text-xs text-[var(--color-text-secondary)] cursor-pointer select-none">
+              {/* Security Notice */}
+              <div className="p-3 rounded-xl border border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/10 text-left space-y-2">
+                <p className="text-xs text-amber-800 dark:text-amber-200 leading-relaxed font-['Manrope']">
+                  {isBn
+                    ? "অন্য যেকোনো ডিভাইসে লগইন করলে এই ৬ ডিজিটের পিন দিয়েই আপনি আপনার সব ডেটা সিঙ্ক করবেন।"
+                    : "When logging in on another device, you will use this 6-digit PIN to access your synced data."}
+                </p>
+
+                <label className="flex items-center gap-2 pt-1 text-xs text-amber-800 dark:text-amber-200 cursor-pointer select-none">
                   <input
                     type="checkbox"
                     checked={confirmedWarning}
                     onChange={(e) => setConfirmedWarning(e.target.checked)}
-                    className="rounded border-[var(--color-border-subtle)] text-blue-600 focus:ring-blue-500"
+                    className="rounded border-slate-400 dark:border-slate-700 text-blue-600 focus:ring-blue-500"
                   />
                   <span>
                     {isBn
-                      ? "আমি বুঝেছি এবং পাসওয়ার্ডটি মনে রাখব।"
-                      : "I understand and will remember my password."}
+                      ? "আমি বুঝেছি এবং পিনটি মনে রাখব।"
+                      : "I understand and will remember my PIN."}
                   </span>
                 </label>
               </div>
 
               {error && (
-                <p className="text-xs text-red-500 bg-red-500/10 p-2.5 rounded-xl border border-red-500/20">
+                <div className="p-2.5 rounded-xl bg-red-50 dark:bg-red-500/15 border border-red-200 dark:border-red-500/35 text-red-700 dark:text-red-200 text-xs text-left leading-relaxed">
                   {error}
-                </p>
+                </div>
               )}
 
-              <div className="pt-2 flex items-center justify-end gap-3">
-                {onDismiss && (
+              <div className="pt-2 flex items-center justify-between gap-3">
+                {onDismiss ? (
                   <button
                     type="button"
                     onClick={onDismiss}
-                    className="px-4 py-2.5 rounded-xl text-xs font-semibold text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)] transition-colors cursor-pointer"
+                    disabled={isSubmitting}
+                    style={{ boxShadow: "none", transform: "none", filter: "none" }}
+                    className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-700/60 cursor-pointer"
                   >
                     {isBn ? "পরে করুন" : "Later"}
                   </button>
-                )}
+                ) : <div />}
                 <button
                   type="submit"
-                  disabled={isSubmitting}
-                  className="px-6 py-2.5 rounded-xl text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 transition-colors shadow-none cursor-pointer disabled:opacity-50 flex items-center gap-2"
+                  disabled={isSubmitting || passphrase.length !== 6 || confirmPassphrase.length !== 6}
+                  style={{ boxShadow: "none", transform: "none", filter: "none" }}
+                  className="h-[42px] px-6 rounded-xl bg-[#1a6cff] text-white font-['Sora'] font-bold text-xs sm:text-[13px] cursor-pointer disabled:opacity-40 border-0"
                 >
-                  <Lock size={14} />
-                  <span>{isSubmitting ? (isBn ? "সংরক্ষণ হচ্ছে..." : "Saving...") : isBn ? "সিঙ্ক ও সুরক্ষা চালু করুন" : "Turn On Sync & Protection"}</span>
+                  {isSubmitting ? (isBn ? "সংরক্ষণ হচ্ছে..." : "Saving...") : isBn ? "সেভ করুন" : "Save PIN"}
                 </button>
               </div>
             </form>
           ) : (
-            <div className="space-y-4">
-              <div className="p-4 rounded-2xl border border-emerald-500/20 bg-emerald-500/5 space-y-2 text-center">
-                <CheckCircle2 className="w-8 h-8 text-emerald-500 mx-auto" />
-                <p className="text-xs text-[var(--color-text-primary)] font-semibold">
-                  {isBn ? "আপনার ব্যাকআপ কি সুরক্ষিতভাবে তৈরি হয়েছে" : "Your Backup Key Has Been Created"}
+            <div className="space-y-4 text-left">
+              <div className="p-3.5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-center">
+                <p className="text-xs text-emerald-700 dark:text-emerald-300 font-semibold mb-1">
+                  {isBn ? "আপনার সিঙ্ক পিন সফলভাবে সেট হয়েছে" : "Sync PIN Successfully Set"}
                 </p>
-                <p className="text-[11px] text-[var(--color-text-secondary)]">
+                <p className="text-[11px] text-emerald-800 dark:text-emerald-200/90 leading-relaxed">
                   {isBn
-                    ? "অন্য কোনো ডিভাইসে (যেমন ল্যাপটপ বা নতুন ফোন) লগইন করলে এই কি অথবা আপনার পাসওয়ার্ড দিয়ে নোট ও ডেটা আনলক করতে পারবেন।"
-                    : "You can use this backup key or your password to unlock and sync your data on any new device."}
+                    ? "অন্য কোনো ডিভাইসে লগইন করলে এই ৬ ডিজিটের পিন দিয়ে আপনার সব ডেটা সিঙ্ক ও অ্যাক্সেস করতে পারবেন।"
+                    : "When logging in on another device, use this 6-digit PIN to access your synced data."}
                 </p>
               </div>
 
-              <div className="p-3.5 rounded-xl bg-[var(--color-surface)] border border-[var(--color-border-subtle)] font-mono text-xs text-center text-[var(--color-text-primary)] break-all select-all tracking-wider">
+              <div className="p-3 rounded-xl bg-slate-50 dark:bg-[#030816] border border-slate-200 dark:border-slate-700/60 font-mono text-base text-center text-[#111827] dark:text-white tracking-widest font-bold">
                 {generatedKey}
               </div>
 
@@ -234,16 +228,16 @@ export default function PassphraseSetupModal({
                 <button
                   type="button"
                   onClick={handleCopyKey}
-                  className="px-4 py-2 rounded-xl text-xs font-medium text-blue-600 dark:text-blue-400 border border-blue-500/20 hover:bg-blue-500/10 transition-colors flex items-center gap-1.5 cursor-pointer"
+                  className="px-4 py-2 rounded-xl text-xs font-semibold text-[#1a6cff] dark:text-blue-400 hover:underline transition-colors cursor-pointer bg-transparent border-0"
                 >
-                  {keyCopied ? <Check size={14} /> : <Copy size={14} />}
-                  <span>{keyCopied ? (isBn ? "কপি হয়েছে!" : "Copied!") : (isBn ? "কি কপি করুন" : "Copy Key")}</span>
+                  {keyCopied ? (isBn ? "কপি হয়েছে!" : "Copied!") : (isBn ? "পিন কপি করুন" : "Copy PIN")}
                 </button>
 
                 <button
                   type="button"
                   onClick={handleFinish}
-                  className="px-6 py-2.5 rounded-xl text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 transition-colors shadow-none cursor-pointer"
+                  style={{ boxShadow: "none", transform: "none", filter: "none" }}
+                  className="h-[42px] px-6 rounded-xl bg-[#1a6cff] text-white font-['Sora'] font-bold text-xs sm:text-[13px] transition-colors cursor-pointer border-0"
                 >
                   {isBn ? "সম্পন্ন" : "Done"}
                 </button>

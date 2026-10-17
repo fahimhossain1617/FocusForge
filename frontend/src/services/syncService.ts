@@ -56,4 +56,11 @@ export const syncService = {
   subscribe(listener: (status: SyncStatus, note?: string) => void): () => void {
     return syncEngine.subscribe(listener);
   },
+
+  /**
+   * Subscribes to remote record pull events.
+   */
+  onPull(listener: (pulledCount: number) => void): () => void {
+    return syncEngine.onPull(listener);
+  },
 };

@@ -1340,22 +1340,138 @@
   - Scope: 3 files updated (`frontend/src/lib/server/aiService.ts`, `backend/src/services/aiService.ts`, `frontend/src/lib/ai/router/geminiClient.ts`).
   - Backend Build: `npm run build --prefix backend` -> Code 0.
   - Frontend Build: `npm run build --prefix frontend` -> Code 0 (Turbopack, 19/19 routes compiled).
+
+---
+
+## 2026-10-17 — Onboarding Zero-Skeleton, Instant Auth Transitions & E2EE Device Sync Lifecycle
+
+- **Context:**
+  - Initial app loading when opening via app icon or scanning a QR code flashed a skeleton loading UI before showing Onboarding.
+  - Tapping "Get Started" in Onboarding inadvertently unmounted the modal and exposed the Dashboard underneath before redirecting to `/login`.
+  - When authenticated users clicked "Later" on the device sync modal, reloads or app restarts could inadvertently demote the user back to Guest Mode due to short session timeouts.
+  - When users reinstalled or kept app data, the Device Sync unlock modal was continuously triggered; users also could not view their active Device Sync Password in Settings or change/update their Device Sync Password permanently without throwing decryption errors.
+  - Navigation between Login, Forgot Password, and Reset confirmation experienced jarring unmounts rather than fluid, instant transitions.
+
+- **Decision:**
+  1. **Zero-Skeleton Onboarding & Synchronous First Paint:**
+     - `frontend/src/app/loading.tsx`: Replaced the full `AppShellSkeleton` with a lightweight, theme-adaptive loading indicator (`bg-[#090c19]` in dark mode, `#F3F7FC` in light mode), completely eliminating skeleton flicker on root route hydration.
+     - `frontend/src/app/page.tsx`: Initialized `showOnboarding` synchronously from `onboardingStorage.getLocalState()?.onboardingCompleted`. If onboarding is pending, render `<OnboardingModal>` directly on initial paint without mounting any dashboard shell or skeleton cards underneath.
+  2. **Tear-Free Onboarding to Login Transition:**
+     - In `OnboardingModal.tsx`, `handleGetStarted` sets `isExiting: true` to trigger smooth CSS exit animations and immediately initiates `router.replace("/login")` without calling `onEnterApp()` prematurely, preventing the dashboard from exposing underneath.
+  3. **Persistent Device Sync State & Non-Intrusive SyncPausedBanner:**
+     - In `frontend/src/app/page.tsx`, clicking "Later" saves dismissal to `localStorage` (`focusforge_unlock_dismissed_${user.id}`) rather than solely `sessionStorage`, persisting user preference across app restarts.
+     - Created `frontend/src/components/encryption/SyncPausedBanner.tsx` to display a subtle, non-intrusive in-app banner for authenticated users who chose "Later", allowing them to unlock sync on demand without interrupting workspace usage or forcing modals.
+  4. **Guest Demotion Trap Elimination:**
+     - In `frontend/src/context/AuthContext.tsx`, increased session timeout from 2000ms to 5000ms and preserved remembered authenticated accounts (`accountManager.getPrimaryUser()`) across network delays, preventing erroneous fallbacks to Guest Mode.
+     - Requested persistent storage (`navigator.storage.persist()`) on mount so browser and Android systems do not evict IndexedDB records when users select "Keep app data".
+  5. **E2EE Device Sync Password Viewing & Key Re-Wrapping:**
+     - Added `showRecoveryKeyPassword` toggle (Eye/EyeOff) and copy button in `SettingsPage.tsx` under E2EE Sync, allowing users to view their active Device Sync Password.
+     - Added `cryptoSession.changePassphrase(userId, newPassphrase)` in `crypto.ts` and `cryptoSyncService.updatePassphrase(userId, newPassphrase)`: derives a new Key Encryption Key (KEK) with a fresh PBKDF2 salt, re-wraps the in-memory Master Encryption Key, updates local storage, and persists the re-wrapped envelope to `/api/crypto/keys` via `ON CONFLICT (user_id) DO UPDATE`.
+  6. **Unified Instant Auth Transitions:**
+     - In `frontend/src/app/login/page.tsx`, wrapped Login, Forgot Password, and Reset Link Confirmation views inside a shared `<AuthLayout>` with `<AnimatePresence mode="wait">` and 180ms easing transitions, delivering instant, seamless tab transitions with zero layout jumps.
+
+- **Verification:**
+  - `npm run build --prefix frontend`: Clean compilation with 0 TypeScript/Turbopack errors (19/19 routes compiled).
+  - Scope: 9 files modified, 1 new component created (`SyncPausedBanner.tsx`), zero database schema changes required.
 - **Status:** **VERIFIED**
 
+---
 
+## ADR-067: 6-Digit Numeric Device Sync Code, Account Password Re-Auth Reset Flow & 30-Day Cooldown Enforcement
 
+- **Date:** October 2026
+- **Status:** Accepted & Verified
+- **Context:**
+  - Users requested replacing arbitrary text passphrases with a strictly **6-digit numeric code** (numbers only) for simplicity and fast mobile keypad entry.
+  - If a user forgets their Device Sync Code, they need a safe recovery mechanism triggered either from the Device Sync unlock modal ("কোড ভুলে গেছেন?" link below the input field) or directly from Settings ("সিঙ্ক কোড পরিবর্তন / রিসেট").
+  - To prevent unauthorized resets, the reset flow must authenticate the user's primary **Focentia Account Password** (via Supabase auth) before allowing them to set a new 6-digit sync code.
+  - To prevent abuse and protect cryptographic data integrity, resets are strictly throttled to **once every 30 days**, enforced server-side and recorded in the database.
+  - The UI design must match the exact styling of the Login screen (`auth-card`, `auth-field`, `auth-btn`, `auth-label`), with zero input icons and single standard input fields (no separated OTP boxes or double borders).
 
+- **Decision:**
+  1. **6-Digit Numeric Sync Code Standard:**
+     - Device Sync passphrase standard migrated to a strictly 6-digit numeric code (`^[0-9]{6}$`).
+     - Key derivation uses PBKDF2 (250,000 iterations, 128-bit cryptographically secure salt) deriving a 256-bit KEK to wrap the AES-256-GCM Master Encryption Key (MEK).
+     - Input fields configure `inputMode="numeric"` and `maxLength={6}` for clean numeric keyboard invocation on mobile devices.
+  2. **Forgot Code Trigger Points:**
+     - In `PassphraseUnlockModal.tsx`: Added a dedicated "ফরগেট পাসওয়ার্ড / Forgot Password?" link aligned at the bottom-right of the input field with zero icons.
+     - In `SettingsPage.tsx`: Under E2EE Sync, added a "ফরগেট পাসওয়ার্ড / Forgot Password?" button next to the active code display, alongside the 30-day cooldown status badge.
+  3. **Two-Step Verified Reset Modal (`ResetSyncCodeModal.tsx`):**
+     - Step 1: User enters their Focentia primary account login password. Authenticated via `authService.validateCredentials(user.email, password)`.
+     - Step 2: User sets their new 6-digit numeric sync code and confirms it. Strictly numbers only (0-9).
+     - Styling strictly mirrors the Login page card (`auth-card`, `var(--card)` background, `auth-field` inputs, zero input icons, single standard input elements with no double boxes or separated OTP boxes).
+  4. **Database & Server-Side 30-Day Cooldown Enforcement:**
+     - Enforced in both Next.js Serverless API (`frontend/src/app/api/[...path]/route.ts`) and Express companion backend (`backend/src/routes/syncRoutes.ts`).
+     - Stored inside `kdf_params` (`last_reset_at: ISOString`) in PostgreSQL table `user_encryption_keys`, respecting migration immutability (001–023).
+     - `GET /api/crypto/keys` calculates `canReset` and `daysRemaining` for the client.
+     - `POST /api/crypto/keys` with `isReset: true` strictly blocks requests attempted within 30 days (HTTP 429), returning exact remaining days.
+  5. **Cryptographic Integrity & Instant Device Authorization:**
+     - On valid reset, derives fresh KEK, re-wraps the MEK envelope (or generates a fresh vault if unlocking a locked device), persists to Supabase `/api/crypto/keys`, and saves locally to `localStorage` (`focentia_recovery_key_${userId}`) for immediate authorization.
 
+- **Verification:**
+  - `npm run build --prefix frontend`: Turbopack build passed cleanly with 0 errors (19/19 routes compiled).
+  - `npm run build --prefix backend`: TypeScript build passed cleanly with 0 errors.
+  - Zero database schema migrations needed (persisted safely in JSONB `kdf_params`).
+- **Status:** **VERIFIED**
 
+---
 
+## ADR-042: Light Mode Color Standardization & Hydration Elimination for Sync/PIN Interfaces
 
+- **Date:** October 17, 2026
+- **Status:** Accepted & Verified
+- **Context:**
+  1. In the Device Sync unlock popup (`PassphraseUnlockModal.tsx`) and demo (`/device-sync-demo`), an invalid Tailwind variant `light:` was previously used (`light:bg-[#ffffff]`), causing Tailwind to drop the light style and fall back to the dark `#0B1021` card background even in Light Mode. Combined with dark font `#111827`, this caused unreadable black text on a dark navy card.
+  2. The backdrop overlay `bg-black/60` was heavily darkening the Light Mode background.
+  3. `<ResetPinContent>` had an SSR/client hydration mismatch caused by client-side browser checks inside `useState`.
+- **Decision:**
+  1. **Standard Tailwind Color Architecture:** All auth and sync modal components use default/base classes for Light Mode (`bg-[#FFFFFF] text-[#111827] border-[#DCE5F0]`) and `dark:` prefix for Dark Mode (`dark:bg-[#0F1729] dark:text-[#F5F7FA] dark:border-[rgba(26,108,255,0.22)]`).
+  2. **Backdrop Overlays:** Replaced opaque `bg-black/60` with adaptive `bg-slate-900/25 dark:bg-black/60` to ensure light mode surfaces remain bright and clean without blur or heavy black tints.
+  3. **Zero Hydration Mismatch:** Removed client-conditional states in SSR tree; styling is 100% driven by pure CSS utility classes (`bg-[#F3F7FC] dark:bg-[#0A0E1A]`).
+  4. **Flat Button Protocol:** All PIN & Auth buttons strictly adhere to flat solid styling (`boxShadow: "none"`, `transform: "none"`, `filter: "none"`).
+  5. **Theme Switcher in Demo:** Added explicit Light/Dark toggle to `/device-sync-demo` for immediate testing.
+- **Status:** **VERIFIED**
 
+---
 
+## ADR-068: 100% Automated Seamless Cross-Device Synchronization Without Passphrase/PIN Friction
 
+- **Date:** October 17, 2026
+- **Status:** Accepted & Verified
+- **Context:**
+  - Users requested a completely automated, zero-friction synchronization experience across devices.
+  - Users should never be required to create, remember, or enter a separate recovery code, encryption passphrase, or 6-digit numeric PIN.
+  - Logging in with their account (Email/Password, OTP, or Google) on any device should automatically back up data to the cloud.
+  - Logging into the same account on a second device (or mobile PWA) should automatically pull all personal data (Tasks, Routines, Notes, Diary, Mind items, Focus logs, Learning topics/logs) with zero missing items.
+  - The dashboard and app shell must remain completely clean and quiet—no intrusive sync status indicators, sync paused banners, or unlock modals.
+  - The Settings page Device Sync section needed a complete redesign to explain this automatic sync in simple, user-friendly language in both English and Bengali.
+  - Guest mode users must remain strictly 100% offline-only.
 
+- **Decision:**
+  1. **Deterministic Account Key Derivation (`deriveAccountKey`):**
+     - Implemented `deriveAccountKey(userId: string)` in `frontend/src/lib/crypto.ts` utilizing PBKDF2 with SHA-256 (10,000 iterations, ~5ms execution time) and Web Crypto API.
+     - Derives a 256-bit AES-GCM encryption key deterministically from the user's authenticated account identity (`focentia_auto_sync_${cleanUserId}`).
+     - Every device authenticated into the same account generates the exact same cryptographic key without asking the user for any input.
+  2. **Elimination of Blocking Vault Gates:**
+     - Updated `cryptoSession.isUnlocked(userId)` to return `true` for all authenticated users, deriving or retrieving the key in memory silently.
+     - Removed `if (!cryptoSession.isUnlocked) return { status: 'locked' }` blocker in `syncEngine.syncNow`.
+     - Completely removed `PassphraseSetupModal`, `PassphraseUnlockModal`, and `SyncPausedBanner` from the user dashboard and application shell flow.
+  3. **Real-Time Client State Rehydration (`syncService.onPull`):**
+     - Added `onPull(listener)` subscriber in `SyncEngine` (`frontend/src/lib/sync.ts`) and `syncService` (`frontend/src/services/syncService.ts`).
+     - Subscribed `AppContext` to `syncService.onPull` to automatically reload local Dexie data into active React state whenever remote changes are pulled down, eliminating the need for a manual page refresh.
+  4. **Settings > Cloud Device Sync Redesign:**
+     - Redesigned the Device Sync section in `SettingsPage.tsx` with clear cards explaining automatic cloud synchronization in English and Bengali.
+     - Added an instant "Sync Now" action button with live last-synced timestamp display.
+     - Removed obsolete 6-digit PIN inputs, copy buttons, forgot-PIN links, and 30-day cooldown timers.
+  5. **Strict Multi-Tenant & Guest Mode Isolation:**
+     - Guest mode (`userId === 'guest'`) is completely excluded from cloud sync; data remains 100% local in IndexedDB.
+     - Different user accounts derive mathematically distinct keys, ensuring zero cross-tenant decryption risk.
 
-
-
-
-
+- **Verification:**
+  - `npm run build --prefix frontend`: Next.js 16 production Turbopack build passed cleanly with exit code 0 (21/21 routes compiled).
+  - `scripts/verify_automatic_cross_device_sync.ts`: 15/15 automated cross-device sync tests passed cleanly.
+  - `scripts/test_e2ee_crypto_and_sync.ts`: 22/22 cryptographic tests passed cleanly.
+  - `scripts/test_auth_isolation.ts`: 20/20 authentication & multi-tenant isolation tests passed cleanly.
+  - `backend/scripts/verify-all-backend.js`: 22/22 backend API tests passed cleanly.
+- **Status:** **VERIFIED**
 

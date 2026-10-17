@@ -13,9 +13,6 @@ import { OnboardingModal } from "../components/onboarding";
 import { ReviewModal } from "../components/review";
 import { onboardingStorage } from "../services/onboardingStorage";
 import { userService } from "../services/userService";
-import { useEncryption } from "../hooks/useEncryption";
-import PassphraseSetupModal from "../components/encryption/PassphraseSetupModal";
-import PassphraseUnlockModal from "../components/encryption/PassphraseUnlockModal";
 
 import {
   AppShellSkeleton,
@@ -68,100 +65,17 @@ export default function Home() {
   const { user, isGuest, isLoading: isAuthLoading } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    const local = onboardingStorage.getLocalState();
+    return !local?.onboardingCompleted;
+  });
   const [onboardingChecked, setOnboardingChecked] = useState(false);
   const [launchDone, setLaunchDone] = useState<boolean>(() => {
     if (typeof window === "undefined") return true;
     if (!document.documentElement.classList.contains("ff-launch")) return true;
     return Boolean((window as any).__ffLaunchDone);
   });
-
-  // Zero-Knowledge Client-Side Encryption Hook
-  const {
-    needsSetup: encryptionNeedsSetup,
-    needsUnlock: encryptionNeedsUnlock,
-    setupVault,
-    unlockVault,
-  } = useEncryption(user?.id);
-
-  const [dismissedEncryptionSetup, setDismissedEncryptionSetup] = useState<boolean>(() => {
-    if (typeof window === "undefined" || !user?.id) return false;
-    try {
-      return localStorage.getItem(`focusforge_vault_dismissed_${user.id}`) === "true";
-    } catch {
-      return false;
-    }
-  });
-
-  const [dismissedEncryptionUnlock, setDismissedEncryptionUnlock] = useState<boolean>(() => {
-    if (typeof window === "undefined" || !user?.id) return false;
-    try {
-      return sessionStorage.getItem(`focusforge_unlock_dismissed_${user.id}`) === "true";
-    } catch {
-      return false;
-    }
-  });
-
-  // Sync dismissal state whenever the active authenticated user changes
-  useEffect(() => {
-    if (!user?.id || isGuest) {
-      setDismissedEncryptionSetup(false);
-      setDismissedEncryptionUnlock(false);
-      return;
-    }
-    try {
-      const isSetupDismissed = localStorage.getItem(`focusforge_vault_dismissed_${user.id}`) === "true";
-      setDismissedEncryptionSetup(isSetupDismissed);
-      const isUnlockDismissed = sessionStorage.getItem(`focusforge_unlock_dismissed_${user.id}`) === "true";
-      setDismissedEncryptionUnlock(isUnlockDismissed);
-    } catch {}
-  }, [user?.id, isGuest]);
-
-  // Listen for explicit user actions (e.g. creating notes/diary or manual sync) that request vault setup/unlock
-  useEffect(() => {
-    const handleOpenVaultSetup = () => {
-      setDismissedEncryptionSetup(false);
-      if (user?.id && typeof window !== "undefined") {
-        try {
-          localStorage.removeItem(`focusforge_vault_dismissed_${user.id}`);
-        } catch {}
-      }
-    };
-
-    const handleOpenVaultUnlock = () => {
-      setDismissedEncryptionUnlock(false);
-      if (user?.id && typeof window !== "undefined") {
-        try {
-          sessionStorage.removeItem(`focusforge_unlock_dismissed_${user.id}`);
-        } catch {}
-      }
-    };
-
-    window.addEventListener("focusforge:request_vault_setup", handleOpenVaultSetup);
-    window.addEventListener("focusforge:request_vault_unlock", handleOpenVaultUnlock);
-    return () => {
-      window.removeEventListener("focusforge:request_vault_setup", handleOpenVaultSetup);
-      window.removeEventListener("focusforge:request_vault_unlock", handleOpenVaultUnlock);
-    };
-  }, [user?.id]);
-
-  const handleDismissEncryptionSetup = () => {
-    setDismissedEncryptionSetup(true);
-    if (user?.id && typeof window !== "undefined") {
-      try {
-        localStorage.setItem(`focusforge_vault_dismissed_${user.id}`, "true");
-      } catch {}
-    }
-  };
-
-  const handleDismissEncryptionUnlock = () => {
-    setDismissedEncryptionUnlock(true);
-    if (user?.id && typeof window !== "undefined") {
-      try {
-        sessionStorage.setItem(`focusforge_unlock_dismissed_${user.id}`, "true");
-      } catch {}
-    }
-  };
 
   // If page was loaded with a password recovery hash/query, redirect immediately to reset password
   useEffect(() => {
@@ -327,6 +241,16 @@ export default function Home() {
     setShowOnboarding(false);
   };
 
+  // Show Onboarding immediately without rendering Dashboard or AppShellSkeleton
+  if (showOnboarding) {
+    return (
+      <OnboardingModal
+        isOpen={true}
+        onEnterApp={handleEnterAppFromOnboarding}
+      />
+    );
+  }
+
   // Initial App Shell Skeleton while storage / backend data is loading
   if (!isLoaded) {
     return <AppShellSkeleton page={state.activePage || "today"} />;
@@ -348,6 +272,7 @@ export default function Home() {
       <main className={`flex-1 ${sidebarCollapsed ? 'md:ml-[76px]' : 'md:ml-[260px]'} w-full min-w-0 h-full min-h-0 flex flex-col overflow-y-auto overflow-x-hidden transition-[margin] duration-200 ease-in-out`}>
         {/* Mobile / Compact Header: [ App Icon ] FocusForge ... [ Bell ] */}
         <MobileHeader />
+
 
         {/* Page Content */}
         <div className={`w-full min-w-0 ${
@@ -400,22 +325,6 @@ export default function Home() {
         onClose={skipReview}
         onSubmit={submitReview}
         isSubmitting={isReviewSubmitting}
-      />
-
-      {/* Zero-Knowledge Envelope Encryption Setup Modal (Authenticated users only, after onboarding) */}
-      <PassphraseSetupModal
-        isOpen={!isGuest && Boolean(user?.id) && encryptionNeedsSetup && !dismissedEncryptionSetup && !showOnboarding && launchDone}
-        onComplete={setupVault}
-        onDismiss={handleDismissEncryptionSetup}
-        lang={state.lang}
-      />
-
-      {/* Returning Device Passphrase Unlock Modal (Authenticated users only, after onboarding) */}
-      <PassphraseUnlockModal
-        isOpen={!isGuest && Boolean(user?.id) && encryptionNeedsUnlock && !dismissedEncryptionUnlock && !showOnboarding && launchDone}
-        onUnlock={unlockVault}
-        onCancel={handleDismissEncryptionUnlock}
-        lang={state.lang}
       />
     </div>
   );

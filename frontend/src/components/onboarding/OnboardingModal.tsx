@@ -35,6 +35,9 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
   if (!isOpen) return null;
 
   const handleGetStarted = () => {
+    if (isExiting) return;
+    setIsExiting(true);
+
     try {
       // Persist onboarding completion so it never prompts again
       onboardingStorage.saveLocalState({
@@ -54,10 +57,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
       console.warn("[OnboardingModal] Storage update error:", err);
     }
 
-    // Instantly close onboarding and replace URL without history back to onboarding
-    if (onEnterApp) {
-      onEnterApp();
-    }
+    // Smooth navigation directly to /login; keep visual backdrop until route transition finishes
     router.replace("/login");
   };
 

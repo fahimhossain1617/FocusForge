@@ -369,11 +369,11 @@ html.light .auth-pass-pill.met {
 }
 
 .auth-gbtn:hover {
-  filter: brightness(1.06);
+  /* No hover effects as per user specification */
 }
 
 .auth-gbtn:active {
-  transform: scale(0.99);
+  /* No active transform as per user specification */
 }
 
 .auth-gbtn:focus-visible {
@@ -564,15 +564,15 @@ html.light .auth-pass-pill.met {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  transition: opacity 0.15s ease, transform 0.1s ease;
+  transition: opacity 0.15s ease;
 }
 
 .auth-cta:hover:not(:disabled) {
-  filter: brightness(1.08);
+  /* No hover effects as per user specification */
 }
 
 .auth-cta:active:not(:disabled) {
-  transform: scale(0.99);
+  /* No active transform as per user specification */
 }
 
 .auth-cta:disabled {

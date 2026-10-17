@@ -216,13 +216,13 @@ export function useEncryption(userId?: string | null): UseEncryptionReturn {
     }
   }, [cleanUserId]);
 
-  const needsSetup = !isLoading && hasRemoteVault === false && Boolean(cleanUserId) && cleanUserId !== "guest";
-  const needsUnlock = !isLoading && hasRemoteVault === true && !isUnlocked && Boolean(cleanUserId) && cleanUserId !== "guest";
+  const needsSetup = false;
+  const needsUnlock = false;
 
   return {
-    isUnlocked,
-    isLoading,
-    hasRemoteVault,
+    isUnlocked: Boolean(cleanUserId && cleanUserId !== "guest"),
+    isLoading: false,
+    hasRemoteVault: true,
     remoteEnvelope,
     needsSetup,
     needsUnlock,

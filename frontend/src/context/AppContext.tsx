@@ -348,9 +348,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         setState(assembledState);
       }
 
-      // 3. Trigger silent non-blocking E2EE cross-device sync in background
+      // 3. Trigger silent non-blocking cross-device sync in background
       if (userId && typeof navigator !== 'undefined' && navigator.onLine) {
-        syncService.syncNow(userId).catch(() => {});
+        syncService.syncNow(userId).then((res) => {
+          if (res && res.pulledCount > 0 && activeUserIdRef.current === userId) {
+            requestGenRef.current += 1;
+            loadUserData(userId, requestGenRef.current);
+          }
+        }).catch(() => {});
       }
     } catch (e) {
       console.warn('State load warning:', e);
@@ -358,6 +363,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setIsLoaded(true);
     }
   }, []);
+
+  // Subscribe to background sync pulls from other devices and auto-refresh in-memory state
+  useEffect(() => {
+    const unsubscribe = syncService.onPull((pulledCount) => {
+      const currentId = activeUserIdRef.current;
+      if (pulledCount > 0 && currentId && currentId !== 'guest') {
+        requestGenRef.current += 1;
+        loadUserData(currentId, requestGenRef.current);
+      }
+    });
+    return () => {
+      unsubscribe();
+    };
+  }, [loadUserData]);
 
   // Initial mount load: Fast race against remembered account to guarantee sub-0.3s launch offline & online
   useEffect(() => {
