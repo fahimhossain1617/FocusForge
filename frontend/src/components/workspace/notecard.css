@@ -43,7 +43,7 @@
   right: 0;
   bottom: 0;
   border-radius: 18px;
-  background: linear-gradient(180deg, #162032 0%, #0d1524 100%);
+  background: #162032;
   border: 1px solid rgba(255, 255, 255, 0.08);
   box-shadow: none !important;
   z-index: 1;
@@ -56,7 +56,7 @@
   width: 42%;
   height: 12px;
   border-radius: 8px 8px 0 0;
-  background: linear-gradient(180deg, #1e2c44 0%, #162032 100%);
+  background: #1e2c44;
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-bottom: none;
 }
@@ -142,7 +142,7 @@
   display: flex;
   flex-direction: column;
   border-radius: 16px 16px 18px 18px;
-  background: linear-gradient(165deg, rgba(20, 32, 56, 0.82) 0%, rgba(11, 18, 34, 0.94) 100%);
+  background: rgba(20, 32, 56, 0.82);
   backdrop-filter: blur(14px) saturate(130%);
   -webkit-backdrop-filter: blur(14px) saturate(130%);
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -160,7 +160,7 @@
   width: 46%;
   height: 13px;
   border-radius: 10px 10px 0 0;
-  background: linear-gradient(165deg, rgba(25, 40, 70, 0.88) 0%, rgba(20, 32, 56, 0.94) 100%);
+  background: rgba(25, 40, 70, 0.88);
   backdrop-filter: blur(14px) saturate(130%);
   -webkit-backdrop-filter: blur(14px) saturate(130%);
   border: 1px solid rgba(255, 255, 255, 0.11);

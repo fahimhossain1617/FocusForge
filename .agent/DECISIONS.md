@@ -1515,4 +1515,13 @@
   - `frontend/test_backend_integration.js`: 8/8 passed.
 - **Status:** **VERIFIED**
 
+---
 
+## ADR-042: Uniform Single Solid Color for Dark Mode Cards and Box Elements
+
+- **Date:** October 2026
+- **Status:** Accepted
+- **Decision:** Removed diagonal dual-color gradients (from lighter dark blue rgba(15, 27, 48, 0.68) to darker navy rgba(5, 8, 15, 0.82)) on all box and card elements across the dark mode interface. Replaced with the single uniform lighter navy shade (rgba(15, 27, 48, 0.68)) without gradient transitions or dividing lines.
+- **Reason:** User design preference for a consistent, solid, clean single-tone card surface across all cards, modals, and boxes instead of split dual-color gradient backgrounds.
+- **Impact:** frontend/src/app/globals.css, frontend/src/components/review/review-modal.module.css, frontend/src/components/workspace/notecard.css.
+- **Status:** **VERIFIED**

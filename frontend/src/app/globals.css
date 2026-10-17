@@ -949,7 +949,7 @@ html.light textarea::placeholder,
   padding: 16px 18px;
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 14px;
-  background: linear-gradient(145deg, rgba(17, 27, 49, 0.75), rgba(10, 15, 28, 0.88));
+  background: rgba(15, 27, 48, 0.68);
   box-shadow: none !important;
   transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
 }
@@ -1606,7 +1606,7 @@ html.light textarea::placeholder,
 
 .bct-custom-btn { display: flex; align-items: center; gap: 6px; color: #a2a2b2; font-size: 11px; font-weight: 500; cursor: pointer; white-space: nowrap; background: transparent; border: none; padding: 0; outline: none; }
 .bct-custom-swatch { width: 24px; height: 24px; border: 2px solid rgba(255,255,255,.1); border-radius: 8px; box-sizing: border-box; }
-.custom-color-popover { position: absolute; bottom: calc(100% + 12px); left: 0; z-index: 9999; background: linear-gradient(145deg, #0f172a, #020617); border: 1px solid rgba(56, 189, 248, 0.2); border-radius: 16px; padding: 16px; width: 220px; box-shadow: none !important; backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); animation: popover-fade-in 0.2s cubic-bezier(0.16, 1, 0.3, 1); }
+.custom-color-popover { position: absolute; bottom: calc(100% + 12px); left: 0; z-index: 9999; background: #0f172a; border: 1px solid rgba(56, 189, 248, 0.2); border-radius: 16px; padding: 16px; width: 220px; box-shadow: none !important; backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); animation: popover-fade-in 0.2s cubic-bezier(0.16, 1, 0.3, 1); }
 @keyframes popover-fade-in { from { opacity: 0; transform: translateY(8px) scale(0.96); } to { opacity: 1; transform: translateY(0) scale(1); } }
 .custom-color-popover .react-colorful { width: 100%; height: 180px; }
 .custom-color-popover .react-colorful__saturation { border-radius: 10px 10px 0 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
@@ -1962,7 +1962,7 @@ a:focus-visible, button:focus-visible, [tabindex]:focus-visible {
 .planner-highlight-card:hover { border-color: var(--border-accent) !important; }
 .planner-highlight-card .text-purple-300\/70, .planner-highlight-card .text-purple-500\/80 { color: var(--accent-300) !important; }
 .planner-drawer {
-  background: linear-gradient(160deg, rgba(15, 23, 41, 0.96), rgba(10, 14, 26, 0.98)) !important;
+  background: rgba(15, 23, 41, 0.96) !important;
   backdrop-filter: blur(30px) saturate(180%);
   -webkit-backdrop-filter: blur(30px) saturate(180%);
   border-left: 1px solid rgba(255, 255, 255, 0.14) !important;
@@ -1975,7 +1975,7 @@ a:focus-visible, button:focus-visible, [tabindex]:focus-visible {
 .timer-circle { border-color: rgba(59, 130, 246, 0.45) !important; box-shadow: none !important; }
 
 .app-modal-panel, .app-capture-modal, .focus-dialog {
-  background: linear-gradient(145deg, rgba(24, 39, 70, 0.82), rgba(10, 14, 26, 0.94)) !important;
+  background: rgba(24, 39, 70, 0.88) !important;
   backdrop-filter: blur(24px) saturate(165%);
   -webkit-backdrop-filter: blur(24px) saturate(165%);
   border-color: rgba(255, 255, 255, 0.16) !important;
@@ -2055,7 +2055,7 @@ a:focus-visible, button:focus-visible, [tabindex]:focus-visible {
 .calendar-popover button.bg-purple-600 { background: linear-gradient(135deg, #2563EB, #3B82F6) !important; color: var(--text-on-accent) !important; box-shadow: none !important; }
 
 .completion-modal {
-  background: linear-gradient(145deg, rgba(24, 39, 70, 0.88), rgba(10, 14, 26, 0.96)) !important;
+  background: rgba(24, 39, 70, 0.88) !important;
   backdrop-filter: blur(26px) saturate(170%);
   -webkit-backdrop-filter: blur(26px) saturate(170%);
   border-color: rgba(59, 130, 246, 0.42) !important;
@@ -2102,9 +2102,13 @@ html.dark:not([data-theme="light"]) .sidebar {
 
 html:not([data-theme="light"]):not(.light) .card,
 html:not([data-theme="light"]):not(.light) .card-elevated,
+html:not([data-theme="light"]):not(.light) .dashboard-card,
+html:not([data-theme="light"]):not(.light) .main-card,
 html.dark:not([data-theme="light"]) .card,
-html.dark:not([data-theme="light"]) .card-elevated {
-  background: linear-gradient(145deg, rgba(15, 27, 48, 0.68), rgba(5, 8, 15, 0.82)) !important;
+html.dark:not([data-theme="light"]) .card-elevated,
+html.dark:not([data-theme="light"]) .dashboard-card,
+html.dark:not([data-theme="light"]) .main-card {
+  background: rgba(15, 27, 48, 0.68) !important;
   border-color: rgba(148, 163, 184, 0.13) !important;
   box-shadow: none !important;
 }
@@ -2139,7 +2143,7 @@ html.dark:not([data-theme="light"]) .notes-workspace {
 
 html:not([data-theme="light"]):not(.light) .note-card,
 html.dark:not([data-theme="light"]) .note-card {
-  background: linear-gradient(145deg, rgba(15, 28, 51, 0.68), rgba(4, 7, 13, 0.86)) !important;
+  background: rgba(15, 27, 48, 0.68) !important;
   border-color: rgba(148, 163, 184, 0.14) !important;
 }
 
@@ -2199,14 +2203,14 @@ html.dark:not([data-theme="light"]) .app-modal-panel,
 html.dark:not([data-theme="light"]) .app-capture-modal,
 html.dark:not([data-theme="light"]) .focus-dialog,
 html.dark:not([data-theme="light"]) .completion-modal {
-  background: linear-gradient(145deg, rgba(15, 28, 51, 0.94), rgba(2, 5, 11, 0.97)) !important;
+  background: rgba(15, 28, 51, 0.94) !important;
   border-color: rgba(148, 163, 184, 0.18) !important;
   box-shadow: none !important;
 }
 
 html:not([data-theme="light"]):not(.light) .app-toast,
 html.dark:not([data-theme="light"]) .app-toast {
-  background: linear-gradient(145deg, rgba(13, 25, 46, 0.94), rgba(3, 6, 12, 0.96)) !important;
+  background: rgba(13, 25, 46, 0.94) !important;
   border-color: rgba(148, 163, 184, 0.18) !important;
 }
 
@@ -3937,7 +3941,7 @@ button, input, select, textarea, a {
 }
 
 .dashboard-card {
-  background: #111827;
+  background: rgba(15, 27, 48, 0.68);
   border: 1px solid rgba(59, 130, 246, 0.12);
   box-shadow: none !important;
 }
