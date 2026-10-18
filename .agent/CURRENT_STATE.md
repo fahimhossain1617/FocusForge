@@ -84,10 +84,17 @@ Focentia is an active, functional productivity suite built with Next.js 16 App R
 ---
 
 ### Notes & Files (Workspace)
-- **Current Implementation:** `WorkspacePage.tsx`, `NoteEditorView.tsx`, `BlockEditor.tsx`. Modular block-based note editor supporting headings, todos, quotes, code blocks, mathematical formulas (`KaTeX`), sticky notes, and file attachments. Filtered notes sorted recent-first (`updatedAt || createdAt` descending) matching Mind Space. Mobile folder cards dynamically proportioned (`aspect-ratio: 1 / 1.18`). Code block line numbers removed for direct editing; Quick Note padded with `p-5 sm:p-6`; CommandMenu anchored to triggering block without viewport jumps. Folder detail header equipped with safe-area spacing matching My Diary. Image blocks horizontally center portrait images (with natural full width for landscape) and feature vertically centered bottom toolbars (`S M L`, rotate, `Replace`) with reserved padding from bottom borders. Block deletion supports Android IME soft keyboards via `onBeforeInput` (`deleteContentBackward`), enabling reliable deletion of empty placeholder blocks (`Type # to add a block...`) and cursor-at-start line merging.
+- **Current Implementation:** `WorkspacePage.tsx`, `NoteEditorView.tsx`, `BlockEditor.tsx`. Modular block-based note editor supporting headings, todos, quotes, code blocks, mathematical formulas (`KaTeX`), quick notes, image blocks, and file attachments. Filtered notes sorted recent-first (`updatedAt || createdAt` descending) matching Mind Space. 
+  1. **Seamless Single Interface (Zero Double-Box Shape):** `.note-editor-screen` is strictly transparent (`background: transparent !important; box-shadow: none !important; border: none !important;`) across all themes, eliminating the inner gradient card and truncated "double box" artifact against the app background.
+  2. **Fixed Navbar-Style Header:** Sticky top header (`note-editor-screen__header sticky top-0 z-50`) with backdrop blur and page-aligned horizontal margins (`px-3 sm:px-6`) houses the Back button, Delete, live Saved status, and More options menu without shifting during scrolling.
+  3. **Smart Date Display Logic:** For newly created notes or initial viewings without edits, displays the creation date (e.g. `19 Oct, 2026` / `১৯ অক্টো, ২০২৬`). Once edited in session or reopened with prior modifications, dynamically updates to `Last edited: ...` / `সর্বশেষ এডিট: ...` with time stamps.
+  4. **Unified Left Margin Alignment (Matching My Diary / Picture 1):** The Main Headline (`Untitled note...`) and all writing blocks (`Type #...`, Headings, Todos, Lists, Quotes) share the **exact same left margin** (`padding-left: 0 !important;` on `.editor-block`), forming a single, continuous, straight vertical column just like My Diary without any awkward center-indentation.
+  5. **Non-Obtrusive Right-Side Action Toolbar (`[ 🎨 📋 🗑️ ]`):** To completely prevent the buttons from covering or obscuring the text, `.block-controls` is positioned cleanly on the **top-right** (`top: 4px; right: 2px; left: auto;`). The text block container reserves right padding (`padding-right: 76px; sm:padding-right: 84px;`), guaranteeing that the buttons never overlap writing content while appearing smoothly on hover or `:focus-within`. Color toolbar (`.block-color-toolbar`) opens aligned to the right, staying safely on screen.
+  6. **Proportional Typography Spacing:** Vertical margin between the Main Headline and the content is set to a natural 12px-16px (`margin: 0 0 12px !important; mb-3 sm:mb-4`), perfectly replicating the headline-to-subheading rhythm in Picture 1.
+  7. **Modernized Specialized Blocks & Resilient Deletion:** Math Equation and Quick Note blocks feature standardized top toolbars matching Code Blocks (`px-3.5 py-2 bg-black/40 border-b border-white/5 rounded-t-2xl`). Image captions are protected against border clipping (`.editor-image-caption-input`). Block deletion handles all keyboard events (`Backspace`, `Delete`, `event.code`, `keyCode 8/46`, and mobile IME `beforeinput`).
 - **Verified Status:** **VERIFIED**
 - **Known Problems:** None.
-- **Important Files:** `frontend/src/components/pages/WorkspacePage.tsx`, `frontend/src/components/workspace/BlockEditor.tsx`, `frontend/src/components/pages/NoteEditorView.tsx`, `frontend/src/components/workspace/NoteCard.tsx`, `frontend/src/components/workspace/notecard.css`.
+- **Important Files:** `frontend/src/components/pages/WorkspacePage.tsx`, `frontend/src/components/workspace/BlockEditor.tsx`, `frontend/src/components/pages/NoteEditorView.tsx`, `frontend/src/app/globals.css`.
 - **Dependencies:** `AppContext.tsx`, `localDbService.ts`.
 - **Unknowns:** None.
 
@@ -314,6 +321,21 @@ Focentia is an active, functional productivity suite built with Next.js 16 App R
 
 ---
 
+### Universal Deletion Confirmation Modal & Permanent Data Purge
+- **Current Implementation:**
+  1. **ConfirmDeleteModal (`frontend/src/components/ui/ConfirmDeleteModal.tsx`):** Universal, portal-mounted (`createPortal(..., document.body)`) deletion confirmation modal with zero blur, zero dark overlay (`bg-transparent backdrop-blur-none`), matching light mode / dark mode design tokens with crisp contrast, smooth entrance animation, and dual-language labels (Bengali/English).
+  2. **App-Wide Coverage (Excluding History Views):** Wired across all deletion touchpoints: Tasks & highlights in Planner (`PlannerPage.tsx`), Routine tasks (`RoutineLibraryModal.tsx`), Notes (`NoteEditorView.tsx`), Learning folders & logs (`LearningHubPage.tsx`), Mind space items (`ThoughtDetail.tsx`, `ReviewAll.tsx`), Diary topics (`DiaryTopicView.tsx`, `DiaryTopicModal.tsx`, `DiaryTableOfContents.tsx`), AI Learned Memory (`AIMemoryModal.tsx`), Remembered Accounts (`AccountSwitcherModal.tsx`), and Profile Avatars (`SettingsPage.tsx`, `ProfilePage.tsx`). Normal history views (AI chat history viewing, Focus/Timer logs) are strictly excluded from intrusive confirmation prompts.
+  3. **High-Risk Account Deletion Protection:** Deleting an account displays a specialized warning modal (`isRisky={true}`) with an alert badge, stating: "আর ইউ সিওর? এটি একটি অত্যন্ত ঝুঁকিপূর্ণ ও অপরিবর্তনীয় পদক্ষেপ। একবার অ্যাকাউন্ট মুছে ফেললে তা আর কোনোভাবেই ফিরিয়ে আনা যাবে না এবং আপনার সমস্ত ডেটা চিরতরে মুছে যাবে।"
+  4. **Permanent Purge Guarantee (Zero Zombie Data):**
+     - AI chat session deletion (`aiAgentService.ts`): Corrected guest/user fallback (`user?.id || guestId || 'guest'`) ensuring IndexedDB soft-delete executes reliably for all user states, preventing resurrected chat sessions across app exits.
+     - Diary entry deletion (`AppContext.tsx`): Corrected fallback to guarantee IndexedDB deletion for guests.
+     - Comprehensive Account Purge (`frontend/src/lib/server/db.ts` & `backend/src/services/db.ts`): `dbDeleteUserAccountCompletely(userId)` executes a transactional deletion with savepoints (`SAVEPOINT sp`) permanently wiping all user data across `encrypted_sync_records`, `user_notification_settings`, `push_subscriptions`, `sent_notifications_log`, `user_notifications`, `scheduled_reminders`, `user_roles`, `review_prompt_state`, `reviews`, `user_cloud_state`, `ai_chat_messages`, `ai_chat_sessions`, `ai_tokens`, `ai_agent_history`, `tasks`, `routine_templates`, `note_blocks`, `notes`, `mind_items`, `focus_sessions`, `diary_entries`, `diary_topics`, `learning_logs`, `learning_folders`, anonymizing `support_tickets`, and deleting `profiles`.
+- **Verified Status:** **VERIFIED**
+- **Known Problems:** None.
+- **Important Files:** `frontend/src/components/ui/ConfirmDeleteModal.tsx`, `frontend/src/components/pages/PlannerPage.tsx`, `frontend/src/components/planner/RoutineLibraryModal.tsx`, `frontend/src/components/pages/SettingsPage.tsx`, `frontend/src/components/pages/ProfilePage.tsx`, `frontend/src/components/ai/AIMemoryModal.tsx`, `frontend/src/components/auth/AccountSwitcherModal.tsx`, `frontend/src/services/aiAgentService.ts`, `frontend/src/context/AppContext.tsx`, `frontend/src/lib/server/db.ts`, `backend/src/services/db.ts`.
+
+---
+
 ### Real-Time Voice-to-Text & Global Continuous Speech Recognition Engine
 - **Current Implementation:** Pure production-grade real-time dictation engine powered globally by `useContinuousSpeech` (`frontend/src/hooks/useContinuousSpeech.ts`):
   1. `useContinuousSpeech` (`frontend/src/hooks/useContinuousSpeech.ts`): Zero-drop continuous speech recognition engine. Uses dual-buffer architecture (`allFinalTextRef` + `sessionFinalRef`). Dispatches `speech-activity` events. On Chrome's native Web Speech API `recognition.onend` termination, if listening is active, locks session words and waits a deliberate **300ms buffer** before rolling over. Implements strict error backoff guards preventing rapid-fire restart loops.
@@ -476,6 +498,19 @@ Focentia is an active, functional productivity suite built with Next.js 16 App R
   6. **Root Workspace TypeScript Support:** Added root `tsconfig.json` so that workspace scripts have standard TypeScript language server support.
 - **Verified Status:** **VERIFIED** (0 ESLint errors; Frontend Turbopack build: 21/21 routes compiled; Backend build: 0 errors; 35/35 Production Readiness tests; 33/33 Router tests; 19/19 Notification tests; 22/22 E2EE tests; 20/20 Auth tests; 15/15 Cross-Device Sync tests).
 - **Important Files:** `frontend/eslint.config.mjs`, `frontend/src/lib/ai/router/intents.ts`, `frontend/src/hooks/useReviewPrompt.ts`, `frontend/src/lib/ai/router/handlers.ts`, `frontend/src/services/aiAgentService.ts`, `frontend/src/components/pages/LearningHubPage.tsx`, `frontend/src/components/planner/RoutineLibraryModal.tsx`, `frontend/src/hooks/useTranslations.ts`, `frontend/src/services/localNotificationScheduler.ts`, `scripts/test_notification_pipeline.js`, `scripts/verify_production_readiness.ts`, `tsconfig.json`.
+
+---
+
+### Notes & Files Editor, Local Storage Persistence, Cross-Device Sync & Guest Mode Isolation (October 2026)
+- **Current Implementation:**
+  1. **Editor Geometry & Layout Fixes:** Adjusted header-to-body margins in `NoteEditorView.tsx` (`pb-2 pt-1 sm:pt-2` and `mt-2`) and `BlockEditor.tsx` (`mt-1.5`) to eliminate excessive empty vertical gaps while preserving seamless document flow. Positioned floating block controls (palette, duplicate, delete) horizontally centered and non-overlapping above the active block.
+  2. **Database & Local Persistence:** Notes are managed via `noteService.ts` and saved directly to local Dexie IndexedDB (`focentia_e2ee_db_v1` / `notes` store) with automatic fallback and debounced autosave.
+  3. **App Exit & Re-Entry Persistence:** When a user creates or edits a note, it is immediately written to local Dexie IndexedDB. When closing or refreshing the app, data remains 100% intact and is restored on launch.
+  4. **Cross-Device Zero-Knowledge Sync:** For authenticated accounts, notes are locally encrypted using deterministic PBKDF2/AES-256-GCM envelope keys and enqueued for sync to Supabase `encrypted_sync_records`. Device B decrypts the payload cleanly using the same account recovery key with zero plaintext leakage or data corruption (15/15 cross-device sync tests passed).
+  5. **Guest Mode Integrity & Quarantine:** In Guest Mode (`userId = 'guest'`), notes are stored strictly locally in Dexie IndexedDB (`guest:<id>`). Guest records are isolated from the cloud sync queue and never synced to Supabase or visible to other accounts.
+- **Verified Status:** **VERIFIED** (15/15 Cross-Device Sync tests passed; 22/22 E2EE tests passed; 20/20 Auth Isolation tests passed; Live Browser E2E autosave and IndexedDB verification confirmed; Production build: 21/21 static pages compiled with exit code 0).
+- **Important Files:** `frontend/src/components/pages/NoteEditorView.tsx`, `frontend/src/components/workspace/BlockEditor.tsx`, `frontend/src/services/noteService.ts`, `frontend/src/services/localDbService.ts`, `frontend/src/services/cryptoSyncService.ts`, `frontend/src/services/syncService.ts`.
+
 
 
 

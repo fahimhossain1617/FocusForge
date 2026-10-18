@@ -4,6 +4,7 @@ import React, { useEffect } from "react";
 import { User, Check, Plus, Trash2, X, Users, ArrowRight } from "lucide-react";
 import { RememberedAccount } from "../../services/accountManager";
 import { useAnimateExit } from "../../hooks/useAnimateExit";
+import ConfirmDeleteModal from "../ui/ConfirmDeleteModal";
 
 interface AccountSwitcherModalProps {
   isOpen: boolean;
@@ -25,6 +26,7 @@ export default function AccountSwitcherModal({
   onRemoveAccount,
 }: AccountSwitcherModalProps) {
   const modalAnim = useAnimateExit({ isOpen, durationMs: 180 });
+  const [accountToRemove, setAccountToRemove] = React.useState<string | null>(null);
 
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
@@ -147,8 +149,8 @@ export default function AccountSwitcherModal({
 
                   <button
                     type="button"
-                    onClick={() => onRemoveAccount(account.id)}
-                    className="p-1.5 rounded-lg text-[#52627A] dark:text-muted-foreground hover:text-red-500 hover:bg-red-500/10 transition-colors opacity-60 hover:opacity-100"
+                    onClick={() => setAccountToRemove(account.id)}
+                    className="p-1.5 rounded-lg text-[#52627A] dark:text-muted-foreground hover:text-red-500 hover:bg-red-500/10 transition-colors opacity-60 hover:opacity-100 cursor-pointer"
                     title="Remove from device switcher"
                     aria-label="Remove from device switcher"
                   >
@@ -172,6 +174,21 @@ export default function AccountSwitcherModal({
           </button>
         </div>
       </div>
+
+      <ConfirmDeleteModal
+        isOpen={Boolean(accountToRemove)}
+        onClose={() => setAccountToRemove(null)}
+        onConfirm={() => {
+          if (accountToRemove) {
+            onRemoveAccount(accountToRemove);
+            setAccountToRemove(null);
+          }
+        }}
+        title="Remove Saved Account?"
+        message="Are you sure you want to remove this account from this device's quick login list?"
+        confirmLabel="Remove"
+        cancelLabel="Cancel"
+      />
     </div>
   );
 }

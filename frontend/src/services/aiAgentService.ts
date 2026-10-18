@@ -332,14 +332,12 @@ export async function deleteChatSession(sessionId: string): Promise<{ success: b
   // 2. Delete in localDb
   try {
     const { data: { user } } = await supabase.auth.getUser();
-    const userId = user?.id || null;
-    if (userId) {
-      await localDb.softDelete("ai_sessions", userId, sessionId);
-      const allMsgs = await localDb.getAllForUser<any>("ai_messages", userId, false);
-      for (const m of allMsgs) {
-        if (m.sessionId === sessionId) {
-          await localDb.softDelete("ai_messages", userId, m.id);
-        }
+    const targetUserId = user?.id || guestId || 'guest';
+    await localDb.softDelete("ai_sessions", targetUserId, sessionId);
+    const allMsgs = await localDb.getAllForUser<any>("ai_messages", targetUserId, false);
+    for (const m of allMsgs) {
+      if (m.sessionId === sessionId) {
+        await localDb.softDelete("ai_messages", targetUserId, m.id);
       }
     }
   } catch (err) {
@@ -381,16 +379,14 @@ export async function clearAllChatSessions(): Promise<{ success: boolean }> {
   // 2. Clear in localDb
   try {
     const { data: { user } } = await supabase.auth.getUser();
-    userId = user?.id || null;
-    if (userId) {
-      const sessions = await localDb.getAllForUser<any>("ai_sessions", userId, false);
-      for (const s of sessions) {
-        await localDb.softDelete("ai_sessions", userId, s.id);
-      }
-      const allMsgs = await localDb.getAllForUser<any>("ai_messages", userId, false);
-      for (const m of allMsgs) {
-        await localDb.softDelete("ai_messages", userId, m.id);
-      }
+    const targetUserId = user?.id || guestId || 'guest';
+    const sessions = await localDb.getAllForUser<any>("ai_sessions", targetUserId, false);
+    for (const s of sessions) {
+      await localDb.softDelete("ai_sessions", targetUserId, s.id);
+    }
+    const allMsgs = await localDb.getAllForUser<any>("ai_messages", targetUserId, false);
+    for (const m of allMsgs) {
+      await localDb.softDelete("ai_messages", targetUserId, m.id);
     }
   } catch (err) {
     console.warn("[aiAgentService] Error clearing local chat sessions:", err);

@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { Brain, Trash2, Plus, X, Edit2, Check, Shield } from "lucide-react";
 import { aiMemoryService, AIMemoryItem } from "../../services/aiMemoryService";
+import ConfirmDeleteModal from "../ui/ConfirmDeleteModal";
 
 interface AIMemoryModalProps {
   isOpen: boolean;
@@ -18,6 +19,7 @@ export default function AIMemoryModal({ isOpen, userId, lang = "bn", onClose }: 
   const [newContent, setNewContent] = useState("");
   const [newCategory, setNewCategory] = useState<AIMemoryItem["category"]>("fact");
   const [loading, setLoading] = useState(false);
+  const [memoryToDelete, setMemoryToDelete] = useState<string | null>(null);
 
   const isBn = lang === "bn";
 
@@ -49,6 +51,13 @@ export default function AIMemoryModal({ isOpen, userId, lang = "bn", onClose }: 
     if (!userId) return;
     await aiMemoryService.deleteMemory(userId, id);
     loadMemories();
+  };
+
+  const handleConfirmDelete = async () => {
+    if (memoryToDelete) {
+      await handleDelete(memoryToDelete);
+      setMemoryToDelete(null);
+    }
   };
 
   const handleStartEdit = (m: AIMemoryItem) => {
@@ -185,8 +194,8 @@ export default function AIMemoryModal({ isOpen, userId, lang = "bn", onClose }: 
                         <Edit2 className="w-3.5 h-3.5" />
                       </button>
                       <button
-                        onClick={() => handleDelete(m.id)}
-                        className="p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                        onClick={() => setMemoryToDelete(m.id)}
+                        className="p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 cursor-pointer"
                         title={isBn ? "মুছে ফেলুন" : "Delete"}
                       >
                         <Trash2 className="w-3.5 h-3.5" />
@@ -199,6 +208,20 @@ export default function AIMemoryModal({ isOpen, userId, lang = "bn", onClose }: 
           )}
         </div>
       </div>
+
+      <ConfirmDeleteModal
+        isOpen={Boolean(memoryToDelete)}
+        onClose={() => setMemoryToDelete(null)}
+        onConfirm={handleConfirmDelete}
+        title={isBn ? "মেমোরি মুছে ফেলতে চান?" : "Delete memory item?"}
+        message={
+          isBn
+            ? "আপনি কি নিশ্চিত যে এই এআই মেমোরিটি মুছে ফেলতে চান? এটি আর ফিরিয়ে আনা যাবে না।"
+            : "Are you sure you want to delete this AI memory item? This action cannot be undone."
+        }
+        confirmLabel={isBn ? "মুছুন" : "Delete"}
+        cancelLabel={isBn ? "বাতিল" : "Cancel"}
+      />
     </div>
   );
 }

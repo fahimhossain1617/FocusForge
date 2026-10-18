@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useEffect } from "react";
-import { Trash2 } from "lucide-react";
+import React, { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
+import { Trash2, AlertTriangle } from "lucide-react";
 
 interface ConfirmDeleteModalProps {
   isOpen: boolean;
@@ -12,6 +13,7 @@ interface ConfirmDeleteModalProps {
   confirmLabel?: string;
   cancelLabel?: string;
   isLoading?: boolean;
+  isRisky?: boolean;
 }
 
 export default function ConfirmDeleteModal({
@@ -23,7 +25,14 @@ export default function ConfirmDeleteModal({
   confirmLabel = "Delete",
   cancelLabel = "Cancel",
   isLoading = false,
+  isRisky = false,
 }: ConfirmDeleteModalProps) {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   // Close on Escape key
   useEffect(() => {
     if (!isOpen) return;
@@ -36,29 +45,35 @@ export default function ConfirmDeleteModal({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isOpen, isLoading, onClose]);
 
-  if (!isOpen) return null;
+  if (!isOpen || !mounted) return null;
 
-  return (
+  const modalContent = (
     <div
       role="dialog"
       aria-modal="true"
       aria-labelledby="confirm-delete-title"
-      className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-none select-none"
+      className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-transparent backdrop-blur-none select-none pointer-events-auto"
       onClick={() => {
         if (!isLoading) onClose();
       }}
     >
       <div
-        className="relative w-full max-w-sm rounded-2xl border border-[#DCE5F0] dark:border-white/10 bg-white dark:bg-[#0F1729] p-6 shadow-2xl flex flex-col gap-4 text-center items-center"
+        className="relative w-full max-w-sm rounded-2xl border border-slate-200/90 dark:border-white/10 bg-white dark:bg-[#0F1729] p-6 shadow-[0_12px_48px_-8px_rgba(0,0,0,0.18),0_4px_16px_rgba(0,0,0,0.06)] dark:shadow-[0_20px_60px_-15px_rgba(0,0,0,0.85),0_4px_20px_rgba(0,0,0,0.6)] flex flex-col gap-4 text-center items-center transition-all animate-in fade-in zoom-in-95 duration-150"
         onClick={(e) => e.stopPropagation()}
         style={{
           backgroundColor: "var(--color-surface-elevated, #0F1729)",
         }}
       >
-        {/* Red Icon Badge */}
-        <div className="w-11 h-11 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 flex items-center justify-center shrink-0">
-          <Trash2 size={20} strokeWidth={2.2} />
-        </div>
+        {/* Icon Badge */}
+        {isRisky ? (
+          <div className="w-12 h-12 rounded-2xl bg-amber-500/10 dark:bg-amber-500/15 border border-amber-500/25 text-amber-500 flex items-center justify-center shrink-0">
+            <AlertTriangle size={22} strokeWidth={2.2} />
+          </div>
+        ) : (
+          <div className="w-12 h-12 rounded-2xl bg-red-500/10 dark:bg-red-500/15 border border-red-500/25 text-red-500 flex items-center justify-center shrink-0">
+            <Trash2 size={22} strokeWidth={2.2} />
+          </div>
+        )}
 
         {/* Text Area */}
         <div className="space-y-1.5 w-full">
@@ -95,4 +110,8 @@ export default function ConfirmDeleteModal({
       </div>
     </div>
   );
+
+  return typeof document !== "undefined"
+    ? createPortal(modalContent, document.body)
+    : modalContent;
 }

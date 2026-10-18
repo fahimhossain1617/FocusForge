@@ -55,7 +55,16 @@ export default function NoteEditorView({
   }); 
   const [moreOpen, setMoreOpen] = useState(false); 
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [hasEditedInSession, setHasEditedInSession] = useState(false);
   const moreMenuRef = useRef<HTMLDivElement>(null);
+
+  // Check if this note had any previous edits prior to this session
+  const isPreviouslyEdited = React.useMemo(() => {
+    if (!initialCreatedAt || !initialUpdatedAt) return false;
+    const createdTime = new Date(initialCreatedAt).getTime();
+    const updatedTime = new Date(initialUpdatedAt).getTime();
+    return !isNaN(createdTime) && !isNaN(updatedTime) && (updatedTime - createdTime > 3000);
+  }, [initialCreatedAt, initialUpdatedAt]);
   
   // Modals & Popups
   const [linkModalOpen, setLinkModalOpen] = useState(false);
@@ -111,6 +120,7 @@ export default function NoteEditorView({
   }, [initialBlocks, user]);
 
   const queueSave = (nextTitle: string, nextBlocks: NoteBlock[], nextCategory?: string) => { 
+    setHasEditedInSession(true);
     if (saveTimer.current) clearTimeout(saveTimer.current); 
     const currentCat = nextCategory !== undefined ? nextCategory : category;
     saveTimer.current = setTimeout(() => { 
@@ -444,11 +454,19 @@ export default function NoteEditorView({
     queueSave(title, nextBlocks);
   };
 
+  const titleRef = useRef<HTMLTextAreaElement>(null);
+  useEffect(() => {
+    if (titleRef.current) {
+      titleRef.current.style.height = "0px";
+      titleRef.current.style.height = `${titleRef.current.scrollHeight}px`;
+    }
+  }, [title]);
+
   const isBn = state.lang === 'bn';
 
   return (
     <div 
-      className="note-editor-screen motion-page max-w-5xl mx-auto w-full pb-14 px-3 sm:px-6 md:px-8 relative"
+      className="note-editor-screen motion-page max-w-6xl mx-auto w-full pb-14 relative !bg-transparent border-none shadow-none"
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
@@ -472,7 +490,7 @@ export default function NoteEditorView({
       />
 
       {/* Header */}
-      <header className="note-editor-screen__header flex items-center justify-between gap-3 pt-2.5 sm:pt-4 md:pt-5 pb-2 mb-4">
+      <header className="note-editor-screen__header sticky top-0 z-50 flex items-center justify-between gap-3 py-2.5 px-3 sm:px-6 mb-2">
         <button 
           type="button" 
           onClick={goBack} 
@@ -539,7 +557,7 @@ export default function NoteEditorView({
 
       {/* Editor Main Canvas */}
       <div className="note-editor-screen__scroll w-full">
-        <div className="note-editor-canvas relative max-w-6xl mx-auto !pt-2 px-4 sm:px-6">
+        <div className="note-editor-canvas relative max-w-5xl mx-auto pt-1 px-3 sm:px-6">
           
           {/* Print Header (Visible in print/PDF only) */}
           <div className="note-print-header hidden">
@@ -568,7 +586,7 @@ export default function NoteEditorView({
           )}
 
           {/* Category Tag & Metadata Row */}
-          <div className="note-editor-meta-row flex items-center gap-3 mb-4 flex-wrap">
+          <div className="note-editor-meta-row flex items-center gap-3 mb-2.5 sm:mb-3 flex-wrap">
             <div className="relative">
               <select
                 value={category}
@@ -594,22 +612,34 @@ export default function NoteEditorView({
               </div>
             </div>
 
-            {initialUpdatedAt && (
-              <span className="text-[11px] text-zinc-500">
-                {isBn ? "সর্বশেষ আপডেট:" : "Last edited:"} {new Date(initialUpdatedAt).toLocaleDateString(isBn ? "bn-BD" : "en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
-              </span>
-            )}
+            <span className="text-[11px] text-zinc-500 select-none">
+              {(isPreviouslyEdited || hasEditedInSession) ? (
+                <>
+                  {isBn ? "সর্বশেষ এডিট:" : "Last edited:"}{" "}
+                  {new Date(hasEditedInSession ? Date.now() : (initialUpdatedAt || initialCreatedAt || Date.now())).toLocaleDateString(
+                    isBn ? "bn-BD" : "en-US",
+                    { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }
+                  )}
+                </>
+              ) : (
+                <>
+                  {new Date(initialCreatedAt || Date.now()).toLocaleDateString(
+                    isBn ? "bn-BD" : "en-US",
+                    { year: "numeric", month: "short", day: "numeric" }
+                  )}
+                </>
+              )}
+            </span>
           </div>
 
           {/* Note Title Input (Auto-wrapping to next line) */}
           <textarea 
+            ref={titleRef}
             rows={1}
             value={title} 
             onChange={(event) => { 
               setTitle(event.target.value); 
               queueSave(event.target.value, blocks); 
-              event.target.style.height = "0px";
-              event.target.style.height = `${event.target.scrollHeight}px`;
             }} 
             onKeyDown={(event) => { 
               if (event.key === "Enter") { 
@@ -618,7 +648,7 @@ export default function NoteEditorView({
               } 
             }} 
             placeholder={isBn ? "শিরোনামহীন নোট..." : "Untitled note..."} 
-            className="note-editor-title w-full text-2xl sm:text-3xl font-bold tracking-tight mb-6 bg-transparent outline-none text-foreground placeholder-zinc-600 resize-none overflow-hidden block break-words" 
+            className="note-editor-title w-full text-2xl sm:text-3xl font-bold tracking-tight mb-3 sm:mb-4 bg-transparent outline-none text-foreground placeholder-zinc-600 resize-none overflow-hidden block break-words" 
             autoFocus 
           />
 

@@ -14,6 +14,7 @@ import CopyTasksModal from "../planner/CopyTasksModal";
 import PlannerEmptyIllustration from "../planner/PlannerEmptyIllustration";
 import { Weekday } from "../../types";
 import { formatTime12hr } from "../../utils/timeUtils";
+import ConfirmDeleteModal from "../ui/ConfirmDeleteModal";
 
 export default function PlannerPage() {
   const { state, addTimeBlock, deleteTimeBlock, updateTimeBlock, addTask, deleteTask } = useAppContext();
@@ -23,6 +24,16 @@ export default function PlannerPage() {
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  const [deleteConfirmItem, setDeleteConfirmItem] = useState<{ blockId?: string; taskId?: number | string; title?: string } | null>(null);
+
+  const handleConfirmDelete = () => {
+    if (deleteConfirmItem) {
+      if (deleteConfirmItem.blockId) deleteTimeBlock(deleteConfirmItem.blockId);
+      if (deleteConfirmItem.taskId) deleteTask(deleteConfirmItem.taskId);
+      setDeleteConfirmItem(null);
+    }
+  };
 
   const drawerContentRef = useRef<HTMLDivElement>(null);
   
@@ -657,8 +668,7 @@ export default function PlannerPage() {
                             type="button"
                             onClick={(e) => {
                               e.stopPropagation();
-                              if (item.blockId) deleteTimeBlock(item.blockId);
-                              if (item.taskId) deleteTask(item.taskId);
+                              setDeleteConfirmItem({ blockId: item.blockId, taskId: item.taskId, title: item.label });
                             }} 
                             className="p-1 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors cursor-pointer shrink-0 -mr-1 -mt-0.5"
                             title={state.lang === 'bn' ? "মুছে ফেলুন" : "Delete"}
@@ -760,8 +770,7 @@ export default function PlannerPage() {
                     type="button"
                     onClick={(e) => {
                       e.stopPropagation();
-                      if (item.blockId) deleteTimeBlock(item.blockId);
-                      if (item.taskId) deleteTask(item.taskId);
+                      setDeleteConfirmItem({ blockId: item.blockId, taskId: item.taskId, title: item.label });
                     }} 
                     className="text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors p-1.5 rounded-lg cursor-pointer shrink-0"
                     aria-label="Delete task"
@@ -814,6 +823,21 @@ export default function PlannerPage() {
         isOpen={showCopyTasksModal}
         onClose={() => setShowCopyTasksModal(false)}
         targetDateStr={drawerDateStr || selectedDateStr || realToday}
+      />
+
+      {/* CONFIRM DELETE TASK MODAL */}
+      <ConfirmDeleteModal
+        isOpen={Boolean(deleteConfirmItem)}
+        onClose={() => setDeleteConfirmItem(null)}
+        onConfirm={handleConfirmDelete}
+        title={state.lang === "bn" ? "টাস্কটি মুছে ফেলতে চান?" : "Delete this task?"}
+        message={
+          state.lang === "bn"
+            ? "আপনি কি নিশ্চিত যে এই টাস্কটি মুছে ফেলতে চান? এটি আর ফিরিয়ে আনা যাবে না।"
+            : "Are you sure you want to delete this task? This action cannot be undone."
+        }
+        confirmLabel={state.lang === "bn" ? "মুছুন" : "Delete"}
+        cancelLabel={state.lang === "bn" ? "বাতিল" : "Cancel"}
       />
     </div>
   );

@@ -20,6 +20,7 @@ import {
   Calendar,
   AlertCircle,
 } from "lucide-react";
+import ConfirmDeleteModal from "../ui/ConfirmDeleteModal";
 
 interface RoutineLibraryModalProps {
   isOpen: boolean;
@@ -292,11 +293,20 @@ export default function RoutineLibraryModal({
     resetForm();
   };
 
+  const [taskToDelete, setTaskToDelete] = useState<string | null>(null);
+
   const handleDeleteTask = (taskId: string) => {
     handleDeleteRoutineTask(activeWeekday, taskId);
     if (typeof showToast === "function") showToast("Task removed from routine", "info");
     if (editingTaskId === taskId) {
       resetForm();
+    }
+  };
+
+  const handleConfirmDelete = () => {
+    if (taskToDelete) {
+      handleDeleteTask(taskToDelete);
+      setTaskToDelete(null);
     }
   };
 
@@ -569,7 +579,7 @@ export default function RoutineLibraryModal({
                         <Edit2 className="w-3.5 h-3.5" />
                       </button>
                       <button
-                        onClick={() => handleDeleteTask(task.id)}
+                        onClick={() => setTaskToDelete(task.id)}
                         className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-colors cursor-pointer"
                         title="Delete task"
                       >
@@ -615,6 +625,20 @@ export default function RoutineLibraryModal({
           </div>
         )}
       </div>
+
+      <ConfirmDeleteModal
+        isOpen={Boolean(taskToDelete)}
+        onClose={() => setTaskToDelete(null)}
+        onConfirm={handleConfirmDelete}
+        title={state.lang === "bn" ? "রুটিন টাস্কটি মুছে ফেলতে চান?" : "Delete routine task?"}
+        message={
+          state.lang === "bn"
+            ? "আপনি কি নিশ্চিত যে এই রুটিন টাস্কটি মুছে ফেলতে চান? এটি আর ফিরিয়ে আনা যাবে না।"
+            : "Are you sure you want to delete this routine task? This action cannot be undone."
+        }
+        confirmLabel={state.lang === "bn" ? "মুছুন" : "Delete"}
+        cancelLabel={state.lang === "bn" ? "বাতিল" : "Cancel"}
+      />
     </div>,
     document.body
   );

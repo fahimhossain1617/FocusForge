@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import FocusForgeDatePicker from "../ui/FocusForgeDatePicker";
 import FocusForgeSelect from "../ui/FocusForgeSelect";
+import ConfirmDeleteModal from "../ui/ConfirmDeleteModal";
 import { userService } from "../../services/userService";
 
 
@@ -20,6 +21,7 @@ export default function ProfilePage() {
 
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [showRemovePhotoModal, setShowRemovePhotoModal] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Form State
@@ -264,7 +266,7 @@ export default function ProfilePage() {
                 type="button"
                 onClick={(e) => {
                   e.stopPropagation();
-                  handleRemovePhoto();
+                  setShowRemovePhotoModal(true);
                 }}
                 className="absolute top-0 right-0 p-1.5 rounded-full bg-red-600 hover:bg-red-700 text-white ring-2 ring-white dark:ring-[#0D1426] shadow-none transition-all cursor-pointer"
                 title="Remove Photo"
@@ -604,6 +606,23 @@ export default function ProfilePage() {
           )}
         </form>
       </div>
+
+      <ConfirmDeleteModal
+        isOpen={showRemovePhotoModal}
+        onClose={() => setShowRemovePhotoModal(false)}
+        onConfirm={() => {
+          setShowRemovePhotoModal(false);
+          handleRemovePhoto();
+        }}
+        title={state.lang === "bn" ? "প্রোফাইল ছবি মুছে ফেলতে চান?" : "Remove profile photo?"}
+        message={
+          state.lang === "bn"
+            ? "আপনি কি নিশ্চিত যে আপনার বর্তমান প্রোফাইল ছবিটি সরিয়ে ফেলতে চান?"
+            : "Are you sure you want to remove your profile photo?"
+        }
+        confirmLabel={state.lang === "bn" ? "মুছুন" : "Remove"}
+        cancelLabel={state.lang === "bn" ? "বাতিল" : "Cancel"}
+      />
     </div>
   );
 }

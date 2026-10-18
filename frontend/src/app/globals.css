@@ -1133,31 +1133,40 @@ html.light textarea::placeholder,
 @media (max-width: 640px) { .note-modal { height: 92vh; }.note-input--h1 { font-size: 28px !important; }.note-editor__document { padding: 14px; }.note-card__actions button { opacity: 1; transform: none; } }
 
 /* Full-page Notes editor */
-.note-editor-screen { height: 100%; display: flex; flex-direction: column; background: transparent; }
-.note-editor-screen__header { position: relative; z-index: 50; flex: 0 0 auto; display: flex; align-items: center; justify-content: space-between; border-bottom: none !important; background: transparent !important; backdrop-filter: none !important; }
+.note-editor-screen { height: 100%; display: flex; flex-direction: column; background: transparent !important; box-shadow: none !important; border: none !important; }
+.note-editor-screen__header { position: sticky; top: 0; z-index: 50; flex: 0 0 auto; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(255, 255, 255, 0.05); background: rgba(10, 14, 26, 0.75) !important; backdrop-filter: blur(16px) saturate(160%) !important; -webkit-backdrop-filter: blur(16px) saturate(160%) !important; }
 .note-editor-back { display: inline-flex; align-items: center; gap: 9px; padding: 8px 10px; border: 0; border-radius: 10px; background: transparent; color: #9d9dac; font-size: 12px; font-weight: 700; letter-spacing: .02em; cursor: pointer; transition: background .2s, color .2s; }.note-editor-back:hover { background: rgba(255,255,255,.06); color: #fff; }
 .note-save-state { display: inline-flex; align-items: center; gap: 6px; color: #7c7c8e; font-size: 12px; font-weight: 600; }.note-save-state:not(.is-saving) { color: #8fcbad; }.note-save-state.is-saving { color: #b9a2ff; }
-.note-editor-screen__scroll { width: 100%; }.note-editor-canvas { width: 100%; max-width: 850px; margin: 0 auto; padding: 0 16px 80px; }
-.note-editor-title, .note-editor-title:focus { display: block; width: 100%; margin: 0 0 32px; padding: 0 !important; border: 0 !important; outline: 0; background: transparent !important; box-shadow: none !important; color: #f5f3ff; font-size: clamp(34px, 5vw, 48px) !important; font-weight: 790; line-height: 1.15; letter-spacing: -.055em; }.note-editor-title::placeholder { color: #535362; }
-.editor-block { position: relative; width: 100%; padding: 0 8px; }.editor-block input, .editor-block textarea, .editor-block input:focus, .editor-block textarea:focus { display: block; width: 100%; padding: 0 !important; border: 0 !important; outline: none !important; resize: none; overflow: hidden; background: transparent !important; background-color: inherit; box-shadow: none !important; color: #e7e7ef; caret-color: #fff; }
+.note-editor-screen__scroll { width: 100%; }.note-editor-canvas { width: 100%; max-width: 900px; margin: 0 auto; padding: 0 0 80px; }
+.note-editor-title, .note-editor-title:focus { display: block; width: 100%; margin: 0 0 12px !important; padding: 0 !important; border: 0 !important; outline: 0; background: transparent !important; box-shadow: none !important; color: #f5f3ff; font-size: clamp(26px, 4.5vw, 36px) !important; font-weight: 790; line-height: 1.22; letter-spacing: -.035em; }.note-editor-title::placeholder { color: #535362; }
+.editor-block { position: relative; width: 100%; padding-left: 0 !important; padding-right: 76px; }.editor-block input, .editor-block textarea, .editor-block input:focus, .editor-block textarea:focus { display: block; width: 100%; padding: 0 !important; border: 0 !important; outline: none !important; resize: none; overflow: hidden; background: transparent !important; background-color: inherit; box-shadow: none !important; color: #e7e7ef; caret-color: #fff; }
+@media (min-width: 640px) { .editor-block { padding-left: 0 !important; padding-right: 84px; } }
+.editor-block--code, .editor-block--math, .editor-block--sticky, .editor-block--image, .editor-block--file, .editor-block--link { padding-right: 0 !important; }
 .editor-block input::selection, .editor-block textarea::selection { background: rgba(124, 58, 237, 0.4) !important; color: inherit; }
-.editor-block--paragraph { min-height: 28px; margin: 3px 0; }.editor-block--paragraph textarea { min-height: 28px; font-size: 16.5px !important; font-weight: 400; line-height: 1.62; }
-.editor-block--h1 { margin: 26px 0 10px; }.editor-block--h1 input, .editor-block--h1 textarea { font-size: 32px !important; font-weight: 700; line-height: 1.25; letter-spacing: -.035em; }.editor-block--h2 { margin: 22px 0 8px; }.editor-block--h2 input, .editor-block--h2 textarea { font-size: 26px !important; font-weight: 700; line-height: 1.3; letter-spacing: -.025em; }.editor-block--h3 { margin: 18px 0 6px; }.editor-block--h3 input, .editor-block--h3 textarea { font-size: 21px !important; font-weight: 650; line-height: 1.35; letter-spacing: -.015em; }
-.editor-block--h1 + .editor-block--paragraph { margin-top: 0; }.editor-block--h2 + .editor-block--paragraph { margin-top: 0; }.editor-block--h3 + .editor-block--paragraph { margin-top: 0; }.editor-block--paragraph + .editor-block--h1 { margin-top: 26px; }.editor-block--paragraph + .editor-block--h2 { margin-top: 22px; }.editor-block--paragraph + .editor-block--h3 { margin-top: 18px; }
+.editor-block--paragraph { min-height: 28px; margin: 2px 0; }.editor-block--paragraph textarea { min-height: 28px; font-size: 16.5px !important; font-weight: 400; line-height: 1.62; }
+.editor-block--h1 { margin: 20px 0 6px; }.editor-block--h1 input, .editor-block--h1 textarea { font-size: 30px !important; font-weight: 700; line-height: 1.25; letter-spacing: -.035em; }.editor-block--h2 { margin: 18px 0 6px; }.editor-block--h2 input, .editor-block--h2 textarea { font-size: 24px !important; font-weight: 700; line-height: 1.3; letter-spacing: -.025em; }.editor-block--h3 { margin: 14px 0 4px; }.editor-block--h3 input, .editor-block--h3 textarea { font-size: 20px !important; font-weight: 650; line-height: 1.35; letter-spacing: -.015em; }
+.editor-block--h1 + .editor-block--paragraph { margin-top: 0; }.editor-block--h2 + .editor-block--paragraph { margin-top: 0; }.editor-block--h3 + .editor-block--paragraph { margin-top: 0; }.editor-block--paragraph + .editor-block--h1 { margin-top: 20px; }.editor-block--paragraph + .editor-block--h2 { margin-top: 18px; }.editor-block--paragraph + .editor-block--h3 { margin-top: 14px; }
 .editor-block--bullet, .editor-block--numbered { min-height: 28px; margin: 2px 0; }
 .editor-block--bullet textarea, .editor-block--numbered textarea { min-height: 26px !important; font-size: 16px !important; font-weight: 400; line-height: 1.55; }
 .editor-block--todo { display: flex; align-items: flex-start; gap: 10px; min-height: 31px; margin: 3px 0; }.editor-block--todo textarea { min-height: 27px; padding-top: 1px !important; font-size: 16.5px !important; font-weight: 400; line-height: 1.6; }.todo-toggle { flex: 0 0 19px; width: 19px; height: 19px; margin-top: 4px; padding: 0; border: 1px solid #626277; border-radius: 6px; background: transparent; color: white; font-size: 12px; cursor: pointer; }.todo-toggle.done { border-color: #8b5cf6; background: #7c3aed; }.editor-block--todo textarea.is-complete { color: #747486; text-decoration: line-through; }
-.editor-block--code { margin: 18px 0; padding: 0; overflow: visible; border: 1px solid #333347; border-radius: 14px; background: #11111a; box-shadow: none !important; }.code-toolbar { display: flex; align-items: center; justify-content: space-between; height: 39px; padding: 0 12px; border-bottom: 1px solid #29293a; color: #88889a; font: 700 10px ui-monospace, monospace; letter-spacing: .11em; }.code-toolbar select { width: auto; padding: 4px 7px !important; border: 1px solid #3d3d50 !important; border-radius: 6px; background: #1b1b29 !important; color: #bcbccc; font: 700 10px ui-monospace, monospace; outline: none; }.code-editor { position: relative; min-height: 156px; overflow-x: auto; }.code-editor pre, .code-editor textarea { width: max-content; min-width: 100%; min-height: 156px; margin: 0; padding: 15px 18px 15px 51px !important; border: 0 !important; background: transparent !important; font: 13px/1.7 ui-monospace, SFMono-Regular, Menlo, monospace !important; white-space: pre; tab-size: 2; }.code-editor pre { pointer-events: none; color: #d4d4d4; }.code-editor textarea { position: absolute; inset: 0; color: transparent !important; caret-color: #fff; overflow: hidden; outline: none !important; }.code-line-numbers { position: absolute; z-index: 1; top: 15px; left: 0; width: 39px; border-right: 1px solid #282839; color: #5d5d70; font: 13px/1.7 ui-monospace, monospace; text-align: right; user-select: none; }.code-line-numbers i { display: block; padding-right: 10px; font-style: normal; }.code-editor .token.comment { color: #6a9955; }.code-editor .token.keyword { color: #c586c0; }.code-editor .token.string { color: #ce9178; }.code-editor .token.function { color: #dcdcaa; }.code-editor .token.number { color: #b5cea8; }
-.editor-block--math { margin: 17px 0; overflow: hidden; padding: 0; border: 1px solid rgba(139,92,246,.28); border-radius: 14px; background: linear-gradient(135deg, rgba(91,33,182,.15), rgba(20,20,31,.72)); }.math-preview { min-height: 108px; padding: 30px 20px 16px; overflow-x: auto; color: #f1eaff; text-align: center; }.editor-block--math textarea { min-height: 36px; padding: 10px 14px !important; border-top: 1px solid rgba(255,255,255,.08) !important; background: rgba(0,0,0,.14) !important; color: #b5b5c5; font: 12px ui-monospace, monospace; outline: none !important; }
-.editor-block--sticky { margin: 17px 0; padding: 17px 18px 14px; border: 1px solid rgba(196,181,253,.24); border-radius: 13px; background: linear-gradient(145deg, rgba(124,58,237,.2), rgba(55,28,100,.24)); box-shadow: none !important; }.sticky-label { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; color: #d8b4fe; font-size: 10px; font-weight: 800; letter-spacing: .11em; }.editor-block--sticky textarea { min-height: 30px; color: #f3e8ff; font-size: 16px !important; font-weight: 500; line-height: 1.6; }
+.editor-block--code { margin: 16px 0; padding: 0; overflow: visible; border: 1px solid #333347; border-radius: 16px; background: #11111a; box-shadow: none !important; }.code-toolbar { display: flex; align-items: center; justify-content: space-between; height: 39px; padding: 0 12px; border-bottom: 1px solid #29293a; color: #88889a; font: 700 10px ui-monospace, monospace; letter-spacing: .11em; }.code-toolbar select { width: auto; padding: 4px 7px !important; border: 1px solid #3d3d50 !important; border-radius: 6px; background: #1b1b29 !important; color: #bcbccc; font: 700 10px ui-monospace, monospace; outline: none; }.code-editor { position: relative; min-height: 156px; overflow-x: auto; }.code-editor pre, .code-editor textarea { width: max-content; min-width: 100%; min-height: 156px; margin: 0; padding: 15px 18px 15px 51px !important; border: 0 !important; background: transparent !important; font: 13px/1.7 ui-monospace, SFMono-Regular, Menlo, monospace !important; white-space: pre; tab-size: 2; }.code-editor pre { pointer-events: none; color: #d4d4d4; }.code-editor textarea { position: absolute; inset: 0; color: transparent !important; caret-color: #fff; overflow: hidden; outline: none !important; }.code-line-numbers { position: absolute; z-index: 1; top: 15px; left: 0; width: 39px; border-right: 1px solid #282839; color: #5d5d70; font: 13px/1.7 ui-monospace, monospace; text-align: right; user-select: none; }.code-line-numbers i { display: block; padding-right: 10px; font-style: normal; }.code-editor .token.comment { color: #6a9955; }.code-editor .token.keyword { color: #c586c0; }.code-editor .token.string { color: #ce9178; }.code-editor .token.function { color: #dcdcaa; }.code-editor .token.number { color: #b5cea8; }
+.editor-block--math { margin: 16px 0; overflow: visible; padding: 0; border: 1px solid rgba(139,92,246,.25); border-radius: 16px; background: rgba(88, 28, 135, 0.08); box-shadow: none !important; }.math-preview { min-height: 80px; padding: 22px 16px 14px; overflow-x: auto; color: #f1eaff; text-align: center; }
+.editor-block--sticky { margin: 16px 0; overflow: visible; padding: 0; border: 1px solid rgba(245, 158, 11, 0.25); border-radius: 16px; background: rgba(245, 158, 11, 0.04); box-shadow: none !important; }
 .editor-block--image { padding: 16px 16px 18px !important; }
-.block-controls { position: absolute; z-index: 3; top: 50%; left: -75px; display: flex; gap: 2px; padding: 3px; border: 1px solid rgba(255,255,255,.09); border-radius: 8px; background: rgba(30,30,44,.92); box-shadow: none !important; opacity: 0; transform: translateY(-50%) translateX(3px); transition: opacity .18s, transform .18s; }.editor-block:hover .block-controls, .block-controls:focus-within { opacity: 1; transform: translateY(-50%) translateX(0); }.block-controls > button { display: grid; place-items: center; width: 22px; height: 22px; padding: 0; border: 0; border-radius: 5px; background: transparent; color: #9292a2; cursor: pointer; }.block-controls > button:hover { background: rgba(255,255,255,.09); color: #fff; }.block-controls > button:last-child:hover { color: #fb7185; }
-.note-command-menu { position: absolute; top: calc(100% + 4px); left: 8px; z-index: 9999; width: min(280px, calc(100vw - 24px)); max-height: min(300px, calc(100vh - 20px)); overflow: hidden; padding: 8px; border: 1px solid rgba(255,255,255,.14); border-radius: 13px; background: rgba(15,20,36,.98); box-shadow: none !important; backdrop-filter: blur(18px); }
+.editor-image-caption-input, .editor-block--image input.editor-image-caption-input { padding: 8px 16px !important; border: 1px solid rgba(255, 255, 255, 0.12) !important; background: rgba(0, 0, 0, 0.25) !important; border-radius: 12px !important; color: #e2e8f0 !important; }
+.block-controls { position: absolute; z-index: 20; top: 4px; right: 2px; left: auto; display: flex; align-items: center; gap: 2px; padding: 2px 3px; border: 1px solid rgba(255,255,255,.14); border-radius: 8px; background: rgba(18, 24, 38, 0.96); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); box-shadow: 0 4px 12px rgba(0,0,0,0.35) !important; opacity: 0; pointer-events: none; transform: translateY(0) translateX(-2px); transition: opacity .18s ease, transform .18s ease; white-space: nowrap; }
+.editor-block:hover .block-controls, .editor-block:focus-within .block-controls, .block-controls:focus-within { opacity: 1; pointer-events: auto; transform: translateY(0) translateX(0); }
+.editor-block--code .block-controls, .editor-block--math .block-controls, .editor-block--image .block-controls, .editor-block--file .block-controls, .editor-block--sticky .block-controls { top: -30px; right: 4px; left: auto; transform: translateY(0); }
+.editor-block--code:hover .block-controls, .editor-block--code:focus-within .block-controls, .editor-block--math:hover .block-controls, .editor-block--math:focus-within .block-controls, .editor-block--image:hover .block-controls, .editor-block--image:focus-within .block-controls, .editor-block--file:hover .block-controls, .editor-block--file:focus-within .block-controls, .editor-block--sticky:hover .block-controls, .editor-block--sticky:focus-within .block-controls { transform: translateY(0); }
+.block-controls > button { display: grid; place-items: center; width: 19px; height: 19px; padding: 0; border: 0; border-radius: 5px; background: transparent; color: #94a3b8; cursor: pointer; transition: background .15s, color .15s; }
+@media (min-width: 640px) { .block-controls > button { width: 21px; height: 21px; } }
+.block-controls > button:hover { background: rgba(255,255,255,.12); color: #fff; }.block-controls > button:last-child:hover { color: #f87171; }
+.note-command-menu { position: absolute; top: calc(100% + 4px); left: 0px; z-index: 9999; width: min(280px, calc(100vw - 24px)); max-height: min(300px, calc(100vh - 20px)); overflow: hidden; padding: 8px; border: 1px solid rgba(255,255,255,.14); border-radius: 13px; background: rgba(15,20,36,.98); box-shadow: none !important; backdrop-filter: blur(18px); }
 .note-command-menu--top { top: auto !important; bottom: calc(100% + 4px) !important; }
 .note-command-menu--side-right { top: -6px !important; bottom: auto !important; left: calc(100% + 12px) !important; }
 .note-command-menu--side-left { top: -6px !important; bottom: auto !important; left: auto !important; right: calc(100% + 12px) !important; }
 .note-command-menu > p { margin: 4px 7px 7px; color: #848495; font-size: 10px; font-weight: 800; letter-spacing: .11em; text-transform: uppercase; }.note-command-menu > div { max-height: 250px; overflow-y: auto; padding-right: 2px; }.note-command-menu > div::-webkit-scrollbar { width: 4px; }.note-command-menu > div::-webkit-scrollbar-thumb { background: rgba(168,85,247,.48); border-radius: 99px; }.note-command-menu button { display: flex; align-items: center; width: 100%; gap: 10px; padding: 9px 8px; border: 0; border-radius: 8px; background: transparent; color: #c6c6d0; text-align: left; font-size: 13px; cursor: pointer; }.note-command-menu button:hover, .note-command-menu button.is-selected { background: rgba(124,58,237,.32); color: #fff; }.note-command-menu button svg { color: #b991ff; }.note-command-menu button span { flex: 1; }.note-command-menu kbd { color: #8c8c9c; font: 10px ui-monospace, monospace; }.note-command-menu button.is-selected kbd { color: #ddd1ff; }
-@media (max-width: 700px) { .note-editor-back span { display: none; }.note-editor-title { margin-bottom: 24px; }.block-controls { display: none; }.editor-block--code, .editor-block--math { margin-left: 0; margin-right: 0; } }
+@media (max-width: 700px) { .note-editor-back span { display: none; }.note-editor-title { margin-bottom: 12px; }.editor-block--code, .editor-block--math { margin-left: 0; margin-right: 0; } }
 
 /* The highlight layer and the real editor layer share one immutable text metric.
    Keeping these rules together prevents browser textarea defaults from shifting the caret. */
@@ -1423,9 +1432,10 @@ html.light textarea::placeholder,
 
 .block-color-toolbar {
   position: absolute;
-  z-index: 40;
+  z-index: 50;
   top: 100%;
-  left: 0;
+  right: 0;
+  left: auto;
   margin-top: 8px;
   width: 240px;
   padding: 6px;
@@ -1999,12 +2009,13 @@ a:focus-visible, button:focus-visible, [tabindex]:focus-visible {
 .app-toast--info { border-color: var(--border-accent) !important; color: var(--accent-300) !important; }
 
 .note-editor-screen {
-  background: radial-gradient(circle at 78% -8%, rgba(59, 130, 246, 0.16), transparent 32%), var(--bg-section-grad) !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  border: none !important;
 }
 .note-editor-screen__header {
-  background: rgba(15, 23, 41, 0.72) !important;
   border-bottom-color: var(--border-subtle) !important;
-  backdrop-filter: blur(20px) saturate(160%);
+  backdrop-filter: blur(16px) saturate(160%);
 }
 .note-editor-title, .note-editor-title:focus, .editor-block input, .editor-block textarea { color: var(--text-primary) !important; }
 .editor-block input::selection, .editor-block textarea::selection { background: rgba(59, 130, 246, 0.42) !important; }
@@ -2216,12 +2227,15 @@ html.dark:not([data-theme="light"]) .app-toast {
 
 html:not([data-theme="light"]):not(.light) .note-editor-screen,
 html.dark:not([data-theme="light"]) .note-editor-screen {
-  background: radial-gradient(circle at 78% -8%, rgba(37, 99, 235, 0.13), transparent 29%), linear-gradient(145deg, #03050A, #08111F 55%, #03050A) !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  border: none !important;
 }
 
 html:not([data-theme="light"]):not(.light) .note-editor-screen__header,
 html.dark:not([data-theme="light"]) .note-editor-screen__header {
-  background: transparent !important;
+  background: rgba(10, 14, 26, 0.75) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
 }
 
 
@@ -2420,11 +2434,17 @@ html.dark:not([data-theme="light"]) .note-editor-screen__header {
 }
 
 :root[data-theme="light"] .notes-workspace,
-.light .notes-workspace,
-:root[data-theme="light"] .note-editor-screen,
-.light .note-editor-screen {
+.light .notes-workspace {
   background: #F3F7FC !important;
   background-image: none !important;
+}
+
+:root[data-theme="light"] .note-editor-screen,
+.light .note-editor-screen {
+  background: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  border: none !important;
 }
 
 /* ==========================================================================
@@ -3313,13 +3333,16 @@ html.dark:not([data-theme="light"]) .note-editor-screen__header {
 
 :root[data-theme="light"] .note-editor-screen,
 .light .note-editor-screen {
-  background: #F3F7FC !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  border: none !important;
 }
 
 :root[data-theme="light"] .note-editor-screen__header,
 .light .note-editor-screen__header {
-  background: transparent !important;
-  border: none !important;
+  background: rgba(243, 247, 252, 0.85) !important;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06) !important;
+  backdrop-filter: blur(16px) saturate(180%) !important;
 }
 
 :root[data-theme="light"] .note-editor-title,

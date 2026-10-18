@@ -22,6 +22,7 @@ import { aiMemoryService } from "../../services/aiMemoryService";
 import { syncService } from "../../services/syncService";
 import FocusForgeDatePicker from "../ui/FocusForgeDatePicker";
 import FocusForgeSelect from "../ui/FocusForgeSelect";
+import ConfirmDeleteModal from "../ui/ConfirmDeleteModal";
 import { toggleThemeWithCircularTransition } from "../../utils/themeTransition";
 import { subscribeUserToPush, getPushDiagnostics } from "../../utils/pushSubscription";
 
@@ -92,6 +93,7 @@ export default function SettingsPage() {
   const { state, updateState, showToast, navigateTo, navigateBack } = useAppContext();
   const { user, isGuest, updateUserProfile, logout, openAuth } = useAuth();
   const { t } = useTranslation();
+  const isBn = state.lang === "bn";
 
   // Navigation State
   const [expandedGroup, setExpandedGroup] = useState<SettingsGroup>("account");
@@ -737,6 +739,8 @@ export default function SettingsPage() {
   const [deleteError, setDeleteError] = useState("");
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
   const [deleteScope, setDeleteScope] = useState<"keep_local" | "full_wipe">("full_wipe");
+  const [showDeleteAccountModal, setShowDeleteAccountModal] = useState(false);
+  const [showRemoveAvatarModal, setShowRemoveAvatarModal] = useState(false);
 
   const handleDeleteAccount = async () => {
     if (deleteConfirmText.trim() !== "DELETE") {
@@ -972,7 +976,7 @@ export default function SettingsPage() {
                   {avatarUrl && (
                     <button
                       type="button"
-                      onClick={handleRemoveAvatar}
+                      onClick={() => setShowRemoveAvatarModal(true)}
                       className="absolute top-0 right-0 p-1.5 rounded-full bg-red-600 hover:bg-red-700 text-white ring-2 ring-[var(--color-surface-elevated)] shadow-none transition-colors cursor-pointer"
                       title="Remove Photo"
                       aria-label="Remove Photo"
@@ -2735,69 +2739,32 @@ export default function SettingsPage() {
             </div>
 
             {/* Clear Memory Confirmation Modal */}
-            {showClearMemoryConfirm && (
-              <div
-                className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/25"
-                onClick={() => {
-                  if (!isClearingMemory) setShowClearMemoryConfirm(false);
-                }}
-              >
-                <div
-                  className="relative w-full max-w-sm rounded-2xl border border-[var(--color-border-subtle)] bg-[var(--color-surface-elevated)] p-6 shadow-none flex flex-col gap-4 text-center items-center"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <div className="w-11 h-11 rounded-xl bg-red-500/10 text-red-500 flex items-center justify-center">
-                    <Trash2 size={20} />
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <h3 className="text-base font-semibold text-[var(--color-text-primary)]">
-                      {isBn ? "লোকাল এআই মেমোরি মুছে ফেলতে চান?" : "Clear AI Local Memory?"}
-                    </h3>
-                    <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed">
-                      {isBn
-                        ? "আপনি কি নিশ্চিত যে এই ডিভাইসে সংরক্ষিত সমস্ত ব্যক্তিগত এআই মেমোরি ও পছন্দ মুছে ফেলতে চান? এটি আর ফিরিয়ে আনা যাবে না।"
-                        : "Are you sure you want to erase all learned preferences and local AI memories on this device? This action cannot be undone."}
-                    </p>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3 w-full pt-2">
-                    <button
-                      type="button"
-                      disabled={isClearingMemory}
-                      onClick={() => setShowClearMemoryConfirm(false)}
-                      className="w-full px-4 py-2.5 rounded-xl text-xs font-medium text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-hover)] border border-[var(--color-border-subtle)] transition-colors cursor-pointer disabled:opacity-50"
-                    >
-                      {isBn ? "বাতিল" : "Cancel"}
-                    </button>
-                    <button
-                      type="button"
-                      disabled={isClearingMemory}
-                      onClick={async () => {
-                        setIsClearingMemory(true);
-                        try {
-                          await aiMemoryService.clearAllMemories(user?.id);
-                          showToast(
-                            isBn ? "সকল লোকাল এআই মেমোরি সফলভাবে মুছে ফেলা হয়েছে!" : "Local AI memory cleared!",
-                            "success"
-                          );
-                          setShowClearMemoryConfirm(false);
-                        } finally {
-                          setIsClearingMemory(false);
-                        }
-                      }}
-                      className="w-full px-4 py-2.5 rounded-xl text-xs font-medium text-white bg-red-600 hover:bg-red-700 transition-colors shadow-none cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-50"
-                    >
-                      {isClearingMemory ? (
-                        <span>{isBn ? "মুছে ফেলা হচ্ছে..." : "Clearing..."}</span>
-                      ) : (
-                        <span>{isBn ? "হ্যাঁ, মুছে ফেলুন" : "Yes, Clear"}</span>
-                      )}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
+            <ConfirmDeleteModal
+              isOpen={showClearMemoryConfirm}
+              onClose={() => setShowClearMemoryConfirm(false)}
+              onConfirm={async () => {
+                setIsClearingMemory(true);
+                try {
+                  await aiMemoryService.clearAllMemories(user?.id);
+                  showToast(
+                    isBn ? "সকল লোকাল এআই মেমোরি সফলভাবে মুছে ফেলা হয়েছে!" : "Local AI memory cleared!",
+                    "success"
+                  );
+                  setShowClearMemoryConfirm(false);
+                } finally {
+                  setIsClearingMemory(false);
+                }
+              }}
+              isLoading={isClearingMemory}
+              title={isBn ? "লোকাল এআই মেমোরি মুছে ফেলতে চান?" : "Clear AI Local Memory?"}
+              message={
+                isBn
+                  ? "আপনি কি নিশ্চিত যে এই ডিভাইসে সংরক্ষিত সমস্ত ব্যক্তিগত এআই মেমোরি ও পছন্দ মুছে ফেলতে চান? এটি আর ফিরিয়ে আনা যাবে না।"
+                  : "Are you sure you want to erase all learned preferences and local AI memories on this device? This action cannot be undone."
+              }
+              confirmLabel={isBn ? "হ্যাঁ, মুছে ফেলুন" : "Yes, Clear"}
+              cancelLabel={isBn ? "বাতিল" : "Cancel"}
+            />
           </div>
         );
       }
@@ -3156,7 +3123,18 @@ export default function SettingsPage() {
                   <button
                     type="button"
                     disabled={deleteConfirmText.trim() !== "DELETE" || isDeletingAccount || (!isGoogleUser && !deletePassword)}
-                    onClick={handleDeleteAccount}
+                    onClick={() => {
+                      if (deleteConfirmText.trim() !== "DELETE") {
+                        setDeleteError(t.settings.privacy.deleteAccount.typeMismatch);
+                        return;
+                      }
+                      if (!isGoogleUser && !deletePassword) {
+                        setDeleteError(t.settings.passwordSecurity.currentRequired);
+                        return;
+                      }
+                      setDeleteError("");
+                      setShowDeleteAccountModal(true);
+                    }}
                     className="px-6 py-2.5 rounded-xl text-xs font-semibold text-white bg-red-600 hover:bg-red-700 transition-colors shadow-none cursor-pointer disabled:opacity-40 min-h-[44px] flex items-center justify-center"
                   >
                     {isDeletingAccount ? t.settings.privacy.deleteAccount.deleting : t.settings.privacy.deleteAccount.confirmButton}
@@ -3176,6 +3154,44 @@ export default function SettingsPage() {
                 </div>
               </div>
             </div>
+
+            {/* Account Deletion High-Risk Confirmation Modal */}
+            <ConfirmDeleteModal
+              isOpen={showDeleteAccountModal}
+              onClose={() => setShowDeleteAccountModal(false)}
+              onConfirm={async () => {
+                setShowDeleteAccountModal(false);
+                await handleDeleteAccount();
+              }}
+              isLoading={isDeletingAccount}
+              isRisky={true}
+              title={isBn ? "আর ইউ সিওর?" : "Are you sure?"}
+              message={
+                isBn
+                  ? "এটি একটি অত্যন্ত ঝুঁকিপূর্ণ ও অপরিবর্তনীয় পদক্ষেপ। একবার অ্যাকাউন্ট মুছে ফেললে তা আর কোনোভাবেই ফিরিয়ে আনা যাবে না এবং আপনার সমস্ত ডেটা চিরতরে মুছে যাবে।"
+                  : "This is a high-risk, irreversible action. Once your account is deleted, it cannot be recovered and all your data will be permanently wiped."
+              }
+              confirmLabel={isBn ? "হ্যাঁ, অ্যাকাউন্ট মুছুন" : "Yes, Delete Account"}
+              cancelLabel={isBn ? "না, ফিরে যান" : "No, Keep Account"}
+            />
+
+            {/* Profile Avatar Removal Confirmation Modal */}
+            <ConfirmDeleteModal
+              isOpen={showRemoveAvatarModal}
+              onClose={() => setShowRemoveAvatarModal(false)}
+              onConfirm={() => {
+                setShowRemoveAvatarModal(false);
+                handleRemoveAvatar();
+              }}
+              title={isBn ? "প্রোফাইল ছবি মুছে ফেলতে চান?" : "Remove profile photo?"}
+              message={
+                isBn
+                  ? "আপনি কি নিশ্চিত যে আপনার বর্তমান প্রোফাইল ছবিটি সরিয়ে ফেলতে চান?"
+                  : "Are you sure you want to remove your profile photo?"
+              }
+              confirmLabel={isBn ? "মুছুন" : "Remove"}
+              cancelLabel={isBn ? "বাতিল" : "Cancel"}
+            />
           </div>
         );
       }

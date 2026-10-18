@@ -1708,9 +1708,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     });
 
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
-        diaryDbService.deleteDiaryEntry(entryId, session.user.id);
-      }
+      const targetUserId = session?.user?.id || 'guest';
+      diaryDbService.deleteDiaryEntry(entryId, targetUserId);
     });
   }, []);
 

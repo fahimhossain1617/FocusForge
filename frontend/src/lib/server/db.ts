@@ -1352,32 +1352,65 @@ export async function dbDeleteUserAccountCompletely(userId: string): Promise<voi
   try {
     await client.query('BEGIN');
 
+    const safeDelete = async (sql: string, params: any[]) => {
+      try {
+        await client.query('SAVEPOINT sp');
+        await client.query(sql, params);
+        await client.query('RELEASE SAVEPOINT sp');
+      } catch {
+        await client.query('ROLLBACK TO SAVEPOINT sp').catch(() => {});
+      }
+    };
+
     // 1. Delete zero-knowledge encrypted sync records
-    await client.query('DELETE FROM public.encrypted_sync_records WHERE user_id = $1', [userId]);
+    await safeDelete('DELETE FROM public.encrypted_sync_records WHERE user_id = $1', [userId]);
 
-    // 2. Delete notification configs, push subscriptions, and roles
-    await client.query('DELETE FROM public.user_notification_settings WHERE user_id = $1', [userId]).catch(() => {});
-    await client.query('DELETE FROM public.push_subscriptions WHERE user_id = $1', [userId]).catch(() => {});
-    await client.query('DELETE FROM public.sent_notifications_log WHERE user_id = $1', [userId]).catch(() => {});
-    await client.query('DELETE FROM public.user_roles WHERE user_id = $1', [userId]).catch(() => {});
-    await client.query('DELETE FROM public.review_prompt_state WHERE user_id = $1', [userId]).catch(() => {});
+    // 2. Delete notification configs, push subscriptions, queues and roles
+    await safeDelete('DELETE FROM public.user_notification_settings WHERE user_id = $1', [userId]);
+    await safeDelete('DELETE FROM public.push_subscriptions WHERE user_id = $1', [userId]);
+    await safeDelete('DELETE FROM public.sent_notifications_log WHERE user_id = $1', [userId]);
+    await safeDelete('DELETE FROM public.user_notifications WHERE user_id = $1', [userId]);
+    await safeDelete('DELETE FROM public.scheduled_reminders WHERE user_id = $1', [userId]);
+    await safeDelete('DELETE FROM public.user_roles WHERE user_id = $1', [userId]);
+    await safeDelete('DELETE FROM public.review_prompt_state WHERE user_id = $1', [userId]);
 
-    // 3. Anonymize any customer support tickets
-    await client.query(
+    // 3. Delete AI chat sessions, messages, and tokens
+    await safeDelete(
+      'DELETE FROM public.ai_chat_messages WHERE session_id IN (SELECT id FROM public.ai_chat_sessions WHERE user_id = $1)',
+      [userId]
+    );
+    await safeDelete('DELETE FROM public.ai_chat_sessions WHERE user_id = $1', [userId]);
+    await safeDelete('DELETE FROM public.ai_tokens WHERE user_id = $1', [userId]);
+    await safeDelete('DELETE FROM public.ai_agent_history WHERE user_id = $1', [userId]);
+
+    // 4. Delete user tasks, routines, notes, diary, learning, focus
+    await safeDelete('DELETE FROM public.tasks WHERE user_id = $1', [userId]);
+    await safeDelete('DELETE FROM public.routine_templates WHERE user_id = $1', [userId]);
+    await safeDelete('DELETE FROM public.note_blocks WHERE note_id IN (SELECT id FROM public.notes WHERE user_id = $1)', [userId]);
+    await safeDelete('DELETE FROM public.notes WHERE user_id = $1', [userId]);
+    await safeDelete('DELETE FROM public.mind_items WHERE user_id = $1', [userId]);
+    await safeDelete('DELETE FROM public.focus_sessions WHERE user_id = $1', [userId]);
+    await safeDelete('DELETE FROM public.diary_entries WHERE user_id = $1', [userId]);
+    await safeDelete('DELETE FROM public.diary_topics WHERE user_id = $1', [userId]);
+    await safeDelete('DELETE FROM public.learning_logs WHERE user_id = $1', [userId]);
+    await safeDelete('DELETE FROM public.learning_folders WHERE user_id = $1', [userId]);
+
+    // 5. Anonymize any customer support tickets
+    await safeDelete(
       `
       UPDATE public.support_tickets 
       SET user_id = NULL, name = 'Deleted User', email = 'deleted@focusforge.app' 
       WHERE user_id = $1
       `,
       [userId]
-    ).catch(() => {});
+    );
 
-    // 4. Delete profile row
-    await client.query('DELETE FROM public.profiles WHERE id = $1', [userId]);
+    // 6. Delete profile row
+    await safeDelete('DELETE FROM public.profiles WHERE id = $1', [userId]);
 
     await client.query('COMMIT');
   } catch (err) {
-    await client.query('ROLLBACK');
+    await client.query('ROLLBACK').catch(() => {});
     throw err;
   } finally {
     client.release();

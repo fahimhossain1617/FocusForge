@@ -123,15 +123,20 @@ export default function BlockEditor({
   }), [menu.query]);
 
   const update = (index: number, patch: Partial<NoteBlock>) => { onDirty(); onChange(blocks.map((b, i) => i === index ? { ...b, ...patch } : b)); };
-  const focus = (id: string) => window.setTimeout(() => {
-    const el = document.getElementById(`block-${id}`) as HTMLTextAreaElement | HTMLInputElement | null;
-    if (el) {
-      el.focus();
-      if (typeof el.selectionStart === "number") {
-        el.selectionStart = el.selectionEnd = el.value.length;
+  const focus = (id: string) => {
+    const applyFocus = () => {
+      const el = document.getElementById(`block-${id}`) as HTMLTextAreaElement | HTMLInputElement | null;
+      if (el) {
+        el.focus();
+        if (typeof el.selectionStart === "number") {
+          el.selectionStart = el.selectionEnd = el.value.length;
+        }
       }
-    }
-  }, 10);
+    };
+    applyFocus();
+    requestAnimationFrame(applyFocus);
+    window.setTimeout(applyFocus, 25);
+  };
   const insertAfter = (index: number, type: BlockType) => {
     const effectiveType = (!isOnline && type !== "paragraph" && type !== "h1" && type !== "h2" && type !== "h3") ? "paragraph" : type;
     const next = newBlock(effectiveType);
@@ -281,11 +286,16 @@ export default function BlockEditor({
     }
     const isBackspace =
       event.key === "Backspace" ||
+      event.code === "Backspace" ||
       (event as any).keyCode === 8 ||
+      (event.nativeEvent as any)?.code === "Backspace" ||
       (event.nativeEvent as any)?.key === "Backspace";
     const isDelete =
       event.key === "Delete" ||
+      event.key === "Del" ||
+      event.code === "Delete" ||
       (event as any).keyCode === 46 ||
+      (event.nativeEvent as any)?.code === "Delete" ||
       (event.nativeEvent as any)?.key === "Delete";
     const target = event.currentTarget as HTMLTextAreaElement | HTMLInputElement;
     const isEmptyOrHash = !block.content || !block.content.trim() || block.content.trim() === "#";
@@ -315,13 +325,7 @@ export default function BlockEditor({
             .filter((_, i) => i !== index)
             .map((b, i) => (i === index - 1 ? { ...b, content: mergedContent } : b))
         );
-        window.setTimeout(() => {
-          const el = document.getElementById(`block-${prevBlock.id}`) as HTMLTextAreaElement | null;
-          if (el) {
-            el.focus();
-            el.selectionStart = el.selectionEnd = prevLen;
-          }
-        }, 10);
+        focus(prevBlock.id);
         return;
       }
     }
@@ -354,7 +358,6 @@ export default function BlockEditor({
         setMenu((c) => ({ ...c, visible: false }));
         const prevBlock = blocks[index - 1];
         if (["paragraph", "h1", "h2", "h3", "bullet", "numbered", "quote", "todo"].includes(prevBlock.type)) {
-          const prevLen = prevBlock.content.length;
           const mergedContent = prevBlock.content + block.content;
           onDirty();
           onChange(
@@ -362,13 +365,7 @@ export default function BlockEditor({
               .filter((_, i) => i !== index)
               .map((b, i) => (i === index - 1 ? { ...b, content: mergedContent } : b))
           );
-          window.setTimeout(() => {
-            const el = document.getElementById(`block-${prevBlock.id}`) as HTMLTextAreaElement | null;
-            if (el) {
-              el.focus();
-              el.selectionStart = el.selectionEnd = prevLen;
-            }
-          }, 10);
+          focus(prevBlock.id);
         }
       }
     }
@@ -637,39 +634,151 @@ function ColorToolbar({ block, onUpdate, onClose }: { block: NoteBlock; onUpdate
 /* ───────────── Clean Sticky / Quick Note Block ───────────── */
 
 function StickyBlock({ block, control, input, textareaRef, onDelete }: any) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopyNote = async () => {
+    try {
+      await navigator.clipboard.writeText(block.content || "");
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {}
+  };
+
   return (
-    <div className="editor-block editor-block--sticky relative group my-4 p-4 sm:p-5 rounded-2xl border border-amber-500/30 bg-amber-500/[0.06] dark:bg-amber-500/[0.05]">
+    <div className="editor-block editor-block--sticky my-4 relative rounded-2xl border border-amber-500/30 bg-amber-500/[0.04] overflow-visible">
       {control}
-      <div className="flex items-center justify-between mb-3 px-1 pt-0.5">
-        <div className="sticky-label flex items-center gap-2 text-xs font-bold text-amber-500 dark:text-amber-400 select-none">
-          <StickyNote size={15} />
-          <span>QUICK NOTE</span>
+      <div className="flex items-center justify-between px-3.5 py-2 bg-black/40 border-b border-white/5 select-none rounded-t-2xl">
+        <div className="flex items-center gap-2">
+          <StickyNote size={14} className="text-amber-400" />
+          <span className="text-[11px] font-bold text-amber-300 font-mono tracking-wider">QUICK NOTE</span>
         </div>
-        <button
-          type="button"
-          onClick={onDelete}
-          className="text-red-400 hover:text-white bg-red-500/10 hover:bg-red-600 p-1.5 rounded-lg transition-colors cursor-pointer"
-          title="Delete Quick Note"
-        >
-          <Trash2 size={14} />
-        </button>
+        <div className="flex items-center gap-1.5">
+          <button
+            type="button"
+            onClick={handleCopyNote}
+            className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium text-zinc-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+            title="Copy Note"
+          >
+            {copied ? (
+              <>
+                <Check size={13} className="text-emerald-400" />
+                <span className="text-[11px] text-emerald-400 font-semibold">Copied!</span>
+              </>
+            ) : (
+              <>
+                <Copy size={13} />
+                <span className="text-[11px]">Copy Note</span>
+              </>
+            )}
+          </button>
+          <button
+            type="button"
+            onClick={onDelete}
+            className="p-1.5 rounded-lg text-zinc-500 hover:text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer"
+            title="Delete Quick Note"
+          >
+            <Trash2 size={13} />
+          </button>
+        </div>
       </div>
 
-      <textarea
-        ref={textareaRef}
-        {...input}
-        onKeyDown={(e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-          if (e.key === "Enter" && !e.shiftKey) {
-            e.stopPropagation();
-          } else {
-            input.onKeyDown?.(e);
-          }
-        }}
-        rows={3}
-        placeholder="Write a sticky note..."
-        className="w-full bg-transparent outline-none text-foreground placeholder:text-zinc-500 text-sm sm:text-base leading-relaxed resize-none overflow-hidden px-1 py-1"
-        style={{ minHeight: "80px" }}
-      />
+      <div className="p-3.5 sm:p-4">
+        <textarea
+          ref={textareaRef}
+          {...input}
+          onKeyDown={(e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.stopPropagation();
+            } else {
+              input.onKeyDown?.(e);
+            }
+          }}
+          rows={3}
+          placeholder="Write a sticky note..."
+          className="w-full bg-transparent outline-none text-foreground placeholder:text-zinc-500 text-sm sm:text-base leading-relaxed resize-none overflow-hidden"
+          style={{ minHeight: "80px" }}
+        />
+      </div>
+    </div>
+  );
+}
+
+function MathBlockItem({
+  block,
+  control,
+  input,
+  textareaRef,
+  onDelete
+}: {
+  block: NoteBlock;
+  control: React.ReactNode;
+  input: any;
+  textareaRef: any;
+  onDelete: () => void;
+}) {
+  const [copied, setCopied] = useState(false);
+  const mathContent = block.content || "x^2 + y^2 = z^2";
+  const formattedMath = mathContent.includes('\n') && !mathContent.includes('\\begin{')
+    ? `\\begin{aligned} ${mathContent.replace(/\n/g, '\\\\')} \\end{aligned}`
+    : mathContent;
+  const output = katex.renderToString(formattedMath, { throwOnError: false, displayMode: true });
+
+  const handleCopyMath = async () => {
+    try {
+      await navigator.clipboard.writeText(block.content || "");
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {}
+  };
+
+  return (
+    <div className="editor-block editor-block--math my-4 relative rounded-2xl border border-purple-500/30 bg-purple-950/20 overflow-visible">
+      {control}
+      <div className="flex items-center justify-between px-3.5 py-2 bg-black/40 border-b border-white/5 select-none rounded-t-2xl">
+        <div className="flex items-center gap-2">
+          <Sigma size={14} className="text-purple-400" />
+          <span className="text-[11px] font-bold text-purple-300 font-mono tracking-wider">MATH EQUATION</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <button
+            type="button"
+            onClick={handleCopyMath}
+            className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium text-zinc-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+            title="Copy Formula"
+          >
+            {copied ? (
+              <>
+                <Check size={13} className="text-emerald-400" />
+                <span className="text-[11px] text-emerald-400 font-semibold">Copied!</span>
+              </>
+            ) : (
+              <>
+                <Copy size={13} />
+                <span className="text-[11px]">Copy Formula</span>
+              </>
+            )}
+          </button>
+          <button
+            type="button"
+            onClick={onDelete}
+            className="p-1.5 rounded-lg text-zinc-500 hover:text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer"
+            title="Delete Math Block"
+          >
+            <Trash2 size={13} />
+          </button>
+        </div>
+      </div>
+
+      <div className="math-preview py-3.5 px-4 text-center overflow-x-auto" dangerouslySetInnerHTML={{ __html: output }} />
+      <div className="px-3.5 pb-3">
+        <textarea
+          ref={textareaRef}
+          {...input}
+          rows={1}
+          placeholder="x^2 + y^2 = z^2 (Shift+Enter for new block)"
+          className="w-full px-3.5 py-2 rounded-xl bg-black/25 dark:bg-black/30 border border-white/10 outline-none font-mono text-xs sm:text-sm text-zinc-200 placeholder:text-zinc-500 focus:border-purple-500/50 transition-colors"
+        />
+      </div>
     </div>
   );
 }
@@ -906,7 +1015,7 @@ function ImageBlockItem({
           value={captionValue}
           onChange={(e) => onUpdateColor({ caption: e.target.value })}
           placeholder="Add an image caption..."
-          className="text-xs text-zinc-300 placeholder-zinc-500 bg-black/20 dark:bg-white/5 border border-white/10 rounded-xl outline-none py-2 px-3.5 focus:border-blue-500/50 transition-colors w-full"
+          className="editor-image-caption-input text-xs text-zinc-300 placeholder-zinc-500 bg-black/20 dark:bg-white/5 border border-white/10 rounded-xl outline-none py-2.5 px-4 focus:border-blue-500/50 transition-colors w-full"
         />
         <div className="flex items-center gap-2 shrink-0 justify-between sm:justify-end my-1">
           <div className="flex items-center bg-white/5 p-1 rounded-lg border border-white/10">
@@ -993,9 +1102,9 @@ function EditorBlock({
 
   const control = (
     <div className="block-controls" style={{ zIndex: colorToolbarOpen ? 50 : 3 }}>
-      <button type="button" onClick={onColorToolbar} aria-label="Style block"><Palette size={13} /></button>
-      <button type="button" onClick={onDuplicate} aria-label="Duplicate block"><Copy size={13} /></button>
-      <button type="button" onClick={onDelete} aria-label="Delete block"><Trash2 size={13} /></button>
+      <button type="button" onClick={onColorToolbar} aria-label="Style block" title="Style"><Palette size={12} /></button>
+      <button type="button" onClick={onDuplicate} aria-label="Duplicate block" title="Duplicate"><Copy size={12} /></button>
+      <button type="button" onClick={onDelete} aria-label="Delete block" title="Delete"><Trash2 size={12} /></button>
       {colorToolbarOpen && <ColorToolbar block={block} onUpdate={onUpdateColor} onClose={onCloseColorToolbar} />}
     </div>
   );
@@ -1254,37 +1363,14 @@ function EditorBlock({
 
   // ── Math ──
   if (block.type === "math") {
-    const mathContent = block.content || "x^2 + y^2 = z^2";
-    const formattedMath = mathContent.includes('\n') && !mathContent.includes('\\begin{') ? `\\begin{aligned} ${mathContent.replace(/\n/g, '\\\\')} \\end{aligned}` : mathContent;
-    const output = katex.renderToString(formattedMath, { throwOnError: false, displayMode: true });
     return (
-      <div className="editor-block editor-block--math relative my-4 p-4 sm:p-5 rounded-2xl border border-purple-500/30 bg-purple-950/20">
-        {control}
-        <div className="flex items-center justify-between mb-3 px-1">
-          <div className="flex items-center gap-2 text-xs font-bold text-purple-400 select-none">
-            <Sigma size={15} />
-            <span>MATH EQUATION</span>
-          </div>
-          <button
-            type="button"
-            onClick={onDelete}
-            className="text-red-400 hover:text-white bg-red-500/10 hover:bg-red-600 p-1.5 rounded-lg transition-colors cursor-pointer"
-            title="Delete Math Block"
-          >
-            <Trash2 size={14} />
-          </button>
-        </div>
-        <div className="math-preview py-3.5 px-3 text-center overflow-x-auto" dangerouslySetInnerHTML={{ __html: output }} />
-        <div className="mt-3 px-1">
-          <textarea
-            ref={textarea}
-            {...input}
-            rows={1}
-            placeholder="x^2 + y^2 = z^2 (Shift+Enter for new block)"
-            className="w-full px-3.5 py-2.5 rounded-xl bg-black/25 dark:bg-black/30 border border-white/10 outline-none font-mono text-xs sm:text-sm text-zinc-200 placeholder:text-zinc-500 focus:border-purple-500/50 transition-colors"
-          />
-        </div>
-      </div>
+      <MathBlockItem
+        block={block}
+        control={control}
+        input={input}
+        textareaRef={textarea}
+        onDelete={onDelete}
+      />
     );
   }
 
