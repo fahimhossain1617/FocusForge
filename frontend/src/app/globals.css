@@ -887,28 +887,32 @@ html.light textarea::placeholder,
   width: 44px;
   height: 24px;
   border-radius: 9999px;
-  background: var(--color-bg-secondary);
-  border: 1px solid var(--color-border-subtle);
+  background: #cbd5e1;
+  border: 1px solid #94a3b8;
   transition: background-color 0.25s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   cursor: pointer;
   padding: 0 2px;
   outline-offset: 4px;
+}
+html.dark .toggle-switch, [data-theme="dark"] .toggle-switch {
+  background: #334155;
+  border-color: #475569;
 }
 .toggle-switch:focus-visible {
   outline: 2px solid var(--accent-500);
 }
 
 .toggle-switch.is-active {
-  background: var(--color-purple-primary);
-  border-color: var(--color-purple-primary);
+  background: #2563eb;
+  border-color: #2563eb;
 }
 
 .toggle-knob {
   width: 18px;
   height: 18px;
   border-radius: 50%;
-  background: white;
-  box-shadow: none !important;
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25) !important;
   transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   transform: translateX(0);
 }

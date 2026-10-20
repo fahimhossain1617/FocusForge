@@ -81,9 +81,18 @@ function Toggle({
       aria-label={ariaLabel}
       disabled={disabled}
       onClick={() => !disabled && onChange(!checked)}
-      className={`toggle-switch shrink-0 ${checked ? "is-active" : ""} ${disabled ? "opacity-40 cursor-not-allowed" : "cursor-pointer"}`}
+      className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full border-2 transition-all duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 ${
+        checked
+          ? "bg-blue-600 border-blue-600"
+          : "bg-slate-300 hover:bg-slate-350 border-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 dark:border-slate-600"
+      } ${disabled ? "opacity-40 cursor-not-allowed" : "cursor-pointer"}`}
     >
-      <span className="toggle-knob" />
+      <span
+        aria-hidden="true"
+        className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition-transform duration-200 ease-in-out ${
+          checked ? "translate-x-5" : "translate-x-0"
+        }`}
+      />
     </button>
   );
 }
@@ -863,7 +872,7 @@ export default function SettingsPage() {
 
   // Helper: Guest Auth Prompt Component
   const GuestPromptCard = ({ heading, text }: { heading: string; text: string }) => (
-    <div className="rounded-2xl border border-[var(--color-border-subtle)] bg-[var(--color-surface-elevated)] p-8 sm:p-12 text-center max-w-lg mx-auto shadow-none">
+    <div className="py-10 px-4 text-center max-w-lg mx-auto border-y border-[var(--color-border-subtle)] my-6">
       <div className="w-14 h-14 mx-auto mb-4 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center">
         <User size={26} />
       </div>
@@ -877,14 +886,14 @@ export default function SettingsPage() {
         <button
           type="button"
           onClick={() => openAuth("login")}
-          className="w-full sm:w-auto px-6 py-2.5 rounded-xl text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 transition-colors shadow-none cursor-pointer min-h-[44px]"
+          className="w-full sm:w-auto px-6 py-2.5 rounded-xl text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 active:scale-[0.98] shadow-sm shadow-blue-500/20 transition-all cursor-pointer min-h-[44px]"
         >
           {t.auth.logIn}
         </button>
         <button
           type="button"
           onClick={() => openAuth("signup")}
-          className="w-full sm:w-auto px-6 py-2.5 rounded-xl text-xs font-semibold text-[var(--color-text-primary)] bg-[var(--color-surface)] hover:bg-[var(--color-surface-hover)] border border-[var(--color-border-subtle)] transition-colors cursor-pointer min-h-[44px]"
+          className="w-full sm:w-auto px-6 py-2.5 rounded-xl text-xs font-semibold text-[var(--color-text-primary)] bg-[var(--color-surface)] hover:bg-[var(--color-surface-hover)] border border-[var(--color-border-subtle)] active:scale-[0.98] transition-all cursor-pointer min-h-[44px]"
         >
           {t.auth.signUp}
         </button>
@@ -940,8 +949,8 @@ export default function SettingsPage() {
               className="hidden"
             />
 
-            {/* Profile Header Card */}
-            <div className="rounded-2xl border border-[var(--color-border-subtle)] bg-[var(--color-surface-elevated)] p-6 sm:p-7 shadow-none">
+            {/* Profile Header */}
+            <div className="pb-8 border-b border-[var(--color-border-subtle)]">
               <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
                 {/* Circular Avatar with Camera Button */}
                 <div className="relative shrink-0">
@@ -965,7 +974,7 @@ export default function SettingsPage() {
                   <button
                     type="button"
                     onClick={() => profileFileInputRef.current?.click()}
-                    className="absolute bottom-0 right-0 p-2 rounded-full bg-blue-600 text-white hover:bg-blue-700 ring-2 ring-[var(--color-surface-elevated)] shadow-none transition-colors cursor-pointer"
+                    className="absolute bottom-0 right-0 p-2 rounded-full bg-blue-600 text-white hover:bg-blue-700 ring-2 ring-[var(--color-surface)] shadow-sm active:scale-95 transition-all cursor-pointer"
                     title="Change Photo"
                     aria-label="Change Photo"
                   >
@@ -977,7 +986,7 @@ export default function SettingsPage() {
                     <button
                       type="button"
                       onClick={() => setShowRemoveAvatarModal(true)}
-                      className="absolute top-0 right-0 p-1.5 rounded-full bg-red-600 hover:bg-red-700 text-white ring-2 ring-[var(--color-surface-elevated)] shadow-none transition-colors cursor-pointer"
+                      className="absolute top-0 right-0 p-1.5 rounded-full bg-red-600 hover:bg-red-700 text-white ring-2 ring-[var(--color-surface)] shadow-sm active:scale-95 transition-all cursor-pointer"
                       title="Remove Photo"
                       aria-label="Remove Photo"
                     >
@@ -1002,7 +1011,7 @@ export default function SettingsPage() {
                       <button
                         type="button"
                         onClick={() => setIsEditingProfile(true)}
-                        className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 transition-colors shadow-none cursor-pointer min-h-[44px] shrink-0"
+                        className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 active:scale-[0.98] shadow-sm shadow-blue-500/20 transition-all cursor-pointer min-h-[40px] shrink-0"
                       >
                         <Edit3 size={14} />
                         <span>{t.settings.profile.editProfile}</span>
@@ -1013,9 +1022,9 @@ export default function SettingsPage() {
               </div>
             </div>
 
-            {/* Personal Information Card */}
-            <div className="rounded-2xl border border-[var(--color-border-subtle)] bg-[var(--color-surface-elevated)] p-6 sm:p-7 shadow-none">
-              <div className="flex items-center justify-between pb-4 border-b border-[var(--color-border-subtle)] mb-6">
+            {/* Personal Information */}
+            <div className="space-y-6 pt-2">
+              <div className="flex items-center justify-between pb-3 border-b border-[var(--color-border-subtle)] mb-6">
                 <div>
                   <h3 className="text-base font-semibold text-[var(--color-text-primary)] tracking-tight">
                     Personal Information
@@ -1057,7 +1066,7 @@ export default function SettingsPage() {
                         )}
                       </div>
                     ) : (
-                      <p className="text-sm text-[var(--color-text-primary)] px-3.5 py-2.5 rounded-xl bg-[var(--color-surface)] border border-[var(--color-border-subtle)]">
+                      <p className="text-sm font-medium text-[var(--color-text-primary)] py-1.5">
                         {profileForm.fullName || "Not specified"}
                       </p>
                     )}
@@ -1081,7 +1090,7 @@ export default function SettingsPage() {
                         )}
                       </div>
                     ) : (
-                      <p className="text-sm text-[var(--color-text-primary)] px-3.5 py-2.5 rounded-xl bg-[var(--color-surface)] border border-[var(--color-border-subtle)]">
+                      <p className="text-sm font-medium text-[var(--color-text-primary)] py-1.5">
                         {profileForm.displayName || "Not specified"}
                       </p>
                     )}
@@ -1099,12 +1108,9 @@ export default function SettingsPage() {
                         Verified
                       </span>
                     </div>
-                    <input
-                      type="email"
-                      readOnly
-                      value={profileForm.email || user?.identifier || ""}
-                      className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-[var(--color-surface)] border border-[var(--color-border-subtle)] text-[var(--color-text-secondary)] opacity-80 cursor-not-allowed min-h-[44px]"
-                    />
+                    <p className="text-sm font-medium text-[var(--color-text-secondary)] py-1.5">
+                      {profileForm.email || user?.identifier || ""}
+                    </p>
                   </div>
 
                   <div>
@@ -1125,7 +1131,7 @@ export default function SettingsPage() {
                         )}
                       </div>
                     ) : (
-                      <p className="text-sm text-[var(--color-text-primary)] px-3.5 py-2.5 rounded-xl bg-[var(--color-surface)] border border-[var(--color-border-subtle)] flex items-center gap-2">
+                      <p className="text-sm font-medium text-[var(--color-text-primary)] py-1.5 flex items-center gap-2">
                         <Phone size={14} className="text-[var(--color-text-muted)] shrink-0" />
                         <span>{sanitizePhone(profileForm.phone) || "Not specified"}</span>
                       </p>
@@ -1153,7 +1159,7 @@ export default function SettingsPage() {
                         )}
                       </div>
                     ) : (
-                      <p className="text-sm text-[var(--color-text-primary)] px-3.5 py-2.5 rounded-xl bg-[var(--color-surface)] border border-[var(--color-border-subtle)] flex items-center gap-2">
+                      <p className="text-sm font-medium text-[var(--color-text-primary)] py-1.5 flex items-center gap-2">
                         <Calendar size={14} className="text-[var(--color-text-muted)] shrink-0" />
                         <span>{profileForm.dob || "Not specified"}</span>
                       </p>
@@ -1179,7 +1185,7 @@ export default function SettingsPage() {
                         ariaLabel="Gender"
                       />
                     ) : (
-                      <p className="text-sm text-[var(--color-text-primary)] px-3.5 py-2.5 rounded-xl bg-[var(--color-surface)] border border-[var(--color-border-subtle)]">
+                      <p className="text-sm font-medium text-[var(--color-text-primary)] py-1.5">
                         {profileForm.gender || "Not specified"}
                       </p>
                     )}
@@ -1203,7 +1209,7 @@ export default function SettingsPage() {
                         />
                       </div>
                     ) : (
-                      <p className="text-sm text-[var(--color-text-primary)] px-3.5 py-2.5 rounded-xl bg-[var(--color-surface)] border border-[var(--color-border-subtle)] flex items-center gap-2">
+                      <p className="text-sm font-medium text-[var(--color-text-primary)] py-1.5 flex items-center gap-2">
                         <Globe size={14} className="text-[var(--color-text-muted)] shrink-0" />
                         <span>{profileForm.country || "Not specified"}</span>
                       </p>
@@ -1225,7 +1231,7 @@ export default function SettingsPage() {
                         />
                       </div>
                     ) : (
-                      <p className="text-sm text-[var(--color-text-primary)] px-3.5 py-2.5 rounded-xl bg-[var(--color-surface)] border border-[var(--color-border-subtle)] flex items-center gap-2">
+                      <p className="text-sm font-medium text-[var(--color-text-primary)] py-1.5 flex items-center gap-2">
                         <MapPin size={14} className="text-[var(--color-text-muted)] shrink-0" />
                         <span>{profileForm.city || "Not specified"}</span>
                       </p>
@@ -1260,7 +1266,7 @@ export default function SettingsPage() {
                       )}
                     </div>
                   ) : (
-                    <p className="text-sm text-[var(--color-text-primary)] px-3.5 py-3 rounded-xl bg-[var(--color-surface)] border border-[var(--color-border-subtle)] whitespace-pre-wrap leading-relaxed">
+                    <p className="text-sm font-medium text-[var(--color-text-primary)] py-1.5 whitespace-pre-wrap leading-relaxed">
                       {profileForm.bio || "No bio added yet. Click Edit to share a short summary about yourself."}
                     </p>
                   )}
@@ -1272,14 +1278,14 @@ export default function SettingsPage() {
                     <button
                       type="button"
                       onClick={() => setIsEditingProfile(false)}
-                      className="px-4 py-2.5 rounded-xl text-xs font-semibold text-[var(--color-text-primary)] bg-[var(--color-surface)] hover:bg-[var(--color-surface-hover)] border border-[var(--color-border-subtle)] transition-colors cursor-pointer min-h-[44px]"
+                      className="px-4 py-2.5 rounded-xl text-xs font-semibold text-[var(--color-text-primary)] bg-[var(--color-surface)] hover:bg-[var(--color-surface-hover)] border border-[var(--color-border-subtle)] active:scale-[0.98] transition-all cursor-pointer min-h-[44px]"
                     >
                       {t.settings.profile.cancel}
                     </button>
                     <button
                       type="submit"
                       disabled={isSavingProfile}
-                      className="px-5 py-2.5 rounded-xl text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 transition-colors shadow-none cursor-pointer disabled:opacity-50 min-h-[44px]"
+                      className="px-5 py-2.5 rounded-xl text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 active:scale-[0.98] shadow-sm shadow-blue-500/20 transition-all cursor-pointer disabled:opacity-50 min-h-[44px]"
                     >
                       {isSavingProfile ? t.settings.profile.saving : t.settings.profile.save}
                     </button>
@@ -1325,7 +1331,7 @@ export default function SettingsPage() {
               </p>
             </div>
 
-            <div className="rounded-2xl border border-[var(--color-border-subtle)] bg-[var(--color-surface-elevated)] p-6 sm:p-7 shadow-none">
+            <div className="space-y-6 max-w-xl pt-2">
               {isGoogleUser ? (
                 <div className="text-sm text-[var(--color-text-secondary)] py-2 leading-relaxed">
                   {t.settings.passwordSecurity.googleNotice}
@@ -1377,7 +1383,7 @@ export default function SettingsPage() {
                           type="button"
                           onClick={handleSendForgotPassword}
                           disabled={isSendingReset}
-                          className="px-4 py-2.5 rounded-xl text-xs font-semibold text-blue-600 dark:text-blue-400 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 transition-colors cursor-pointer disabled:opacity-50 min-h-[42px]"
+                          className="px-4 py-2.5 rounded-xl text-xs font-semibold text-blue-600 dark:text-blue-400 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 active:scale-[0.98] transition-all cursor-pointer disabled:opacity-50 min-h-[42px]"
                         >
                           {isSendingReset
                             ? (t.settings.passwordSecurity.sendingResetLink || "Sending...")
@@ -1389,7 +1395,7 @@ export default function SettingsPage() {
                             setIsForgotPasswordMode(false);
                             setResetSentSuccess(false);
                           }}
-                          className="px-4 py-2.5 rounded-xl text-xs font-semibold text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface)] border border-[var(--color-border-subtle)] transition-colors cursor-pointer min-h-[42px]"
+                          className="px-4 py-2.5 rounded-xl text-xs font-semibold text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface)] border border-[var(--color-border-subtle)] active:scale-[0.98] transition-all cursor-pointer min-h-[42px]"
                         >
                           {t.settings.passwordSecurity.backToChangePassword || "Back to Change Password"}
                         </button>
@@ -1427,7 +1433,7 @@ export default function SettingsPage() {
                         <button
                           type="submit"
                           disabled={isSendingReset}
-                          className="px-5 py-2.5 rounded-xl text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 transition-colors shadow-none cursor-pointer disabled:opacity-50 min-h-[44px]"
+                          className="px-5 py-2.5 rounded-xl text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 active:scale-[0.98] shadow-sm shadow-blue-500/20 transition-all cursor-pointer disabled:opacity-50 min-h-[44px]"
                         >
                           {isSendingReset
                             ? (t.settings.passwordSecurity.sendingResetLink || "Sending...")
@@ -1439,7 +1445,7 @@ export default function SettingsPage() {
                             setIsForgotPasswordMode(false);
                             setForgotEmailError("");
                           }}
-                          className="px-4 py-2.5 rounded-xl text-xs font-semibold text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface)] border border-[var(--color-border-subtle)] transition-colors cursor-pointer min-h-[44px]"
+                          className="px-4 py-2.5 rounded-xl text-xs font-semibold text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface)] border border-[var(--color-border-subtle)] active:scale-[0.98] transition-all cursor-pointer min-h-[44px]"
                         >
                           {t.settings.passwordSecurity.backToChangePassword || "Cancel"}
                         </button>
@@ -1580,7 +1586,7 @@ export default function SettingsPage() {
                     <button
                       type="submit"
                       disabled={isChangingPassword}
-                      className="px-5 py-2.5 rounded-xl text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 transition-colors shadow-none cursor-pointer disabled:opacity-50 min-h-[44px]"
+                      className="px-5 py-2.5 rounded-xl text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 active:scale-[0.98] shadow-sm shadow-blue-500/20 transition-all cursor-pointer disabled:opacity-50 min-h-[44px]"
                     >
                       {isChangingPassword ? t.settings.passwordSecurity.changing : t.settings.passwordSecurity.changePassword}
                     </button>
@@ -1601,7 +1607,7 @@ export default function SettingsPage() {
         return (
           <div className="space-y-6">
             {/* Header with Central Master Toggle Switch */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 sm:p-6 rounded-2xl border border-[var(--color-border-subtle)] bg-[var(--color-surface-elevated)]">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-[var(--color-border-subtle)]">
               <div>
                 <h1 className="text-xl sm:text-2xl font-bold text-[var(--color-text-primary)] tracking-tight">
                   {t.settings.notifications.title}
@@ -1631,7 +1637,7 @@ export default function SettingsPage() {
             )}
 
             {/* Sub-notification Toggles List */}
-            <div className="rounded-2xl border border-[var(--color-border-subtle)] bg-[var(--color-surface-elevated)] divide-y divide-[var(--color-border-subtle)] shadow-none">
+            <div className="divide-y divide-[var(--color-border-subtle)]">
               {/* Notification Sound Toggle */}
               <div className="p-5 sm:p-6 flex items-center justify-between gap-4">
                 <div className={notifMasterEnabled ? "" : "opacity-40"}>
@@ -1882,36 +1888,34 @@ export default function SettingsPage() {
               </p>
             </div>
 
-            <div className="rounded-2xl border border-[var(--color-border-subtle)] bg-[var(--color-surface-elevated)] p-5 sm:p-6 shadow-none">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {/* English */}
-                <button
-                  type="button"
-                  onClick={() => handleLanguageChange("en")}
-                  className={`flex items-center justify-between p-4 rounded-xl border text-left transition-all cursor-pointer min-h-[56px] ${
-                    state.lang === "en"
-                      ? "border-blue-500 bg-blue-500/10 text-blue-600 dark:text-blue-400 font-semibold"
-                      : "border-[var(--color-border-subtle)] bg-[var(--color-surface)] text-[var(--color-text-primary)] hover:border-[var(--color-border-strong)]"
-                  }`}
-                >
-                  <span className="text-sm">{t.settings.preferences.langEn}</span>
-                  {state.lang === "en" && <Check size={16} className="shrink-0" />}
-                </button>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+              {/* English */}
+              <button
+                type="button"
+                onClick={() => handleLanguageChange("en")}
+                className={`flex items-center justify-between p-4 rounded-xl border text-left active:scale-[0.98] transition-all cursor-pointer min-h-[56px] ${
+                  state.lang === "en"
+                    ? "border-blue-500 bg-blue-500/10 text-blue-600 dark:text-blue-400 font-semibold"
+                    : "border-[var(--color-border-subtle)] bg-[var(--color-surface)] text-[var(--color-text-primary)] hover:border-[var(--color-border-strong)]"
+                }`}
+              >
+                <span className="text-sm font-medium">{t.settings.preferences.langEn}</span>
+                {state.lang === "en" && <Check size={16} className="shrink-0" />}
+              </button>
 
-                {/* Bangla */}
-                <button
-                  type="button"
-                  onClick={() => handleLanguageChange("bn")}
-                  className={`flex items-center justify-between p-4 rounded-xl border text-left transition-all cursor-pointer min-h-[56px] ${
-                    state.lang === "bn"
-                      ? "border-blue-500 bg-blue-500/10 text-blue-600 dark:text-blue-400 font-semibold"
-                      : "border-[var(--color-border-subtle)] bg-[var(--color-surface)] text-[var(--color-text-primary)] hover:border-[var(--color-border-strong)]"
-                  }`}
-                >
-                  <span className="text-sm">{t.settings.preferences.langBn}</span>
-                  {state.lang === "bn" && <Check size={16} className="shrink-0" />}
-                </button>
-              </div>
+              {/* Bangla */}
+              <button
+                type="button"
+                onClick={() => handleLanguageChange("bn")}
+                className={`flex items-center justify-between p-4 rounded-xl border text-left active:scale-[0.98] transition-all cursor-pointer min-h-[56px] ${
+                  state.lang === "bn"
+                    ? "border-blue-500 bg-blue-500/10 text-blue-600 dark:text-blue-400 font-semibold"
+                    : "border-[var(--color-border-subtle)] bg-[var(--color-surface)] text-[var(--color-text-primary)] hover:border-[var(--color-border-strong)]"
+                }`}
+              >
+                <span className="text-sm font-medium">{t.settings.preferences.langBn}</span>
+                {state.lang === "bn" && <Check size={16} className="shrink-0" />}
+              </button>
             </div>
           </div>
         );
@@ -2047,7 +2051,7 @@ export default function SettingsPage() {
               </p>
             </div>
 
-            <div className="rounded-2xl border border-[var(--color-border-subtle)] bg-[var(--color-surface-elevated)] p-6 sm:p-8 space-y-6 shadow-none">
+            <div className="space-y-6 divide-y divide-[var(--color-border-subtle)] pt-2">
               {/* What is Focentia */}
               <div>
                 <h3 className="text-sm font-semibold text-[var(--color-text-primary)] mb-2">
@@ -2059,7 +2063,7 @@ export default function SettingsPage() {
               </div>
 
               {/* Our Purpose */}
-              <div>
+              <div className="pt-6">
                 <h3 className="text-sm font-semibold text-[var(--color-text-primary)] mb-2">
                   {t.settings.about.purposeTitle}
                 </h3>
@@ -2069,7 +2073,7 @@ export default function SettingsPage() {
               </div>
 
               {/* Core Features */}
-              <div>
+              <div className="pt-6">
                 <h3 className="text-sm font-semibold text-[var(--color-text-primary)] mb-3">
                   {t.settings.about.coreFeaturesTitle}
                 </h3>
@@ -2086,7 +2090,7 @@ export default function SettingsPage() {
               </div>
 
               {/* Version Information */}
-              <div className="pt-4 border-t border-[var(--color-border-subtle)] text-xs text-[var(--color-text-muted)] flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div className="pt-6 text-xs text-[var(--color-text-muted)] flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <span>{APP_NAME} {t.settings.about.version} {APP_VERSION}</span>
                 <span>(c) {COPYRIGHT_YEAR} {APP_NAME}. {t.settings.about.copyright}</span>
               </div>
@@ -2110,7 +2114,7 @@ export default function SettingsPage() {
               </p>
             </div>
 
-            <div className="rounded-2xl border border-[var(--color-border-subtle)] bg-[var(--color-surface-elevated)] p-6 sm:p-8 shadow-none leading-relaxed text-sm text-[var(--color-text-primary)]">
+            <div className="pt-2 leading-relaxed text-sm text-[var(--color-text-primary)] max-w-2xl">
               <p>{t.settings.support.gettingStartedContent}</p>
             </div>
           </div>
@@ -2132,11 +2136,11 @@ export default function SettingsPage() {
               </p>
             </div>
 
-            <div className="rounded-2xl border border-[var(--color-border-subtle)] bg-[var(--color-surface-elevated)] divide-y divide-[var(--color-border-subtle)] shadow-none">
+            <div className="divide-y divide-[var(--color-border-subtle)] pt-2">
               {t.settings.support.faqs.map((faq, idx) => {
                 const isExpanded = expandedFaqIndex === idx;
                 return (
-                  <div key={idx} className="p-4 sm:p-5">
+                  <div key={idx} className="py-4 sm:py-5">
                     <button
                       type="button"
                       onClick={() => setExpandedFaqIndex(isExpanded ? null : idx)}
@@ -2193,9 +2197,9 @@ export default function SettingsPage() {
               </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-2">
               {/* Guides Selector Tabs */}
-              <div className="rounded-2xl border border-[var(--color-border-subtle)] bg-[var(--color-surface-elevated)] p-2 divide-y divide-[var(--color-border-subtle)] md:divide-y-0 space-y-1 shadow-none">
+              <div className="space-y-1 divide-y divide-[var(--color-border-subtle)] md:divide-y-0">
                 {guides.map((g) => {
                   const isActive = activeGuideTab === g.key;
                   return (
@@ -2217,7 +2221,7 @@ export default function SettingsPage() {
               </div>
 
               {/* Guide Content Display */}
-              <div className="md:col-span-2 rounded-2xl border border-[var(--color-border-subtle)] bg-[var(--color-surface-elevated)] p-6 sm:p-7 shadow-none">
+              <div className="md:col-span-2 space-y-3 pt-1 md:pl-6 md:border-l md:border-[var(--color-border-subtle)]">
                 <h3 className="text-lg font-bold text-[var(--color-text-primary)] mb-3">
                   {selectedGuide.title}
                 </h3>
@@ -2245,7 +2249,7 @@ export default function SettingsPage() {
               </p>
             </div>
 
-            <div className="rounded-2xl border border-[var(--color-border-subtle)] bg-[var(--color-surface-elevated)] p-6 sm:p-7 shadow-none">
+            <div className="pt-2">
               <form onSubmit={handleSubmitReport} className="space-y-4 max-w-xl">
                 {/* Category */}
                 <div>
@@ -2342,7 +2346,7 @@ export default function SettingsPage() {
                   <button
                     type="submit"
                     disabled={isSubmittingReport}
-                    className="px-5 py-2.5 rounded-xl text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 transition-colors shadow-none cursor-pointer disabled:opacity-50 min-h-[44px]"
+                    className="px-5 py-2.5 rounded-xl text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 active:scale-[0.98] transition-all shadow-sm cursor-pointer disabled:opacity-50 min-h-[44px]"
                   >
                     {isSubmittingReport ? t.settings.support.submitting : t.settings.support.submitReport}
                   </button>
@@ -2368,7 +2372,7 @@ export default function SettingsPage() {
               </p>
             </div>
 
-            <div className="rounded-2xl border border-[var(--color-border-subtle)] bg-[var(--color-surface-elevated)] p-6 sm:p-7 shadow-none space-y-6 max-w-xl">
+            <div className="space-y-6 max-w-xl pt-2">
               <div className="text-xs text-[var(--color-text-secondary)]">
                 <span className="font-medium text-[var(--color-text-primary)]">{t.settings.support.supportEmailText} </span>
                 <span className="font-mono text-blue-600 dark:text-blue-400">{SUPPORT_EMAIL}</span>
@@ -2449,7 +2453,7 @@ export default function SettingsPage() {
                   <button
                     type="submit"
                     disabled={isSubmittingContact}
-                    className="px-5 py-2.5 rounded-xl text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 transition-colors shadow-none cursor-pointer disabled:opacity-50 min-h-[44px]"
+                    className="px-5 py-2.5 rounded-xl text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 active:scale-[0.98] transition-all shadow-sm cursor-pointer disabled:opacity-50 min-h-[44px]"
                   >
                     {isSubmittingContact ? t.settings.support.sending : t.settings.support.sendMessage}
                   </button>
@@ -2475,7 +2479,7 @@ export default function SettingsPage() {
               </p>
             </div>
 
-            <div className="rounded-2xl border border-[var(--color-border-subtle)] bg-[var(--color-surface-elevated)] p-6 sm:p-7 shadow-none">
+            <div className="pt-2">
               <form onSubmit={handleSubmitFeedback} className="space-y-4 max-w-xl">
                 <div>
                   <label className="block text-xs font-medium text-[var(--color-text-primary)] mb-1.5">
@@ -2518,7 +2522,7 @@ export default function SettingsPage() {
                   <button
                     type="submit"
                     disabled={isSubmittingFeedback}
-                    className="px-5 py-2.5 rounded-xl text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 transition-colors shadow-none cursor-pointer disabled:opacity-50 min-h-[44px]"
+                    className="px-5 py-2.5 rounded-xl text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 active:scale-[0.98] transition-all shadow-sm cursor-pointer disabled:opacity-50 min-h-[44px]"
                   >
                     {isSubmittingFeedback ? t.settings.support.submitting : t.settings.support.submitFeedback}
                   </button>
@@ -2563,8 +2567,8 @@ export default function SettingsPage() {
               </p>
             </div>
 
-            {/* Cloud Sync Status & Information Card */}
-            <div className="rounded-2xl border border-[var(--color-border-subtle)] bg-[var(--color-surface-elevated)] p-6 space-y-4">
+            {/* Cloud Sync Status & Information */}
+            <div className="space-y-4 pb-6 border-b border-[var(--color-border-subtle)]">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
                   <div className="p-2 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400">
@@ -2585,13 +2589,13 @@ export default function SettingsPage() {
                 </div>
               </div>
 
-              <div className="p-4 rounded-xl bg-[var(--color-surface)] border border-[var(--color-border-subtle)] space-y-2">
-                <p className="text-xs text-[var(--color-text-primary)] leading-relaxed">
+              <div className="space-y-2 text-xs text-[var(--color-text-secondary)] leading-relaxed">
+                <p>
                   {isBn
                     ? "আপনার টাস্ক, নোট, ডায়েরি এবং রুটিনসহ সকল ডাটা আপনার অ্যাকাউন্টের সাথে স্বয়ংক্রিয়ভাবে সিঙ্ক হয়। আপনি যেকোনো ফোন, ট্যাবলেট বা কম্পিউটারে শুধু এই অ্যাকাউন্টে লগইন করলেই আপনার সব তথ্য সাথে সাথে পেয়ে যাবেন।"
                     : "All your tasks, notes, diary entries, and routines are automatically saved and synced to your account. Simply sign in with this same account on any phone, tablet, or computer to access all your data instantly."}
                 </p>
-                <p className="text-[11px] text-[var(--color-text-muted)] leading-relaxed">
+                <p className="text-[11px] text-[var(--color-text-muted)]">
                   {isBn
                     ? "কোনো অতিরিক্ত পাসওয়ার্ড বা পিন সেটআপ করার প্রয়োজন নেই। সবকিছু সম্পূর্ণ স্বয়ংক্রিয়ভাবে ব্যাকগ্রাউন্ডে সংরক্ষিত ও সিঙ্ক হতে থাকবে।"
                     : "No extra passwords or PINs required. Everything syncs seamlessly in the background whenever you are connected."}
@@ -2599,8 +2603,8 @@ export default function SettingsPage() {
               </div>
             </div>
 
-            {/* Trigger Sync Now Card */}
-            <div className="rounded-2xl border border-[var(--color-border-subtle)] bg-[var(--color-surface-elevated)] p-6 space-y-4">
+            {/* Trigger Sync Now */}
+            <div className="space-y-4 pt-2">
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-sm font-semibold text-[var(--color-text-primary)]">
@@ -2616,7 +2620,7 @@ export default function SettingsPage() {
                   type="button"
                   onClick={handleTriggerSyncNow}
                   disabled={isSyncingNow}
-                  className="px-4 py-2 rounded-xl text-xs font-semibold text-white bg-[#1E3E7B] hover:bg-[#28539E] transition-colors flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                  className="px-4 py-2 rounded-xl text-xs font-semibold text-white bg-[#1E3E7B] hover:bg-[#28539E] active:scale-[0.98] transition-all shadow-sm flex items-center gap-2 cursor-pointer disabled:opacity-50"
                 >
                   <RefreshCw size={13} className={isSyncingNow ? "animate-spin" : ""} />
                   <span>{isSyncingNow ? (isBn ? "সিঙ্ক হচ্ছে..." : "Syncing...") : (isBn ? "এখনই সিঙ্ক করুন" : "Sync Now")}</span>
@@ -2654,8 +2658,8 @@ export default function SettingsPage() {
               </p>
             </div>
 
-            <div className="rounded-2xl border border-[var(--color-border-subtle)] bg-[var(--color-surface-elevated)] p-6 space-y-6 shadow-none max-w-2xl">
-              {/* Allow AI Improvement Toggle Card */}
+            <div className="space-y-6 max-w-2xl pt-2">
+              {/* Allow AI Improvement Toggle */}
               <div className="flex items-start justify-between gap-4 pb-6 border-b border-[var(--color-border-subtle)]">
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
@@ -2730,7 +2734,7 @@ export default function SettingsPage() {
                 <button
                   type="button"
                   onClick={() => setShowClearMemoryConfirm(true)}
-                  className="px-4 py-2 rounded-xl text-xs font-medium text-red-500 hover:text-white hover:bg-red-500/90 border border-red-500/30 transition-colors cursor-pointer flex items-center"
+                  className="px-4 py-2 rounded-xl text-xs font-semibold text-red-500 hover:text-white hover:bg-red-500/90 border border-red-500/30 active:scale-[0.98] transition-all shadow-sm cursor-pointer flex items-center"
                 >
                   <Trash2 size={13} className="mr-1.5" />
                   {isBn ? "মেমোরি মুছুন" : "Clear Memories"}
@@ -2786,10 +2790,10 @@ export default function SettingsPage() {
               </p>
             </div>
 
-            <div className="rounded-2xl border border-[var(--color-border-subtle)] bg-[var(--color-surface-elevated)] p-6 sm:p-8 space-y-6 shadow-none text-xs sm:text-sm text-[var(--color-text-secondary)] leading-relaxed max-w-3xl">
+            <div className="pt-2 space-y-6 text-xs sm:text-sm text-[var(--color-text-secondary)] leading-relaxed max-w-3xl divide-y divide-[var(--color-border-subtle)]">
               <p>{policy.intro}</p>
 
-              <div>
+              <div className="pt-6">
                 <h3 className="text-sm font-semibold text-[var(--color-text-primary)] mb-2">
                   {policy.sec1Title}
                 </h3>
@@ -2800,56 +2804,56 @@ export default function SettingsPage() {
                 </ul>
               </div>
 
-              <div>
+              <div className="pt-6">
                 <h3 className="text-sm font-semibold text-[var(--color-text-primary)] mb-2">
                   {policy.sec2Title}
                 </h3>
                 <p>{policy.sec2Text}</p>
               </div>
 
-              <div>
+              <div className="pt-6">
                 <h3 className="text-sm font-semibold text-[var(--color-text-primary)] mb-2">
                   {policy.sec3Title}
                 </h3>
                 <p>{policy.sec3Text}</p>
               </div>
 
-              <div>
+              <div className="pt-6">
                 <h3 className="text-sm font-semibold text-[var(--color-text-primary)] mb-2">
                   {policy.sec4Title}
                 </h3>
                 <p>{policy.sec4Text}</p>
               </div>
 
-              <div>
+              <div className="pt-6">
                 <h3 className="text-sm font-semibold text-[var(--color-text-primary)] mb-2">
                   {policy.sec5Title}
                 </h3>
                 <p>{policy.sec5Text}</p>
               </div>
 
-              <div>
+              <div className="pt-6">
                 <h3 className="text-sm font-semibold text-[var(--color-text-primary)] mb-2">
                   {policy.sec6Title}
                 </h3>
                 <p>{policy.sec6Text}</p>
               </div>
 
-              <div>
+              <div className="pt-6">
                 <h3 className="text-sm font-semibold text-[var(--color-text-primary)] mb-2">
                   {policy.sec7Title}
                 </h3>
                 <p>{policy.sec7Text}</p>
               </div>
 
-              <div>
+              <div className="pt-6">
                 <h3 className="text-sm font-semibold text-[var(--color-text-primary)] mb-2">
                   {policy.sec8Title}
                 </h3>
                 <p>{policy.sec8Text}</p>
               </div>
 
-              <div>
+              <div className="pt-6">
                 <h3 className="text-sm font-semibold text-[var(--color-text-primary)] mb-2">
                   {policy.sec9Title}
                 </h3>
@@ -2877,73 +2881,73 @@ export default function SettingsPage() {
               </p>
             </div>
 
-            <div className="rounded-2xl border border-[var(--color-border-subtle)] bg-[var(--color-surface-elevated)] p-6 sm:p-8 space-y-6 shadow-none text-xs sm:text-sm text-[var(--color-text-secondary)] leading-relaxed max-w-3xl">
+            <div className="pt-2 space-y-6 text-xs sm:text-sm text-[var(--color-text-secondary)] leading-relaxed max-w-3xl divide-y divide-[var(--color-border-subtle)]">
               <p>{terms.intro}</p>
 
-              <div>
+              <div className="pt-6">
                 <h3 className="text-sm font-semibold text-[var(--color-text-primary)] mb-2">
                   {terms.sec1Title}
                 </h3>
                 <p>{terms.sec1Text}</p>
               </div>
 
-              <div>
+              <div className="pt-6">
                 <h3 className="text-sm font-semibold text-[var(--color-text-primary)] mb-2">
                   {terms.sec2Title}
                 </h3>
                 <p>{terms.sec2Text}</p>
               </div>
 
-              <div>
+              <div className="pt-6">
                 <h3 className="text-sm font-semibold text-[var(--color-text-primary)] mb-2">
                   {terms.sec3Title}
                 </h3>
                 <p>{terms.sec3Text}</p>
               </div>
 
-              <div>
+              <div className="pt-6">
                 <h3 className="text-sm font-semibold text-[var(--color-text-primary)] mb-2">
                   {terms.sec4Title}
                 </h3>
                 <p>{terms.sec4Text}</p>
               </div>
 
-              <div>
+              <div className="pt-6">
                 <h3 className="text-sm font-semibold text-[var(--color-text-primary)] mb-2">
                   {terms.sec5Title}
                 </h3>
                 <p>{terms.sec5Text}</p>
               </div>
 
-              <div>
+              <div className="pt-6">
                 <h3 className="text-sm font-semibold text-[var(--color-text-primary)] mb-2">
                   {terms.sec6Title}
                 </h3>
                 <p>{terms.sec6Text}</p>
               </div>
 
-              <div>
+              <div className="pt-6">
                 <h3 className="text-sm font-semibold text-[var(--color-text-primary)] mb-2">
                   {terms.sec7Title}
                 </h3>
                 <p>{terms.sec7Text}</p>
               </div>
 
-              <div>
+              <div className="pt-6">
                 <h3 className="text-sm font-semibold text-[var(--color-text-primary)] mb-2">
                   {terms.sec8Title}
                 </h3>
                 <p>{terms.sec8Text}</p>
               </div>
 
-              <div>
+              <div className="pt-6">
                 <h3 className="text-sm font-semibold text-[var(--color-text-primary)] mb-2">
                   {terms.sec9Title}
                 </h3>
                 <p>{terms.sec9Text}</p>
               </div>
 
-              <div>
+              <div className="pt-6">
                 <h3 className="text-sm font-semibold text-[var(--color-text-primary)] mb-2">
                   {terms.sec10Title}
                 </h3>
@@ -2989,8 +2993,8 @@ export default function SettingsPage() {
               </p>
             </div>
 
-            <div className="rounded-2xl border border-red-500/30 bg-red-500/5 p-6 sm:p-7 space-y-6 shadow-none">
-              <div className="space-y-2.5">
+            <div className="space-y-6 pt-2 max-w-2xl">
+              <div className="space-y-2.5 pb-5 border-b border-[var(--color-border-subtle)]">
                 <h3 className="text-sm font-semibold text-red-600 dark:text-red-400">
                   {t.settings.privacy.deleteAccount.modalWarning}
                 </h3>
@@ -3002,7 +3006,7 @@ export default function SettingsPage() {
               </div>
 
               {/* Option A vs Option B Deletion Scope Choice */}
-              <div className="space-y-3 pt-2">
+              <div className="space-y-3 pt-1">
                 <label className="block text-xs font-semibold text-[var(--color-text-primary)]">
                   {state?.lang === "bn" ? "ডিলিট অপশন সিলেক্ট করুন:" : "Select Deletion Scope:"}
                 </label>
@@ -3065,7 +3069,7 @@ export default function SettingsPage() {
                 </div>
               </div>
 
-              <div className="border-t border-red-500/20 pt-5 space-y-4">
+              <div className="border-t border-[var(--color-border-subtle)] pt-5 space-y-4">
                 <div>
                   <label className="block text-xs font-semibold text-[var(--color-text-primary)] mb-1.5">
                     {t.settings.privacy.deleteAccount.typePrompt}
@@ -3135,7 +3139,7 @@ export default function SettingsPage() {
                       setDeleteError("");
                       setShowDeleteAccountModal(true);
                     }}
-                    className="px-6 py-2.5 rounded-xl text-xs font-semibold text-white bg-red-600 hover:bg-red-700 transition-colors shadow-none cursor-pointer disabled:opacity-40 min-h-[44px] flex items-center justify-center"
+                    className="px-6 py-2.5 rounded-xl text-xs font-semibold text-white bg-red-600 hover:bg-red-700 active:scale-[0.98] transition-all shadow-sm cursor-pointer disabled:opacity-40 min-h-[44px] flex items-center justify-center"
                   >
                     {isDeletingAccount ? t.settings.privacy.deleteAccount.deleting : t.settings.privacy.deleteAccount.confirmButton}
                   </button>
@@ -3147,7 +3151,7 @@ export default function SettingsPage() {
                       setDeleteError("");
                       handleBack();
                     }}
-                    className="px-5 py-2.5 rounded-xl text-xs font-semibold text-[var(--color-text-primary)] bg-[var(--color-surface)] hover:bg-[var(--color-surface-hover)] border border-[var(--color-border-subtle)] transition-colors cursor-pointer min-h-[44px]"
+                    className="px-5 py-2.5 rounded-xl text-xs font-semibold text-[var(--color-text-primary)] bg-[var(--color-surface)] hover:bg-[var(--color-surface-hover)] border border-[var(--color-border-subtle)] active:scale-[0.98] transition-all cursor-pointer min-h-[44px]"
                   >
                     {t.settings.privacy.deleteAccount.cancelButton}
                   </button>
@@ -3222,12 +3226,12 @@ export default function SettingsPage() {
         {/* LEFT PANEL: 2-Level Expandable Navigation Menu (Desktop & Mobile) */}
         {/* ================================================================= */}
         <aside
-          className={`lg:col-span-4 rounded-3xl border border-[var(--color-border-subtle)] bg-[var(--color-surface-elevated)] p-4 sm:p-5 shadow-none ${
+          className={`lg:col-span-4 lg:pr-8 lg:border-r lg:border-[var(--color-border-subtle)] space-y-6 ${
             mobileView === "detail" ? "hidden lg:block" : "block"
           }`}
         >
-          {/* Top Profile Card in Left Panel */}
-          <div className="p-3 mb-4 rounded-2xl bg-[var(--color-surface)] border border-[var(--color-border-subtle)] flex items-center justify-between gap-3">
+          {/* Top Profile Area in Left Panel */}
+          <div className="flex items-center justify-between gap-3 pb-5 mb-2 border-b border-[var(--color-border-subtle)]">
             <div className="flex items-center gap-3 min-w-0">
               <div className="w-10 h-10 rounded-full overflow-hidden shrink-0 border border-[var(--color-border-subtle)] bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold text-sm">
                 {avatarUrl ? (
@@ -3250,68 +3254,54 @@ export default function SettingsPage() {
               <button
                 type="button"
                 onClick={() => openAuth("login")}
-                className="px-3 py-1.5 rounded-lg text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 transition-colors shadow-none cursor-pointer shrink-0"
+                className="px-3.5 py-1.5 rounded-xl text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 active:scale-[0.98] transition-all shadow-sm cursor-pointer shrink-0"
               >
                 {t.auth.logIn}
               </button>
             ) : null}
           </div>
 
-          {/* 2-Level Navigation Tree */}
-          <nav className="space-y-1.5" aria-label="Settings Navigation">
-            {navigationGroups.map((group) => {
-              const isExpanded = expandedGroup === group.id;
+          {/* Navigation Tree - Fixed Headings & Permanently Open Sub-items */}
+          <nav className="space-y-5" aria-label="Settings Navigation">
+            {navigationGroups.map((group, groupIdx) => {
               const GroupIcon = group.icon;
 
               return (
-                <div key={group.id} className="rounded-xl overflow-hidden">
-                  {/* Group Header Button */}
-                  <button
-                    type="button"
-                    onClick={() => toggleGroup(group.id)}
-                    aria-expanded={isExpanded}
-                    className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold text-[var(--color-text-primary)] hover:bg-[var(--color-surface-hover)] transition-colors cursor-pointer min-h-[44px]"
-                  >
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      {/* Chevron Arrow at front (Points right when collapsed, down when expanded) */}
-                      <span className="text-[var(--color-text-muted)] shrink-0 transition-transform duration-180 inline-flex items-center justify-center">
-                        {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-                      </span>
-
-                      {/* Icon for Group */}
-                      <GroupIcon size={16} className="text-[var(--color-text-secondary)] shrink-0" />
-
-                      {/* Label */}
-                      <span className="truncate">{group.label}</span>
-                    </div>
-                  </button>
-
-                  {/* Sub-items list with vertical guideline */}
-                  {isExpanded && (
-                    <div className="mt-1 mb-2 ml-4 pl-3 border-l border-[var(--color-border-subtle)] space-y-1 transition-all duration-180">
-                      {group.subItems.map((sub) => {
-                        const isSubActive = activeSubItem === sub.id;
-                        const SubIcon = sub.icon;
-
-                        return (
-                          <button
-                            key={sub.id}
-                            type="button"
-                            onClick={() => selectSubItem(group.id, sub.id)}
-                            aria-current={isSubActive ? "page" : undefined}
-                            className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs transition-colors cursor-pointer min-h-[38px] text-left ${
-                              isSubActive
-                                ? "bg-blue-500/10 text-blue-600 dark:text-blue-400 font-semibold"
-                                : "text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-hover)] font-normal"
-                            }`}
-                          >
-                            {SubIcon && <SubIcon size={14} className="shrink-0" />}
-                            <span className="truncate">{sub.label}</span>
-                          </button>
-                        );
-                      })}
-                    </div>
+                <div key={group.id} className="space-y-2">
+                  {groupIdx > 0 && (
+                    <div className="border-t border-[var(--color-border-subtle)] pb-2" />
                   )}
+
+                  {/* Fixed Group Header (Prominent, fixed title, no accordion chevron icon) */}
+                  <div className="flex items-center gap-2 px-1 py-1 text-sm font-bold text-[var(--color-text-primary)]">
+                    <GroupIcon size={16} className="text-[var(--color-text-secondary)] shrink-0" />
+                    <span>{group.label}</span>
+                  </div>
+
+                  {/* Sub-items list permanently open, indented cleanly without vertical border line */}
+                  <div className="pl-1 space-y-0.5">
+                    {group.subItems.map((sub) => {
+                      const isSubActive = activeSubItem === sub.id;
+                      const SubIcon = sub.icon;
+
+                      return (
+                        <button
+                          key={sub.id}
+                          type="button"
+                          onClick={() => selectSubItem(group.id, sub.id)}
+                          aria-current={isSubActive ? "page" : undefined}
+                          className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs transition-all cursor-pointer min-h-[38px] text-left active:scale-[0.99] ${
+                            isSubActive
+                              ? "bg-blue-500/10 text-blue-600 dark:text-blue-400 font-semibold shadow-sm"
+                              : "text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-hover)] font-normal"
+                          }`}
+                        >
+                          {SubIcon && <SubIcon size={14} className="shrink-0" />}
+                          <span className="truncate">{sub.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
               );
             })}
