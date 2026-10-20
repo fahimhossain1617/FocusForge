@@ -1137,10 +1137,10 @@ html.light textarea::placeholder,
 .note-editor-screen__header { position: sticky; top: 0; z-index: 50; flex: 0 0 auto; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(255, 255, 255, 0.05); background: rgba(10, 14, 26, 0.75) !important; backdrop-filter: blur(16px) saturate(160%) !important; -webkit-backdrop-filter: blur(16px) saturate(160%) !important; }
 .note-editor-back { display: inline-flex; align-items: center; gap: 9px; padding: 8px 10px; border: 0; border-radius: 10px; background: transparent; color: #9d9dac; font-size: 12px; font-weight: 700; letter-spacing: .02em; cursor: pointer; transition: background .2s, color .2s; }.note-editor-back:hover { background: rgba(255,255,255,.06); color: #fff; }
 .note-save-state { display: inline-flex; align-items: center; gap: 6px; color: #7c7c8e; font-size: 12px; font-weight: 600; }.note-save-state:not(.is-saving) { color: #8fcbad; }.note-save-state.is-saving { color: #b9a2ff; }
-.note-editor-screen__scroll { width: 100%; }.note-editor-canvas { width: 100%; max-width: 900px; margin: 0 auto; padding: 0 0 80px; }
+.note-editor-screen__scroll { width: 100%; }.note-editor-canvas { width: 100%; max-width: 820px; margin: 0 auto; padding: 0 16px 80px; }
 .note-editor-title, .note-editor-title:focus { display: block; width: 100%; margin: 0 0 12px !important; padding: 0 !important; border: 0 !important; outline: 0; background: transparent !important; box-shadow: none !important; color: #f5f3ff; font-size: clamp(26px, 4.5vw, 36px) !important; font-weight: 790; line-height: 1.22; letter-spacing: -.035em; }.note-editor-title::placeholder { color: #535362; }
-.editor-block { position: relative; width: 100%; padding-left: 0 !important; padding-right: 76px; }.editor-block input, .editor-block textarea, .editor-block input:focus, .editor-block textarea:focus { display: block; width: 100%; padding: 0 !important; border: 0 !important; outline: none !important; resize: none; overflow: hidden; background: transparent !important; background-color: inherit; box-shadow: none !important; color: #e7e7ef; caret-color: #fff; }
-@media (min-width: 640px) { .editor-block { padding-left: 0 !important; padding-right: 84px; } }
+.editor-block { position: relative; width: 100%; padding-left: 0 !important; padding-right: 32px; }.editor-block input, .editor-block textarea, .editor-block input:focus, .editor-block textarea:focus { display: block; width: 100%; padding: 0 !important; border: 0 !important; outline: none !important; resize: none; overflow: hidden; background: transparent !important; background-color: inherit; box-shadow: none !important; color: #e7e7ef; caret-color: #fff; }
+@media (min-width: 640px) { .editor-block { padding-left: 0 !important; padding-right: 36px; } }
 .editor-block--code, .editor-block--math, .editor-block--sticky, .editor-block--image, .editor-block--file, .editor-block--link { padding-right: 0 !important; }
 .editor-block input::selection, .editor-block textarea::selection { background: rgba(124, 58, 237, 0.4) !important; color: inherit; }
 .editor-block--paragraph { min-height: 28px; margin: 2px 0; }.editor-block--paragraph textarea { min-height: 28px; font-size: 16.5px !important; font-weight: 400; line-height: 1.62; }
@@ -1154,6 +1154,19 @@ html.light textarea::placeholder,
 .editor-block--sticky { margin: 16px 0; overflow: visible; padding: 0; border: 1px solid rgba(245, 158, 11, 0.25); border-radius: 16px; background: rgba(245, 158, 11, 0.04); box-shadow: none !important; }
 .editor-block--image { padding: 16px 16px 18px !important; }
 .editor-image-caption-input, .editor-block--image input.editor-image-caption-input { padding: 8px 16px !important; border: 1px solid rgba(255, 255, 255, 0.12) !important; background: rgba(0, 0, 0, 0.25) !important; border-radius: 12px !important; color: #e2e8f0 !important; }
+.block-action-container { position: absolute; z-index: 25; top: 3px; right: 2px; display: flex; flex-direction: column; align-items: flex-end; }
+.editor-block--code .block-action-container, .editor-block--math .block-action-container, .editor-block--image .block-action-container, .editor-block--file .block-action-container, .editor-block--sticky .block-action-container { top: -28px; right: 4px; }
+.block-action-trigger { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 9999px; border: 1px solid rgba(255, 255, 255, 0.14); background: rgba(18, 24, 38, 0.90); color: #94a3b8; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); cursor: pointer; transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1); opacity: 0; pointer-events: none; }
+.editor-block:hover .block-action-trigger, .editor-block:focus-within .block-action-trigger, .block-action-container.is-active .block-action-trigger { opacity: 1; pointer-events: auto; }
+@media (hover: none) and (pointer: coarse) { .block-action-trigger { opacity: 0.75; pointer-events: auto; } }
+.block-action-trigger:hover, .block-action-trigger.is-open { color: #ffffff; background: rgba(124, 58, 237, 0.85); border-color: rgba(168, 85, 247, 0.6); box-shadow: 0 0 10px rgba(139, 92, 246, 0.35); }
+.block-action-plus-icon { transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1); }
+.block-action-plus-icon.rotate-45 { transform: rotate(45deg); }
+.block-action-vertical-menu { position: absolute; top: calc(100% + 4px); right: 0; z-index: 55; display: flex; flex-direction: column; gap: 2px; min-width: 104px; padding: 4px; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.14); background: rgba(15, 23, 42, 0.96); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.4); transform-origin: top right; }
+.block-action-vertical-menu--up { top: auto; bottom: calc(100% + 4px); transform-origin: bottom right; }
+.block-action-item { display: flex; align-items: center; gap: 8px; width: 100%; padding: 6px 9px; border: none; border-radius: 8px; background: transparent; color: #e2e8f0; font-size: 11.5px; font-weight: 500; text-align: left; cursor: pointer; transition: background 0.14s ease, color 0.14s ease; }
+.block-action-item:hover { background: rgba(255, 255, 255, 0.1); color: #ffffff; }
+.block-action-item--delete:hover { background: rgba(239, 68, 68, 0.18); color: #fca5a5; }
 .block-controls { position: absolute; z-index: 20; top: 4px; right: 2px; left: auto; display: flex; align-items: center; gap: 2px; padding: 2px 3px; border: 1px solid rgba(255,255,255,.14); border-radius: 8px; background: rgba(18, 24, 38, 0.96); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); box-shadow: 0 4px 12px rgba(0,0,0,0.35) !important; opacity: 0; pointer-events: none; transform: translateY(0) translateX(-2px); transition: opacity .18s ease, transform .18s ease; white-space: nowrap; }
 .editor-block:hover .block-controls, .editor-block:focus-within .block-controls, .block-controls:focus-within { opacity: 1; pointer-events: auto; transform: translateY(0) translateX(0); }
 .editor-block--code .block-controls, .editor-block--math .block-controls, .editor-block--image .block-controls, .editor-block--file .block-controls, .editor-block--sticky .block-controls { top: -30px; right: 4px; left: auto; transform: translateY(0); }
@@ -2466,6 +2479,27 @@ html.dark:not([data-theme="light"]) .note-editor-screen__header {
   letter-spacing: -0.015em;
 }
 
+/* Preserve high-contrast text on diary notebook covers in light mode */
+:root[data-theme="light"] .diary-cover-surface:not(.is-light-cover) h3,
+.light .diary-cover-surface:not(.is-light-cover) h3 {
+  color: #FFFFFF !important;
+}
+
+:root[data-theme="light"] .diary-cover-surface:not(.is-light-cover) p,
+.light .diary-cover-surface:not(.is-light-cover) p {
+  color: rgba(255, 255, 255, 0.85) !important;
+}
+
+:root[data-theme="light"] .diary-cover-surface.is-light-cover h3,
+.light .diary-cover-surface.is-light-cover h3 {
+  color: #0F172A !important;
+}
+
+:root[data-theme="light"] .diary-cover-surface.is-light-cover p,
+.light .diary-cover-surface.is-light-cover p {
+  color: #475569 !important;
+}
+
 :root[data-theme="light"] p,
 :root[data-theme="light"] span,
 :root[data-theme="light"] label,
@@ -3362,6 +3396,47 @@ html.dark:not([data-theme="light"]) .note-editor-screen__header {
   background: #FFFFFF !important;
   border-color: #DCE5F0 !important;
   box-shadow: none !important;
+}
+
+:root[data-theme="light"] .block-action-trigger,
+.light .block-action-trigger {
+  background: rgba(241, 245, 249, 0.95);
+  border-color: #cbd5e1;
+  color: #475569;
+}
+
+:root[data-theme="light"] .block-action-trigger:hover,
+:root[data-theme="light"] .block-action-trigger.is-open,
+.light .block-action-trigger:hover,
+.light .block-action-trigger.is-open {
+  background: #6366f1;
+  border-color: #4f46e5;
+  color: #ffffff;
+  box-shadow: 0 0 10px rgba(99, 102, 241, 0.25);
+}
+
+:root[data-theme="light"] .block-action-vertical-menu,
+.light .block-action-vertical-menu {
+  background: rgba(255, 255, 255, 0.98);
+  border-color: #e2e8f0;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.12), 0 8px 10px -6px rgba(0, 0, 0, 0.08);
+}
+
+:root[data-theme="light"] .block-action-item,
+.light .block-action-item {
+  color: #334155;
+}
+
+:root[data-theme="light"] .block-action-item:hover,
+.light .block-action-item:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+:root[data-theme="light"] .block-action-item--delete:hover,
+.light .block-action-item--delete:hover {
+  background: #fee2e2;
+  color: #dc2626;
 }
 
 :root[data-theme="light"] .note-more-menu,
@@ -4322,6 +4397,12 @@ html [class*="composerPillBox"] textarea:active {
   outline: none !important;
   padding: 0 !important;
   margin: 0 !important;
+}
+
+/* Mind space textarea: ensure comfortable, professional text margin and no edge clipping */
+textarea.my-mind-textarea {
+  padding: 16px 20px !important;
+  line-height: 1.6 !important;
 }
 
 /* ========================================================================== */

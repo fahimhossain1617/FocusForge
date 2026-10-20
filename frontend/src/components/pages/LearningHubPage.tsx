@@ -958,9 +958,9 @@ export default function LearningHubPage() {
               </form>
             </div>
 
-            {/* Right: Learning History & Records (Log History) */}
-            <div className="rounded-2xl border border-slate-200 dark:border-white/10 p-4 sm:p-5 bg-white dark:bg-[#111827] shadow-none flex flex-col">
-              <div className="flex items-center justify-between gap-2 mb-3.5">
+            {/* Right: Learning History & Records (Log History) - Unboxed clean layout */}
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center justify-between gap-2 px-1">
                 <div className="flex items-center gap-2 min-w-0">
                   <h2 className="text-xs sm:text-sm font-bold text-foreground whitespace-nowrap">
                     {t.learningHub.logHistory}
@@ -984,7 +984,7 @@ export default function LearningHubPage() {
               </div>
 
               {activeFolderLogs.length === 0 ? (
-                <div className="p-8 text-center text-muted-foreground text-xs sm:text-sm rounded-xl border border-dashed border-slate-200 dark:border-white/10">
+                <div className="p-8 text-center text-muted-foreground text-xs sm:text-sm rounded-xl border border-dashed border-slate-200 dark:border-white/10 bg-white/50 dark:bg-[#111827]/40">
                   {t.learningHub.noLogs}
                 </div>
               ) : (
@@ -993,12 +993,12 @@ export default function LearningHubPage() {
                   {activeFolderLogs.slice(0, 5).map((log) => (
                     <div
                       key={log.id}
-                      className="p-2.5 sm:p-3 rounded-xl border border-slate-200 dark:border-white/[0.08] bg-slate-50/50 dark:bg-white/[0.02] flex flex-col gap-2 shadow-none transition-all"
+                      className="p-3 sm:p-3.5 rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-[#111827] flex flex-col gap-2.5 shadow-none"
                     >
-                      {/* Top Row: Date, Badges & Delete Action in ONE single aligned line without scrollbar */}
-                      <div className="flex items-center justify-between gap-1 w-full">
-                        <div className="flex items-center gap-1 flex-nowrap min-w-0">
-                          <span className="text-[9px] sm:text-[10px] font-semibold px-1.5 py-0.5 rounded-md bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-foreground whitespace-nowrap shrink-0">
+                      {/* Top Row: Clean single-line header with subtle divider line */}
+                      <div className="flex items-center justify-between gap-1 w-full pb-2 border-b border-slate-100 dark:border-white/5">
+                        <div className="flex items-center gap-2 flex-wrap min-w-0 text-xs">
+                          <span className="font-semibold text-foreground text-[11px] sm:text-xs">
                             {new Date(log.date).toLocaleDateString(undefined, {
                               weekday: "short",
                               year: "numeric",
@@ -1007,13 +1007,22 @@ export default function LearningHubPage() {
                             })}
                           </span>
 
+                          {(log.practiceMinutes > 0 || log.watchMinutes > 0) && (
+                            <span className="text-slate-300 dark:text-zinc-600 select-none">|</span>
+                          )}
+
                           {log.practiceMinutes > 0 && (
-                            <span className="px-1.5 py-0.5 rounded-md bg-blue-500/15 text-blue-400 dark:text-blue-300 border border-blue-500/30 text-[9px] sm:text-[10px] font-medium whitespace-nowrap shrink-0">
+                            <span className="text-[11px] sm:text-xs font-medium text-blue-600 dark:text-blue-400">
                               {t.learningHub.selfLearning}: {formatHoursMins(log.practiceMinutes)}
                             </span>
                           )}
+
+                          {log.practiceMinutes > 0 && log.watchMinutes > 0 && (
+                            <span className="text-slate-300 dark:text-zinc-600 select-none">•</span>
+                          )}
+
                           {log.watchMinutes > 0 && (
-                            <span className="px-1.5 py-0.5 rounded-md bg-indigo-500/15 text-indigo-300 dark:text-indigo-200 border border-indigo-500/30 text-[9px] sm:text-[10px] font-medium whitespace-nowrap shrink-0">
+                            <span className="text-[11px] sm:text-xs font-medium text-indigo-600 dark:text-indigo-300">
                               {t.learningHub.tuition}: {formatHoursMins(log.watchMinutes)}
                             </span>
                           )}
@@ -1024,7 +1033,7 @@ export default function LearningHubPage() {
                           onClick={() => handleDeleteLog(log.id)}
                           title={t.learningHub.deleteLog}
                           aria-label={t.learningHub.deleteLog}
-                          className="p-1 rounded-lg text-muted-foreground hover:text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer shrink-0 ml-0.5"
+                          className="p-1 rounded-lg text-muted-foreground hover:text-red-400 transition-colors cursor-pointer shrink-0 ml-1"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
@@ -1327,12 +1336,12 @@ export default function LearningHubPage() {
                 {activeFolderLogs.map((log) => (
                   <div
                     key={log.id}
-                    className="p-2.5 sm:p-3 rounded-xl border border-slate-200 dark:border-white/[0.08] bg-slate-50/50 dark:bg-white/[0.02] flex flex-col gap-2 shadow-none"
+                    className="p-3 sm:p-3.5 rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-[#111827] flex flex-col gap-2.5 shadow-none"
                   >
-                    {/* Top Row: Date, Badges & Delete Action in ONE single aligned line without scrollbar */}
-                    <div className="flex items-center justify-between gap-1 w-full">
-                      <div className="flex items-center gap-1 flex-nowrap min-w-0">
-                        <span className="text-[9px] sm:text-[10px] font-semibold px-1.5 py-0.5 rounded-md bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-foreground whitespace-nowrap shrink-0">
+                    {/* Top Row: Clean single-line header with subtle divider line */}
+                    <div className="flex items-center justify-between gap-1 w-full pb-2 border-b border-slate-100 dark:border-white/5">
+                      <div className="flex items-center gap-2 flex-wrap min-w-0 text-xs">
+                        <span className="font-semibold text-foreground text-[11px] sm:text-xs">
                           {new Date(log.date).toLocaleDateString(undefined, {
                             weekday: "short",
                             year: "numeric",
@@ -1341,13 +1350,22 @@ export default function LearningHubPage() {
                           })}
                         </span>
 
+                        {(log.practiceMinutes > 0 || log.watchMinutes > 0) && (
+                          <span className="text-slate-300 dark:text-zinc-600 select-none">|</span>
+                        )}
+
                         {log.practiceMinutes > 0 && (
-                          <span className="px-1.5 py-0.5 rounded-md bg-blue-500/15 text-blue-400 dark:text-blue-300 border border-blue-500/30 text-[9px] sm:text-[10px] font-medium whitespace-nowrap shrink-0">
+                          <span className="text-[11px] sm:text-xs font-medium text-blue-600 dark:text-blue-400">
                             {t.learningHub.selfLearning}: {formatHoursMins(log.practiceMinutes)}
                           </span>
                         )}
+
+                        {log.practiceMinutes > 0 && log.watchMinutes > 0 && (
+                          <span className="text-slate-300 dark:text-zinc-600 select-none">•</span>
+                        )}
+
                         {log.watchMinutes > 0 && (
-                          <span className="px-1.5 py-0.5 rounded-md bg-indigo-500/15 text-indigo-300 dark:text-indigo-200 border border-indigo-500/30 text-[9px] sm:text-[10px] font-medium whitespace-nowrap shrink-0">
+                          <span className="text-[11px] sm:text-xs font-medium text-indigo-600 dark:text-indigo-300">
                             {t.learningHub.tuition}: {formatHoursMins(log.watchMinutes)}
                           </span>
                         )}
@@ -1358,7 +1376,7 @@ export default function LearningHubPage() {
                         onClick={() => handleDeleteLog(log.id)}
                         title={t.learningHub.deleteLog}
                         aria-label={t.learningHub.deleteLog}
-                        className="p-1 rounded-lg text-muted-foreground hover:text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer shrink-0 ml-0.5"
+                        className="p-1 rounded-lg text-muted-foreground hover:text-red-400 transition-colors cursor-pointer shrink-0 ml-1"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>

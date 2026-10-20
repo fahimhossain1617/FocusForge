@@ -259,10 +259,20 @@ export default function RootLayout({
               }
 
               /* Start app shell with slight offset and opacity during launch */
+              @keyframes forceShellVisible {
+                to { opacity: 1 !important; transform: none !important; }
+              }
+              @keyframes forceBootLayerHide {
+                to { opacity: 0 !important; pointer-events: none !important; display: none !important; }
+              }
               html.ff-launch #app-shell {
                 opacity: 0;
                 transform: translateY(10px);
                 will-change: opacity, transform;
+                animation: forceShellVisible 0.1s ease 0.9s forwards;
+              }
+              #ff-boot-layer {
+                animation: forceBootLayerHide 0.15s ease 1s forwards;
               }
 
               /* Slot and Tile rules for in-app header */
@@ -431,10 +441,15 @@ export default function RootLayout({
       window.__ffIsLaunching = false;
       if (classObserver) {
         classObserver.disconnect();
+        classObserver = null;
       }
       var boot = document.getElementById('ff-boot-layer');
       if (boot) {
         boot.remove();
+      }
+      var bootRoot = document.getElementById('ff-boot-root');
+      if (bootRoot) {
+        bootRoot.remove();
       }
       document.documentElement.classList.remove('ff-launch');
       document.documentElement.classList.add('ff-brand-visible');
@@ -445,7 +460,7 @@ export default function RootLayout({
             anim.cancel();
           });
         }
-        appShell.style.opacity = '';
+        appShell.style.opacity = '1';
         appShell.style.transform = '';
         appShell.style.willChange = 'auto';
       }
@@ -453,7 +468,11 @@ export default function RootLayout({
       document.querySelectorAll('.slot .tile').forEach(function(t) { t.style.opacity = '1'; });
       window.__ffLaunchDone = true;
       window.dispatchEvent(new Event('ff:launch-done'));
-    } catch(e) {}
+    } catch(e) {
+      document.documentElement.classList.remove('ff-launch');
+      var sh = document.getElementById('app-shell');
+      if (sh) sh.style.opacity = '1';
+    }
   };
 
   var runLaunch = async function() {
@@ -475,7 +494,7 @@ export default function RootLayout({
       }
       try {
         var rmAnim = bootLayer.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 150, fill: 'both' });
-        await rmAnim.finished;
+        await Promise.race([rmAnim.finished, wait(200)]);
       } catch(e) {}
       cleanupAndFinish();
       return;
@@ -492,7 +511,7 @@ export default function RootLayout({
       }
       try {
         var fallbackFade = bootLayer.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 200, fill: 'both' });
-        await fallbackFade.finished;
+        await Promise.race([fallbackFade.finished, wait(250)]);
       } catch(e) {}
       cleanupAndFinish();
       return;
@@ -558,9 +577,9 @@ export default function RootLayout({
       } catch(e) {}
     }
 
-    // Await arrival
+    // Await arrival with max safety timeout
     try {
-      await flightAnim.finished;
+      await Promise.race([flightAnim.finished, wait(flightDuration + 100)]);
     } catch(e) {}
 
     // At landing: in the exact same frame, switch to real navbar logo and remove boot layer
@@ -573,13 +592,14 @@ export default function RootLayout({
     runLaunch();
   }
 
-  // Safety fallback
-  var safetyTimeoutMs = isSlowDebug ? 8000 : 1500;
+  // Safety fallback guarantees app shell is visible within 750ms under any network/offline circumstance
+  var safetyTimeoutMs = isSlowDebug ? 8000 : 750;
   setTimeout(function() {
-    if (document.getElementById('ff-boot-layer')) {
-      cleanupAndFinish();
-    }
+    cleanupAndFinish();
   }, safetyTimeoutMs);
+  window.addEventListener('load', function() {
+    setTimeout(cleanupAndFinish, 250);
+  });
 })();`,
           }}
         />
@@ -600,8 +620,8 @@ export default function RootLayout({
           aria-hidden="true" 
         />
 
-        {/* Global SVG Symbol Definition for Header Icon (Placed before Boot Layer for zero-latency paint) */}
-        <svg width="0" height="0" style={{ position: "absolute", pointerEvents: "none", opacity: 0 }} aria-hidden="true">
+        {/* Global SVG Symbol Definition for Header Icon (Strictly Hidden from Paint Engine) */}
+        <svg style={{ display: "none" }} aria-hidden="true">
           <defs>
             <g id="ff-mark" style={{ fill: "var(--logo, #061f52)" }}>
               <path d="M390 632V548C390 440 470 366 580 366H750C810 366 850 350 870 332C868 400 830 465 740 468H585C548 468 522 495 522 530V632Z" />

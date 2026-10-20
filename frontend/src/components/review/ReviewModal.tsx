@@ -115,10 +115,6 @@ export function ReviewModal({
 
         {/* Header */}
         <div className={styles.header}>
-          <div className={styles.badge}>
-            <Star size={12} />
-            <span>{isBn ? "ফিডব্যাক" : "Focentia Feedback"}</span>
-          </div>
           <h2 className={styles.title} id="review-title">
             {isBn ? "Focentia-তে আপনার অভিজ্ঞতা কেমন?" : "How is your Focentia experience?"}
           </h2>

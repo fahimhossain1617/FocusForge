@@ -78,6 +78,30 @@ export default function ProfilePage() {
     }
   }, [user]);
 
+  // Fresh fetch from backend on mount so user always sees saved database profile
+  useEffect(() => {
+    if (user?.id) {
+      userService.fetchUserProfile(user.id).then((freshProfile) => {
+        if (freshProfile) {
+          const cleanPhone = sanitizePhone(freshProfile.phone || (freshProfile.authMethod === 'phone' ? freshProfile.identifier : ""));
+          setFormData(prev => ({
+            ...prev,
+            fullName: freshProfile.fullName || freshProfile.displayName || prev.fullName,
+            displayName: freshProfile.displayName || freshProfile.fullName || prev.displayName,
+            email: freshProfile.email || prev.email,
+            phone: cleanPhone || prev.phone,
+            dob: freshProfile.dob || prev.dob,
+            gender: freshProfile.gender || prev.gender,
+            country: freshProfile.country || prev.country,
+            city: freshProfile.city || prev.city,
+            bio: freshProfile.bio || prev.bio,
+            avatarUrl: freshProfile.avatarUrl || prev.avatarUrl,
+          }));
+        }
+      }).catch(() => {});
+    }
+  }, [user?.id]);
+
   // Handle Photo Upload via FileReader
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -102,7 +126,8 @@ export default function ProfilePage() {
         const res = await userService.uploadAvatar(base64, file.type);
         const effectiveAvatarUrl = (res.success && res.avatarUrl) ? res.avatarUrl : base64;
         const success = await updateUserProfile({ avatarUrl: effectiveAvatarUrl });
-        if (success) {
+        if (success || res.success) {
+          setFormData(prev => ({ ...prev, avatarUrl: effectiveAvatarUrl }));
           showToast("Profile photo updated successfully.", "success");
         } else {
           showToast("Failed to upload profile photo.", "error");

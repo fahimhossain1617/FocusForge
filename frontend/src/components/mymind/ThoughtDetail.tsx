@@ -29,6 +29,11 @@ export default function ThoughtDetail({ thoughtId, navigate, previousView }: Tho
   const [isVoiceListening, setIsVoiceListening] = useState(false);
   
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const contentRef = useRef(content);
+  contentRef.current = content;
+  const isEditingRef = useRef(isEditing);
+  isEditingRef.current = isEditing;
+  const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     if (!thought) {
@@ -47,11 +52,42 @@ export default function ThoughtDetail({ thoughtId, navigate, previousView }: Tho
     }
   }, [content]);
 
+  // Debounced auto-save: persist thought edits automatically without data loss
+  useEffect(() => {
+    if (isEditing && content.trim() && thought) {
+      if (autoSaveTimeoutRef.current) clearTimeout(autoSaveTimeoutRef.current);
+      autoSaveTimeoutRef.current = setTimeout(() => {
+        updateMindItem(thoughtId, content.trim());
+        setIsEditing(false);
+      }, 700);
+    }
+    return () => {
+      if (autoSaveTimeoutRef.current) clearTimeout(autoSaveTimeoutRef.current);
+    };
+  }, [content, isEditing, thoughtId, thought, updateMindItem]);
+
+  // Save on unmount to prevent data loss when switching pages or exiting
+  useEffect(() => {
+    return () => {
+      if (isEditingRef.current && contentRef.current.trim() && thoughtId) {
+        updateMindItem(thoughtId, contentRef.current.trim());
+      }
+    };
+  }, [thoughtId, updateMindItem]);
+
   const handleSave = () => {
     if (!content.trim()) return;
     updateMindItem(thoughtId, content.trim());
     setIsEditing(false);
     showToast(t.myMind.toastChangesSaved, "success");
+  };
+
+  const handleBack = () => {
+    if (isEditing && content.trim()) {
+      updateMindItem(thoughtId, content.trim());
+      setIsEditing(false);
+    }
+    navigate(previousView === 'home' ? 'home' : 'review_all');
   };
 
   const handleConfirmDelete = () => {
@@ -70,7 +106,7 @@ export default function ThoughtDetail({ thoughtId, navigate, previousView }: Tho
       <div className="flex items-center justify-between gap-3 mb-4">
         <button 
           type="button"
-          onClick={() => navigate(previousView === 'home' ? 'home' : 'review_all')}
+          onClick={handleBack}
           className="inline-flex items-center justify-center w-9 h-9 -ml-1.5 rounded-full text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-black/5 dark:hover:bg-white/5 active:scale-95 transition-colors cursor-pointer shrink-0"
           aria-label={(t.myMind.backText || t.myMind.backLeft || "Back").replace(/^[←\s]+/, "")}
           title={(t.myMind.backText || t.myMind.backLeft || "Back").replace(/^[←\s]+/, "")}
@@ -137,24 +173,32 @@ export default function ThoughtDetail({ thoughtId, navigate, previousView }: Tho
             }
           }}
           onFocus={() => setIsFocused(true)}
-          onBlur={() => setIsFocused(false)}
+          onBlur={() => {
+            setIsFocused(false);
+            if (isEditing && content.trim() && thought) {
+              updateMindItem(thoughtId, content.trim());
+              setIsEditing(false);
+            }
+          }}
           placeholder={
             isVoiceListening
               ? (lang === 'bn' ? "বলুন, কথা শোনা হচ্ছে..." : "Listening, speak freely...")
               : t.myMind.writeFreely
           }
-          className="w-full px-5 sm:px-7 py-4 text-base sm:text-lg border-0 resize-none no-focus-ring leading-relaxed bg-transparent composer-pill-textarea my-mind-textarea custom-mini-scrollbar text-slate-900 dark:text-slate-100"
+          className="w-full text-base sm:text-lg border-0 resize-none no-focus-ring leading-relaxed bg-transparent my-mind-textarea custom-mini-scrollbar text-slate-900 dark:text-slate-100"
           style={{ 
             background: "transparent", 
             backgroundColor: "transparent",
             border: "none", 
             outline: "none", 
-            minHeight: "120px",
-            maxHeight: "240px",
+            minHeight: "130px",
+            maxHeight: "260px",
             height: "auto",
+            padding: "18px 22px",
             overflowY: "hidden",
             boxShadow: "none",
-            borderRadius: 0
+            borderRadius: 0,
+            lineHeight: 1.6
           }}
         />
         

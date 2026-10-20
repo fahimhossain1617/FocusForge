@@ -78,6 +78,8 @@ export default function FocusPage() {
     minutes: number;
   } | null>(null);
   const [selectedBreakDuration, setSelectedBreakDuration] = useState<number>(5);
+  const selectedBreakDurationRef = useRef<number>(5);
+  selectedBreakDurationRef.current = selectedBreakDuration;
 
   const [showDistraction, setShowDistraction] = useState(false);
   const [distractionText, setDistractionText] = useState("");
@@ -229,7 +231,8 @@ export default function FocusPage() {
   }, [endFocusSession, unregisterFocusLock, updateHistoryMinutes, showToast, state.lang, t.focus.sessionCompletedToast]);
 
   const handleBreakComplete = useCallback(() => {
-    addBreakTime(selectedBreakDuration, lastCompletedSessionIdRef.current || undefined);
+    const duration = selectedBreakDurationRef.current || 5;
+    addBreakTime(duration, lastCompletedSessionIdRef.current || undefined);
     setSessionPhase("break_completed");
 
     confetti({
@@ -246,7 +249,7 @@ export default function FocusPage() {
           : "Break finished! Time to refocus."),
       "info"
     );
-  }, [showToast, state.lang, t.focus.breakCompletedToast]);
+  }, [addBreakTime, showToast, state.lang, t.focus.breakCompletedToast]);
 
   const timer = useFocusTimer({
     onWorkComplete: handleWorkComplete,
@@ -255,6 +258,21 @@ export default function FocusPage() {
 
   const timerWorkMinutesRef = useRef(timer.workMinutes);
   timerWorkMinutesRef.current = timer.workMinutes;
+
+  const sessionPhaseRef = useRef(sessionPhase);
+  sessionPhaseRef.current = sessionPhase;
+  const timerElapsedSecondsRef = useRef(timer.elapsedSeconds);
+  timerElapsedSecondsRef.current = timer.elapsedSeconds;
+
+  // Unmount safeguard: automatically record elapsed break time if navigating away during active break
+  useEffect(() => {
+    return () => {
+      if (sessionPhaseRef.current === "break_active" && timerElapsedSecondsRef.current >= 1) {
+        const elapsedMins = Math.round((timerElapsedSecondsRef.current / 60) * 1000) / 1000;
+        addBreakTime(elapsedMins, lastCompletedSessionIdRef.current || undefined);
+      }
+    };
+  }, [addBreakTime]);
 
   // Custom Duration State (Hours and Minutes)
   const [customHours, setCustomHours] = useState<number>(0);
@@ -471,7 +489,7 @@ export default function FocusPage() {
 
     if (sessionPhase === "break_active") {
       if (timer.elapsedSeconds >= 1) {
-        const elapsedMins = Math.round((timer.elapsedSeconds / 60) * 100) / 100;
+        const elapsedMins = Math.round((timer.elapsedSeconds / 60) * 1000) / 1000;
         addBreakTime(elapsedMins, lastCompletedSessionIdRef.current || undefined);
       }
       timer.skipBreak();
@@ -552,13 +570,14 @@ export default function FocusPage() {
   // --- BREAK WORKFLOW CONTROLS ---
   const handleSelectBreak = (durationMins: number) => {
     setSelectedBreakDuration(durationMins);
+    selectedBreakDurationRef.current = durationMins;
     timer.startBreak(durationMins);
     setSessionPhase("break_active");
   };
 
   const handleSkipBreak = () => {
-    if (sessionPhase === "break_active" && timer.elapsedSeconds >= 3) {
-      const elapsedMins = Math.round((timer.elapsedSeconds / 60) * 100) / 100;
+    if (sessionPhase === "break_active" && timer.elapsedSeconds >= 1) {
+      const elapsedMins = Math.round((timer.elapsedSeconds / 60) * 1000) / 1000;
       addBreakTime(elapsedMins, lastCompletedSessionIdRef.current || undefined);
     }
     timer.skipBreak();
@@ -568,6 +587,10 @@ export default function FocusPage() {
   };
 
   const handleStartNewSessionAfterBreak = () => {
+    if (sessionPhase === "break_active" && timer.elapsedSeconds >= 1) {
+      const elapsedMins = Math.round((timer.elapsedSeconds / 60) * 1000) / 1000;
+      addBreakTime(elapsedMins, lastCompletedSessionIdRef.current || undefined);
+    }
     timer.skipBreak();
     setSessionPhase("setup");
     setSelectedTask({ name: "", category: "" });

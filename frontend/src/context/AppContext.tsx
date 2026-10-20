@@ -1446,7 +1446,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     setState((prev) => {
       let updatedSessions = prev.focusSessions;
-      if (sessionId) {
+      const foundSession = sessionId ? prev.focusSessions.find((s) => s.id === sessionId) : null;
+      if (foundSession) {
         updatedSessions = prev.focusSessions.map((s) =>
           s.id === sessionId ? { ...s, breakMinutes: (s.breakMinutes || 0) + breakMinutes } : s
         );

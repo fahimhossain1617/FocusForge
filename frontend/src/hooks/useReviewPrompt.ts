@@ -117,6 +117,11 @@ export function useReviewPrompt() {
   const trackMeaningfulAction = useCallback(async (actionType: string) => {
     if (promptStateRef.current?.status === "submitted") return;
 
+    // Only track genuine productive completions/actions, not simple page navigation
+    if (!actionType || actionType.startsWith("feature_") || actionType === "generic") {
+      return;
+    }
+
     // Anti-spam debounce: ignore identical action within 1.5 seconds
     const now = Date.now();
     const lastTime = recentActionsMap.get(actionType) || 0;
@@ -171,19 +176,20 @@ export function useReviewPrompt() {
   }, [trackMeaningfulAction]);
 
   /**
-   * User dismisses / skips the review modal (Progressive retry after 2-3 days)
+   * User dismisses / skips the review modal (Progressive retry schedule)
+   * 1st skip: 3-4 days (84h)
+   * 2nd skip: 1-2 weeks (240h / 10 days)
+   * 3rd skip: 1-1.5 months (1080h / 45 days)
    */
   const skip = useCallback(async () => {
     setIsOpen(false);
     sessionShownRef.current = true;
 
     const currentSkipCount = (promptStateRef.current?.skipCount || 0) + 1;
-    let delayHours = 36; // 1st skip: ~1.5 - 2 days (36h)
-    if (currentSkipCount === 1) delayHours = 36;
-    else if (currentSkipCount === 2) delayHours = 84; // 2nd skip: ~3.5 days (84h)
-    else if (currentSkipCount === 3) delayHours = 24 * 7; // 3rd skip: 7 days
-    else if (currentSkipCount === 4) delayHours = 24 * 14;
-    else delayHours = 24 * 30;
+    let delayHours = 84; // 1st skip: 3-4 days (84h)
+    if (currentSkipCount === 1) delayHours = 84;
+    else if (currentSkipCount === 2) delayHours = 240; // 2nd skip: 1-2 weeks (~10 days)
+    else delayHours = 1080; // 3rd skip: 1-1.5 months (45 days)
 
     const nextPromptIso = new Date(Date.now() + delayHours * 60 * 60 * 1000).toISOString();
     const nowIso = new Date().toISOString();

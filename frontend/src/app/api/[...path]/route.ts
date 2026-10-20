@@ -8,6 +8,8 @@ import {
   dbGetReviewPromptState,
   dbUpsertReviewPromptState,
   dbInsertReview,
+  dbGetSupervisorReviews,
+  dbGetSupervisorUsers,
   dbGetUserProfile,
   dbUpdateUserProfile,
   dbCheckUsernameAvailable,
@@ -35,6 +37,9 @@ import {
   dbDeleteUserAccountCompletely,
   dbSyncScheduledReminders,
   dbGetScheduledReminders,
+  dbGetMindItems,
+  dbUpsertMindItem,
+  dbDeleteMindItem,
   pool,
 } from '@/lib/server/db';
 import {
@@ -324,6 +329,100 @@ export async function GET(request: NextRequest, context: { params: Promise<{ pat
     }
   }
 
+  // 4.4. User Profile: GET /api/user/profile
+  if (pathStr === 'user/profile') {
+    if (!userId || isGuest) {
+      return NextResponse.json({ error: 'Unauthorized', code: ERROR_CODES.UNAUTHORIZED }, { status: 401 });
+    }
+    try {
+      const profile = await dbGetUserProfile(userId);
+      if (!profile) {
+        return NextResponse.json({ error: 'Profile not found' }, { status: 404 });
+      }
+      return NextResponse.json(profile);
+    } catch (err: any) {
+      return NextResponse.json({ error: err?.message || 'Failed to fetch profile' }, { status: 500 });
+    }
+  }
+
+  // 4.5. Review Prompt State: GET /api/reviews/state
+  if (pathStr === 'reviews/state' || pathStr === 'reviews/prompt-state') {
+    if (!userId || isGuest) {
+      return NextResponse.json({
+        status: 'eligible',
+        meaningfulActions: 0,
+        skipCount: 0,
+        lastShownAt: null,
+        nextPromptAt: null,
+        submittedAt: null,
+      });
+    }
+    try {
+      const reviewState = await dbGetReviewPromptState(userId);
+      return NextResponse.json(reviewState || {
+        status: 'eligible',
+        meaningfulActions: 0,
+        skipCount: 0,
+        lastShownAt: null,
+        nextPromptAt: null,
+        submittedAt: null,
+      });
+    } catch (err: any) {
+      return NextResponse.json({ error: err?.message || 'Failed to fetch review state' }, { status: 500 });
+    }
+  }
+
+  // 4.6. Supervisor API - User Reviews & Feedback: GET /api/supervisor/reviews
+  if (pathStr === 'supervisor/reviews') {
+    if (!userId || isGuest) {
+      return NextResponse.json({ error: 'Unauthorized', code: ERROR_CODES.UNAUTHORIZED }, { status: 401 });
+    }
+    const roles = await dbCheckUserRole(userId);
+    if (!roles.includes('supervisor') && !roles.includes('admin')) {
+      return NextResponse.json({ error: 'Supervisor access required', code: ERROR_CODES.FORBIDDEN }, { status: 403 });
+    }
+    try {
+      const limit = parseInt(searchParams.get('limit') || '50', 10);
+      const offset = parseInt(searchParams.get('offset') || '0', 10);
+      const reviews = await dbGetSupervisorReviews(limit, offset);
+      return NextResponse.json(reviews);
+    } catch (err: any) {
+      return NextResponse.json({ error: err?.message || 'Failed to fetch supervisor reviews' }, { status: 500 });
+    }
+  }
+
+  // 4.7. Supervisor API - Registered Users & Personal Details: GET /api/supervisor/users
+  if (pathStr === 'supervisor/users') {
+    if (!userId || isGuest) {
+      return NextResponse.json({ error: 'Unauthorized', code: ERROR_CODES.UNAUTHORIZED }, { status: 401 });
+    }
+    const roles = await dbCheckUserRole(userId);
+    if (!roles.includes('supervisor') && !roles.includes('admin')) {
+      return NextResponse.json({ error: 'Supervisor access required', code: ERROR_CODES.FORBIDDEN }, { status: 403 });
+    }
+    try {
+      const limit = parseInt(searchParams.get('limit') || '100', 10);
+      const offset = parseInt(searchParams.get('offset') || '0', 10);
+      const users = await dbGetSupervisorUsers(limit, offset);
+      return NextResponse.json(users);
+    } catch (err: any) {
+      return NextResponse.json({ error: err?.message || 'Failed to fetch supervisor users' }, { status: 500 });
+    }
+  }
+
+  // 4.8. Mind Items: GET /api/mind-items or /api/mind
+  if (pathStr === 'mind-items' || pathStr === 'mind') {
+    if (!userId || isGuest) {
+      return NextResponse.json([]);
+    }
+    try {
+      const items = await dbGetMindItems(userId);
+      return NextResponse.json(items);
+    } catch (err: any) {
+      return NextResponse.json({ error: err?.message || 'Failed to fetch mind items' }, { status: 500 });
+    }
+  }
+
   // 5. Supervisor API - Check Role: GET /api/supervisor/role
   if (pathStr === 'supervisor/role') {
     if (!userId || isGuest) {
@@ -565,16 +664,6 @@ export async function GET(request: NextRequest, context: { params: Promise<{ pat
     pathStr === 'learning/data'
   ) {
     return NextResponse.json([]);
-  }
-
-  // 16. Reviews Prompt State
-  if (pathStr === 'reviews/prompt-state' || pathStr === 'reviews/state') {
-    try {
-      const state = await dbGetReviewPromptState(userId);
-      return NextResponse.json(state || { status: 'eligible', meaningfulActions: 0, skipCount: 0 });
-    } catch (err: any) {
-      return NextResponse.json({ error: err?.message || 'Failed to fetch review prompt state' }, { status: 500 });
-    }
   }
 
   // 17. User Cloud State (Obsolete: Handled by E2EE Sync)
@@ -1691,6 +1780,107 @@ export async function POST(request: NextRequest, context: { params: Promise<{ pa
     });
   }
 
+  // 7.1. User Avatar Upload: POST /api/user/avatar
+  if (pathStr === 'user/avatar') {
+    if (!userId || isGuest) {
+      return NextResponse.json({ error: 'Unauthorized', code: ERROR_CODES.UNAUTHORIZED }, { status: 401 });
+    }
+    const { avatarBase64 } = body;
+    if (!avatarBase64 || typeof avatarBase64 !== 'string') {
+      return NextResponse.json({ error: 'Avatar base64 image data is required', code: ERROR_CODES.INVALID_INPUT }, { status: 400 });
+    }
+    try {
+      const profile = await dbUpdateUserProfile(userId, { avatarUrl: avatarBase64 });
+      return NextResponse.json({ success: true, profile });
+    } catch (err: any) {
+      return NextResponse.json({ error: err?.message || 'Failed to upload avatar', code: ERROR_CODES.SERVER_ERROR }, { status: 500 });
+    }
+  }
+
+  // 7.2. Review Prompt: Action Increment POST /api/reviews/action
+  if (pathStr === 'reviews/action') {
+    if (!userId || isGuest) {
+      return NextResponse.json({ success: true, status: 'eligible' });
+    }
+    try {
+      const cur = await dbGetReviewPromptState(userId);
+      if (cur?.status === 'submitted') {
+        return NextResponse.json({ success: true, status: 'submitted' });
+      }
+      const newCount = (cur?.meaningfulActions || 0) + 1;
+      await dbUpsertReviewPromptState(userId, {
+        status: cur?.status || 'eligible',
+        meaningfulActions: newCount,
+      });
+      return NextResponse.json({ success: true, count: newCount });
+    } catch (err: any) {
+      return NextResponse.json({ error: err?.message || 'Failed to record review action' }, { status: 500 });
+    }
+  }
+
+  // 7.3. Review Prompt: Skip Modal POST /api/reviews/skip
+  if (pathStr === 'reviews/skip') {
+    if (!userId || isGuest) {
+      return NextResponse.json({ success: true });
+    }
+    try {
+      const cur = await dbGetReviewPromptState(userId);
+      if (cur?.status === 'submitted') {
+        return NextResponse.json({ success: true });
+      }
+      const newSkip = (cur?.skipCount || 0) + 1;
+      let delayHours = 84;
+      if (newSkip === 1) delayHours = 84;
+      else if (newSkip === 2) delayHours = 240;
+      else delayHours = 1080;
+      const nextPrompt = new Date(Date.now() + delayHours * 60 * 60 * 1000).toISOString();
+      await dbUpsertReviewPromptState(userId, {
+        status: 'skipped',
+        meaningfulActions: 0,
+        skipCount: newSkip,
+        lastShownAt: new Date().toISOString(),
+        nextPromptAt: nextPrompt,
+      });
+      return NextResponse.json({ success: true, nextPromptAt: nextPrompt });
+    } catch (err: any) {
+      return NextResponse.json({ error: err?.message || 'Failed to skip review' }, { status: 500 });
+    }
+  }
+
+  // 7.4. Review Prompt: Submit Review POST /api/reviews/submit
+  if (pathStr === 'reviews/submit') {
+    const { rating, comment } = body;
+    if (!rating && (!comment || !comment.trim())) {
+      return NextResponse.json({ error: 'Please provide a star rating or comment', code: ERROR_CODES.INVALID_INPUT }, { status: 400 });
+    }
+    try {
+      const targetUserId = !isGuest && userId ? userId : null;
+      await dbInsertReview(targetUserId, rating || null, comment?.trim() || null);
+      if (targetUserId) {
+        await dbUpsertReviewPromptState(targetUserId, {
+          status: 'submitted',
+          submittedAt: new Date().toISOString(),
+        });
+      }
+      return NextResponse.json({ success: true, message: 'Review submitted successfully' });
+    } catch (err: any) {
+      return NextResponse.json({ error: err?.message || 'Failed to submit review' }, { status: 500 });
+    }
+  }
+
+  // 7.5. Mind Items: POST /api/mind-items or /api/mind
+  if (pathStr === 'mind-items' || pathStr === 'mind') {
+    if (!userId || isGuest) {
+      return NextResponse.json({ success: true, localOnly: true });
+    }
+    try {
+      const item = await dbUpsertMindItem(userId, body);
+      return NextResponse.json(item);
+    } catch (err: any) {
+      return NextResponse.json({ error: err?.message || 'Failed to save mind item' }, { status: 500 });
+    }
+  }
+
   // 8. AI Agent Chat
   if (pathStr === 'ai/agent/chat' || pathStr === 'ai/chat') {
     const { sessionId: requestedSessionId, message: userMsg, context: wsContext, history, model: selectedModel } = body;
@@ -2100,6 +2290,14 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ p
 
   // 1. User Profile Update: PATCH /api/user/profile
   if (pathStr === 'user/profile') {
+    // Normalize aliases
+    if (body.phoneNumber !== undefined && body.phone === undefined) {
+      body.phone = body.phoneNumber;
+    }
+    if (body.dob !== undefined && body.dateOfBirth === undefined) {
+      body.dateOfBirth = body.dob;
+    }
+
     // Server-side validation
     if (body.fullName !== undefined) {
       const v = validateFullName(body.fullName);
@@ -2312,13 +2510,26 @@ export async function DELETE(request: NextRequest, context: { params: Promise<{ 
     }
   }
 
-  // 4-8. Personal Data Delete Endpoints (Local-First: Stored in Client IndexedDB)
+  // 4. Mind Items Delete: DELETE /api/mind-items/:id or /api/mind/:id
+  if (pathStr.startsWith('mind-items/') || pathStr.startsWith('mind/')) {
+    const parts = pathStr.split('/');
+    const mindId = parts[parts.length - 1];
+    if (userId && !isGuest && mindId) {
+      try {
+        await dbDeleteMindItem(userId, mindId);
+      } catch (err: any) {
+        console.warn('[DELETE mind item] DB warning:', err?.message);
+      }
+    }
+    return NextResponse.json({ success: true, id: mindId });
+  }
+
+  // 5-8. Personal Data Delete Endpoints (Local-First: Stored in Client IndexedDB)
   if (
     pathStr.startsWith('tasks/templates/') ||
     pathStr.startsWith('tasks/') ||
     pathStr.startsWith('notes/') ||
     pathStr === 'mind' ||
-    pathStr.startsWith('mind/') ||
     pathStr.startsWith('diary/topics/') ||
     pathStr.startsWith('diary/entries/') ||
     pathStr.startsWith('learning/folders/') ||

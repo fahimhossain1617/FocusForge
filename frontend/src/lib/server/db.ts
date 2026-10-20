@@ -725,56 +725,6 @@ export async function dbDeleteLearningLog(userId: string, logId: string) {
   return { success: true, id: logId };
 }
 
-// ==================== REVIEWS ====================
-
-export async function dbGetReviewPromptState(userId: string | null) {
-  if (!userId) return null;
-  const res = await pool.query('SELECT * FROM review_prompt_state WHERE user_id = $1', [userId]);
-  if (res.rows.length === 0) return null;
-  const row = res.rows[0];
-  return {
-    status: row.status,
-    meaningfulActions: row.meaningful_actions,
-    skipCount: row.skip_count,
-    lastShownAt: row.last_shown_at,
-    nextPromptAt: row.next_prompt_at,
-    submittedAt: row.submitted_at,
-  };
-}
-
-export async function dbUpsertReviewPromptState(userId: string, body: any) {
-  const { status = 'eligible', meaningfulActions = 0, skipCount = 0, lastShownAt = null, nextPromptAt = null, submittedAt = null } = body;
-  const res = await pool.query(
-    `
-    INSERT INTO review_prompt_state (user_id, status, meaningful_actions, skip_count, last_shown_at, next_prompt_at, submitted_at, updated_at)
-    VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
-    ON CONFLICT (user_id) DO UPDATE SET
-      status = EXCLUDED.status,
-      meaningful_actions = EXCLUDED.meaningful_actions,
-      skip_count = EXCLUDED.skip_count,
-      last_shown_at = EXCLUDED.last_shown_at,
-      next_prompt_at = EXCLUDED.next_prompt_at,
-      submitted_at = EXCLUDED.submitted_at,
-      updated_at = NOW()
-    RETURNING *;
-    `,
-    [userId, status, meaningfulActions, skipCount, lastShownAt, nextPromptAt, submittedAt]
-  );
-  return res.rows[0];
-}
-
-export async function dbInsertReview(userId: string, rating: number, comment?: string) {
-  const res = await pool.query(
-    `
-    INSERT INTO reviews (user_id, rating, comment, created_at, updated_at)
-    VALUES ($1, $2, $3, NOW(), NOW())
-    RETURNING *;
-    `,
-    [userId, rating, (comment || '').trim()]
-  );
-  return res.rows[0];
-}
-
 // ==================== AI CHAT SESSIONS ====================
 
 export async function dbClearAllChatSessions(userId: string | null) {
@@ -849,7 +799,9 @@ export async function dbUpdateUserProfile(userId: string, updates: Record<string
     displayName: 'display_name',
     fullName: 'full_name',
     phone: 'phone',
+    phoneNumber: 'phone',
     dateOfBirth: 'date_of_birth',
+    dob: 'date_of_birth',
     gender: 'gender',
     country: 'country',
     city: 'city',
@@ -886,15 +838,40 @@ export async function dbUpdateUserProfile(userId: string, updates: Record<string
 
   const res = await pool.query(query, params);
   if (res.rows.length === 0) {
-    // If profile row doesn't exist yet, insert it
+    // If profile row doesn't exist yet, insert full profile row
     const insertRes = await pool.query(
       `
-      INSERT INTO profiles (id, identifier, auth_method, display_name, full_name, created_at, updated_at)
-      VALUES ($1, $2, 'email', $3, $4, NOW(), NOW())
-      ON CONFLICT (id) DO UPDATE SET updated_at = NOW()
+      INSERT INTO profiles (
+        id, identifier, auth_method, display_name, full_name, phone, date_of_birth,
+        gender, country, city, bio, avatar_url, created_at, updated_at
+      )
+      VALUES ($1, $2, 'email', $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW(), NOW())
+      ON CONFLICT (id) DO UPDATE SET
+        display_name = COALESCE(EXCLUDED.display_name, profiles.display_name),
+        full_name = COALESCE(EXCLUDED.full_name, profiles.full_name),
+        phone = COALESCE(EXCLUDED.phone, profiles.phone),
+        date_of_birth = COALESCE(EXCLUDED.date_of_birth, profiles.date_of_birth),
+        gender = COALESCE(EXCLUDED.gender, profiles.gender),
+        country = COALESCE(EXCLUDED.country, profiles.country),
+        city = COALESCE(EXCLUDED.city, profiles.city),
+        bio = COALESCE(EXCLUDED.bio, profiles.bio),
+        avatar_url = COALESCE(EXCLUDED.avatar_url, profiles.avatar_url),
+        updated_at = NOW()
       RETURNING *;
       `,
-      [userId, updates.email || 'user', updates.displayName || '', updates.fullName || '']
+      [
+        userId,
+        updates.email || updates.identifier || 'user',
+        updates.displayName || updates.fullName || '',
+        updates.fullName || '',
+        updates.phone || updates.phoneNumber || null,
+        updates.dateOfBirth || updates.dob || null,
+        updates.gender || null,
+        updates.country || null,
+        updates.city || null,
+        updates.bio || null,
+        updates.avatarUrl || null,
+      ]
     );
     return mapProfileRow(insertRes.rows[0]);
   }
@@ -1714,4 +1691,127 @@ export async function dbUpdateScheduledReminderStatus(
     [status, providerStatus || null, sentAt || null, id]
   );
 }
+
+// ==================== REVIEWS & FEEDBACK ====================
+
+export async function dbGetReviewPromptState(userId: string) {
+  try {
+    const res = await pool.query('SELECT * FROM review_prompt_state WHERE user_id = $1', [userId]);
+    if (res.rows.length === 0) {
+      return {
+        status: 'eligible',
+        meaningfulActions: 0,
+        skipCount: 0,
+        lastShownAt: null,
+        nextPromptAt: null,
+        submittedAt: null,
+      };
+    }
+    const row = res.rows[0];
+    return {
+      status: row.status || 'eligible',
+      meaningfulActions: row.meaningful_actions || 0,
+      skipCount: row.skip_count || 0,
+      lastShownAt: row.last_shown_at,
+      nextPromptAt: row.next_prompt_at,
+      submittedAt: row.submitted_at,
+    };
+  } catch (err: any) {
+    console.warn('[db] dbGetReviewPromptState error:', err?.message);
+    return null;
+  }
+}
+
+export async function dbUpsertReviewPromptState(userId: string, data: Partial<any>) {
+  try {
+    const res = await pool.query(
+      `
+      INSERT INTO review_prompt_state (user_id, status, meaningful_actions, skip_count, last_shown_at, next_prompt_at, submitted_at, updated_at)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
+      ON CONFLICT (user_id) DO UPDATE SET
+        status = COALESCE(EXCLUDED.status, review_prompt_state.status),
+        meaningful_actions = COALESCE(EXCLUDED.meaningful_actions, review_prompt_state.meaningful_actions),
+        skip_count = COALESCE(EXCLUDED.skip_count, review_prompt_state.skip_count),
+        last_shown_at = COALESCE(EXCLUDED.last_shown_at, review_prompt_state.last_shown_at),
+        next_prompt_at = COALESCE(EXCLUDED.next_prompt_at, review_prompt_state.next_prompt_at),
+        submitted_at = COALESCE(EXCLUDED.submitted_at, review_prompt_state.submitted_at),
+        updated_at = NOW()
+      RETURNING *;
+      `,
+      [
+        userId,
+        data.status || 'eligible',
+        data.meaningfulActions ?? 0,
+        data.skipCount ?? 0,
+        data.lastShownAt || null,
+        data.nextPromptAt || null,
+        data.submittedAt || null,
+      ]
+    );
+    return res.rows[0];
+  } catch (err: any) {
+    console.warn('[db] dbUpsertReviewPromptState error:', err?.message);
+    return null;
+  }
+}
+
+export async function dbInsertReview(userId: string | null, rating: number | null, comment: string | null, metadata?: any) {
+  const query = `
+    INSERT INTO reviews (user_id, rating, comment, created_at, updated_at)
+    VALUES ($1, $2, $3, NOW(), NOW())
+    RETURNING *;
+  `;
+  const res = await pool.query(query, [userId, rating || null, comment?.trim() || null]);
+  return res.rows[0];
+}
+
+export async function dbGetSupervisorReviews(limit: number = 50, offset: number = 0) {
+  const query = `
+    SELECT r.id, r.user_id, r.rating, r.comment, r.created_at,
+           p.display_name, p.full_name, p.identifier as email
+    FROM reviews r
+    LEFT JOIN profiles p ON r.user_id = p.id
+    ORDER BY r.created_at DESC
+    LIMIT $1 OFFSET $2;
+  `;
+  const res = await pool.query(query, [limit, offset]);
+  return res.rows.map((row: any) => ({
+    id: row.id,
+    userId: row.user_id,
+    rating: row.rating,
+    comment: row.comment,
+    createdAt: row.created_at,
+    displayName: row.display_name || 'Anonymous User',
+    fullName: row.full_name || '',
+    email: row.email || '',
+  }));
+}
+
+export async function dbGetSupervisorUsers(limit: number = 100, offset: number = 0) {
+  const query = `
+    SELECT id, identifier, display_name, full_name, phone, date_of_birth,
+           gender, country, city, bio, avatar_url, created_at, updated_at
+    FROM profiles
+    ORDER BY created_at DESC
+    LIMIT $1 OFFSET $2;
+  `;
+  const res = await pool.query(query, [limit, offset]);
+  return res.rows.map((row: any) => ({
+    id: row.id,
+    identifier: row.identifier,
+    email: row.identifier,
+    displayName: row.display_name,
+    fullName: row.full_name,
+    phone: row.phone,
+    dob: row.date_of_birth,
+    gender: row.gender,
+    country: row.country,
+    city: row.city,
+    bio: row.bio,
+    avatarUrl: row.avatar_url,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  }));
+}
+
 

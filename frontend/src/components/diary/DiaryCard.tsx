@@ -111,7 +111,7 @@ export default function DiaryCard({
 
         {/* Main Cover Slab */}
         <div 
-          className="diary-cover-surface relative flex flex-col justify-between p-3.5 sm:p-4 text-left"
+          className={`diary-cover-surface relative flex flex-col justify-between p-3.5 sm:p-4 text-left ${theme.isLightCover ? "is-light-cover" : ""}`}
           style={{
             background: theme.coverBg,
             borderColor: theme.coverBorder,
@@ -158,8 +158,8 @@ export default function DiaryCard({
             </span>
           </div>
 
-          {/* Middle-Left Section: Topic Title & Preview Snippet */}
-          <div className="relative z-10 flex flex-col items-start justify-center text-left w-full pl-2 sm:pl-2.5 pr-1 my-auto">
+          {/* Middle-Left Section: Topic Title & Preview Snippet (Shifted slightly higher up with balanced left/right margins) */}
+          <div className="relative z-10 flex flex-col items-start justify-center text-left w-full pl-2 sm:pl-2.5 pr-3.5 sm:pr-4 my-auto -translate-y-2 sm:-translate-y-2.5">
             {/* Title */}
             <h3 
               className="text-base sm:text-lg font-bold tracking-tight line-clamp-2 leading-snug text-left"
@@ -172,17 +172,17 @@ export default function DiaryCard({
               {topic.title}
             </h3>
 
-            {/* Preview Snippet with distinct gap */}
+            {/* Preview Snippet with distinct gap and trailing ellipsis */}
             {previewSnippet && (
               <p 
-                className="text-xs line-clamp-2 font-normal leading-relaxed mt-2.5 sm:mt-3 opacity-80 select-none text-left"
+                className="text-xs line-clamp-2 font-normal leading-relaxed mt-2 sm:mt-2.5 opacity-80 select-none text-left"
                 style={{
-                  color: theme.isLightCover ? "#475569" : "rgba(255, 255, 255, 0.8)",
+                  color: theme.isLightCover ? "#475569" : "rgba(255, 255, 255, 0.85)",
                   textShadow: theme.isLightCover ? "none" : "0 1px 1px rgba(0, 0, 0, 0.3)"
                 }}
                 title={previewSnippet}
               >
-                {previewSnippet}
+                {previewSnippet.trim().replace(/\.{2,}$/, "")}...
               </p>
             )}
           </div>

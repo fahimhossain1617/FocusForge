@@ -5,7 +5,7 @@ import type { BlockType, NoteBlock } from "../../types";
 import { useAppContext } from "../../context/AppContext";
 import {
   Braces, Check, CheckSquare2, ChevronDown, Copy, Heading1, Heading2, Heading3, StickyNote, Sigma, Text,
-  Trash2, Palette, Highlighter, Square, RotateCcw, RotateCw, X, PenTool,
+  Trash2, Palette, Highlighter, Square, RotateCcw, RotateCw, X, PenTool, Plus,
   List, ListOrdered, Quote, Image as ImageIcon, FileText, Link2, ExternalLink, Download, Eye, Paperclip
 } from "lucide-react";
 import { HexColorPicker } from "react-colorful";
@@ -1057,6 +1057,130 @@ function ImageBlockItem({
   );
 }
 
+/* ───────────── Block Action Menu (+ Button with Vertical Toolbar) ───────────── */
+
+function BlockActionMenu({
+  block,
+  onColorToolbar,
+  colorToolbarOpen,
+  onCloseColorToolbar,
+  onUpdateColor,
+  onDuplicate,
+  onDelete,
+}: {
+  block: NoteBlock;
+  onColorToolbar: () => void;
+  colorToolbarOpen: boolean;
+  onCloseColorToolbar: () => void;
+  onUpdateColor: (patch: Partial<NoteBlock>) => void;
+  onDuplicate: () => void;
+  onDelete: () => void;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [placement, setPlacement] = useState<"down" | "up">("down");
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!isOpen && !colorToolbarOpen) return;
+    const handleOutside = (e: MouseEvent | TouchEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setIsOpen(false);
+        if (colorToolbarOpen) onCloseColorToolbar();
+      }
+    };
+    document.addEventListener("mousedown", handleOutside);
+    document.addEventListener("touchstart", handleOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleOutside);
+      document.removeEventListener("touchstart", handleOutside);
+    };
+  }, [isOpen, colorToolbarOpen, onCloseColorToolbar]);
+
+  return (
+    <div
+      ref={menuRef}
+      className={`block-action-container ${isOpen || colorToolbarOpen ? "is-active" : ""}`}
+      style={{ zIndex: colorToolbarOpen ? 60 : isOpen ? 50 : 15 }}
+    >
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          if (colorToolbarOpen) onCloseColorToolbar();
+          if (!isOpen && menuRef.current) {
+            const rect = menuRef.current.getBoundingClientRect();
+            const spaceBelow = window.innerHeight - rect.bottom;
+            if (spaceBelow < 155 && rect.top > 140) {
+              setPlacement("up");
+            } else {
+              setPlacement("down");
+            }
+          }
+          setIsOpen((prev) => !prev);
+        }}
+        className={`block-action-trigger ${isOpen || colorToolbarOpen ? "is-open" : ""}`}
+        aria-label="Block options"
+        title="Block options"
+      >
+        <Plus size={13} className={`block-action-plus-icon ${isOpen || colorToolbarOpen ? "rotate-45" : ""}`} />
+      </button>
+
+      {isOpen && (
+        <div className={`block-action-vertical-menu block-action-vertical-menu--${placement} animate-in fade-in zoom-in-95 duration-150`}>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onColorToolbar();
+            }}
+            className="block-action-item"
+            title="Style block"
+          >
+            <Palette size={13} className="text-purple-400" />
+            <span className="block-action-label">Style</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onDuplicate();
+              setIsOpen(false);
+            }}
+            className="block-action-item"
+            title="Duplicate block"
+          >
+            <Copy size={13} className="text-blue-400" />
+            <span className="block-action-label">Duplicate</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete();
+              setIsOpen(false);
+            }}
+            className="block-action-item block-action-item--delete"
+            title="Delete block"
+          >
+            <Trash2 size={13} className="text-red-400" />
+            <span className="block-action-label">Delete</span>
+          </button>
+        </div>
+      )}
+
+      {colorToolbarOpen && (
+        <ColorToolbar
+          block={block}
+          onUpdate={onUpdateColor}
+          onClose={onCloseColorToolbar}
+        />
+      )}
+    </div>
+  );
+}
+
 /* ───────────── Editor Block ───────────── */
 
 function EditorBlock({
@@ -1101,12 +1225,15 @@ function EditorBlock({
   const input = { id: `block-${block.id}`, value: block.content, onChange: onInput, onKeyDown, onBeforeInput };
 
   const control = (
-    <div className="block-controls" style={{ zIndex: colorToolbarOpen ? 50 : 3 }}>
-      <button type="button" onClick={onColorToolbar} aria-label="Style block" title="Style"><Palette size={12} /></button>
-      <button type="button" onClick={onDuplicate} aria-label="Duplicate block" title="Duplicate"><Copy size={12} /></button>
-      <button type="button" onClick={onDelete} aria-label="Delete block" title="Delete"><Trash2 size={12} /></button>
-      {colorToolbarOpen && <ColorToolbar block={block} onUpdate={onUpdateColor} onClose={onCloseColorToolbar} />}
-    </div>
+    <BlockActionMenu
+      block={block}
+      onColorToolbar={onColorToolbar}
+      colorToolbarOpen={colorToolbarOpen}
+      onCloseColorToolbar={onCloseColorToolbar}
+      onUpdateColor={onUpdateColor}
+      onDuplicate={onDuplicate}
+      onDelete={onDelete}
+    />
   );
 
   // Compute inline styles for the block

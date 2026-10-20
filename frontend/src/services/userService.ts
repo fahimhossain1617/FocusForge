@@ -206,7 +206,10 @@ export const userService = {
         method: "POST",
         body: JSON.stringify({ avatarBase64, mimeType }),
       });
-      return { success: Boolean(res?.success), avatarUrl: res?.profile?.avatar_url || undefined };
+      return { 
+        success: Boolean(res?.success), 
+        avatarUrl: (res as any)?.avatarUrl || res?.profile?.avatarUrl || res?.profile?.avatar_url || undefined 
+      };
     } catch (err: any) {
       return { success: false, error: err?.message || "Failed to upload avatar" };
     }

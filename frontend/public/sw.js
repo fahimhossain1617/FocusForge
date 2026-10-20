@@ -1,5 +1,6 @@
 // Focentia Progressive Web App Service Worker
-const CACHE_NAME = 'focentia-build-1792348435383';
+const CACHE_NAME = 'focentia-build-1792472948058';
+const IMMUTABLE_CACHE = 'focentia-immutable-static-v1';
 
 const STATIC_ASSETS = [
   '/',
@@ -224,14 +225,14 @@ self.addEventListener('install', (event) => {
   );
 });
 
-// Activate: Clean up any outdated caches and restore reminders
+// Activate: Clean up any outdated caches and restore reminders (preserving immutable static store)
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     Promise.all([
       caches.keys().then((keys) => {
         return Promise.all(
           keys.map((key) => {
-            if (key !== CACHE_NAME) {
+            if (key !== CACHE_NAME && key !== IMMUTABLE_CACHE) {
               return caches.delete(key);
             }
           })
@@ -260,26 +261,33 @@ self.addEventListener('fetch', (event) => {
   // 3. For Next.js immutable static bundles (chunks, css, media, fonts), serve Cache-First / Stale-While-Revalidate
   if (url.pathname.startsWith('/_next/static/')) {
     event.respondWith(
-      caches.match(request, { ignoreSearch: true }).then((cachedResponse) => {
+      (async () => {
+        const immutableCache = await caches.open(IMMUTABLE_CACHE);
+        const cachedResponse = (await immutableCache.match(request, { ignoreSearch: true })) || (await caches.match(request, { ignoreSearch: true }));
         if (cachedResponse) {
           // Revalidate in background when online to keep cached chunks fresh
-          fetch(request).then((networkResponse) => {
-            if (networkResponse && networkResponse.status === 200) {
-              const responseClone = networkResponse.clone();
-              caches.open(CACHE_NAME).then((cache) => cache.put(request, responseClone));
-            }
-          }).catch(() => {});
+          if (typeof navigator === 'undefined' || navigator.onLine) {
+            fetch(request).then((networkResponse) => {
+              if (networkResponse && networkResponse.status === 200) {
+                immutableCache.put(request, networkResponse.clone());
+              }
+            }).catch(() => {});
+          }
           return cachedResponse;
         }
 
-        return fetch(request).then((networkResponse) => {
+        try {
+          const networkResponse = await fetch(request);
           if (networkResponse && networkResponse.status === 200) {
-            const responseClone = networkResponse.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(request, responseClone));
+            immutableCache.put(request, networkResponse.clone());
           }
           return networkResponse;
-        }).catch(() => caches.match(request, { ignoreSearch: true }));
-      })
+        } catch {
+          const fallback = await caches.match(request, { ignoreSearch: true });
+          if (fallback) return fallback;
+          return new Response('', { status: 408, statusText: 'Request timed out / offline' });
+        }
+      })()
     );
     return;
   }
@@ -325,6 +333,11 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(
       (async () => {
         const cached = (await caches.match(request, { ignoreSearch: true })) || (await caches.match('/', { ignoreSearch: true }));
+
+        // Fast offline path: return cached app shell immediately
+        if (cached && typeof navigator !== 'undefined' && !navigator.onLine) {
+          return cached;
+        }
 
         // Background fetch to keep cached app shell updated when online
         const fetchPromise = fetch(request)

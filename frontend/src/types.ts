@@ -133,6 +133,8 @@ export interface MindItem {
   createdAt: string;
   processedAt?: string;
   source?: 'quick_capture' | 'problem_solver' | 'idea_capture' | 'home';
+  userId?: string;
+  updatedAt?: string;
 }
 
 export interface DiaryImage {

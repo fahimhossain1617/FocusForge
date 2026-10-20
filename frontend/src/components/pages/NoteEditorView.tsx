@@ -557,7 +557,7 @@ export default function NoteEditorView({
 
       {/* Editor Main Canvas */}
       <div className="note-editor-screen__scroll w-full">
-        <div className="note-editor-canvas relative max-w-5xl mx-auto pt-1 px-3 sm:px-6">
+        <div className="note-editor-canvas relative max-w-3xl mx-auto pt-2 px-4 sm:px-8">
           
           {/* Print Header (Visible in print/PDF only) */}
           <div className="note-print-header hidden">

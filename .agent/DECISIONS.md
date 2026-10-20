@@ -1525,3 +1525,31 @@
 - **Reason:** User design preference for a consistent, solid, clean single-tone card surface across all cards, modals, and boxes instead of split dual-color gradient backgrounds.
 - **Impact:** frontend/src/app/globals.css, frontend/src/components/review/review-modal.module.css, frontend/src/components/workspace/notecard.css.
 - **Status:** **VERIFIED**
+
+---
+
+## ADR-054: Comprehensive 9-Point Functional & UI Defect Fixes from Multi-Page Audit
+
+- **Date:** October 2026
+- **Status:** Accepted & Verified
+- **Context:**
+  - An 11-page PDF screenshot breakdown identified 9 usability, calculation, layout, data persistence, and offline booting defects across the web and mobile app.
+- **Decision:**
+  1. **Focus & Break Time Accrual (PDF p. 1):** Replaced default 5-minute fallback with exact elapsed second accumulation in `AppContext.tsx` (`addBreakTime`) and `FocusPage.tsx` whenever a user pauses, skips, or leaves a session.
+  2. **Review Prompt Redesign & Intelligent Scheduling (PDF p. 2):** Removed redundant `⭐ Focentia Feedback` box header; implemented exponential skip backoff (84h -> 240h -> 1080h); triggered exclusively on meaningful productivity milestones (task completion, skill builder actions, planner tasks, or 2–3 Glory AI interactions); integrated supervisor review dashboard (`/api/supervisor/reviews`).
+  3. **Time Log & Learning Hub UI Polish (PDF p. 3, 4):** Appended "Time" / "টাইম" to form inputs; unboxed the "Learning History & Records" heading into clean flat typography; removed clunky double-nested badge borders in favor of clean subtle dividers; preserved color-coded weak/important topic chips with zero animation/hover flicker.
+  4. **Mind Space Margins & Cross-Mode Data Persistence (PDF p. 7):** Fixed text container margins with `padding: 18px 22px` so text never abuts borders; implemented dual-layer local Dexie storage + cloud endpoint sync (`/api/mind-items`) with fallback guest localStorage mirroring.
+  5. **My Diary Card Typography & Margins (PDF p. 5):** Shifted title slightly higher up; ensured consistent horizontal margins for preview text and appended trailing ellipsis (`...`).
+  6. **Profile Picture & Personal Information Sync & Supervisor Visibility (PDF p. 6, 8):** Fixed avatar upload URL parsing in `userService.ts`; added mount hydration from server profile; added Supervisor User Profiles tab in `/supervisor` to allow staff inspection of user profiles.
+  7. **My Diary Light Mode Title Contrast (PDF p. 9):** Forced high-contrast `#FFFFFF !important` on dark blue notebook covers in Light Mode, eliminating illegible black text on dark blue covers.
+  8. **Notes & Files Block Actions & Centered Canvas (PDF p. 11):** Centered `.note-editor-canvas` (`max-w-3xl mx-auto`); replaced awkward horizontal 3-button block toolbar with a compact round `+` button that smoothly rotates 45° into a vertical flyout menu (Style, Duplicate, Delete).
+  9. **Offline App Loading Stabilization (PDF p. 10):** Fixed mobile Chromium blank white screen freeze when offline:
+     - Preserved immutable Next.js chunks in `focentia-immutable-static-v1` cache in `sw.js`.
+     - Hid SVG symbol definitions (`display: none`) in `layout.tsx`.
+     - Added pure-CSS animation failsafes (`forceShellVisible`, `forceBootLayerHide`).
+     - Reduced offline auth wait from 5000ms to 150ms when `!navigator.onLine`.
+- **Verification:**
+  - `npm run build --prefix frontend`: Passed with code 0 (21/21 static & dynamic routes).
+  - `npm run build --prefix backend`: Passed with code 0.
+- **Status:** **VERIFIED**
+

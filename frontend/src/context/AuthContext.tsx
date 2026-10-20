@@ -180,9 +180,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     async function initAuth() {
       try {
+        const isOffline = typeof navigator !== "undefined" && !navigator.onLine;
         const sessionPromise = authService.getSession();
         const timeoutPromise = new Promise<{ user: null; rememberMe: false }>((resolve) =>
-          setTimeout(() => resolve({ user: null, rememberMe: false }), 5000)
+          setTimeout(() => resolve({ user: null, rememberMe: false }), isOffline ? 150 : 2500)
         );
         const session = await Promise.race([sessionPromise, timeoutPromise]);
 
