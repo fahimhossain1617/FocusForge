@@ -1123,6 +1123,7 @@ html.dark .toggle-switch, [data-theme="dark"] .toggle-switch {
   line-height: 1.5;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   word-break: break-word;
 }
 
@@ -1812,7 +1813,7 @@ html.dark .toggle-switch, [data-theme="dark"] .toggle-switch {
 .ccp-rgb-inputs { display: flex; gap: 6px; flex: 1; }
 .ccp-rgb-inputs label { display: flex; flex-direction: column; gap: 4px; flex: 1; }
 .ccp-rgb-inputs span { font-size: 10px; font-weight: 600; color: #64748b; text-align: center; }
-.ccp-rgb-inputs input { width: 100%; background: rgba(0, 0, 0, 0.4); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 6px; color: #e2e8f0; font-size: 11px; text-align: center; padding: 4px 0; outline: none; transition: border-color 0.2s, background 0.2s; -moz-appearance: textfield; }
+.ccp-rgb-inputs input { width: 100%; background: rgba(0, 0, 0, 0.4); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 6px; color: #e2e8f0; font-size: 11px; text-align: center; padding: 4px 0; outline: none; transition: border-color 0.2s, background 0.2s; appearance: textfield; -moz-appearance: textfield; }
 .ccp-rgb-inputs input::-webkit-outer-spin-button, .ccp-rgb-inputs input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 .ccp-rgb-inputs input:focus { border-color: rgba(148, 163, 184, 0.4); background: rgba(0, 0, 0, 0.6); }
 
