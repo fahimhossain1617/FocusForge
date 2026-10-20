@@ -217,11 +217,11 @@ export function useOrbMood({
           return;
         case "composing":
           setMood(isTyping ? "typing" : "thinking");
-          setCustomThought(isTyping ? (isBn ? "লিখছি…" : "Typing…") : (isBn ? "উত্তর প্রস্তুত করছি…" : "Formulating response…"));
+          setCustomThought(isTyping ? (isBn ? "সহজ করে লিখছি…" : "Typing…") : (isBn ? "উত্তর গুছিয়ে নিচ্ছি…" : "Preparing response…"));
           return;
         case "working":
           setMood("working");
-          setCustomThought(isBn ? "তথ্য ও অগ্রগতি পর্যালোচনা করছি…" : "Analyzing details & progress…");
+          setCustomThought(isBn ? "একটু ভেবে গুছিয়ে নিচ্ছি…" : "Thinking and organizing…");
           return;
         case "waiting_confirmation":
           setMood("waiting_confirmation");
@@ -311,7 +311,7 @@ export function useOrbMood({
       setCustomThought(null);
     } else if (isWorking) {
       setMood("working");
-      setCustomThought(isBn ? "পরিবর্তন সংরক্ষণ করছি…" : "Saving your changes…");
+      setCustomThought(isBn ? "একটু গুছিয়ে নিচ্ছি…" : "Working on it…");
     } else if (isWaitingConfirmation) {
       setMood("waiting_confirmation");
       setCustomThought(isBn ? "তোমার অনুমোদনের অপেক্ষায়…" : "Waiting for your confirmation…");

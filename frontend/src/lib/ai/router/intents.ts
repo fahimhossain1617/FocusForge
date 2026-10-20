@@ -58,17 +58,17 @@ export interface ClassifiedIntent {
 }
 
 // 1. Social & Small Talk Patterns
-const GREETING_REGEX = /^(?:hi|hello|hey|heyy|heya|hiya|salam|assalamu\s*alaikum|halo|good\s*morning|good\s*afternoon|good\s*evening|shuvo\s*shokal|সুপ্রভাত|শুভ\s*সকাল|শুভ\s*সন্ধ্যা|সালাম|আসসালামু\s*আলাইকুম|হ্যালো|হাই|হায়|কেমন\s*আছো|কেমন\s*আছিস|কেমন\s*আছেন|কী\s*খবর|কি\s*খবর|কি\s*অবস্থা|কী\s*অবস্থা|ভালো\s*আছো|ভালো\s*আছেন|kemon\s*achho|kemon\s*acho|kemon\s*aso|kemon\s*achen|ki\s*khobor|ki\s*obostha|valo\s*acho|bhalo\s*acho)(?:\s+(?:there|glory|গ্লোরি|বন্ধু|friend|bro|vai|bhai|partner))?[!?.]*$|^(?:how\s*are\s*you|how\s*r\s*u|how\s*do\s*you\s*do|how\s*are\s*you\s*doing|how\s*is\s*it\s*going|whats\s*up|what's\s*up|sup|তুমি\s*কেমন\s*আছো|তুমি\s*কেমন\s*আছিস|আপনি\s*কেমন\s*আছেন)(?:\s+(?:glory|গ্লোরি|friend|there))?[!?.]*$/i;
-const FAREWELL_REGEX = /^(?:bye|goodbye|see\s*you|see\s*you\s*later|tata|allah\s*hafez|ta\s*ta|pore\s*kotha\s*hobe|বিদায়|বাই|পরে\s*কথা\s*হবে|আল্লাহ\s*হাফেজ)[!?.]*$/i;
-const WHO_ARE_YOU_REGEX = /^(?:who\s*are\s*you|introduce\s*yourself|what(?:'s|\s+is)\s+your\s+name|who\s+made\s+you|are\s+you\s+a\s+robot|tell\s+me\s+about\s+(?:focusforge|focentia|glory)|tumi\s*ke|tomar\s*naam\s*ki|tomar\s*nam\s*ki|tumi\s*ki\s*robot|who\s*is\s*glory|who\s*are\s*u|তুমি\s*কে|তোমার\s*নাম\s*(?:কী|কি)|তোমার\s*পরিচয়|তোমার\s*পরিচয়|তুমি\s*(?:কি|কী)\s*রোবট|তোমার\s*কাজ\s*(?:কী|কি)|তোমাকে\s*কে\s*(?:বানিয়েছে|তৈরি\s*করেছে))[!?.]*$/i;
-const WHAT_CAN_YOU_DO_REGEX = /^(?:what\s*can\s*you\s*do|what\s*do\s*you\s*do|features\s*of\s*(?:focusforge|focentia)|what\s*features\s*do\s*you\s*have|tumi\s*ki\s*korte\s*paro|help\s*me\s*with|what\s*are\s*your\s*features|(?:কী|কি)\s*করতে\s*পারো|তোমার\s*কাজ\s*(?:কী|কি)|কীভাবে\s*সাহায্য\s*করবে|কিভাবে\s*সাহায্য\s*করবে|তুমি\s*(?:কী|কি)\s*করতে\s*পারো|তুমি\s*(?:কী|কি)\s*কাজ\s*করো|কী\s*কী\s*ফিচার\s*আছে|কি\s*কি\s*ফিচার\s*আছে)[!?.]*$/i;
-const JOKES_REGEX = /^(?:tell\s*me\s*a\s*joke|joke|make\s*me\s*laugh|funny|joke\s*bolo|koutuk|কৌতুক|মজার\s*কিছু|হাসাও|একটি\s*কৌতুক\s*বলো)[!?.]*$/i;
-const COMPLIMENT_REGEX = /^(?:you\s*are\s*(?:great|awesome|the\s*best)|good\s*job|well\s*done|thank\s*you(?:\s*so\s*much)?|thanks(?:\s*a\s*lot)?|thx|ধন্যবাদ|অনেক\s*ধন্যবাদ|থ্যাংক\s*ইউ|দারুণ(?:\s*হয়েছে)?|তুমি\s*সেরা|খুব\s*ভালো(?:\s*লেগেছে)?|অনেক\s*ভালো|valo\s*laglo|dhonnobad)(?:\s+(?:glory|গ্লোরি|friend|bro|vai|bhai))?[!?.]*$/i;
-const FEELINGS_AGE_REGEX = /^(?:how\s*old\s*are\s*you|your\s*age|how\s*do\s*you\s*feel|tomar\s*boyos|tomar\s*age|তোমার\s*বয়স\s*কত|তোমার\s*বয়স|কেমন\s*অনুভব\s*করছো)[!?.]*$/i;
-const BORED_TIRED_REGEX = /^(?:i(?:'m|\s+am)\s+(?:bored|tired|exhausted|sleepy)|feeling\s+sleepy|boring\s*lagche|klanto\s*lagche|বোরিং\s*লাগছে|ক্লান্ত\s*লাগছে|ঘুম\s*পাচ্ছে|আমি\s*ক্লান্ত|খুব\s*ক্লান্ত)[!?.]*$/i;
-const GOOD_NIGHT_REGEX = /^(?:good\s*night|night\s*glory|sleep\s*well|shuvo\s*ratri|ghumaite\s*jai|ghumiye\s*pori|শুভ\s*রাত্রি|ঘুমাব|ঘুমাতে\s*যাই)[!?.]*$/i;
-const LOVE_YOU_REGEX = /^(?:i\s*love\s*you|love\s*you(?:\s*glory)?|bhalobashi\s*tomake|valobashi\s*tomake|তোমাকে\s*ভালোবাসি|তোমায়\s*ভালোবাসি|ভালোবাসি\s*তোমাকে)[!?.]*$/i;
-const ACK_REGEX = /^(ok|okay|hmm|hm|yes|no|yup|nope|thik\s*ache|আচ্ছা|ঠিক\s*আছে|ঠিক\s*আসে|হ্যাঁ|না|bujhlam|got\s*it|sure)[!?.]*$/i;
+const GREETING_REGEX = /(?:\b(?:hi|hello|hey|heyy|heya|hiya|salam|assalamu\s*alaikum|halo|good\s*morning|good\s*afternoon|good\s*evening|shuvo\s*shokal|how\s*are\s*you|how\s*r\s*u|how\s*do\s*you\s*do|how\s*are\s*you\s*doing|how\s*is\s*it\s*going|whats\s*up|what's\s*up|sup|kemon\s*achho|kemon\s*acho|kemon\s*aso|kemon\s*achen|kemon\s*asen|ki\s*khobor|ki\s*obostha|valo\s*acho|bhalo\s*acho)\b|সুপ্রভাত|শুভ\s*সকাল|শুভ\s*সন্ধ্যা|সালাম|আসসালামু\s*আলাইকুম|হ্যালো|হাই|হায়|কেমন\s*আছো|কেমন\s*আছিস|কেমন\s*আছেন|কেমন\s*আসেন|কী\s*খবর|কি\s*খবর|কি\s*অবস্থা|কী\s*অবস্থা|ভালো\s*আছো|ভালো\s*আছেন)/i;
+const FAREWELL_REGEX = /(?:\b(?:bye|goodbye|see\s*you(?:\s*later)?|tata|ta\s*ta|allah\s*hafez|pore\s*kotha\s*hobe)\b|বিদায়|বাই|পরে\s*কথা\s*হবে|আল্লাহ\s*হাফেজ|টা\s*টা|টাটা)/i;
+const WHO_ARE_YOU_REGEX = /(?:\b(?:who\s*(?:are|r)\s*u|who\s*are\s*you|what(?:'s|\s+is)\s+your\s+name|introduce\s*yourself|who\s+made\s+you|are\s+you\s+(?:a\s+)?robot|who\s+is\s+glory|tell\s+me\s+about\s+(?:yourself|glory|focusforge|focentia)|tumi\s*ke|tomar\s*na?am\s*ki|tumi\s*ki\s*robot)\b|তুমি\s*কে|তোমার\s*নাম\s*(?:কী|কি)|তোমার\s*পরিচয়|তোমার\s*পরিচয়|কে\s*তুমি|তুমি\s*(?:কি|কী)\s*রোবট|তোমাকে\s*কে\s*(?:বানিয়েছে|বানাইছে|তৈরি\s*করেছে)|গ্লোরি\s*কে)/i;
+const WHAT_CAN_YOU_DO_REGEX = /(?:\b(?:what\s*can\s*you\s*do|what\s*do\s*you\s*do|what\s*(?:are\s*)?your\s*features|how\s*can\s*you\s*help|features\s*of\s*(?:focusforge|focentia|glory)|tumi\s*ki\s*(?:ki\s*)?korte\s*paro)\b|তুমি\s*(?:কী|কি)\s*(?:কী|কি\s*)?করতে\s*পারো|তোমার\s*কাজ\s*(?:কী|কি)|তুমি\s*(?:কী|কি)\s*কাজ\s*করো|কীভাবে\s*সাহায্য\s*(?:করবে|করতে\s*পারো)|কিভাবে\s*সাহায্য\s*(?:করবে|করতে\s*পারো)|(?:কী|কি)\s*(?:কী|কি\s*)?ফিচার\s*আছে|তোমার\s*ফিচার)/i;
+const JOKES_REGEX = /(?:\b(?:tell\s*(?:me\s*)?(?:a\s*)?joke|joke\s*please|make\s*me\s*laugh|funny|joke\s*bolo|joke\s*sunao|koutuk\s*bolo)\b|(?:একটি|একটা)?\s*(?:জোকস?|কৌতুক)\s*(?:বলো|শোনাও)|মজার\s*কিছু\s*বলো|হাসাও|কৌতুক)/i;
+const COMPLIMENT_REGEX = /(?:\b(?:you\s*are\s*(?:great|awesome|the\s*best|cool|smart)|good\s*job|well\s*done|thank\s*you|thanks|thx|valo\s*laglo|bhalo\s*laglo|dhonnobad)\b|ধন্যবাদ|অনেক\s*ধন্যবাদ|থ্যাংক\s*ইউ|থ্যাঙ্ক\s*ইউ|থ্যাংকস|দারুণ|দারুন|তুমি\s*সেরা|খুব\s*ভালো\s*লেগেছে|অনেক\s*ভালো)/i;
+const FEELINGS_AGE_REGEX = /(?:\b(?:how\s*old\s*are\s*you|your\s*age|how\s*do\s*you\s*feel|tomar\s*boyos|tomar\s*age)\b|তোমার\s*বয়স(?:\s*কত)?|কেমন\s*অনুভব\s*করছো)/i;
+const BORED_TIRED_REGEX = /(?:\b(?:i(?:'m|\s+am)\s+(?:bored|tired|exhausted|sleepy)|feeling\s+(?:bored|tired|sleepy)|boring\s*lagche|klanto\s*lagche)\b|বোরিং\s*লাগছে|ক্লান্ত\s*লাগছে|ঘুম\s*পাচ্ছে|আমি\s*ক্লান্ত|খুব\s*ক্লান্ত|একঘেয়ে\s*লাগছে)/i;
+const GOOD_NIGHT_REGEX = /(?:\b(?:good\s*night|night\s*glory|sleep\s*well|shuvo\s*ratri|ghumaite\s*jai|ghumiye\s*pori)\b|শুভ\s*(?:রাত্রি|রাত)|ঘুমাতে\s*যাই|ঘুমাব|ঘুমিয়ে\s*পড়ি)/i;
+const LOVE_YOU_REGEX = /(?:\b(?:i\s*love\s*you|love\s*you(?:\s*glory)?|bhalobashi\s*tomake|valobashi\s*tomake)\b|তোমাকে\s*ভালোবাসি|তোমায়\s*ভালোবাসি|ভালোবাসি\s*তোমাকে|লাভ\s*ইউ)/i;
+const ACK_REGEX = /^(?:ok|okay|hmm|hm|hmmm|yes|no|yup|nope|thik\s*ache|acche|আচ্ছা|ঠিক\s*আছে|ঠিক\s*আসে|হ্যাঁ|হাঁ|না|bujhlam|বুঝলাম|got\s*it|sure|alright)(?:\s+(?:bhai|vai|glory|গ্লোরি|ভাই|ভাইয়া|বন্ধু|ঠিক\s*আছে|বুঝলাম))?[!?.]*$/i;
 const USER_CORRECTION_REGEX = /(?:\b(?:you\s+are\s+wrong|you\s+made\s+a\s+mistake|that(?:'s|\s+is)\s+(?:wrong|incorrect|a\s+mistake)|wrong\s+answer|not\s+correct|(?:eta|oita)\s*(?:vul|bhul)|(?:vul|bhul)\s*(?:hoyeche|hoyese|hoise|bolso|bolcho|bolsen|korsen|koreso))\b|ভুল\s*(?:হয়েছে|বলছ|বলেছো|করলা|করেছ|উত্তর|হয়ে\s*গেছে)|এটা\s*ভুল|ভুল\s*তথ্য|ভুল\s*কথা|ভুল\s*হয়েছে|ভুল\s*বলেছ|ভুল\s*করেছ|ভুল\s*উত্তর|ঠিক\s*না)/i;
 
 // 2. Emotional Support & Motivation Patterns
@@ -128,9 +128,99 @@ export function classifyIntent(norm: NormalizedInput): ClassifiedIntent {
     };
   }
 
-  // 2. Social / Small Talk
-  if (GREETING_REGEX.test(text)) {
-    return { intent: 'GREETING', confidence: 0.98, isBigTask: false };
+  // 2. Productivity Queries & Actions (High priority: "হাই, একটা টাইমার দাও" executes timer action)
+  if (TIMELOG_TOPIC_QUERY_REGEX.test(text)) {
+    return { intent: 'TIMELOG_TOPIC_QUERY', confidence: 0.96, isBigTask: false };
+  }
+  if (PLANNER_DATE_QUERY_REGEX.test(text)) {
+    return { intent: 'PLANNER_DATE_QUERY', confidence: 0.96, isBigTask: false };
+  }
+  if (PLANNER_ACTION_REGEX.test(text)) {
+    return { intent: 'PLANNER_ACTION', confidence: 0.92, isBigTask: false };
+  }
+  if (DIARY_ACTION_REGEX.test(text)) {
+    return { intent: 'DIARY_ACTION', confidence: 0.92, isBigTask: false };
+  }
+  if (FOCUS_SESSION_ACTION_REGEX.test(text)) {
+    return { intent: 'FOCUS_SESSION_ACTION', confidence: 0.95, isBigTask: false };
+  }
+  if (TIMER_ACTION_REGEX.test(text)) {
+    return { intent: 'TIMER_ACTION', confidence: 0.95, isBigTask: false };
+  }
+  if (TIMELOG_ACTION_REGEX.test(text)) {
+    return { intent: 'TIMELOG_ACTION', confidence: 0.90, isBigTask: false };
+  }
+  if (TEACH_REQUEST_REGEX.test(text)) {
+    return { intent: 'LEARNING_TEACH_REQUEST', confidence: 0.92, isBigTask: false };
+  }
+  if (STATS_PROGRESS_REGEX.test(text)) {
+    return { intent: 'STATS_PROGRESS', confidence: 0.90, isBigTask: false };
+  }
+
+  // 3. Navigation & Settings
+  if (NAV_FOCUS_REGEX.test(text)) {
+    return { intent: 'NAVIGATION_FOCUS', confidence: 0.95, isBigTask: false };
+  }
+  if (NAV_PLANNER_REGEX.test(text)) {
+    return { intent: 'NAVIGATION_PLANNER', confidence: 0.95, isBigTask: false };
+  }
+  if (NAV_DIARY_REGEX.test(text)) {
+    return { intent: 'NAVIGATION_DIARY', confidence: 0.95, isBigTask: false };
+  }
+  if (NAV_NOTES_REGEX.test(text)) {
+    return { intent: 'NAVIGATION_NOTES', confidence: 0.95, isBigTask: false };
+  }
+  if (NAV_MIND_REGEX.test(text)) {
+    return { intent: 'NAVIGATION_MIND', confidence: 0.95, isBigTask: false };
+  }
+  if (NAV_LEARNING_REGEX.test(text)) {
+    return { intent: 'NAVIGATION_LEARNING', confidence: 0.95, isBigTask: false };
+  }
+  if (NAV_DASHBOARD_REGEX.test(text)) {
+    return { intent: 'NAVIGATION_DASHBOARD', confidence: 0.95, isBigTask: false };
+  }
+  if (NAV_SETTINGS_REGEX.test(text)) {
+    return { intent: 'NAVIGATION_SETTINGS', confidence: 0.95, isBigTask: false };
+  }
+  if (APP_HELP_REGEX.test(text)) {
+    return { intent: 'APP_HELP', confidence: 0.92, isBigTask: false };
+  }
+  if (SETTINGS_LANG_REGEX.test(text)) {
+    return { intent: 'SETTINGS_LANGUAGE', confidence: 0.95, isBigTask: false };
+  }
+  if (SETTINGS_THEME_REGEX.test(text)) {
+    return { intent: 'SETTINGS_THEME', confidence: 0.95, isBigTask: false };
+  }
+  if (SETTINGS_PASS_REGEX.test(text)) {
+    return { intent: 'SETTINGS_PASSWORD', confidence: 0.95, isBigTask: false };
+  }
+  if (SETTINGS_NOTIF_REGEX.test(text)) {
+    return { intent: 'SETTINGS_NOTIFICATIONS', confidence: 0.95, isBigTask: false };
+  }
+  if (SETTINGS_DELETE_REGEX.test(text)) {
+    return { intent: 'SETTINGS_DELETE_ACCOUNT', confidence: 0.95, isBigTask: false };
+  }
+  if (SETTINGS_SUPPORT_REGEX.test(text)) {
+    return { intent: 'SETTINGS_SUPPORT', confidence: 0.95, isBigTask: false };
+  }
+
+  // 4. Emotional Support & Motivation
+  if (EXAM_FEAR_REGEX.test(text)) {
+    return { intent: 'EXAM_FEAR', confidence: 0.92, isBigTask: false };
+  }
+  if (LONELINESS_REGEX.test(text)) {
+    return { intent: 'LONELINESS_SADNESS', confidence: 0.92, isBigTask: false };
+  }
+  if (PROCRASTINATION_REGEX.test(text)) {
+    return { intent: 'PROCRASTINATION_LAZINESS', confidence: 0.92, isBigTask: false };
+  }
+  if (CELEBRATING_REGEX.test(text)) {
+    return { intent: 'CELEBRATING_PROGRESS', confidence: 0.90, isBigTask: false };
+  }
+
+  // 5. Social & Conversational Intents
+  if (USER_CORRECTION_REGEX.test(text)) {
+    return { intent: 'USER_CORRECTION', confidence: 0.96, isBigTask: false };
   }
   if (WHO_ARE_YOU_REGEX.test(text)) {
     return { intent: 'WHO_ARE_YOU', confidence: 0.95, isBigTask: false };
@@ -159,103 +249,14 @@ export function classifyIntent(norm: NormalizedInput): ClassifiedIntent {
   if (FAREWELL_REGEX.test(text)) {
     return { intent: 'FAREWELL', confidence: 0.95, isBigTask: false };
   }
-  if (USER_CORRECTION_REGEX.test(text)) {
-    return { intent: 'USER_CORRECTION', confidence: 0.96, isBigTask: false };
-  }
   if (ACK_REGEX.test(text)) {
     return { intent: 'ACKNOWLEDGEMENT', confidence: 0.95, isBigTask: false };
   }
-
-  // 3. Motivation & Emotional Support
-  if (EXAM_FEAR_REGEX.test(text)) {
-    return { intent: 'EXAM_FEAR', confidence: 0.92, isBigTask: false };
-  }
-  if (LONELINESS_REGEX.test(text)) {
-    return { intent: 'LONELINESS_SADNESS', confidence: 0.92, isBigTask: false };
-  }
-  if (PROCRASTINATION_REGEX.test(text)) {
-    return { intent: 'PROCRASTINATION_LAZINESS', confidence: 0.92, isBigTask: false };
-  }
-  if (CELEBRATING_REGEX.test(text)) {
-    return { intent: 'CELEBRATING_PROGRESS', confidence: 0.90, isBigTask: false };
+  if (GREETING_REGEX.test(text)) {
+    return { intent: 'GREETING', confidence: 0.98, isBigTask: false };
   }
 
-  // 4. Settings Sub-pages
-  if (SETTINGS_LANG_REGEX.test(text)) {
-    return { intent: 'SETTINGS_LANGUAGE', confidence: 0.95, isBigTask: false };
-  }
-  if (SETTINGS_THEME_REGEX.test(text)) {
-    return { intent: 'SETTINGS_THEME', confidence: 0.95, isBigTask: false };
-  }
-  if (SETTINGS_PASS_REGEX.test(text)) {
-    return { intent: 'SETTINGS_PASSWORD', confidence: 0.95, isBigTask: false };
-  }
-  if (SETTINGS_NOTIF_REGEX.test(text)) {
-    return { intent: 'SETTINGS_NOTIFICATIONS', confidence: 0.95, isBigTask: false };
-  }
-  if (SETTINGS_DELETE_REGEX.test(text)) {
-    return { intent: 'SETTINGS_DELETE_ACCOUNT', confidence: 0.95, isBigTask: false };
-  }
-  if (SETTINGS_SUPPORT_REGEX.test(text)) {
-    return { intent: 'SETTINGS_SUPPORT', confidence: 0.95, isBigTask: false };
-  }
-
-  // 5. Navigation & Focus Actions
-  if (FOCUS_SESSION_ACTION_REGEX.test(text)) {
-    return { intent: 'FOCUS_SESSION_ACTION', confidence: 0.95, isBigTask: false };
-  }
-  if (TIMER_ACTION_REGEX.test(text)) {
-    return { intent: 'TIMER_ACTION', confidence: 0.95, isBigTask: false };
-  }
-  if (NAV_FOCUS_REGEX.test(text)) {
-    return { intent: 'NAVIGATION_FOCUS', confidence: 0.95, isBigTask: false };
-  }
-  if (NAV_PLANNER_REGEX.test(text)) {
-    return { intent: 'NAVIGATION_PLANNER', confidence: 0.95, isBigTask: false };
-  }
-  if (NAV_DIARY_REGEX.test(text)) {
-    return { intent: 'NAVIGATION_DIARY', confidence: 0.95, isBigTask: false };
-  }
-  if (NAV_NOTES_REGEX.test(text)) {
-    return { intent: 'NAVIGATION_NOTES', confidence: 0.95, isBigTask: false };
-  }
-  if (NAV_MIND_REGEX.test(text)) {
-    return { intent: 'NAVIGATION_MIND', confidence: 0.95, isBigTask: false };
-  }
-  if (NAV_LEARNING_REGEX.test(text)) {
-    return { intent: 'NAVIGATION_LEARNING', confidence: 0.95, isBigTask: false };
-  }
-  if (NAV_DASHBOARD_REGEX.test(text)) {
-    return { intent: 'NAVIGATION_DASHBOARD', confidence: 0.95, isBigTask: false };
-  }
-  if (NAV_SETTINGS_REGEX.test(text)) {
-    return { intent: 'NAVIGATION_SETTINGS', confidence: 0.95, isBigTask: false };
-  }
-
-  // 6. Productivity Queries & Actions
-  if (TIMELOG_TOPIC_QUERY_REGEX.test(text)) {
-    return { intent: 'TIMELOG_TOPIC_QUERY', confidence: 0.96, isBigTask: false };
-  }
-  if (PLANNER_DATE_QUERY_REGEX.test(text)) {
-    return { intent: 'PLANNER_DATE_QUERY', confidence: 0.96, isBigTask: false };
-  }
-  if (PLANNER_ACTION_REGEX.test(text)) {
-    return { intent: 'PLANNER_ACTION', confidence: 0.92, isBigTask: false };
-  }
-  if (DIARY_ACTION_REGEX.test(text)) {
-    return { intent: 'DIARY_ACTION', confidence: 0.92, isBigTask: false };
-  }
-  if (TIMELOG_ACTION_REGEX.test(text)) {
-    return { intent: 'TIMELOG_ACTION', confidence: 0.90, isBigTask: false };
-  }
-  if (TEACH_REQUEST_REGEX.test(text)) {
-    return { intent: 'LEARNING_TEACH_REQUEST', confidence: 0.92, isBigTask: false };
-  }
-  if (STATS_PROGRESS_REGEX.test(text)) {
-    return { intent: 'STATS_PROGRESS', confidence: 0.90, isBigTask: false };
-  }
-
-  // Fallback
+  // Fallback to Gemini
   return {
     intent: 'UNKNOWN',
     confidence: 0.2,

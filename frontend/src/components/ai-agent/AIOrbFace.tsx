@@ -145,6 +145,7 @@ export function AIOrbFace({
       switch (effectiveMood) {
         case "typing":
         case "composing":
+        case "working":
           moodBiasX = 0;
           moodBiasY = 0.42; // eyes looking happily down towards laptop
           allowCursorTracking = false;
@@ -167,11 +168,6 @@ export function AIOrbFace({
         case "angry":
           moodBiasX = 0.15;
           moodBiasY = -0.15; // cute playful pout gaze
-          allowCursorTracking = true;
-          break;
-        case "working":
-          moodBiasX = 0;
-          moodBiasY = -0.1;
           allowCursorTracking = true;
           break;
         case "waiting_confirmation":
@@ -830,11 +826,17 @@ export function AIOrbFace({
                       <line x1="97" y1="91" x2="124" y2="95" stroke="#1e293b" strokeWidth="2.6" strokeLinecap="round" />
                       <line x1="183" y1="91" x2="156" y2="95" stroke="#1e293b" strokeWidth="2.6" strokeLinecap="round" />
                     </>
-                  ) : mood === "thinking" ? (
+                  ) : (mood === "thinking" || (isThinking && mood !== "typing" && mood !== "composing" && mood !== "working" && !isTypingStream)) ? (
                     /* Thinking (Image 1 bottom-left): Left brow lowered pensive, Right brow high quizzical arch */
                     <>
                       <path d="M 98 94 Q 112 90 124 95" fill="none" />
                       <path d="M 156 86 Q 168 76 180 86" fill="none" />
+                    </>
+                  ) : (mood === "typing" || mood === "composing" || mood === "working" || isTypingStream) ? (
+                    /* Typing on Laptop: Gentle sweet focused brows */
+                    <>
+                      <path d="M 99 90 Q 112 85 125 90" fill="none" />
+                      <path d="M 155 90 Q 168 85 181 90" fill="none" />
                     </>
                   ) : mood === "angry" ? (
                     /* Playful Pout (Image 1 bottom-right): Gentle sweet arched brows */
@@ -1062,9 +1064,18 @@ export function AIOrbFace({
                       <ellipse cx="140" cy="129" rx="6.5" ry="8" fill="#090e21" stroke="#0f172a" strokeWidth="1.5" />
                       <ellipse cx="140" cy="133.5" rx="4.2" ry="2.8" fill="#ff4d79" />
                     </g>
-                  ) : mood === "thinking" ? (
+                  ) : (mood === "thinking" || (isThinking && mood !== "typing" && mood !== "composing" && mood !== "working" && !isTypingStream)) ? (
                     /* Thinking (Image 1 bottom-left): Wondering curious slight open mouth */
                     <ellipse cx="140" cy="128" rx="2.8" ry="3.4" fill="#0b1328" stroke="#0f172a" strokeWidth="1.2" />
+                  ) : (mood === "typing" || mood === "composing" || mood === "working" || isTypingStream) ? (
+                    /* Typing / Working on Laptop: Sweet, gentle focused smile */
+                    <path
+                      d="M 133 124 Q 140 130 147 124"
+                      fill="none"
+                      stroke="#0f172a"
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                    />
                   ) : mood === "angry" ? (
                     /* Playful Pout (Image 1 bottom-right): Adorable kissy/pout "3" mouth */
                     <path
@@ -1202,7 +1213,7 @@ export function AIOrbFace({
                 )}
 
                 {/* Thinking (Image 1 bottom-left) & Curious: Floating Glowing Question Mark ? */}
-                {(mood === "thinking" || mood === "curious") && (
+                {(mood === "thinking" || mood === "curious" || (isThinking && mood !== "typing" && mood !== "composing" && mood !== "working" && !isTypingStream)) && (
                   <g transform="translate(196, 62)">
                     <text
                       x="0"
@@ -1318,7 +1329,7 @@ export function AIOrbFace({
 
               {/* 5. HAND POSES FOR EMOTIONS */}
               {/* A. Thinking Hand Pose (Image 1 bottom-left): Cute white rounded paw nestled under the chin */}
-              {mood === "thinking" && (
+              {(mood === "thinking" || (isThinking && mood !== "typing" && mood !== "composing" && mood !== "working" && !isTypingStream)) && (
                 <g transform="translate(136, 144)">
                   {/* Subtle lower arm shadow/depth */}
                   <path
@@ -1371,7 +1382,7 @@ export function AIOrbFace({
             </g>
 
             {/* 6. MINIATURE BLUE LAPTOP & TYPING ARMS (Image 3) */}
-            {(mood === "typing" || mood === "composing" || isTypingStream) && (
+            {(mood === "typing" || mood === "composing" || mood === "working" || isTypingStream) && (
               <g transform="translate(0, 8)">
                 {/* Floor glow / ring under laptop */}
                 <ellipse

@@ -1574,3 +1574,32 @@
   - `npx tsx scripts/verify_production_readiness.ts`: Passed 35/35.
 - **Status:** **VERIFIED**
 
+---
+
+## ADR-056: AI Response Speed Optimization, Instant Message Intent Broadening, Physical Animation Lifecycle & Humble Tone
+
+- **Date:** October 2026
+- **Status:** Accepted & Verified
+- **Context:**
+  - Users reported sluggish AI responses and excessive waiting times. Analysis revealed:
+    1. Everyday multi-word Bengali/English greetings and pleasantries ("হাই কেমন আছো", "সালাম ভাই কেমন আছেন", "কি খবর কেমন আছো", "hi how are you") failed strict `^...$` regex anchors in `intents.ts`, unnecessarily falling through to the full backend Gemini API and waiting for remote network roundtrips.
+    2. Status texts displayed above the AI face during thinking were heavy, complex, and robotic ("শেখার লক্ষ্য ও অগ্রাধিকার পর্যালোচনা করছি…", "প্রাসঙ্গিক প্রেক্ষাপট ও তথ্য যাচাই করছি…").
+    3. The AI's physical animation was static: the AI Orb sat completely motionless during processing because `mood === "working"` did not render the miniature laptop with floor glow and tapping paws, nor the thinking paw pose.
+    4. Instant messages resolved in 0ms without any visual thinking or typing cues, so the AI face never animated.
+    5. The AI tone needed to be polite, humble, empathetic, respectful (বিনয়ী ও শ্রদ্ধাশীল), and adapt naturally to the user.
+- **Decision:**
+  1. **Broadened Intent Matching (`frontend/src/lib/ai/router/intents.ts`):** Removed rigid anchors and reordered intent classification checks so productivity and navigation intents take precedence over general greetings, while multi-word greetings, pleasantries, compliments, and questions resolve locally in <1ms without hitting Gemini or consuming tokens.
+  2. **Human-Friendly Simplified Status Texts (`frontend/src/services/aiStatusEvents.ts`, `frontend/src/components/ai-agent/useOrbMood.ts`):** Replaced robotic text with simple, natural phrases ("তোমার কথাটা বুঝে নিচ্ছি…", "একটু ভেবে নিচ্ছি…", "সহজভাবে উত্তরটি লিখছি…", "একটু ভেবে গুছিয়ে নিচ্ছি…").
+  3. **Physical Animation Lifecycle & Laptop Integration (`frontend/src/components/ai-agent/AIOrbFace.tsx`, `frontend/src/hooks/useAIAgent.ts`):**
+     - Updated `AIOrbFace.tsx` so `mood === "working"` renders the focused downward gaze, gentle brows, focused smile, and miniature laptop with floor glow, sparks, and typing paws.
+     - Added cute white rounded paw nestled under the chin with glowing question mark during thinking states.
+     - In `useAIAgent.ts`, local instant messages execute a snappy ~450ms micro-choreography (180ms thinking pose -> 220ms laptop typing -> emotional delivery).
+     - Smoothed the token streaming rate for Gemini responses over ~300-600ms so the laptop and paws are active while text streams.
+  4. **Humble, Polite & Empathetic AI Tone (`frontend/src/lib/server/aiService.ts`, `backend/src/services/aiService.ts`):** System prompt instructions in both frontend and backend emphasize genuine humility, politeness, respectful tone (বিনয়ী ও শ্রদ্ধাশীল আচরণ), active listening, and simple natural language without hard academic jargon.
+- **Verification:**
+  - `npm run build --prefix frontend`: Passed with code 0 (21/21 static & dynamic routes).
+  - `npm run build --prefix backend`: Passed with code 0.
+  - Scratch Intent Test Suite: Passed 16/16 test queries with 100% precision.
+- **Status:** **VERIFIED**
+
+

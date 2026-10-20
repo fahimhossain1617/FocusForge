@@ -39,61 +39,61 @@ export const AI_STATUS_DEFINITIONS: Record<AIStatusEvent, AIStatusMessage> = {
   understanding: {
     event: 'understanding',
     labelEn: 'Understanding your request…',
-    labelBn: 'তোমার অনুরোধটি বুঝছি…',
+    labelBn: 'তোমার কথাটা বুঝে নিচ্ছি…',
     orbMood: 'thinking',
   },
   analyzing_goals: {
     event: 'analyzing_goals',
-    labelEn: 'Reviewing your learning goals…',
-    labelBn: 'শেখার লক্ষ্য ও অগ্রাধিকার পর্যালোচনা করছি…',
+    labelEn: 'Looking at your goals…',
+    labelBn: 'তোমার লক্ষ্যগুলো দেখে নিচ্ছি…',
     orbMood: 'thinking',
   },
   generating_roadmap: {
     event: 'generating_roadmap',
-    labelEn: 'Preparing your learning roadmap…',
-    labelBn: 'তোমার লার্নিং রোডম্যাপ তৈরি করছি…',
+    labelEn: 'Building your roadmap…',
+    labelBn: 'সুন্দর একটি রোডম্যাপ সাজাচ্ছি…',
     orbMood: 'working',
   },
   checking_schedule: {
     event: 'checking_schedule',
-    labelEn: 'Checking your schedule & tasks…',
-    labelBn: 'তোমার শিডিউল ও প্ল্যানার চেক করছি…',
+    labelEn: 'Checking your schedule…',
+    labelBn: 'তোমার রুটিন ও প্ল্যানার দেখছি…',
     orbMood: 'working',
   },
   querying_records: {
     event: 'querying_records',
-    labelEn: 'Retrieving your notes & records…',
-    labelBn: 'তোমার সেভ করা রেকর্ড ও বিষয়গুলো দেখছি…',
+    labelEn: 'Looking through your notes…',
+    labelBn: 'তোমার নোট আর রেকর্ড খুঁজে দেখছি…',
     orbMood: 'working',
   },
   deep_research: {
     event: 'deep_research',
-    labelEn: 'Conducting in-depth analysis…',
-    labelBn: 'গভীরভাবে পর্যালোচনা করছি…',
+    labelEn: 'Thinking carefully…',
+    labelBn: 'একটু ভেবে নিচ্ছি…',
     orbMood: 'thinking',
   },
   cross_referencing: {
     event: 'cross_referencing',
-    labelEn: 'Cross-referencing context & data…',
-    labelBn: 'প্রাসঙ্গিক প্রেক্ষাপট ও তথ্য যাচাই করছি…',
+    labelEn: 'Organizing the details…',
+    labelBn: 'প্রয়োজনীয় তথ্য গুছিয়ে নিচ্ছি…',
     orbMood: 'working',
   },
   formulating_response: {
     event: 'formulating_response',
-    labelEn: 'Formulating response…',
-    labelBn: 'উত্তর প্রস্তুত করছি…',
-    orbMood: 'thinking',
+    labelEn: 'Writing your answer…',
+    labelBn: 'সহজভাবে উত্তরটি লিখছি…',
+    orbMood: 'working',
   },
   synthesizing_solution: {
     event: 'synthesizing_solution',
-    labelEn: 'Synthesizing comprehensive plan…',
-    labelBn: 'বিস্তারিত সমাধান ও পরিকল্পনা সাজাচ্ছি…',
+    labelEn: 'Preparing your plan…',
+    labelBn: 'সবকিছু সুন্দরভাবে গুছিয়ে নিচ্ছি…',
     orbMood: 'working',
   },
   finalizing_response: {
     event: 'finalizing_response',
-    labelEn: 'Refining and composing response…',
-    labelBn: 'চূড়ান্ত প্রতিক্রিয়াটি গুছিয়ে লিখছি…',
+    labelEn: 'Finishing up your response…',
+    labelBn: 'লেখা প্রায় শেষ, গুছিয়ে নিচ্ছি…',
     orbMood: 'working',
   },
   waiting_confirmation: {
@@ -105,19 +105,19 @@ export const AI_STATUS_DEFINITIONS: Record<AIStatusEvent, AIStatusMessage> = {
   executing_tool: {
     event: 'executing_tool',
     labelEn: 'Saving your changes…',
-    labelBn: 'পরিবর্তন সংরক্ষণ করছি…',
+    labelBn: 'পরিবর্তনগুলো সেভ করছি…',
     orbMood: 'working',
   },
   navigating: {
     event: 'navigating',
-    labelEn: 'Opening module…',
-    labelBn: 'মডিউল খুলছি…',
+    labelEn: 'Opening this page…',
+    labelBn: 'পেজটি খুলে দিচ্ছি…',
     orbMood: 'working',
   },
   verifying: {
     event: 'verifying',
-    labelEn: 'Verifying the result…',
-    labelBn: 'ফলাফল যাচাই করছি…',
+    labelEn: 'Double-checking…',
+    labelBn: 'একবার মিলিয়ে দেখছি…',
     orbMood: 'thinking',
   },
   success: {
@@ -209,15 +209,15 @@ export function getProgressiveStages(
     // Focentia 2.1 — Fast, crisp, responsive
     return [
       { delayMs: 0, text: initialText, orbMood: 'thinking' },
-      { delayMs: 800, text: isBn ? 'উত্তর প্রস্তুত করছি…' : 'Formulating response…', orbMood: 'working' },
+      { delayMs: 700, text: isBn ? 'সহজভাবে উত্তরটি লিখছি…' : 'Writing your answer…', orbMood: 'working' },
     ];
   }
 
   // Focentia Pro — Deep analytical & structured research breakdown
   return [
-    { delayMs: 0, text: isBn ? 'গভীরভাবে পর্যালোচনা করছি…' : 'Conducting in-depth analysis…', orbMood: 'thinking' },
-    { delayMs: 1400, text: isBn ? 'প্রাসঙ্গিক প্রেক্ষাপট ও তথ্য যাচাই করছি…' : 'Cross-referencing context & data…', orbMood: 'working' },
-    { delayMs: 3200, text: isBn ? 'বিস্তারিত সমাধান ও পরিকল্পনা সাজাচ্ছি…' : 'Synthesizing comprehensive plan…', orbMood: 'working' },
-    { delayMs: 5500, text: isBn ? 'চূড়ান্ত প্রতিক্রিয়াটি গুছিয়ে লিখছি…' : 'Refining and composing response…', orbMood: 'thinking' },
+    { delayMs: 0, text: isBn ? 'একটু ভেবে নিচ্ছি…' : 'Thinking carefully…', orbMood: 'thinking' },
+    { delayMs: 1200, text: isBn ? 'প্রয়োজনীয় তথ্য গুছিয়ে নিচ্ছি…' : 'Organizing details…', orbMood: 'working' },
+    { delayMs: 2800, text: isBn ? 'সবকিছু সুন্দরভাবে গুছিয়ে নিচ্ছি…' : 'Preparing your plan…', orbMood: 'working' },
+    { delayMs: 4500, text: isBn ? 'লেখা প্রায় শেষ, গুছিয়ে নিচ্ছি…' : 'Finishing up your response…', orbMood: 'working' },
   ];
 }

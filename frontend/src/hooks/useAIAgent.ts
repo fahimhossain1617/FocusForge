@@ -478,7 +478,7 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
     const localResolution = await routeUserMessage(content, context, history, Boolean(user?.id), userName);
 
     // 2. INSTANT LOCAL-FIRST PATH (Online only: Canned greetings, identity, local tools, planner, diary, timer navigation)
-    // Runs instantly (<20ms) when online, 0 token cost!
+    // Runs with delightful, snappy micro-animation (thinking -> laptop typing paws -> delivery), 0 token cost!
     if (!localResolution.shouldCallGemini) {
       const userMsg: AgentMessage = { 
         id: crypto.randomUUID(), 
@@ -499,12 +499,62 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
         createdAt: new Date()
       };
 
-      setMessages((items) => [...items, userMsg, localAiMessage]);
-      setIsThinking(false);
-      setIsTyping(false);
-      setStreamingText("");
-      setThoughtText(null);
+      // Step A: Immediately show user's message and trigger lively thinking pose
+      setMessages((items) => [...items, userMsg]);
+      setIsThinking(true);
+      setOrbState("thinking");
+      setThoughtText(isBn ? "একটু ভেবে নিচ্ছি…" : "Thinking…");
 
+      // Brief lively thinking pause (~180ms)
+      await new Promise<void>((resolve) => setTimeout(resolve, 180));
+
+      // Step B: Pull up miniature laptop and type with paws
+      setIsThinking(false);
+      setIsTyping(true);
+      setOrbState("typing");
+      setThoughtText(isBn ? "লিখছি…" : "Typing…");
+
+      // Snappy live streaming reveal (~220ms)
+      const fullText = localAiMessage.content || "";
+      if (fullText.length > 0) {
+        const tokens = fullText.match(/\S+|\s+/g) || [fullText];
+        setStreamingText("");
+
+        await new Promise<void>((resolve) => {
+          let tokenIndex = 0;
+          const totalDuration = Math.min(320, Math.max(160, tokens.length * 12));
+          const intervalMs = 16;
+          const totalTicks = Math.max(1, Math.round(totalDuration / intervalMs));
+          const step = Math.max(1, Math.ceil(tokens.length / totalTicks));
+
+          typingIntervalRef.current = setInterval(() => {
+            tokenIndex += step;
+            if (tokenIndex >= tokens.length) {
+              if (typingIntervalRef.current) {
+                clearInterval(typingIntervalRef.current);
+                typingIntervalRef.current = null;
+              }
+              setStreamingText(fullText);
+              setTimeout(() => {
+                setIsTyping(false);
+                setStreamingText("");
+                setThoughtText(null);
+                resolve();
+              }, 40);
+            } else {
+              setStreamingText(tokens.slice(0, tokenIndex).join(''));
+            }
+          }, intervalMs);
+        });
+      } else {
+        setIsTyping(false);
+        setThoughtText(null);
+      }
+
+      // Step C: Deliver assistant response into conversation
+      setMessages((items) => [...items, localAiMessage]);
+
+      // Step D: Expressive response emotion on Warbie/Glory face
       const emo = localAiMessage.emotion;
       let nextOrbState: OrbState = "idle";
       if (emo === "laughing" || emo === "playful") nextOrbState = "laughing";
@@ -608,10 +658,10 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
       setIsTyping(true);
       setThoughtText(isBn ? "লিখছি…" : "Typing…");
 
-      // Short natural typing transition (snappy, no lagging delay)
-      await new Promise<void>((resolve) => setTimeout(resolve, 100));
+      // Short natural typing transition
+      await new Promise<void>((resolve) => setTimeout(resolve, 80));
 
-      // Fast, Token-safe streaming
+      // Fast, Token-safe and delightful streaming
       const fullText = normalizedAiMessage.content || "";
       if (fullText.length > 0) {
         const tokens = fullText.match(/\S+|\s+/g) || [fullText];
@@ -619,7 +669,10 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
 
         await new Promise<void>((resolve) => {
           let tokenIndex = 0;
-          const step = Math.max(3, Math.ceil(tokens.length / 8));
+          const totalDuration = Math.min(650, Math.max(260, tokens.length * 12));
+          const intervalMs = 18;
+          const totalTicks = Math.max(1, Math.round(totalDuration / intervalMs));
+          const step = Math.max(1, Math.ceil(tokens.length / totalTicks));
 
           typingIntervalRef.current = setInterval(() => {
             tokenIndex += step;
@@ -638,7 +691,7 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
             } else {
               setStreamingText(tokens.slice(0, tokenIndex).join(''));
             }
-          }, 14);
+          }, intervalMs);
         });
       } else {
         setIsTyping(false);
