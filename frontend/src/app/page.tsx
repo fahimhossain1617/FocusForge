@@ -100,7 +100,7 @@ export default function Home() {
       if (typeof window !== "undefined" && typeof (window as any).__ffReady === "function") {
         (window as any).__ffReady();
       }
-    }, 1000);
+    }, 250);
 
     return () => {
       cancelAnimationFrame(frameId);
@@ -115,7 +115,7 @@ export default function Home() {
       setLaunchDone(true);
     };
     window.addEventListener("ff:launch-done", handleLaunchDone);
-    const fallbackTimer = setTimeout(handleLaunchDone, 1500);
+    const fallbackTimer = setTimeout(handleLaunchDone, 400);
     return () => {
       window.removeEventListener("ff:launch-done", handleLaunchDone);
       clearTimeout(fallbackTimer);

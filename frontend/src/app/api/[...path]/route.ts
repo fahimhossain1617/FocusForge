@@ -1,6 +1,9 @@
 import dns from 'node:dns';
 try { dns.setDefaultResultOrder('ipv4first'); } catch {}
 
+export const maxDuration = 60;
+export const dynamic = 'force-dynamic';
+
 import { NextRequest, NextResponse, after } from 'next/server';
 import { executeAIAction, transcribeAudio } from '@/lib/server/aiService';
 import { getUserTokenStatus, consumeUserTokens, estimateTokenUsage } from '@/lib/server/aiTokenService';

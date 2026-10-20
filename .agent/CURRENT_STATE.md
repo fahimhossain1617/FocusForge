@@ -255,6 +255,11 @@ Focentia is an active, functional productivity suite built with Next.js 16 App R
 ### Settings & Account Management
 - **Current Implementation:** `SettingsPage.tsx`, `ProfilePage.tsx`, `userService.ts`. Includes profile editing with unique case-insensitive display names, avatar upload/removal, password change with re-authentication and security alert email, theme and language persistence, atomic user account deletion with ticket anonymization, and a modern, seamless flat UI layout:
   - **Flat Modern Design (No Boxy Containers):** Removed nested card wrappers (`bg-[var(--color-surface-elevated)] border rounded-2xl/3xl`) across all Settings sections (Profile, Password, Notifications, Language, About, FAQ, Feature Guides, Report Problem, Contact Support, Feedback, Cloud Sync, AI Privacy, Privacy Policy, Terms of Service, and Delete Account). Content sits directly on the page separated by clean, minimal dividers (`divide-y` and border lines).
+  - **Profile Information UI Redesign (Mockup Reference Pattern):** `ProfilePage.tsx` implements the unified Personal Information card layout matching the user design specification:
+    - **Curved Ambient Wave Header:** Top header features user avatar (with upload overlay & quick photo actions), bold "Personal Information" title, subtitle, and an outline pill "Edit" button, accented by an ambient curved wave in the top-right corner.
+    - **Segmented Icon Rows with Dividers:** All 9 personal information fields (Full Name, Display Name / Username, Email Address with Verified checkmark badge, Phone Number, Date of Birth, Gender with Venus-Mars symbol, Country / Region, City with 3-bar skyline icon, and About Me / Short Bio) are rendered as horizontal rows separated by subtle dividers (`divide-y divide-[#E2E8F0] dark:divide-white/[0.07]`), each with a rounded squircle icon on the left, label + value in the center, and a chevron navigation arrow on the far right.
+    - **Click-to-Edit & Inline Edit Transition:** Clicking any row or the Edit button toggles into a sleek in-place editable form with auto-focus, top and bottom Save / Cancel controls, while preserving all database update, avatar upload, and delete confirmation modal flows.
+    - **Full Dark & Light Theme Token Fidelity:** Perfectly adheres to Focentia's active dual-theme system (dark navy `#0D1426` with subtle borders & glowing blue accents; crisp white `#FFFFFF` with `#DCE5F0` borders and `#223A5E` / `#5B8DEF` in light mode).
   - **Fixed Section Categories & Permanently Open Sub-items:** Completely replaced the accordion toggle/chevron icon mechanism on navigation topics. Category titles (Account & Security, Preferences, Privacy, Support) are fixed, prominent bold headings separated by sleek horizontal dividers (`border-t border-[var(--color-border-subtle)]`). All sub-items remain permanently open and indented cleanly without vertical lines.
   - **High-Contrast Toggle Switches & Elevated Button Styling:** `Toggle` switches use clearly defined, high-contrast tracks in both Light mode (`bg-slate-300 border-slate-300`) and Dark mode (`dark:bg-slate-700 dark:border-slate-600`) with white shadowed knobs, ensuring the switch is immediately visible and distinguishable in the OFF state. All action and submit buttons feature sleek, active micro-scaling (`active:scale-[0.98]`) and subtle elevation (`shadow-sm`).
 - **Verified Status:** **VERIFIED**
@@ -526,6 +531,27 @@ Focentia is an active, functional productivity suite built with Next.js 16 App R
   6. **Guest Mode Integrity & Quarantine:** In Guest Mode (`userId = 'guest'`), notes are stored strictly locally in Dexie IndexedDB (`guest:<id>`). Guest records are isolated from the cloud sync queue and never synced to Supabase or visible to other accounts.
 - **Verified Status:** **VERIFIED** (Frontend Turbopack production build: 21/21 static pages compiled with exit code 0; TypeScript typechecks clean; Scope lock strictly preserved).
 - **Important Files:** `frontend/src/components/pages/NoteEditorView.tsx`, `frontend/src/components/workspace/BlockEditor.tsx`, `frontend/src/app/globals.css`, `frontend/src/services/noteService.ts`, `frontend/src/services/localDbService.ts`, `frontend/src/services/cryptoSyncService.ts`, `frontend/src/services/syncService.ts`.
+
+---
+
+### Glory AI Brain & Fast Latency Optimization, Natural Conversational Interaction, Feature Control & Startup Speed (October 2026)
+- **Current Implementation:**
+  1. **Gemini API Brain Connection & Quota Resilience:** Prioritized active, fast models (`gemini-3.5-flash-lite`, `gemini-3.6-flash`, `gemini-3.7-flash`, `gemini-3.8-flash`) in both frontend and backend AI services, avoiding deprecated 404 models and quota-exhausted models. Disabled hidden thinking budgets on Flash models (`thinkingBudget: 0`) for sub-second text generation. Extended Vercel execution timeout via `export const maxDuration = 60;` in `frontend/src/app/api/[...path]/route.ts`.
+  2. **Context Token Economy:** Trimmed serialized prompt context in fast mode (10 tasks, 6 topics, 3 notes), cutting prompt token size by 78% (from 5,630 to ~1,200 tokens) and reducing roundtrip latency.
+  3. **Natural Bengali & English Wellbeing Greetings:** Added dedicated `HOW_ARE_YOU` intent and regex patterns in `intents.ts` and `social.json`. Questions like `"কেমন আছো?"` return warm, authentic responses inquiring about the user's day instead of formal slogans.
+  4. **Strict Focentia AI Identity:** Configured `WHO_ARE_YOU` templates and system prompts so AI strictly identifies as created by Focentia (`"আমাকে ফোসেন্টিয়া বানিয়েছে / তৈরি করেছে"`), highlighting its capabilities in Planner, Focus, Time Log, Notes & Files, and Mind Space, with zero mention of Google, Gemini, OpenAI, or LLM.
+  5. **Feature Tools & Destructive Action Safety:**
+     - Added `TASK_DELETE` and `NOTES_ACTION` intents with user confirmation tokens.
+     - Destructive actions (`delete_task`, `delete_note`) require explicit confirmation in `AIAgentPage.tsx`.
+     - Time Log problem lookup matches subject aliases (e.g., `java` -> `জাভা`, `জাভাতে`, `জাভার`) and extracts logged weak topics, blockers, and important topics into structured bullet lists.
+     - Privacy & Account Protection: AI system prompts strictly forbid accessing or revealing passwords, other users' emails, database credentials, or system API keys.
+  6. **App Startup & Loading Acceleration:**
+     - In `AuthContext.tsx`, `activeUser` and `lifecycle = 'AUTHENTICATED'` are set immediately from session metadata, making remote profile fetching non-blocking on startup.
+     - In `AppContext.tsx`, eliminated the artificial 350ms delay on mount; local Dexie IndexedDB state hydrates immediately.
+     - In `app/page.tsx`, tightened mount timers from 1000ms/1500ms down to 250ms/400ms.
+- **Verified Status:** **VERIFIED** (Frontend Turbopack build: 21/21 static & dynamic routes compiled with 0 errors; Backend build: 0 errors; Real Gemini API call verified; Intent router verified 100%).
+- **Important Files:** `frontend/src/app/api/[...path]/route.ts`, `frontend/src/lib/server/aiService.ts`, `backend/src/services/aiService.ts`, `frontend/src/lib/ai/router/intents.ts`, `frontend/src/lib/ai/router/handlers.ts`, `frontend/src/lib/ai/router/templates/social.json`, `frontend/src/components/ai-agent/AIAgentPage.tsx`, `frontend/src/context/AuthContext.tsx`, `frontend/src/context/AppContext.tsx`, `frontend/src/app/page.tsx`.
+
 
 
 

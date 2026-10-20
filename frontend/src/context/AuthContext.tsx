@@ -146,20 +146,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         createdAt: u.created_at || u.createdAt,
       };
 
-      const isCurrentlyOnline = typeof navigator === "undefined" || navigator.onLine;
-      if (isCurrentlyOnline) {
-        try {
-          const profile = await userService.fetchUserProfile(u.id);
-          if (profile) activeUser = profile;
-
-          if (!unsubscribeProfile) {
-            unsubscribeProfile = userService.subscribeToProfile(activeUser.id, (updatedProfile) => {
-              if (isMounted) setUser(updatedProfile);
-            });
-          }
-        } catch {}
-      }
-
       if (isMounted) {
         setUser(activeUser);
         setLifecycle("AUTHENTICATED");
@@ -174,8 +160,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           authMethod: activeUser.authMethod || "email",
           lastUsedAt: new Date().toISOString(),
         });
-        setRememberedAccounts(accountManager.getRememberedAccounts());
       }
+
+      // Fetch latest profile asynchronously in background without blocking app startup
+      const isCurrentlyOnline = typeof navigator === "undefined" || navigator.onLine;
+      if (isCurrentlyOnline) {
+        userService.fetchUserProfile(u.id).then((profile) => {
+          if (profile && isMounted) {
+            setUser(profile);
+            accountManager.saveRememberedAccount({
+              id: profile.id,
+              email: profile.identifier || profile.email || "",
+              displayName: profile.displayName || "User",
+              fullName: profile.fullName,
+              avatarUrl: profile.avatarUrl,
+              authMethod: profile.authMethod || "email",
+              lastUsedAt: new Date().toISOString(),
+            });
+          }
+          if (!unsubscribeProfile && isMounted) {
+            unsubscribeProfile = userService.subscribeToProfile(u.id, (updatedProfile) => {
+              if (isMounted) setUser(updatedProfile);
+            });
+          }
+        }).catch(() => {});
+      }
+
+      setRememberedAccounts(accountManager.getRememberedAccounts());
     }
 
     async function initAuth() {

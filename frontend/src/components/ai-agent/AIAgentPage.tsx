@@ -65,9 +65,11 @@ export function AIAgentPage() {
     navigateTo, 
     addTask, 
     updateTask,
+    deleteTask,
     addTimeBlock, 
     addMindItem, 
     addNote, 
+    deleteNote,
     addLearningFolder,
     saveDiaryTopic,
     isOnline, 
@@ -677,6 +679,38 @@ export function AIAgentPage() {
             showToast(isSystemBn ? `'${targetTask.title}' সম্পন্ন হয়েছে!` : `'${targetTask.title}' completed!`, "success");
           } else {
             showToast(isSystemBn ? "টাস্কটি খুঁজে পাওয়া যায়নি।" : "Task could not be found.", "info");
+          }
+          break;
+        }
+
+        case "delete_task": {
+          const targetTask = state.tasks.find((t: any) => 
+            t.id === p.taskId || (p.title && t.title?.toLowerCase() === p.title.toLowerCase())
+          );
+          if (targetTask) {
+            deleteTask(targetTask.id);
+            showToast(isSystemBn ? `'${targetTask.title}' মুছে ফেলা হয়েছে!` : `'${targetTask.title}' deleted!`, "info");
+          } else if (p.taskId) {
+            deleteTask(p.taskId);
+            showToast(isSystemBn ? "টাস্কটি মুছে ফেলা হয়েছে!" : "Task deleted!", "info");
+          } else {
+            showToast(isSystemBn ? "মুছে ফেলার টাস্ক পাওয়া যায়নি।" : "Task not found to delete.", "info");
+          }
+          break;
+        }
+
+        case "delete_note": {
+          const targetNote = (state.notes || []).find((n: any) => 
+            n.id === p.noteId || (p.title && n.title?.toLowerCase() === p.title.toLowerCase())
+          );
+          if (targetNote) {
+            deleteNote(targetNote.id);
+            showToast(isSystemBn ? `'${targetNote.title}' নোট মুছে ফেলা হয়েছে!` : `'${targetNote.title}' note deleted!`, "info");
+          } else if (p.noteId) {
+            deleteNote(p.noteId);
+            showToast(isSystemBn ? "নোট মুছে ফেলা হয়েছে!" : "Note deleted!", "info");
+          } else {
+            showToast(isSystemBn ? "মুছে ফেলার নোট পাওয়া যায়নি।" : "Note not found to delete.", "info");
           }
           break;
         }

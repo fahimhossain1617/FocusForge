@@ -1602,4 +1602,47 @@
   - Scratch Intent Test Suite: Passed 16/16 test queries with 100% precision.
 - **Status:** **VERIFIED**
 
+---
+
+## ADR-057: Gemini API Brain Connection Restoration, Model Fallback Order, Token Economy, Feature Tool Expansion & Startup Acceleration
+
+- **Date:** October 2026
+- **Status:** Accepted & Verified
+- **Context:**
+  - Users experienced a disconnect error (`"দুঃখিত, এআই সার্ভারের সাথে সংযোগ করা যায়নি।"`) when asking open-ended questions like `"একটা সমস্যায় আছি"`.
+  - Root causes identified:
+    1. Gemini models `gemini-1.5-flash`, `gemini-2.0-flash`, and `gemini-2.5-flash` returned `404 NOT_FOUND` on Google AI Studio v1beta for new keys, and `gemini-3.7-flash` / `gemini-3.8-flash` hit strict 20 RPD free tier limits (`429 RESOURCE_EXHAUSTED`).
+    2. Vercel serverless execution timed out after 10 seconds because the catch-all API route lacked `export const maxDuration = 60;`.
+    3. Serialized context payload was needlessly heavy (5,630 prompt tokens), slowing down API roundtrips and exhausting quotas.
+    4. Casual queries like `"কেমন আছো?"` were misrouted to a generic slogan rather than a warm, personal wellbeing reply.
+    5. User wanted AI to strictly identify as created by Focentia (`"আমাকে ফোসেন্টিয়া বানিয়েছে"`), with zero mention of Google or Gemini.
+    6. App needed comprehensive tool coverage across Planner (add & delete tasks with confirmation), Notes & Files (create & delete notes with confirmation), Time Log (retrieve weak topics / problems in subjects like Java), and Dashboard stats.
+    7. App startup loading time was sluggish in both offline and online modes due to blocking remote profile queries and redundant mount timers.
+- **Decision:**
+  1. **Active High-Speed Model Order (`frontend/src/lib/server/aiService.ts` & `backend/src/services/aiService.ts`):**
+     - Prioritized active, fast, non-exhausted models: `gemini-3.5-flash-lite`, `gemini-3.6-flash`, `gemini-3.7-flash`, `gemini-3.8-flash`.
+     - Disabled hidden thinking budget (`thinkingBudget: 0`) on Flash models to ensure fast <1.5s generation.
+     - Added `export const maxDuration = 60;` and `export const dynamic = 'force-dynamic';` to `frontend/src/app/api/[...path]/route.ts`.
+  2. **Context Pruning & Token Economy:**
+     - Pruned context in fast mode: 10 tasks (down from 30), 6 topics (down from 15), 3 notes (down from 10). Prompt token count dropped from 5,630 to ~1,200 tokens (78% token savings).
+     - Adjusted timeouts: 22s for fast mode, 35s for pro mode.
+  3. **Natural Wellbeing & Identity Router (`intents.ts`, `handlers.ts`, `social.json`):**
+     - Added dedicated `HOW_ARE_YOU` intent and regex in Bengali and English.
+     - Updated `WHO_ARE_YOU` intent to strictly state Focentia origin (`"আমাকে ফোসেন্টিয়া বানিয়েছে / তৈরি করেছে"`), highlighting Planner, Focus timer, Time Log, Notes & Files, and Mind Space capabilities.
+  4. **Feature Tools & Destructive Action Safety (`AIAgentPage.tsx`, `handlers.ts`, `intents.ts`):**
+     - Added `TASK_DELETE` and `NOTES_ACTION` intents with confirmation tokens.
+     - Time Log problem lookup: matched subject aliases (`java` -> `['java', 'জাভা', 'জাভাতে', 'জাভার']`, `python`, `react`, etc.) to return weak topics, blockers, and important topics.
+     - Added explicit confirmation flow in `AIAgentPage.tsx` for `delete_task` and `delete_note`.
+     - Strict Security: AI system prompt prohibits exposing passwords, other users' emails, database credentials, or API keys.
+  5. **Startup & Loading Acceleration (`AuthContext.tsx`, `AppContext.tsx`, `page.tsx`):**
+     - In `AuthContext.tsx`, set active user immediately from session metadata and fetched remote profile updates asynchronously without blocking initial render.
+     - In `AppContext.tsx`, eliminated the artificial 350ms delay on mount so local Dexie IndexedDB state hydrates immediately.
+     - In `page.tsx`, reduced ready/fallback timers from 1000ms/1500ms down to 250ms/400ms.
+- **Verification:**
+  - Real Gemini API brain test: `"একটা সমস্যায় আছি"` successfully called Gemini API and returned an empathetic response in Bengali in 1.4s.
+  - Scratch Intent test: 100% correct routing on `"কেমন আছো?"`, `"তুমি কে?"`, `"আমার জাভাতে কী কী সমস্যা ছিল"`, and `"ড্যাশবোর্ডের পারফরম্যান্স কেমন?"`.
+  - `npm run build --prefix frontend`: Passed with code 0 (21/21 routes).
+  - `npm run build --prefix backend`: Passed with code 0.
+- **Status:** **VERIFIED**
+
 

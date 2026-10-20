@@ -45,7 +45,7 @@ export function getGeminiConfigForTask(taskType: 'roadmap' | 'big_task' | 'fallb
   if (taskType === 'roadmap') {
     return {
       taskType: 'roadmap',
-      modelPreference: 'gemini-3.8-flash',
+      modelPreference: 'gemini-3.6-flash',
       maxOutputTokens: 1200, // Structured roadmap within economical token budget
     };
   }
@@ -53,15 +53,15 @@ export function getGeminiConfigForTask(taskType: 'roadmap' | 'big_task' | 'fallb
   if (taskType === 'big_task') {
     return {
       taskType: 'big_task',
-      modelPreference: 'gemini-3.7-flash',
+      modelPreference: 'gemini-3.6-flash',
       maxOutputTokens: 600,
     };
   }
 
   return {
     taskType: 'fallback',
-    modelPreference: 'gemini-3.5-flash-lite',
-    maxOutputTokens: 280, // Crisp conversational turn saving user tokens
+    modelPreference: 'gemini-3.6-flash',
+    maxOutputTokens: 350, // Crisp conversational turn saving user tokens
   };
 }
 

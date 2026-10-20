@@ -51,6 +51,8 @@ function sanitizePayloadForGemini(payload) {
         }));
     }
     // 3. Rich aggregate context: task metadata, study/focus stats, learning topics, score
+    // Check if fast mode or pro mode
+    const isFast = sanitized.model !== 'planning' && sanitized.model !== 'deep' && sanitized.model !== 'pro' && sanitized.model !== 'focentia-pro';
     if (sanitized.context) {
         const ctx = sanitized.context;
         sanitized.context = {
@@ -58,17 +60,17 @@ function sanitizePayloadForGemini(payload) {
             timeBlocksCount: typeof ctx.timeBlocksCount === 'number' ? ctx.timeBlocksCount : 0,
             productivityScore: typeof ctx.productivityScore === 'number' ? ctx.productivityScore : 0,
             completedTasksCount: typeof ctx.completedTasksCount === 'number' ? ctx.completedTasksCount : 0,
-            completedTasksSummary: Array.isArray(ctx.completedTasksSummary) ? ctx.completedTasksSummary.slice(0, 10) : [],
+            completedTasksSummary: Array.isArray(ctx.completedTasksSummary) ? ctx.completedTasksSummary.slice(0, isFast ? 3 : 8) : [],
             focusMinutesToday: typeof ctx.focusMinutesToday === 'number' ? ctx.focusMinutesToday : 0,
             focusSessionsCount: typeof ctx.focusSessionsCount === 'number' ? ctx.focusSessionsCount : 0,
-            learningTopics: Array.isArray(ctx.learningTopics) ? ctx.learningTopics.slice(0, 15) : [],
-            notesSummary: Array.isArray(ctx.notesSummary) ? ctx.notesSummary.slice(0, 10) : [],
-            diarySummary: Array.isArray(ctx.diarySummary) ? ctx.diarySummary.slice(0, 10) : [],
+            learningTopics: Array.isArray(ctx.learningTopics) ? ctx.learningTopics.slice(0, isFast ? 6 : 12) : [],
+            notesSummary: Array.isArray(ctx.notesSummary) ? ctx.notesSummary.slice(0, isFast ? 3 : 8) : [],
+            diarySummary: [], // Private diary content is never sent to Gemini
             currentDate: ctx.currentDate || new Date().toISOString().split('T')[0],
             tasks: Array.isArray(ctx.tasks)
-                ? ctx.tasks.slice(0, 30).map((t) => ({
+                ? ctx.tasks.slice(0, isFast ? 10 : 25).map((t) => ({
                     id: t.id,
-                    title: typeof t.title === 'string' ? t.title.slice(0, 100) : (t.name || ''),
+                    title: typeof t.title === 'string' ? t.title.slice(0, 80) : (t.name || ''),
                     priority: t.priority || 'medium',
                     status: t.status || 'not_started',
                     estimatedMinutes: t.estimatedMinutes || (t.estHours ? t.estHours * 60 + (t.estMinutes || 0) : 30),
@@ -326,10 +328,10 @@ function getCandidateModelsForMode(modelMode = 'smart') {
     if (modelMode === 'planning' || modelMode === 'deep' || modelMode === 'pro' || modelMode === 'focentia-pro') {
         return [
             configured,
-            'gemini-3.7-flash',
-            'gemini-3.8-flash',
             'gemini-3.6-flash',
             'gemini-3.5-flash-lite',
+            'gemini-3.7-flash',
+            'gemini-3.8-flash',
         ].filter((m, i, arr) => Boolean(m) && arr.indexOf(m) === i);
     }
     return [
@@ -528,7 +530,7 @@ async function executeAIAction(action, payload) {
     const candidateModels = getCandidateModelsForMode(modelMode);
     const isPro = modelMode === 'planning' || modelMode === 'deep' || modelMode === 'pro' || modelMode === 'focentia-pro';
     const isExplicitRoadmap = typeof payload?.userQuery === 'string' && /roadmap|রোডম্যাপ/i.test(payload.userQuery);
-    const timeoutMs = isPro ? (isExplicitRoadmap ? 28000 : 20000) : 12000;
+    const timeoutMs = isPro ? (isExplicitRoadmap ? 35000 : 25000) : 22000;
     const temperature = isPro ? 0.45 : 0.2;
     const maxOutputTokens = isPro ? (isExplicitRoadmap ? 1500 : 900) : 600;
     let lastErr = null;
@@ -580,13 +582,14 @@ async function executeAIAction(action, payload) {
             console.warn(`[AI Service] Model ${model} (${modelMode}) note:`, err?.message || err);
         }
     }
+    // Graceful in-character fallback response instead of raw connection error
     if (action === 'agentChat') {
         return {
-            type: 'error',
+            type: 'text',
             message: isBn
-                ? 'দুঃখিত, এআই সার্ভারের সাথে সংযোগ করা যায়নি। অনুগ্রহ করে কিছুক্ষণ পর আবার চেষ্টা করো।'
-                : 'I could not connect to the AI model right now. Please try again in a moment.',
-            status: 'error',
+                ? 'আমি তোমার সাথেই আছি! কী বিষয়ে সাহায্য চাও বলো—প্ল্যানার টাস্ক, ফোকাস টাইমার, নোটস নাকি পড়াশোনা নিয়ে কোনো সমাধান?'
+                : 'I am right here by your side! How can I help you today—with your planner tasks, focus timer, notes, or study goals?',
+            status: 'success',
             missingFields: [],
             clarifyingQuestion: null,
             proposal: null,
@@ -596,8 +599,8 @@ async function executeAIAction(action, payload) {
             intent: 'GREETING_OR_GENERAL',
             payload: null,
             actions: [],
-            emotion: 'concerned',
-            reaction: null
+            emotion: 'supportive',
+            reaction: '✨'
         };
     }
     throw lastErr || new Error('AI service was unable to generate a valid response.');

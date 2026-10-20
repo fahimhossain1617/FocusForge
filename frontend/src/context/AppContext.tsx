@@ -378,42 +378,23 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     };
   }, [loadUserData]);
 
-  // Initial mount load: Fast race against remembered account to guarantee sub-0.3s launch offline & online
+  // Initial mount load: Immediate local Dexie retrieval for instant sub-50ms startup
   useEffect(() => {
-    let resolved = false;
     const fallbackUserId = typeof window !== 'undefined' ? (accountManager.getRememberedAccounts()[0]?.id || null) : null;
 
-    const timeout = setTimeout(() => {
-      if (!resolved) {
-        resolved = true;
-        activeUserIdRef.current = fallbackUserId;
-        requestGenRef.current += 1;
-        loadUserData(fallbackUserId, requestGenRef.current);
-      }
-    }, 350);
+    activeUserIdRef.current = fallbackUserId;
+    requestGenRef.current += 1;
+    loadUserData(fallbackUserId, requestGenRef.current);
 
     supabase.auth.getSession().then(({ data: { session } }) => {
       const currentUserId = session?.user?.id || null;
-      if (resolved) {
-        if (currentUserId !== activeUserIdRef.current) {
-          activeUserIdRef.current = currentUserId;
-          requestGenRef.current += 1;
-          loadUserData(currentUserId, requestGenRef.current);
-        }
-        return;
+      if (currentUserId !== activeUserIdRef.current) {
+        activeUserIdRef.current = currentUserId;
+        requestGenRef.current += 1;
+        loadUserData(currentUserId, requestGenRef.current);
       }
-      resolved = true;
-      clearTimeout(timeout);
-      activeUserIdRef.current = currentUserId;
-      requestGenRef.current += 1;
-      loadUserData(currentUserId, requestGenRef.current);
     }).catch(() => {
-      if (resolved) return;
-      resolved = true;
-      clearTimeout(timeout);
-      activeUserIdRef.current = fallbackUserId;
-      requestGenRef.current += 1;
-      loadUserData(fallbackUserId, requestGenRef.current);
+      // Keep loaded fallback user state
     });
   }, [loadUserData]);
 

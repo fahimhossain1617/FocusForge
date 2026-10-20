@@ -131,6 +131,19 @@ export function handleLocalIntent(
       };
     }
 
+    case 'HOW_ARE_YOU': {
+      const pool = (socialTemplates as any).how_are_you?.[langKey] || socialTemplates.greetings[langKey];
+      const { reply } = getVariantFromPool('how_are_you', pool, userName);
+      return {
+        message: prefix + reply,
+        intent: 'GREETING_OR_GENERAL',
+        actions: [],
+        orbEmotion: 'happy',
+        handledLocally: true,
+        tokenCost: 0,
+      };
+    }
+
     case 'WHO_ARE_YOU': {
       const { reply } = getVariantFromPool('who_are_you', socialTemplates.who_are_you[langKey], userName);
       return {
@@ -677,7 +690,103 @@ export function handleLocalIntent(
       };
     }
 
-    // 6. Diary Actions
+    // 6b. Task Deletion
+    case 'TASK_DELETE': {
+      const tasks = context?.tasks || [];
+      const lower = text.toLowerCase();
+      const matched = tasks.find(t => {
+        const title = (t.title || '').toLowerCase().trim();
+        return title && lower.includes(title);
+      }) || (tasks.length > 0 ? tasks[0] : null);
+
+      if (!matched) {
+        const replyBn = 'মুছে ফেলার মতো কোনো টাস্ক খুঁজে পাওয়া যায়নি।';
+        const replyEn = 'No tasks found to delete.';
+        return {
+          message: prefix + (isBn ? replyBn : replyEn),
+          intent: 'PLANNER_CREATE',
+          actions: [],
+          orbEmotion: 'thinking',
+          navigationRoute: 'planner',
+          handledLocally: true,
+          tokenCost: 0,
+        };
+      }
+
+      const act = buildActionRequest(
+        'delete_task',
+        { taskId: matched.id, title: matched.title },
+        isBn ? `টাস্ক মুছে ফেলুন: ${matched.title}` : `Delete Task: ${matched.title}`
+      );
+
+      const replyBn = `তুমি কি নিশ্চিত যে '${matched.title}' টাস্কটি মুছে ফেলতে চাও? নিশ্চিত করতে নিচের কনফার্ম বাটনে চাপ দাও।`;
+      const replyEn = `Are you sure you want to delete the task '${matched.title}'? Please confirm below.`;
+
+      return {
+        message: prefix + (isBn ? replyBn : replyEn),
+        intent: 'PLANNER_CREATE',
+        actions: act ? [act] : [],
+        orbEmotion: 'protective',
+        navigationRoute: 'planner',
+        handledLocally: true,
+        tokenCost: 0,
+      };
+    }
+
+    // 6c. Notes Actions
+    case 'NOTES_ACTION': {
+      const actions: ActionRequest[] = [];
+      const isDelete = text.includes('delete') || text.includes('মুছে') || text.includes('ডিলিট');
+      if (isDelete) {
+        const notes = context?.notesSummary || [];
+        const matchedNote = notes.find((n: any) => text.toLowerCase().includes((n.title || '').toLowerCase())) || (notes[0] as any);
+        if (matchedNote) {
+          const act = buildActionRequest(
+            'delete_note',
+            { noteId: matchedNote.id, title: matchedNote.title },
+            isBn ? `নোট মুছে ফেলুন: ${matchedNote.title}` : `Delete Note: ${matchedNote.title}`
+          );
+          if (act) actions.push(act);
+          const replyBn = `তুমি কি নিশ্চিত যে '${matchedNote.title}' নোটটি মুছে ফেলতে চাও?`;
+          const replyEn = `Are you sure you want to delete the note '${matchedNote.title}'?`;
+          return {
+            message: prefix + (isBn ? replyBn : replyEn),
+            intent: 'NOTES_FILES',
+            actions,
+            orbEmotion: 'protective',
+            navigationRoute: 'tasks',
+            handledLocally: true,
+            tokenCost: 0,
+          };
+        }
+      }
+
+      const cleanNoteTitle = text
+        .replace(/\b(add note|save note|create note|write note|নোট|সেভ|সংরক্ষণ|যুক্ত|তৈরি|লিখব)\b/gi, '')
+        .trim() || (isBn ? 'নতুন স্টাডি নোট' : 'New Study Note');
+
+      const createNoteAct = buildActionRequest(
+        'create_note',
+        { title: cleanNoteTitle, content: '', category: 'Study' },
+        isBn ? `নোট সংরক্ষণ: ${cleanNoteTitle}` : `Save Note: ${cleanNoteTitle}`
+      );
+      if (createNoteAct) actions.push(createNoteAct);
+
+      const replyBn = `'${cleanNoteTitle}' নোটটি Notes & Files-এ সংরক্ষণ করার কার্ড নিচে তৈরি হয়েছে। নিশ্চিত করতে ট্যাপ করো।`;
+      const replyEn = `Created an action card to save '${cleanNoteTitle}' in Notes & Files. Please confirm below.`;
+
+      return {
+        message: prefix + (isBn ? replyBn : replyEn),
+        intent: 'NOTES_FILES',
+        actions,
+        orbEmotion: 'focused',
+        navigationRoute: 'tasks',
+        handledLocally: true,
+        tokenCost: 0,
+      };
+    }
+
+    // 7. Diary Actions
     case 'DIARY_ACTION': {
       // Extract short topic or mood
       let topic = 'আজকের অনুভূতি';
@@ -767,10 +876,11 @@ export function handleLocalIntent(
       const focusMins = context?.focusMinutesToday || 0;
       const tasksCount = context?.tasks?.length || 0;
       const completedCount = context?.completedTasksCount || 0;
+      const score = context?.productivityScore || 0;
       const remainingTasks = Math.max(0, tasksCount - completedCount);
 
-      const replyBn = `আজকের অগ্রগতি:\n• ফোকাস সময়: ${focusMins} মিনিট\n• সম্পন্ন টাস্ক: ${completedCount}টি\n• বাকি টাস্ক: ${remainingTasks}টি\n\nবিস্তারিত দেখতে ড্যাশবোর্ডে চোখ বোলাতে পারো।`;
-      const replyEn = `Today's Progress:\n• Focus Time: ${focusMins} minutes\n• Completed Tasks: ${completedCount}\n• Remaining Tasks: ${remainingTasks}\n\nCheck your Dashboard for complete performance charts.`;
+      const replyBn = `আজকের ড্যাশবোর্ড ও পারফরম্যান্স পরিসংখ্যান:\n• প্রোডাক্টিভিটি স্কোর: ${score}%\n• ফোকাস সময়: ${focusMins} মিনিট\n• সম্পন্ন টাস্ক: ${completedCount}টি\n• বাকি টাস্ক: ${remainingTasks}টি\n\nসম্পূর্ণ পারফরম্যান্স ও চার্ট দেখতে নিচের বাটনে ট্যাপ করো।`;
+      const replyEn = `Today's Dashboard & Performance Stats:\n• Productivity Score: ${score}%\n• Focus Time: ${focusMins} minutes\n• Completed Tasks: ${completedCount}\n• Remaining Tasks: ${remainingTasks}\n\nCheck your Dashboard for complete performance charts.`;
 
       const act = buildActionRequest('open_dashboard', {}, isBn ? 'ড্যাশবোর্ড খুলুন' : 'Open Dashboard');
       return {
@@ -820,10 +930,32 @@ export function handleLocalIntent(
       const learningTopics = context?.learningTopics || [];
       const lowerText = text.toLowerCase();
 
-      // Find if a specific folder name is mentioned in user text
+      const TOPIC_ALIASES: Record<string, string[]> = {
+        java: ['java', 'জাভা', 'জাভাতে', 'জাভার'],
+        python: ['python', 'পাইথন', 'পাইথনে', 'পাইথনের'],
+        javascript: ['javascript', 'js', 'জাভাস্ক্রিপ্ট', 'জাভাস্ক্রিপ্টে'],
+        react: ['react', 'রিঅ্যাক্ট', 'রিএক্ট', 'রিঅ্যাক্টে'],
+        c: ['c', 'সি'],
+        'c++': ['c++', 'cpp', 'সি++', 'সি প্লাস প্লাস'],
+        math: ['math', 'mathematics', 'গণিত', 'ম্যাথ', 'ম্যাথে'],
+        physics: ['physics', 'পদার্থ', 'ফিজিক্স', 'ফিজিক্সে'],
+        chemistry: ['chemistry', 'রসায়ন', 'কেমিস্ট্রি'],
+        biology: ['biology', 'জীববিজ্ঞান', 'বায়োলজি'],
+        english: ['english', 'ইংরেজি', 'ইংলিশ', 'ইংরেজিতে'],
+        bangla: ['bangla', 'bengali', 'বাংলা', 'বাংলাতে', 'বাংলায়']
+      };
+
+      // Find if a specific folder name is mentioned in user text (direct or via alias)
       const targetFolder = learningTopics.find(lt => {
         const name = (lt.name || '').toLowerCase().trim();
-        return name && (lowerText.includes(name) || lowerText.includes(name.replace(/\s+/g, '')));
+        if (!name) return false;
+        if (lowerText.includes(name) || lowerText.includes(name.replace(/\s+/g, ''))) return true;
+        for (const [key, aliases] of Object.entries(TOPIC_ALIASES)) {
+          if (name.includes(key) && aliases.some(a => lowerText.includes(a))) {
+            return true;
+          }
+        }
+        return false;
       });
 
       const actions: ActionRequest[] = [];
