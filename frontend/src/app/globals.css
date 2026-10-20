@@ -684,12 +684,12 @@ textarea {
   }
 }
 
-html.light input:not([type="checkbox"]):not([type="radio"]):not([type="color"]),
+html.light input:not([type="checkbox"]):not([type="radio"]):not([type="color"]):not(.note-editor-title):not(.editor-block input):not(.note-editor-canvas input),
 html.light select,
-html.light textarea,
-:root[data-theme="light"] input:not([type="checkbox"]):not([type="radio"]):not([type="color"]),
+html.light textarea:not(.note-editor-title):not(.editor-block textarea):not(.note-editor-canvas textarea):not(.note-block-textarea):not(.block-box textarea),
+:root[data-theme="light"] input:not([type="checkbox"]):not([type="radio"]):not([type="color"]):not(.note-editor-title):not(.editor-block input):not(.note-editor-canvas input),
 :root[data-theme="light"] select,
-:root[data-theme="light"] textarea {
+:root[data-theme="light"] textarea:not(.note-editor-title):not(.editor-block textarea):not(.note-editor-canvas textarea):not(.note-block-textarea):not(.block-box textarea) {
   background: #F7FAFE !important;
   border: 1px solid #DCE5F0 !important;
   color: #111827 !important;
@@ -708,16 +708,55 @@ input:not([type="checkbox"]):not([type="radio"]):not([type="color"]):focus, sele
   outline: none !important;
 }
 
-html.light input:not([type="checkbox"]):not([type="radio"]):not([type="color"]):focus,
+html.light input:not([type="checkbox"]):not([type="radio"]):not([type="color"]):not(.note-editor-title):not(.editor-block input):not(.note-editor-canvas input):focus,
 html.light select:focus,
-html.light textarea:focus,
-:root[data-theme="light"] input:not([type="checkbox"]):not([type="radio"]):not([type="color"]):focus,
+html.light textarea:not(.note-editor-title):not(.editor-block textarea):not(.note-editor-canvas textarea):not(.note-block-textarea):not(.block-box textarea):focus,
+:root[data-theme="light"] input:not([type="checkbox"]):not([type="radio"]):not([type="color"]):not(.note-editor-title):not(.editor-block input):not(.note-editor-canvas input):focus,
 :root[data-theme="light"] select:focus,
-:root[data-theme="light"] textarea:focus {
+:root[data-theme="light"] textarea:not(.note-editor-title):not(.editor-block textarea):not(.note-editor-canvas textarea):not(.note-block-textarea):not(.block-box textarea):focus {
   background: #FFFFFF !important;
   border: 1px solid #CBD5E1 !important;
   box-shadow: none !important;
   outline: none !important;
+}
+
+/* Note editor clean interface in light mode - no boxes or borders */
+html.light .note-editor-title,
+:root[data-theme="light"] .note-editor-title,
+html.light .note-editor-title:focus,
+:root[data-theme="light"] .note-editor-title:focus,
+html.light .editor-block textarea,
+:root[data-theme="light"] .editor-block textarea,
+html.light .editor-block input,
+:root[data-theme="light"] .editor-block input,
+html.light .editor-block textarea:focus,
+:root[data-theme="light"] .editor-block textarea:focus,
+html.light .editor-block input:focus,
+:root[data-theme="light"] .editor-block input:focus {
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+html.light .note-editor-title,
+:root[data-theme="light"] .note-editor-title {
+  color: #0f172a !important;
+}
+
+html.light .editor-block textarea,
+:root[data-theme="light"] .editor-block textarea,
+html.light .editor-block input,
+:root[data-theme="light"] .editor-block input {
+  color: #1e293b !important;
+}
+
+html.light .note-editor-title::placeholder,
+:root[data-theme="light"] .note-editor-title::placeholder,
+html.light .editor-block textarea::placeholder,
+:root[data-theme="light"] .editor-block textarea::placeholder {
+  color: #94a3b8 !important;
 }
 
 input::placeholder, textarea::placeholder {
@@ -1139,9 +1178,36 @@ html.light textarea::placeholder,
 .note-save-state { display: inline-flex; align-items: center; gap: 6px; color: #7c7c8e; font-size: 12px; font-weight: 600; }.note-save-state:not(.is-saving) { color: #8fcbad; }.note-save-state.is-saving { color: #b9a2ff; }
 .note-editor-screen__scroll { width: 100%; }.note-editor-canvas { width: 100%; max-width: 820px; margin: 0 auto; padding: 0 16px 80px; }
 .note-editor-title, .note-editor-title:focus { display: block; width: 100%; margin: 0 0 12px !important; padding: 0 !important; border: 0 !important; outline: 0; background: transparent !important; box-shadow: none !important; color: #f5f3ff; font-size: clamp(26px, 4.5vw, 36px) !important; font-weight: 790; line-height: 1.22; letter-spacing: -.035em; }.note-editor-title::placeholder { color: #535362; }
-.editor-block { position: relative; width: 100%; padding-left: 0 !important; padding-right: 32px; }.editor-block input, .editor-block textarea, .editor-block input:focus, .editor-block textarea:focus { display: block; width: 100%; padding: 0 !important; border: 0 !important; outline: none !important; resize: none; overflow: hidden; background: transparent !important; background-color: inherit; box-shadow: none !important; color: #e7e7ef; caret-color: #fff; }
-@media (min-width: 640px) { .editor-block { padding-left: 0 !important; padding-right: 36px; } }
-.editor-block--code, .editor-block--math, .editor-block--sticky, .editor-block--image, .editor-block--file, .editor-block--link { padding-right: 0 !important; }
+.editor-block {
+  position: relative;
+  width: 100%;
+  padding-left: 28px !important;
+  padding-right: 0 !important;
+}
+.editor-block input, .editor-block textarea, .editor-block input:focus, .editor-block textarea:focus {
+  display: block;
+  width: 100%;
+  padding: 0 !important;
+  border: 0 !important;
+  outline: none !important;
+  resize: none;
+  overflow: hidden;
+  background: transparent !important;
+  background-color: inherit;
+  box-shadow: none !important;
+  color: #e7e7ef;
+  caret-color: #fff;
+}
+@media (min-width: 640px) {
+  .editor-block {
+    padding-left: 32px !important;
+    padding-right: 0 !important;
+  }
+}
+.editor-block--code, .editor-block--math, .editor-block--sticky, .editor-block--image, .editor-block--file, .editor-block--link {
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
 .editor-block input::selection, .editor-block textarea::selection { background: rgba(124, 58, 237, 0.4) !important; color: inherit; }
 .editor-block--paragraph { min-height: 28px; margin: 2px 0; }.editor-block--paragraph textarea { min-height: 28px; font-size: 16.5px !important; font-weight: 400; line-height: 1.62; }
 .editor-block--h1 { margin: 20px 0 6px; }.editor-block--h1 input, .editor-block--h1 textarea { font-size: 30px !important; font-weight: 700; line-height: 1.25; letter-spacing: -.035em; }.editor-block--h2 { margin: 18px 0 6px; }.editor-block--h2 input, .editor-block--h2 textarea { font-size: 24px !important; font-weight: 700; line-height: 1.3; letter-spacing: -.025em; }.editor-block--h3 { margin: 14px 0 4px; }.editor-block--h3 input, .editor-block--h3 textarea { font-size: 20px !important; font-weight: 650; line-height: 1.35; letter-spacing: -.015em; }
@@ -1154,27 +1220,127 @@ html.light textarea::placeholder,
 .editor-block--sticky { margin: 16px 0; overflow: visible; padding: 0; border: 1px solid rgba(245, 158, 11, 0.25); border-radius: 16px; background: rgba(245, 158, 11, 0.04); box-shadow: none !important; }
 .editor-block--image { padding: 16px 16px 18px !important; }
 .editor-image-caption-input, .editor-block--image input.editor-image-caption-input { padding: 8px 16px !important; border: 1px solid rgba(255, 255, 255, 0.12) !important; background: rgba(0, 0, 0, 0.25) !important; border-radius: 12px !important; color: #e2e8f0 !important; }
-.block-action-container { position: absolute; z-index: 25; top: 3px; right: 2px; display: flex; flex-direction: column; align-items: flex-end; }
-.editor-block--code .block-action-container, .editor-block--math .block-action-container, .editor-block--image .block-action-container, .editor-block--file .block-action-container, .editor-block--sticky .block-action-container { top: -28px; right: 4px; }
-.block-action-trigger { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 9999px; border: 1px solid rgba(255, 255, 255, 0.14); background: rgba(18, 24, 38, 0.90); color: #94a3b8; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); cursor: pointer; transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1); opacity: 0; pointer-events: none; }
-.editor-block:hover .block-action-trigger, .editor-block:focus-within .block-action-trigger, .block-action-container.is-active .block-action-trigger { opacity: 1; pointer-events: auto; }
-@media (hover: none) and (pointer: coarse) { .block-action-trigger { opacity: 0.75; pointer-events: auto; } }
-.block-action-trigger:hover, .block-action-trigger.is-open { color: #ffffff; background: rgba(124, 58, 237, 0.85); border-color: rgba(168, 85, 247, 0.6); box-shadow: 0 0 10px rgba(139, 92, 246, 0.35); }
-.block-action-plus-icon { transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1); }
-.block-action-plus-icon.rotate-45 { transform: rotate(45deg); }
-.block-action-vertical-menu { position: absolute; top: calc(100% + 4px); right: 0; z-index: 55; display: flex; flex-direction: column; gap: 2px; min-width: 104px; padding: 4px; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.14); background: rgba(15, 23, 42, 0.96); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.4); transform-origin: top right; }
-.block-action-vertical-menu--up { top: auto; bottom: calc(100% + 4px); transform-origin: bottom right; }
-.block-action-item { display: flex; align-items: center; gap: 8px; width: 100%; padding: 6px 9px; border: none; border-radius: 8px; background: transparent; color: #e2e8f0; font-size: 11.5px; font-weight: 500; text-align: left; cursor: pointer; transition: background 0.14s ease, color 0.14s ease; }
-.block-action-item:hover { background: rgba(255, 255, 255, 0.1); color: #ffffff; }
-.block-action-item--delete:hover { background: rgba(239, 68, 68, 0.18); color: #fca5a5; }
-.block-controls { position: absolute; z-index: 20; top: 4px; right: 2px; left: auto; display: flex; align-items: center; gap: 2px; padding: 2px 3px; border: 1px solid rgba(255,255,255,.14); border-radius: 8px; background: rgba(18, 24, 38, 0.96); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); box-shadow: 0 4px 12px rgba(0,0,0,0.35) !important; opacity: 0; pointer-events: none; transform: translateY(0) translateX(-2px); transition: opacity .18s ease, transform .18s ease; white-space: nowrap; }
-.editor-block:hover .block-controls, .editor-block:focus-within .block-controls, .block-controls:focus-within { opacity: 1; pointer-events: auto; transform: translateY(0) translateX(0); }
-.editor-block--code .block-controls, .editor-block--math .block-controls, .editor-block--image .block-controls, .editor-block--file .block-controls, .editor-block--sticky .block-controls { top: -30px; right: 4px; left: auto; transform: translateY(0); }
-.editor-block--code:hover .block-controls, .editor-block--code:focus-within .block-controls, .editor-block--math:hover .block-controls, .editor-block--math:focus-within .block-controls, .editor-block--image:hover .block-controls, .editor-block--image:focus-within .block-controls, .editor-block--file:hover .block-controls, .editor-block--file:focus-within .block-controls, .editor-block--sticky:hover .block-controls, .editor-block--sticky:focus-within .block-controls { transform: translateY(0); }
-.block-controls > button { display: grid; place-items: center; width: 19px; height: 19px; padding: 0; border: 0; border-radius: 5px; background: transparent; color: #94a3b8; cursor: pointer; transition: background .15s, color .15s; }
-@media (min-width: 640px) { .block-controls > button { width: 21px; height: 21px; } }
-.block-controls > button:hover { background: rgba(255,255,255,.12); color: #fff; }.block-controls > button:last-child:hover { color: #f87171; }
-.note-command-menu { position: absolute; top: calc(100% + 4px); left: 0px; z-index: 9999; width: min(280px, calc(100vw - 24px)); max-height: min(300px, calc(100vh - 20px)); overflow: hidden; padding: 8px; border: 1px solid rgba(255,255,255,.14); border-radius: 13px; background: rgba(15,20,36,.98); box-shadow: none !important; backdrop-filter: blur(18px); }
+
+/* Left-aligned clean plus icon */
+.block-action-container {
+  position: absolute;
+  z-index: 25;
+  top: 5px;
+  left: 2px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+.editor-block--h1 .block-action-container { top: 9px; }
+.editor-block--h2 .block-action-container { top: 8px; }
+.editor-block--h3 .block-action-container { top: 6px; }
+.editor-block--paragraph .block-action-container { top: 5px; }
+.editor-block--bullet .block-action-container,
+.editor-block--numbered .block-action-container,
+.editor-block--todo .block-action-container { top: 5px; }
+
+.block-action-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 0;
+  border: none !important;
+  background: transparent !important;
+  color: #94a3b8;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  opacity: 0;
+  pointer-events: none;
+  padding: 0;
+  box-shadow: none !important;
+}
+.editor-block:hover .block-action-trigger,
+.block-action-container.is-active .block-action-trigger {
+  opacity: 0.75;
+  pointer-events: auto;
+}
+.block-action-trigger:hover,
+.block-action-trigger.is-open {
+  opacity: 1 !important;
+  color: #a855f7 !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+.block-action-plus-icon {
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.block-action-plus-icon.rotate-45 {
+  transform: rotate(45deg);
+}
+
+.block-action-vertical-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: auto;
+  z-index: 55;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 104px;
+  padding: 4px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.14) !important;
+  background: #0f172a !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.6), 0 8px 10px -6px rgba(0, 0, 0, 0.4) !important;
+  transform-origin: top left;
+}
+.block-action-vertical-menu--up {
+  top: auto;
+  bottom: calc(100% + 4px);
+  transform-origin: bottom left;
+}
+.block-action-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 9px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: #e2e8f0;
+  font-size: 11.5px;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.14s ease, color 0.14s ease;
+}
+.block-action-item:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+}
+.block-action-item--delete:hover {
+  background: rgba(239, 68, 68, 0.18);
+  color: #fca5a5;
+}
+
+.note-command-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0px;
+  z-index: 9999;
+  width: min(280px, calc(100vw - 24px));
+  max-height: min(300px, calc(100vh - 20px));
+  overflow: hidden;
+  padding: 8px;
+  border: 1px solid rgba(255,255,255,.14) !important;
+  border-radius: 14px;
+  background: #0f172a !important;
+  box-shadow: 0 16px 40px -5px rgba(0, 0, 0, 0.65), 0 8px 16px -6px rgba(0, 0, 0, 0.45) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
 .note-command-menu--top { top: auto !important; bottom: calc(100% + 4px) !important; }
 .note-command-menu--side-right { top: -6px !important; bottom: auto !important; left: calc(100% + 12px) !important; }
 .note-command-menu--side-left { top: -6px !important; bottom: auto !important; left: auto !important; right: calc(100% + 12px) !important; }
@@ -1445,19 +1611,20 @@ html.light textarea::placeholder,
 
 .block-color-toolbar {
   position: absolute;
-  z-index: 50;
-  top: 100%;
-  right: 0;
-  left: auto;
-  margin-top: 8px;
-  width: 240px;
-  padding: 6px;
-  border: 1px solid rgba(255,255,255,.1);
+  z-index: 60;
+  top: calc(100% + 6px);
+  left: 28px;
+  right: auto;
+  margin-top: 0;
+  width: 250px;
+  max-width: calc(100vw - 40px);
+  padding: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.14) !important;
   border-radius: 16px;
-  background: rgba(18,18,28,.65);
-  box-shadow: none !important;
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
+  background: #0f172a !important;
+  box-shadow: 0 16px 36px -5px rgba(0, 0, 0, 0.65) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
   transform: translateY(0);
   animation: bct-in .2s cubic-bezier(0.16, 1, 0.3, 1);
 }
@@ -1771,8 +1938,7 @@ small, .text-xs { font-size: 13px !important; font-weight: 400; line-height: 1.5
 .uppercase { text-transform: none !important; letter-spacing: normal !important; }
 
 .card, .card-elevated,
-.note-more-menu, .note-command-menu, .block-color-toolbar,
-.custom-color-popover, .note-delete-confirm > div {
+.note-more-menu, .note-delete-confirm > div {
   background: rgba(148, 163, 255, 0.06) !important;
   backdrop-filter: blur(22px) saturate(160%);
   -webkit-backdrop-filter: blur(22px) saturate(160%);
@@ -1829,8 +1995,41 @@ input:not([type="checkbox"]):not([type="radio"]):not([type="color"]):not(.note-e
 .note-editor-canvas .note-editor-title,
 .note-editor-canvas textarea,
 .note-editor-canvas .editor-block input,
-.note-editor-canvas .editor-block textarea {
+.note-editor-canvas .editor-block textarea,
+.editor-block textarea,
+.editor-block input,
+.note-block-textarea,
+.block-box textarea,
+.block-box input,
+html.light .note-editor-canvas .note-editor-title,
+html.light .note-editor-canvas textarea,
+html.light .note-editor-canvas .editor-block input,
+html.light .note-editor-canvas .editor-block textarea,
+html.light .editor-block textarea,
+html.light .editor-block input,
+html.light .note-block-textarea,
+html.light .block-box textarea,
+html.light .block-box input,
+:root[data-theme="light"] .note-editor-canvas .note-editor-title,
+:root[data-theme="light"] .note-editor-canvas textarea,
+:root[data-theme="light"] .note-editor-canvas .editor-block input,
+:root[data-theme="light"] .note-editor-canvas .editor-block textarea,
+:root[data-theme="light"] .editor-block textarea,
+:root[data-theme="light"] .editor-block input,
+:root[data-theme="light"] .note-block-textarea,
+:root[data-theme="light"] .block-box textarea,
+:root[data-theme="light"] .block-box input,
+.light .note-editor-canvas .note-editor-title,
+.light .note-editor-canvas textarea,
+.light .note-editor-canvas .editor-block input,
+.light .note-editor-canvas .editor-block textarea,
+.light .editor-block textarea,
+.light .editor-block input,
+.light .note-block-textarea,
+.light .block-box textarea,
+.light .block-box input {
   background: transparent !important;
+  background-color: transparent !important;
   border: none !important;
   border-radius: 0 !important;
   box-shadow: none !important;
@@ -1840,8 +2039,41 @@ input:not([type="checkbox"]):not([type="radio"]):not([type="color"]):not(.note-e
 .note-editor-canvas .note-editor-title:focus,
 .note-editor-canvas textarea:focus,
 .note-editor-canvas .editor-block input:focus,
-.note-editor-canvas .editor-block textarea:focus {
+.note-editor-canvas .editor-block textarea:focus,
+.editor-block textarea:focus,
+.editor-block input:focus,
+.note-block-textarea:focus,
+.block-box textarea:focus,
+.block-box input:focus,
+html.light .note-editor-canvas .note-editor-title:focus,
+html.light .note-editor-canvas textarea:focus,
+html.light .note-editor-canvas .editor-block input:focus,
+html.light .note-editor-canvas .editor-block textarea:focus,
+html.light .editor-block textarea:focus,
+html.light .editor-block input:focus,
+html.light .note-block-textarea:focus,
+html.light .block-box textarea:focus,
+html.light .block-box input:focus,
+:root[data-theme="light"] .note-editor-canvas .note-editor-title:focus,
+:root[data-theme="light"] .note-editor-canvas textarea:focus,
+:root[data-theme="light"] .note-editor-canvas .editor-block input:focus,
+:root[data-theme="light"] .note-editor-canvas .editor-block textarea:focus,
+:root[data-theme="light"] .editor-block textarea:focus,
+:root[data-theme="light"] .editor-block input:focus,
+:root[data-theme="light"] .note-block-textarea:focus,
+:root[data-theme="light"] .block-box textarea:focus,
+:root[data-theme="light"] .block-box input:focus,
+.light .note-editor-canvas .note-editor-title:focus,
+.light .note-editor-canvas textarea:focus,
+.light .note-editor-canvas .editor-block input:focus,
+.light .note-editor-canvas .editor-block textarea:focus,
+.light .editor-block textarea:focus,
+.light .editor-block input:focus,
+.light .note-block-textarea:focus,
+.light .block-box textarea:focus,
+.light .block-box input:focus {
   background: transparent !important;
+  background-color: transparent !important;
   border: none !important;
   border-radius: 0 !important;
   box-shadow: none !important;
@@ -2030,7 +2262,7 @@ a:focus-visible, button:focus-visible, [tabindex]:focus-visible {
   border-bottom-color: var(--border-subtle) !important;
   backdrop-filter: blur(16px) saturate(160%);
 }
-.note-editor-title, .note-editor-title:focus, .editor-block input, .editor-block textarea { color: var(--text-primary) !important; }
+.note-editor-title, .note-editor-title:focus, .editor-block input:not([style*="color"]), .editor-block textarea:not([style*="color"]) { color: var(--text-primary); }
 .editor-block input::selection, .editor-block textarea::selection { background: rgba(59, 130, 246, 0.42) !important; }
 .todo-toggle.done, .note-check--done { border-color: var(--accent-500) !important; background: var(--accent-600) !important; }
 .editor-block--math, .note-math {
@@ -2046,10 +2278,17 @@ a:focus-visible, button:focus-visible, [tabindex]:focus-visible {
 .note-command-menu button:hover, .note-command-menu button.is-selected { background: rgba(59, 130, 246, 0.18) !important; }
 .note-command-menu button svg { color: var(--accent-300) !important; }
 
-.note-more-menu, .block-color-toolbar, .custom-color-popover {
-  background: rgba(15, 23, 41, 0.86) !important;
+.note-more-menu {
+  background: rgba(15, 23, 41, 0.94) !important;
   border-color: var(--border-default) !important;
   box-shadow: none !important;
+}
+.block-color-toolbar, .custom-color-popover, .block-action-vertical-menu {
+  background: #0f172a !important;
+  border: 1px solid rgba(255, 255, 255, 0.14) !important;
+  box-shadow: 0 16px 36px -5px rgba(0, 0, 0, 0.65) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
 }
 .note-delete-confirm { background: rgba(5, 7, 13, 0.72) !important; }
 .note-delete-confirm .is-delete { background: var(--danger) !important; border-color: var(--danger) !important; }
@@ -2979,12 +3218,12 @@ html.dark:not([data-theme="light"]) .note-editor-screen__header {
 /* ==========================================================================
    PHASE 9 — INPUTS, FORMS & CONTROLS
    ========================================================================== */
-:root[data-theme="light"] input:not([type="checkbox"]):not([type="radio"]):not([type="color"]),
+:root[data-theme="light"] input:not([type="checkbox"]):not([type="radio"]):not([type="color"]):not(.note-editor-title):not(.editor-block input):not(.note-editor-canvas input),
 :root[data-theme="light"] select,
-:root[data-theme="light"] textarea:not(.code-surface--input):not(.diary-lined-textarea):not(.composer-pill-textarea):not([class*="pillTextarea"]),
-.light input:not([type="checkbox"]):not([type="radio"]):not([type="color"]),
+:root[data-theme="light"] textarea:not(.code-surface--input):not(.diary-lined-textarea):not(.composer-pill-textarea):not([class*="pillTextarea"]):not(.note-editor-title):not(.editor-block textarea):not(.note-editor-canvas textarea):not(.note-block-textarea):not(.block-box textarea),
+.light input:not([type="checkbox"]):not([type="radio"]):not([type="color"]):not(.note-editor-title):not(.editor-block input):not(.note-editor-canvas input),
 .light select,
-.light textarea:not(.code-surface--input):not(.diary-lined-textarea):not(.composer-pill-textarea):not([class*="pillTextarea"]) {
+.light textarea:not(.code-surface--input):not(.diary-lined-textarea):not(.composer-pill-textarea):not([class*="pillTextarea"]):not(.note-editor-title):not(.editor-block textarea):not(.note-editor-canvas textarea):not(.note-block-textarea):not(.block-box textarea) {
   background-color: #FFFFFF !important;
   border: 1px solid #DCE5F0 !important;
   border-radius: 12px !important;
@@ -2993,12 +3232,12 @@ html.dark:not([data-theme="light"]) .note-editor-screen__header {
   transition: border-color 0.15s ease, box-shadow 0.15s ease !important;
 }
 
-:root[data-theme="light"] input:not([type="checkbox"]):not([type="radio"]):not([type="color"]):focus,
+:root[data-theme="light"] input:not([type="checkbox"]):not([type="radio"]):not([type="color"]):not(.note-editor-title):not(.editor-block input):not(.note-editor-canvas input):focus,
 :root[data-theme="light"] select:focus,
-:root[data-theme="light"] textarea:not(.diary-lined-textarea):not(.composer-pill-textarea):not([class*="pillTextarea"]):focus,
-.light input:not([type="checkbox"]):not([type="radio"]):not([type="color"]):focus,
+:root[data-theme="light"] textarea:not(.diary-lined-textarea):not(.composer-pill-textarea):not([class*="pillTextarea"]):not(.note-editor-title):not(.editor-block textarea):not(.note-editor-canvas textarea):not(.note-block-textarea):not(.block-box textarea):focus,
+.light input:not([type="checkbox"]):not([type="radio"]):not([type="color"]):not(.note-editor-title):not(.editor-block input):not(.note-editor-canvas input):focus,
 .light select:focus,
-.light textarea:not(.diary-lined-textarea):not(.composer-pill-textarea):not([class*="pillTextarea"]):focus {
+.light textarea:not(.diary-lined-textarea):not(.composer-pill-textarea):not([class*="pillTextarea"]):not(.note-editor-title):not(.editor-block textarea):not(.note-editor-canvas textarea):not(.note-block-textarea):not(.block-box textarea):focus {
   border-color: #CBD5E1 !important;
   outline: none !important;
   box-shadow: none !important;
@@ -3384,11 +3623,11 @@ html.dark:not([data-theme="light"]) .note-editor-screen__header {
   color: #111827 !important;
 }
 
-:root[data-theme="light"] .editor-block input,
-:root[data-theme="light"] .editor-block textarea,
-.light .editor-block input,
-.light .editor-block textarea {
-  color: #111827 !important;
+:root[data-theme="light"] .editor-block input:not([style*="color"]),
+:root[data-theme="light"] .editor-block textarea:not([style*="color"]),
+.light .editor-block input:not([style*="color"]),
+.light .editor-block textarea:not([style*="color"]) {
+  color: #111827;
 }
 
 :root[data-theme="light"] .block-controls,
@@ -4137,14 +4376,106 @@ select:focus, select:focus-visible, select:active,
   --shadow-float: 0 16px 42px rgba(34, 58, 94, 0.12);
   --focus-ring: 0 0 0 3px rgba(91, 141, 239, 0.25);
 }
-:root[data-theme="light"] .note-more-menu, :root[data-theme="light"] .note-command-menu,
-:root[data-theme="light"] .block-color-toolbar, :root[data-theme="light"] .custom-color-popover {
+:root[data-theme="light"] .note-more-menu,
+html.light .note-more-menu,
+:root[data-theme="light"] .note-command-menu,
+html.light .note-command-menu,
+:root[data-theme="light"] .block-color-toolbar,
+html.light .block-color-toolbar,
+:root[data-theme="light"] .custom-color-popover,
+html.light .custom-color-popover,
+:root[data-theme="light"] .block-action-vertical-menu,
+html.light .block-action-vertical-menu {
   background: #FFFFFF !important;
-  border-color: #DCE5F0 !important;
-  box-shadow: none !important;
+  border: 1px solid #CBD5E1 !important;
+  box-shadow: 0 12px 30px -5px rgba(0, 0, 0, 0.12) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
 }
-:root[data-theme="light"] .note-more-menu > button, :root[data-theme="light"] .note-command-menu button { color: #52627A !important; }
-:root[data-theme="light"] .note-more-menu > button:hover, :root[data-theme="light"] .note-command-menu button:hover { color: #111827 !important; background: #E7F0FF !important; }
+
+:root[data-theme="light"] .block-action-trigger,
+html.light .block-action-trigger {
+  color: #64748b !important;
+  background: transparent !important;
+  border: none !important;
+}
+
+:root[data-theme="light"] .block-action-trigger:hover,
+:root[data-theme="light"] .block-action-trigger.is-open,
+html.light .block-action-trigger:hover,
+html.light .block-action-trigger.is-open {
+  color: #7c3aed !important;
+}
+
+:root[data-theme="light"] .block-action-item,
+html.light .block-action-item {
+  color: #334155 !important;
+}
+
+:root[data-theme="light"] .block-action-item:hover,
+html.light .block-action-item:hover {
+  background: #F1F5F9 !important;
+  color: #0f172a !important;
+}
+
+:root[data-theme="light"] .block-action-item--delete:hover,
+html.light .block-action-item--delete:hover {
+  background: #FEE2E2 !important;
+  color: #DC2626 !important;
+}
+
+:root[data-theme="light"] .note-more-menu > button,
+html.light .note-more-menu > button,
+:root[data-theme="light"] .note-command-menu button,
+html.light .note-command-menu button {
+  color: #334155 !important;
+}
+
+:root[data-theme="light"] .note-more-menu > button:hover,
+html.light .note-more-menu > button:hover,
+:root[data-theme="light"] .note-command-menu button:hover,
+html.light .note-command-menu button:hover,
+:root[data-theme="light"] .note-command-menu button.is-selected,
+html.light .note-command-menu button.is-selected {
+  color: #111827 !important;
+  background: #EFF6FF !important;
+}
+
+:root[data-theme="light"] .note-command-menu > p,
+html.light .note-command-menu > p {
+  color: #64748B !important;
+}
+
+:root[data-theme="light"] .bct-tabs button,
+html.light .bct-tabs button {
+  color: #64748B !important;
+}
+:root[data-theme="light"] .bct-tabs button.is-active,
+html.light .bct-tabs button.is-active {
+  color: #111827 !important;
+  background: #E2E8F0 !important;
+}
+:root[data-theme="light"] .bct-custom-btn,
+html.light .bct-custom-btn {
+  color: #475569 !important;
+  background: #F1F5F9 !important;
+  border-color: #CBD5E1 !important;
+}
+:root[data-theme="light"] .bct-custom input,
+html.light .bct-custom input {
+  color: #111827 !important;
+  background: #F8FAFC !important;
+  border: 1px solid #CBD5E1 !important;
+}
+:root[data-theme="light"] .bct-reset,
+html.light .bct-reset {
+  color: #64748B !important;
+}
+:root[data-theme="light"] .bct-reset:hover,
+html.light .bct-reset:hover {
+  color: #111827 !important;
+  background: #F1F5F9 !important;
+}
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; }
@@ -4448,12 +4779,12 @@ html.dark:not([data-theme="light"]) textarea:not(.code-surface--input):not(.note
   outline: none !important;
 }
 
-:root[data-theme="light"] input:not([type="checkbox"]):not([type="radio"]):not([type="color"]):focus,
+:root[data-theme="light"] input:not([type="checkbox"]):not([type="radio"]):not([type="color"]):not(.note-editor-title):not(.editor-block input):not(.note-editor-canvas input):focus,
 :root[data-theme="light"] select:focus,
-:root[data-theme="light"] textarea:not(.diary-lined-textarea):not(.composer-pill-textarea):not([class*="pillTextarea"]):focus,
-.light input:not([type="checkbox"]):not([type="radio"]):not([type="color"]):focus,
+:root[data-theme="light"] textarea:not(.diary-lined-textarea):not(.composer-pill-textarea):not([class*="pillTextarea"]):not(.note-editor-title):not(.editor-block textarea):not(.note-editor-canvas textarea):not(.note-block-textarea):not(.block-box textarea):focus,
+.light input:not([type="checkbox"]):not([type="radio"]):not([type="color"]):not(.note-editor-title):not(.editor-block input):not(.note-editor-canvas input):focus,
 .light select:focus,
-.light textarea:not(.diary-lined-textarea):not(.composer-pill-textarea):not([class*="pillTextarea"]):focus {
+.light textarea:not(.diary-lined-textarea):not(.composer-pill-textarea):not([class*="pillTextarea"]):not(.note-editor-title):not(.editor-block textarea):not(.note-editor-canvas textarea):not(.note-block-textarea):not(.block-box textarea):focus {
   border-color: #CBD5E1 !important;
   box-shadow: none !important;
   outline: none !important;

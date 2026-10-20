@@ -503,13 +503,22 @@ Focentia is an active, functional productivity suite built with Next.js 16 App R
 
 ### Notes & Files Editor, Local Storage Persistence, Cross-Device Sync & Guest Mode Isolation (October 2026)
 - **Current Implementation:**
-  1. **Editor Geometry & Layout Fixes:** Adjusted header-to-body margins in `NoteEditorView.tsx` (`pb-2 pt-1 sm:pt-2` and `mt-2`) and `BlockEditor.tsx` (`mt-1.5`) to eliminate excessive empty vertical gaps while preserving seamless document flow. Positioned floating block controls (palette, duplicate, delete) horizontally centered and non-overlapping above the active block.
-  2. **Database & Local Persistence:** Notes are managed via `noteService.ts` and saved directly to local Dexie IndexedDB (`focentia_e2ee_db_v1` / `notes` store) with automatic fallback and debounced autosave.
-  3. **App Exit & Re-Entry Persistence:** When a user creates or edits a note, it is immediately written to local Dexie IndexedDB. When closing or refreshing the app, data remains 100% intact and is restored on launch.
-  4. **Cross-Device Zero-Knowledge Sync:** For authenticated accounts, notes are locally encrypted using deterministic PBKDF2/AES-256-GCM envelope keys and enqueued for sync to Supabase `encrypted_sync_records`. Device B decrypts the payload cleanly using the same account recovery key with zero plaintext leakage or data corruption (15/15 cross-device sync tests passed).
-  5. **Guest Mode Integrity & Quarantine:** In Guest Mode (`userId = 'guest'`), notes are stored strictly locally in Dexie IndexedDB (`guest:<id>`). Guest records are isolated from the cloud sync queue and never synced to Supabase or visible to other accounts.
-- **Verified Status:** **VERIFIED** (15/15 Cross-Device Sync tests passed; 22/22 E2EE tests passed; 20/20 Auth Isolation tests passed; Live Browser E2E autosave and IndexedDB verification confirmed; Production build: 21/21 static pages compiled with exit code 0).
-- **Important Files:** `frontend/src/components/pages/NoteEditorView.tsx`, `frontend/src/components/workspace/BlockEditor.tsx`, `frontend/src/services/noteService.ts`, `frontend/src/services/localDbService.ts`, `frontend/src/services/cryptoSyncService.ts`, `frontend/src/services/syncService.ts`.
+  1. **Editor Geometry & Layout Fixes:** Adjusted header-to-body margins in `NoteEditorView.tsx` (`pb-2 pt-1 sm:pt-2` and `mt-2`) and `BlockEditor.tsx` (`mt-1.5`) to eliminate excessive empty vertical gaps while preserving seamless document flow.
+  2. **Active Block Action Menu & Styling UX (October 2026 Fixes):**
+     - Left-aligned pure `+` trigger (no circular boundary/pill background) aligned at the start of the block text line, rotating 45° on open (`rotate-45`).
+     - Displayed strictly on the active line where the user's cursor / tap is focused on both desktop and mobile; inactive lines remain clean and uncluttered.
+     - Vertically opened action menu (`Style`, `Duplicate`, `Delete`) does not obstruct block text.
+     - Clicking `Style` immediately closes the action menu and displays the `ColorToolbar` positioned below the block's text without overlapping or clipping content.
+     - Light mode input border & background overrides thoroughly exclude `.note-editor-title`, `.note-editor-canvas textarea`, `.note-block-textarea`, and `.block-box textarea`, eliminating boxed containers and restoring the seamless, document-integrated interface of dark mode.
+     - Box color and Highlight styling in light mode now apply with 100% color fidelity and continuity: transparent textareas allow the full block background color to fill the entire block underneath the text (rather than leaving a white island in the center), matching dark mode identically.
+     - Replaced extreme glassmorphism/transparent menu backgrounds with solid colors (`#0f172a` in dark mode, `#ffffff` in light mode) with high z-index and elevation shadows so text behind menus never bleeds through.
+     - Plus icon action trigger is restricted strictly to text blocks (`paragraph`, `h1`, `h2`, `h3`, `bullet`, `numbered`, `todo`) and omitted from complex blocks (`code`, `math`, `quote`, `image`, `file`, `link`, `sticky`).
+  3. **Database & Local Persistence:** Notes are managed via `noteService.ts` and saved directly to local Dexie IndexedDB (`focentia_e2ee_db_v1` / `notes` store) with automatic fallback and debounced autosave.
+  4. **App Exit & Re-Entry Persistence:** When a user creates or edits a note, it is immediately written to local Dexie IndexedDB. When closing or refreshing the app, data remains 100% intact and is restored on launch.
+  5. **Cross-Device Zero-Knowledge Sync:** For authenticated accounts, notes are locally encrypted using deterministic PBKDF2/AES-256-GCM envelope keys and enqueued for sync to Supabase `encrypted_sync_records`. Device B decrypts the payload cleanly using the same account recovery key with zero plaintext leakage or data corruption (15/15 cross-device sync tests passed).
+  6. **Guest Mode Integrity & Quarantine:** In Guest Mode (`userId = 'guest'`), notes are stored strictly locally in Dexie IndexedDB (`guest:<id>`). Guest records are isolated from the cloud sync queue and never synced to Supabase or visible to other accounts.
+- **Verified Status:** **VERIFIED** (Frontend Turbopack production build: 21/21 static pages compiled with exit code 0; TypeScript typechecks clean; Scope lock strictly preserved).
+- **Important Files:** `frontend/src/components/pages/NoteEditorView.tsx`, `frontend/src/components/workspace/BlockEditor.tsx`, `frontend/src/app/globals.css`, `frontend/src/services/noteService.ts`, `frontend/src/services/localDbService.ts`, `frontend/src/services/cryptoSyncService.ts`, `frontend/src/services/syncService.ts`.
 
 
 

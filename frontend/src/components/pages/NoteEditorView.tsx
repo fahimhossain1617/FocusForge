@@ -648,7 +648,8 @@ export default function NoteEditorView({
               } 
             }} 
             placeholder={isBn ? "শিরোনামহীন নোট..." : "Untitled note..."} 
-            className="note-editor-title w-full text-2xl sm:text-3xl font-bold tracking-tight mb-3 sm:mb-4 bg-transparent outline-none text-foreground placeholder-zinc-600 resize-none overflow-hidden block break-words" 
+            className="note-editor-title note-block-textarea w-full text-2xl sm:text-3xl font-bold tracking-tight mb-3 sm:mb-4 pl-7 sm:pl-8 bg-transparent outline-none text-foreground placeholder-zinc-600 resize-none overflow-hidden block break-words border-0 shadow-none" 
+            style={{ background: "transparent", border: "none", outline: "none", boxShadow: "none" }}
             autoFocus 
           />
 

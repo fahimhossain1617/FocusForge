@@ -91,6 +91,7 @@ export default function BlockEditor({
   onPreviewImage
 }: BlockEditorProps) {
   const { isOnline, showToast, state } = useAppContext();
+  const [activeBlockIndex, setActiveBlockIndex] = useState<number | null>(0);
   const [menu, setMenu] = useState({ visible: false, index: -1, query: "", selected: 0 });
   const [colorToolbar, setColorToolbar] = useState<{ visible: boolean; index: number }>({ visible: false, index: -1 });
 
@@ -142,16 +143,19 @@ export default function BlockEditor({
     const next = newBlock(effectiveType);
     onDirty();
     onChange([...blocks.slice(0, index + 1), next, ...blocks.slice(index + 1)]);
+    setActiveBlockIndex(index + 1);
     focus(next.id);
   };
   const remove = (index: number) => {
     if (blocks.length === 1) {
       update(0, { type: "paragraph", content: "" });
+      setActiveBlockIndex(0);
       return;
     }
     const targetBlock = blocks[index - 1] || blocks[index + 1];
     onDirty();
     onChange(blocks.filter((_, i) => i !== index));
+    setActiveBlockIndex(Math.max(0, index - 1));
     if (targetBlock) focus(targetBlock.id);
   };
   const duplicate = (index: number) => {
@@ -162,6 +166,7 @@ export default function BlockEditor({
     const copy = { ...blocks[index], id: newId() };
     onDirty();
     onChange([...blocks.slice(0, index + 1), copy, ...blocks.slice(index + 1)]);
+    setActiveBlockIndex(index + 1);
   };
 
   const choose = (type: BlockType) => {
@@ -376,6 +381,8 @@ export default function BlockEditor({
       <EditorBlock
         key={block.id}
         index={index}
+        isActive={activeBlockIndex === index}
+        onActivate={() => setActiveBlockIndex(index)}
         listNumber={listNumbers[index]}
         block={block}
         onInput={(e) => handleInput(e, index)}
@@ -512,9 +519,13 @@ function CustomColorPickerPopover({ color, onChange, onClose }: { color: string;
   }, [color]);
 
   useEffect(() => {
-    const handleClick = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) onClose(); };
+    const handleClick = (e: MouseEvent | TouchEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) onClose(); };
     window.addEventListener("mousedown", handleClick);
-    return () => window.removeEventListener("mousedown", handleClick);
+    window.addEventListener("touchstart", handleClick);
+    return () => {
+      window.removeEventListener("mousedown", handleClick);
+      window.removeEventListener("touchstart", handleClick);
+    };
   }, [onClose]);
 
   const handleRgbChange = (e: ChangeEvent<HTMLInputElement>, channel: "r" | "g" | "b") => {
@@ -1060,19 +1071,17 @@ function ImageBlockItem({
 /* ───────────── Block Action Menu (+ Button with Vertical Toolbar) ───────────── */
 
 function BlockActionMenu({
-  block,
+  isActive = false,
   onColorToolbar,
   colorToolbarOpen,
   onCloseColorToolbar,
-  onUpdateColor,
   onDuplicate,
   onDelete,
 }: {
-  block: NoteBlock;
+  isActive?: boolean;
   onColorToolbar: () => void;
   colorToolbarOpen: boolean;
   onCloseColorToolbar: () => void;
-  onUpdateColor: (patch: Partial<NoteBlock>) => void;
   onDuplicate: () => void;
   onDelete: () => void;
 }) {
@@ -1081,11 +1090,10 @@ function BlockActionMenu({
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!isOpen && !colorToolbarOpen) return;
+    if (!isOpen) return;
     const handleOutside = (e: MouseEvent | TouchEvent) => {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
         setIsOpen(false);
-        if (colorToolbarOpen) onCloseColorToolbar();
       }
     };
     document.addEventListener("mousedown", handleOutside);
@@ -1094,19 +1102,22 @@ function BlockActionMenu({
       document.removeEventListener("mousedown", handleOutside);
       document.removeEventListener("touchstart", handleOutside);
     };
-  }, [isOpen, colorToolbarOpen, onCloseColorToolbar]);
+  }, [isOpen]);
 
   return (
     <div
       ref={menuRef}
-      className={`block-action-container ${isOpen || colorToolbarOpen ? "is-active" : ""}`}
-      style={{ zIndex: colorToolbarOpen ? 60 : isOpen ? 50 : 15 }}
+      className={`block-action-container ${isActive || isOpen || colorToolbarOpen ? "is-active" : ""}`}
+      style={{ zIndex: isOpen ? 50 : 15 }}
     >
       <button
         type="button"
         onClick={(e) => {
           e.stopPropagation();
-          if (colorToolbarOpen) onCloseColorToolbar();
+          if (colorToolbarOpen) {
+            onCloseColorToolbar();
+            return;
+          }
           if (!isOpen && menuRef.current) {
             const rect = menuRef.current.getBoundingClientRect();
             const spaceBelow = window.innerHeight - rect.bottom;
@@ -1122,7 +1133,7 @@ function BlockActionMenu({
         aria-label="Block options"
         title="Block options"
       >
-        <Plus size={13} className={`block-action-plus-icon ${isOpen || colorToolbarOpen ? "rotate-45" : ""}`} />
+        <Plus size={15} className={`block-action-plus-icon ${isOpen || colorToolbarOpen ? "rotate-45" : ""}`} />
       </button>
 
       {isOpen && (
@@ -1131,6 +1142,7 @@ function BlockActionMenu({
             type="button"
             onClick={(e) => {
               e.stopPropagation();
+              setIsOpen(false);
               onColorToolbar();
             }}
             className="block-action-item"
@@ -1169,14 +1181,6 @@ function BlockActionMenu({
           </button>
         </div>
       )}
-
-      {colorToolbarOpen && (
-        <ColorToolbar
-          block={block}
-          onUpdate={onUpdateColor}
-          onClose={onCloseColorToolbar}
-        />
-      )}
     </div>
   );
 }
@@ -1187,6 +1191,8 @@ function EditorBlock({
   block,
   index,
   listNumber = 1,
+  isActive = false,
+  onActivate,
   onInput,
   onKeyDown,
   onBeforeInput,
@@ -1205,6 +1211,8 @@ function EditorBlock({
   block: NoteBlock;
   index: number;
   listNumber?: number;
+  isActive?: boolean;
+  onActivate?: () => void;
   onInput: (event: ChangeEvent<HTMLTextAreaElement | HTMLInputElement>) => void;
   onKeyDown: (event: KeyboardEvent<HTMLTextAreaElement | HTMLInputElement | HTMLDivElement>) => void;
   onBeforeInput?: (event: React.FormEvent<HTMLTextAreaElement | HTMLInputElement>) => void;
@@ -1222,22 +1230,44 @@ function EditorBlock({
 }) {
   const textarea = useRef<HTMLTextAreaElement>(null);
   useEffect(() => { if (textarea.current && block.type !== "code") { textarea.current.style.height = "0px"; textarea.current.style.height = `${textarea.current.scrollHeight}px`; } }, [block.content, block.type]);
-  const input = { id: `block-${block.id}`, value: block.content, onChange: onInput, onKeyDown, onBeforeInput };
+  const input = {
+    id: `block-${block.id}`,
+    value: block.content,
+    onChange: onInput,
+    onKeyDown,
+    onBeforeInput,
+    onFocus: () => onActivate?.(),
+  };
 
-  const control = (
+  const isTextType = ["paragraph", "h1", "h2", "h3", "bullet", "numbered", "todo"].includes(block.type);
+
+  const control = isTextType ? (
     <BlockActionMenu
-      block={block}
+      isActive={isActive}
       onColorToolbar={onColorToolbar}
       colorToolbarOpen={colorToolbarOpen}
       onCloseColorToolbar={onCloseColorToolbar}
-      onUpdateColor={onUpdateColor}
       onDuplicate={onDuplicate}
       onDelete={onDelete}
     />
-  );
+  ) : null;
+
+  const colorToolbarNode = isTextType && colorToolbarOpen ? (
+    <ColorToolbar
+      block={block}
+      onUpdate={onUpdateColor}
+      onClose={onCloseColorToolbar}
+    />
+  ) : null;
 
   // Compute inline styles for the block
-  const textStyle: React.CSSProperties = {};
+  const textStyle: React.CSSProperties = {
+    background: "transparent",
+    backgroundColor: "transparent",
+    border: "none",
+    outline: "none",
+    boxShadow: "none",
+  };
   if (block.textColor) {
     if (block.textColor.includes("gradient")) {
       textStyle.backgroundImage = block.textColor;
@@ -1276,27 +1306,31 @@ function EditorBlock({
 
   // ── Headings ──
   if (block.type === "h1" || block.type === "h2" || block.type === "h3") {
-    return <div className={`editor-block editor-block--${block.type}`}>
-      {control}
-      {wrapWithBox(
-        <div style={highlightStyle}>
-          <textarea ref={textarea} {...input} rows={1} placeholder={`Heading ${block.type.slice(1)}`} style={textStyle} />
-        </div>
-      )}
-    </div>;
+    return (
+      <div className={`editor-block editor-block--${block.type}`} onClick={onActivate}>
+        {control}
+        {wrapWithBox(
+          <div style={highlightStyle}>
+            <textarea ref={textarea} {...input} rows={1} placeholder={`Heading ${block.type.slice(1)}`} style={textStyle} className="note-block-textarea" />
+          </div>
+        )}
+        {colorToolbarNode}
+      </div>
+    );
   }
 
   // ── Bullet List ──
   if (block.type === "bullet") {
     return (
-      <div className="editor-block editor-block--bullet my-0.5">
+      <div className="editor-block editor-block--bullet my-0.5" onClick={onActivate}>
         {control}
         {wrapWithBox(
           <div className="flex items-start gap-2.5 w-full" style={highlightStyle}>
             <span className="text-blue-400 font-bold select-none text-base leading-snug mt-0.5">•</span>
-            <textarea ref={textarea} {...input} rows={1} placeholder="List item" style={textStyle} />
+            <textarea ref={textarea} {...input} rows={1} placeholder="List item" style={textStyle} className="note-block-textarea" />
           </div>
         )}
+        {colorToolbarNode}
       </div>
     );
   }
@@ -1304,16 +1338,17 @@ function EditorBlock({
   // ── Numbered List ──
   if (block.type === "numbered") {
     return (
-      <div className="editor-block editor-block--numbered my-0.5">
+      <div className="editor-block editor-block--numbered my-0.5" onClick={onActivate}>
         {control}
         {wrapWithBox(
           <div className="flex items-start gap-2.5 w-full" style={highlightStyle}>
             <span className="text-zinc-500 font-semibold font-mono text-xs select-none min-w-[20px] pt-1.5">
               {listNumber || 1}.
             </span>
-            <textarea ref={textarea} {...input} rows={1} placeholder="List item" style={textStyle} />
+            <textarea ref={textarea} {...input} rows={1} placeholder="List item" style={textStyle} className="note-block-textarea" />
           </div>
         )}
+        {colorToolbarNode}
       </div>
     );
   }
@@ -1321,11 +1356,10 @@ function EditorBlock({
   // ── Quote ──
   if (block.type === "quote") {
     return (
-      <div className="editor-block editor-block--quote my-2.5">
-        {control}
+      <div className="editor-block editor-block--quote my-2.5" onClick={onActivate}>
         {wrapWithBox(
           <div className="border-l-2 border-blue-500/80 bg-blue-500/5 rounded-r-xl pl-4 pr-3 py-2.5 italic" style={highlightStyle}>
-            <textarea ref={textarea} {...input} rows={1} placeholder="Quote or key takeaway..." style={textStyle} />
+            <textarea ref={textarea} {...input} rows={1} placeholder="Quote or key takeaway..." style={textStyle} className="note-block-textarea" />
           </div>
         )}
       </div>
@@ -1337,7 +1371,7 @@ function EditorBlock({
     return (
       <ImageBlockItem
         block={block}
-        control={control}
+        control={null}
         onUpdateColor={onUpdateColor}
         onPreviewImage={onPreviewImage}
         onReplaceImage={onReplaceImage}
@@ -1375,8 +1409,7 @@ function EditorBlock({
     };
 
     return (
-      <div className="editor-block editor-block--file my-3.5 p-4 rounded-2xl border border-white/10 bg-white/[0.03] hover:border-white/20 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 group">
-        {control}
+      <div className="editor-block editor-block--file my-3.5 p-4 rounded-2xl border border-white/10 bg-white/[0.03] hover:border-white/20 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 group" onClick={onActivate}>
         <div className="flex items-center gap-3.5 min-w-0">
           <div className="p-2.5 rounded-xl shrink-0 bg-blue-500/10 text-blue-400 border border-blue-500/20">
             <FileText size={22} />
@@ -1429,8 +1462,7 @@ function EditorBlock({
   // ── Link Preview Card Block ──
   if (block.type === "link") {
     return (
-      <div className="editor-block editor-block--link my-3 p-4 rounded-2xl border border-white/10 bg-black/20 hover:border-blue-500/40 transition-all flex items-center justify-between gap-4 group">
-        {control}
+      <div className="editor-block editor-block--link my-3 p-4 rounded-2xl border border-white/10 bg-black/20 hover:border-blue-500/40 transition-all flex items-center justify-between gap-4 group" onClick={onActivate}>
         <div className="flex items-center gap-3.5 min-w-0">
           <div className="p-3 rounded-xl shrink-0 bg-blue-500/10 text-blue-400 border border-blue-500/20 group-hover:scale-105 transition-transform">
             <Link2 size={22} />
@@ -1463,15 +1495,18 @@ function EditorBlock({
 
   // ── Todo ──
   if (block.type === "todo") {
-    return <div className="editor-block editor-block--todo">
-      {control}
-      {wrapWithBox(
-        <div className="editor-todo-inner" style={highlightStyle}>
-          <button type="button" className={block.isCompleted ? "todo-toggle done" : "todo-toggle"} onClick={onToggle} aria-label="Toggle task">{block.isCompleted && "✓"}</button>
-          <textarea ref={textarea} {...input} rows={1} placeholder="To-do item" className={block.isCompleted ? "is-complete" : ""} style={textStyle} />
-        </div>
-      )}
-    </div>;
+    return (
+      <div className="editor-block editor-block--todo" onClick={onActivate}>
+        {control}
+        {wrapWithBox(
+          <div className="editor-todo-inner" style={highlightStyle}>
+            <button type="button" className={block.isCompleted ? "todo-toggle done" : "todo-toggle"} onClick={onToggle} aria-label="Toggle task">{block.isCompleted && "✓"}</button>
+            <textarea ref={textarea} {...input} rows={1} placeholder="To-do item" className={`note-block-textarea ${block.isCompleted ? "is-complete" : ""}`} style={textStyle} />
+          </div>
+        )}
+        {colorToolbarNode}
+      </div>
+    );
   }
 
   // ── Code ──
@@ -1479,7 +1514,7 @@ function EditorBlock({
     return (
       <CodeBlockItem
         block={block}
-        control={control}
+        control={null}
         onLanguage={onLanguage}
         onInput={onInput}
         onKeyDown={onKeyDown}
@@ -1493,7 +1528,7 @@ function EditorBlock({
     return (
       <MathBlockItem
         block={block}
-        control={control}
+        control={null}
         input={input}
         textareaRef={textarea}
         onDelete={onDelete}
@@ -1503,24 +1538,29 @@ function EditorBlock({
 
   // ── Sticky ──
   if (block.type === "sticky") {
-    return <StickyBlock
-      block={block}
-      control={control}
-      input={input}
-      textareaRef={textarea}
-      onDelete={onDelete}
-      onUpdate={onUpdateColor}
-    />;
+    return (
+      <StickyBlock
+        block={block}
+        control={null}
+        input={input}
+        textareaRef={textarea}
+        onDelete={onDelete}
+        onUpdate={onUpdateColor}
+      />
+    );
   }
 
   // ── Paragraph (default) ──
-  return <div className="editor-block editor-block--paragraph relative">
-    {control}
-    {wrapWithBox(
-      <div style={highlightStyle}>
-        <textarea ref={textarea} {...input} rows={1} placeholder="Type # to add a block, or start writing..." style={textStyle} />
-      </div>
-    )}
-    {commandMenu}
-  </div>;
+  return (
+    <div className="editor-block editor-block--paragraph relative" onClick={onActivate}>
+      {control}
+      {wrapWithBox(
+        <div style={highlightStyle}>
+          <textarea ref={textarea} {...input} rows={1} placeholder="Type # to add a block, or start writing..." style={textStyle} className="note-block-textarea" />
+        </div>
+      )}
+      {commandMenu}
+      {colorToolbarNode}
+    </div>
+  );
 }
