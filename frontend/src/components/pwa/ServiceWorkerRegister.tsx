@@ -30,13 +30,6 @@ export default function ServiceWorkerRegister() {
       return;
     }
 
-    // When the new service worker takes over, log seamless activation without screen reload or flash
-    const handleControllerChange = () => {
-      console.log("[PWA] New version activated seamlessly in background (no reload).");
-    };
-
-    navigator.serviceWorker.addEventListener("controllerchange", handleControllerChange);
-
     // Capture native PWA install prompt globally
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
@@ -65,46 +58,6 @@ export default function ServiceWorkerRegister() {
           if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted") {
             subscribeUserToPush().catch(() => {});
           }
-
-          reg.onupdatefound = () => {
-            const installingWorker = reg.installing;
-            if (installingWorker) {
-              installingWorker.onstatechange = () => {
-                if (installingWorker.state === "installed" && navigator.serviceWorker.controller) {
-                  console.log("[PWA] New Focentia version downloaded. Activating now...");
-                  // Tell new worker to skip waiting and activate immediately
-                  installingWorker.postMessage({ type: "SKIP_WAITING" });
-                }
-              };
-            }
-          };
-
-          // Periodically check for updates (every 60 seconds while app is active)
-          const interval = setInterval(() => {
-            reg.update().catch(() => {});
-          }, 60 * 1000);
-
-          // Check for updates whenever user returns to the tab or app
-          const handleVisibilityChange = () => {
-            if (document.visibilityState === "visible") {
-              reg.update().catch(() => {});
-            }
-          };
-
-          const handleOnline = () => {
-            reg.update().catch(() => {});
-          };
-
-          document.addEventListener("visibilitychange", handleVisibilityChange);
-          window.addEventListener("focus", handleVisibilityChange);
-          window.addEventListener("online", handleOnline);
-
-          return () => {
-            clearInterval(interval);
-            document.removeEventListener("visibilitychange", handleVisibilityChange);
-            window.removeEventListener("focus", handleVisibilityChange);
-            window.removeEventListener("online", handleOnline);
-          };
         })
         .catch((err) => {
           console.warn("[PWA] ServiceWorker registration warning:", err);
@@ -138,7 +91,8 @@ export default function ServiceWorkerRegister() {
     }
 
     return () => {
-      navigator.serviceWorker.removeEventListener("controllerchange", handleControllerChange);
+      window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+      window.removeEventListener("appinstalled", handleAppInstalled);
       navigator.serviceWorker.removeEventListener("message", handleMessage);
     };
   }, []);

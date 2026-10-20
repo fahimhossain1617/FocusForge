@@ -7,6 +7,7 @@ import "./auth.css";
 import { AppProvider } from "../context/AppContext";
 import { AuthProvider } from "../context/AuthContext";
 import ServiceWorkerRegister from "../components/pwa/ServiceWorkerRegister";
+import PWAUpdater from "../components/pwa/PWAUpdater";
 
 const notoSansBengali = Noto_Sans_Bengali({
   subsets: ["bengali"],
@@ -647,6 +648,7 @@ export default function RootLayout({
         <AppProvider>
           <AuthProvider>
             <ServiceWorkerRegister />
+            <PWAUpdater />
             <div id="app-shell" suppressHydrationWarning className="relative z-10 h-screen h-dvh max-h-screen max-h-dvh overflow-hidden w-full">
               {children}
             </div>

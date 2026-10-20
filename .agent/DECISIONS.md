@@ -1553,3 +1553,24 @@
   - `npm run build --prefix backend`: Passed with code 0.
 - **Status:** **VERIFIED**
 
+---
+
+## ADR-055: PWA Stale Cache Resolution, Prompted Update Flow & Cache-Control Enforcement
+
+- **Date:** October 2026
+- **Status:** Accepted & Verified
+- **Context:**
+  - After deploying new builds on Vercel, installed mobile PWAs continued serving the old cached build until users manually navigated and hard-refreshed, because:
+    1. Service worker install was previously calling `skipWaiting()` automatically and logging "no reload", causing the old DOM to remain alive with stale JavaScript bundles.
+    2. Headers for `/sw.js` and `/workbox-*.js` needed explicit `Cache-Control: no-cache, no-store, must-revalidate` and `Service-Worker-Allowed: /` without duplication between `vercel.json` and `next.config.ts`.
+- **Decision:**
+  1. **Custom Service Worker Lifecycle (`public/sw.js`):** Removed automatic `self.skipWaiting()` from `install` event. The new worker now properly installs its assets and waits in the `installed` state until signaled. Added support for client `{type: 'SKIP_WAITING'}` message which activates the waiting worker and claims clients (`self.clients.claim()`).
+  2. **Dedicated Client Update Handler (`PWAUpdater.tsx`):** Created a client component mounted in `RootLayout`. It checks for updates on mount, on `focus`, on `visibilitychange` (when visible), and on a 30-minute interval. When a new worker is installed while a controller exists, it displays a non-blocking toast: "New version available - Refresh".
+  3. **Safe Controllerchange Reload:** On `controllerchange`, the client reloads the page once. Guarded by a module-level boolean and `sessionStorage` flag to prevent reload loops. Guarded against first-time install reload (`!hadControllerAtLoad`). Guarded against auto-reloading while the user is actively typing.
+  4. **Cache Headers Consolidation (`next.config.ts` & `vercel.json`):** Consolidated all header rules into `next.config.ts` with `Cache-Control: no-cache, no-store, must-revalidate` for `/sw.js` and `/:path(workbox-.*)`, and `Service-Worker-Allowed: /` for `/sw.js`. Removed duplicate headers from `vercel.json` to prevent configuration collisions.
+- **Verification:**
+  - `npm run build --prefix frontend`: Passed with code 0 (21/21 routes).
+  - `node frontend/scripts/test_notification_architecture.js`: Passed 5/5.
+  - `npx tsx scripts/verify_production_readiness.ts`: Passed 35/35.
+- **Status:** **VERIFIED**
+
