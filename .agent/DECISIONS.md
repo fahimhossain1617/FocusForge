@@ -1745,5 +1745,70 @@
     - AI chat persistence verified across hard reload (`ai_chat_before_reload_1792613172363.png`, `ai_chat_after_reload_1792613194382.png`).
 - **Status:** **VERIFIED**
 
+---
 
+## ADR-041: Seamless Line-by-Line Personal Information List UI Redesign
 
+- **Date:** October 22, 2026
+- **Status:** Accepted
+- **Context:**
+  1. User provided 3 reference/comparison images. In Image 2, the previous Profile layout wrapped the page inside a nested rounded card box with border, background, and wave graphic, giving an unwanted "box inside a box" look.
+  2. The "Personal Information" title in the header was oversized, causing truncation ("Personal Infor...") with ellipsis on mobile viewports.
+  3. In Image 3 (`SettingsPage.tsx` > Profile subpage), the "Personal Information" section had a cluttered, busy 2-column form grid that did not match the clean, line-divided list pattern from Image 1.
+- **Decision:**
+  1. **Removed Nested Box Containers:** Eliminated the outer card box wrapper, borders, shadows, and wave SVG in `ProfilePage.tsx`. Content sits directly and seamlessly on the application's page background.
+  2. **Proportional Header Typography:** Sized "Personal Information" to a clean, balanced `text-base sm:text-lg font-bold`, preventing any truncation or awkward wrapping on mobile devices.
+  3. **Seamless Line-by-Line List Structure:** Both `ProfilePage.tsx` and `SettingsPage.tsx` now share the exact same clean list layout matching Image 1:
+     - Header: Avatar (with upload/delete actions), Title, Subtitle, and outline pill "Edit" button (or Cancel / Save controls in edit mode).
+     - Separator: `border-b border-[var(--color-border-subtle)]`.
+     - 9 items: Full Name, Display Name / Username, Email Address (with "Verified" badge), Phone Number, Date of Birth, Gender, Country / Region, City, and About Me / Short Bio.
+     - Each item features a squircle icon container on the left, label and value in the center, and a chevron-right arrow on the far right.
+     - Divided cleanly by subtle horizontal lines (`divide-y divide-[var(--color-border-subtle)]`) without any outer boxy shape.
+     - Seamless click-to-edit interactions and inline edit inputs with field auto-focus.
+- **Verification:**
+  - `npm run build --prefix frontend`: Passed with exit code 0 (21/21 static routes generated).
+  - Scope check: Only `ProfilePage.tsx`, `SettingsPage.tsx`, and project memory docs modified.
+- **Status:** **VERIFIED**
+
+---
+
+## ADR-042: Light Mode Ash Icon Styling & Single-Line Personal Information Heading
+
+- **Date:** October 22, 2026
+- **Status:** Accepted
+- **Context:**
+  1. In Light Mode, the 9 row icon squircle containers were rendering with `bg-slate-800/40`, which produced a muddy, unappealing dark grey square instead of a clean, aesthetic ash tint.
+  2. On mobile screens (427px width and below), "Personal Information" was still breaking into two lines ("Personal" / "Information") next to the avatar and Edit button because the font was too large.
+- **Decision:**
+  1. **Clean Ash Light Mode Icon Styling:**
+     - Updated all 9 icon squircle containers in `ProfilePage.tsx` and `SettingsPage.tsx` to `bg-slate-100 dark:bg-slate-800/60 text-slate-600 dark:text-slate-400 border border-slate-200/80 dark:border-white/5`.
+     - In Light Mode, this provides a crisp, modern soft ash/slate background with subtle borders and clear icon contrast.
+     - In Dark Mode, the sleek translucent slate container aesthetic is preserved.
+  2. **Single-Line Header Heading:**
+     - Switched heading from `h1` (`text-base sm:text-lg font-bold`) to `h3` size: `text-sm sm:text-base font-semibold text-[var(--color-text-primary)] tracking-tight whitespace-nowrap`.
+     - Now comfortably fits on a single line on mobile viewports without any multi-line wrapping or overflow.
+- **Verification:**
+  - `npm run build --prefix frontend`: Passed with exit code 0 (21/21 static routes generated).
+  - TypeScript typecheck: 100% clean.
+- **Status:** **VERIFIED**
+
+---
+
+## ADR-043: Segmented Mode Toggle Proportions & Dual-Theme Button Styling
+
+- **Date:** October 22, 2026
+- **Status:** Accepted
+- **Context:**
+  1. The Focus / Timer toggle in `FocusPage.tsx` was hardcoded to bright blue (`bg-blue-600`) in Light Mode, clashing with Focentia's primary button color (`#223A5E`).
+  2. Both the Focus / Timer toggle and the Weekly / Monthly toggle in `DashboardPage.tsx` were oversized (`min-w-[80px] sm:min-w-[88px]`, `px-4 sm:px-5`, `py-1.5 sm:py-2`), consuming excessive space and looking chunky.
+- **Decision:**
+  1. **Dual-Theme Button Color Alignment:**
+     - Standardized active pill color to application button tokens: `#223A5E` in Light Mode and `blue-600` in Dark Mode (`bg-[#223A5E] dark:bg-blue-600 shadow-sm`) across both toggles.
+     - Unified container styling to `bg-[#E5EDF7] dark:bg-[#070d1a] border border-[#DCE5F0] dark:border-white/[0.08]`.
+  2. **Standardized Compact Proportions:**
+     - Reduced button width and padding to `min-w-[62px] sm:min-w-[68px] px-3 sm:px-3.5 py-1 sm:py-1.5 rounded-lg text-xs font-semibold`.
+     - Reduced outer container from bulky `rounded-2xl` to sleek `rounded-xl`.
+- **Verification:**
+  - `npm run build --prefix frontend`: Passed with exit code 0 (21/21 static routes generated).
+  - TypeScript typecheck: 100% clean.
+- **Status:** **VERIFIED**

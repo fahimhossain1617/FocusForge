@@ -343,59 +343,16 @@ export default function ProfilePage() {
       </div>
 
       {/* ======================================================== */}
-      {/* UNIFIED PERSONAL INFORMATION CARD (Matching Design)      */}
+      {/* SEAMLESS PERSONAL INFORMATION VIEW (Matching Reference)  */}
       {/* ======================================================== */}
-      <div className="relative rounded-3xl border border-[#DCE5F0] dark:border-blue-500/20 bg-white dark:bg-[#0D1426] shadow-none overflow-hidden transition-all">
-        
-        {/* Curved ambient wave accent in top-right corner matching user reference */}
-        <div className="absolute -top-10 -right-10 w-72 h-72 sm:w-88 sm:h-88 pointer-events-none overflow-hidden rounded-tr-3xl">
-          <svg
-            className="w-full h-full opacity-20 dark:opacity-40"
-            viewBox="0 0 300 300"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <defs>
-              <radialGradient id="headerWaveGlow" cx="85%" cy="15%" r="75%">
-                <stop offset="0%" stopColor="#3B82F6" stopOpacity="0.45" />
-                <stop offset="45%" stopColor="#1D4ED8" stopOpacity="0.18" />
-                <stop offset="100%" stopColor="#0B132B" stopOpacity="0" />
-              </radialGradient>
-              <linearGradient id="headerWaveLine" x1="100%" y1="0%" x2="0%" y2="100%">
-                <stop offset="0%" stopColor="#60A5FA" stopOpacity="0.6" />
-                <stop offset="70%" stopColor="#2563EB" stopOpacity="0.1" />
-                <stop offset="100%" stopColor="#1E3A8A" stopOpacity="0" />
-              </linearGradient>
-            </defs>
-            <path
-              d="M300 0 C210 25, 175 110, 185 200 C192 245, 220 280, 300 300 Z"
-              fill="url(#headerWaveGlow)"
-            />
-            <path
-              d="M300 35 C225 60, 188 130, 202 215 C210 255, 238 285, 300 295"
-              stroke="url(#headerWaveLine)"
-              strokeWidth="1.5"
-              fill="none"
-            />
-            <path
-              d="M300 75 C245 95, 218 155, 228 225"
-              stroke="url(#headerWaveLine)"
-              strokeWidth="1"
-              strokeOpacity="0.4"
-              fill="none"
-            />
-          </svg>
-        </div>
-
-        {/* ---------------------------------------------------- */}
-        {/* 1. TOP HEADER SECTION (Avatar + Title + Edit Button) */}
-        {/* ---------------------------------------------------- */}
-        <div className="relative z-10 flex items-center justify-between gap-4 p-5 sm:p-7 border-b border-[#E2E8F0] dark:border-white/[0.08]">
-          <div className="flex items-center gap-4 min-w-0">
+      <div className="space-y-2">
+        {/* 1. TOP HEADER SECTION (Avatar + Title/Subtitle + Edit Button) */}
+        <div className="flex items-center justify-between gap-3 pb-5 border-b border-[var(--color-border-subtle)]">
+          <div className="flex items-center gap-3.5 min-w-0 flex-1">
             {/* Circular Avatar */}
             <div className="relative group shrink-0">
               <div 
-                className="w-14 h-14 sm:w-16 sm:h-16 rounded-full overflow-hidden border border-[#D0E1FD] dark:border-blue-900/40 flex items-center justify-center cursor-pointer transition-all hover:border-[#5B8DEF] bg-[#E8F1FC] dark:bg-blue-950/60 shadow-none"
+                className="w-12 h-12 sm:w-14 sm:h-14 rounded-full overflow-hidden border border-[var(--color-border-subtle)] flex items-center justify-center cursor-pointer transition-all hover:border-blue-500 bg-blue-500/10 text-blue-500"
                 onClick={() => fileInputRef.current?.click()}
                 title={isBn ? "প্রোফাইল ছবি পরিবর্তন করুন" : "Change Profile Photo"}
               >
@@ -407,20 +364,20 @@ export default function ProfilePage() {
                     className="w-full h-full object-cover" 
                   />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center bg-[#E8F1FC] dark:bg-blue-950/60">
+                  <div className="w-full h-full flex items-center justify-center bg-blue-500/10">
                     {formData.fullName && !isGuest && /^[A-Za-z\u0980-\u09FF]/.test(formData.fullName.trim()) ? (
-                      <span className="text-xl sm:text-2xl font-bold text-[#0F172A] dark:text-blue-200 uppercase">
+                      <span className="text-lg sm:text-xl font-bold text-[var(--color-text-primary)] uppercase">
                         {formData.fullName.trim()[0]}
                       </span>
                     ) : (
-                      <UserIcon size={26} strokeWidth={2.2} className="text-[#0F172A] dark:text-blue-300" />
+                      <UserIcon size={22} strokeWidth={2.2} className="text-[var(--color-text-secondary)]" />
                     )}
                   </div>
                 )}
 
                 {/* Hover Camera Overlay */}
                 <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-full">
-                  <Camera size={18} className="text-white" />
+                  <Camera size={16} className="text-white" />
                 </div>
               </div>
 
@@ -428,11 +385,11 @@ export default function ProfilePage() {
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="absolute -bottom-1 -right-1 p-1.5 rounded-full bg-[#223A5E] dark:bg-[#2563EB] text-white hover:bg-[#1A2E4C] dark:hover:bg-[#1D4ED8] ring-2 ring-white dark:ring-[#0D1426] transition-all cursor-pointer"
+                className="absolute -bottom-0.5 -right-0.5 p-1 rounded-full bg-blue-600 text-white hover:bg-blue-700 ring-2 ring-[var(--color-background)] transition-all cursor-pointer"
                 title={isBn ? "ছবি পরিবর্তন করুন" : "Change Photo"}
                 aria-label="Change Photo"
               >
-                <Camera size={11} />
+                <Camera size={10} />
               </button>
 
               {/* Remove Photo Action if photo exists */}
@@ -443,21 +400,21 @@ export default function ProfilePage() {
                     e.stopPropagation();
                     setShowRemovePhotoModal(true);
                   }}
-                  className="absolute -top-1 -right-1 p-1 rounded-full bg-red-600 hover:bg-red-700 text-white ring-2 ring-white dark:ring-[#0D1426] transition-all cursor-pointer"
+                  className="absolute -top-0.5 -right-0.5 p-1 rounded-full bg-red-600 hover:bg-red-700 text-white ring-2 ring-[var(--color-background)] transition-all cursor-pointer"
                   title={isBn ? "ছবি মুছুন" : "Remove Photo"}
                   aria-label="Remove Photo"
                 >
-                  <Trash2 size={10} />
+                  <Trash2 size={9} />
                 </button>
               )}
             </div>
 
             {/* Header Titles */}
-            <div className="min-w-0">
-              <h1 className="text-xl sm:text-2xl font-bold text-[#0F172A] dark:text-white tracking-tight truncate">
+            <div className="min-w-0 flex-1">
+              <h3 className="text-sm sm:text-base font-semibold text-[var(--color-text-primary)] tracking-tight whitespace-nowrap">
                 {isBn ? "ব্যক্তিগত তথ্য" : "Personal Information"}
-              </h1>
-              <p className="text-xs sm:text-sm text-[#52627A] dark:text-slate-400 mt-0.5 truncate">
+              </h3>
+              <p className="text-xs text-[var(--color-text-secondary)] mt-0.5 truncate">
                 {isBn ? "আপনার ব্যক্তিগত বিবরণ পরিচালনা করুন।" : "Manage your personal details."}
               </p>
             </div>
@@ -470,17 +427,16 @@ export default function ProfilePage() {
                 <button
                   type="button"
                   onClick={() => setIsEditing(false)}
-                  className="inline-flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded-full text-xs font-semibold text-[#52627A] dark:text-zinc-300 hover:text-[#0F172A] dark:hover:text-white bg-[#F1F5F9] dark:bg-white/5 hover:bg-[#E2E8F0] dark:hover:bg-white/10 border border-[#DCE5F0] dark:border-white/10 transition-all cursor-pointer active:scale-95"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] bg-[var(--color-surface)] border border-[var(--color-border-subtle)] hover:bg-[var(--color-surface-hover)] transition-all cursor-pointer active:scale-95"
                 >
-                  <X size={14} />
+                  <X size={13} />
                   <span>{t.auth.cancel}</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => handleSaveProfile()}
                   disabled={isSaving}
-                  className="inline-flex items-center gap-1.5 px-3.5 sm:px-4 py-2 rounded-full text-xs font-semibold text-white hover:opacity-95 border border-transparent shadow-none transition-all cursor-pointer disabled:opacity-50 active:scale-95"
-                  style={{ background: "linear-gradient(135deg, #2563EB, #3B82F6)" }}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 transition-all cursor-pointer disabled:opacity-50 active:scale-95 shadow-sm shadow-blue-500/20"
                 >
                   {isSaving ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
                   <span>{isSaving ? (isBn ? "সংরক্ষণ হচ্ছে..." : "Saving...") : (isBn ? "সংরক্ষণ করুন" : "Save")}</span>
@@ -490,9 +446,9 @@ export default function ProfilePage() {
               <button
                 type="button"
                 onClick={() => setIsEditing(true)}
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs sm:text-sm font-semibold text-[#0F172A] dark:text-white bg-transparent hover:bg-slate-100 dark:hover:bg-white/5 border border-slate-300 dark:border-slate-700/80 hover:border-blue-500 dark:hover:border-blue-400 transition-all cursor-pointer active:scale-95"
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold text-blue-500 dark:text-blue-400 bg-transparent hover:bg-blue-500/10 border border-blue-500/30 hover:border-blue-500/60 transition-all cursor-pointer active:scale-95"
               >
-                <Pencil size={13} className="text-blue-500 dark:text-blue-400" />
+                <Pencil size={12} />
                 <span>
                   {isBn ? "এডিট" : "Edit"}
                 </span>
@@ -504,21 +460,21 @@ export default function ProfilePage() {
         {/* ---------------------------------------------------- */}
         {/* 2. LIST ROWS SECTION (Line by Line with Chevron)     */}
         {/* ---------------------------------------------------- */}
-        <form onSubmit={handleSaveProfile} className="relative z-10 divide-y divide-[#E2E8F0] dark:divide-white/[0.07]">
+        <form onSubmit={handleSaveProfile} className="divide-y divide-[var(--color-border-subtle)]">
           
           {/* Row 1: Full Name */}
           <div 
             onClick={() => !isEditing && handleRowClick("fullName")}
-            className={`flex items-center justify-between gap-4 p-4 sm:p-5 transition-colors ${
-              !isEditing ? "hover:bg-slate-50/70 dark:hover:bg-white/[0.02] cursor-pointer group" : ""
+            className={`flex items-center justify-between gap-4 py-3.5 sm:py-4 px-1 transition-colors ${
+              !isEditing ? "hover:bg-black/[0.02] dark:hover:bg-white/[0.02] cursor-pointer group rounded-xl" : ""
             }`}
           >
             <div className="flex items-center gap-3.5 sm:gap-4 flex-1 min-w-0">
-              <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl flex items-center justify-center shrink-0 bg-[#F1F5F9] dark:bg-[#131D33] text-[#223A5E] dark:text-blue-300 border border-[#DCE5F0] dark:border-white/5">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-slate-100 dark:bg-slate-800/60 text-slate-600 dark:text-slate-400 border border-slate-200/80 dark:border-white/5">
                 <UserIcon size={18} />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-xs font-medium text-[#64748B] dark:text-slate-400 mb-0.5">
+                <p className="text-xs font-medium text-[var(--color-text-secondary)] mb-0.5">
                   {isBn ? "পূর্ণ নাম" : "Full Name"}
                 </p>
                 {isEditing ? (
@@ -529,33 +485,33 @@ export default function ProfilePage() {
                     value={formData.fullName}
                     onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
                     placeholder="e.g. Md Fahim Hossain"
-                    className="w-full mt-1 px-3 py-1.5 rounded-xl text-sm sm:text-base font-semibold bg-[#F8FAFC] dark:bg-white/[0.04] border border-[#DCE5F0] dark:border-white/10 text-[#0F172A] dark:text-white placeholder:text-[#94A3B8] dark:placeholder:text-zinc-500 focus:border-blue-500 focus:outline-none transition-colors"
+                    className="w-full mt-1 px-3 py-1.5 rounded-xl text-sm sm:text-base font-semibold bg-[var(--color-surface)] border border-[var(--color-border-subtle)] text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:border-blue-500 focus:outline-none transition-colors"
                   />
                 ) : (
-                  <p className="text-sm sm:text-base font-semibold text-[#0F172A] dark:text-white truncate">
+                  <p className="text-sm sm:text-base font-semibold text-[var(--color-text-primary)] truncate">
                     {formData.fullName || (isBn ? "দেওয়া হয়নি" : "Not specified")}
                   </p>
                 )}
               </div>
             </div>
             {!isEditing && (
-              <ChevronRight size={18} className="text-slate-400 dark:text-slate-500 group-hover:text-slate-700 dark:group-hover:text-white group-hover:translate-x-0.5 transition-all shrink-0" />
+              <ChevronRight size={18} className="text-[var(--color-text-muted)] group-hover:text-[var(--color-text-primary)] group-hover:translate-x-0.5 transition-all shrink-0" />
             )}
           </div>
 
           {/* Row 2: Display Name / Username */}
           <div 
             onClick={() => !isEditing && handleRowClick("displayName")}
-            className={`flex items-center justify-between gap-4 p-4 sm:p-5 transition-colors ${
-              !isEditing ? "hover:bg-slate-50/70 dark:hover:bg-white/[0.02] cursor-pointer group" : ""
+            className={`flex items-center justify-between gap-4 py-3.5 sm:py-4 px-1 transition-colors ${
+              !isEditing ? "hover:bg-black/[0.02] dark:hover:bg-white/[0.02] cursor-pointer group rounded-xl" : ""
             }`}
           >
             <div className="flex items-center gap-3.5 sm:gap-4 flex-1 min-w-0">
-              <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl flex items-center justify-center shrink-0 bg-[#F1F5F9] dark:bg-[#131D33] text-[#223A5E] dark:text-blue-300 border border-[#DCE5F0] dark:border-white/5">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-slate-100 dark:bg-slate-800/60 text-slate-600 dark:text-slate-400 border border-slate-200/80 dark:border-white/5">
                 <Monitor size={18} />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-xs font-medium text-[#64748B] dark:text-slate-400 mb-0.5">
+                <p className="text-xs font-medium text-[var(--color-text-secondary)] mb-0.5">
                   {isBn ? "ডিসপ্লে নেম / ইউজারনেম (ঐচ্ছিক)" : "Display Name / Username (Optional)"}
                 </p>
                 {isEditing ? (
@@ -565,33 +521,33 @@ export default function ProfilePage() {
                     value={formData.displayName}
                     onChange={(e) => setFormData({ ...formData, displayName: e.target.value })}
                     placeholder="e.g. Md Fahim Hossain"
-                    className="w-full mt-1 px-3 py-1.5 rounded-xl text-sm sm:text-base font-semibold bg-[#F8FAFC] dark:bg-white/[0.04] border border-[#DCE5F0] dark:border-white/10 text-[#0F172A] dark:text-white placeholder:text-[#94A3B8] dark:placeholder:text-zinc-500 focus:border-blue-500 focus:outline-none transition-colors"
+                    className="w-full mt-1 px-3 py-1.5 rounded-xl text-sm sm:text-base font-semibold bg-[var(--color-surface)] border border-[var(--color-border-subtle)] text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:border-blue-500 focus:outline-none transition-colors"
                   />
                 ) : (
-                  <p className="text-sm sm:text-base font-semibold text-[#0F172A] dark:text-white truncate">
+                  <p className="text-sm sm:text-base font-semibold text-[var(--color-text-primary)] truncate">
                     {formData.displayName || formData.fullName || (isBn ? "দেওয়া হয়নি" : "Not specified")}
                   </p>
                 )}
               </div>
             </div>
             {!isEditing && (
-              <ChevronRight size={18} className="text-slate-400 dark:text-slate-500 group-hover:text-slate-700 dark:group-hover:text-white group-hover:translate-x-0.5 transition-all shrink-0" />
+              <ChevronRight size={18} className="text-[var(--color-text-muted)] group-hover:text-[var(--color-text-primary)] group-hover:translate-x-0.5 transition-all shrink-0" />
             )}
           </div>
 
           {/* Row 3: Email Address */}
           <div 
             onClick={() => !isEditing && handleRowClick("email")}
-            className={`flex items-center justify-between gap-4 p-4 sm:p-5 transition-colors ${
-              !isEditing ? "hover:bg-slate-50/70 dark:hover:bg-white/[0.02] cursor-pointer group" : ""
+            className={`flex items-center justify-between gap-4 py-3.5 sm:py-4 px-1 transition-colors ${
+              !isEditing ? "hover:bg-black/[0.02] dark:hover:bg-white/[0.02] cursor-pointer group rounded-xl" : ""
             }`}
           >
             <div className="flex items-center gap-3.5 sm:gap-4 flex-1 min-w-0">
-              <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl flex items-center justify-center shrink-0 bg-[#F1F5F9] dark:bg-[#131D33] text-[#223A5E] dark:text-blue-300 border border-[#DCE5F0] dark:border-white/5">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-slate-100 dark:bg-slate-800/60 text-slate-600 dark:text-slate-400 border border-slate-200/80 dark:border-white/5">
                 <Mail size={18} />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-xs font-medium text-[#64748B] dark:text-slate-400 mb-0.5">
+                <p className="text-xs font-medium text-[var(--color-text-secondary)] mb-0.5">
                   {isBn ? "ইমেল ঠিকানা" : "Email Address"}
                 </p>
                 {isEditing ? (
@@ -601,10 +557,10 @@ export default function ProfilePage() {
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                     placeholder="you@example.com"
-                    className="w-full mt-1 px-3 py-1.5 rounded-xl text-sm sm:text-base font-semibold bg-[#F8FAFC] dark:bg-white/[0.04] border border-[#DCE5F0] dark:border-white/10 text-[#0F172A] dark:text-white placeholder:text-[#94A3B8] dark:placeholder:text-zinc-500 focus:border-blue-500 focus:outline-none transition-colors"
+                    className="w-full mt-1 px-3 py-1.5 rounded-xl text-sm sm:text-base font-semibold bg-[var(--color-surface)] border border-[var(--color-border-subtle)] text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:border-blue-500 focus:outline-none transition-colors"
                   />
                 ) : (
-                  <p className="text-sm sm:text-base font-semibold text-[#0F172A] dark:text-white truncate">
+                  <p className="text-sm sm:text-base font-semibold text-[var(--color-text-primary)] truncate">
                     {formData.email || user?.identifier || (isBn ? "দেওয়া হয়নি" : "Not specified")}
                   </p>
                 )}
@@ -612,13 +568,13 @@ export default function ProfilePage() {
             </div>
             <div className="flex items-center gap-2 shrink-0">
               {isEmailVerified && (
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                  <CheckCircle2 size={13} className="text-emerald-500" />
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                  <CheckCircle2 size={12} className="text-emerald-500" />
                   <span>{isBn ? "যাচাইকৃত" : "Verified"}</span>
                 </span>
               )}
               {!isEditing && (
-                <ChevronRight size={18} className="text-slate-400 dark:text-slate-500 group-hover:text-slate-700 dark:group-hover:text-white group-hover:translate-x-0.5 transition-all" />
+                <ChevronRight size={18} className="text-[var(--color-text-muted)] group-hover:text-[var(--color-text-primary)] group-hover:translate-x-0.5 transition-all" />
               )}
             </div>
           </div>
@@ -626,16 +582,16 @@ export default function ProfilePage() {
           {/* Row 4: Phone Number */}
           <div 
             onClick={() => !isEditing && handleRowClick("phone")}
-            className={`flex items-center justify-between gap-4 p-4 sm:p-5 transition-colors ${
-              !isEditing ? "hover:bg-slate-50/70 dark:hover:bg-white/[0.02] cursor-pointer group" : ""
+            className={`flex items-center justify-between gap-4 py-3.5 sm:py-4 px-1 transition-colors ${
+              !isEditing ? "hover:bg-black/[0.02] dark:hover:bg-white/[0.02] cursor-pointer group rounded-xl" : ""
             }`}
           >
             <div className="flex items-center gap-3.5 sm:gap-4 flex-1 min-w-0">
-              <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl flex items-center justify-center shrink-0 bg-[#F1F5F9] dark:bg-[#131D33] text-[#223A5E] dark:text-blue-300 border border-[#DCE5F0] dark:border-white/5">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-slate-100 dark:bg-slate-800/60 text-slate-600 dark:text-slate-400 border border-slate-200/80 dark:border-white/5">
                 <Phone size={18} />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-xs font-medium text-[#64748B] dark:text-slate-400 mb-0.5">
+                <p className="text-xs font-medium text-[var(--color-text-secondary)] mb-0.5">
                   {isBn ? "ফোন নম্বর (ঐচ্ছিক)" : "Phone Number (Optional)"}
                 </p>
                 {isEditing ? (
@@ -645,10 +601,10 @@ export default function ProfilePage() {
                     value={formData.phone}
                     onChange={(e) => setFormData({ ...formData, phone: sanitizePhone(e.target.value) })}
                     placeholder="+880 1712345678"
-                    className="w-full mt-1 px-3 py-1.5 rounded-xl text-sm sm:text-base font-semibold bg-[#F8FAFC] dark:bg-white/[0.04] border border-[#DCE5F0] dark:border-white/10 text-[#0F172A] dark:text-white placeholder:text-[#94A3B8] dark:placeholder:text-zinc-500 focus:border-blue-500 focus:outline-none transition-colors"
+                    className="w-full mt-1 px-3 py-1.5 rounded-xl text-sm sm:text-base font-semibold bg-[var(--color-surface)] border border-[var(--color-border-subtle)] text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:border-blue-500 focus:outline-none transition-colors"
                   />
                 ) : (
-                  <p className="text-sm sm:text-base font-semibold text-[#0F172A] dark:text-white truncate">
+                  <p className="text-sm sm:text-base font-semibold text-[var(--color-text-primary)] truncate">
                     {sanitizePhone(formData.phone) || sanitizePhone(user?.phone) || (isBn ? "নির্দিষ্ট করা হয়নি" : "Not specified")}
                   </p>
                 )}
@@ -656,13 +612,13 @@ export default function ProfilePage() {
             </div>
             <div className="flex items-center gap-2 shrink-0">
               {isPhoneVerified && (
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                  <CheckCircle2 size={13} className="text-emerald-500" />
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                  <CheckCircle2 size={12} className="text-emerald-500" />
                   <span>{isBn ? "যাচাইকৃত" : "Verified"}</span>
                 </span>
               )}
               {!isEditing && (
-                <ChevronRight size={18} className="text-slate-400 dark:text-slate-500 group-hover:text-slate-700 dark:group-hover:text-white group-hover:translate-x-0.5 transition-all" />
+                <ChevronRight size={18} className="text-[var(--color-text-muted)] group-hover:text-[var(--color-text-primary)] group-hover:translate-x-0.5 transition-all" />
               )}
             </div>
           </div>
@@ -670,16 +626,16 @@ export default function ProfilePage() {
           {/* Row 5: Date of Birth */}
           <div 
             onClick={() => !isEditing && handleRowClick("dob")}
-            className={`flex items-center justify-between gap-4 p-4 sm:p-5 transition-colors ${
-              !isEditing ? "hover:bg-slate-50/70 dark:hover:bg-white/[0.02] cursor-pointer group" : ""
+            className={`flex items-center justify-between gap-4 py-3.5 sm:py-4 px-1 transition-colors ${
+              !isEditing ? "hover:bg-black/[0.02] dark:hover:bg-white/[0.02] cursor-pointer group rounded-xl" : ""
             }`}
           >
             <div className="flex items-center gap-3.5 sm:gap-4 flex-1 min-w-0">
-              <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl flex items-center justify-center shrink-0 bg-[#F1F5F9] dark:bg-[#131D33] text-[#223A5E] dark:text-blue-300 border border-[#DCE5F0] dark:border-white/5">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-slate-100 dark:bg-slate-800/60 text-slate-600 dark:text-slate-400 border border-slate-200/80 dark:border-white/5">
                 <Calendar size={18} />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-xs font-medium text-[#64748B] dark:text-slate-400 mb-0.5">
+                <p className="text-xs font-medium text-[var(--color-text-secondary)] mb-0.5">
                   {isBn ? "জন্ম তারিখ (ঐচ্ছিক)" : "Date of Birth (Optional)"}
                 </p>
                 {isEditing ? (
@@ -693,30 +649,30 @@ export default function ProfilePage() {
                     />
                   </div>
                 ) : (
-                  <p className="text-sm sm:text-base font-semibold text-[#0F172A] dark:text-white truncate">
+                  <p className="text-sm sm:text-base font-semibold text-[var(--color-text-primary)] truncate">
                     {formData.dob ? formatDate(formData.dob) : (isBn ? "নির্দিষ্ট করা হয়নি" : "Not specified")}
                   </p>
                 )}
               </div>
             </div>
             {!isEditing && (
-              <ChevronRight size={18} className="text-slate-400 dark:text-slate-500 group-hover:text-slate-700 dark:group-hover:text-white group-hover:translate-x-0.5 transition-all shrink-0" />
+              <ChevronRight size={18} className="text-[var(--color-text-muted)] group-hover:text-[var(--color-text-primary)] group-hover:translate-x-0.5 transition-all shrink-0" />
             )}
           </div>
 
           {/* Row 6: Gender */}
           <div 
             onClick={() => !isEditing && handleRowClick("gender")}
-            className={`flex items-center justify-between gap-4 p-4 sm:p-5 transition-colors ${
-              !isEditing ? "hover:bg-slate-50/70 dark:hover:bg-white/[0.02] cursor-pointer group" : ""
+            className={`flex items-center justify-between gap-4 py-3.5 sm:py-4 px-1 transition-colors ${
+              !isEditing ? "hover:bg-black/[0.02] dark:hover:bg-white/[0.02] cursor-pointer group rounded-xl" : ""
             }`}
           >
             <div className="flex items-center gap-3.5 sm:gap-4 flex-1 min-w-0">
-              <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl flex items-center justify-center shrink-0 bg-[#F1F5F9] dark:bg-[#131D33] text-[#223A5E] dark:text-blue-300 border border-[#DCE5F0] dark:border-white/5">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-slate-100 dark:bg-slate-800/60 text-slate-600 dark:text-slate-400 border border-slate-200/80 dark:border-white/5">
                 <GenderIcon className="w-5 h-5" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-xs font-medium text-[#64748B] dark:text-slate-400 mb-0.5">
+                <p className="text-xs font-medium text-[var(--color-text-secondary)] mb-0.5">
                   {isBn ? "লিঙ্গ (ঐচ্ছিক)" : "Gender (Optional)"}
                 </p>
                 {isEditing ? (
@@ -736,30 +692,30 @@ export default function ProfilePage() {
                     />
                   </div>
                 ) : (
-                  <p className="text-sm sm:text-base font-semibold text-[#0F172A] dark:text-white truncate">
+                  <p className="text-sm sm:text-base font-semibold text-[var(--color-text-primary)] truncate">
                     {formData.gender || (isBn ? "নির্দিষ্ট করা হয়নি" : "Not specified")}
                   </p>
                 )}
               </div>
             </div>
             {!isEditing && (
-              <ChevronRight size={18} className="text-slate-400 dark:text-slate-500 group-hover:text-slate-700 dark:group-hover:text-white group-hover:translate-x-0.5 transition-all shrink-0" />
+              <ChevronRight size={18} className="text-[var(--color-text-muted)] group-hover:text-[var(--color-text-primary)] group-hover:translate-x-0.5 transition-all shrink-0" />
             )}
           </div>
 
           {/* Row 7: Country / Region */}
           <div 
             onClick={() => !isEditing && handleRowClick("country")}
-            className={`flex items-center justify-between gap-4 p-4 sm:p-5 transition-colors ${
-              !isEditing ? "hover:bg-slate-50/70 dark:hover:bg-white/[0.02] cursor-pointer group" : ""
+            className={`flex items-center justify-between gap-4 py-3.5 sm:py-4 px-1 transition-colors ${
+              !isEditing ? "hover:bg-black/[0.02] dark:hover:bg-white/[0.02] cursor-pointer group rounded-xl" : ""
             }`}
           >
             <div className="flex items-center gap-3.5 sm:gap-4 flex-1 min-w-0">
-              <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl flex items-center justify-center shrink-0 bg-[#F1F5F9] dark:bg-[#131D33] text-[#223A5E] dark:text-blue-300 border border-[#DCE5F0] dark:border-white/5">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-slate-100 dark:bg-slate-800/60 text-slate-600 dark:text-slate-400 border border-slate-200/80 dark:border-white/5">
                 <MapPin size={18} />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-xs font-medium text-[#64748B] dark:text-slate-400 mb-0.5">
+                <p className="text-xs font-medium text-[var(--color-text-secondary)] mb-0.5">
                   {isBn ? "দেশ / অঞ্চল (ঐচ্ছিক)" : "Country / Region (Optional)"}
                 </p>
                 {isEditing ? (
@@ -769,33 +725,33 @@ export default function ProfilePage() {
                     value={formData.country}
                     onChange={(e) => setFormData({ ...formData, country: e.target.value })}
                     placeholder="e.g. Bangladesh"
-                    className="w-full mt-1 px-3 py-1.5 rounded-xl text-sm sm:text-base font-semibold bg-[#F8FAFC] dark:bg-white/[0.04] border border-[#DCE5F0] dark:border-white/10 text-[#0F172A] dark:text-white placeholder:text-[#94A3B8] dark:placeholder:text-zinc-500 focus:border-blue-500 focus:outline-none transition-colors"
+                    className="w-full mt-1 px-3 py-1.5 rounded-xl text-sm sm:text-base font-semibold bg-[var(--color-surface)] border border-[var(--color-border-subtle)] text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:border-blue-500 focus:outline-none transition-colors"
                   />
                 ) : (
-                  <p className="text-sm sm:text-base font-semibold text-[#0F172A] dark:text-white truncate">
+                  <p className="text-sm sm:text-base font-semibold text-[var(--color-text-primary)] truncate">
                     {formData.country || (isBn ? "নির্দিষ্ট করা হয়নি" : "Not specified")}
                   </p>
                 )}
               </div>
             </div>
             {!isEditing && (
-              <ChevronRight size={18} className="text-slate-400 dark:text-slate-500 group-hover:text-slate-700 dark:group-hover:text-white group-hover:translate-x-0.5 transition-all shrink-0" />
+              <ChevronRight size={18} className="text-[var(--color-text-muted)] group-hover:text-[var(--color-text-primary)] group-hover:translate-x-0.5 transition-all shrink-0" />
             )}
           </div>
 
           {/* Row 8: City */}
           <div 
             onClick={() => !isEditing && handleRowClick("city")}
-            className={`flex items-center justify-between gap-4 p-4 sm:p-5 transition-colors ${
-              !isEditing ? "hover:bg-slate-50/70 dark:hover:bg-white/[0.02] cursor-pointer group" : ""
+            className={`flex items-center justify-between gap-4 py-3.5 sm:py-4 px-1 transition-colors ${
+              !isEditing ? "hover:bg-black/[0.02] dark:hover:bg-white/[0.02] cursor-pointer group rounded-xl" : ""
             }`}
           >
             <div className="flex items-center gap-3.5 sm:gap-4 flex-1 min-w-0">
-              <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl flex items-center justify-center shrink-0 bg-[#F1F5F9] dark:bg-[#131D33] text-[#223A5E] dark:text-blue-300 border border-[#DCE5F0] dark:border-white/5">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-slate-100 dark:bg-slate-800/60 text-slate-600 dark:text-slate-400 border border-slate-200/80 dark:border-white/5">
                 <CityBarsIcon className="w-5 h-5 text-current" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-xs font-medium text-[#64748B] dark:text-slate-400 mb-0.5">
+                <p className="text-xs font-medium text-[var(--color-text-secondary)] mb-0.5">
                   {isBn ? "শহর (ঐচ্ছিক)" : "City (Optional)"}
                 </p>
                 {isEditing ? (
@@ -805,33 +761,33 @@ export default function ProfilePage() {
                     value={formData.city}
                     onChange={(e) => setFormData({ ...formData, city: e.target.value })}
                     placeholder="e.g. Dhaka"
-                    className="w-full mt-1 px-3 py-1.5 rounded-xl text-sm sm:text-base font-semibold bg-[#F8FAFC] dark:bg-white/[0.04] border border-[#DCE5F0] dark:border-white/10 text-[#0F172A] dark:text-white placeholder:text-[#94A3B8] dark:placeholder:text-zinc-500 focus:border-blue-500 focus:outline-none transition-colors"
+                    className="w-full mt-1 px-3 py-1.5 rounded-xl text-sm sm:text-base font-semibold bg-[var(--color-surface)] border border-[var(--color-border-subtle)] text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:border-blue-500 focus:outline-none transition-colors"
                   />
                 ) : (
-                  <p className="text-sm sm:text-base font-semibold text-[#0F172A] dark:text-white truncate">
+                  <p className="text-sm sm:text-base font-semibold text-[var(--color-text-primary)] truncate">
                     {formData.city || (isBn ? "নির্দিষ্ট করা হয়নি" : "Not specified")}
                   </p>
                 )}
               </div>
             </div>
             {!isEditing && (
-              <ChevronRight size={18} className="text-slate-400 dark:text-slate-500 group-hover:text-slate-700 dark:group-hover:text-white group-hover:translate-x-0.5 transition-all shrink-0" />
+              <ChevronRight size={18} className="text-[var(--color-text-muted)] group-hover:text-[var(--color-text-primary)] group-hover:translate-x-0.5 transition-all shrink-0" />
             )}
           </div>
 
           {/* Row 9: About Me / Short Bio */}
           <div 
             onClick={() => !isEditing && handleRowClick("bio")}
-            className={`flex items-start justify-between gap-4 p-4 sm:p-5 transition-colors ${
-              !isEditing ? "hover:bg-slate-50/70 dark:hover:bg-white/[0.02] cursor-pointer group" : ""
+            className={`flex items-start justify-between gap-4 py-3.5 sm:py-4 px-1 transition-colors ${
+              !isEditing ? "hover:bg-black/[0.02] dark:hover:bg-white/[0.02] cursor-pointer group rounded-xl" : ""
             }`}
           >
             <div className="flex items-start gap-3.5 sm:gap-4 flex-1 min-w-0">
-              <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl flex items-center justify-center shrink-0 bg-[#F1F5F9] dark:bg-[#131D33] text-[#223A5E] dark:text-blue-300 border border-[#DCE5F0] dark:border-white/5 mt-0.5">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-slate-100 dark:bg-slate-800/60 text-slate-600 dark:text-slate-400 border border-slate-200/80 dark:border-white/5 mt-0.5">
                 <UserPlus size={18} />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-xs font-medium text-[#64748B] dark:text-slate-400 mb-0.5">
+                <p className="text-xs font-medium text-[var(--color-text-secondary)] mb-0.5">
                   {isBn ? "আমার সম্পর্কে / সংক্ষিপ্ত বায়ো (ঐচ্ছিক)" : "About Me / Short Bio (Optional)"}
                 </p>
                 {isEditing ? (
@@ -841,35 +797,34 @@ export default function ProfilePage() {
                     value={formData.bio}
                     onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
                     placeholder={isBn ? "নিজের সম্পর্কে সংক্ষেপে কিছু লিখুন..." : "Tell us a little about yourself, your goals, or your focus interests..."}
-                    className="w-full mt-1.5 px-3 py-2 rounded-xl text-sm bg-[#F8FAFC] dark:bg-white/[0.04] border border-[#DCE5F0] dark:border-white/10 text-[#0F172A] dark:text-white placeholder:text-[#94A3B8] dark:placeholder:text-zinc-500 focus:border-blue-500 focus:outline-none transition-colors resize-none"
+                    className="w-full mt-1.5 px-3 py-2 rounded-xl text-sm bg-[var(--color-surface)] border border-[var(--color-border-subtle)] text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:border-blue-500 focus:outline-none transition-colors resize-none"
                   />
                 ) : (
-                  <p className="text-sm sm:text-base font-semibold text-[#0F172A] dark:text-white leading-relaxed break-words">
+                  <p className="text-sm sm:text-base font-semibold text-[var(--color-text-primary)] leading-relaxed break-words">
                     {formData.bio || (isBn ? "এখনো কোনো বায়ো যোগ করা হয়নি। নিজের সম্পর্কে লিখতে এডিটে ক্লিক করুন।" : "No bio added yet. Click Edit to share a short summary about yourself.")}
                   </p>
                 )}
               </div>
             </div>
             {!isEditing && (
-              <ChevronRight size={18} className="text-slate-400 dark:text-slate-500 group-hover:text-slate-700 dark:group-hover:text-white group-hover:translate-x-0.5 transition-all shrink-0 mt-1" />
+              <ChevronRight size={18} className="text-[var(--color-text-muted)] group-hover:text-[var(--color-text-primary)] group-hover:translate-x-0.5 transition-all shrink-0 mt-1" />
             )}
           </div>
 
           {/* Bottom Save Action Bar when in Edit Mode */}
           {isEditing && (
-            <div className="p-4 sm:p-5 bg-slate-50/50 dark:bg-white/[0.02] flex items-center justify-end gap-3">
+            <div className="py-4 px-1 flex items-center justify-end gap-3">
               <button
                 type="button"
                 onClick={() => setIsEditing(false)}
-                className="px-4 py-2.5 rounded-full text-xs font-semibold text-[#52627A] dark:text-zinc-300 hover:text-[#0F172A] dark:hover:text-white bg-[#F1F5F9] dark:bg-white/5 hover:bg-[#E2E8F0] dark:hover:bg-white/10 border border-[#DCE5F0] dark:border-white/10 transition-all cursor-pointer active:scale-95"
+                className="px-4 py-2.5 rounded-full text-xs font-semibold text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] bg-[var(--color-surface)] hover:bg-[var(--color-surface-hover)] border border-[var(--color-border-subtle)] transition-all cursor-pointer active:scale-95"
               >
                 {t.auth.cancel}
               </button>
               <button
                 type="submit"
                 disabled={isSaving}
-                className="flex items-center gap-2 px-6 py-2.5 rounded-full text-xs font-semibold text-white hover:opacity-95 border border-transparent shadow-none transition-all cursor-pointer disabled:opacity-50 active:scale-95"
-                style={{ background: "linear-gradient(135deg, #2563EB, #3B82F6)" }}
+                className="flex items-center gap-2 px-6 py-2.5 rounded-full text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 transition-all cursor-pointer disabled:opacity-50 active:scale-95 shadow-sm shadow-blue-500/20"
               >
                 {isSaving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
                 <span>{isSaving ? (isBn ? "সংরক্ষণ হচ্ছে..." : "Saving...") : (isBn ? "পরিবর্তন সংরক্ষণ করুন" : "Save Changes")}</span>
@@ -878,10 +833,10 @@ export default function ProfilePage() {
           )}
 
           {/* Member Since presentation */}
-          <div className="p-4 sm:p-5 flex items-center justify-between text-xs text-[#64748B] dark:text-slate-400">
+          <div className="py-4 px-1 flex items-center justify-between text-xs text-[var(--color-text-secondary)] border-t border-[var(--color-border-subtle)] mt-2">
             <span>{isBn ? "যুক্ত হয়েছেন:" : "Member since:"}</span>
-            <span className="font-semibold text-[#0F172A] dark:text-zinc-200">
-              {user?.createdAt ? formatDate(user.createdAt) : (isBn ? "১ সেপ্টেম্বর ২০২৬" : "1 September 2026")}
+            <span className="font-semibold text-[var(--color-text-primary)]">
+              {user?.createdAt ? formatDate(user.createdAt) : (isBn ? "১ অক্টোবর ২০২৬" : "1 October 2026")}
             </span>
           </div>
 

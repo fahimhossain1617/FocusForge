@@ -10,8 +10,48 @@ import {
   ChevronDown, ChevronRight, Check, ArrowLeft,
   Camera, Trash2, Eye, EyeOff, Upload,
   Mail, Phone, Calendar, Globe, MapPin, Edit3, X, AlertTriangle, Sparkles,
-  Key, RefreshCw, Copy, CheckCircle2, Cloud
+  Key, RefreshCw, Copy, CheckCircle2, Cloud,
+  Monitor, UserPlus, Loader2, Pencil, Save
 } from "lucide-react";
+
+// Custom SVG matching the Gender symbol (⚧ / Venus-Mars combination) from user mockup
+function GenderIcon({ className }: { className?: string }) {
+  return (
+    <svg 
+      className={className} 
+      viewBox="0 0 24 24" 
+      fill="none" 
+      stroke="currentColor" 
+      strokeWidth="2" 
+      strokeLinecap="round" 
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <circle cx="10" cy="14" r="5" />
+      <path d="M19 5l-5.4 5.4" />
+      <path d="M19 5h-5" />
+      <path d="M19 5v5" />
+      <path d="M14 14l5 5" />
+      <path d="M16.5 16.5l2.5 -2.5" />
+    </svg>
+  );
+}
+
+// Custom SVG matching the City skyline 3-bar icon from user mockup
+function CityBarsIcon({ className }: { className?: string }) {
+  return (
+    <svg 
+      className={className} 
+      viewBox="0 0 24 24" 
+      fill="currentColor" 
+      aria-hidden="true"
+    >
+      <rect x="4.5" y="13" width="4" height="8" rx="2" />
+      <rect x="10" y="7" width="4" height="14" rx="2" />
+      <rect x="15.5" y="11" width="4" height="10" rx="2" />
+    </svg>
+  );
+}
 import notificationService from "../../services/notificationService";
 import { userService } from "../../services/userService";
 import { authService } from "../../services/authService";
@@ -212,6 +252,46 @@ export default function SettingsPage() {
   const sanitizePhone = (val?: string) => {
     if (!val) return "";
     return val.replace(/^\+8800/, "+880").replace(/^8800/, "+880").replace(/^00/, "0");
+  };
+
+  const profileInputRefs = {
+    fullName: useRef<HTMLInputElement>(null),
+    displayName: useRef<HTMLInputElement>(null),
+    phone: useRef<HTMLInputElement>(null),
+    country: useRef<HTMLInputElement>(null),
+    city: useRef<HTMLInputElement>(null),
+    bio: useRef<HTMLTextAreaElement>(null),
+  };
+
+  const handleProfileRowClick = (fieldKey?: keyof typeof profileInputRefs) => {
+    setIsEditingProfile(true);
+    if (fieldKey && profileInputRefs[fieldKey]?.current) {
+      setTimeout(() => {
+        profileInputRefs[fieldKey].current?.focus();
+      }, 50);
+    }
+  };
+
+  const formatProfileDate = (isoString?: string) => {
+    if (!isoString) return "";
+    try {
+      const d = new Date(isoString);
+      if (isNaN(d.getTime())) return isoString;
+      const day = d.getDate();
+      const year = d.getFullYear();
+      const monthNamesEn = [
+        "January", "February", "March", "April", "May", "June",
+        "July", "August", "September", "October", "November", "December"
+      ];
+      const monthNamesBn = [
+        "জানুয়ারি", "ফেব্রুয়ারি", "মার্চ", "এপ্রিল", "মে", "জুন",
+        "জুলাই", "আগস্ট", "সেপ্টেম্বর", "অক্টোবর", "নভেম্বর", "ডিসেম্বর"
+      ];
+      const mName = isBn ? monthNamesBn[d.getMonth()] : monthNamesEn[d.getMonth()];
+      return `${day} ${mName} ${year}`;
+    } catch {
+      return isoString;
+    }
   };
 
   useEffect(() => {
@@ -1023,271 +1103,425 @@ export default function SettingsPage() {
             </div>
 
             {/* Personal Information */}
-            <div className="space-y-6 pt-2">
-              <div className="flex items-center justify-between pb-3 border-b border-[var(--color-border-subtle)] mb-6">
+            <div className="pt-2">
+              <div className="flex items-center justify-between pb-4 border-b border-[var(--color-border-subtle)]">
                 <div>
-                  <h3 className="text-base font-semibold text-[var(--color-text-primary)] tracking-tight">
-                    Personal Information
+                  <h3 className="text-sm sm:text-base font-semibold text-[var(--color-text-primary)] tracking-tight whitespace-nowrap">
+                    {isBn ? "ব্যক্তিগত তথ্য" : "Personal Information"}
                   </h3>
                   <p className="text-xs text-[var(--color-text-secondary)] mt-0.5">
-                    Manage your personal details.
+                    {isBn ? "আপনার ব্যক্তিগত বিবরণ পরিচালনা করুন।" : "Manage your personal details."}
                   </p>
                 </div>
-                {!isEditingProfile && (
+                {isEditingProfile ? (
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setIsEditingProfile(false)}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] bg-[var(--color-surface)] border border-[var(--color-border-subtle)] hover:bg-[var(--color-surface-hover)] transition-all cursor-pointer active:scale-95"
+                    >
+                      <X size={13} />
+                      <span>{t.settings.profile.cancel}</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => handleSavePersonalInfo(e)}
+                      disabled={isSavingProfile}
+                      className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 transition-all cursor-pointer disabled:opacity-50 active:scale-95 shadow-sm shadow-blue-500/20"
+                    >
+                      {isSavingProfile ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
+                      <span>{isSavingProfile ? t.settings.profile.saving : t.settings.profile.save}</span>
+                    </button>
+                  </div>
+                ) : (
                   <button
                     type="button"
                     onClick={() => setIsEditingProfile(true)}
-                    className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
+                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold text-blue-500 dark:text-blue-400 bg-transparent hover:bg-blue-500/10 border border-blue-500/30 hover:border-blue-500/60 transition-all cursor-pointer active:scale-95"
                   >
-                    Edit
+                    <Pencil size={12} />
+                    <span>{isBn ? "এডিট" : "Edit"}</span>
                   </button>
                 )}
               </div>
 
-              <form onSubmit={handleSavePersonalInfo} className="space-y-5">
-                {/* 1. Full Name & 2. Display Name */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-medium text-[var(--color-text-primary)] mb-1.5">
-                      Full Name <span className="text-blue-500">*</span>
-                    </label>
-                    {isEditingProfile ? (
-                      <div>
-                        <input
-                          type="text"
-                          required
-                          value={profileForm.fullName}
-                          onChange={(e) => setProfileForm({ ...profileForm, fullName: e.target.value })}
-                          placeholder="e.g. Fahim Hossain"
-                          className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-[var(--color-surface)] border border-[var(--color-border-subtle)] text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:border-blue-500 transition-colors min-h-[44px]"
-                        />
-                        {profileErrors.fullName && (
-                          <p className="text-xs text-red-500 mt-1">{profileErrors.fullName}</p>
-                        )}
-                      </div>
-                    ) : (
-                      <p className="text-sm font-medium text-[var(--color-text-primary)] py-1.5">
-                        {profileForm.fullName || "Not specified"}
-                      </p>
-                    )}
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-medium text-[var(--color-text-primary)] mb-1.5">
-                      Display Name / Username <span className="text-[var(--color-text-muted)] font-normal">(Optional)</span>
-                    </label>
-                    {isEditingProfile ? (
-                      <div>
-                        <input
-                          type="text"
-                          value={profileForm.displayName}
-                          onChange={(e) => setProfileForm({ ...profileForm, displayName: e.target.value })}
-                          placeholder="e.g. fahim"
-                          className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-[var(--color-surface)] border border-[var(--color-border-subtle)] text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:border-blue-500 transition-colors min-h-[44px]"
-                        />
-                        {profileErrors.displayName && (
-                          <p className="text-xs text-red-500 mt-1">{profileErrors.displayName}</p>
-                        )}
-                      </div>
-                    ) : (
-                      <p className="text-sm font-medium text-[var(--color-text-primary)] py-1.5">
-                        {profileForm.displayName || "Not specified"}
-                      </p>
-                    )}
-                  </div>
-                </div>
-
-                {/* 3. Email Address & 4. Phone Number */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <label className="text-xs font-medium text-[var(--color-text-primary)]">
-                        Email Address
-                      </label>
-                      <span className="text-[11px] font-medium text-emerald-600 dark:text-emerald-400">
-                        Verified
-                      </span>
+              {/* Seamless Line-by-Line List (No Boxy Shape) */}
+              <form onSubmit={handleSavePersonalInfo} className="divide-y divide-[var(--color-border-subtle)]">
+                {/* 1. Full Name */}
+                <div 
+                  onClick={() => !isEditingProfile && handleProfileRowClick("fullName")}
+                  className={`flex items-center justify-between gap-4 py-3.5 sm:py-4 px-1 transition-colors ${
+                    !isEditingProfile ? "hover:bg-black/[0.02] dark:hover:bg-white/[0.02] cursor-pointer group rounded-xl" : ""
+                  }`}
+                >
+                  <div className="flex items-center gap-3.5 sm:gap-4 flex-1 min-w-0">
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-slate-100 dark:bg-slate-800/60 text-slate-600 dark:text-slate-400 border border-slate-200/80 dark:border-white/5">
+                      <User size={18} />
                     </div>
-                    <p className="text-sm font-medium text-[var(--color-text-secondary)] py-1.5">
-                      {profileForm.email || user?.identifier || ""}
-                    </p>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-medium text-[var(--color-text-primary)] mb-1.5">
-                      Phone Number <span className="text-[var(--color-text-muted)] font-normal">(Optional)</span>
-                    </label>
-                    {isEditingProfile ? (
-                      <div>
-                        <input
-                          type="tel"
-                          value={profileForm.phone}
-                          onChange={(e) => setProfileForm({ ...profileForm, phone: sanitizePhone(e.target.value) })}
-                          placeholder="e.g. +880 1712345678"
-                          className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-[var(--color-surface)] border border-[var(--color-border-subtle)] text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:border-blue-500 transition-colors min-h-[44px]"
-                        />
-                        {profileErrors.phone && (
-                          <p className="text-xs text-red-500 mt-1">{profileErrors.phone}</p>
-                        )}
-                      </div>
-                    ) : (
-                      <p className="text-sm font-medium text-[var(--color-text-primary)] py-1.5 flex items-center gap-2">
-                        <Phone size={14} className="text-[var(--color-text-muted)] shrink-0" />
-                        <span>{sanitizePhone(profileForm.phone) || "Not specified"}</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium text-[var(--color-text-secondary)] mb-0.5">
+                        {isBn ? "পূর্ণ নাম" : "Full Name"}
                       </p>
+                      {isEditingProfile ? (
+                        <div>
+                          <input
+                            ref={profileInputRefs.fullName}
+                            type="text"
+                            required
+                            value={profileForm.fullName}
+                            onChange={(e) => setProfileForm({ ...profileForm, fullName: e.target.value })}
+                            placeholder="e.g. Md Fahim Hossain"
+                            className="w-full mt-1 px-3 py-1.5 rounded-xl text-sm sm:text-base font-semibold bg-[var(--color-surface)] border border-[var(--color-border-subtle)] text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:border-blue-500 focus:outline-none transition-colors"
+                          />
+                          {profileErrors.fullName && (
+                            <p className="text-xs text-red-500 mt-1">{profileErrors.fullName}</p>
+                          )}
+                        </div>
+                      ) : (
+                        <p className="text-sm sm:text-base font-semibold text-[var(--color-text-primary)] truncate">
+                          {profileForm.fullName || (isBn ? "দেওয়া হয়নি" : "Not specified")}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  {!isEditingProfile && (
+                    <ChevronRight size={18} className="text-[var(--color-text-muted)] group-hover:text-[var(--color-text-primary)] group-hover:translate-x-0.5 transition-all shrink-0" />
+                  )}
+                </div>
+
+                {/* 2. Display Name / Username */}
+                <div 
+                  onClick={() => !isEditingProfile && handleProfileRowClick("displayName")}
+                  className={`flex items-center justify-between gap-4 py-3.5 sm:py-4 px-1 transition-colors ${
+                    !isEditingProfile ? "hover:bg-black/[0.02] dark:hover:bg-white/[0.02] cursor-pointer group rounded-xl" : ""
+                  }`}
+                >
+                  <div className="flex items-center gap-3.5 sm:gap-4 flex-1 min-w-0">
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-slate-100 dark:bg-slate-800/60 text-slate-600 dark:text-slate-400 border border-slate-200/80 dark:border-white/5">
+                      <Monitor size={18} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium text-[var(--color-text-secondary)] mb-0.5">
+                        {isBn ? "ডিসপ্লে নেম / ইউজারনেম (ঐচ্ছিক)" : "Display Name / Username (Optional)"}
+                      </p>
+                      {isEditingProfile ? (
+                        <div>
+                          <input
+                            ref={profileInputRefs.displayName}
+                            type="text"
+                            value={profileForm.displayName}
+                            onChange={(e) => setProfileForm({ ...profileForm, displayName: e.target.value })}
+                            placeholder="e.g. Md Fahim Hossain"
+                            className="w-full mt-1 px-3 py-1.5 rounded-xl text-sm sm:text-base font-semibold bg-[var(--color-surface)] border border-[var(--color-border-subtle)] text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:border-blue-500 focus:outline-none transition-colors"
+                          />
+                          {profileErrors.displayName && (
+                            <p className="text-xs text-red-500 mt-1">{profileErrors.displayName}</p>
+                          )}
+                        </div>
+                      ) : (
+                        <p className="text-sm sm:text-base font-semibold text-[var(--color-text-primary)] truncate">
+                          {profileForm.displayName || profileForm.fullName || (isBn ? "দেওয়া হয়নি" : "Not specified")}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  {!isEditingProfile && (
+                    <ChevronRight size={18} className="text-[var(--color-text-muted)] group-hover:text-[var(--color-text-primary)] group-hover:translate-x-0.5 transition-all shrink-0" />
+                  )}
+                </div>
+
+                {/* 3. Email Address */}
+                <div 
+                  className={`flex items-center justify-between gap-4 py-3.5 sm:py-4 px-1 transition-colors ${
+                    !isEditingProfile ? "hover:bg-black/[0.02] dark:hover:bg-white/[0.02] cursor-pointer group rounded-xl" : ""
+                  }`}
+                >
+                  <div className="flex items-center gap-3.5 sm:gap-4 flex-1 min-w-0">
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-slate-100 dark:bg-slate-800/60 text-slate-600 dark:text-slate-400 border border-slate-200/80 dark:border-white/5">
+                      <Mail size={18} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium text-[var(--color-text-secondary)] mb-0.5">
+                        {isBn ? "ইমেল ঠিকানা" : "Email Address"}
+                      </p>
+                      <p className="text-sm sm:text-base font-semibold text-[var(--color-text-primary)] truncate">
+                        {profileForm.email || user?.identifier || (isBn ? "দেওয়া হয়নি" : "Not specified")}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                      <CheckCircle2 size={12} className="text-emerald-500" />
+                      <span>{isBn ? "যাচাইকৃত" : "Verified"}</span>
+                    </span>
+                    {!isEditingProfile && (
+                      <ChevronRight size={18} className="text-[var(--color-text-muted)] group-hover:text-[var(--color-text-primary)] group-hover:translate-x-0.5 transition-all" />
                     )}
                   </div>
                 </div>
 
-                {/* 5. Date of Birth & 6. Gender */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-medium text-[var(--color-text-primary)] mb-1.5">
-                      Date of Birth <span className="text-[var(--color-text-muted)] font-normal">(Optional)</span>
-                    </label>
-                    {isEditingProfile ? (
-                      <div>
-                        <FocusForgeDatePicker
-                          value={profileForm.dob}
-                          onChange={(e) => setProfileForm({ ...profileForm, dob: e.target.value })}
-                          maxDate={new Date().toISOString().split("T")[0]}
-                          placeholder="Select date of birth"
-                          ariaLabel="Date of Birth"
-                        />
-                        {profileErrors.dob && (
-                          <p className="text-xs text-red-500 mt-1">{profileErrors.dob}</p>
-                        )}
-                      </div>
-                    ) : (
-                      <p className="text-sm font-medium text-[var(--color-text-primary)] py-1.5 flex items-center gap-2">
-                        <Calendar size={14} className="text-[var(--color-text-muted)] shrink-0" />
-                        <span>{profileForm.dob || "Not specified"}</span>
+                {/* 4. Phone Number */}
+                <div 
+                  onClick={() => !isEditingProfile && handleProfileRowClick("phone")}
+                  className={`flex items-center justify-between gap-4 py-3.5 sm:py-4 px-1 transition-colors ${
+                    !isEditingProfile ? "hover:bg-black/[0.02] dark:hover:bg-white/[0.02] cursor-pointer group rounded-xl" : ""
+                  }`}
+                >
+                  <div className="flex items-center gap-3.5 sm:gap-4 flex-1 min-w-0">
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-slate-100 dark:bg-slate-800/60 text-slate-600 dark:text-slate-400 border border-slate-200/80 dark:border-white/5">
+                      <Phone size={18} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium text-[var(--color-text-secondary)] mb-0.5">
+                        {isBn ? "ফোন নম্বর (ঐচ্ছিক)" : "Phone Number (Optional)"}
                       </p>
-                    )}
+                      {isEditingProfile ? (
+                        <div>
+                          <input
+                            ref={profileInputRefs.phone}
+                            type="tel"
+                            value={profileForm.phone}
+                            onChange={(e) => setProfileForm({ ...profileForm, phone: sanitizePhone(e.target.value) })}
+                            placeholder="+880 1712345678"
+                            className="w-full mt-1 px-3 py-1.5 rounded-xl text-sm sm:text-base font-semibold bg-[var(--color-surface)] border border-[var(--color-border-subtle)] text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:border-blue-500 focus:outline-none transition-colors"
+                          />
+                          {profileErrors.phone && (
+                            <p className="text-xs text-red-500 mt-1">{profileErrors.phone}</p>
+                          )}
+                        </div>
+                      ) : (
+                        <p className="text-sm sm:text-base font-semibold text-[var(--color-text-primary)] truncate">
+                          {sanitizePhone(profileForm.phone) || sanitizePhone(user?.phone) || (isBn ? "নির্দিষ্ট করা হয়নি" : "Not specified")}
+                        </p>
+                      )}
+                    </div>
                   </div>
-
-                  <div>
-                    <label className="block text-xs font-medium text-[var(--color-text-primary)] mb-1.5">
-                      Gender <span className="text-[var(--color-text-muted)] font-normal">(Optional)</span>
-                    </label>
-                    {isEditingProfile ? (
-                      <FocusForgeSelect
-                        value={profileForm.gender}
-                        onChange={(e) => setProfileForm({ ...profileForm, gender: e.target.value })}
-                        options={[
-                          { value: "", label: "Select gender" },
-                          { value: "Male", label: "Male" },
-                          { value: "Female", label: "Female" },
-                          { value: "Non-binary", label: "Non-binary" },
-                          { value: "Prefer not to say", label: "Prefer not to say" },
-                        ]}
-                        placeholder="Select gender"
-                        ariaLabel="Gender"
-                      />
-                    ) : (
-                      <p className="text-sm font-medium text-[var(--color-text-primary)] py-1.5">
-                        {profileForm.gender || "Not specified"}
-                      </p>
-                    )}
-                  </div>
+                  {!isEditingProfile && (
+                    <ChevronRight size={18} className="text-[var(--color-text-muted)] group-hover:text-[var(--color-text-primary)] group-hover:translate-x-0.5 transition-all shrink-0" />
+                  )}
                 </div>
 
-                {/* 7. Country / Region & 8. City */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-medium text-[var(--color-text-primary)] mb-1.5">
-                      Country / Region <span className="text-[var(--color-text-muted)] font-normal">(Optional)</span>
-                    </label>
-                    {isEditingProfile ? (
-                      <div>
+                {/* 5. Date of Birth */}
+                <div 
+                  onClick={() => !isEditingProfile && setIsEditingProfile(true)}
+                  className={`flex items-center justify-between gap-4 py-3.5 sm:py-4 px-1 transition-colors ${
+                    !isEditingProfile ? "hover:bg-black/[0.02] dark:hover:bg-white/[0.02] cursor-pointer group rounded-xl" : ""
+                  }`}
+                >
+                  <div className="flex items-center gap-3.5 sm:gap-4 flex-1 min-w-0">
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-slate-100 dark:bg-slate-800/60 text-slate-600 dark:text-slate-400 border border-slate-200/80 dark:border-white/5">
+                      <Calendar size={18} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium text-[var(--color-text-secondary)] mb-0.5">
+                        {isBn ? "জন্ম তারিখ (ঐচ্ছিক)" : "Date of Birth (Optional)"}
+                      </p>
+                      {isEditingProfile ? (
+                        <div className="mt-1">
+                          <FocusForgeDatePicker
+                            value={profileForm.dob}
+                            onChange={(e) => setProfileForm({ ...profileForm, dob: e.target.value })}
+                            maxDate={new Date().toISOString().split("T")[0]}
+                            placeholder={isBn ? "জন্ম তারিখ নির্বাচন করুন" : "Select date of birth"}
+                            ariaLabel="Date of Birth"
+                          />
+                          {profileErrors.dob && (
+                            <p className="text-xs text-red-500 mt-1">{profileErrors.dob}</p>
+                          )}
+                        </div>
+                      ) : (
+                        <p className="text-sm sm:text-base font-semibold text-[var(--color-text-primary)] truncate">
+                          {profileForm.dob ? formatProfileDate(profileForm.dob) : (isBn ? "নির্দিষ্ট করা হয়নি" : "Not specified")}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  {!isEditingProfile && (
+                    <ChevronRight size={18} className="text-[var(--color-text-muted)] group-hover:text-[var(--color-text-primary)] group-hover:translate-x-0.5 transition-all shrink-0" />
+                  )}
+                </div>
+
+                {/* 6. Gender */}
+                <div 
+                  onClick={() => !isEditingProfile && setIsEditingProfile(true)}
+                  className={`flex items-center justify-between gap-4 py-3.5 sm:py-4 px-1 transition-colors ${
+                    !isEditingProfile ? "hover:bg-black/[0.02] dark:hover:bg-white/[0.02] cursor-pointer group rounded-xl" : ""
+                  }`}
+                >
+                  <div className="flex items-center gap-3.5 sm:gap-4 flex-1 min-w-0">
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-slate-100 dark:bg-slate-800/60 text-slate-600 dark:text-slate-400 border border-slate-200/80 dark:border-white/5">
+                      <GenderIcon className="w-5 h-5" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium text-[var(--color-text-secondary)] mb-0.5">
+                        {isBn ? "লিঙ্গ (ঐচ্ছিক)" : "Gender (Optional)"}
+                      </p>
+                      {isEditingProfile ? (
+                        <div className="mt-1">
+                          <FocusForgeSelect
+                            value={profileForm.gender}
+                            onChange={(e) => setProfileForm({ ...profileForm, gender: e.target.value })}
+                            options={[
+                              { value: "", label: isBn ? "লিঙ্গ নির্বাচন করুন" : "Select gender" },
+                              { value: "Male", label: isBn ? "পুরুষ (Male)" : "Male" },
+                              { value: "Female", label: isBn ? "মহিলা (Female)" : "Female" },
+                              { value: "Non-binary", label: isBn ? "নন-বাইনারি (Non-binary)" : "Non-binary" },
+                              { value: "Prefer not to say", label: isBn ? "বলতে অনিচ্ছুক (Prefer not to say)" : "Prefer not to say" },
+                            ]}
+                            placeholder={isBn ? "লিঙ্গ নির্বাচন করুন" : "Select gender"}
+                            ariaLabel="Gender"
+                          />
+                        </div>
+                      ) : (
+                        <p className="text-sm sm:text-base font-semibold text-[var(--color-text-primary)] truncate">
+                          {profileForm.gender || (isBn ? "নির্দিষ্ট করা হয়নি" : "Not specified")}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  {!isEditingProfile && (
+                    <ChevronRight size={18} className="text-[var(--color-text-muted)] group-hover:text-[var(--color-text-primary)] group-hover:translate-x-0.5 transition-all shrink-0" />
+                  )}
+                </div>
+
+                {/* 7. Country / Region */}
+                <div 
+                  onClick={() => !isEditingProfile && handleProfileRowClick("country")}
+                  className={`flex items-center justify-between gap-4 py-3.5 sm:py-4 px-1 transition-colors ${
+                    !isEditingProfile ? "hover:bg-black/[0.02] dark:hover:bg-white/[0.02] cursor-pointer group rounded-xl" : ""
+                  }`}
+                >
+                  <div className="flex items-center gap-3.5 sm:gap-4 flex-1 min-w-0">
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-slate-100 dark:bg-slate-800/60 text-slate-600 dark:text-slate-400 border border-slate-200/80 dark:border-white/5">
+                      <MapPin size={18} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium text-[var(--color-text-secondary)] mb-0.5">
+                        {isBn ? "দেশ / অঞ্চল (ঐচ্ছিক)" : "Country / Region (Optional)"}
+                      </p>
+                      {isEditingProfile ? (
                         <input
+                          ref={profileInputRefs.country}
                           type="text"
                           value={profileForm.country}
                           onChange={(e) => setProfileForm({ ...profileForm, country: e.target.value })}
                           placeholder="e.g. Bangladesh"
-                          className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-[var(--color-surface)] border border-[var(--color-border-subtle)] text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:border-blue-500 transition-colors min-h-[44px]"
+                          className="w-full mt-1 px-3 py-1.5 rounded-xl text-sm sm:text-base font-semibold bg-[var(--color-surface)] border border-[var(--color-border-subtle)] text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:border-blue-500 focus:outline-none transition-colors"
                         />
-                      </div>
-                    ) : (
-                      <p className="text-sm font-medium text-[var(--color-text-primary)] py-1.5 flex items-center gap-2">
-                        <Globe size={14} className="text-[var(--color-text-muted)] shrink-0" />
-                        <span>{profileForm.country || "Not specified"}</span>
-                      </p>
-                    )}
+                      ) : (
+                        <p className="text-sm sm:text-base font-semibold text-[var(--color-text-primary)] truncate">
+                          {profileForm.country || (isBn ? "নির্দিষ্ট করা হয়নি" : "Not specified")}
+                        </p>
+                      )}
+                    </div>
                   </div>
+                  {!isEditingProfile && (
+                    <ChevronRight size={18} className="text-[var(--color-text-muted)] group-hover:text-[var(--color-text-primary)] group-hover:translate-x-0.5 transition-all shrink-0" />
+                  )}
+                </div>
 
-                  <div>
-                    <label className="block text-xs font-medium text-[var(--color-text-primary)] mb-1.5">
-                      City <span className="text-[var(--color-text-muted)] font-normal">(Optional)</span>
-                    </label>
-                    {isEditingProfile ? (
-                      <div>
+                {/* 8. City */}
+                <div 
+                  onClick={() => !isEditingProfile && handleProfileRowClick("city")}
+                  className={`flex items-center justify-between gap-4 py-3.5 sm:py-4 px-1 transition-colors ${
+                    !isEditingProfile ? "hover:bg-black/[0.02] dark:hover:bg-white/[0.02] cursor-pointer group rounded-xl" : ""
+                  }`}
+                >
+                  <div className="flex items-center gap-3.5 sm:gap-4 flex-1 min-w-0">
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-slate-100 dark:bg-slate-800/60 text-slate-600 dark:text-slate-400 border border-slate-200/80 dark:border-white/5">
+                      <CityBarsIcon className="w-5 h-5 text-current" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium text-[var(--color-text-secondary)] mb-0.5">
+                        {isBn ? "শহর (ঐচ্ছিক)" : "City (Optional)"}
+                      </p>
+                      {isEditingProfile ? (
                         <input
+                          ref={profileInputRefs.city}
                           type="text"
                           value={profileForm.city}
                           onChange={(e) => setProfileForm({ ...profileForm, city: e.target.value })}
                           placeholder="e.g. Dhaka"
-                          className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-[var(--color-surface)] border border-[var(--color-border-subtle)] text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:border-blue-500 transition-colors min-h-[44px]"
+                          className="w-full mt-1 px-3 py-1.5 rounded-xl text-sm sm:text-base font-semibold bg-[var(--color-surface)] border border-[var(--color-border-subtle)] text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:border-blue-500 focus:outline-none transition-colors"
                         />
-                      </div>
-                    ) : (
-                      <p className="text-sm font-medium text-[var(--color-text-primary)] py-1.5 flex items-center gap-2">
-                        <MapPin size={14} className="text-[var(--color-text-muted)] shrink-0" />
-                        <span>{profileForm.city || "Not specified"}</span>
-                      </p>
-                    )}
+                      ) : (
+                        <p className="text-sm sm:text-base font-semibold text-[var(--color-text-primary)] truncate">
+                          {profileForm.city || (isBn ? "নির্দিষ্ট করা হয়নি" : "Not specified")}
+                        </p>
+                      )}
+                    </div>
                   </div>
+                  {!isEditingProfile && (
+                    <ChevronRight size={18} className="text-[var(--color-text-muted)] group-hover:text-[var(--color-text-primary)] group-hover:translate-x-0.5 transition-all shrink-0" />
+                  )}
                 </div>
 
                 {/* 9. About Me / Short Bio */}
-                <div>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <label className="text-xs font-medium text-[var(--color-text-primary)]">
-                      About Me / Short Bio <span className="text-[var(--color-text-muted)] font-normal">(Optional)</span>
-                    </label>
-                    {isEditingProfile && (
-                      <span className="text-[11px] text-[var(--color-text-muted)]">
-                        {profileForm.bio.length}/200
-                      </span>
-                    )}
-                  </div>
-                  {isEditingProfile ? (
-                    <div>
-                      <textarea
-                        rows={3}
-                        maxLength={200}
-                        value={profileForm.bio}
-                        onChange={(e) => setProfileForm({ ...profileForm, bio: e.target.value })}
-                        placeholder="Tell us a short summary about yourself..."
-                        className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-[var(--color-surface)] border border-[var(--color-border-subtle)] text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:border-blue-500 transition-colors resize-none"
-                      />
-                      {profileErrors.bio && (
-                        <p className="text-xs text-red-500 mt-1">{profileErrors.bio}</p>
+                <div 
+                  onClick={() => !isEditingProfile && handleProfileRowClick("bio")}
+                  className={`flex items-start justify-between gap-4 py-3.5 sm:py-4 px-1 transition-colors ${
+                    !isEditingProfile ? "hover:bg-black/[0.02] dark:hover:bg-white/[0.02] cursor-pointer group rounded-xl" : ""
+                  }`}
+                >
+                  <div className="flex items-start gap-3.5 sm:gap-4 flex-1 min-w-0">
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-slate-100 dark:bg-slate-800/60 text-slate-600 dark:text-slate-400 border border-slate-200/80 dark:border-white/5 mt-0.5">
+                      <UserPlus size={18} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between mb-0.5">
+                        <p className="text-xs font-medium text-[var(--color-text-secondary)]">
+                          {isBn ? "আমার সম্পর্কে / সংক্ষিপ্ত বায়ো (ঐচ্ছিক)" : "About Me / Short Bio (Optional)"}
+                        </p>
+                        {isEditingProfile && (
+                          <span className="text-[11px] text-[var(--color-text-muted)]">
+                            {profileForm.bio.length}/200
+                          </span>
+                        )}
+                      </div>
+                      {isEditingProfile ? (
+                        <div>
+                          <textarea
+                            ref={profileInputRefs.bio}
+                            rows={3}
+                            maxLength={200}
+                            value={profileForm.bio}
+                            onChange={(e) => setProfileForm({ ...profileForm, bio: e.target.value })}
+                            placeholder={isBn ? "নিজের সম্পর্কে সংক্ষেপে কিছু লিখুন..." : "Tell us a short summary about yourself..."}
+                            className="w-full mt-1.5 px-3 py-2 rounded-xl text-sm bg-[var(--color-surface)] border border-[var(--color-border-subtle)] text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:border-blue-500 focus:outline-none transition-colors resize-none"
+                          />
+                          {profileErrors.bio && (
+                            <p className="text-xs text-red-500 mt-1">{profileErrors.bio}</p>
+                          )}
+                        </div>
+                      ) : (
+                        <p className="text-sm sm:text-base font-semibold text-[var(--color-text-primary)] leading-relaxed break-words">
+                          {profileForm.bio || (isBn ? "এখনো কোনো বায়ো যোগ করা হয়নি। নিজের সম্পর্কে লিখতে এডিটে ক্লিক করুন।" : "No bio added yet. Click Edit to share a short summary about yourself.")}
+                        </p>
                       )}
                     </div>
-                  ) : (
-                    <p className="text-sm font-medium text-[var(--color-text-primary)] py-1.5 whitespace-pre-wrap leading-relaxed">
-                      {profileForm.bio || "No bio added yet. Click Edit to share a short summary about yourself."}
-                    </p>
+                  </div>
+                  {!isEditingProfile && (
+                    <ChevronRight size={18} className="text-[var(--color-text-muted)] group-hover:text-[var(--color-text-primary)] group-hover:translate-x-0.5 transition-all shrink-0 mt-1" />
                   )}
                 </div>
 
                 {/* Form Buttons in Edit Mode */}
                 {isEditingProfile && (
-                  <div className="flex items-center justify-end gap-3 pt-4 border-t border-[var(--color-border-subtle)]">
+                  <div className="py-4 px-1 flex items-center justify-end gap-3">
                     <button
                       type="button"
                       onClick={() => setIsEditingProfile(false)}
-                      className="px-4 py-2.5 rounded-xl text-xs font-semibold text-[var(--color-text-primary)] bg-[var(--color-surface)] hover:bg-[var(--color-surface-hover)] border border-[var(--color-border-subtle)] active:scale-[0.98] transition-all cursor-pointer min-h-[44px]"
+                      className="px-4 py-2.5 rounded-full text-xs font-semibold text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] bg-[var(--color-surface)] hover:bg-[var(--color-surface-hover)] border border-[var(--color-border-subtle)] transition-all cursor-pointer active:scale-95"
                     >
                       {t.settings.profile.cancel}
                     </button>
                     <button
                       type="submit"
                       disabled={isSavingProfile}
-                      className="px-5 py-2.5 rounded-xl text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 active:scale-[0.98] shadow-sm shadow-blue-500/20 transition-all cursor-pointer disabled:opacity-50 min-h-[44px]"
+                      className="flex items-center gap-2 px-6 py-2.5 rounded-full text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 transition-all cursor-pointer disabled:opacity-50 active:scale-95 shadow-sm shadow-blue-500/20"
                     >
-                      {isSavingProfile ? t.settings.profile.saving : t.settings.profile.save}
+                      {isSavingProfile ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+                      <span>{isSavingProfile ? t.settings.profile.saving : t.settings.profile.save}</span>
                     </button>
                   </div>
                 )}

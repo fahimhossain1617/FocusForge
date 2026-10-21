@@ -867,7 +867,7 @@ export default function FocusPage() {
 
               {/* Smooth Morphing Mode Toggle: [ Focus ] [ Timer ] */}
               <div 
-                className="relative inline-flex items-center p-1 rounded-2xl bg-slate-100 dark:bg-[#070d1a] border border-slate-200 dark:border-white/[0.08] shrink-0 self-start sm:self-auto select-none"
+                className="relative inline-flex items-center p-1 rounded-xl bg-[#E5EDF7] dark:bg-[#070d1a] border border-[#DCE5F0] dark:border-white/[0.08] shrink-0 self-start sm:self-auto select-none transition-colors"
                 role="tablist"
                 aria-label="Focus Mode"
               >
@@ -880,16 +880,16 @@ export default function FocusPage() {
                       role="tab"
                       aria-selected={isActive}
                       onClick={() => setFocusTab(tab)}
-                      className={`relative z-10 px-4 sm:px-5 py-1.5 sm:py-2 rounded-xl text-xs font-semibold tracking-wide transition-colors duration-200 cursor-pointer flex items-center justify-center outline-none select-none ${
+                      className={`relative z-10 min-w-[62px] sm:min-w-[68px] px-3 sm:px-3.5 py-1 sm:py-1.5 rounded-lg text-xs font-semibold tracking-wide transition-colors duration-200 cursor-pointer flex items-center justify-center outline-none select-none ${
                         isActive
                           ? "text-white font-bold"
-                          : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200"
+                          : "text-[#52627A] hover:text-[#111827] dark:text-slate-400 dark:hover:text-slate-200"
                       }`}
                     >
                       {isActive && (
                         <motion.div
                           layoutId="focusTabActivePill"
-                          className="absolute inset-0 rounded-xl bg-blue-600"
+                          className="absolute inset-0 rounded-lg bg-[#223A5E] dark:bg-blue-600 shadow-sm"
                           transition={{
                             type: "spring",
                             stiffness: 420,

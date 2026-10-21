@@ -255,11 +255,13 @@ Focentia is an active, functional productivity suite built with Next.js 16 App R
 ### Settings & Account Management
 - **Current Implementation:** `SettingsPage.tsx`, `ProfilePage.tsx`, `userService.ts`. Includes profile editing with unique case-insensitive display names, avatar upload/removal, password change with re-authentication and security alert email, theme and language persistence, atomic user account deletion with ticket anonymization, and a modern, seamless flat UI layout:
   - **Flat Modern Design (No Boxy Containers):** Removed nested card wrappers (`bg-[var(--color-surface-elevated)] border rounded-2xl/3xl`) across all Settings sections (Profile, Password, Notifications, Language, About, FAQ, Feature Guides, Report Problem, Contact Support, Feedback, Cloud Sync, AI Privacy, Privacy Policy, Terms of Service, and Delete Account). Content sits directly on the page separated by clean, minimal dividers (`divide-y` and border lines).
-  - **Profile Information UI Redesign (Mockup Reference Pattern):** `ProfilePage.tsx` implements the unified Personal Information card layout matching the user design specification:
-    - **Curved Ambient Wave Header:** Top header features user avatar (with upload overlay & quick photo actions), bold "Personal Information" title, subtitle, and an outline pill "Edit" button, accented by an ambient curved wave in the top-right corner.
-    - **Segmented Icon Rows with Dividers:** All 9 personal information fields (Full Name, Display Name / Username, Email Address with Verified checkmark badge, Phone Number, Date of Birth, Gender with Venus-Mars symbol, Country / Region, City with 3-bar skyline icon, and About Me / Short Bio) are rendered as horizontal rows separated by subtle dividers (`divide-y divide-[#E2E8F0] dark:divide-white/[0.07]`), each with a rounded squircle icon on the left, label + value in the center, and a chevron navigation arrow on the far right.
-    - **Click-to-Edit & Inline Edit Transition:** Clicking any row or the Edit button toggles into a sleek in-place editable form with auto-focus, top and bottom Save / Cancel controls, while preserving all database update, avatar upload, and delete confirmation modal flows.
-    - **Full Dark & Light Theme Token Fidelity:** Perfectly adheres to Focentia's active dual-theme system (dark navy `#0D1426` with subtle borders & glowing blue accents; crisp white `#FFFFFF` with `#DCE5F0` borders and `#223A5E` / `#5B8DEF` in light mode).
+  - **Seamless Personal Information UI (Mockup Reference Pattern):** Both `ProfilePage.tsx` and `SettingsPage.tsx` implement the unified seamless line-by-line Personal Information layout matching the user reference design:
+    - **No Boxy Containers or Extra Cards:** Eliminated nested card enclosures and wave SVG overlays. Content blends directly and seamlessly into the application's native interface background.
+    - **Proportional Non-Overflowing Typography:** Set "Personal Information" header to a clean, balanced size (`text-base sm:text-lg font-bold`) so titles never truncate or wrap awkwardly on mobile viewports.
+    - **Integrated Navigation & Actions:** `ProfilePage.tsx` features top Back button navigation, circular avatar with photo upload/removal actions, title/subtitle, and an outline pill "Edit" button (toggling Cancel/Save controls when editing).
+    - **Segmented Icon Rows with Dividers:** All 9 personal information fields (Full Name, Display Name / Username, Email Address with Verified checkmark badge, Phone Number, Date of Birth with formatted date display, Gender with Venus-Mars symbol, Country / Region, City with 3-bar skyline icon, and About Me / Short Bio) are rendered as horizontal rows separated by subtle dividers (`divide-y divide-[var(--color-border-subtle)]`), each with a rounded squircle icon container on the left, label + value in the center, and a chevron navigation arrow on the far right.
+    - **Click-to-Edit & Inline Edit Transition:** Clicking any row or the Edit button toggles into a sleek in-place editable form with field auto-focus and top/bottom Save / Cancel controls, while preserving all database update, avatar upload, and delete confirmation modal flows.
+    - **Full Dark & Light Theme Token Fidelity:** Perfectly adheres to Focentia's active dual-theme system using standard CSS design tokens (`var(--color-text-primary)`, `var(--color-text-secondary)`, `var(--color-border-subtle)`, `var(--color-surface)`).
   - **Fixed Section Categories & Permanently Open Sub-items:** Completely replaced the accordion toggle/chevron icon mechanism on navigation topics. Category titles (Account & Security, Preferences, Privacy, Support) are fixed, prominent bold headings separated by sleek horizontal dividers (`border-t border-[var(--color-border-subtle)]`). All sub-items remain permanently open and indented cleanly without vertical lines.
   - **High-Contrast Toggle Switches & Elevated Button Styling:** `Toggle` switches use clearly defined, high-contrast tracks in both Light mode (`bg-slate-300 border-slate-300`) and Dark mode (`dark:bg-slate-700 dark:border-slate-600`) with white shadowed knobs, ensuring the switch is immediately visible and distinguishable in the OFF state. All action and submit buttons feature sleek, active micro-scaling (`active:scale-[0.98]`) and subtle elevation (`shadow-sm`).
 - **Verified Status:** **VERIFIED**
@@ -591,6 +593,34 @@ Focentia is an active, functional productivity suite built with Next.js 16 App R
      - Ensured signed URL fetching passes `user?.id || 'guest'`, allowing both guest and authenticated users to reload and view attached images/files/PDFs.
 - **Verified Status:** **VERIFIED** (TypeScript typecheck 100% clean; Next.js 16 Turbopack production build: 21/21 static & dynamic routes compiled with exit code 0; visual browser verification completed for Mind Space, Profile, and AI Chat).
 - **Important Files:** `frontend/src/app/globals.css`, `frontend/src/components/mymind/MindHome.tsx`, `frontend/src/components/pages/ProfilePage.tsx`, `frontend/src/components/Sidebar.tsx`, `frontend/src/hooks/useAIAgent.ts`, `frontend/src/context/AppContext.tsx`, `frontend/src/services/taskService.ts`, `frontend/src/components/pages/NoteEditorView.tsx`.
+
+---
+
+### Profile & Settings Personal Information View Refinements (October 22, 2026)
+- **Current Implementation:**
+  1. **Clean Ash Icon Styling in Light Mode (`ProfilePage.tsx`, `SettingsPage.tsx`):**
+     - Replaced the dark muddy grey `bg-slate-800/40` in Light Mode across all 9 row icon containers (Full Name, Username, Email, Phone, Date of Birth, Gender, Country, City, Short Bio) with clean soft ash: `bg-slate-100 dark:bg-slate-800/60 text-slate-600 dark:text-slate-400 border border-slate-200/80 dark:border-white/5`.
+     - Preserved all icons identically (including custom `GenderIcon` and `CityBarsIcon`) while delivering crisp, aesthetic contrast in both Light Mode and Dark Mode.
+  2. **Personal Information Heading Sizing & Single-Line Fit (`ProfilePage.tsx`, `SettingsPage.tsx`):**
+     - Converted the heading from an oversized `h1` (`text-base sm:text-lg font-bold`) to a balanced `h3` size: `text-sm sm:text-base font-semibold text-[var(--color-text-primary)] tracking-tight whitespace-nowrap`.
+     - Guaranteed "Personal Information" / "ব্যক্তিগত তথ্য" fits on a single line on mobile viewports (e.g., 360px - 427px) without breaking onto two lines next to the avatar and Edit button.
+- **Verified Status:** **VERIFIED** (Next.js 16 Turbopack production build: 21/21 static & dynamic routes compiled with exit code 0; TypeScript typecheck 100% clean; verified single line fit and light mode ash styling).
+- **Important Files:** `frontend/src/components/pages/ProfilePage.tsx`, `frontend/src/components/pages/SettingsPage.tsx`.
+
+---
+
+### Segmented Mode Toggle Proportions & Dual-Theme Button Styling (October 22, 2026)
+- **Current Implementation:**
+  1. **Dual-Theme Button Color Alignment (`FocusPage.tsx`, `DashboardPage.tsx`):**
+     - Aligned the active pill in both the Focus/Timer toggle (`FocusPage.tsx`) and the Weekly/Monthly toggle (`DashboardPage.tsx`) to strictly match application button tokens: `#223A5E` in Light Mode and `blue-600` in Dark Mode (`bg-[#223A5E] dark:bg-blue-600 shadow-sm`). Eliminated the un-themed bright blue in Light Mode on `FocusPage.tsx`.
+     - Standardized container colors across both toggles: `bg-[#E5EDF7] dark:bg-[#070d1a] border border-[#DCE5F0] dark:border-white/[0.08]`.
+  2. **Refined Compact Standard Dimensions:**
+     - Reduced oversized, chunky footprint of both toggles from `min-w-[80px] sm:min-w-[88px] px-4 sm:px-5 py-1.5 sm:py-2 rounded-xl` down to refined standard dimensions: `min-w-[62px] sm:min-w-[68px] px-3 sm:px-3.5 py-1 sm:py-1.5 rounded-lg text-xs font-semibold`.
+     - Outer container updated from bulky `rounded-2xl` to sleek `rounded-xl`, delivering a premium Apple/Linear-grade compact feel that preserves layout breathing room.
+- **Verified Status:** **VERIFIED** (Next.js 16 Turbopack production build: 21/21 static & dynamic routes compiled with exit code 0; TypeScript typecheck 100% clean).
+- **Important Files:** `frontend/src/components/pages/FocusPage.tsx`, `frontend/src/components/pages/DashboardPage.tsx`.
+
+
 
 
 
