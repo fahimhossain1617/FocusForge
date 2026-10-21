@@ -50,6 +50,10 @@ function getSessionsCacheKey(userId?: string | null): string {
   return userId ? `focusforge_ai_sessions_${userId}` : "focusforge_guest_sessions_list";
 }
 
+function getActiveSessionCacheKey(userId?: string | null): string {
+  return userId ? `focusforge_ai_active_session_${userId}` : "focusforge_guest_active_session";
+}
+
 function getMsgCacheKey(userId: string | null | undefined, sessionId: string): string {
   return userId ? `focusforge_ai_msg_${userId}_${sessionId}` : `focusforge_guest_msg_${sessionId}`;
 }
@@ -64,9 +68,36 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
     memoryUserId = currentUserId;
   }
 
+  const [activeSessionId, setActiveSessionId] = useState<string | null>(() => {
+    if (typeof window === "undefined") return null;
+    if (memoryUserId === currentUserId && memoryActiveSessionId) return memoryActiveSessionId;
+    try {
+      const saved = localStorage.getItem(getActiveSessionCacheKey(currentUserId));
+      if (saved) return saved;
+    } catch {}
+    return null;
+  });
+
   const [messages, setMessages] = useState<AgentMessage[]>(() => {
     if (typeof window === "undefined") return [];
     if (memoryMessages && memoryUserId === currentUserId) return memoryMessages;
+    try {
+      const activeSess = localStorage.getItem(getActiveSessionCacheKey(currentUserId));
+      if (activeSess) {
+        const msgKey = getMsgCacheKey(currentUserId, activeSess);
+        const savedMsgs = localStorage.getItem(msgKey) || sessionStorage.getItem(msgKey);
+        if (savedMsgs) {
+          const parsed = JSON.parse(savedMsgs);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            return parsed.map((m: any) => ({
+              ...m,
+              createdAt: new Date(m.createdAt || m.created_at || Date.now()),
+              payload: m.payload || m.payload_json,
+            }));
+          }
+        }
+      }
+    } catch {}
     return [];
   });
 
@@ -84,11 +115,6 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
     } catch {
       return [];
     }
-  });
-
-  const [activeSessionId, setActiveSessionId] = useState<string | null>(() => {
-    if (typeof window === "undefined") return null;
-    return memoryUserId === currentUserId ? memoryActiveSessionId : null;
   });
 
   const [tokenStatus, setTokenStatus] = useState<TokenStatus | null>(null);
@@ -178,17 +204,21 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
       memoryUserId = currentUserId;
 
       try {
-        if (!isPrivateMode && activeSessionId && messages.length > 0) {
-          const msgKey = getMsgCacheKey(currentUserId, activeSessionId);
-          localStorage.setItem(msgKey, JSON.stringify(messages));
-          if (isGuest || !user) {
-            sessionStorage.setItem(msgKey, JSON.stringify(messages));
-            // Also mirror guest messages into Dexie for reliable local persistence
+        if (!isPrivateMode && activeSessionId) {
+          localStorage.setItem(getActiveSessionCacheKey(currentUserId), activeSessionId);
+          if (messages.length > 0) {
+            const msgKey = getMsgCacheKey(currentUserId, activeSessionId);
+            localStorage.setItem(msgKey, JSON.stringify(messages));
+            if (isGuest || !user) {
+              sessionStorage.setItem(msgKey, JSON.stringify(messages));
+            }
+            // Mirror messages into Dexie for reliable local persistence across all users
+            const targetUserId = currentUserId || "guest";
             messages.forEach((m) => {
               localDb.put("ai_messages", {
                 id: m.id || `msg_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
                 sessionId: activeSessionId,
-                userId: "guest",
+                userId: targetUserId,
                 role: m.role,
                 content: m.content,
                 intent: m.intent || null,
@@ -218,14 +248,16 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
 
     const fetchInitialData = async () => {
       try {
-        // Reset state ONLY when user actually switches (e.g. login/logout)
-        if (prevUserIdRef.current !== currentUserId) {
+        // Reset state ONLY when user actually switches (e.g. login/logout) from an existing loaded user
+        if (prevUserIdRef.current !== null && prevUserIdRef.current !== currentUserId) {
           prevUserIdRef.current = currentUserId;
           setMessages([]);
           setActiveSessionId(null);
           loadedSessionRef.current = null;
           clearAIGlobals();
           memoryUserId = currentUserId;
+        } else {
+          prevUserIdRef.current = currentUserId;
         }
 
         const [sessionsData, tokensData] = await Promise.all([
@@ -235,7 +267,9 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
 
         if (isCancelled) return;
 
+        let resolvedSessions: ChatSession[] = [];
         if (Array.isArray(sessionsData) && sessionsData.length > 0) {
+          resolvedSessions = sessionsData;
           setSessions(sessionsData);
           if (typeof window !== "undefined") {
             try {
@@ -251,6 +285,7 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
             if (sessionsRaw) {
               const parsedSessions = JSON.parse(sessionsRaw);
               if (Array.isArray(parsedSessions)) {
+                resolvedSessions = parsedSessions;
                 setSessions(parsedSessions);
               }
             } else {
@@ -259,6 +294,16 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
           } catch {
             setSessions([]);
           }
+        }
+
+        // Restore active session or latest session on initial mount / page refresh
+        const cachedActiveSess = typeof window !== "undefined" ? localStorage.getItem(getActiveSessionCacheKey(currentUserId)) : null;
+        const targetSessionId = (cachedActiveSess && resolvedSessions.some(s => s.id === cachedActiveSess))
+          ? cachedActiveSess
+          : (activeSessionId || resolvedSessions[0]?.id);
+
+        if (targetSessionId) {
+          selectSession(targetSessionId);
         }
 
         if (tokensData && !isCancelled) {
@@ -285,7 +330,12 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
     memoryMessages = null;
     memoryActiveSessionId = null;
     memoryGuestCount = 0;
-  }, []);
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.removeItem(getActiveSessionCacheKey(currentUserId));
+      } catch {}
+    }
+  }, [currentUserId]);
 
   const selectSession = useCallback(async (sessionId: string) => {
     if (!sessionId) return;
@@ -293,6 +343,12 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
     loadedSessionRef.current = sessionId;
     setActiveSessionId(sessionId);
     memoryActiveSessionId = sessionId;
+
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.setItem(getActiveSessionCacheKey(currentUserId), sessionId);
+      } catch {}
+    }
 
     // 1. Try instant load from user-scoped storage cache
     let foundInCache = false;
@@ -477,6 +533,49 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
     const history = messages.slice(-8).map((m) => ({ role: m.role, content: m.content }));
     const localResolution = await routeUserMessage(content, context, history, Boolean(user?.id), userName);
 
+    // Ensure activeSessionId exists so conversations are persisted to local storage and DB
+    const currentSessionId = activeSessionId || `session_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+    if (!activeSessionId) {
+      setActiveSessionId(currentSessionId);
+      memoryActiveSessionId = currentSessionId;
+      const targetUserId = currentUserId || "guest";
+      const titleSnippet = content.trim().slice(0, 36) || (isBn ? "নতুন আলাপ" : "New Chat");
+      const newSess: ChatSession = {
+        id: currentSessionId,
+        title: titleSnippet,
+        updated_at: new Date().toISOString(),
+      };
+
+      // Save new session into Dexie localDb
+      localDb.put("ai_sessions", {
+        id: currentSessionId,
+        title: titleSnippet,
+        userId: targetUserId,
+        createdAt: newSess.updated_at,
+        updatedAt: newSess.updated_at,
+      } as any).catch(() => {});
+
+      if (typeof window !== "undefined") {
+        try {
+          localStorage.setItem(getActiveSessionCacheKey(currentUserId), currentSessionId);
+        } catch {}
+      }
+
+      setSessions((prev) => {
+        const updated = [newSess, ...prev.filter((s) => s.id !== currentSessionId)];
+        if (typeof window !== "undefined") {
+          try {
+            const key = getSessionsCacheKey(currentUserId);
+            localStorage.setItem(key, JSON.stringify(updated));
+            if (!currentUserId) {
+              localStorage.setItem("focusforge_guest_sessions_list", JSON.stringify(updated));
+            }
+          } catch {}
+        }
+        return updated;
+      });
+    }
+
     // 2. INSTANT LOCAL-FIRST PATH (Online only: Canned greetings, identity, local tools, planner, diary, timer navigation)
     // Runs with delightful, snappy micro-animation (thinking -> laptop typing paws -> delivery), 0 token cost!
     if (!localResolution.shouldCallGemini) {
@@ -503,7 +602,7 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
       setMessages((items) => [...items, userMsg]);
       setIsThinking(true);
       setOrbState("thinking");
-      setThoughtText(isBn ? "একটু ভেবে নিচ্ছি…" : "Thinking…");
+      setThoughtText("Thinking…");
 
       // Brief lively thinking pause (~180ms)
       await new Promise<void>((resolve) => setTimeout(resolve, 180));
@@ -512,7 +611,7 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
       setIsThinking(false);
       setIsTyping(true);
       setOrbState("typing");
-      setThoughtText(isBn ? "লিখছি…" : "Typing…");
+      setThoughtText("Typing…");
 
       // Snappy live streaming reveal (~220ms)
       const fullText = localAiMessage.content || "";
@@ -551,8 +650,34 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
         setThoughtText(null);
       }
 
-      // Step C: Deliver assistant response into conversation
-      setMessages((items) => [...items, localAiMessage]);
+      // Step C: Deliver assistant response into conversation and persist immediately
+      setMessages((items) => {
+        const nextList = [...items, localAiMessage];
+        if (!isPrivateMode && currentSessionId) {
+          try {
+            const targetUserId = currentUserId || "guest";
+            const msgKey = getMsgCacheKey(currentUserId, currentSessionId);
+            localStorage.setItem(msgKey, JSON.stringify(nextList));
+            localStorage.setItem(getActiveSessionCacheKey(currentUserId), currentSessionId);
+            if (!currentUserId) {
+              sessionStorage.setItem(msgKey, JSON.stringify(nextList));
+            }
+            [userMsg, localAiMessage].forEach((m) => {
+              localDb.put("ai_messages", {
+                id: m.id || `msg_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+                sessionId: currentSessionId,
+                userId: targetUserId,
+                role: m.role,
+                content: m.content,
+                intent: m.intent || null,
+                payload: m.payload || null,
+                createdAt: (m.createdAt instanceof Date ? m.createdAt.toISOString() : m.createdAt) || new Date().toISOString(),
+              } as any).catch(() => {});
+            });
+          } catch {}
+        }
+        return nextList;
+      });
 
       // Step D: Expressive response emotion on Warbie/Glory face
       const emo = localAiMessage.emotion;
@@ -583,7 +708,7 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
     setMessages((items) => [...items, userMsg]);
     setIsThinking(true);
 
-    const stages = getProgressiveStages(content, model, isBn);
+    const stages = getProgressiveStages(content, model, false);
     const stageTimers: NodeJS.Timeout[] = [];
     stages.forEach((st) => {
       if (st.delayMs === 0) {
@@ -606,7 +731,7 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
       const result = await sendAgentMessage(
         content,
         context,
-        activeSessionId || undefined,
+        currentSessionId,
         history,
         langParam,
         model,
@@ -656,7 +781,7 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
       setIsThinking(false);
       setOrbState("typing");
       setIsTyping(true);
-      setThoughtText(isBn ? "লিখছি…" : "Typing…");
+      setThoughtText("Typing…");
 
       // Short natural typing transition
       await new Promise<void>((resolve) => setTimeout(resolve, 80));
@@ -786,7 +911,33 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
         return updated;
       };
 
-      setMessages(appender);
+      setMessages((items) => {
+        const nextList = appender(items);
+        if (!isPrivateMode && currentSessionId) {
+          try {
+            const targetUserId = currentUserId || "guest";
+            const msgKey = getMsgCacheKey(currentUserId, currentSessionId);
+            localStorage.setItem(msgKey, JSON.stringify(nextList));
+            localStorage.setItem(getActiveSessionCacheKey(currentUserId), currentSessionId);
+            if (!currentUserId) {
+              sessionStorage.setItem(msgKey, JSON.stringify(nextList));
+            }
+            [userMsg, normalizedAiMessage].forEach((m) => {
+              localDb.put("ai_messages", {
+                id: m.id || `msg_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+                sessionId: currentSessionId,
+                userId: targetUserId,
+                role: m.role,
+                content: m.content,
+                intent: m.intent || null,
+                payload: m.payload || null,
+                createdAt: (m.createdAt instanceof Date ? m.createdAt.toISOString() : m.createdAt) || new Date().toISOString(),
+              } as any).catch(() => {});
+            });
+          } catch {}
+        }
+        return nextList;
+      });
 
       return normalizedAiMessage;
     } catch (err: any) {

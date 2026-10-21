@@ -51,7 +51,7 @@ Focentia is an active, functional productivity suite built with Next.js 16 App R
 
 ### App Shell Skeleton, Splash Animation & PWA Deployment Auto-Update
 - **Current Implementation:**
-  1. **Dynamic Skeleton Theming, Zero-Skeleton Onboarding & Next.js Script Strategy:** `layout.tsx` runs theme pre-hydration in `<head>` prior to any style paint via Next.js `<Script id="..." strategy="beforeInteractive">` (replacing raw JSX `<script>` tags to eliminate React 19 / Next.js 16 "Encountered a script tag while rendering React component" and client/server DOM hydration mismatch warnings). `globals.css` declares dedicated `--skeleton-base`, `--skeleton-highlight`, `--skeleton-border`, and `--dashboard-card-bg` CSS tokens. Root `loading.tsx` renders a lightweight theme-adaptive background indicator rather than the heavy full-dashboard skeleton, eliminating skeleton flash when users enter via app icon or QR code. `frontend/src/app/page.tsx` checks `onboardingStorage.getLocalState()?.onboardingCompleted` synchronously on first render: when onboarding is pending, `<OnboardingModal>` mounts immediately without rendering dashboard shells underneath.
+  1. **Dynamic Skeleton Theming, Zero-Skeleton Onboarding & Next.js Script Strategy:** `layout.tsx` runs theme pre-hydration in `<head>` prior to any style paint via native `<script id="..." suppressHydrationWarning dangerouslySetInnerHTML={{ __html: ... }} />` paired with `frontend/src/utils/clientDevFixes.ts` (eliminating Next.js 16 Turbopack `<Script strategy="beforeInteractive">` hydration mismatch `- <script> + <div id="app-shell">` and React 19 "Encountered a script tag while rendering React component" false-positive dev overlay). `globals.css` declares dedicated `--skeleton-base`, `--skeleton-highlight`, `--skeleton-border`, and `--dashboard-card-bg` CSS tokens. Root `loading.tsx` renders a lightweight theme-adaptive background indicator rather than the heavy full-dashboard skeleton, eliminating skeleton flash when users enter via app icon or QR code. `frontend/src/app/page.tsx` checks `onboardingStorage.getLocalState()?.onboardingCompleted` synchronously on first render: when onboarding is pending, `<OnboardingModal>` mounts immediately without rendering dashboard shells underneath.
   2. **Tear-Free Onboarding to Login Flow:** In `OnboardingModal.tsx`, clicking "Get Started" sets `isExiting: true` to trigger buttery CSS scale/fade transitions and navigates directly via `router.replace("/login")` without premature unmounting, preventing the Dashboard from ever flickering before the Login screen.
   3. **Mobile Splash Screen Stabilization:** `manifest.json` and `manifest.webmanifest` enforce `"orientation": "portrait-primary"`. `<head>` includes `<meta name="screen-orientation" content="portrait" />` and `<meta name="x5-orientation" content="portrait" />`. `#ff-boot-badge` and `.mk` enforce `rotate: 0deg !important` and `transform-origin: center center`. The flight animation is tuned to 230ms (0.23s) with smooth docking into the top-left logo slot.
   4. **PWA Automated Deployment Updates (Prompted & Safe Reload):** `package.json` build command executes `node ./scripts/stamp_sw.js && next build`, generating a new timestamped `CACHE_NAME` (`focentia-build-<timestamp>`) on every GitHub commit and Vercel build. `next.config.ts` enforces `Cache-Control: no-cache, no-store, must-revalidate` and `Service-Worker-Allowed: /` for `/sw.js` and workbox paths. When an update is deployed, `PWAUpdater.tsx` checks for updates on mount, on focus, on `visibilitychange` (when visible), and every 30 minutes. Once the new worker reaches `installed`, a non-blocking toast ("New version available - Refresh") appears. Tapping "Refresh" dispatches `{ type: 'SKIP_WAITING' }` to the waiting worker. On `controllerchange`, the app reloads once, guarded by a module-level boolean and `sessionStorage` flag against reload loops, and safe from auto-reloading while the user is typing.
@@ -549,8 +549,49 @@ Focentia is an active, functional productivity suite built with Next.js 16 App R
      - In `AuthContext.tsx`, `activeUser` and `lifecycle = 'AUTHENTICATED'` are set immediately from session metadata, making remote profile fetching non-blocking on startup.
      - In `AppContext.tsx`, eliminated the artificial 350ms delay on mount; local Dexie IndexedDB state hydrates immediately.
      - In `app/page.tsx`, tightened mount timers from 1000ms/1500ms down to 250ms/400ms.
-- **Verified Status:** **VERIFIED** (Frontend Turbopack build: 21/21 static & dynamic routes compiled with 0 errors; Backend build: 0 errors; Real Gemini API call verified; Intent router verified 100%).
-- **Important Files:** `frontend/src/app/api/[...path]/route.ts`, `frontend/src/lib/server/aiService.ts`, `backend/src/services/aiService.ts`, `frontend/src/lib/ai/router/intents.ts`, `frontend/src/lib/ai/router/handlers.ts`, `frontend/src/lib/ai/router/templates/social.json`, `frontend/src/components/ai-agent/AIAgentPage.tsx`, `frontend/src/context/AuthContext.tsx`, `frontend/src/context/AppContext.tsx`, `frontend/src/app/page.tsx`.
+  7. **Light Mode Interface Harmonization & Direct Feature Navigation (October 21, 2026):**
+     - Completely eliminated the nested 1px-bordered `#F7FAFE` box in Light Mode across the Glory AI composer, Mind Space textarea, and Diary lined textarea (`globals.css`), matching Dark Mode's seamless single-container surface.
+     - Standardized Action Cards in Light Mode with primary button `#223A5E` (hover: `#2E4E7B`, text: white) and Dark Mode `blue-600`; replaced low-contrast cancel buttons with high-contrast slate buttons; enhanced duration pill contrast with `text-emerald-800 bg-emerald-100/90 border-emerald-300`.
+     - Standardized all Toggle switches in `SettingsPage.tsx` to `#223A5E` in Light Mode and `blue-600` in Dark Mode.
+     - Refined `TIMELOG_TOPIC_QUERY_REGEX` to prevent standalone problem queries from triggering Time Log; expanded `NAV_MIND_REGEX` so "I have a problem" provides empathetic reassurance with a direct "Open Mind Space" button.
+     - Feature option queries ("show me focus option", "give me focus button", "want to focus", "planner option", "diary option", "notes option", "time log option", "dashboard option") return direct 1-click navigation cards with clear button labels without forcing arbitrary timers.
+     - Enforced that status text above the Orby Face during thinking/working (`thoughtText`) is strictly in English ("Thinking…", "Typing…", "Thinking carefully…", "Writing your answer…") across all languages.
+     - Guaranteed turn-1 `currentSessionId` initialization in `useAIAgent.ts` so local and remote chat history persist reliably to IndexedDB and local storage.
+- **Verified Status:** **VERIFIED** (Frontend Turbopack production build: 21/21 static & dynamic routes compiled with 0 errors; TypeScript typecheck 100% clean; Git scope audit verified).
+- **Important Files:** `frontend/src/app/globals.css`, `frontend/src/components/ai-agent/AIActionCard.tsx`, `frontend/src/components/pages/SettingsPage.tsx`, `frontend/src/lib/ai/router/intents.ts`, `frontend/src/lib/ai/router/handlers.ts`, `frontend/src/lib/server/aiService.ts`, `frontend/src/services/aiStatusEvents.ts`, `frontend/src/hooks/useAIAgent.ts`.
+
+---
+
+### Mind Space Light Mode Text Bar & Full Application Data Persistence Verification (October 22, 2026)
+- **Current Implementation:**
+  1. **Mind Space Light Mode Text Bar Single-Box UI (`globals.css`, `MindHome.tsx`):**
+     - Excluded `.my-mind-textarea` across all universal bordered textarea rules in `globals.css` (`:root[data-theme="light"] textarea:not(...)` and `html.light textarea:not(...)`).
+     - Added explicit zero border (`border: none !important; border-width: 0 !important; box-shadow: none !important;`) and transparent background styling, matching dark mode's seamless single-container surface without any inner rectangular box.
+     - Visually verified via browser subagent screenshots `mind_space_initial_1792611018848.png` and `media_1792611882398.png`.
+  2. **Profile Data Persistence (`ProfilePage.tsx`, `Sidebar.tsx`):**
+     - Removed login modal interception for guest profile edits (`setIsEditing(true)` unlocked for all users).
+     - Saved guest profile modifications (`fullName`, `displayName`, `city`, `avatarUrl`, etc.) to `localStorage.setItem("focusforge_guest_profile", ...)` and dispatched `focusforge:profile_updated`.
+     - In `Sidebar.tsx`, added reactive listener for `focusforge:profile_updated` and `storage` events to immediately display the customized name and avatar initials.
+     - Visually verified via browser subagent screenshot `profile_guest_verified_100_1792613078961.png`: Profile changes and Sidebar display remain 100% intact across hard browser reloads.
+  3. **AI Chat History & Active Session Persistence (`useAIAgent.ts`):**
+     - Initialized `activeSessionId` and `messages` directly from localStorage cache on initial render.
+     - Synchronously wrote sent messages and AI responses into `localStorage` and Dexie `ai_messages` for all users (`userId: currentUserId || "guest"`).
+     - Fixed `fetchInitialData` mount hook: prevented wiping on initial mount (`prevUserIdRef.current !== null && prevUserIdRef.current !== currentUserId`) and automatically called `selectSession(targetSessionId)` to restore the active conversation across page reloads.
+     - Visually verified via browser subagent screenshots `ai_chat_before_reload_1792613172363.png` and `ai_chat_after_reload_1792613194382.png`: Messages and Glory AI responses remain 100% visible across hard page reloads.
+  4. **Active Page Navigation State Persistence (`AppContext.tsx`):**
+     - In `navigateTo` and `loadUserData`, persisted `state.activePage` to both `sessionStorage` and `localStorage`, preventing the app from resetting to the Dashboard ("today") on F5/refresh.
+  5. **Task & Routine User ID Scoping (`taskService.ts`, `AppContext.tsx`):**
+     - Added synchronous user ID resolution via `accountManager.getRememberedAccounts()[0]?.id` before falling back to `"guest"`.
+     - AppContext task/routine handlers pass synchronous `activeUserIdRef.current || 'guest'` to guarantee tasks/routines are written and queried under identical storage keys.
+  6. **Learning Folders/Logs & Diary Topics/Entries (`AppContext.tsx`):**
+     - Replaced asynchronous `supabase.auth.getSession()` calls with synchronous `activeUserIdRef.current || 'guest'` across all learning and diary handlers.
+     - Guaranteed items write to Dexie under the exact active user key and enqueue authenticated records into `sync_queue` for seamless cross-device synchronization.
+  7. **Note Editor Unmount Save & Attachment Signed URL Hydration (`NoteEditorView.tsx`):**
+     - Implemented unmount save flush and `beforeunload` listener to prevent note loss on navigation or tab close.
+     - Ensured signed URL fetching passes `user?.id || 'guest'`, allowing both guest and authenticated users to reload and view attached images/files/PDFs.
+- **Verified Status:** **VERIFIED** (TypeScript typecheck 100% clean; Next.js 16 Turbopack production build: 21/21 static & dynamic routes compiled with exit code 0; visual browser verification completed for Mind Space, Profile, and AI Chat).
+- **Important Files:** `frontend/src/app/globals.css`, `frontend/src/components/mymind/MindHome.tsx`, `frontend/src/components/pages/ProfilePage.tsx`, `frontend/src/components/Sidebar.tsx`, `frontend/src/hooks/useAIAgent.ts`, `frontend/src/context/AppContext.tsx`, `frontend/src/services/taskService.ts`, `frontend/src/components/pages/NoteEditorView.tsx`.
+
 
 
 

@@ -114,17 +114,23 @@ export default function ProfilePage() {
         avatarUrl: user.avatarUrl || "",
       });
     } else {
+      let savedGuest: any = null;
+      try {
+        const saved = localStorage.getItem("focusforge_guest_profile");
+        if (saved) savedGuest = JSON.parse(saved);
+      } catch {}
+
       setFormData({
-        fullName: "Guest Explorer",
-        displayName: "Guest",
-        email: "guest@focentia.app",
-        phone: "",
-        dob: "",
-        gender: "",
-        country: "",
-        city: "",
-        bio: "Exploring Focentia in guest mode.",
-        avatarUrl: "",
+        fullName: savedGuest?.fullName || "Guest Explorer",
+        displayName: savedGuest?.displayName || "Guest",
+        email: savedGuest?.email || "guest@focentia.app",
+        phone: savedGuest?.phone || "",
+        dob: savedGuest?.dob || "",
+        gender: savedGuest?.gender || "",
+        country: savedGuest?.country || "",
+        city: savedGuest?.city || "",
+        bio: savedGuest?.bio || "Exploring Focentia in guest mode.",
+        avatarUrl: savedGuest?.avatarUrl || "",
       });
     }
   }, [user]);
@@ -184,7 +190,16 @@ export default function ProfilePage() {
           showToast(state.lang === 'bn' ? "প্রোফাইল ছবি আপলোড করতে ব্যর্থ হয়েছে।" : "Failed to upload profile photo.", "error");
         }
       } else {
-        showToast(state.lang === 'bn' ? "প্রোফাইল ছবি প্রিভিউ আপডেট হয়েছে (গেস্ট মোড)।" : "Profile photo preview updated (guest mode).", "info");
+        try {
+          const guestStr = localStorage.getItem("focusforge_guest_profile");
+          const existing = guestStr ? JSON.parse(guestStr) : {};
+          const updated = { ...existing, avatarUrl: base64 };
+          localStorage.setItem("focusforge_guest_profile", JSON.stringify(updated));
+          window.dispatchEvent(new CustomEvent("focusforge:profile_updated", { detail: updated }));
+        } catch (e) {
+          console.error("Failed to save guest avatar", e);
+        }
+        showToast(state.lang === 'bn' ? "প্রোফাইল ছবি সফলভাবে আপডেট হয়েছে।" : "Profile photo updated successfully.", "success");
       }
     };
     reader.readAsDataURL(file);
@@ -200,6 +215,15 @@ export default function ProfilePage() {
         showToast(state.lang === 'bn' ? "প্রোফাইল ছবি মুছে ফেলা হয়েছে।" : "Profile photo removed.", "info");
       }
     } else {
+      try {
+        const guestStr = localStorage.getItem("focusforge_guest_profile");
+        const existing = guestStr ? JSON.parse(guestStr) : {};
+        const updated = { ...existing, avatarUrl: "" };
+        localStorage.setItem("focusforge_guest_profile", JSON.stringify(updated));
+        window.dispatchEvent(new CustomEvent("focusforge:profile_updated", { detail: updated }));
+      } catch (e) {
+        console.error("Failed to clear guest avatar", e);
+      }
       showToast(state.lang === 'bn' ? "প্রোফাইল ছবি মুছে ফেলা হয়েছে।" : "Profile photo removed.", "info");
     }
   };
@@ -210,11 +234,31 @@ export default function ProfilePage() {
     setIsSaving(true);
 
     if (isGuest || !user) {
+      const finalFullName = formData.fullName.trim();
+      const finalDisplayName = formData.displayName.trim() || finalFullName || "Guest";
+      const guestData = {
+        ...formData,
+        fullName: finalFullName,
+        displayName: finalDisplayName,
+        email: formData.email.trim(),
+        phone: formData.phone.trim(),
+        dob: formData.dob,
+        gender: formData.gender,
+        country: formData.country.trim(),
+        city: formData.city.trim(),
+        bio: formData.bio.trim(),
+      };
+      try {
+        localStorage.setItem("focusforge_guest_profile", JSON.stringify(guestData));
+        window.dispatchEvent(new CustomEvent("focusforge:profile_updated", { detail: guestData }));
+      } catch (e) {
+        console.error("Failed to save guest profile to localStorage", e);
+      }
       setTimeout(() => {
         setIsSaving(false);
         setIsEditing(false);
-        showToast(state.lang === 'bn' ? "প্রোফাইল প্রিভিউ সাময়িকভাবে আপডেট হয়েছে। সেভ করতে সাইন ইন করুন!" : "Profile preview updated (temporary). Sign in to save permanently!", "info");
-      }, 300);
+        showToast(state.lang === 'bn' ? "প্রোফাইল সফলভাবে আপডেট হয়েছে।" : "Profile updated successfully.", "success");
+      }, 200);
       return;
     }
 
@@ -262,10 +306,6 @@ export default function ProfilePage() {
 
   // Helper to trigger edit mode and focus a specific field
   const handleRowClick = (fieldKey?: keyof typeof inputRefs) => {
-    if (isGuest && !user) {
-      openAuth('login');
-      return;
-    }
     setIsEditing(true);
     if (fieldKey && inputRefs[fieldKey]?.current) {
       setTimeout(() => {
@@ -449,20 +489,12 @@ export default function ProfilePage() {
             ) : (
               <button
                 type="button"
-                onClick={() => {
-                  if (isGuest || !user) {
-                    openAuth('login');
-                  } else {
-                    setIsEditing(true);
-                  }
-                }}
+                onClick={() => setIsEditing(true)}
                 className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs sm:text-sm font-semibold text-[#0F172A] dark:text-white bg-transparent hover:bg-slate-100 dark:hover:bg-white/5 border border-slate-300 dark:border-slate-700/80 hover:border-blue-500 dark:hover:border-blue-400 transition-all cursor-pointer active:scale-95"
               >
                 <Pencil size={13} className="text-blue-500 dark:text-blue-400" />
                 <span>
-                  {isGuest || !user 
-                    ? (isBn ? "লগইন করুন" : "Sign In") 
-                    : (isBn ? "এডিট" : "Edit")}
+                  {isBn ? "এডিট" : "Edit"}
                 </span>
               </button>
             )}

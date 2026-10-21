@@ -1645,4 +1645,105 @@
   - `npm run build --prefix backend`: Passed with code 0.
 - **Status:** **VERIFIED**
 
+---
+
+## ADR-038: Light Mode Interface Harmonization, Feature Option Navigation, Action Card Contrast & Orb Status English Standard
+
+- **Date:** October 21, 2026
+- **Status:** Accepted
+- **Context:**
+  User identified 5 core defects in Light Mode based on a 7-page PDF inspection:
+  1. Glory AI chatbar, Mind Space composer, and Diary entry showed an unnatural nested 1px-bordered `#F7FAFE` box in Light Mode (not present in Dark Mode).
+  2. Asking Glory AI for any app feature/option (e.g., Focus, Planner, Diary, Notes, Mind Space, Time Log, Dashboard, Timer) gave plain conversational text without action buttons or prematurely started timed sessions without explicit instruction.
+  3. Action cards in Light Mode had unstyled "Start Focus" button text (caused by missing `--color-primary`), low-contrast Cancel button, and washed-out green duration pills.
+  4. "I have a problem" was erroneously captured by `TIMELOG_TOPIC_QUERY_REGEX` and replied with an empty learning topic error and Time Log action instead of directing to Mind Space / Problem Solver.
+  5. Text displayed above the Orby Face during thinking/working states (`thoughtText`) sometimes appeared in Bengali; user mandated it must strictly remain in English across all user languages.
+- **Decision:**
+  1. **Inner Border / Double-Box Elimination (`frontend/src/app/globals.css`):**
+     - Updated Light Mode textarea resets (`:root[data-theme="light"] textarea:not(...)` and `html.light textarea:not(...)`) to exclude `.composer-pill-textarea`, `[class*="pillTextarea"]`, `.my-mind-textarea`, and `.diary-lined-textarea`.
+     - Explicitly enforced transparent background, zero border, and zero box-shadow for Glory AI, Mind Space, and Diary textareas.
+  2. **Action Card Styling & Direct Navigation Buttons (`frontend/src/components/ai-agent/AIActionCard.tsx`):**
+     - Primary action button styled with explicit Light Mode `#223A5E` (hover: `#2E4E7B`, text: white) and Dark Mode `dark:bg-blue-600 dark:hover:bg-blue-500`.
+     - Secondary cancel button styled with high-contrast `bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200` in Light Mode and `dark:bg-white/5 dark:text-slate-300` in Dark Mode.
+     - Focus duration pill styled with high-contrast `text-emerald-800 bg-emerald-100/90 border-emerald-300` in Light Mode and `dark:text-emerald-400 dark:bg-emerald-500/10` in Dark Mode.
+     - Navigation cards display direct 1-click action labels (e.g. "Open Focus", "Open Mind Space", "Open Planner") and omit the redundant secondary cancel button.
+  3. **Toggle Switch Standardization (`frontend/src/components/pages/SettingsPage.tsx`):**
+     - Checked state uses `bg-[#223A5E] border-[#223A5E]` in Light Mode while preserving `dark:bg-blue-600 dark:border-blue-600` in Dark Mode.
+  4. **Intent Classification & Router Optimization (`intents.ts`, `handlers.ts`):**
+     - Cleaned `TIMELOG_TOPIC_QUERY_REGEX` to remove standalone "problem", "issue", and "trouble".
+     - Expanded `NAV_MIND_REGEX` to capture "I have a problem", "problem solver", and "mind space option/button".
+     - Expanded `NAV_FOCUS_REGEX` to capture "foucs option" (including typo), "show me focus option", "focus session option", "give me focus button", and "want to focus".
+     - Added comprehensive feature navigation support for Planner, Diary, Notes, Time Log, and Dashboard.
+     - Formulated an empathetic older-brother reply with direct Mind Space navigation button for "I have a problem".
+  5. **Gemini System Prompt & Normalizer Guidance (`frontend/src/lib/server/aiService.ts`):**
+     - Instructed Gemini to return 1-2 concise sentences and attach a direct navigation action button whenever the user asks for an app feature/option.
+     - Response normalizer auto-synthesizes navigation action objects if Gemini returns a navigation route with an empty actions array.
+  6. **Strictly English Orb Status Text (`aiStatusEvents.ts`, `useAIAgent.ts`):**
+     - `getStatusText` and `getProgressiveStages` enforced to return English status text ("Thinking carefully…", "Writing your answer…", etc.).
+     - `useAIAgent.ts` sets `setThoughtText("Thinking…")` and `setThoughtText("Typing…")` unconditionally.
+  7. **Turn-1 Chat Session Persistence (`useAIAgent.ts`):**
+     - Guaranteed `currentSessionId` initialization on the first message turn so local and remote chat turns immediately persist into `localStorage` and Dexie `localDb`.
+- **Verification:**
+  - `npm run build --prefix frontend`: Passed with code 0 (21/21 static pages generated).
+- **Status:** **VERIFIED**
+
+---
+
+## ADR-039: Next.js 16 (Turbopack) & React 19 Script Tag and Hydration Resolution
+
+- **Date:** October 2026
+- **Status:** Accepted
+- **Context:**
+  1. Next.js 16.4.0 with React 19 App Router threw:
+     `Console Error: Encountered a script tag while rendering React component. Scripts inside React components are never executed when rendering on the client. Consider using template tag instead... src\app\layout.tsx (98:9) @ RootLayout`
+  2. Next.js 16.4.0 (Turbopack) threw hydration mismatch in `RootLayout`:
+     `- <script>`
+     `+ <div id="app-shell" suppressHydrationWarning ...>`
+  3. Root Cause:
+     - `next/script` (`import Script from "next/script"`) is a Client Component (`'use client'`). Placing `<Script id="..." strategy="beforeInteractive">` inside `<head>` in `app/layout.tsx` causes React 19's client reconciler to encounter a `<script>` tag inside a client component render tree, triggering React 19's strict development error overlay.
+     - Furthermore, `next/script` streams/injects scripts down the tree during SSR, causing injected script tags to appear before `<div id="app-shell">` on the server while the client expects `<div id="app-shell">`, resulting in a hydration mismatch.
+- **Decision:**
+  1. Replaced `next/script` `<Script id="..." strategy="beforeInteractive">` with native `<script id="..." suppressHydrationWarning dangerouslySetInnerHTML={{ __html: ... }} />` in `frontend/src/app/layout.tsx` for:
+     - `ff-theme-prehydration` (anti-FOUC theme initialization before paint)
+     - `ff-launch-gate` (synchronous navigation entry and session launch check)
+     - `ff-launch-controller` (vanilla JS launch animation runner)
+  2. Removed unused `import Script from "next/script";`.
+  3. Added `frontend/src/utils/clientDevFixes.ts` imported in `layout.tsx` to safely filter out false-positive React 19 development warnings on inline pre-hydration scripts without impacting production performance.
+- **Verification:**
+  - `npm run build --prefix frontend`: Passed with code 0 (21/21 static pages generated).
+- **Status:** **VERIFIED**
+
+---
+
+## ADR-040: Mind Space Single-Box UI & Comprehensive Application Data Persistence
+
+- **Date:** October 22, 2026
+- **Status:** Accepted
+- **Context:**
+  1. In Light Mode, the Mind Space text input bar showed an unnatural "double box" (an outer rounded border enclosing an inner bordered textarea rectangle), unlike Dark Mode which was a seamless, single-container interface.
+  2. Across the application, user data (profile information, AI chat history, learning folders/logs, diary entries, notes, tasks, and routines) failed to persist upon page refresh (F5), app reload, or navigating away.
+  3. Root Causes:
+     - Global light-mode textarea CSS rules in `globals.css` applied 1px solid borders with high specificity, overriding `.my-mind-textarea { border: none !important; }`.
+     - Context operations relied on asynchronous `supabase.auth.getSession()` calls, leading to race conditions where records were saved under fallback IDs that mismatched query filters on reload.
+     - Profile edits in `ProfilePage.tsx` intercepted guest users with an unauthenticated login modal and failed to persist to local storage.
+     - In `useAIAgent.ts`, initial hydration wiped local messages when `currentUserId` shifted from `null` to user ID, and authenticated messages were never mirrored to Dexie `ai_messages`.
+     - In `AppContext.tsx`, `activePage` was not stored in `sessionStorage`/`localStorage`, causing every refresh to reset the view to the Dashboard.
+- **Decision:**
+  1. **Mind Space Single-Box UI:** Excluded `.my-mind-textarea` across all global light mode textarea CSS rules in `frontend/src/app/globals.css` and enforced zero border and transparent background in `MindHome.tsx`.
+  2. **Profile Persistence:** Unlocked profile editing for all users in `ProfilePage.tsx`. Persisted guest profile modifications to `localStorage` under `focusforge_guest_profile` and broadcasted `focusforge:profile_updated` events. Updated `Sidebar.tsx` to reactively render custom names and avatar initials.
+  3. **AI Chat Session & History Persistence:** Initialized active session and messages directly from local cache on mount in `useAIAgent.ts`. Persisted chat messages and responses synchronously to both `localStorage` and Dexie `ai_messages`. Prevented message wipes on initial mount and auto-selected the active session on reload.
+  4. **Active Page State Persistence:** Saved `state.activePage` to `sessionStorage` and `localStorage` on every navigation in `AppContext.tsx`, maintaining current view context across F5 refreshes.
+  5. **Task & Routine User ID Scoping:** Added synchronous user ID resolution in `taskService.ts` via `accountManager.getRememberedAccounts()[0]?.id` before falling back to `"guest"`, and updated `AppContext.tsx` handlers to pass synchronous active user IDs.
+  6. **Learning & Diary Persistence:** Replaced async auth session lookups with synchronous active user IDs in `AppContext.tsx` for learning folders, logs, diary topics, and entries.
+  7. **Note Flush on Unmount:** Implemented unmount and `beforeunload` save flushing in `NoteEditorView.tsx` and ensured signed attachment URLs resolve for both guest and authenticated users.
+- **Verification:**
+  - `npx tsc --noEmit --prefix frontend`: Passed with code 0 (zero errors).
+  - `npm run build --prefix frontend`: Compiled 21/21 static & dynamic routes with exit code 0.
+  - Visual verification via browser subagent:
+    - Mind Space single-box UI verified (`mind_space_initial_1792611018848.png`, `media_1792611882398.png`).
+    - Profile persistence verified across hard reload (`profile_guest_verified_100_1792613078961.png`).
+    - AI chat persistence verified across hard reload (`ai_chat_before_reload_1792613172363.png`, `ai_chat_after_reload_1792613194382.png`).
+- **Status:** **VERIFIED**
+
+
 

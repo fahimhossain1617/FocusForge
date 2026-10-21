@@ -264,7 +264,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           } else if (hashParam && validPages.has(hashParam)) {
             urlActivePage = hashParam;
           }
-          sessionActivePage = sessionStorage.getItem('focusforge_active_page');
+          sessionActivePage = sessionStorage.getItem('focusforge_active_page') || localStorage.getItem('focusforge_active_page');
         } catch {}
       }
       const initialActivePage = urlActivePage || sessionActivePage || 'today';
@@ -602,6 +602,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     trackMeaningfulAction('feature_' + page);
 
     setSubViewActive(false);
+    if (typeof window !== 'undefined') {
+      try {
+        sessionStorage.setItem('focusforge_active_page', page);
+        localStorage.setItem('focusforge_active_page', page);
+      } catch {}
+    }
     setState((prev) => {
       if (prev.activePage === page) return prev;
       if (!isBack && prev.activePage && prev.activePage !== page) {
@@ -841,7 +847,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     };
     setState((prev) => ({ ...prev, tasks: [...prev.tasks, newTask] }));
     trackMeaningfulAction('create_task');
-    syncTaskToBackend(newTask).catch((err) => {
+    const currentUserId = activeUserIdRef.current || 'guest';
+    syncTaskToBackend(newTask, currentUserId).catch((err) => {
       console.warn('[AppContext] Task sync warning (saved safely in local storage):', err);
     });
   }, [trackMeaningfulAction]);
@@ -870,7 +877,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       trackMeaningfulAction('check_task');
       showToast("Boom!Task completed successfully.", "success");
     }
-    updateTaskInBackend(id, updates).catch((err) => {
+    const currentUserId = activeUserIdRef.current || 'guest';
+    updateTaskInBackend(id, updates, currentUserId).catch((err) => {
       console.warn('[AppContext] Failed to sync task update to backend (saved locally):', err);
     });
   }, [trackMeaningfulAction, showToast]);
@@ -882,7 +890,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       tasks: prev.tasks.filter((t) => String(t.id) !== String(id) && (!isNaN(numId) ? t.id !== numId : true)),
     }));
     if (!isNaN(numId)) {
-      deleteTaskFromBackend(numId).catch((err) => console.warn('[AppContext] Failed to delete task in backend:', err));
+      const currentUserId = activeUserIdRef.current || 'guest';
+      deleteTaskFromBackend(numId, currentUserId).catch((err) => console.warn('[AppContext] Failed to delete task in backend:', err));
     }
   }, []);
 
@@ -903,7 +912,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (nextStatus === 'completed') {
       showToast("🎉 দারুণ! কাজ সম্পন্ন করায় অভিনন্দন!", "success");
     }
-    updateTaskInBackend(id, { status: nextStatus, completed: nextStatus === 'completed' }).catch((err) => {
+    const currentUserId = activeUserIdRef.current || 'guest';
+    updateTaskInBackend(id, { status: nextStatus, completed: nextStatus === 'completed' }, currentUserId).catch((err) => {
       console.warn('[AppContext] Failed to sync task status to backend (saved locally):', err);
     });
   }, [state.tasks, trackMeaningfulAction, showToast]);
@@ -1010,7 +1020,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         targetTemplate = { ...template, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
         updated = [...templates, targetTemplate];
       }
-      saveRoutineTemplateToBackend(targetTemplate).catch((err) =>
+      const currentUserId = activeUserIdRef.current || 'guest';
+      saveRoutineTemplateToBackend(targetTemplate, currentUserId).catch((err) =>
         console.warn('[AppContext] saveRoutineTemplate backend sync error:', err)
       );
       return { ...prev, routineTemplates: updated };
@@ -1018,7 +1029,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const deleteRoutineTemplate = useCallback((templateId: string) => {
-    deleteRoutineTemplateFromBackend(templateId).catch((err) =>
+    const currentUserId = activeUserIdRef.current || 'guest';
+    deleteRoutineTemplateFromBackend(templateId, currentUserId).catch((err) =>
       console.warn('[AppContext] deleteRoutineTemplate backend sync error:', err)
     );
     setState((prev) => ({
@@ -1033,6 +1045,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const templateIndex = templates.findIndex((t) => t.weekday === weekday);
       const newTaskId = 'rt_' + Date.now().toString(36) + Math.random().toString(36).substring(2, 6);
 
+      const currentUserId = activeUserIdRef.current || 'guest';
       if (templateIndex === -1) {
         const newTemplate: RoutineTemplate = {
           id: 'routine_' + weekday,
@@ -1045,7 +1058,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         };
-        saveRoutineTemplateToBackend(newTemplate).catch((err) =>
+        saveRoutineTemplateToBackend(newTemplate, currentUserId).catch((err) =>
           console.warn('[AppContext] addRoutineTask backend sync error:', err)
         );
         return { ...prev, routineTemplates: [...templates, newTemplate] };
@@ -1058,7 +1071,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       template.updatedAt = new Date().toISOString();
       templates[templateIndex] = template;
 
-      saveRoutineTemplateToBackend(template).catch((err) =>
+      saveRoutineTemplateToBackend(template, currentUserId).catch((err) =>
         console.warn('[AppContext] addRoutineTask backend sync error:', err)
       );
 
@@ -1077,7 +1090,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       template.updatedAt = new Date().toISOString();
       templates[templateIndex] = template;
 
-      saveRoutineTemplateToBackend(template).catch((err) =>
+      const currentUserId = activeUserIdRef.current || 'guest';
+      saveRoutineTemplateToBackend(template, currentUserId).catch((err) =>
         console.warn('[AppContext] updateRoutineTask backend sync error:', err)
       );
 
@@ -1096,7 +1110,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       template.updatedAt = new Date().toISOString();
       templates[templateIndex] = template;
 
-      saveRoutineTemplateToBackend(template).catch((err) =>
+      const currentUserId = activeUserIdRef.current || 'guest';
+      saveRoutineTemplateToBackend(template, currentUserId).catch((err) =>
         console.warn('[AppContext] deleteRoutineTask backend sync error:', err)
       );
 
@@ -1123,7 +1138,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       template.updatedAt = new Date().toISOString();
       templates[templateIndex] = template;
 
-      saveRoutineTemplateToBackend(template).catch((err) =>
+      const currentUserId = activeUserIdRef.current || 'guest';
+      saveRoutineTemplateToBackend(template, currentUserId).catch((err) =>
         console.warn('[AppContext] reorderRoutineTasks backend sync error:', err)
       );
 
@@ -1537,10 +1553,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       learningFolders: [...prev.learningFolders, newFolder]
     }));
     trackMeaningfulAction('learning_folder');
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      const targetUserId = session?.user?.id || 'guest';
-      learningDbService.saveFolder(newFolder, targetUserId);
-    });
+    const targetUserId = activeUserIdRef.current || 'guest';
+    learningDbService.saveFolder(newFolder, targetUserId);
     return newFolder.id;
   }, [trackMeaningfulAction]);
 
@@ -1550,10 +1564,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       learningFolders: prev.learningFolders.filter((f) => f.id !== id),
       learningLogs: prev.learningLogs.filter((l) => l.folderId !== id),
     }));
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      const targetUserId = session?.user?.id || 'guest';
-      learningDbService.deleteFolder(id, targetUserId);
-    });
+    const targetUserId = activeUserIdRef.current || 'guest';
+    learningDbService.deleteFolder(id, targetUserId);
   }, []);
 
   const toggleLearningFolderCompletion = useCallback((id: string) => {
@@ -1568,12 +1580,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       });
       return { ...prev, learningFolders: updatedFolders };
     });
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      const targetUserId = session?.user?.id || 'guest';
-      if (targetFolder) {
-        learningDbService.updateFolder(id, { completed: targetFolder.completed }, targetUserId);
-      }
-    });
+    const targetUserId = activeUserIdRef.current || 'guest';
+    if (targetFolder) {
+      learningDbService.updateFolder(id, { completed: (targetFolder as any).completed }, targetUserId);
+    }
   }, []);
 
   const addLearningLog = useCallback((log: Omit<LearningLog, 'id'>) => {
@@ -1582,10 +1592,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       ...prev,
       learningLogs: [...prev.learningLogs, newLog]
     }));
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      const targetUserId = session?.user?.id || 'guest';
-      learningDbService.saveLog(newLog, targetUserId);
-    });
+    const targetUserId = activeUserIdRef.current || 'guest';
+    learningDbService.saveLog(newLog, targetUserId);
   }, []);
 
   const deleteLearningLog = useCallback((id: string) => {
@@ -1593,10 +1601,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       ...prev,
       learningLogs: prev.learningLogs.filter((l) => l.id !== id)
     }));
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      const targetUserId = session?.user?.id || 'guest';
-      learningDbService.deleteLog(id, targetUserId);
-    });
+    const targetUserId = activeUserIdRef.current || 'guest';
+    learningDbService.deleteLog(id, targetUserId);
   }, []);
 
   // ==================== My Diary ====================
@@ -1609,15 +1615,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       return { ...prev, diaryTopics: updatedTopics };
     });
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      const targetUserId = session?.user?.id || 'guest';
-      if (createdTopic) {
-        diaryDbService.saveDiaryTopic(createdTopic, targetUserId);
-        if (createdTopic.entries?.[0]) {
-          diaryDbService.saveDiaryEntry(createdTopic.id, createdTopic.entries[0], targetUserId);
-        }
+    const targetUserId = activeUserIdRef.current || 'guest';
+    if (createdTopic!) {
+      diaryDbService.saveDiaryTopic(createdTopic, targetUserId);
+      if (createdTopic.entries?.[0]) {
+        diaryDbService.saveDiaryEntry(createdTopic.id, createdTopic.entries[0], targetUserId);
       }
-    });
+    }
 
     trackMeaningfulAction('save_diary');
 
@@ -1629,10 +1633,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const updatedTopics = updateDiaryTopic(topicId, updates, prev.diaryTopics || []);
       const updatedTopic = updatedTopics.find(t => t.id === topicId);
       if (updatedTopic) {
-        supabase.auth.getSession().then(({ data: { session } }) => {
-          const targetUserId = session?.user?.id || 'guest';
-          diaryDbService.saveDiaryTopic(updatedTopic, targetUserId);
-        });
+        const targetUserId = activeUserIdRef.current || 'guest';
+        diaryDbService.saveDiaryTopic(updatedTopic, targetUserId);
       }
       return { ...prev, diaryTopics: updatedTopics };
     });
@@ -1644,10 +1646,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       diaryTopics: deleteDiaryTopic(topicId, prev.diaryTopics || [])
     }));
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      const targetUserId = session?.user?.id || 'guest';
-      diaryDbService.deleteDiaryTopic(topicId, targetUserId);
-    });
+    const targetUserId = activeUserIdRef.current || 'guest';
+    diaryDbService.deleteDiaryTopic(topicId, targetUserId);
   }, []);
 
   const addDiaryEntryItem = useCallback((topicId: string, title: string = '', content: string = '') => {
@@ -1658,12 +1658,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       return { ...prev, diaryTopics: updatedTopics };
     });
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      const targetUserId = session?.user?.id || 'guest';
-      if (createdEntry) {
-        diaryDbService.saveDiaryEntry(topicId, createdEntry, targetUserId);
-      }
-    });
+    const targetUserId = activeUserIdRef.current || 'guest';
+    if (createdEntry!) {
+      diaryDbService.saveDiaryEntry(topicId, createdEntry, targetUserId);
+    }
 
     return createdEntry!;
   }, []);
@@ -1674,10 +1672,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const updatedTopic = updatedTopics.find(t => t.id === topicId);
       const updatedEntry = updatedTopic?.entries.find(e => e.id === entryId);
       if (updatedEntry) {
-        supabase.auth.getSession().then(({ data: { session } }) => {
-          const targetUserId = session?.user?.id || 'guest';
-          diaryDbService.saveDiaryEntry(topicId, updatedEntry, targetUserId);
-        });
+        const targetUserId = activeUserIdRef.current || 'guest';
+        diaryDbService.saveDiaryEntry(topicId, updatedEntry, targetUserId);
       }
       return { ...prev, diaryTopics: updatedTopics };
     });
@@ -1689,10 +1685,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       return { ...prev, diaryTopics: updatedTopics };
     });
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      const targetUserId = session?.user?.id || 'guest';
-      diaryDbService.deleteDiaryEntry(entryId, targetUserId);
-    });
+    const targetUserId = activeUserIdRef.current || 'guest';
+    diaryDbService.deleteDiaryEntry(entryId, targetUserId);
   }, []);
 
 

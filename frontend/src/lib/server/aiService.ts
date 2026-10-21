@@ -238,6 +238,7 @@ MODE: FOCENTIA 2.0 / 2.1 (MAXIMUM SPEED, HUMBLE & HIGH-VALUE TOKEN SAVER)
     `   - When user asks to learn or make a roadmap for a subject (e.g. "জাভা প্রোগ্রামিং" or "Java"), both "subject" and "title" of roadmap, and "folderName" / "skillName" MUST be the exact subject (e.g. "Java Programming" or "জাভা প্রোগ্রামিং").`,
     `   - FOCUS DURATION RULE: When a user asks for a focus session and explicitly specifies the minutes (e.g. "আমাকে ১০ মিনিটের একটা ফোকাস টাইম দাও", "25 min focus"), propose "create_focus_session" with that exact duration. BUT if the user does NOT specify the duration (e.g. "ফোকাস সেশন করতে চাই", "start focus session"), NEVER guess or auto-select 10m or 25m! Instead, ASK the user how many minutes they want to focus for (e.g. "তুমি কত মিনিটের জন্য ফোকাস করতে চাও? যেমন ১৫, ২৫, বা ৫০ মিনিট") and set "type": "clarification"!`,
     `   - TIMER VS FOCUS RULE: If the user asks for a timer or stopwatch ("i need a timer", "stopwatch", "টাইমার চাই"), NEVER replace it with a focus session! Directly propose the Stopwatch Timer by setting navigation to "focus" with tab: "timer" or proposing "open_timer"!`,
+    `   - FEATURE & OPTION REQUESTS (DIRECT BUTTON REQUIREMENT): When the user asks for any app feature, option, or button (e.g. "show me focus option", "give me focus button", "want to focus", "problem solver", "mind space option", "planner option", "diary option", "notes option", "time log option", "dashboard option", "timer option"): DO NOT simply reply with plain text without a button, and DO NOT start a timed session or choose an arbitrary duration unless explicitly requested. Instead, reply politely and concisely in 1-2 sweet sentences and provide the matching navigation action button (e.g. open_focus, open_mind, open_planner, open_diary, open_notes, open_learning, open_dashboard, open_timer).`,
     `   - ROADMAP GENERATION RULE: When a user asks for a learning roadmap (e.g. "একটা রোডম্যাপ বানিয়ে দাও", "learning roadmap for React and Next.js"), directly generate the complete multi-stage curriculum roadmap (defaulting to beginner-friendly progression from fundamentals to advanced) without asking for clarification. Set "type": "roadmap" and populate the structured "roadmap" object with "stages", "topics", and "subtasks".`,
     `   - QUERYING TIME LOG TOPICS & WEAK/IMPORTANT TOPICS: When a user asks about their important topics or weak topics for a folder or topic (e.g. "আমার বাংলাতে কী কী ইম্পর্টেন্ট টপিক ছিল আর উইক টপিক ছিল বলো", "what are my weak topics in English?"): Inspect context.learningTopics for the requested folder name. If found, list all important topics and weak topics clearly and point-by-point. If the folder exists but has no weak/important topics logged yet, state truthfully that no topics have been logged for it yet. If the folder does not exist, state truthfully that no folder with that name was found, and mention what folders they do have.`,
     `   - QUERYING PLANNER ROUTINES & SCHEDULE FOR DATES: When a user asks what routine, tasks, or schedule they had on a specific date (e.g. "১০ তারিখে আমার কী রুটিন ছিল?", "৭ তারিখের টাস্ক কী?", "what was my schedule on October 10?"): Inspect context.tasks matching that date (targetDate matching the date). If tasks exist, list them clearly with scheduled time, priority, and completion status. If no tasks exist for that date, state truthfully that nothing was scheduled for that date.`,
@@ -438,6 +439,31 @@ function normalizeAgentChatResponse(raw: any, isBn: boolean): JsonObject {
     navRoute = VALID_NAVIGATION_ROUTES[rawKey] || null;
   } else if (actions.length > 0 && actions[0].navigationRoute) {
     navRoute = actions[0].navigationRoute;
+  }
+
+  // If navigation route is present but actions array is empty, synthesize a direct navigation action
+  if (navRoute && actions.length === 0) {
+    const navActionMap: Record<string, { type: string; titleBn: string; titleEn: string }> = {
+      focus: { type: 'open_focus', titleBn: 'ফোকাস টাইমার খুলুন', titleEn: 'Open Focus Timer' },
+      planner: { type: 'open_planner', titleBn: 'প্ল্যানার খুলুন', titleEn: 'Open Planner' },
+      diary: { type: 'open_diary', titleBn: 'মাই ডায়েরি খুলুন', titleEn: 'Open My Diary' },
+      tasks: { type: 'open_notes', titleBn: 'নোটস ও ফাইলস খুলুন', titleEn: 'Open Notes & Files' },
+      mind: { type: 'open_mind', titleBn: 'মাইন্ড স্পেস খুলুন', titleEn: 'Open Mind Space' },
+      learning: { type: 'open_learning', titleBn: 'টাইম লগ খুলুন', titleEn: 'Open Time Log' },
+      today: { type: 'open_dashboard', titleBn: 'ড্যাশবোর্ড খুলুন', titleEn: 'Open Dashboard' },
+      settings: { type: 'open_settings', titleBn: 'সেটিংস খুলুন', titleEn: 'Open Settings' },
+    };
+    const navDef = navActionMap[navRoute];
+    if (navDef) {
+      const navValidation = validateProposedAction({
+        type: navDef.type,
+        parameters: {},
+        title: isBn ? navDef.titleBn : navDef.titleEn,
+      });
+      if (navValidation.valid && navValidation.normalizedAction) {
+        actions.push(navValidation.normalizedAction);
+      }
+    }
   }
 
   // Normalize Roadmap if present

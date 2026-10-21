@@ -102,27 +102,48 @@ export default function NoteEditorView({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  useEffect(() => () => { if (saveTimer.current) clearTimeout(saveTimer.current); }, []);
-
-  // Private storage URLs expire; refresh them from their persisted object paths
-  // while the authenticated owner is viewing the note.
+  const latestStateRef = useRef({ title, blocks, category });
   useEffect(() => {
-    if (!user) return;
+    latestStateRef.current = { title, blocks, category };
+  }, [title, blocks, category]);
+
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      if (saveTimer.current) {
+        clearTimeout(saveTimer.current);
+        onUpdate(latestStateRef.current.title, latestStateRef.current.blocks, latestStateRef.current.category);
+      }
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+      if (saveTimer.current) {
+        clearTimeout(saveTimer.current);
+        onUpdate(latestStateRef.current.title, latestStateRef.current.blocks, latestStateRef.current.category);
+      }
+    };
+  }, [onUpdate]);
+
+  // Private storage URLs: refresh from persisted object paths in Dexie
+  // Scoped to the active user (or guest)
+  useEffect(() => {
+    const currentUserId = user?.id || "guest";
     const privateBlocks = initialBlocks.filter((block) => block.storagePath);
     if (privateBlocks.length === 0) return;
     Promise.all(privateBlocks.map(async (block) => ({
       id: block.id,
-      url: await storageService.getSignedUrl(block.storagePath!),
+      url: await storageService.getSignedUrl(block.storagePath!, currentUserId),
     }))).then((urls) => {
       const byId = new Map(urls.filter((entry) => entry.url).map((entry) => [entry.id, entry.url!]));
       if (byId.size) setBlocks((current) => current.map((block) => byId.has(block.id) ? { ...block, url: byId.get(block.id) } : block));
     });
-  }, [initialBlocks, user]);
+  }, [initialBlocks, user?.id]);
 
   const queueSave = (nextTitle: string, nextBlocks: NoteBlock[], nextCategory?: string) => { 
     setHasEditedInSession(true);
     if (saveTimer.current) clearTimeout(saveTimer.current); 
     const currentCat = nextCategory !== undefined ? nextCategory : category;
+    latestStateRef.current = { title: nextTitle, blocks: nextBlocks, category: currentCat };
     saveTimer.current = setTimeout(() => { 
       onUpdate(nextTitle, nextBlocks, currentCat); 
     }, 450); 

@@ -686,10 +686,10 @@ textarea {
 
 html.light input:not([type="checkbox"]):not([type="radio"]):not([type="color"]):not(.note-editor-title):not(.editor-block input):not(.note-editor-canvas input),
 html.light select,
-html.light textarea:not(.note-editor-title):not(.editor-block textarea):not(.note-editor-canvas textarea):not(.note-block-textarea):not(.block-box textarea),
+html.light textarea:not(.note-editor-title):not(.editor-block textarea):not(.note-editor-canvas textarea):not(.note-block-textarea):not(.block-box textarea):not(.composer-pill-textarea):not([class*="pillTextarea"]):not(.my-mind-textarea):not(.diary-lined-textarea),
 :root[data-theme="light"] input:not([type="checkbox"]):not([type="radio"]):not([type="color"]):not(.note-editor-title):not(.editor-block input):not(.note-editor-canvas input),
 :root[data-theme="light"] select,
-:root[data-theme="light"] textarea:not(.note-editor-title):not(.editor-block textarea):not(.note-editor-canvas textarea):not(.note-block-textarea):not(.block-box textarea) {
+:root[data-theme="light"] textarea:not(.note-editor-title):not(.editor-block textarea):not(.note-editor-canvas textarea):not(.note-block-textarea):not(.block-box textarea):not(.composer-pill-textarea):not([class*="pillTextarea"]):not(.my-mind-textarea):not(.diary-lined-textarea) {
   background: #F7FAFE !important;
   border: 1px solid #DCE5F0 !important;
   color: #111827 !important;
@@ -710,10 +710,10 @@ input:not([type="checkbox"]):not([type="radio"]):not([type="color"]):focus, sele
 
 html.light input:not([type="checkbox"]):not([type="radio"]):not([type="color"]):not(.note-editor-title):not(.editor-block input):not(.note-editor-canvas input):focus,
 html.light select:focus,
-html.light textarea:not(.note-editor-title):not(.editor-block textarea):not(.note-editor-canvas textarea):not(.note-block-textarea):not(.block-box textarea):focus,
+html.light textarea:not(.note-editor-title):not(.editor-block textarea):not(.note-editor-canvas textarea):not(.note-block-textarea):not(.block-box textarea):not(.composer-pill-textarea):not([class*="pillTextarea"]):not(.my-mind-textarea):not(.diary-lined-textarea):focus,
 :root[data-theme="light"] input:not([type="checkbox"]):not([type="radio"]):not([type="color"]):not(.note-editor-title):not(.editor-block input):not(.note-editor-canvas input):focus,
 :root[data-theme="light"] select:focus,
-:root[data-theme="light"] textarea:not(.note-editor-title):not(.editor-block textarea):not(.note-editor-canvas textarea):not(.note-block-textarea):not(.block-box textarea):focus {
+:root[data-theme="light"] textarea:not(.note-editor-title):not(.editor-block textarea):not(.note-editor-canvas textarea):not(.note-block-textarea):not(.block-box textarea):not(.composer-pill-textarea):not([class*="pillTextarea"]):not(.my-mind-textarea):not(.diary-lined-textarea):focus {
   background: #FFFFFF !important;
   border: 1px solid #CBD5E1 !important;
   box-shadow: none !important;
@@ -2393,10 +2393,10 @@ html.dark:not([data-theme="light"]) .btn-ghost {
 
 html:not([data-theme="light"]):not(.light) input:not([type="checkbox"]):not([type="radio"]):not([type="color"]):not(.note-editor-title),
 html:not([data-theme="light"]):not(.light) select,
-html:not([data-theme="light"]):not(.light) textarea:not(.code-surface--input):not(.note-editor-canvas textarea):not(.composer-pill-textarea):not([class*="pillTextarea"]):not(.diary-lined-textarea),
+html:not([data-theme="light"]):not(.light) textarea:not(.code-surface--input):not(.note-editor-canvas textarea):not(.composer-pill-textarea):not([class*="pillTextarea"]):not(.diary-lined-textarea):not(.my-mind-textarea),
 html.dark:not([data-theme="light"]) input:not([type="checkbox"]):not([type="radio"]):not([type="color"]):not(.note-editor-title),
 html.dark:not([data-theme="light"]) select,
-html.dark:not([data-theme="light"]) textarea:not(.code-surface--input):not(.note-editor-canvas textarea):not(.composer-pill-textarea):not([class*="pillTextarea"]):not(.diary-lined-textarea) {
+html.dark:not([data-theme="light"]) textarea:not(.code-surface--input):not(.note-editor-canvas textarea):not(.composer-pill-textarea):not([class*="pillTextarea"]):not(.diary-lined-textarea):not(.my-mind-textarea) {
   background: rgba(2, 5, 11, 0.62) !important;
   border-color: rgba(148, 163, 184, 0.18) !important;
 }
@@ -3225,10 +3225,10 @@ html.dark:not([data-theme="light"]) .note-editor-screen__header {
    ========================================================================== */
 :root[data-theme="light"] input:not([type="checkbox"]):not([type="radio"]):not([type="color"]):not(.note-editor-title):not(.editor-block input):not(.note-editor-canvas input),
 :root[data-theme="light"] select,
-:root[data-theme="light"] textarea:not(.code-surface--input):not(.diary-lined-textarea):not(.composer-pill-textarea):not([class*="pillTextarea"]):not(.note-editor-title):not(.editor-block textarea):not(.note-editor-canvas textarea):not(.note-block-textarea):not(.block-box textarea),
+:root[data-theme="light"] textarea:not(.code-surface--input):not(.diary-lined-textarea):not(.composer-pill-textarea):not([class*="pillTextarea"]):not(.note-editor-title):not(.editor-block textarea):not(.note-editor-canvas textarea):not(.note-block-textarea):not(.block-box textarea):not(.my-mind-textarea),
 .light input:not([type="checkbox"]):not([type="radio"]):not([type="color"]):not(.note-editor-title):not(.editor-block input):not(.note-editor-canvas input),
 .light select,
-.light textarea:not(.code-surface--input):not(.diary-lined-textarea):not(.composer-pill-textarea):not([class*="pillTextarea"]):not(.note-editor-title):not(.editor-block textarea):not(.note-editor-canvas textarea):not(.note-block-textarea):not(.block-box textarea) {
+.light textarea:not(.code-surface--input):not(.diary-lined-textarea):not(.composer-pill-textarea):not([class*="pillTextarea"]):not(.note-editor-title):not(.editor-block textarea):not(.note-editor-canvas textarea):not(.note-block-textarea):not(.block-box textarea):not(.my-mind-textarea) {
   background-color: #FFFFFF !important;
   border: 1px solid #DCE5F0 !important;
   border-radius: 12px !important;
@@ -3239,10 +3239,10 @@ html.dark:not([data-theme="light"]) .note-editor-screen__header {
 
 :root[data-theme="light"] input:not([type="checkbox"]):not([type="radio"]):not([type="color"]):not(.note-editor-title):not(.editor-block input):not(.note-editor-canvas input):focus,
 :root[data-theme="light"] select:focus,
-:root[data-theme="light"] textarea:not(.diary-lined-textarea):not(.composer-pill-textarea):not([class*="pillTextarea"]):not(.note-editor-title):not(.editor-block textarea):not(.note-editor-canvas textarea):not(.note-block-textarea):not(.block-box textarea):focus,
+:root[data-theme="light"] textarea:not(.diary-lined-textarea):not(.composer-pill-textarea):not([class*="pillTextarea"]):not(.note-editor-title):not(.editor-block textarea):not(.note-editor-canvas textarea):not(.note-block-textarea):not(.block-box textarea):not(.my-mind-textarea):focus,
 .light input:not([type="checkbox"]):not([type="radio"]):not([type="color"]):not(.note-editor-title):not(.editor-block input):not(.note-editor-canvas input):focus,
 .light select:focus,
-.light textarea:not(.diary-lined-textarea):not(.composer-pill-textarea):not([class*="pillTextarea"]):not(.note-editor-title):not(.editor-block textarea):not(.note-editor-canvas textarea):not(.note-block-textarea):not(.block-box textarea):focus {
+.light textarea:not(.diary-lined-textarea):not(.composer-pill-textarea):not([class*="pillTextarea"]):not(.note-editor-title):not(.editor-block textarea):not(.note-editor-canvas textarea):not(.note-block-textarea):not(.block-box textarea):not(.my-mind-textarea):focus {
   border-color: #CBD5E1 !important;
   outline: none !important;
   box-shadow: none !important;
@@ -4689,15 +4689,21 @@ body {
   -webkit-overflow-scrolling: touch;
 }
 
-/* AI Agent pill composer textarea - seamless merge with pill container without box/border */
+/* Seamless Textarea Integration (Glory AI Pill, Mind Space, Diary) — Zero double-box or inner border artifacts */
 html textarea.composer-pill-textarea,
 html textarea[class*="pillTextarea"],
 html .composer-pill-box textarea,
 html [class*="composerPillBox"] textarea,
+html textarea.my-mind-textarea,
+html textarea.diary-lined-textarea,
 html:not([data-theme="light"]):not(.light) textarea.composer-pill-textarea,
 html.dark:not([data-theme="light"]) textarea.composer-pill-textarea,
 :root[data-theme="light"] textarea.composer-pill-textarea,
-.light textarea.composer-pill-textarea {
+:root[data-theme="light"] textarea.my-mind-textarea,
+:root[data-theme="light"] textarea.diary-lined-textarea,
+.light textarea.composer-pill-textarea,
+.light textarea.my-mind-textarea,
+.light textarea.diary-lined-textarea {
   background: transparent !important;
   background-color: transparent !important;
   border: none !important;
@@ -4706,9 +4712,6 @@ html.dark:not([data-theme="light"]) textarea.composer-pill-textarea,
   box-shadow: none !important;
   -webkit-box-shadow: none !important;
   outline: none !important;
-  padding: 0 !important;
-  margin: 0 !important;
-  min-height: 24px !important;
 }
 
 html textarea.composer-pill-textarea:focus,
@@ -4722,7 +4725,13 @@ html .composer-pill-box textarea:focus-visible,
 html .composer-pill-box textarea:active,
 html [class*="composerPillBox"] textarea:focus,
 html [class*="composerPillBox"] textarea:focus-visible,
-html [class*="composerPillBox"] textarea:active {
+html [class*="composerPillBox"] textarea:active,
+html textarea.my-mind-textarea:focus,
+html textarea.my-mind-textarea:focus-visible,
+html textarea.my-mind-textarea:active,
+html textarea.diary-lined-textarea:focus,
+html textarea.diary-lined-textarea:focus-visible,
+html textarea.diary-lined-textarea:active {
   background: transparent !important;
   background-color: transparent !important;
   border: none !important;
@@ -4731,14 +4740,46 @@ html [class*="composerPillBox"] textarea:active {
   box-shadow: none !important;
   -webkit-box-shadow: none !important;
   outline: none !important;
-  padding: 0 !important;
-  margin: 0 !important;
 }
 
-/* Mind space textarea: ensure comfortable, professional text margin and no edge clipping */
+/* Mind space textarea: ensure clean seamless single-box look without inner double-boxing */
+html textarea.my-mind-textarea,
+html.light textarea.my-mind-textarea,
+:root[data-theme="light"] textarea.my-mind-textarea,
+html.dark textarea.my-mind-textarea,
 textarea.my-mind-textarea {
-  padding: 16px 20px !important;
+  border: 0 none transparent !important;
+  border-width: 0 !important;
+  border-style: none !important;
+  border-color: transparent !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
+  -webkit-box-shadow: none !important;
+  outline: none !important;
   line-height: 1.6 !important;
+}
+
+html textarea.my-mind-textarea:focus,
+html.light textarea.my-mind-textarea:focus,
+:root[data-theme="light"] textarea.my-mind-textarea:focus,
+html.dark textarea.my-mind-textarea:focus,
+textarea.my-mind-textarea:focus,
+html textarea.my-mind-textarea:focus-visible,
+textarea.my-mind-textarea:focus-visible,
+html textarea.my-mind-textarea:active,
+textarea.my-mind-textarea:active {
+  border: 0 none transparent !important;
+  border-width: 0 !important;
+  border-style: none !important;
+  border-color: transparent !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
+  -webkit-box-shadow: none !important;
+  outline: none !important;
 }
 
 /* ========================================================================== */
@@ -4775,10 +4816,10 @@ input[type="time"]:focus {
 /* Neutral non-luminous borders on focus for dark & light mode */
 html:not([data-theme="light"]):not(.light) input:not([type="checkbox"]):not([type="radio"]):not([type="color"]):not(.note-editor-title):focus,
 html:not([data-theme="light"]):not(.light) select:focus,
-html:not([data-theme="light"]):not(.light) textarea:not(.code-surface--input):not(.note-editor-canvas textarea):not(.composer-pill-textarea):not([class*="pillTextarea"]):focus,
+html:not([data-theme="light"]):not(.light) textarea:not(.code-surface--input):not(.note-editor-canvas textarea):not(.composer-pill-textarea):not([class*="pillTextarea"]):not(.diary-lined-textarea):not(.my-mind-textarea):focus,
 html.dark:not([data-theme="light"]) input:not([type="checkbox"]):not([type="radio"]):not([type="color"]):not(.note-editor-title):focus,
 html.dark:not([data-theme="light"]) select:focus,
-html.dark:not([data-theme="light"]) textarea:not(.code-surface--input):not(.note-editor-canvas textarea):not(.composer-pill-textarea):not([class*="pillTextarea"]):focus {
+html.dark:not([data-theme="light"]) textarea:not(.code-surface--input):not(.note-editor-canvas textarea):not(.composer-pill-textarea):not([class*="pillTextarea"]):not(.diary-lined-textarea):not(.my-mind-textarea):focus {
   border-color: rgba(148, 163, 184, 0.28) !important;
   box-shadow: none !important;
   outline: none !important;
@@ -4786,10 +4827,10 @@ html.dark:not([data-theme="light"]) textarea:not(.code-surface--input):not(.note
 
 :root[data-theme="light"] input:not([type="checkbox"]):not([type="radio"]):not([type="color"]):not(.note-editor-title):not(.editor-block input):not(.note-editor-canvas input):focus,
 :root[data-theme="light"] select:focus,
-:root[data-theme="light"] textarea:not(.diary-lined-textarea):not(.composer-pill-textarea):not([class*="pillTextarea"]):not(.note-editor-title):not(.editor-block textarea):not(.note-editor-canvas textarea):not(.note-block-textarea):not(.block-box textarea):focus,
+:root[data-theme="light"] textarea:not(.diary-lined-textarea):not(.composer-pill-textarea):not([class*="pillTextarea"]):not(.note-editor-title):not(.editor-block textarea):not(.note-editor-canvas textarea):not(.note-block-textarea):not(.block-box textarea):not(.my-mind-textarea):focus,
 .light input:not([type="checkbox"]):not([type="radio"]):not([type="color"]):not(.note-editor-title):not(.editor-block input):not(.note-editor-canvas input):focus,
 .light select:focus,
-.light textarea:not(.diary-lined-textarea):not(.composer-pill-textarea):not([class*="pillTextarea"]):not(.note-editor-title):not(.editor-block textarea):not(.note-editor-canvas textarea):not(.note-block-textarea):not(.block-box textarea):focus {
+.light textarea:not(.diary-lined-textarea):not(.composer-pill-textarea):not([class*="pillTextarea"]):not(.note-editor-title):not(.editor-block textarea):not(.note-editor-canvas textarea):not(.note-block-textarea):not(.block-box textarea):not(.my-mind-textarea):focus {
   border-color: #CBD5E1 !important;
   box-shadow: none !important;
   outline: none !important;

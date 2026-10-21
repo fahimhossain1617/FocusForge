@@ -359,98 +359,110 @@ export function handleLocalIntent(
 
     // 3. Navigation Help
     case 'NAVIGATION_FOCUS': {
-      const item = appHelpTemplates.navigation.focus;
-      const act = buildActionRequest(item.actionType as any, {}, isBn ? item.labelBn : item.labelEn);
+      const act = buildActionRequest('open_focus', {}, isBn ? 'ফোকাস সেশন খুলুন' : 'Open Focus Session');
+      const messageBn = 'অবশ্যই! ফোকাস সেশনের অপশন নিচে দেওয়া হলো। চলো একসাথে সুন্দর অগ্রগতি করি!';
+      const messageEn = "Here is the focus session option for you. Let's make wonderful progress together.";
       return {
-        message: prefix + (isBn ? item.messageBn : item.messageEn),
+        message: prefix + (isBn ? messageBn : messageEn),
         intent: 'FOCUS_SESSION',
         actions: act ? [act] : [],
         orbEmotion: 'attentive',
-        navigationRoute: item.route,
+        navigationRoute: 'focus',
         handledLocally: true,
         tokenCost: 0,
       };
     }
 
     case 'NAVIGATION_PLANNER': {
-      const item = appHelpTemplates.navigation.planner;
-      const act = buildActionRequest(item.actionType as any, {}, isBn ? item.labelBn : item.labelEn);
+      const act = buildActionRequest('open_planner', {}, isBn ? 'প্ল্যানার খুলুন' : 'Open Planner');
+      const messageBn = 'অবশ্যই, তোমার Planner খুলে নেওয়ার অপশন নিচে দেওয়া হলো। এখানে দৈনিক টাইম-ব্লক ও রুটিন শিডিউল দেখতে পারবে।';
+      const messageEn = 'Here is your Planner option. You can organize your daily schedule, time-blocks, and routines here.';
       return {
-        message: prefix + (isBn ? item.messageBn : item.messageEn),
+        message: prefix + (isBn ? messageBn : messageEn),
         intent: 'PLANNER_CREATE',
         actions: act ? [act] : [],
         orbEmotion: 'attentive',
-        navigationRoute: item.route,
+        navigationRoute: 'planner',
         handledLocally: true,
         tokenCost: 0,
       };
     }
 
     case 'NAVIGATION_DIARY': {
-      const item = appHelpTemplates.navigation.diary;
-      const act = buildActionRequest(item.actionType as any, {}, isBn ? item.labelBn : item.labelEn);
+      const act = buildActionRequest('open_diary', {}, isBn ? 'মাই ডায়েরি খুলুন' : 'Open My Diary');
+      const messageBn = 'অবশ্যই, তোমার ব্যক্তিগত My Diary সেকশনের অপশন নিচে দেওয়া হলো। তোমার অনুভূতি ও চিন্তাগুলো নিশ্চিন্তে লিখে রাখতে পারো।';
+      const messageEn = 'Here is your My Diary option. Your diary entries are private and secure.';
       return {
-        message: prefix + (isBn ? item.messageBn : item.messageEn),
+        message: prefix + (isBn ? messageBn : messageEn),
         intent: 'MY_DIARY',
         actions: act ? [act] : [],
         orbEmotion: 'caring',
-        navigationRoute: item.route,
+        navigationRoute: 'diary',
         handledLocally: true,
         tokenCost: 0,
       };
     }
 
     case 'NAVIGATION_NOTES': {
-      const item = appHelpTemplates.navigation.notes;
-      const act = buildActionRequest(item.actionType as any, {}, isBn ? item.labelBn : item.labelEn);
+      const act = buildActionRequest('open_notes', {}, isBn ? 'নোটস ও ফাইলস খুলুন' : 'Open Notes & Files');
+      const messageBn = 'অবশ্যই, Notes & Files সেকশনের অপশন নিচে দেওয়া হলো। এখানে রিচ নোটস, স্টাডি মেটেরিয়াল ও ডকুমেন্ট গুছিয়ে রাখতে পারো।';
+      const messageEn = 'Here is the Notes & Files option for you. You can organize your study notes, code, and documents here.';
       return {
-        message: prefix + (isBn ? item.messageBn : item.messageEn),
+        message: prefix + (isBn ? messageBn : messageEn),
         intent: 'NOTES_FILES',
         actions: act ? [act] : [],
         orbEmotion: 'attentive',
-        navigationRoute: item.route,
+        navigationRoute: 'tasks',
         handledLocally: true,
         tokenCost: 0,
       };
     }
 
     case 'NAVIGATION_MIND': {
-      const item = appHelpTemplates.navigation.mind;
-      const act = buildActionRequest(item.actionType as any, {}, isBn ? item.labelBn : item.labelEn);
+      const isProblemQuery = /(?:problem|issue|trouble|সমস্যা)/i.test(norm.raw);
+      const messageBn = isProblemQuery
+        ? 'কোনো সমস্যা বা চিন্তা থাকলে একদম মন খারাপ করো না। Mind Space-এর Problem Solver বা Free Flow-তে তোমার চিন্তাগুলো গুছিয়ে সহজ সমাধান বের করতে পারো।'
+        : 'অবশ্যই, তোমার Mind Space অপশন নিচে দেওয়া হলো। যখনই মাথায় চিন্তা জমে উঠবে, গুছিয়ে নিতে পারো।';
+      const messageEn = isProblemQuery
+        ? "Whenever you face a problem or feel stuck, don't worry. You can organize your thoughts and resolve issues inside Mind Space's Problem Solver."
+        : 'Here is the Mind Space option for you. Whenever your thoughts feel heavy, just drop by to organize your mind.';
+      const act = buildActionRequest('open_mind', {}, isBn ? 'মাইন্ড স্পেস খুলুন' : 'Open Mind Space');
       return {
-        message: prefix + (isBn ? item.messageBn : item.messageEn),
+        message: prefix + (isBn ? messageBn : messageEn),
         intent: 'PROBLEM_SOLVER',
         actions: act ? [act] : [],
-        orbEmotion: 'attentive',
-        navigationRoute: item.route,
+        orbEmotion: isProblemQuery ? 'caring' : 'attentive',
+        navigationRoute: 'mind',
         handledLocally: true,
         tokenCost: 0,
       };
     }
 
     case 'NAVIGATION_LEARNING': {
-      const item = appHelpTemplates.navigation.learning;
-      const act = buildActionRequest(item.actionType as any, {}, isBn ? item.labelBn : item.labelEn);
+      const act = buildActionRequest('open_learning', {}, isBn ? 'টাইম লগ খুলুন' : 'Open Time Log');
+      const messageBn = 'অবশ্যই, Time Log ও স্কিল বিল্ডারের অপশন নিচে দেওয়া হলো। এখানে বিষয়ভিত্তিক পড়ার সময় ও স্ট্রাইক ট্র্যাক করতে পারবে।';
+      const messageEn = 'Here is the Time Log option for you. You can track study hours, subject categories, and streaks here.';
       return {
-        message: prefix + (isBn ? item.messageBn : item.messageEn),
+        message: prefix + (isBn ? messageBn : messageEn),
         intent: 'LEARNING_HUB',
         actions: act ? [act] : [],
         orbEmotion: 'attentive',
-        navigationRoute: item.route,
+        navigationRoute: 'learning',
         handledLocally: true,
         tokenCost: 0,
       };
     }
 
     case 'NAVIGATION_DASHBOARD': {
-      const item = appHelpTemplates.navigation.dashboard;
-      const act = buildActionRequest(item.actionType as any, {}, isBn ? item.labelBn : item.labelEn);
+      const act = buildActionRequest('open_dashboard', {}, isBn ? 'ড্যাশবোর্ড খুলুন' : 'Open Dashboard');
+      const messageBn = 'অবশ্যই, Dashboard-এর অপশন নিচে দেওয়া হলো। আজকের সার্বিক অগ্রগতি ও পারফরম্যান্স দেখে নিতে পারো।';
+      const messageEn = "Here is the Dashboard option for you. Check today's focus time, tasks, and overall progress.";
       return {
-        message: prefix + (isBn ? item.messageBn : item.messageEn),
+        message: prefix + (isBn ? messageBn : messageEn),
         intent: 'DASHBOARD',
         actions: act ? [act] : [],
         orbEmotion: 'attentive',
-        navigationRoute: item.route,
+        navigationRoute: 'today',
         handledLocally: true,
         tokenCost: 0,
       };

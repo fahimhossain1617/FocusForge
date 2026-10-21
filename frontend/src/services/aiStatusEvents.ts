@@ -134,9 +134,10 @@ export const AI_STATUS_DEFINITIONS: Record<AIStatusEvent, AIStatusMessage> = {
   },
 };
 
-export function getStatusText(event: AIStatusEvent, isBn: boolean): string {
+export function getStatusText(event: AIStatusEvent, _isBn?: boolean): string {
   const def = AI_STATUS_DEFINITIONS[event] || AI_STATUS_DEFINITIONS.idle;
-  return isBn ? def.labelBn : def.labelEn;
+  // Per user mandate: Orb status text displayed above Orby Face MUST ALWAYS be strictly in English
+  return def.labelEn;
 }
 
 export function detectContextualStatusEvent(userQuery: string): AIStatusEvent {
@@ -198,26 +199,26 @@ export interface ProgressiveStage {
 export function getProgressiveStages(
   userQuery: string,
   modelMode: string = 'fast',
-  isBn: boolean = true
+  _isBn?: boolean
 ): ProgressiveStage[] {
   const normMode = (modelMode || '').toLowerCase().trim();
   const isDeep = normMode === 'deep' || normMode === 'pro' || normMode === 'focentia-pro' || normMode === 'planning';
   const initialEvent = detectContextualStatusEvent(userQuery);
-  const initialText = getStatusText(initialEvent, isBn);
+  const initialText = getStatusText(initialEvent, false);
 
   if (!isDeep) {
-    // Focentia 2.1 — Fast, crisp, responsive
+    // Focentia 2.1 — Fast, crisp, responsive (Strictly English per user instruction)
     return [
       { delayMs: 0, text: initialText, orbMood: 'thinking' },
-      { delayMs: 700, text: isBn ? 'সহজভাবে উত্তরটি লিখছি…' : 'Writing your answer…', orbMood: 'working' },
+      { delayMs: 700, text: 'Writing your answer…', orbMood: 'working' },
     ];
   }
 
-  // Focentia Pro — Deep analytical & structured research breakdown
+  // Focentia Pro — Deep analytical & structured research breakdown (Strictly English per user instruction)
   return [
-    { delayMs: 0, text: isBn ? 'একটু ভেবে নিচ্ছি…' : 'Thinking carefully…', orbMood: 'thinking' },
-    { delayMs: 1200, text: isBn ? 'প্রয়োজনীয় তথ্য গুছিয়ে নিচ্ছি…' : 'Organizing details…', orbMood: 'working' },
-    { delayMs: 2800, text: isBn ? 'সবকিছু সুন্দরভাবে গুছিয়ে নিচ্ছি…' : 'Preparing your plan…', orbMood: 'working' },
-    { delayMs: 4500, text: isBn ? 'লেখা প্রায় শেষ, গুছিয়ে নিচ্ছি…' : 'Finishing up your response…', orbMood: 'working' },
+    { delayMs: 0, text: 'Thinking carefully…', orbMood: 'thinking' },
+    { delayMs: 1200, text: 'Organizing details…', orbMood: 'working' },
+    { delayMs: 2800, text: 'Preparing your plan…', orbMood: 'working' },
+    { delayMs: 4500, text: 'Finishing up your response…', orbMood: 'working' },
   ];
 }

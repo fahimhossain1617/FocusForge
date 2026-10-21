@@ -1,8 +1,18 @@
 import { Task, RoutineTemplate } from "../types";
 import { localDb } from "./localDbService";
 import { supabase } from "../lib/supabaseClient";
+import { accountManager } from "./accountManager";
 
-async function getActiveUserId(): Promise<string> {
+async function getActiveUserId(passedUserId?: string): Promise<string> {
+  if (passedUserId && passedUserId.trim()) {
+    return passedUserId.trim();
+  }
+  if (typeof window !== "undefined") {
+    try {
+      const remembered = accountManager.getRememberedAccounts()[0]?.id;
+      if (remembered) return remembered;
+    } catch {}
+  }
   try {
     const { data: { session } } = await supabase.auth.getSession();
     return session?.user?.id || "guest";
@@ -54,9 +64,9 @@ export function generateDailyPlanSummary(tasks: Task[], lang?: string): { count:
 /**
  * Fetch all routine templates from local-first database
  */
-export async function fetchRoutineTemplatesFromBackend(): Promise<RoutineTemplate[]> {
+export async function fetchRoutineTemplatesFromBackend(passedUserId?: string): Promise<RoutineTemplate[]> {
   try {
-    const userId = await getActiveUserId();
+    const userId = await getActiveUserId(passedUserId);
     const templates = await localDb.getAllForUser<RoutineTemplate>("routine_templates", userId, false);
     return templates;
   } catch (err) {
@@ -68,9 +78,9 @@ export async function fetchRoutineTemplatesFromBackend(): Promise<RoutineTemplat
 /**
  * Save or update a routine template in local-first database
  */
-export async function saveRoutineTemplateToBackend(template: Partial<RoutineTemplate>): Promise<RoutineTemplate | null> {
+export async function saveRoutineTemplateToBackend(template: Partial<RoutineTemplate>, passedUserId?: string): Promise<RoutineTemplate | null> {
   try {
-    const userId = await getActiveUserId();
+    const userId = await getActiveUserId(passedUserId);
     const id = template.id || `tpl_${template.weekday || "routine"}_${Date.now()}`;
     const payload: RoutineTemplate = {
       id,
@@ -93,9 +103,9 @@ export async function saveRoutineTemplateToBackend(template: Partial<RoutineTemp
 /**
  * Delete a routine template from local-first database
  */
-export async function deleteRoutineTemplateFromBackend(id: string): Promise<boolean> {
+export async function deleteRoutineTemplateFromBackend(id: string, passedUserId?: string): Promise<boolean> {
   try {
-    const userId = await getActiveUserId();
+    const userId = await getActiveUserId(passedUserId);
     await localDb.softDelete("routine_templates", userId, id);
     return true;
   } catch (err) {
@@ -107,9 +117,9 @@ export async function deleteRoutineTemplateFromBackend(id: string): Promise<bool
 /**
  * Synchronize task creation or upsert to local-first database
  */
-export async function syncTaskToBackend(task: Partial<Task>): Promise<Task | null> {
+export async function syncTaskToBackend(task: Partial<Task>, passedUserId?: string): Promise<Task | null> {
   try {
-    const userId = await getActiveUserId();
+    const userId = await getActiveUserId(passedUserId || (task as any).userId);
     const taskTitle = (task.title || task.name || "").trim();
     if (!taskTitle) return null;
 
@@ -134,9 +144,9 @@ export async function syncTaskToBackend(task: Partial<Task>): Promise<Task | nul
 /**
  * Synchronize task updates (status, completed, title, etc.) in local-first database
  */
-export async function updateTaskInBackend(id: number, updates: Partial<Task>): Promise<Task | null> {
+export async function updateTaskInBackend(id: number, updates: Partial<Task>, passedUserId?: string): Promise<Task | null> {
   try {
-    const userId = await getActiveUserId();
+    const userId = await getActiveUserId(passedUserId || (updates as any).userId);
     const existing = await localDb.get<any>("tasks", userId, id);
     if (!existing) return null;
 
@@ -158,9 +168,9 @@ export async function updateTaskInBackend(id: number, updates: Partial<Task>): P
 /**
  * Synchronize task deletion in local-first database
  */
-export async function deleteTaskFromBackend(id: number | string): Promise<boolean> {
+export async function deleteTaskFromBackend(id: number | string, passedUserId?: string): Promise<boolean> {
   try {
-    const userId = await getActiveUserId();
+    const userId = await getActiveUserId(passedUserId);
     await localDb.softDelete("tasks", userId, id);
     return true;
   } catch (err) {
@@ -172,9 +182,9 @@ export async function deleteTaskFromBackend(id: number | string): Promise<boolea
 /**
  * Fetch tasks from local-first database with optional date filter
  */
-export async function fetchTasksFromBackend(date?: string): Promise<Task[]> {
+export async function fetchTasksFromBackend(date?: string, passedUserId?: string): Promise<Task[]> {
   try {
-    const userId = await getActiveUserId();
+    const userId = await getActiveUserId(passedUserId);
     const tasks = await localDb.getAllForUser<Task>("tasks", userId, false);
     if (date) {
       return tasks.filter((t) => t.targetDate === date || t.date === date);

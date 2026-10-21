@@ -81,9 +81,9 @@ function Toggle({
       aria-label={ariaLabel}
       disabled={disabled}
       onClick={() => !disabled && onChange(!checked)}
-      className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full border-2 transition-all duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 ${
+      className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full border-2 transition-all duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-[#223A5E] dark:focus-visible:ring-blue-500 focus-visible:ring-offset-2 ${
         checked
-          ? "bg-blue-600 border-blue-600"
+          ? "bg-[#223A5E] border-[#223A5E] dark:bg-blue-600 dark:border-blue-600"
           : "bg-slate-300 hover:bg-slate-350 border-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 dark:border-slate-600"
       } ${disabled ? "opacity-40 cursor-not-allowed" : "cursor-pointer"}`}
     >

@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import Script from "next/script";
+import "../utils/clientDevFixes";
 import { GeistSans } from "geist/font/sans";
 import { Noto_Sans_Bengali } from "next/font/google";
 import "./globals.css";
@@ -95,9 +95,9 @@ export default function RootLayout({
     <html lang="en" className="dark" suppressHydrationWarning>
       <head>
         {/* Theme Pre-Hydration Init Script (Runs First Before Paint) */}
-        <Script
+        <script
           id="ff-theme-prehydration"
-          strategy="beforeInteractive"
+          suppressHydrationWarning
           dangerouslySetInnerHTML={{
             __html: `(function(){try{var t=localStorage.getItem('focusforge_theme');var isDark=true;if(t){if(t==='light'){isDark=false;}else if(t==='system'){isDark=window.matchMedia('(prefers-color-scheme: dark)').matches;}else{isDark=true;}}else{var d=localStorage.getItem('focusforge_data');if(d){var s=JSON.parse(d);if(s&&s.theme&&s.theme.mode){if(s.theme.mode==='light'){isDark=false;}else if(s.theme.mode==='system'){isDark=window.matchMedia('(prefers-color-scheme: dark)').matches;}else{isDark=true;}}else{isDark=true;}}else{isDark=true;}}var root=document.documentElement;var themeHex=isDark?'#090c19':'#F3F7FC';if(isDark){root.dataset.theme='dark';root.classList.add('dark');root.classList.remove('light');root.style.colorScheme='dark';}else{root.dataset.theme='light';root.classList.remove('dark');root.classList.add('light');root.style.colorScheme='light';}var metaTheme=document.getElementById('ff-theme-color');if(metaTheme){metaTheme.setAttribute('content',themeHex);}}catch(e){}})();`,
           }}
@@ -136,9 +136,9 @@ export default function RootLayout({
         <meta name="x5-orientation" content="portrait" />
 
         {/* Launch Animation Gating & Session Storage Check (Runs Synchronously in Head) */}
-        <Script
+        <script
           id="ff-launch-gate"
-          strategy="beforeInteractive"
+          suppressHydrationWarning
           dangerouslySetInnerHTML={{
             __html: `(function(){
   try {
@@ -321,9 +321,9 @@ export default function RootLayout({
         />
 
         {/* Vanilla JS Launch Splash Controller (Runs in Head, zero React/Bundle dependency) */}
-        <Script
+        <script
           id="ff-launch-controller"
-          strategy="beforeInteractive"
+          suppressHydrationWarning
           dangerouslySetInnerHTML={{
             __html: `(function() {
   var isLaunching = document.documentElement.classList.contains('ff-launch');

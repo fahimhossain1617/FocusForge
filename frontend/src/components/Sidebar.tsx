@@ -107,14 +107,51 @@ export default function Sidebar({
     onClose();
   };
 
+  const [guestProfile, setGuestProfile] = useState<{
+    fullName?: string;
+    displayName?: string;
+    avatarUrl?: string;
+  } | null>(() => {
+    if (typeof window === "undefined") return null;
+    try {
+      const s = localStorage.getItem("focusforge_guest_profile");
+      return s ? JSON.parse(s) : null;
+    } catch {
+      return null;
+    }
+  });
+
+  useEffect(() => {
+    const handleProfileUpdate = (e: any) => {
+      if (e?.detail) {
+        setGuestProfile(e.detail);
+      } else {
+        try {
+          const s = localStorage.getItem("focusforge_guest_profile");
+          setGuestProfile(s ? JSON.parse(s) : null);
+        } catch {}
+      }
+    };
+    window.addEventListener("focusforge:profile_updated", handleProfileUpdate);
+    window.addEventListener("storage", handleProfileUpdate);
+    return () => {
+      window.removeEventListener("focusforge:profile_updated", handleProfileUpdate);
+      window.removeEventListener("storage", handleProfileUpdate);
+    };
+  }, []);
+
   const isGuestMode = !user || isGuest;
   const isLight = state.theme?.mode === "light";
   const logoSrc = isLight ? "/logo-light.png" : "/logo.png";
 
-  const rawUserName = user?.fullName || user?.displayName?.replace(/^\+8800/, "+880").replace(/^8800/, "+880") || (user?.identifier ? user.identifier.replace(/^\+8800/, "+880").replace(/^8800/, "+880") : (state.lang === 'bn' ? "গেস্ট" : "Guest"));
-  const userName = isGuestMode ? (state.lang === 'bn' ? "গেস্ট ইউজার" : "Guest User") : rawUserName.trim();
+  const effectiveAvatar = user?.avatarUrl || (isGuestMode ? guestProfile?.avatarUrl : null);
+  const rawUserName = user?.fullName || user?.displayName?.replace(/^\+8800/, "+880").replace(/^8800/, "+880") || (user?.identifier ? user.identifier.replace(/^\+8800/, "+880").replace(/^8800/, "+880") : "");
+  const guestCustomName = guestProfile?.fullName?.trim() || guestProfile?.displayName?.trim();
+  const userName = isGuestMode 
+    ? (guestCustomName || (state.lang === 'bn' ? "গেস্ট ইউজার" : "Guest User"))
+    : (rawUserName || (state.lang === 'bn' ? "গেস্ট ইউজার" : "Guest User")).trim();
   const userSubtitle = isGuestMode 
-    ? (state.lang === 'bn' ? "সাইন ইন করুন" : "Sign In") 
+    ? (guestCustomName ? (state.lang === 'bn' ? "গেস্ট প্রোফাইল" : "Guest Profile") : (state.lang === 'bn' ? "সাইন ইন করুন" : "Sign In")) 
     : (user?.identifier || (state.lang === 'bn' ? "প্রো মেম্বার" : "Pro"));
 
   const backdrop = useAnimateExit({ isOpen: isOpen && !isTourActive, durationMs: 200 });
@@ -320,20 +357,20 @@ export default function Sidebar({
                 {/* User Info Box Card (Natural Rounded Box) */}
                 <div className="p-2.5 rounded-xl bg-slate-100/70 dark:bg-white/[0.04] border border-slate-200/50 dark:border-white/[0.06] flex items-center gap-2.5">
                   <div className="relative flex items-center justify-center shrink-0">
-                    {user?.avatarUrl ? (
+                    {effectiveAvatar ? (
                       /* eslint-disable-next-line @next/next/no-img-element */
                       <img 
-                        src={user.avatarUrl} 
+                        src={effectiveAvatar} 
                         alt={userName} 
                         className="w-8 h-8 rounded-full object-cover ring-1 ring-[#5B8DEF]/40" 
                       />
-                    ) : isGuestMode ? (
-                      <div className="w-8 h-8 rounded-full flex items-center justify-center bg-[#E8F1FC] dark:bg-blue-950/60 border border-[#D0E1FD] dark:border-blue-900/40 text-[#0F172A] dark:text-blue-300">
-                        <ProfileIcon size={16} strokeWidth={2.2} />
+                    ) : userName && userName !== "Guest User" && userName !== "গেস্ট ইউজার" ? (
+                      <div className="w-8 h-8 rounded-full flex items-center justify-center bg-[#223A5E] text-white font-bold text-xs ring-1 ring-[#5B8DEF]/40 uppercase">
+                        {userName[0].toUpperCase()}
                       </div>
                     ) : (
-                      <div className="w-8 h-8 rounded-full flex items-center justify-center bg-[#223A5E] text-white font-bold text-xs ring-1 ring-[#5B8DEF]/40 uppercase">
-                        {userName ? userName[0].toUpperCase() : <ProfileIcon size={16} strokeWidth={2.2} />}
+                      <div className="w-8 h-8 rounded-full flex items-center justify-center bg-[#E8F1FC] dark:bg-blue-950/60 border border-[#D0E1FD] dark:border-blue-900/40 text-[#0F172A] dark:text-blue-300">
+                        <ProfileIcon size={16} strokeWidth={2.2} />
                       </div>
                     )}
                     <span className="absolute bottom-0 right-0 w-2 h-2 rounded-full bg-[#2E9B73] ring-1.5 ring-white dark:ring-[#070a14]" />
@@ -423,20 +460,20 @@ export default function Sidebar({
             >
               {/* Circular Profile Avatar */}
               <div className="relative flex items-center justify-center shrink-0">
-                {user?.avatarUrl ? (
+                {effectiveAvatar ? (
                   /* eslint-disable-next-line @next/next/no-img-element */
                   <img 
-                    src={user.avatarUrl} 
+                    src={effectiveAvatar} 
                     alt={userName} 
                     className="w-9 h-9 rounded-full object-cover ring-1 ring-slate-200 dark:ring-white/10 group-hover:ring-[#5B8DEF]/60 transition-all shadow-none" 
                   />
-                ) : isGuestMode ? (
-                  <div className="w-9 h-9 rounded-full flex items-center justify-center bg-[#E8F1FC] dark:bg-white/[0.06] border border-[#D0E1FD] dark:border-white/[0.08] shadow-none text-[#0F172A] dark:text-blue-300 transition-colors">
-                    <ProfileIcon size={18} strokeWidth={2.2} />
+                ) : userName && userName !== "Guest User" && userName !== "গেস্ট ইউজার" ? (
+                  <div className="w-9 h-9 rounded-full flex items-center justify-center bg-[#223A5E] text-white font-bold text-sm shadow-none ring-1 ring-[#5B8DEF]/30 group-hover:ring-[#5B8DEF]/60 transition-all uppercase">
+                    {userName[0].toUpperCase()}
                   </div>
                 ) : (
-                  <div className="w-9 h-9 rounded-full flex items-center justify-center bg-[#223A5E] text-white font-bold text-sm shadow-none ring-1 ring-[#5B8DEF]/30 group-hover:ring-[#5B8DEF]/60 transition-all uppercase">
-                    {userName ? userName[0].toUpperCase() : <ProfileIcon size={18} strokeWidth={2.2} />}
+                  <div className="w-9 h-9 rounded-full flex items-center justify-center bg-[#E8F1FC] dark:bg-white/[0.06] border border-[#D0E1FD] dark:border-white/[0.08] shadow-none text-[#0F172A] dark:text-blue-300 transition-colors">
+                    <ProfileIcon size={18} strokeWidth={2.2} />
                   </div>
                 )}
                 {/* Active Status Indicator */}
@@ -484,20 +521,20 @@ export default function Sidebar({
                   aria-label="Profile Menu"
                 >
                   <div className="relative flex items-center justify-center">
-                    {user?.avatarUrl ? (
+                    {effectiveAvatar ? (
                       /* eslint-disable-next-line @next/next/no-img-element */
                       <img 
-                        src={user.avatarUrl} 
+                        src={effectiveAvatar} 
                         alt={userName} 
                         className="w-9 h-9 rounded-full object-cover ring-2 ring-[#5B8DEF]/30" 
                       />
-                    ) : isGuestMode ? (
-                      <div className="w-9 h-9 rounded-full flex items-center justify-center bg-[#E8F1FC] dark:bg-blue-950/60 border border-[#D0E1FD] dark:border-blue-900/40 text-[#0F172A] dark:text-blue-300">
-                        <ProfileIcon size={18} strokeWidth={2.2} />
+                    ) : userName && userName !== "Guest User" && userName !== "গেস্ট ইউজার" ? (
+                      <div className="w-9 h-9 rounded-full flex items-center justify-center bg-[#223A5E] text-white font-bold text-sm ring-2 ring-[#5B8DEF]/30 uppercase">
+                        {userName[0].toUpperCase()}
                       </div>
                     ) : (
-                      <div className="w-9 h-9 rounded-full flex items-center justify-center bg-[#223A5E] text-white font-bold text-sm ring-2 ring-[#5B8DEF]/30 uppercase">
-                        {userName ? userName[0].toUpperCase() : <ProfileIcon size={18} strokeWidth={2.2} />}
+                      <div className="w-9 h-9 rounded-full flex items-center justify-center bg-[#E8F1FC] dark:bg-blue-950/60 border border-[#D0E1FD] dark:border-blue-900/40 text-[#0F172A] dark:text-blue-300">
+                        <ProfileIcon size={18} strokeWidth={2.2} />
                       </div>
                     )}
                     <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-[#2E9B73] ring-2 ring-white dark:ring-[#070a14]" />

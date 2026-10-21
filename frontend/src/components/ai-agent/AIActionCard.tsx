@@ -138,6 +138,30 @@ export function AIActionCard({
   };
 
   const getConfirmButtonText = () => {
+    if (action.type === "open_focus" || action.type === "open_timer") {
+      return isBn ? "ফোকাস খুলুন" : "Open Focus";
+    }
+    if (action.type === "open_planner") {
+      return isBn ? "প্ল্যানার খুলুন" : "Open Planner";
+    }
+    if (action.type === "open_diary") {
+      return isBn ? "ডায়েরি খুলুন" : "Open Diary";
+    }
+    if (action.type === "open_notes" || action.type === "open_tasks") {
+      return isBn ? "নোটস খুলুন" : "Open Notes";
+    }
+    if (action.type === "open_mind" || action.type === "open_problem_solver" || action.type === "open_idea_space") {
+      return isBn ? "মাইন্ড স্পেস খুলুন" : "Open Mind Space";
+    }
+    if (action.type === "open_learning" || action.type === "open_skill_builder") {
+      return isBn ? "টাইম লগ খুলুন" : "Open Time Log";
+    }
+    if (action.type === "open_dashboard" || action.type === "open_today") {
+      return isBn ? "ড্যাশবোর্ড খুলুন" : "Open Dashboard";
+    }
+    if (action.type.startsWith("open_")) {
+      return action.title || (isBn ? "খুলুন" : "Open");
+    }
     if (action.type === "create_focus_session") {
       return isBn ? "ফোকাস শুরু করুন" : "Start Focus";
     }
@@ -209,10 +233,10 @@ export function AIActionCard({
 
       {/* Focus Timer Details */}
       {action.type === "create_focus_session" && (
-        <div className="flex items-center gap-2 text-xs font-medium text-emerald-400 mb-3 bg-emerald-500/10 px-2.5 py-1.5 rounded-lg border border-emerald-500/20">
+        <div className="flex items-center gap-2 text-xs font-semibold text-emerald-800 bg-emerald-100/90 border border-emerald-300 dark:text-emerald-400 dark:bg-emerald-500/10 dark:border-emerald-500/20 px-2.5 py-1.5 rounded-lg mb-3 shadow-xs">
           <Clock className="w-3.5 h-3.5 shrink-0" />
           <span>
-            {action.parameters.durationMinutes || 25} {isBn ? "মিনিট" : "minutes"} • {action.parameters.goal || "Deep Work"}
+            {action.parameters.durationMinutes || 25} {isBn ? "মিনিট" : "minutes"} • {action.parameters.goal || "Deep Focus"}
           </span>
         </div>
       )}
@@ -450,11 +474,11 @@ export function AIActionCard({
                 onConfirm(action.id, selectedIds);
               }
             }}
-            className={`flex-1 px-3 py-2 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all shadow-none ${
+            className={`flex-1 px-4 py-2.5 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all shadow-sm ${
               action.isDestructive
                 ? "bg-rose-600 hover:bg-rose-700 text-white"
-                : "bg-primary hover:bg-primary/90 text-primary-foreground"
-            } disabled:opacity-50 disabled:cursor-not-allowed`}
+                : "bg-[#223A5E] hover:bg-[#2E4E7B] text-white dark:bg-blue-600 dark:hover:bg-blue-500 dark:text-white"
+            } disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer`}
           >
             {isExecuting ? (
               <>
@@ -469,15 +493,17 @@ export function AIActionCard({
             )}
           </button>
 
-          <button
-            type="button"
-            disabled={isExecuting}
-            onClick={() => onCancel(action.id)}
-            className="px-3 py-2 rounded-xl text-xs font-medium border border-border bg-background/60 hover:bg-muted text-muted-foreground hover:text-foreground transition-all flex items-center justify-center gap-1"
-          >
-            <X className="w-3.5 h-3.5" />
-            <span>{isBn ? "এখন নয়" : "Cancel"}</span>
-          </button>
+          {!action.type.startsWith("open_") && (
+            <button
+              type="button"
+              disabled={isExecuting}
+              onClick={() => onCancel(action.id)}
+              className="px-3.5 py-2.5 rounded-xl text-xs font-medium border border-slate-200 bg-slate-100 hover:bg-slate-200 text-slate-700 dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10 dark:text-slate-300 transition-all flex items-center justify-center gap-1 cursor-pointer"
+            >
+              <X className="w-3.5 h-3.5" />
+              <span>{isBn ? "এখন নয়" : "Cancel"}</span>
+            </button>
+          )}
         </div>
       )}
     </div>

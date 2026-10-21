@@ -82,13 +82,13 @@ const PROCRASTINATION_REGEX = /(?:\b(?:can(?:'t|\s*not)\s*focus|procrastinat(?:i
 const CELEBRATING_REGEX = /(?:\b(?:i\s*finished\s*my\s*task|finished\s*studying|completed\s*task|studied\s*for\s*\d+\s*hours|shob\s*porlam|shesh\s*korchi|finished\s*today)\b|কাজ\s*শেষ\s*করেছি|পড়া\s*শেষ|টাস্ক\s*কমপ্লিট)/i;
 
 // 3. Navigation Patterns
-const NAV_FOCUS_REGEX = /(?:\b(?:take\s*me\s*to\s*focus|where\s*is\s*focus|open\s*focus|go\s*to\s*focus|open\s*pomodoro)\b|ফোকাসে\s*যাও|ফোকাস\s*টাইমার\s*খুলুন|ফোকাস\s*খোলো)/i;
-const NAV_PLANNER_REGEX = /(?:\b(?:take\s*me\s*to\s*planner|where\s*is\s*planner|open\s*planner|go\s*to\s*planner)\b|প্ল্যানারে\s*যাও|প্ল্যানার\s*খুলুন|প্ল্যানার\s*খোলো)/i;
-const NAV_DIARY_REGEX = /(?:\b(?:take\s*me\s*to\s*diary|where\s*is\s*diary|open\s*diary|my\s*diary)\b|ডায়েরিতে\s*যাও|ডায়েরি\s*খুলুন|ডায়েরি\s*খোলো)/i;
-const NAV_NOTES_REGEX = /(?:\b(?:take\s*me\s*to\s*notes|where\s*is\s*notes|notes\s*and\s*files|open\s*notes)\b|নোটস\s*খুলুন|নোটসে\s*যাও|নোটস\s*ও\s*ফাইলস)/i;
-const NAV_MIND_REGEX = /(?:\b(?:take\s*me\s*to\s*mind|open\s*mind\s*space|problem\s*solver|idea\s*vault|free\s*flow)\b|মাইন্ড\s*স্পেস\s*খুলুন|মাইন্ড\s*স্পেসে\s*যাও)/i;
-const NAV_LEARNING_REGEX = /(?:\b(?:take\s*me\s*to\s*time\s*log|open\s*time\s*log|where\s*is\s*time\s*log|skill\s*builder)\b|টাইম\s*লগ\s*খুলুন|টাইম\s*লগে\s*যাও)/i;
-const NAV_DASHBOARD_REGEX = /(?:\b(?:take\s*me\s*to\s*dashboard|open\s*dashboard|open\s*home)\b|ড্যাশবোর্ড\s*খুলুন|ড্যাশবোর্ডে\s*যাও|হোম\s*পেজে\s*যাও)/i;
+const NAV_FOCUS_REGEX = /(?:\b(?:take\s*me\s*to\s*focus|where\s*is\s*focus|open\s*focus|go\s*to\s*focus|open\s*pomodoro|(?:show|give)\s*me\s*(?:the\s*)?fou?cs(?:\s*(?:session|feature))?\s*(?:option|button)|fou?cs\s*(?:session\s*)?(?:option|button|feature)|want\s*to\s*focus|focus\s*korte\s*chai)\b|ফোকাসে\s*যাও|ফোকাস\s*(?:টাইমার|সেশন)?\s*খুলুন|ফোকাস\s*খোলো|ফোকাস\s*(?:অপশন|বাটন|ফিচার)|ফোকাস\s*করতে\s*চাই)/i;
+const NAV_PLANNER_REGEX = /(?:\b(?:take\s*me\s*to\s*planner|where\s*is\s*planner|open\s*planner|go\s*to\s*planner|(?:show|give)\s*me\s*planner\s*(?:option|button)|planner\s*(?:option|button|feature))\b|প্ল্যানারে\s*যাও|প্ল্যানার\s*(?:খুলুন|খোলো|অপশন|বাটন|ফিচার))/i;
+const NAV_DIARY_REGEX = /(?:\b(?:take\s*me\s*to\s*diary|where\s*is\s*diary|open\s*diary|my\s*diary|(?:show|give)\s*me\s*diary\s*(?:option|button)|diary\s*(?:option|button|feature))\b|ডায়েরিতে\s*যাও|ডায়েরি\s*(?:খুলুন|খোলো|অপশন|বাটন|ফিচার))/i;
+const NAV_NOTES_REGEX = /(?:\b(?:take\s*me\s*to\s*notes|where\s*is\s*notes|notes\s*and\s*files|open\s*notes|(?:show|give)\s*me\s*notes\s*(?:option|button)|notes\s*(?:option|button|feature))\b|নোটস\s*(?:খুলুন|খোলো|অপশন|বাটন|ফিচার)|নোটসে\s*যাও|নোটস\s*ও\s*ফাইলস)/i;
+const NAV_MIND_REGEX = /(?:\b(?:take\s*me\s*to\s*mind|open\s*mind(?:\s*space)?|mind\s*space(?:\s*(?:button|option))?|problem\s*solver(?:\s*(?:button|option))?|idea\s*vault|free\s*flow|i\s*have\s*a\s*problem|have\s*a\s*problem|problem\s*in\s*my\s*mind|need\s*a\s*mind\s*space\s*button|mind\s*space\s*button|solve\s*(?:my\s*)?problem)\b|মাইন্ড\s*স্পেস(?:\s*(?:খুলুন|খোলো|বাটন|অপশন))?|মাইন্ড\s*স্পেসে\s*যাও|প্রবলেম\s*সলভার|সমস্যায়\s*পড়েছি|আমার\s*(?:একটি|একটা)?\s*সমস্যা|সমস্যার\s*সমাধান|মাথায়\s*চাপ)/i;
+const NAV_LEARNING_REGEX = /(?:\b(?:take\s*me\s*to\s*time\s*log|open\s*time\s*log|where\s*is\s*time\s*log|skill\s*builder|(?:show|give)\s*me\s*time\s*log\s*(?:option|button)|time\s*log\s*(?:option|button|feature))\b|টাইম\s*লগ\s*(?:খুলুন|খোলো|অপশন|বাটন|ফিচার)|টাইম\s*লগে\s*যাও)/i;
+const NAV_DASHBOARD_REGEX = /(?:\b(?:take\s*me\s*to\s*dashboard|open\s*dashboard|open\s*home|(?:show|give)\s*me\s*dashboard\s*(?:option|button)|dashboard\s*(?:option|button|feature)|track\s*my\s*progress)\b|ড্যাশবোর্ড\s*(?:খুলুন|খোলো|অপশন|বাটন|ফিচার)|ড্যাশবোর্ডে\s*যাও|হোম\s*পেজে\s*যাও|প্রগ্রেস\s*ট্র্যাক)/i;
 const NAV_SETTINGS_REGEX = /(?:\b(?:take\s*me\s*to\s*settings|open\s*settings)\b|সেটিংসে\s*যাও|সেটিংস\s*খুলুন)/i;
 
 // Settings sub-pages
@@ -113,8 +113,8 @@ const STATS_PROGRESS_REGEX = /(?:\b(?:how\s*much\s*did\s*i\s*focus\s*today|how\s
 // 5. App Help Questions
 const APP_HELP_REGEX = /(?:\b(?:how\s*to\s*start\s*a\s*focus\s*session|how\s*routines\s*work|how\s*does\s*planner\s*work|is\s*diary\s*private|what\s*does\s*the\s*orb\s*do)\b|ফোকাস\s*সেশন\s*কীভাবে\s*চালায়|রুটিন\s*কীভাবে\s*কাজ\s*করে|ডায়েরি\s*কি\s*প্রাইভেট|অর্ব\s*কী\s*করে)/i;
 
-// 6. Time Log Topics & Weak/Important Query Patterns
-const TIMELOG_TOPIC_QUERY_REGEX = /(?:\b(important\s*topic|weak\s*topic|weakness|blocker|problem|issue|trouble|what\s*(are|were)\s*my\s*(important|weak|problem)\s*topics|topics\s*in|topic\s*list)\b|ইম্পর্টেন্ট\s*টপিক|উইক\s*টপিক|দুর্বল\s*টপিক|গুরুত্বপূর্ণ\s*টপিক|বাধা|টপিক\s*ছিল|টপিক\s*আছে|কী\s*কী\s*টপিক|কি\s*কি\s*টপিক|ইম্পর্ট্যান্ট|কোন\s*কোন\s*টপিক|টপিকগুলো\s*বলো|টপিক\s*বলো|কী\s*কী\s*সমস্যা|কি\s*কি\s*সমস্যা|কী\s*সমস্যা|কি\s*সমস্যা|সমস্যাগুলো\s*(?:বলো|দাও|কী|কি|ছিল)|সমস্যা\s*ছিল)/i;
+// 6. Time Log Topics & Weak/Important Query Patterns (Strictly topics, never plain problem statements)
+const TIMELOG_TOPIC_QUERY_REGEX = /(?:\b(?:(?:important|weak|learning|study)\s*(?:topics?|problems?|issues?|blockers?)|what\s*(?:are|were)\s*my\s*(?:important|weak)\s*topics|topics?\s*in\s*time\s*log|time\s*log\s*topics?)\b|ইম্পর্টেন্ট\s*টপিক|উইক\s*টপিক|দুর্বল\s*টপিক|গুরুত্বপূর্ণ\s*টপিক|টাইম\s*লগের\s*টপিক|পড়ার\s*টপিক)/i;
 
 // 7. Planner Schedule & Routine Query Patterns for Dates
 const PLANNER_DATE_QUERY_REGEX = /(?:\b(what\s*(is|was)\s*my\s*(routine|schedule|task|plan)|routine\s*on|schedule\s*on|tasks\s*on|what\s*did\s*i\s*have\s*on)\b|রুটিন\s*ছিল|কী\s*রুটিন|কি\s*রুটিন|টাস্ক\s*ছিল|কী\s*টাস্ক|কি\s*টাস্ক|কী\s*কী\s*কাজ|শিডিউল\s*ছিল|কী\s*শিডিউল|কি\s*শিডিউল|কী\s*প্ল্যান|কি\s*প্ল্যান|কাজের\s*তালিকা|(?:\d{1,2}|[০-৯]{1,2})\s*তারিখ[এের]*\s*(?:কী|কি|কেমন|রুটিন|কাজ|টাস্ক|ছিল|আছে)|রুটিন\s*(?:বলো|দেখাও|কী|কি|ছিল|আছে))/i;
@@ -134,7 +134,30 @@ export function classifyIntent(norm: NormalizedInput): ClassifiedIntent {
     };
   }
 
-  // 2. Productivity Queries & Actions (High priority: "হাই, একটা টাইমার দাও" executes timer action)
+  // 2. Direct Feature Navigation (Highest priority when user requests a feature/option/button)
+  if (NAV_MIND_REGEX.test(text)) {
+    return { intent: 'NAVIGATION_MIND', confidence: 0.98, isBigTask: false };
+  }
+  if (NAV_FOCUS_REGEX.test(text)) {
+    return { intent: 'NAVIGATION_FOCUS', confidence: 0.98, isBigTask: false };
+  }
+  if (NAV_PLANNER_REGEX.test(text)) {
+    return { intent: 'NAVIGATION_PLANNER', confidence: 0.98, isBigTask: false };
+  }
+  if (NAV_DIARY_REGEX.test(text)) {
+    return { intent: 'NAVIGATION_DIARY', confidence: 0.98, isBigTask: false };
+  }
+  if (NAV_NOTES_REGEX.test(text)) {
+    return { intent: 'NAVIGATION_NOTES', confidence: 0.98, isBigTask: false };
+  }
+  if (NAV_LEARNING_REGEX.test(text)) {
+    return { intent: 'NAVIGATION_LEARNING', confidence: 0.98, isBigTask: false };
+  }
+  if (NAV_DASHBOARD_REGEX.test(text)) {
+    return { intent: 'NAVIGATION_DASHBOARD', confidence: 0.98, isBigTask: false };
+  }
+
+  // 3. Productivity Queries & Actions
   if (TIMELOG_TOPIC_QUERY_REGEX.test(text)) {
     return { intent: 'TIMELOG_TOPIC_QUERY', confidence: 0.96, isBigTask: false };
   }
