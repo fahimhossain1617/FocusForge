@@ -157,6 +157,25 @@ export default function Sidebar({
   const backdrop = useAnimateExit({ isOpen: isOpen && !isTourActive, durationMs: 200 });
   const logoutAnim = useAnimateExit({ isOpen: logoutConfirmOpen, durationMs: 200 });
 
+  // Shared Floating Gliding Tooltip State & Graceful Timeout
+  const [hoveredNavId, setHoveredNavId] = useState<string | null>(null);
+  const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const handleItemEnter = (id: string) => {
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current);
+      hoverTimeoutRef.current = null;
+    }
+    setHoveredNavId(id);
+  };
+
+  const handleSidebarLeave = () => {
+    if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
+    hoverTimeoutRef.current = setTimeout(() => {
+      setHoveredNavId(null);
+    }, 90);
+  };
+
   return (
     <>
       {/* Mobile backdrop */}
@@ -169,12 +188,13 @@ export default function Sidebar({
 
       {/* Sidebar Drawer / Desktop Rail */}
       <aside
-        className={`sidebar fixed left-0 top-0 bottom-0 h-screen max-h-screen h-dvh max-h-dvh overflow-hidden flex flex-col py-4 bg-white dark:bg-[#070a14] text-[#52627A] dark:text-muted-foreground border-r border-[#DCE5F0] dark:border-border transition-all duration-200 ease-in-out select-none shadow-none w-[78%] max-w-[300px] px-3.5 ${
+        onMouseLeave={handleSidebarLeave}
+        className={`sidebar fixed left-0 top-0 bottom-0 h-screen max-h-screen h-dvh max-h-dvh flex flex-col py-4 bg-white dark:bg-[#070a14] text-[#52627A] dark:text-muted-foreground border-r border-[#DCE5F0] dark:border-border transition-all duration-200 ease-in-out select-none shadow-none w-[78%] max-w-[300px] px-3.5 ${
           isTourActive ? "z-[9999]" : "z-50"
         } ${
           isOpen ? "open translate-x-0 !translate-x-0 shadow-none" : "-translate-x-full md:translate-x-0"
         } ${
-          isCollapsed ? "md:w-[76px] md:px-2" : "md:w-[260px] md:px-3.5"
+          isCollapsed ? "md:w-[76px] md:px-2 md:overflow-visible" : "md:w-[260px] md:px-3.5 overflow-hidden"
         }`}
       >
         {/* ============================================================ */}
@@ -249,7 +269,9 @@ export default function Sidebar({
         {/* ============================================================ */}
         {/* 2. NAVIGATION ITEMS                                         */}
         {/* ============================================================ */}
-        <nav className="flex-1 min-h-0 flex flex-col gap-1 overflow-y-auto overflow-x-hidden py-1">
+        <nav className={`flex-1 min-h-0 flex flex-col gap-1 py-1 ${
+          isCollapsed ? "md:overflow-visible" : "overflow-y-auto overflow-x-hidden"
+        }`}>
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = state.activePage === item.id;
@@ -272,65 +294,87 @@ export default function Sidebar({
             const displayTagline = (keys?.tagline && t.sidebar[keys.tagline]) ? t.sidebar[keys.tagline] : item.tagline;
 
             return (
-              <div key={item.id} className="relative group flex items-center w-full">
-                <button
-                  type="button"
-                  data-tour={`tour-${item.id}`}
-                  id={`nav-${item.id}`}
-                  onClick={() => handleNav(item.id)}
-                  className={`sidebar-nav-btn relative flex items-center rounded-xl text-left transition-colors duration-150 ease-out cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-[#5B8DEF] w-full gap-3 px-3.5 min-h-[44px] ${
-                    isCollapsed 
-                      ? "md:justify-center md:w-11 md:h-11 md:mx-auto md:px-0 md:min-h-0 md:gap-0" 
-                      : "md:w-full md:gap-3 md:px-3.5 md:min-h-[44px]"
-                  } ${
-                    isActive 
-                      ? "sidebar-nav-btn-active text-[#223A5E] dark:text-foreground font-bold" 
-                      : "text-[#52627A] dark:text-muted-foreground hover:bg-[#E8F1FC] dark:hover:bg-white/[0.06] hover:text-[#111827] dark:hover:text-foreground"
-                  }`}
-                  aria-label={displayLabel}
-                >
-                  {/* Sliding Active Indicator Bar */}
-                  {isActive && (
-                    <motion.div
-                      layoutId="active-sidebar-pill"
-                      className="sidebar-active-pill absolute inset-0 rounded-xl overflow-hidden pointer-events-none"
-                      transition={{ type: "spring", stiffness: 350, damping: 30 }}
+              <div 
+                key={item.id} 
+                className={`relative flex items-center w-full ${isCollapsed ? "md:justify-center" : ""}`}
+                onMouseEnter={() => handleItemEnter(item.id)}
+              >
+                <div className={`relative flex items-center ${isCollapsed ? "md:justify-center md:w-10 md:h-10 md:mx-auto" : "w-full"}`}>
+                  <button
+                    type="button"
+                    data-tour={`tour-${item.id}`}
+                    id={`nav-${item.id}`}
+                    onClick={() => handleNav(item.id)}
+                    className={`sidebar-nav-btn relative flex items-center rounded-xl text-left transition-colors duration-150 ease-out cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-[#5B8DEF] ${
+                      isCollapsed 
+                        ? "md:justify-center md:w-10 md:h-10 md:mx-auto md:px-0 md:min-h-0 md:gap-0" 
+                        : "w-full md:w-full md:gap-3 md:px-3 md:min-h-[40px] px-3.5 min-h-[44px]"
+                    } ${
+                      isActive 
+                        ? "sidebar-nav-btn-active text-[#223A5E] dark:text-foreground font-bold" 
+                        : "text-[#52627A] dark:text-muted-foreground hover:bg-[#E8F1FC] dark:hover:bg-white/[0.06] hover:text-[#111827] dark:hover:text-foreground"
+                    }`}
+                    aria-label={displayLabel}
+                  >
+                    {/* Sliding Active Indicator Bar */}
+                    {isActive && (
+                      <motion.div
+                        layoutId="active-sidebar-pill"
+                        className="sidebar-active-pill absolute inset-0 rounded-xl overflow-hidden pointer-events-none"
+                        transition={{ type: "spring", stiffness: 350, damping: 30 }}
+                      >
+                        <div className="sidebar-active-pill-bg absolute inset-0 rounded-xl bg-[#E7F0FF] dark:bg-blue-950/40" />
+                      </motion.div>
+                    )}
+
+                    <span 
+                      className={`sidebar-nav-icon relative z-10 flex items-center justify-center shrink-0 ${
+                        isActive ? "text-[#223A5E] dark:text-blue-300" : "text-[#52627A] dark:text-muted-foreground group-hover:text-[#223A5E] dark:group-hover:text-foreground"
+                      }`}
                     >
-                      <div className="sidebar-active-pill-bg absolute inset-0 rounded-xl bg-[#E7F0FF] dark:bg-blue-950/40" />
+                      <Icon className={isCollapsed ? "w-[17px] h-[17px]" : "w-[18px] h-[18px]"} strokeWidth={isActive ? 2 : 1.65} />
+                    </span>
+
+                    {/* Navigation Label (Hidden when collapsed on desktop only) */}
+                    <div className={`relative z-10 flex flex-col min-w-0 flex-1 block ${
+                      isCollapsed ? "md:hidden" : "md:block"
+                    }`}>
+                      <span className={`sidebar-nav-label text-[13.5px] leading-tight break-words ${
+                        isActive ? "text-[#223A5E] dark:text-foreground font-bold" : "font-medium"
+                      }`}>
+                        {displayLabel}
+                      </span>
+                    </div>
+                  </button>
+
+                  {/* Gemini-Style Fluid Gliding Floating Pill Tooltip */}
+                  {isCollapsed && hoveredNavId === item.id && (
+                    <motion.div
+                      layoutId="sidebar-hover-pill"
+                      initial={{ opacity: 0, x: -6 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: -4, transition: { duration: 0.12 } }}
+                      transition={{
+                        type: "spring",
+                        stiffness: 440,
+                        damping: 32,
+                        mass: 0.75
+                      }}
+                      className="hidden md:flex items-center pointer-events-none absolute left-[calc(100%+8px)] top-1/2 -translate-y-1/2 z-50 whitespace-nowrap select-none"
+                    >
+                      <div className="px-3.5 py-1.5 rounded-[16px] bg-white dark:bg-[#1E2638] text-[#0F172A] dark:text-slate-100 text-[13px] font-medium tracking-tight border border-[#DCE5F0] dark:border-white/10 shadow-lg shadow-black/5 dark:shadow-black/40 backdrop-blur-md">
+                        <motion.span
+                          key={displayLabel}
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          transition={{ duration: 0.12 }}
+                        >
+                          {displayLabel}
+                        </motion.span>
+                      </div>
                     </motion.div>
                   )}
-
-                  <span 
-                    className={`sidebar-nav-icon relative z-10 flex items-center justify-center shrink-0 ${
-                      isActive ? "text-[#223A5E] dark:text-blue-300" : "text-[#52627A] dark:text-muted-foreground group-hover:text-[#223A5E] dark:group-hover:text-foreground"
-                    }`}
-                  >
-                    <Icon className="w-5 h-5" strokeWidth={isActive ? 2.1 : 1.75} />
-                  </span>
-
-                  {/* Navigation Label (Hidden when collapsed on desktop only) */}
-                  <div className={`relative z-10 flex flex-col min-w-0 flex-1 block ${
-                    isCollapsed ? "md:hidden" : "md:block"
-                  }`}>
-                    <span className={`sidebar-nav-label text-sm leading-tight break-words ${
-                      isActive ? "text-[#223A5E] dark:text-foreground font-bold" : "font-medium"
-                    }`}>
-                      {displayLabel}
-                    </span>
-                  </div>
-                </button>
-
-                {/* Tooltip for Collapsed State */}
-                {isCollapsed && (
-                  <div className="hidden md:block pointer-events-none absolute left-full ml-3 px-3 py-1.5 bg-[#0F172A] text-white dark:bg-[#1A2234] dark:text-slate-100 text-xs rounded-lg shadow-none opacity-0 group-hover:opacity-100 transition-all duration-150 whitespace-nowrap z-50 translate-x-1 group-hover:translate-x-0 border border-slate-700/50">
-                    <div className="font-semibold">{displayLabel}</div>
-                    {displayTagline && (
-                      <div className="text-[10px] text-slate-400 dark:text-slate-400 font-normal">
-                        {displayTagline}
-                      </div>
-                    )}
-                  </div>
-                )}
+                </div>
               </div>
             );
           })}
@@ -510,58 +554,151 @@ export default function Sidebar({
           {isCollapsed && (
             <div className="hidden md:flex flex-col items-center gap-2">
               {/* Install Prompt for Web App Users (Collapsed) */}
-              <InstallPrompt variant="sidebar-collapsed" />
+              <div 
+                className="relative flex items-center justify-center w-full"
+                onMouseEnter={() => handleItemEnter("install")}
+              >
+                <div className="relative flex items-center justify-center w-10 h-10">
+                  <InstallPrompt variant="sidebar-collapsed" />
+
+                  {isCollapsed && hoveredNavId === "install" && (
+                    <motion.div
+                      layoutId="sidebar-hover-pill"
+                      initial={{ opacity: 0, x: -6 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: -4, transition: { duration: 0.12 } }}
+                      transition={{
+                        type: "spring",
+                        stiffness: 440,
+                        damping: 32,
+                        mass: 0.75
+                      }}
+                      className="hidden md:flex items-center pointer-events-none absolute left-[calc(100%+8px)] top-1/2 -translate-y-1/2 z-50 whitespace-nowrap select-none"
+                    >
+                      <div className="px-3.5 py-1.5 rounded-[16px] bg-white dark:bg-[#1E2638] text-[#0F172A] dark:text-slate-100 text-[13px] font-medium tracking-tight border border-[#DCE5F0] dark:border-white/10 shadow-lg shadow-black/5 dark:shadow-black/40 backdrop-blur-md">
+                        <motion.span
+                          key="install"
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          transition={{ duration: 0.12 }}
+                        >
+                          {state.lang === 'bn' ? "গেট অ্যাপ" : "Get App"}
+                        </motion.span>
+                      </div>
+                    </motion.div>
+                  )}
+                </div>
+              </div>
 
               {/* Avatar Button */}
-              <div className="relative group">
-                <button
-                  type="button"
-                  onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
-                  className="relative flex items-center justify-center w-11 h-11 rounded-xl hover:bg-slate-100 dark:hover:bg-white/[0.06] transition-colors cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-[#5B8DEF]"
-                  aria-label="Profile Menu"
-                >
-                  <div className="relative flex items-center justify-center">
-                    {effectiveAvatar ? (
-                      /* eslint-disable-next-line @next/next/no-img-element */
-                      <img 
-                        src={effectiveAvatar} 
-                        alt={userName} 
-                        className="w-9 h-9 rounded-full object-cover ring-2 ring-[#5B8DEF]/30" 
-                      />
-                    ) : userName && userName !== "Guest User" && userName !== "গেস্ট ইউজার" ? (
-                      <div className="w-9 h-9 rounded-full flex items-center justify-center bg-[#223A5E] text-white font-bold text-sm ring-2 ring-[#5B8DEF]/30 uppercase">
-                        {userName[0].toUpperCase()}
+              <div 
+                className="relative flex items-center justify-center w-full"
+                onMouseEnter={() => handleItemEnter("profile")}
+              >
+                <div className="relative flex items-center justify-center w-10 h-10">
+                  <button
+                    type="button"
+                    onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
+                    className="relative flex items-center justify-center w-10 h-10 rounded-xl hover:bg-slate-100 dark:hover:bg-white/[0.06] transition-colors cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-[#5B8DEF]"
+                    aria-label="Profile Menu"
+                  >
+                    <div className="relative flex items-center justify-center">
+                      {effectiveAvatar ? (
+                        /* eslint-disable-next-line @next/next/no-img-element */
+                        <img 
+                          src={effectiveAvatar} 
+                          alt={userName} 
+                          className="w-8 h-8 rounded-full object-cover ring-2 ring-[#5B8DEF]/30" 
+                        />
+                      ) : userName && userName !== "Guest User" && userName !== "গেস্ট ইউজার" ? (
+                        <div className="w-8 h-8 rounded-full flex items-center justify-center bg-[#223A5E] text-white font-bold text-xs ring-2 ring-[#5B8DEF]/30 uppercase">
+                          {userName[0].toUpperCase()}
+                        </div>
+                      ) : (
+                        <div className="w-8 h-8 rounded-full flex items-center justify-center bg-[#E8F1FC] dark:bg-blue-950/60 border border-[#D0E1FD] dark:border-blue-900/40 text-[#0F172A] dark:text-blue-300">
+                          <ProfileIcon size={16} strokeWidth={2.1} />
+                        </div>
+                      )}
+                      <span className="absolute bottom-0 right-0 w-2 h-2 rounded-full bg-[#2E9B73] ring-2 ring-white dark:ring-[#070a14]" />
+                    </div>
+                  </button>
+
+                  {/* Gemini-Style Fluid Gliding Floating Pill Tooltip */}
+                  {isCollapsed && hoveredNavId === "profile" && (
+                    <motion.div
+                      layoutId="sidebar-hover-pill"
+                      initial={{ opacity: 0, x: -6 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: -4, transition: { duration: 0.12 } }}
+                      transition={{
+                        type: "spring",
+                        stiffness: 440,
+                        damping: 32,
+                        mass: 0.75
+                      }}
+                      className="hidden md:flex items-center pointer-events-none absolute left-[calc(100%+8px)] top-1/2 -translate-y-1/2 z-50 whitespace-nowrap select-none"
+                    >
+                      <div className="px-3.5 py-1.5 rounded-[16px] bg-white dark:bg-[#1E2638] text-[#0F172A] dark:text-slate-100 text-[13px] font-medium tracking-tight border border-[#DCE5F0] dark:border-white/10 shadow-lg shadow-black/5 dark:shadow-black/40 backdrop-blur-md">
+                        <motion.span
+                          key={userName}
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          transition={{ duration: 0.12 }}
+                        >
+                          {userName}
+                        </motion.span>
                       </div>
-                    ) : (
-                      <div className="w-9 h-9 rounded-full flex items-center justify-center bg-[#E8F1FC] dark:bg-blue-950/60 border border-[#D0E1FD] dark:border-blue-900/40 text-[#0F172A] dark:text-blue-300">
-                        <ProfileIcon size={18} strokeWidth={2.2} />
-                      </div>
-                    )}
-                    <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-[#2E9B73] ring-2 ring-white dark:ring-[#070a14]" />
-                  </div>
-                </button>
-                <div className="pointer-events-none absolute left-full ml-3 px-3 py-1.5 bg-[#0F172A] text-white dark:bg-[#1A2234] dark:text-slate-100 text-xs rounded-lg shadow-none opacity-0 group-hover:opacity-100 transition-all duration-150 whitespace-nowrap z-50 translate-x-1 group-hover:translate-x-0 border border-slate-700/50">
-                  <div className="font-semibold">{userName}</div>
-                  <div className="text-[10px] text-slate-400">{userSubtitle}</div>
+                    </motion.div>
+                  )}
                 </div>
               </div>
 
               {/* Settings Icon Button */}
-              <div className="relative group">
-                <button
-                  type="button"
-                  onClick={() => handleNav("settings")}
-                  className={`flex items-center justify-center w-11 h-11 rounded-xl transition-colors cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-[#5B8DEF] ${
-                    state.activePage === "settings"
-                      ? "text-[#223A5E] dark:text-blue-300 bg-[#E7F0FF] dark:bg-blue-950/40"
-                      : "text-[#52627A] dark:text-muted-foreground hover:text-[#0F172A] dark:hover:text-foreground hover:bg-slate-100 dark:hover:bg-white/[0.06]"
-                  }`}
-                  aria-label={t.sidebar.settings || "Settings"}
-                >
-                  <SettingsIcon size={19} />
-                </button>
-                <div className="pointer-events-none absolute left-full ml-3 px-3 py-1.5 bg-[#0F172A] text-white dark:bg-[#1A2234] dark:text-slate-100 text-xs rounded-lg shadow-none opacity-0 group-hover:opacity-100 transition-all duration-150 whitespace-nowrap z-50 translate-x-1 group-hover:translate-x-0 border border-slate-700/50">
-                  <div className="font-semibold">{t.sidebar.settings || "Settings"}</div>
+              <div 
+                className="relative flex items-center justify-center w-full"
+                onMouseEnter={() => handleItemEnter("settings")}
+              >
+                <div className="relative flex items-center justify-center w-10 h-10">
+                  <button
+                    type="button"
+                    onClick={() => handleNav("settings")}
+                    className={`flex items-center justify-center w-10 h-10 rounded-xl transition-colors cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-[#5B8DEF] ${
+                      state.activePage === "settings"
+                        ? "text-[#223A5E] dark:text-blue-300 bg-[#E7F0FF] dark:bg-blue-950/40"
+                        : "text-[#52627A] dark:text-muted-foreground hover:text-[#0F172A] dark:hover:text-foreground hover:bg-slate-100 dark:hover:bg-white/[0.06]"
+                    }`}
+                    aria-label={t.sidebar.settings || "Settings"}
+                  >
+                    <SettingsIcon className="w-[17px] h-[17px]" strokeWidth={1.8} />
+                  </button>
+
+                  {/* Gemini-Style Fluid Gliding Floating Pill Tooltip */}
+                  {isCollapsed && hoveredNavId === "settings" && (
+                    <motion.div
+                      layoutId="sidebar-hover-pill"
+                      initial={{ opacity: 0, x: -6 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: -4, transition: { duration: 0.12 } }}
+                      transition={{
+                        type: "spring",
+                        stiffness: 440,
+                        damping: 32,
+                        mass: 0.75
+                      }}
+                      className="hidden md:flex items-center pointer-events-none absolute left-[calc(100%+8px)] top-1/2 -translate-y-1/2 z-50 whitespace-nowrap select-none"
+                    >
+                      <div className="px-3.5 py-1.5 rounded-[16px] bg-white dark:bg-[#1E2638] text-[#0F172A] dark:text-slate-100 text-[13px] font-medium tracking-tight border border-[#DCE5F0] dark:border-white/10 shadow-lg shadow-black/5 dark:shadow-black/40 backdrop-blur-md">
+                        <motion.span
+                          key={t.sidebar.settings || "Settings"}
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          transition={{ duration: 0.12 }}
+                        >
+                          {t.sidebar.settings || "Settings"}
+                        </motion.span>
+                      </div>
+                    </motion.div>
+                  )}
                 </div>
               </div>
             </div>

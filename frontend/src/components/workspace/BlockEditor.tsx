@@ -319,20 +319,25 @@ export default function BlockEditor({
 
     if (isBackspace && isAtStart && index > 0) {
       event.preventDefault();
-      setMenu((c) => ({ ...c, visible: false }));
-      const prevBlock = blocks[index - 1];
-      if (["paragraph", "h1", "h2", "h3", "bullet", "numbered", "quote", "todo"].includes(prevBlock.type)) {
-        const prevLen = prevBlock.content.length;
-        const mergedContent = prevBlock.content + block.content;
-        onDirty();
-        onChange(
-          blocks
-            .filter((_, i) => i !== index)
-            .map((b, i) => (i === index - 1 ? { ...b, content: mergedContent } : b))
-        );
-        focus(prevBlock.id);
-        return;
-      }
+      mergeWithPrev(index);
+      return;
+    }
+  };
+
+  const mergeWithPrev = (index: number) => {
+    if (index <= 0) return;
+    setMenu((c) => ({ ...c, visible: false }));
+    const prevBlock = blocks[index - 1];
+    const currentBlock = blocks[index];
+    if (["paragraph", "h1", "h2", "h3", "bullet", "numbered", "quote", "todo"].includes(prevBlock.type)) {
+      const mergedContent = prevBlock.content + currentBlock.content;
+      onDirty();
+      onChange(
+        blocks
+          .filter((_, i) => i !== index)
+          .map((b, i) => (i === index - 1 ? { ...b, content: mergedContent } : b))
+      );
+      focus(prevBlock.id);
     }
   };
 
@@ -342,7 +347,9 @@ export default function BlockEditor({
     const isDeleteAction =
       native.inputType === "deleteContentBackward" ||
       native.inputType === "deleteContentForward" ||
-      native.inputType === "deleteByCut";
+      native.inputType === "deleteByCut" ||
+      native.inputType === "deleteHardLineBackward" ||
+      native.inputType === "deleteSoftLineBackward";
 
     if (isDeleteAction) {
       const block = blocks[index];
@@ -358,20 +365,9 @@ export default function BlockEditor({
         } else {
           update(index, { type: "paragraph", content: "", isCompleted: undefined });
         }
-      } else if (isAtStart && native.inputType === "deleteContentBackward" && index > 0) {
+      } else if (isAtStart && index > 0) {
         event.preventDefault();
-        setMenu((c) => ({ ...c, visible: false }));
-        const prevBlock = blocks[index - 1];
-        if (["paragraph", "h1", "h2", "h3", "bullet", "numbered", "quote", "todo"].includes(prevBlock.type)) {
-          const mergedContent = prevBlock.content + block.content;
-          onDirty();
-          onChange(
-            blocks
-              .filter((_, i) => i !== index)
-              .map((b, i) => (i === index - 1 ? { ...b, content: mergedContent } : b))
-          );
-          focus(prevBlock.id);
-        }
+        mergeWithPrev(index);
       }
     }
   };
@@ -390,6 +386,7 @@ export default function BlockEditor({
         onBeforeInput={(e) => handleBeforeInput(e, index)}
         onToggle={() => update(index, { isCompleted: !block.isCompleted })}
         onDelete={() => remove(index)}
+        onMergePrev={() => mergeWithPrev(index)}
         onDuplicate={() => duplicate(index)}
         onLanguage={(lang) => update(index, { language: lang })}
         onColorToolbar={() => setColorToolbar({ visible: true, index })}
@@ -1198,6 +1195,7 @@ function EditorBlock({
   onBeforeInput,
   onToggle,
   onDelete,
+  onMergePrev,
   onDuplicate,
   onLanguage,
   onColorToolbar,
@@ -1218,6 +1216,7 @@ function EditorBlock({
   onBeforeInput?: (event: React.FormEvent<HTMLTextAreaElement | HTMLInputElement>) => void;
   onToggle: () => void;
   onDelete: () => void;
+  onMergePrev?: () => void;
   onDuplicate: () => void;
   onLanguage: (language: NonNullable<NoteBlock["language"]>) => void;
   onColorToolbar: () => void;
@@ -1230,6 +1229,93 @@ function EditorBlock({
 }) {
   const textarea = useRef<HTMLTextAreaElement>(null);
   useEffect(() => { if (textarea.current && block.type !== "code") { textarea.current.style.height = "0px"; textarea.current.style.height = `${textarea.current.scrollHeight}px`; } }, [block.content, block.type]);
+
+  // Native mobile keyboard deletion & backspace handling (solves Android Gboard / Samsung keyboard / iOS issues)
+  useEffect(() => {
+    const el = textarea.current;
+    if (!el) return;
+
+    let pendingKey229Timer: any = null;
+    let didInputOccur = false;
+
+    const handleNativeBeforeInput = (e: InputEvent) => {
+      didInputOccur = true;
+      if (pendingKey229Timer) {
+        clearTimeout(pendingKey229Timer);
+        pendingKey229Timer = null;
+      }
+
+      const isDelete =
+        e.inputType === "deleteContentBackward" ||
+        e.inputType === "deleteContentForward" ||
+        e.inputType === "deleteByCut" ||
+        e.inputType === "deleteHardLineBackward" ||
+        e.inputType === "deleteSoftLineBackward";
+
+      if (isDelete) {
+        const isEmptyOrHash = !block.content || !block.content.trim() || block.content.trim() === "#";
+        const isAtStart = typeof el.selectionStart === "number" && el.selectionStart === 0 && el.selectionEnd === 0;
+
+        if (isEmptyOrHash) {
+          e.preventDefault();
+          onDelete();
+        } else if (isAtStart && index > 0) {
+          e.preventDefault();
+          onMergePrev?.();
+        }
+      }
+    };
+
+    const handleNativeKeyDown = (e: globalThis.KeyboardEvent) => {
+      const isBackspace = e.key === "Backspace" || e.code === "Backspace" || e.keyCode === 8;
+      const isDelete = e.key === "Delete" || e.key === "Del" || e.code === "Delete" || e.keyCode === 46;
+      const isEmptyOrHash = !block.content || !block.content.trim() || block.content.trim() === "#";
+      const isAtStart = typeof el.selectionStart === "number" && el.selectionStart === 0 && el.selectionEnd === 0;
+
+      if ((isBackspace || isDelete) && isEmptyOrHash) {
+        e.preventDefault();
+        onDelete();
+        return;
+      }
+
+      if (isBackspace && isAtStart && index > 0) {
+        e.preventDefault();
+        onMergePrev?.();
+        return;
+      }
+
+      // Android Gboard / Samsung keyboard keyCode 229 fallback for empty fields
+      if ((e.keyCode === 229 || e.key === "Unidentified") && isEmptyOrHash) {
+        didInputOccur = false;
+        if (pendingKey229Timer) clearTimeout(pendingKey229Timer);
+        pendingKey229Timer = setTimeout(() => {
+          if (!didInputOccur && (!el.value || !el.value.trim() || el.value.trim() === "#")) {
+            onDelete();
+          }
+        }, 35);
+      }
+    };
+
+    const handleNativeInput = () => {
+      didInputOccur = true;
+      if (pendingKey229Timer) {
+        clearTimeout(pendingKey229Timer);
+        pendingKey229Timer = null;
+      }
+    };
+
+    el.addEventListener("beforeinput", handleNativeBeforeInput as EventListener);
+    el.addEventListener("keydown", handleNativeKeyDown as EventListener);
+    el.addEventListener("input", handleNativeInput);
+
+    return () => {
+      if (pendingKey229Timer) clearTimeout(pendingKey229Timer);
+      el.removeEventListener("beforeinput", handleNativeBeforeInput as EventListener);
+      el.removeEventListener("keydown", handleNativeKeyDown as EventListener);
+      el.removeEventListener("input", handleNativeInput);
+    };
+  }, [block.content, index, onDelete, onMergePrev]);
+
   const input = {
     id: `block-${block.id}`,
     value: block.content,

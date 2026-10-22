@@ -1838,3 +1838,59 @@
   - Level 3 Automated Tests: `node scripts/test_phase2_feature_tools.js` passed (22/23 tests passed, including all navigation route validations).
 - **Status:** **VERIFIED**
 
+---
+
+## ADR-045: PreHydrationScripts Server Injection, Mobile Virtual Keyboard Deletion & Sidebar Icon Optimization
+
+- **Date:** October 22, 2026
+- **Status:** Accepted
+- **Context:**
+  1. Next.js 16.4 Turbopack and React 19 raised console error: "Encountered a script tag while rendering React component" and hydration diff: `client/server diff: + <div id="app-shell" ...> - <script>` due to inline `<script>` tags inside `layout.tsx`.
+  2. In `BlockEditor.tsx`, on mobile touchscreens (Android Gboard, Samsung Keyboard, iOS), pressing Backspace on an empty block ("Type # to add a block...") failed to delete the block because React's synthetic `onBeforeInput` does not dispatch deletion events and Android IMEs mask Backspace with `keyCode: 229`.
+  3. Sidebar icons appeared oversized, and collapsed sidebar icon hover displayed dark card/box container tooltips instead of clean, floating typography matching light and dark theme text colors.
+- **Decision:**
+  1. **PreHydrationScripts SSR Injection:**
+     - Created `frontend/src/components/PreHydrationScripts.tsx` using Next.js `useServerInsertedHTML` from `'next/navigation'`.
+     - Injects theme pre-hydration, dynamic baseline styles, launch gate script, launch CSS, and launch splash controller directly into SSR HTML without placing `<script>` tags into React's client VDOM reconciliation tree.
+  2. **Mobile Virtual Keyboard Deletion Normalization:**
+     - Attached native DOM `beforeinput`, `keydown`, and `input` listeners directly on `textarea.current` in `BlockEditor.tsx`.
+     - Native `beforeinput` catches `deleteContentBackward`, `deleteContentForward`, `deleteByCut`, and line deletion events.
+     - Added a 35ms fallback timer for Android IME `keyCode: 229` on empty fields to reliably trigger block removal and previous block focus when Backspace is tapped on mobile soft keyboards.
+  3. **Sidebar Icon Sizing & Pure Floating Typography Tooltips:**
+     - Scaled sidebar navigation icons to `w-[17px] h-[17px]` (collapsed) and `w-[18px] h-[18px]` (expanded), with container buttons scaled to `w-10 h-10` / `min-h-[40px]`.
+     - Removed box, card, background, and border styling from collapsed icon hover labels. Replaced with pure floating typography: `text-[13px] font-medium tracking-tight text-[#0F172A] dark:text-slate-200`.
+- **Verification:**
+  - Level 0 Scope Check: Passed. Only target files (`layout.tsx`, `PreHydrationScripts.tsx`, `BlockEditor.tsx`, `Sidebar.tsx`, `InstallPrompt.tsx`) modified.
+  - Level 2 Typecheck & Build: `npm --prefix frontend run build` completed with exit code 0 (21/21 static routes generated).
+  - Level 2 Dev Server Check: Active and running with 0 errors.
+- **Status:** **VERIFIED**
+
+---
+
+## ADR-046: Gemini-Style Continuous Fluid Gliding Floating Pill Tooltips with 8px Proximity
+
+- **Date:** October 22, 2026
+- **Status:** Accepted
+- **Context:**
+  1. In the collapsed sidebar, hover tooltips were positioned too far from the icons (~26px gap) due to outer container padding and relative alignment, making them feel detached.
+  2. The tooltip pill shape needed to match the authentic Google Gemini rounded squircle pill (`rounded-[16px]` / ~36px height) as shown in the user's reference image (`Search chats`).
+  3. When moving the cursor between icons (e.g. from Dashboard down to My Mind, Tasks, Settings, etc.), individual unmounting tooltips caused an annoying flickering pop-in/pop-out effect on every icon instead of a continuous, fluid gliding motion.
+- **Decision:**
+  1. **Tight 8px Proximity:**
+     - Wrapped each collapsed navigation button inside a dedicated 40x40 relative container (`md:w-10 md:h-10 md:mx-auto`).
+     - Positioned the tooltip pill at `left-[calc(100%+8px)] top-1/2 -translate-y-1/2`, anchoring it directly to the button right edge with an exact 8px gap.
+  2. **Authentic Gemini Squircle Pill Design:**
+     - Styled with `rounded-[16px] px-3.5 py-1.5 text-[13px] font-medium tracking-tight`.
+     - Dual-theme coloring: crisp white pill with dark text in Light Mode (`bg-white text-[#0F172A] border border-[#DCE5F0] shadow-lg shadow-black/5`) and deep slate pill with light text in Dark Mode (`dark:bg-[#1E2638] dark:text-slate-100 dark:border-white/10 dark:shadow-black/40`).
+  3. **Continuous Fluid Gliding Motion (No Repeated Pop-Up):**
+     - Managed a single `hoveredNavId` state in `Sidebar.tsx` with a 90ms grace period on `handleSidebarLeave` so moving between buttons never drops the active tooltip state.
+     - Linked all navigation items, the Install App button, Profile Avatar, and Settings button to a shared Framer Motion `layoutId="sidebar-hover-pill"` with spring physics (`stiffness: 440, damping: 32, mass: 0.75`).
+     - The floating pill smoothly glides vertically up and down with organic spring physics while the label text gently crossfades (`motion.span key={label}`), eliminating repeated popping and delivering a seamless experience.
+- **Verification:**
+  - Level 0 Scope Check: Passed. Only `Sidebar.tsx` and `InstallPrompt.tsx` modified.
+  - Level 1 Static Check: TypeScript check `tsc --noEmit` passed with 0 errors.
+  - Level 2 Build Check: `npm --prefix frontend run build` succeeded with exit code 0 (21/21 static routes generated).
+  - Level 4 Feature Verification: Confirmed smooth layoutId gliding and exact 8px spacing on active dev server.
+- **Status:** **VERIFIED**
+
+

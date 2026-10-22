@@ -191,21 +191,14 @@ export default function InstallPrompt({ variant = "sidebar" }: InstallPromptProp
   // 2. Collapsed Sidebar Variant (Icon Button on laptop/desktop)
   if (variant === "sidebar-collapsed") {
     return (
-      <div className="relative group hidden md:flex items-center justify-center">
-        <button
-          type="button"
-          onClick={handleInstallClick}
-          className="relative flex items-center justify-center w-11 h-11 rounded-xl text-blue-600 dark:text-blue-400 bg-blue-50/90 dark:bg-blue-950/40 hover:bg-blue-100 dark:hover:bg-blue-900/50 border border-blue-200/70 dark:border-blue-800/40 transition-colors cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-[#5B8DEF]"
-          aria-label={isBn ? "গেট অ্যাপ" : "Get App"}
-          title={isBn ? "গেট অ্যাপ" : "Get App"}
-        >
-          <Download size={18} strokeWidth={2.2} />
-        </button>
-        <div className="pointer-events-none absolute left-full ml-3 px-3 py-1.5 bg-[#0F172A] text-white dark:bg-[#1A2234] dark:text-slate-100 text-xs rounded-lg shadow-none opacity-0 group-hover:opacity-100 transition-all duration-150 whitespace-nowrap z-50 translate-x-1 group-hover:translate-x-0 border border-slate-700/50">
-          <div className="font-semibold">{isBn ? "গেট অ্যাপ" : "Get App"}</div>
-          <div className="text-[10px] text-slate-400">{isBn ? "অ্যাপ ইনস্টল করুন" : "Install App"}</div>
-        </div>
-      </div>
+      <button
+        type="button"
+        onClick={handleInstallClick}
+        className="relative flex items-center justify-center w-10 h-10 rounded-xl text-blue-600 dark:text-blue-400 bg-blue-50/90 dark:bg-blue-950/40 hover:bg-blue-100 dark:hover:bg-blue-900/50 border border-blue-200/70 dark:border-blue-800/40 transition-colors cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-[#5B8DEF]"
+        aria-label={isBn ? "গেট অ্যাপ" : "Get App"}
+      >
+        <Download size={16} strokeWidth={2} />
+      </button>
     );
   }
 
