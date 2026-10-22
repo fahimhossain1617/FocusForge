@@ -1984,3 +1984,27 @@
   - Level 2 Build: `npm run build` in `frontend` compiled successfully with 0 errors.
 - **Status:** **VERIFIED**
 
+---
+
+## ADR-049: Glory AI New Chat State Reset & Cross-Feature Navigation Clean Start
+
+- **Date:** October 23, 2026
+- **Status:** Accepted
+- **Context:**
+  1. When chatting in Glory AI, tapping "New Chat" (via header pen icon or 3-dots dropdown) or navigating to another feature (e.g. Planner, Tasks, Focus, Today) and returning caused the system to repeatedly reload/redirect to the previous chat session instead of presenting a clean, empty chat window with the greeting AI Orb Face.
+  2. Investigation revealed that in `useAIAgent.ts`, `fetchInitialData()` used `targetSessionId = cachedActiveSess || activeSessionId || resolvedSessions[0]?.id;` and triggered `if (targetSessionId && (targetSessionId !== loadedSessionRef.current || messages.length === 0)) selectSession(targetSessionId)`. Whenever messages were cleared (`messages.length === 0`), it immediately hijacked the state and re-loaded `resolvedSessions[0]`, re-saving it into `localStorage` and trapping the user in their previous conversation.
+  3. Furthermore, leaving Glory AI to navigate to another feature retained the active session in `localStorage` and module-level memory variables, causing re-entry to restore the previous chat rather than starting fresh.
+- **Decision:**
+  1. **Removed Auto-Load of `resolvedSessions[0]`:** In `useAIAgent.ts` (`fetchInitialData`), eliminated `|| resolvedSessions[0]?.id` fallback and the `|| messages.length === 0` auto-select condition. Glory AI starts with a fresh empty chat unless an active session is currently active or explicitly selected by the user.
+  2. **Atomic `createNewSession` Reset:** Enhanced `createNewSession()` in `useAIAgent.ts` to abort any active inference controller, clear typing/orb timers, reset `messages = []`, `activeSessionId = null`, `memoryMessages = []`, `memoryActiveSessionId = null`, and purge `getActiveSessionCacheKey` from `localStorage` and `sessionStorage`.
+  3. **Explicit Storage Cache Removal on Empty Session:** In `useAIAgent.ts` persistence effect, explicitly removes the active session cache key when `!activeSessionId`.
+  4. **Unmount & Feature Navigation Cleanup:** In `AIAgentPage.tsx`, added cleanup effect calling `clearAIGlobals()` and removing active session storage on unmount so leaving Glory AI clears pointers and re-entry starts on a fresh chat.
+  5. **Enhanced `handleNewChat`:** In `AIAgentPage.tsx`, `handleNewChat` invokes `createNewSession()`, resets text input, resets speech transcript via `resetVoiceTranscript()`, resets textarea height, clears `appliedPayloadsRef`, and closes dropdown menus.
+- **Verification:**
+  - Level 0 Scope Check: Passed. Only target files (`AIAgentPage.tsx`, `useAIAgent.ts`) modified.
+  - Level 1 Static Check: TypeScript `tsc --noEmit` clean with 0 errors.
+  - Level 2 Build: `npm run build --prefix frontend` compiled successfully (all 21 static/dynamic pages, exit code 0).
+  - Level 3 Automated Tests: `scripts/test_local_router.ts` passed (33/33 tests).
+- **Status:** **VERIFIED**
+
+

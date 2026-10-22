@@ -694,6 +694,19 @@ Focentia is an active, functional productivity suite built with Next.js 16 App R
 - **Verified Status:** **VERIFIED** (Next.js 16 Turbopack production build: 21/21 static & dynamic routes compiled with exit code 0; TypeScript typecheck 100% clean; Git scope audit verified).
 - **Important Files:** `frontend/src/lib/server/aiService.ts`, `backend/src/services/aiService.ts`, `frontend/src/lib/ai/prompts.ts`, `frontend/src/lib/ai/router/templates/social.json`, `frontend/src/lib/ai/router/intents.ts`, `frontend/src/hooks/useAIAgent.ts`, `frontend/src/components/ai-agent/useOrbMood.ts`, `frontend/src/components/ai-agent/AIAgentPage.tsx`.
 
+---
+
+### Glory AI New Chat State Reset & Cross-Feature Navigation Clean Start (October 23, 2026)
+- **Current Implementation:**
+  1. **Removed Auto-Load Hijack of `resolvedSessions[0]`:** In `useAIAgent.ts`, removed `targetSessionId = cachedActiveSess || activeSessionId || resolvedSessions[0]?.id;` and the `|| messages.length === 0` auto-select condition. Empty chat state is preserved so Glory AI starts with a fresh empty chat window instead of auto-loading previous sessions.
+  2. **Atomic `createNewSession` Reset:** In `useAIAgent.ts`, `createNewSession()` aborts active inference controllers, clears typing and orb timers, sets `messages = []`, `activeSessionId = null`, `memoryMessages = []`, `memoryActiveSessionId = null`, and removes `getActiveSessionCacheKey` from `localStorage` and `sessionStorage`.
+  3. **Explicit Empty Session Cache Purging:** When `!activeSessionId`, `useAIAgent.ts` persistence effect removes active session storage keys to prevent stale pointers from reloading.
+  4. **Cross-Feature Navigation Cleanup:** In `AIAgentPage.tsx`, on unmount when navigating away to another feature, `clearAIGlobals()` and storage cleanup execute so returning to Glory AI starts clean without locking onto old chats.
+  5. **Enhanced `handleNewChat`:** In `AIAgentPage.tsx`, `handleNewChat` resets the hook session, clears text input, resets speech transcript via `resetVoiceTranscript()`, resets textarea height, clears `appliedPayloadsRef`, and closes dropdown menus.
+- **Verified Status:** **VERIFIED** (Level 0 Scope Check clean; Next.js 16 Turbopack production build: 21/21 static & dynamic routes compiled with exit code 0; TypeScript typecheck 100% clean; `scripts/test_local_router.ts` 33/33 tests passed).
+- **Important Files:** `frontend/src/hooks/useAIAgent.ts`, `frontend/src/components/ai-agent/AIAgentPage.tsx`.
+
+
 
 
 

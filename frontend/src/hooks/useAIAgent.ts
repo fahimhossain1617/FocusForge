@@ -227,6 +227,11 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
               } as any).catch(() => {});
             });
           }
+        } else if (!activeSessionId) {
+          // Explicitly clear active session cache in new chat mode
+          const key = getActiveSessionCacheKey(currentUserId);
+          localStorage.removeItem(key);
+          sessionStorage.removeItem(key);
         }
       } catch {}
     }
@@ -296,12 +301,11 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
           }
         }
 
-        // Restore active session or latest session on initial mount / page refresh
-        const cachedActiveSess = typeof window !== "undefined" ? localStorage.getItem(getActiveSessionCacheKey(currentUserId)) : null;
-        const targetSessionId = cachedActiveSess || activeSessionId || resolvedSessions[0]?.id;
-
-        if (targetSessionId && (targetSessionId !== loadedSessionRef.current || messages.length === 0)) {
-          selectSession(targetSessionId);
+        // Sessions list is populated for history menu.
+        // Never auto-load resolvedSessions[0] fallback — Glory AI starts with a clean new chat
+        // unless an existing session is explicitly selected from the history menu or active.
+        if (activeSessionId && activeSessionId !== loadedSessionRef.current) {
+          selectSession(activeSessionId);
         }
 
         if (tokensData && !isCancelled) {
@@ -320,17 +324,43 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
   }, [initialLang, currentUserId]);
 
   const createNewSession = useCallback(() => {
+    // 1. Abort any active streaming / generation timers
+    if (abortControllerRef.current) {
+      try {
+        abortControllerRef.current.abort();
+      } catch {}
+      abortControllerRef.current = null;
+    }
+    if (typingIntervalRef.current) {
+      clearInterval(typingIntervalRef.current);
+      typingIntervalRef.current = null;
+    }
+    if (orbResetTimerRef.current) {
+      clearTimeout(orbResetTimerRef.current);
+      orbResetTimerRef.current = null;
+    }
+    setIsThinking(false);
+    setIsTyping(false);
+    setStreamingText("");
+    setThoughtText(null);
+    setOrbState("idle");
+
+    // 2. Clear state for brand new conversation
     loadedSessionRef.current = null;
     setActiveSessionId(null);
     setMessages([]);
     setGuestCount(0);
     setError(null);
-    memoryMessages = null;
+    memoryMessages = [];
     memoryActiveSessionId = null;
     memoryGuestCount = 0;
+
+    // 3. Clear stored active session pointer so it never reverts
     if (typeof window !== "undefined") {
       try {
-        localStorage.removeItem(getActiveSessionCacheKey(currentUserId));
+        const key = getActiveSessionCacheKey(currentUserId);
+        localStorage.removeItem(key);
+        sessionStorage.removeItem(key);
       } catch {}
     }
   }, [currentUserId]);

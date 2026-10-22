@@ -27,7 +27,7 @@ import {
 } from "lucide-react";
 import { useAppContext } from "@/context/AppContext";
 import { useAuth } from "@/context/AuthContext";
-import { useAIAgent } from "@/hooks/useAIAgent";
+import { useAIAgent, clearAIGlobals } from "@/hooks/useAIAgent";
 import type { AIAgentLanguage, AIAgentModel, ActionRequest, ActionItem } from "@/types/aiAgent";
 import { useContinuousSpeech } from "@/hooks/useContinuousSpeech";
 import { AIOrbFace } from "./AIOrbFace";
@@ -146,6 +146,22 @@ export function AIAgentPage() {
       document.removeEventListener("keydown", handleKeyDown);
     };
   }, []);
+
+  // When leaving Glory AI to navigate to another feature, clean up active session cache and globals
+  // so Glory AI re-opens in a clean empty state rather than forcing previous conversations
+  useEffect(() => {
+    return () => {
+      clearAIGlobals();
+      if (typeof window !== "undefined") {
+        try {
+          const uid = user?.id || null;
+          const key = uid ? `focusforge_ai_active_session_${uid}` : "focusforge_guest_active_session";
+          localStorage.removeItem(key);
+          sessionStorage.removeItem(key);
+        } catch {}
+      }
+    };
+  }, [user?.id]);
 
   const context = useMemo(() => {
     const today = new Date().toISOString().split("T")[0];
@@ -399,9 +415,14 @@ export function AIAgentPage() {
   const handleNewChat = useCallback(() => {
     createNewSession();
     setInput("");
+    resetVoiceTranscript();
+    if (textareaRef.current) {
+      textareaRef.current.style.height = "auto";
+    }
+    appliedPayloadsRef.current.clear();
     setMenuOpen(false);
     setMoodMenuOpen(false);
-  }, [createNewSession]);
+  }, [createNewSession, resetVoiceTranscript]);
 
   // Smoothly scroll chat area to bottom when new messages arrive or when AI is typing
   const scrollToBottom = useCallback((smooth = true) => {
