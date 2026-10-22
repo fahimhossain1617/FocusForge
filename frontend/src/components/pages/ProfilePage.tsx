@@ -99,11 +99,9 @@ export default function ProfilePage() {
   useEffect(() => {
     if (user) {
       const cleanPhone = sanitizePhone(user.phone || (user.authMethod === 'phone' ? user.identifier : ""));
-      const initialFullName = user.fullName || user.displayName || "";
-      const initialDisplayName = user.displayName || user.fullName || "";
       setFormData({
-        fullName: initialFullName,
-        displayName: initialDisplayName,
+        fullName: user.fullName || "",
+        displayName: user.displayName || "",
         email: user.email || (user.authMethod === 'email' ? user.identifier : ""),
         phone: cleanPhone,
         dob: user.dob || "",
@@ -143,16 +141,16 @@ export default function ProfilePage() {
           const cleanPhone = sanitizePhone(freshProfile.phone || (freshProfile.authMethod === 'phone' ? freshProfile.identifier : ""));
           setFormData(prev => ({
             ...prev,
-            fullName: freshProfile.fullName || freshProfile.displayName || prev.fullName,
-            displayName: freshProfile.displayName || freshProfile.fullName || prev.displayName,
+            fullName: freshProfile.fullName !== undefined ? freshProfile.fullName : prev.fullName,
+            displayName: freshProfile.displayName !== undefined ? freshProfile.displayName : prev.displayName,
             email: freshProfile.email || prev.email,
             phone: cleanPhone || prev.phone,
-            dob: freshProfile.dob || prev.dob,
-            gender: freshProfile.gender || prev.gender,
-            country: freshProfile.country || prev.country,
-            city: freshProfile.city || prev.city,
-            bio: freshProfile.bio || prev.bio,
-            avatarUrl: freshProfile.avatarUrl || prev.avatarUrl,
+            dob: freshProfile.dob !== undefined ? freshProfile.dob : prev.dob,
+            gender: freshProfile.gender !== undefined ? freshProfile.gender : prev.gender,
+            country: freshProfile.country !== undefined ? freshProfile.country : prev.country,
+            city: freshProfile.city !== undefined ? freshProfile.city : prev.city,
+            bio: freshProfile.bio !== undefined ? freshProfile.bio : prev.bio,
+            avatarUrl: freshProfile.avatarUrl !== undefined ? freshProfile.avatarUrl : prev.avatarUrl,
           }));
         }
       }).catch(() => {});
@@ -263,7 +261,7 @@ export default function ProfilePage() {
     }
 
     const finalFullName = formData.fullName.trim();
-    const finalDisplayName = formData.displayName.trim() || finalFullName || user?.displayName || "User";
+    const finalDisplayName = formData.displayName.trim();
 
     const success = await updateUserProfile({
       fullName: finalFullName,
@@ -470,7 +468,7 @@ export default function ProfilePage() {
             }`}
           >
             <div className="flex items-center gap-3.5 sm:gap-4 flex-1 min-w-0">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-slate-100 dark:bg-slate-800/60 text-slate-600 dark:text-slate-400 border border-slate-200/80 dark:border-white/5">
+              <div className="w-8 h-8 flex items-center justify-center shrink-0 text-slate-500 dark:text-slate-400">
                 <UserIcon size={18} />
               </div>
               <div className="flex-1 min-w-0">
@@ -484,7 +482,7 @@ export default function ProfilePage() {
                     required
                     value={formData.fullName}
                     onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
-                    placeholder="e.g. Md Fahim Hossain"
+                    placeholder="e.g. Alex Morgan"
                     className="w-full mt-1 px-3 py-1.5 rounded-xl text-sm sm:text-base font-semibold bg-[var(--color-surface)] border border-[var(--color-border-subtle)] text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:border-blue-500 focus:outline-none transition-colors"
                   />
                 ) : (
@@ -499,7 +497,7 @@ export default function ProfilePage() {
             )}
           </div>
 
-          {/* Row 2: Display Name / Username */}
+          {/* Row 2: Username */}
           <div 
             onClick={() => !isEditing && handleRowClick("displayName")}
             className={`flex items-center justify-between gap-4 py-3.5 sm:py-4 px-1 transition-colors ${
@@ -507,12 +505,12 @@ export default function ProfilePage() {
             }`}
           >
             <div className="flex items-center gap-3.5 sm:gap-4 flex-1 min-w-0">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-slate-100 dark:bg-slate-800/60 text-slate-600 dark:text-slate-400 border border-slate-200/80 dark:border-white/5">
+              <div className="w-8 h-8 flex items-center justify-center shrink-0 text-slate-500 dark:text-slate-400">
                 <Monitor size={18} />
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-xs font-medium text-[var(--color-text-secondary)] mb-0.5">
-                  {isBn ? "ডিসপ্লে নেম / ইউজারনেম (ঐচ্ছিক)" : "Display Name / Username (Optional)"}
+                  {isBn ? "ইউজারনেম (ঐচ্ছিক)" : "Username (Optional)"}
                 </p>
                 {isEditing ? (
                   <input
@@ -520,12 +518,12 @@ export default function ProfilePage() {
                     type="text"
                     value={formData.displayName}
                     onChange={(e) => setFormData({ ...formData, displayName: e.target.value })}
-                    placeholder="e.g. Md Fahim Hossain"
+                    placeholder="e.g. alexmorgan"
                     className="w-full mt-1 px-3 py-1.5 rounded-xl text-sm sm:text-base font-semibold bg-[var(--color-surface)] border border-[var(--color-border-subtle)] text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:border-blue-500 focus:outline-none transition-colors"
                   />
                 ) : (
                   <p className="text-sm sm:text-base font-semibold text-[var(--color-text-primary)] truncate">
-                    {formData.displayName || formData.fullName || (isBn ? "দেওয়া হয়নি" : "Not specified")}
+                    {formData.displayName || (isBn ? "দেওয়া হয়নি" : "Not specified")}
                   </p>
                 )}
               </div>
@@ -543,7 +541,7 @@ export default function ProfilePage() {
             }`}
           >
             <div className="flex items-center gap-3.5 sm:gap-4 flex-1 min-w-0">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-slate-100 dark:bg-slate-800/60 text-slate-600 dark:text-slate-400 border border-slate-200/80 dark:border-white/5">
+              <div className="w-8 h-8 flex items-center justify-center shrink-0 text-slate-500 dark:text-slate-400">
                 <Mail size={18} />
               </div>
               <div className="flex-1 min-w-0">
@@ -587,7 +585,7 @@ export default function ProfilePage() {
             }`}
           >
             <div className="flex items-center gap-3.5 sm:gap-4 flex-1 min-w-0">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-slate-100 dark:bg-slate-800/60 text-slate-600 dark:text-slate-400 border border-slate-200/80 dark:border-white/5">
+              <div className="w-8 h-8 flex items-center justify-center shrink-0 text-slate-500 dark:text-slate-400">
                 <Phone size={18} />
               </div>
               <div className="flex-1 min-w-0">
@@ -631,7 +629,7 @@ export default function ProfilePage() {
             }`}
           >
             <div className="flex items-center gap-3.5 sm:gap-4 flex-1 min-w-0">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-slate-100 dark:bg-slate-800/60 text-slate-600 dark:text-slate-400 border border-slate-200/80 dark:border-white/5">
+              <div className="w-8 h-8 flex items-center justify-center shrink-0 text-slate-500 dark:text-slate-400">
                 <Calendar size={18} />
               </div>
               <div className="flex-1 min-w-0">
@@ -668,7 +666,7 @@ export default function ProfilePage() {
             }`}
           >
             <div className="flex items-center gap-3.5 sm:gap-4 flex-1 min-w-0">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-slate-100 dark:bg-slate-800/60 text-slate-600 dark:text-slate-400 border border-slate-200/80 dark:border-white/5">
+              <div className="w-8 h-8 flex items-center justify-center shrink-0 text-slate-500 dark:text-slate-400">
                 <GenderIcon className="w-5 h-5" />
               </div>
               <div className="flex-1 min-w-0">
@@ -711,7 +709,7 @@ export default function ProfilePage() {
             }`}
           >
             <div className="flex items-center gap-3.5 sm:gap-4 flex-1 min-w-0">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-slate-100 dark:bg-slate-800/60 text-slate-600 dark:text-slate-400 border border-slate-200/80 dark:border-white/5">
+              <div className="w-8 h-8 flex items-center justify-center shrink-0 text-slate-500 dark:text-slate-400">
                 <MapPin size={18} />
               </div>
               <div className="flex-1 min-w-0">
@@ -724,7 +722,7 @@ export default function ProfilePage() {
                     type="text"
                     value={formData.country}
                     onChange={(e) => setFormData({ ...formData, country: e.target.value })}
-                    placeholder="e.g. Bangladesh"
+                    placeholder="e.g. United States"
                     className="w-full mt-1 px-3 py-1.5 rounded-xl text-sm sm:text-base font-semibold bg-[var(--color-surface)] border border-[var(--color-border-subtle)] text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:border-blue-500 focus:outline-none transition-colors"
                   />
                 ) : (
@@ -747,7 +745,7 @@ export default function ProfilePage() {
             }`}
           >
             <div className="flex items-center gap-3.5 sm:gap-4 flex-1 min-w-0">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-slate-100 dark:bg-slate-800/60 text-slate-600 dark:text-slate-400 border border-slate-200/80 dark:border-white/5">
+              <div className="w-8 h-8 flex items-center justify-center shrink-0 text-slate-500 dark:text-slate-400">
                 <CityBarsIcon className="w-5 h-5 text-current" />
               </div>
               <div className="flex-1 min-w-0">
@@ -760,7 +758,7 @@ export default function ProfilePage() {
                     type="text"
                     value={formData.city}
                     onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                    placeholder="e.g. Dhaka"
+                    placeholder="e.g. New York"
                     className="w-full mt-1 px-3 py-1.5 rounded-xl text-sm sm:text-base font-semibold bg-[var(--color-surface)] border border-[var(--color-border-subtle)] text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:border-blue-500 focus:outline-none transition-colors"
                   />
                 ) : (
@@ -783,7 +781,7 @@ export default function ProfilePage() {
             }`}
           >
             <div className="flex items-start gap-3.5 sm:gap-4 flex-1 min-w-0">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-slate-100 dark:bg-slate-800/60 text-slate-600 dark:text-slate-400 border border-slate-200/80 dark:border-white/5 mt-0.5">
+              <div className="w-8 h-8 flex items-center justify-center shrink-0 text-slate-500 dark:text-slate-400 mt-0.5">
                 <UserPlus size={18} />
               </div>
               <div className="flex-1 min-w-0">

@@ -111,9 +111,9 @@ export default function DiarySearchModal({
                   borderColor: "var(--color-border-subtle)",
                 }}
               >
-                <div className="w-8 h-8 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-500 shrink-0 mt-0.5">
-                  {res.entry ? <FileText size={16} /> : <BookOpen size={16} />}
-                </div>
+                <span className="text-blue-500 shrink-0 mt-0.5 flex items-center justify-center">
+                  {res.entry ? <FileText size={18} /> : <BookOpen size={18} />}
+                </span>
 
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">

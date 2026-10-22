@@ -2294,6 +2294,9 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ p
   // 1. User Profile Update: PATCH /api/user/profile
   if (pathStr === 'user/profile') {
     // Normalize aliases
+    if (body.username !== undefined && body.displayName === undefined) {
+      body.displayName = body.username;
+    }
     if (body.phoneNumber !== undefined && body.phone === undefined) {
       body.phone = body.phoneNumber;
     }

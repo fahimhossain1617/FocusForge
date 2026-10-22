@@ -295,6 +295,7 @@ export default function SettingsPage() {
   };
 
   useEffect(() => {
+    let isMounted = true;
     if (user) {
       const cleanPhone = sanitizePhone(user.phone || (user.authMethod === "phone" ? user.identifier : ""));
       const cleanName = user.fullName || user.displayName || "";
@@ -310,7 +311,34 @@ export default function SettingsPage() {
         bio: user.bio || "",
         avatarUrl: user.avatarUrl || "",
       });
+
+      userService.fetchUserProfile(user.id).then((freshProfile) => {
+        if (!isMounted || !freshProfile) return;
+        setProfileForm((prev) => ({
+          ...prev,
+          fullName: freshProfile.fullName ?? prev.fullName,
+          displayName: freshProfile.displayName ?? prev.displayName,
+          phone: freshProfile.phone ? sanitizePhone(freshProfile.phone) : prev.phone,
+          dob: freshProfile.dob ?? prev.dob,
+          gender: freshProfile.gender ?? prev.gender,
+          country: freshProfile.country ?? prev.country,
+          city: freshProfile.city ?? prev.city,
+          bio: freshProfile.bio ?? prev.bio,
+          avatarUrl: freshProfile.avatarUrl ?? prev.avatarUrl,
+        }));
+      });
+    } else {
+      try {
+        const savedGuest = localStorage.getItem("focusforge_guest_profile");
+        if (savedGuest) {
+          const parsed = JSON.parse(savedGuest);
+          setProfileForm((prev) => ({ ...prev, ...parsed }));
+        }
+      } catch {}
     }
+    return () => {
+      isMounted = false;
+    };
   }, [user]);
 
   const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -336,6 +364,13 @@ export default function SettingsPage() {
         if (success) {
           showToast(t.settings.profile.profileUpdated, "success");
         }
+      } else {
+        try {
+          const guest = JSON.parse(localStorage.getItem("focusforge_guest_profile") || "{}");
+          guest.avatarUrl = base64;
+          localStorage.setItem("focusforge_guest_profile", JSON.stringify(guest));
+          showToast(t.settings.profile.profileUpdated, "success");
+        } catch {}
       }
     };
     reader.readAsDataURL(file);
@@ -349,6 +384,13 @@ export default function SettingsPage() {
       if (success) {
         showToast(t.settings.profile.profileUpdated, "success");
       }
+    } else {
+      try {
+        const guest = JSON.parse(localStorage.getItem("focusforge_guest_profile") || "{}");
+        guest.avatarUrl = "";
+        localStorage.setItem("focusforge_guest_profile", JSON.stringify(guest));
+        showToast(t.settings.profile.profileUpdated, "success");
+      } catch {}
     }
   };
 
@@ -364,7 +406,7 @@ export default function SettingsPage() {
     const trimmedDisplayName = profileForm.displayName.trim();
     if (trimmedDisplayName) {
       if (trimmedDisplayName.length < 3 || trimmedDisplayName.length > 30) {
-        errors.displayName = "Display name must be between 3 and 30 characters.";
+        errors.displayName = "Username must be between 3 and 30 characters.";
       } else if (!/^[A-Za-z0-9_.]+$/.test(trimmedDisplayName)) {
         errors.displayName = "Letters, numbers, dots and underscores only.";
       }
@@ -389,10 +431,12 @@ export default function SettingsPage() {
     setProfileErrors({});
     setIsSavingProfile(true);
 
+    const finalDisplayName = trimmedDisplayName || trimmedFullName;
+
     if (user) {
       const success = await updateUserProfile({
         fullName: trimmedFullName,
-        displayName: trimmedDisplayName || trimmedFullName,
+        displayName: finalDisplayName,
         phone: profileForm.phone.trim(),
         dob: profileForm.dob,
         gender: profileForm.gender,
@@ -410,6 +454,20 @@ export default function SettingsPage() {
         showToast(t.settings.profile.profileUpdateError, "error");
       }
     } else {
+      const guestProf = {
+        fullName: trimmedFullName,
+        displayName: finalDisplayName,
+        phone: profileForm.phone.trim(),
+        dob: profileForm.dob,
+        gender: profileForm.gender,
+        country: profileForm.country.trim(),
+        city: profileForm.city.trim(),
+        bio: profileForm.bio.trim(),
+        avatarUrl: profileForm.avatarUrl,
+      };
+      try {
+        localStorage.setItem("focusforge_guest_profile", JSON.stringify(guestProf));
+      } catch {}
       setIsSavingProfile(false);
       setIsEditingProfile(false);
       showToast(t.settings.profile.profileUpdated, "success");
@@ -1155,8 +1213,8 @@ export default function SettingsPage() {
                   }`}
                 >
                   <div className="flex items-center gap-3.5 sm:gap-4 flex-1 min-w-0">
-                    <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-slate-100 dark:bg-slate-800/60 text-slate-600 dark:text-slate-400 border border-slate-200/80 dark:border-white/5">
-                      <User size={18} />
+                    <div className="w-8 h-8 flex items-center justify-center shrink-0 text-slate-500 dark:text-slate-400">
+                      <User size={20} />
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-medium text-[var(--color-text-secondary)] mb-0.5">
@@ -1170,7 +1228,7 @@ export default function SettingsPage() {
                             required
                             value={profileForm.fullName}
                             onChange={(e) => setProfileForm({ ...profileForm, fullName: e.target.value })}
-                            placeholder="e.g. Md Fahim Hossain"
+                            placeholder="e.g. Alex Morgan"
                             className="w-full mt-1 px-3 py-1.5 rounded-xl text-sm sm:text-base font-semibold bg-[var(--color-surface)] border border-[var(--color-border-subtle)] text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:border-blue-500 focus:outline-none transition-colors"
                           />
                           {profileErrors.fullName && (
@@ -1189,7 +1247,7 @@ export default function SettingsPage() {
                   )}
                 </div>
 
-                {/* 2. Display Name / Username */}
+                {/* 2. Username */}
                 <div 
                   onClick={() => !isEditingProfile && handleProfileRowClick("displayName")}
                   className={`flex items-center justify-between gap-4 py-3.5 sm:py-4 px-1 transition-colors ${
@@ -1197,12 +1255,12 @@ export default function SettingsPage() {
                   }`}
                 >
                   <div className="flex items-center gap-3.5 sm:gap-4 flex-1 min-w-0">
-                    <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-slate-100 dark:bg-slate-800/60 text-slate-600 dark:text-slate-400 border border-slate-200/80 dark:border-white/5">
-                      <Monitor size={18} />
+                    <div className="w-8 h-8 flex items-center justify-center shrink-0 text-slate-500 dark:text-slate-400">
+                      <Monitor size={20} />
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-medium text-[var(--color-text-secondary)] mb-0.5">
-                        {isBn ? "ডিসপ্লে নেম / ইউজারনেম (ঐচ্ছিক)" : "Display Name / Username (Optional)"}
+                        {isBn ? "ইউজারনেম (ঐচ্ছিক)" : "Username (Optional)"}
                       </p>
                       {isEditingProfile ? (
                         <div>
@@ -1211,7 +1269,7 @@ export default function SettingsPage() {
                             type="text"
                             value={profileForm.displayName}
                             onChange={(e) => setProfileForm({ ...profileForm, displayName: e.target.value })}
-                            placeholder="e.g. Md Fahim Hossain"
+                            placeholder="e.g. alexmorgan"
                             className="w-full mt-1 px-3 py-1.5 rounded-xl text-sm sm:text-base font-semibold bg-[var(--color-surface)] border border-[var(--color-border-subtle)] text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:border-blue-500 focus:outline-none transition-colors"
                           />
                           {profileErrors.displayName && (
@@ -1220,7 +1278,7 @@ export default function SettingsPage() {
                         </div>
                       ) : (
                         <p className="text-sm sm:text-base font-semibold text-[var(--color-text-primary)] truncate">
-                          {profileForm.displayName || profileForm.fullName || (isBn ? "দেওয়া হয়নি" : "Not specified")}
+                          {profileForm.displayName || (isBn ? "দেওয়া হয়নি" : "Not specified")}
                         </p>
                       )}
                     </div>
@@ -1237,8 +1295,8 @@ export default function SettingsPage() {
                   }`}
                 >
                   <div className="flex items-center gap-3.5 sm:gap-4 flex-1 min-w-0">
-                    <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-slate-100 dark:bg-slate-800/60 text-slate-600 dark:text-slate-400 border border-slate-200/80 dark:border-white/5">
-                      <Mail size={18} />
+                    <div className="w-8 h-8 flex items-center justify-center shrink-0 text-slate-500 dark:text-slate-400">
+                      <Mail size={20} />
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-medium text-[var(--color-text-secondary)] mb-0.5">
@@ -1268,8 +1326,8 @@ export default function SettingsPage() {
                   }`}
                 >
                   <div className="flex items-center gap-3.5 sm:gap-4 flex-1 min-w-0">
-                    <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-slate-100 dark:bg-slate-800/60 text-slate-600 dark:text-slate-400 border border-slate-200/80 dark:border-white/5">
-                      <Phone size={18} />
+                    <div className="w-8 h-8 flex items-center justify-center shrink-0 text-slate-500 dark:text-slate-400">
+                      <Phone size={20} />
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-medium text-[var(--color-text-secondary)] mb-0.5">
@@ -1282,7 +1340,7 @@ export default function SettingsPage() {
                             type="tel"
                             value={profileForm.phone}
                             onChange={(e) => setProfileForm({ ...profileForm, phone: sanitizePhone(e.target.value) })}
-                            placeholder="+880 1712345678"
+                            placeholder="e.g. +1 555 123 4567"
                             className="w-full mt-1 px-3 py-1.5 rounded-xl text-sm sm:text-base font-semibold bg-[var(--color-surface)] border border-[var(--color-border-subtle)] text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:border-blue-500 focus:outline-none transition-colors"
                           />
                           {profileErrors.phone && (
@@ -1309,8 +1367,8 @@ export default function SettingsPage() {
                   }`}
                 >
                   <div className="flex items-center gap-3.5 sm:gap-4 flex-1 min-w-0">
-                    <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-slate-100 dark:bg-slate-800/60 text-slate-600 dark:text-slate-400 border border-slate-200/80 dark:border-white/5">
-                      <Calendar size={18} />
+                    <div className="w-8 h-8 flex items-center justify-center shrink-0 text-slate-500 dark:text-slate-400">
+                      <Calendar size={20} />
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-medium text-[var(--color-text-secondary)] mb-0.5">
@@ -1349,7 +1407,7 @@ export default function SettingsPage() {
                   }`}
                 >
                   <div className="flex items-center gap-3.5 sm:gap-4 flex-1 min-w-0">
-                    <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-slate-100 dark:bg-slate-800/60 text-slate-600 dark:text-slate-400 border border-slate-200/80 dark:border-white/5">
+                    <div className="w-8 h-8 flex items-center justify-center shrink-0 text-slate-500 dark:text-slate-400">
                       <GenderIcon className="w-5 h-5" />
                     </div>
                     <div className="flex-1 min-w-0">
@@ -1392,8 +1450,8 @@ export default function SettingsPage() {
                   }`}
                 >
                   <div className="flex items-center gap-3.5 sm:gap-4 flex-1 min-w-0">
-                    <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-slate-100 dark:bg-slate-800/60 text-slate-600 dark:text-slate-400 border border-slate-200/80 dark:border-white/5">
-                      <MapPin size={18} />
+                    <div className="w-8 h-8 flex items-center justify-center shrink-0 text-slate-500 dark:text-slate-400">
+                      <MapPin size={20} />
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-medium text-[var(--color-text-secondary)] mb-0.5">
@@ -1405,7 +1463,7 @@ export default function SettingsPage() {
                           type="text"
                           value={profileForm.country}
                           onChange={(e) => setProfileForm({ ...profileForm, country: e.target.value })}
-                          placeholder="e.g. Bangladesh"
+                          placeholder="e.g. United States"
                           className="w-full mt-1 px-3 py-1.5 rounded-xl text-sm sm:text-base font-semibold bg-[var(--color-surface)] border border-[var(--color-border-subtle)] text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:border-blue-500 focus:outline-none transition-colors"
                         />
                       ) : (
@@ -1428,7 +1486,7 @@ export default function SettingsPage() {
                   }`}
                 >
                   <div className="flex items-center gap-3.5 sm:gap-4 flex-1 min-w-0">
-                    <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-slate-100 dark:bg-slate-800/60 text-slate-600 dark:text-slate-400 border border-slate-200/80 dark:border-white/5">
+                    <div className="w-8 h-8 flex items-center justify-center shrink-0 text-slate-500 dark:text-slate-400">
                       <CityBarsIcon className="w-5 h-5 text-current" />
                     </div>
                     <div className="flex-1 min-w-0">
@@ -1441,7 +1499,7 @@ export default function SettingsPage() {
                           type="text"
                           value={profileForm.city}
                           onChange={(e) => setProfileForm({ ...profileForm, city: e.target.value })}
-                          placeholder="e.g. Dhaka"
+                          placeholder="e.g. New York"
                           className="w-full mt-1 px-3 py-1.5 rounded-xl text-sm sm:text-base font-semibold bg-[var(--color-surface)] border border-[var(--color-border-subtle)] text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:border-blue-500 focus:outline-none transition-colors"
                         />
                       ) : (
@@ -1464,8 +1522,8 @@ export default function SettingsPage() {
                   }`}
                 >
                   <div className="flex items-start gap-3.5 sm:gap-4 flex-1 min-w-0">
-                    <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-slate-100 dark:bg-slate-800/60 text-slate-600 dark:text-slate-400 border border-slate-200/80 dark:border-white/5 mt-0.5">
-                      <UserPlus size={18} />
+                    <div className="w-8 h-8 flex items-center justify-center shrink-0 text-slate-500 dark:text-slate-400 mt-0.5">
+                      <UserPlus size={20} />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between mb-0.5">

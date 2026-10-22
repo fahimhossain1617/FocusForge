@@ -1893,4 +1893,66 @@
   - Level 4 Feature Verification: Confirmed smooth layoutId gliding and exact 8px spacing on active dev server.
 - **Status:** **VERIFIED**
 
+---
 
+## ADR-047: Profile Persistence Overhaul, Unboxed Icon Harmonization, and Neutral Standards
+
+- **Date:** October 22, 2026
+- **Status:** Accepted
+- **Context:**
+  1. User profile edits (username, full name, country, city, phone, etc.) were intermittently reverting back to previous data after save or page refresh. Root cause: Supabase DB trigger `handle_auth_user_sync()` on `auth.users` (`AFTER UPDATE OF last_sign_in_at`) overwrote `public.profiles` fields with stale OAuth/email auth metadata on session renewal; plus frontend state hydration used logical OR `||` preventing clearing fields, and server allowedFields omitted columns.
+  2. The user requested removing boxed background and border shapes around icons ("কোনো আইকন যেন আলাদা কোনো একটা বক্স শেপের মধ্যে না থাকে... সাইডে বক্স করে সেটার মধ্যে আইকন—এরকম যাতে আমাদের পুরা ওয়েবসাইটে না থাকে") in Profile, Settings, and modal headers across the site.
+  3. Default/placeholder names previously displayed "Md Fahim Hossain" and "Bangladesh", which needed to be replaced with neutral, professional examples.
+  4. Terminology needed standardization from "Display Name / Username" to solely "Username (Optional)" / "ইউজারনেম (ঐচ্ছিক)".
+- **Decision:**
+  1. **Database Migration 031 (`supabase/migrations/031_preserve_user_profile_on_auth_sync.sql`):**
+     - Overhauled `handle_auth_user_sync()` to prioritize existing user edits in `public.profiles` on conflict (`display_name = COALESCE(NULLIF(NULLIF(public.profiles.display_name, ''), 'User'), ...)`). Applied directly to live Supabase PostgreSQL pooler.
+  2. **Dual-Write Architecture & Server DB Column Deduplication (`db.ts`, `userService.ts`):**
+     - Allowed fields in `dbUpdateUserProfile` deduplicate updates into real DB columns (`display_name`, `full_name`, `country`, `city`, `phone`, `date_of_birth`, `gender`, `bio`, `avatar_url`, `theme`).
+     - Dual-write resilience ensures updates are saved via `/api/user/profile` + direct client Supabase `profiles.update` + `supabase.auth.updateUser` metadata.
+  3. **State Hydration & Guest Mode Persistence:**
+     - `ProfilePage.tsx` and `SettingsPage.tsx` use nullish coalescing (`??`), fetch fresh database rows on mount, and save guest edits to `localStorage` (`focusforge_guest_profile`).
+  4. **Unboxed Modern UI Icon Harmonization:**
+     - Replaced `w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800/60 border border-slate-200/80` wrappers with clean bare icon containers (`w-8 h-8 flex items-center justify-center shrink-0 text-slate-500 dark:text-slate-400`) in `ProfilePage.tsx` (9 rows), `SettingsPage.tsx` (9 rows), `LearningHubPage.tsx`, `AIConsentModal.tsx`, `AIMemoryModal.tsx`, `FocusForgeAIAssistant.tsx`, and `RoutineLibraryModal.tsx`.
+  5. **Neutral Standard Examples & Single Username Label:**
+     - Replaced hardcoded values with neutral professional examples ("Alex Morgan", "alexmorgan", "United States", "New York", "+1 555 123 4567").
+     - Terminology standardized to "Username (Optional)" / "ইউজারনেম (ঐচ্ছিক)".
+- **Verification:**
+  - Level 0 Scope Check: Passed. Only target profile, settings, modal, and service files modified.
+  - Level 1 Static Check: TypeScript check passed with 0 errors.
+  - Level 2 Build Check: Next.js production build (`npm run build --prefix frontend`) completed with exit code 0 (21/21 static routes generated).
+  - Level 3 Automated Database Test: Verified via test script that `UPDATE auth.users SET last_sign_in_at = NOW()` triggers `handle_auth_user_sync` without overwriting custom profile data.
+- **Status:** **VERIFIED**
+
+---
+
+## ADR-032: Installed App Update Isolation & Web Link Visitor Protection
+
+- **Date:** October 22, 2026
+- **Status:** Accepted
+- **Context:**
+  1. Previously, whenever a build was pushed to GitHub and deployed live on Vercel, the `PWAUpdater` component checked for service worker updates and displayed the "New version available - Tap Refresh to load the latest build" banner to all users, including visitors who simply navigated via a web link in regular desktop and mobile browser tabs.
+  2. For web link visitors, the app also triggered sudden automatic page reloads upon service worker `controllerchange`, causing disrupted user flows and reload churn ("বারবার আমাদের লোড খায়").
+  3. Web link visitors already receive the latest live bundle from the web server upon opening or navigating, making in-app reload toasts redundant.
+  4. Only users who have installed Focentia as a standalone application (PWA installed on Android, iOS Home Screen, Windows, macOS, Chrome OS) lack native browser address bar/reload mechanisms and require the in-app Refresh button to refresh their cached application shell when a new GitHub/Vercel deployment occurs.
+- **Decision:**
+  1. **Strict Installed App Detection (`isRunningAsInstalledApp`):**
+     - `PWAUpdater.tsx` checks multi-mode standalone environment:
+       - CSS media query `(display-mode: standalone)`, `(display-mode: fullscreen)`, `(display-mode: minimal-ui)`, `(display-mode: window-controls-overlay)`
+       - iOS Safari standalone `navigator.standalone === true`
+       - Android TWA / WebAPK `document.referrer.startsWith("android-app://")`
+       - PWA launch query param `window.location.search.includes("source=pwa")` or `mode=app`
+       - In-session `isAppInstalled` flag
+  2. **Suppression for Web Link Visitors:**
+     - If not running as an installed app (`!isRunningAsInstalledApp()`), `PWAUpdater` completely returns early. No update check triggers `showBanner`, and `handleControllerChange` never auto-reloads. Web visitors browse uninterrupted.
+  3. **Dedicated Update Flow for Installed App Users:**
+     - For installed app users, `checkForUpdate()` detects new Vercel deployments (stamped via `scripts/stamp_sw.js`), displays the sleek banner with the `Refresh` button, and reloads only when the user explicitly taps `Refresh`.
+  4. **PWA Manifest Start URL (`manifest.json`, `manifest.webmanifest`):**
+     - Updated `start_url` to `/?source=pwa` with `id: "/"` to provide instant, unambiguous identification of installed app launches.
+  5. **Bilingual Support:**
+     - Added English / Bengali localization to the updater banner ("নতুন আপডেট পাওয়া গেছে" / "লেটেস্ট বিল্ড পেতে রিফ্রেশ করুন" / "রিফ্রেশ").
+- **Verification:**
+  - Level 0 Scope Check: Passed. Only target files (`PWAUpdater.tsx`, `InstallPrompt.tsx`, `manifest.json`, `manifest.webmanifest`) modified.
+  - Level 1 Static Check: TypeScript `tsc --noEmit` passed with 0 errors.
+  - Level 3 Automated Tests: `node frontend/scripts/test_notification_architecture.js` passed (5/5 checks passed).
+- **Status:** **VERIFIED**

@@ -2,16 +2,78 @@
 
 import { useEffect, useState, useCallback, useRef } from "react";
 import { RefreshCw, X } from "lucide-react";
+import { useAppContext } from "../../context/AppContext";
 
 // Module-level guard to prevent reload loops
 let isRefreshing = false;
 const RELOAD_GUARD_KEY = "focentia_pwa_reloaded";
+
+/**
+ * Checks whether the current window/environment is running as an installed application:
+ * - Standalone PWA mode (Android, Windows, macOS, Chrome OS)
+ * - Minimal-UI / Fullscreen / Window-controls-overlay mode
+ * - iOS Safari Standalone (Added to Home Screen)
+ * - Android TWA / WebAPK wrapper (referrer: android-app://)
+ * - Launch parameter (?source=pwa or ?mode=app)
+ *
+ * Regular web visitors navigating via URL links in a browser tab will return false.
+ */
+function isRunningAsInstalledApp(): boolean {
+  if (typeof window === "undefined") return false;
+
+  try {
+    // 1. CSS Display Modes
+    const isStandaloneDisplay =
+      window.matchMedia?.("(display-mode: standalone)")?.matches ||
+      window.matchMedia?.("(display-mode: fullscreen)")?.matches ||
+      window.matchMedia?.("(display-mode: minimal-ui)")?.matches ||
+      window.matchMedia?.("(display-mode: window-controls-overlay)")?.matches;
+
+    if (isStandaloneDisplay) return true;
+
+    // 2. iOS Safari Add-to-Home-Screen standalone
+    if ((window.navigator as unknown as { standalone?: boolean })?.standalone === true) {
+      return true;
+    }
+
+    // 3. Android TWA / WebAPK wrapper
+    if (typeof document !== "undefined" && document.referrer?.startsWith("android-app://")) {
+      return true;
+    }
+
+    // 4. URL launch indicators from manifest start_url
+    if (
+      window.location.search.includes("source=pwa") ||
+      window.location.search.includes("mode=app")
+    ) {
+      return true;
+    }
+
+    // 5. In-session install flag
+    if (Boolean((window as unknown as { isAppInstalled?: boolean }).isAppInstalled)) {
+      return true;
+    }
+  } catch {
+    return false;
+  }
+
+  return false;
+}
 
 export default function PWAUpdater() {
   const [showBanner, setShowBanner] = useState<boolean>(false);
   const [waitingWorker, setWaitingWorker] = useState<ServiceWorker | null>(null);
   const [isUpdating, setIsUpdating] = useState<boolean>(false);
   const hadControllerRef = useRef<boolean>(false);
+
+  // Safely read lang if AppContext is available
+  let isBn = false;
+  try {
+    const appContext = useAppContext();
+    isBn = appContext?.state?.lang === "bn";
+  } catch {
+    isBn = false;
+  }
 
   // Checks whether the user is currently typing in an input/textarea/contenteditable
   const isUserTyping = useCallback((): boolean => {
@@ -57,6 +119,12 @@ export default function PWAUpdater() {
   useEffect(() => {
     if (typeof window === "undefined" || !("serviceWorker" in navigator)) return;
 
+    // RULE: Only installed app users (phone/desktop standalone PWA) receive update prompts/refresh buttons.
+    // Web link visitors in normal browser tabs always load live versions directly and must NOT be prompted or auto-reloaded.
+    if (!isRunningAsInstalledApp()) {
+      return;
+    }
+
     // Record whether a controller was active when this component mounted (first install has no controller)
     hadControllerRef.current = Boolean(navigator.serviceWorker.controller);
 
@@ -98,6 +166,8 @@ export default function PWAUpdater() {
 
     const checkForUpdate = async () => {
       try {
+        if (!isRunningAsInstalledApp()) return;
+
         const reg = await navigator.serviceWorker.getRegistration();
         if (!reg) return;
 
@@ -120,15 +190,15 @@ export default function PWAUpdater() {
       }
     };
 
-    // Listen for controllerchange: reload once only, guarded against loops and never on first install
+    // Listen for controllerchange: in installed app mode, reload ONLY if user initiated it via handleRefresh
     const handleControllerChange = () => {
-      // Never reload on very first install (controller was absent at mount)
       if (!hadControllerRef.current) {
         hadControllerRef.current = true;
         return;
       }
 
-      // Guard against fast repeated controllerchange calls
+      if (!isRunningAsInstalledApp()) return;
+
       if (isRefreshing) return;
 
       try {
@@ -137,18 +207,23 @@ export default function PWAUpdater() {
         }
       } catch {}
 
-      // If the user is currently typing and didn't manually press refresh, defer auto-reload
+      // If user is currently typing and didn't manually press refresh, defer auto-reload
       if (isUserTyping() && !isUpdating) {
         setShowBanner(true);
         return;
       }
 
-      isRefreshing = true;
-      try {
-        sessionStorage.setItem(RELOAD_GUARD_KEY, "true");
-      } catch {}
-
-      window.location.reload();
+      // If update was triggered by the user clicking Refresh
+      if (isUpdating) {
+        isRefreshing = true;
+        try {
+          sessionStorage.setItem(RELOAD_GUARD_KEY, "true");
+        } catch {}
+        window.location.reload();
+      } else {
+        // Show banner to let the user choose when to refresh, avoiding disruptive unexpected reloads
+        setShowBanner(true);
+      }
     };
 
     navigator.serviceWorker.addEventListener("controllerchange", handleControllerChange);
@@ -202,10 +277,10 @@ export default function PWAUpdater() {
           </span>
           <div className="flex flex-col min-w-0">
             <p className="text-xs sm:text-sm font-semibold truncate leading-tight">
-              New version available
+              {isBn ? "নতুন আপডেট পাওয়া গেছে" : "New version available"}
             </p>
             <p className="text-[11px] text-[#64748B] dark:text-slate-400 truncate leading-tight mt-0.5">
-              Tap Refresh to load the latest build
+              {isBn ? "লেটেস্ট বিল্ড পেতে রিফ্রেশ করুন" : "Tap Refresh to load the latest build"}
             </p>
           </div>
         </div>
@@ -218,7 +293,15 @@ export default function PWAUpdater() {
             className="px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white text-xs font-semibold shadow-sm transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-60"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${isUpdating ? "animate-spin" : ""}`} />
-            <span>{isUpdating ? "Updating..." : "Refresh"}</span>
+            <span>
+              {isUpdating
+                ? isBn
+                  ? "আপডেট হচ্ছে..."
+                  : "Updating..."
+                : isBn
+                ? "রিফ্রেশ"
+                : "Refresh"}
+            </span>
           </button>
           <button
             type="button"

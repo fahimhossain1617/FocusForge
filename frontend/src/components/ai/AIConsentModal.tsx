@@ -47,8 +47,8 @@ export default function AIConsentModal({ isOpen, userId, lang = "bn", onClose }:
         </button>
 
         <div className="flex items-center gap-3 mb-4 pr-6">
-          <div className="w-10 h-10 rounded-xl bg-[#EBF3FE] dark:bg-blue-500/15 text-[#1E3E7B] dark:text-blue-400 flex items-center justify-center shrink-0">
-            <Shield className="w-5 h-5" />
+          <div className="w-8 h-8 flex items-center justify-center shrink-0 text-[#1E3E7B] dark:text-blue-400">
+            <Shield className="w-6 h-6" />
           </div>
           <div>
             <h2 className="text-lg font-bold text-[#111827] dark:text-white">

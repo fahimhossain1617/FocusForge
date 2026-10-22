@@ -1134,8 +1134,8 @@ export default function LearningHubPage() {
               </button>
 
               <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 rounded-xl bg-blue-500/15 border border-blue-500/30 text-blue-500 flex items-center justify-center shrink-0">
-                  <Plus className="w-5 h-5" />
+                <div className="w-8 h-8 flex items-center justify-center shrink-0 text-blue-500">
+                  <Plus className="w-6 h-6" />
                 </div>
                 <div>
                   <h3 className="text-base sm:text-lg font-bold" style={{ color: "var(--color-text-primary)" }}>

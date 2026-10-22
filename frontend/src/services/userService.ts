@@ -60,7 +60,7 @@ export const userService = {
   /**
    * Fetches user profile via Backend API.
    */
-  async fetchUserProfile(userId: string): Promise<User | null> {
+  async fetchUserProfile(userId?: string): Promise<User | null> {
     try {
       if (typeof navigator !== "undefined" && !navigator.onLine) {
         return null;
@@ -71,7 +71,23 @@ export const userService = {
         return mapProfileToUser(data);
       }
 
-      // Fallback: check Supabase Auth session user
+      // Fallback 1: Query Supabase public.profiles table directly
+      if (userId) {
+        try {
+          const { data: dbProfile, error: dbErr } = await supabase
+            .from("profiles")
+            .select("*")
+            .eq("id", userId)
+            .maybeSingle();
+          if (dbProfile && dbProfile.id && !dbErr) {
+            return mapProfileToUser(dbProfile as ProfileRow);
+          }
+        } catch (directErr) {
+          console.warn("[userService] Direct profiles select fallback warning:", directErr);
+        }
+      }
+
+      // Fallback 2: check Supabase Auth session user
       const { data: authData } = await supabase.auth.getUser();
       if (authData?.user && authData.user.id === userId) {
         const u = authData.user;
@@ -104,7 +120,7 @@ export const userService = {
   },
 
   /**
-   * Updates user profile via Backend API and synchronizes user_metadata.
+   * Updates user profile via Backend API, direct Supabase table, and synchronizes user_metadata.
    */
   async updateUserProfile(
     userId: string,
@@ -126,13 +142,38 @@ export const userService = {
         console.warn("[userService] Backend PATCH /api/user/profile warning:", backendErr?.message);
       }
 
-      // Synchronize metadata in Supabase in background
+      // Direct client synchronization with public.profiles in Supabase
+      const directUpdates: Record<string, any> = {};
+      if (updates.displayName !== undefined) directUpdates.display_name = updates.displayName;
+      if (updates.fullName !== undefined) directUpdates.full_name = updates.fullName;
+      if (updates.avatarUrl !== undefined) directUpdates.avatar_url = updates.avatarUrl;
+      if (updates.phone !== undefined) directUpdates.phone = updates.phone;
+      if (updates.dob !== undefined || updates.dateOfBirth !== undefined) directUpdates.date_of_birth = updates.dob || updates.dateOfBirth;
+      if (updates.gender !== undefined) directUpdates.gender = updates.gender;
+      if (updates.country !== undefined) directUpdates.country = updates.country;
+      if (updates.city !== undefined) directUpdates.city = updates.city;
+      if (updates.bio !== undefined) directUpdates.bio = updates.bio;
+      if (updates.preferredLanguage !== undefined) directUpdates.preferred_language = updates.preferredLanguage;
+      if (updates.preferredTheme !== undefined) directUpdates.preferred_theme = updates.preferredTheme;
+      directUpdates.updated_at = new Date().toISOString();
+
+      if (Object.keys(directUpdates).length > 1) {
+        Promise.resolve(
+          supabase.from("profiles").update(directUpdates).eq("id", userId)
+        ).catch(() => {});
+      }
+
+      // Synchronize metadata in Supabase Auth in background
       const metaUpdates: Record<string, any> = {};
-      if (updates.displayName !== undefined) metaUpdates.display_name = updates.displayName;
+      if (updates.displayName !== undefined) {
+        metaUpdates.display_name = updates.displayName;
+        metaUpdates.name = updates.displayName;
+      }
       if (updates.fullName !== undefined) metaUpdates.full_name = updates.fullName;
       if (updates.avatarUrl !== undefined) {
         if (!updates.avatarUrl || updates.avatarUrl.length < 32000) {
           metaUpdates.avatar_url = updates.avatarUrl;
+          metaUpdates.picture = updates.avatarUrl;
         }
       }
       if (updates.phone !== undefined) metaUpdates.phone = updates.phone;
@@ -159,23 +200,27 @@ export const userService = {
         };
       }
 
+      // If backend was unreachable but local direct update initiated, build merged user
+      const mergedUser: User = {
+        id: userId,
+        identifier: updates.email || updates.identifier || "",
+        email: updates.email || "",
+        authMethod: "email",
+        displayName: updates.displayName || updates.fullName || "User",
+        fullName: updates.fullName || "",
+        phone: updates.phone || "",
+        dob: updates.dob || updates.dateOfBirth || "",
+        gender: updates.gender || "",
+        country: updates.country || "",
+        city: updates.city || "",
+        bio: updates.bio || "",
+        avatarUrl: updates.avatarUrl,
+        createdAt: new Date().toISOString(),
+      };
+
       return {
         success: true,
-        user: {
-          id: userId,
-          identifier: updates.email || updates.identifier || "",
-          email: updates.email || "",
-          authMethod: "email",
-          displayName: updates.displayName || updates.fullName || "User",
-          fullName: updates.fullName || "",
-          phone: updates.phone || "",
-          dob: updates.dob || updates.dateOfBirth || "",
-          gender: updates.gender || "",
-          country: updates.country || "",
-          city: updates.city || "",
-          bio: updates.bio || "",
-          avatarUrl: updates.avatarUrl,
-        } as User,
+        user: mergedUser,
       };
     } catch (err: any) {
       console.error("[userService] Unexpected error in updateUserProfile:", err);

@@ -111,9 +111,7 @@ export default function NoteAttachmentsSection({
           onClick={() => setIsExpanded(!isExpanded)}
           className="flex items-center gap-2 text-sm font-bold text-foreground hover:text-blue-500 transition-colors cursor-pointer"
         >
-          <div className="p-1.5 rounded-lg bg-blue-500/10 text-blue-500 dark:text-blue-400">
-            <Paperclip size={16} />
-          </div>
+          <Paperclip size={18} className="text-blue-500 dark:text-blue-400 shrink-0" />
           <span>Attachments & Resources</span>
           <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-black/5 dark:bg-white/10 text-slate-600 dark:text-zinc-300">
             {mediaBlocks.length}

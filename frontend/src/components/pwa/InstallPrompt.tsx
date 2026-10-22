@@ -35,6 +35,8 @@ export default function InstallPrompt({ variant = "sidebar" }: InstallPromptProp
       window.matchMedia("(display-mode: window-controls-overlay)").matches ||
       (window.navigator as unknown as { standalone?: boolean }).standalone === true ||
       document.referrer.startsWith("android-app://") ||
+      window.location.search.includes("source=pwa") ||
+      window.location.search.includes("mode=app") ||
       Boolean((window as unknown as { isAppInstalled?: boolean }).isAppInstalled)
     );
   }, []);
@@ -208,10 +210,8 @@ export default function InstallPrompt({ variant = "sidebar" }: InstallPromptProp
       <div 
         className="sidebar-install-card mx-1 mb-1.5 p-2 rounded-xl bg-slate-100/80 dark:bg-white/[0.04] border border-slate-200/70 dark:border-white/[0.07] relative overflow-hidden transition-all duration-300 flex items-center justify-between gap-2 shrink-0 select-none"
       >
-        <div className="flex items-center gap-2 min-w-0">
-          <div className="w-7 h-7 rounded-lg bg-blue-50 dark:bg-blue-950/60 border border-blue-200/60 dark:border-blue-800/50 flex items-center justify-center shrink-0">
-            <Download size={14} className="text-[#2563EB] dark:text-blue-400" strokeWidth={2.3} />
-          </div>
+        <div className="flex items-center gap-2.5 min-w-0">
+          <Download size={18} className="text-[#2563EB] dark:text-blue-400 shrink-0" strokeWidth={2.3} />
           <div className="min-w-0">
             <h4 className="text-xs font-bold tracking-tight truncate leading-tight text-[#0F172A] dark:text-foreground">
               {isBn ? "গেট অ্যাপ" : "Get App"}

@@ -591,8 +591,8 @@ export default function RoutineLibraryModal({
               })
             ) : (
               <div className="py-8 px-4 rounded-2xl border border-dashed border-slate-200 dark:border-white/10 bg-slate-50/50 dark:bg-white/[0.01] flex flex-col items-center justify-center text-center space-y-2.5">
-                <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-600/10 border border-blue-200 dark:border-blue-500/20 flex items-center justify-center text-[#223A5E] dark:text-blue-400">
-                  <Calendar className="w-5 h-5" />
+                <div className="w-8 h-8 flex items-center justify-center shrink-0 text-[#223A5E] dark:text-blue-400">
+                  <Calendar className="w-6 h-6" />
                 </div>
                 <div>
                   <h4 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">

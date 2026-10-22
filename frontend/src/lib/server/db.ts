@@ -797,34 +797,47 @@ export async function dbCheckUsernameAvailable(displayName: string, excludeUserI
 export async function dbUpdateUserProfile(userId: string, updates: Record<string, any>) {
   const allowedFields: Record<string, string> = {
     displayName: 'display_name',
+    display_name: 'display_name',
+    username: 'display_name',
     fullName: 'full_name',
+    full_name: 'full_name',
+    email: 'email',
+    identifier: 'identifier',
     phone: 'phone',
     phoneNumber: 'phone',
     dateOfBirth: 'date_of_birth',
+    date_of_birth: 'date_of_birth',
     dob: 'date_of_birth',
     gender: 'gender',
     country: 'country',
     city: 'city',
     bio: 'bio',
     avatarUrl: 'avatar_url',
-    preferredLanguage: 'preferred_language',
-    preferredTheme: 'preferred_theme',
+    avatar_url: 'avatar_url',
+    theme: 'theme',
+    preferredTheme: 'theme',
+    preferred_theme: 'theme',
     emailVerified: 'email_verified',
-    onboardingCompleted: 'onboarding_completed',
+    email_verified: 'email_verified',
   };
+
+  const touchedCols = new Map<string, any>();
+  for (const [key, col] of Object.entries(allowedFields)) {
+    if (updates[key] !== undefined) {
+      touchedCols.set(col, updates[key]);
+    }
+  }
+
+  if (touchedCols.size === 0) {
+    return dbGetUserProfile(userId);
+  }
 
   const fields: string[] = [];
   const params: any[] = [userId];
 
-  for (const [key, col] of Object.entries(allowedFields)) {
-    if (updates[key] !== undefined) {
-      params.push(updates[key]);
-      fields.push(`${col} = $${params.length}`);
-    }
-  }
-
-  if (fields.length === 0) {
-    return dbGetUserProfile(userId);
+  for (const [col, val] of touchedCols.entries()) {
+    params.push(val);
+    fields.push(`"${col}" = $${params.length}`);
   }
 
   fields.push('updated_at = NOW()');
@@ -842,35 +855,37 @@ export async function dbUpdateUserProfile(userId: string, updates: Record<string
     const insertRes = await pool.query(
       `
       INSERT INTO profiles (
-        id, identifier, auth_method, display_name, full_name, phone, date_of_birth,
+        id, identifier, auth_method, display_name, full_name, email, phone, date_of_birth,
         gender, country, city, bio, avatar_url, created_at, updated_at
       )
-      VALUES ($1, $2, 'email', $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW(), NOW())
+      VALUES ($1, $2, 'email', $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW(), NOW())
       ON CONFLICT (id) DO UPDATE SET
-        display_name = COALESCE(EXCLUDED.display_name, profiles.display_name),
-        full_name = COALESCE(EXCLUDED.full_name, profiles.full_name),
-        phone = COALESCE(EXCLUDED.phone, profiles.phone),
-        date_of_birth = COALESCE(EXCLUDED.date_of_birth, profiles.date_of_birth),
-        gender = COALESCE(EXCLUDED.gender, profiles.gender),
-        country = COALESCE(EXCLUDED.country, profiles.country),
-        city = COALESCE(EXCLUDED.city, profiles.city),
-        bio = COALESCE(EXCLUDED.bio, profiles.bio),
-        avatar_url = COALESCE(EXCLUDED.avatar_url, profiles.avatar_url),
+        display_name = EXCLUDED.display_name,
+        full_name = EXCLUDED.full_name,
+        email = COALESCE(EXCLUDED.email, profiles.email),
+        phone = EXCLUDED.phone,
+        date_of_birth = EXCLUDED.date_of_birth,
+        gender = EXCLUDED.gender,
+        country = EXCLUDED.country,
+        city = EXCLUDED.city,
+        bio = EXCLUDED.bio,
+        avatar_url = EXCLUDED.avatar_url,
         updated_at = NOW()
       RETURNING *;
       `,
       [
         userId,
         updates.email || updates.identifier || 'user',
-        updates.displayName || updates.fullName || '',
+        updates.displayName || updates.username || updates.fullName || '',
         updates.fullName || '',
+        updates.email || updates.identifier || null,
         updates.phone || updates.phoneNumber || null,
         updates.dateOfBirth || updates.dob || null,
         updates.gender || null,
         updates.country || null,
         updates.city || null,
         updates.bio || null,
-        updates.avatarUrl || null,
+        updates.avatarUrl || updates.avatar_url || null,
       ]
     );
     return mapProfileRow(insertRes.rows[0]);

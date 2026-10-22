@@ -77,8 +77,8 @@ export default function AIMemoryModal({ isOpen, userId, lang = "bn", onClose }: 
       <div className="bg-card border border-border rounded-2xl max-w-xl w-full p-6 shadow-2xl flex flex-col max-h-[85vh]">
         <div className="flex items-center justify-between pb-4 border-b border-border">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
-              <Brain className="w-5 h-5" />
+            <div className="w-8 h-8 flex items-center justify-center shrink-0 text-primary">
+              <Brain className="w-6 h-6" />
             </div>
             <div>
               <h2 className="text-lg font-semibold text-foreground">

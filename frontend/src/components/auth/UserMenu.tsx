@@ -73,9 +73,7 @@ export default function UserMenu({ variant = "sidebar" }: UserMenuProps) {
                   <span className="text-[9px] opacity-70">→</span>
                 </p>
               </div>
-              <div className="p-1.5 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-400 group-hover:bg-blue-500/20 transition-colors shrink-0">
-                <LogIn size={13} />
-              </div>
+              <LogIn size={16} className="text-blue-400 group-hover:text-blue-300 transition-colors shrink-0" />
             </button>
           ) : (
             /* Header Pill */

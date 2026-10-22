@@ -845,12 +845,8 @@ export default function DashboardPage() {
                       }}
                       className="flex items-center gap-3 py-2 px-2.5 rounded-xl bg-[#F7FAFE] dark:bg-white/[0.02] border border-[#DCE5F0] dark:border-white/[0.06] transition-colors cursor-pointer hover:bg-[#EBF3FE] dark:hover:bg-white/[0.06]"
                     >
-                      {/* Icon Badge: Bright #EBF3FE with vivid #1D4ED8 icon */}
-                      <div
-                        className="w-7 h-7 rounded-xl bg-[#EBF3FE] dark:bg-blue-500/20 text-[#1D4ED8] dark:text-blue-300 border border-[#D0E1FD]/80 dark:border-blue-500/30 flex items-center justify-center shrink-0"
-                      >
-                        <IconComponent size={13} />
-                      </div>
+                      {/* Normal clean icon without double box shape */}
+                      <IconComponent size={16} className="text-[#1D4ED8] dark:text-blue-400 shrink-0" />
 
                       {/* Skill Name */}
                       <span 

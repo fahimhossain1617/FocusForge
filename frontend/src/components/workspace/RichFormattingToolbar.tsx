@@ -103,9 +103,9 @@ export default function RichFormattingToolbar({
                         }}
                         className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-left hover:bg-black/5 dark:hover:bg-white/10 transition-colors cursor-pointer group"
                       >
-                        <div className="p-1.5 rounded-lg bg-black/5 dark:bg-white/5 group-hover:bg-blue-500/20 text-slate-500 dark:text-zinc-400 group-hover:text-blue-500 dark:group-hover:text-blue-400 transition-colors">
-                          <Icon size={16} />
-                        </div>
+                        <span className="text-slate-500 dark:text-zinc-400 group-hover:text-blue-500 dark:group-hover:text-blue-400 transition-colors shrink-0">
+                          <Icon size={18} />
+                        </span>
                         <div className="flex-1 min-w-0">
                           <div className="text-xs font-semibold text-slate-800 dark:text-zinc-200 group-hover:text-blue-600 dark:group-hover:text-white">
                             {item.label}
