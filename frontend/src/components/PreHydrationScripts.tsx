@@ -56,6 +56,45 @@ export default function PreHydrationScripts() {
         <meta name="screen-orientation" content="portrait" />
         <meta name="x5-orientation" content="portrait" />
 
+        {/* Early Mobile PWA Zoom Restriction (Runs synchronously before paint) */}
+        <script
+          id="ff-mobile-pwa-zoom-lock"
+          dangerouslySetInnerHTML={{
+            __html: `(function(){
+  try {
+    var ua = navigator.userAgent || '';
+    var isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(ua) ||
+      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1) ||
+      (navigator.maxTouchPoints > 0 && window.matchMedia && window.matchMedia('(max-width: 1024px) and (pointer: coarse)').matches);
+    if (!isMobile) return;
+
+    var isStandalone =
+      (window.matchMedia && (
+        window.matchMedia('(display-mode: standalone)').matches ||
+        window.matchMedia('(display-mode: fullscreen)').matches ||
+        window.matchMedia('(display-mode: minimal-ui)').matches ||
+        window.matchMedia('(display-mode: window-controls-overlay)').matches
+      )) ||
+      (window.navigator && window.navigator.standalone === true) ||
+      (document.referrer && document.referrer.indexOf('android-app://') === 0) ||
+      (window.location.search.indexOf('source=pwa') !== -1) ||
+      (window.location.search.indexOf('mode=app') !== -1);
+
+    if (!isStandalone) return;
+
+    var root = document.documentElement;
+    root.dataset.mobilePwa = 'true';
+    root.classList.add('ff-mobile-pwa');
+
+    var vp = document.querySelector('meta[name="viewport"]');
+    if (vp) {
+      vp.setAttribute('content', 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, interactive-widget=resizes-content');
+    }
+  } catch(e) {}
+})();`,
+          }}
+        />
+
         {/* Launch Animation Gating & Session Storage Check (Runs Synchronously in Head) */}
         <script
           id="ff-launch-gate"

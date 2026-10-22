@@ -4668,6 +4668,16 @@ body {
   }
 }
 
+/* Restrict accidental pinch-to-zoom ONLY on mobile devices when running as an installed PWA */
+html.ff-mobile-pwa,
+html[data-mobile-pwa="true"],
+html.ff-mobile-pwa body,
+html[data-mobile-pwa="true"] body,
+html.ff-mobile-pwa #app-shell,
+html[data-mobile-pwa="true"] #app-shell {
+  touch-action: pan-x pan-y;
+}
+
 /* Small screen modal & drawer responsiveness */
 @media (max-width: 640px) {
   .app-modal-panel, .auth-modal-card {

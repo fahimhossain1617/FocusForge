@@ -9,6 +9,7 @@ import { AppProvider } from "../context/AppContext";
 import { AuthProvider } from "../context/AuthContext";
 import ServiceWorkerRegister from "../components/pwa/ServiceWorkerRegister";
 import PWAUpdater from "../components/pwa/PWAUpdater";
+import MobilePwaZoomLock from "../components/pwa/MobilePwaZoomLock";
 import PreHydrationScripts from "../components/PreHydrationScripts";
 
 const notoSansBengali = Noto_Sans_Bengali({
@@ -132,6 +133,7 @@ export default function RootLayout({
           <AuthProvider>
             <ServiceWorkerRegister />
             <PWAUpdater />
+            <MobilePwaZoomLock />
             <div id="app-shell" suppressHydrationWarning className="relative z-10 h-screen h-dvh max-h-screen max-h-dvh overflow-hidden w-full">
               {children}
             </div>
