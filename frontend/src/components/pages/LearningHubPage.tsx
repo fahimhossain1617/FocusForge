@@ -23,6 +23,7 @@ import confetti from "canvas-confetti";
 import ConfirmDeleteModal from "../ui/ConfirmDeleteModal";
 import AIRoadmapCard from "../ai-agent/AIRoadmapCard";
 import { roadmapService } from "../../services/roadmapService";
+import { useSubViewBack } from "../../hooks/useSubViewBack";
 import type { LearningRoadmap } from "../../types/roadmap";
 import { calculateRoadmapProgress } from "../../types/roadmap";
 
@@ -128,21 +129,37 @@ export default function LearningHubPage() {
 
   const [mounted, setMounted] = useState(false);
 
+  const handleBackToSkills = useCallback(() => {
+    setSelectedFolderId(null);
+  }, []);
+
+  // Synchronize folder detail view with browser history and phone back gestures
+  const { triggerBack: handleFolderBack } = useSubViewBack({
+    active: Boolean(selectedFolderId),
+    subViewName: 'learning-folder',
+    page: 'learning',
+    hash: selectedFolderId ? `#learning/folder/${selectedFolderId}` : '#learning',
+    onBack: handleBackToSkills,
+  });
+
+  // Synchronize roadmap modal with phone back gestures
+  useSubViewBack({
+    active: Boolean(activeRoadmapModal),
+    subViewName: 'learning-roadmap',
+    page: 'learning',
+    onBack: () => setActiveRoadmapModal(null),
+  });
+
+  // Synchronize create modal with phone back gestures
+  useSubViewBack({
+    active: isCreateModalOpen,
+    subViewName: 'learning-create',
+    page: 'learning',
+    onBack: () => setIsCreateModalOpen(false),
+  });
+
   useEffect(() => {
     setSubViewActive(Boolean(selectedFolderId));
-    if (selectedFolderId) {
-      try {
-        window.history.pushState({ subView: 'learning-folder', page: 'learning' }, '', window.location.href);
-      } catch {}
-      const handlePop = () => {
-        setSelectedFolderId(null);
-      };
-      window.addEventListener('popstate', handlePop);
-      return () => {
-        window.removeEventListener('popstate', handlePop);
-        setSubViewActive(false);
-      };
-    }
     return () => setSubViewActive(false);
   }, [selectedFolderId, setSubViewActive]);
 
@@ -658,9 +675,7 @@ export default function LearningHubPage() {
             {/* Left: Back Button */}
             <button
               type="button"
-              onClick={() => {
-                setSelectedFolderId(null);
-              }}
+              onClick={handleFolderBack}
               className="inline-flex items-center justify-center w-9 h-9 -ml-1.5 rounded-full text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-black/5 dark:hover:bg-white/5 active:scale-95 transition-colors cursor-pointer"
               aria-label={t.learningHub.backToSkills}
               title={t.learningHub.backToSkills}

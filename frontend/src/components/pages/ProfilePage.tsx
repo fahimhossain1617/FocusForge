@@ -61,6 +61,7 @@ export default function ProfilePage() {
   const [isSaving, setIsSaving] = useState(false);
   const [showRemovePhotoModal, setShowRemovePhotoModal] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const isSavingRef = useRef(false);
 
   // Field input refs to auto-focus when clicking a specific row in view mode
   const inputRefs = {
@@ -157,7 +158,7 @@ export default function ProfilePage() {
     }
   }, [user?.id]);
 
-  // Handle Photo Upload via FileReader
+  // Handle Photo Upload via FileReader (Optimistic instant UI, background cloud sync)
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -176,17 +177,24 @@ export default function ProfilePage() {
     const reader = new FileReader();
     reader.onload = async (event) => {
       const base64 = event.target?.result as string;
+      // Instant local preview
       setFormData(prev => ({ ...prev, avatarUrl: base64 }));
+      // Instant single toast
+      showToast(state.lang === 'bn' ? "প্রোফাইল ছবি সফলভাবে আপডেট হয়েছে।" : "Profile photo updated successfully.", "success");
+
       if (user) {
-        const res = await userService.uploadAvatar(base64, file.type);
-        const effectiveAvatarUrl = (res.success && res.avatarUrl) ? res.avatarUrl : base64;
-        const success = await updateUserProfile({ avatarUrl: effectiveAvatarUrl });
-        if (success || res.success) {
-          setFormData(prev => ({ ...prev, avatarUrl: effectiveAvatarUrl }));
-          showToast(state.lang === 'bn' ? "প্রোফাইল ছবি সফলভাবে আপডেট হয়েছে।" : "Profile photo updated successfully.", "success");
-        } else {
-          showToast(state.lang === 'bn' ? "প্রোফাইল ছবি আপলোড করতে ব্যর্থ হয়েছে।" : "Failed to upload profile photo.", "error");
-        }
+        // Optimistic auth update
+        updateUserProfile({ avatarUrl: base64 }).catch(() => {});
+        // Background upload to storage and persistent URL update
+        userService.uploadAvatar(base64, file.type).then((res) => {
+          if (res.success && res.avatarUrl) {
+            const uploadedUrl = res.avatarUrl;
+            setFormData(prev => ({ ...prev, avatarUrl: uploadedUrl }));
+            updateUserProfile({ avatarUrl: uploadedUrl }).catch(() => {});
+          }
+        }).catch((err) => {
+          console.warn("[ProfilePage] Background avatar upload warning:", err);
+        });
       } else {
         try {
           const guestStr = localStorage.getItem("focusforge_guest_profile");
@@ -197,21 +205,19 @@ export default function ProfilePage() {
         } catch (e) {
           console.error("Failed to save guest avatar", e);
         }
-        showToast(state.lang === 'bn' ? "প্রোফাইল ছবি সফলভাবে আপডেট হয়েছে।" : "Profile photo updated successfully.", "success");
       }
     };
     reader.readAsDataURL(file);
   };
 
-  // Remove Photo
+  // Remove Photo (Optimistic instant UI)
   const handleRemovePhoto = async () => {
     setFormData(prev => ({ ...prev, avatarUrl: "" }));
+    showToast(state.lang === 'bn' ? "প্রোফাইল ছবি মুছে ফেলা হয়েছে।" : "Profile photo removed.", "info");
+
     if (user) {
-      await userService.removeAvatar().catch(() => {});
-      const success = await updateUserProfile({ avatarUrl: "" });
-      if (success) {
-        showToast(state.lang === 'bn' ? "প্রোফাইল ছবি মুছে ফেলা হয়েছে।" : "Profile photo removed.", "info");
-      }
+      updateUserProfile({ avatarUrl: "" }).catch(() => {});
+      userService.removeAvatar().catch(() => {});
     } else {
       try {
         const guestStr = localStorage.getItem("focusforge_guest_profile");
@@ -222,48 +228,24 @@ export default function ProfilePage() {
       } catch (e) {
         console.error("Failed to clear guest avatar", e);
       }
-      showToast(state.lang === 'bn' ? "প্রোফাইল ছবি মুছে ফেলা হয়েছে।" : "Profile photo removed.", "info");
     }
   };
 
-  // Save Profile Changes
+  // Save Profile Changes (Optimistic instant save, background database sync)
   const handleSaveProfile = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    setIsSaving(true);
-
-    if (isGuest || !user) {
-      const finalFullName = formData.fullName.trim();
-      const finalDisplayName = formData.displayName.trim() || finalFullName || "Guest";
-      const guestData = {
-        ...formData,
-        fullName: finalFullName,
-        displayName: finalDisplayName,
-        email: formData.email.trim(),
-        phone: formData.phone.trim(),
-        dob: formData.dob,
-        gender: formData.gender,
-        country: formData.country.trim(),
-        city: formData.city.trim(),
-        bio: formData.bio.trim(),
-      };
-      try {
-        localStorage.setItem("focusforge_guest_profile", JSON.stringify(guestData));
-        window.dispatchEvent(new CustomEvent("focusforge:profile_updated", { detail: guestData }));
-      } catch (e) {
-        console.error("Failed to save guest profile to localStorage", e);
-      }
-      setTimeout(() => {
-        setIsSaving(false);
-        setIsEditing(false);
-        showToast(state.lang === 'bn' ? "প্রোফাইল সফলভাবে আপডেট হয়েছে।" : "Profile updated successfully.", "success");
-      }, 200);
-      return;
-    }
+    if (isSavingRef.current) return;
+    isSavingRef.current = true;
 
     const finalFullName = formData.fullName.trim();
-    const finalDisplayName = formData.displayName.trim();
+    const finalDisplayName = formData.displayName.trim() || finalFullName || (isGuest ? "Guest" : "User");
 
-    const success = await updateUserProfile({
+    // Instantly close edit mode and notify user
+    setIsEditing(false);
+    setIsSaving(false);
+    showToast(state.lang === 'bn' ? "প্রোফাইল সফলভাবে আপডেট হয়েছে।" : "Profile updated successfully.", "success");
+
+    const payloadUpdates = {
       fullName: finalFullName,
       displayName: finalDisplayName,
       email: formData.email.trim(),
@@ -274,15 +256,27 @@ export default function ProfilePage() {
       city: formData.city.trim(),
       bio: formData.bio.trim(),
       avatarUrl: formData.avatarUrl,
-    });
+    };
 
-    setIsSaving(false);
+    if (isGuest || !user) {
+      try {
+        localStorage.setItem("focusforge_guest_profile", JSON.stringify(payloadUpdates));
+        window.dispatchEvent(new CustomEvent("focusforge:profile_updated", { detail: payloadUpdates }));
+      } catch (err) {
+        console.error("Failed to save guest profile to localStorage", err);
+      } finally {
+        isSavingRef.current = false;
+      }
+      return;
+    }
 
-    if (success) {
-      setIsEditing(false);
-      showToast(state.lang === 'bn' ? "প্রোফাইল সফলভাবে আপডেট হয়েছে।" : "Profile updated successfully.", "success");
-    } else {
-      showToast(state.lang === 'bn' ? "প্রোফাইল আপডেট করতে ব্যর্থ হয়েছে। অনুগ্রহ করে আবার চেষ্টা করুন।" : "Failed to update profile. Please try again.", "error");
+    try {
+      // Background sync to database
+      await updateUserProfile(payloadUpdates);
+    } catch (err) {
+      console.warn("[ProfilePage] Background profile sync warning:", err);
+    } finally {
+      isSavingRef.current = false;
     }
   };
 

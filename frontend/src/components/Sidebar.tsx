@@ -4,6 +4,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAppContext } from "../context/AppContext";
 import { useTranslation } from "../hooks/useTranslation";
+import { useSubViewBack } from "../hooks/useSubViewBack";
 import { 
   LayoutDashboard, 
   Bot, 
@@ -156,6 +157,13 @@ export default function Sidebar({
 
   const backdrop = useAnimateExit({ isOpen: isOpen && !isTourActive, durationMs: 200 });
   const logoutAnim = useAnimateExit({ isOpen: logoutConfirmOpen, durationMs: 200 });
+
+  // Close mobile sidebar drawer on phone back button
+  useSubViewBack({
+    active: isOpen && !isTourActive,
+    subViewName: "sidebar-drawer",
+    onBack: onClose,
+  });
 
   // Shared Floating Gliding Tooltip State & Graceful Timeout
   const [hoveredNavId, setHoveredNavId] = useState<string | null>(null);

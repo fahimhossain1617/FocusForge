@@ -15,6 +15,7 @@ import PlannerEmptyIllustration from "../planner/PlannerEmptyIllustration";
 import { Weekday } from "../../types";
 import { formatTime12hr } from "../../utils/timeUtils";
 import ConfirmDeleteModal from "../ui/ConfirmDeleteModal";
+import { useSubViewBack } from "../../hooks/useSubViewBack";
 
 export default function PlannerPage() {
   const { state, addTimeBlock, deleteTimeBlock, updateTimeBlock, addTask, deleteTask } = useAppContext();
@@ -77,6 +78,33 @@ export default function PlannerPage() {
     startTime: string;
     endTime: string;
   } | null>(null);
+
+  // Synchronize mobile day drawer with phone back gestures
+  useSubViewBack({
+    active: Boolean(drawerDateStr),
+    subViewName: "planner-drawer",
+    page: "planner",
+    onBack: () => setDrawerDateStr(null),
+  });
+
+  // Synchronize add/edit task modal with phone back gestures
+  useSubViewBack({
+    active: showAddTaskModal || Boolean(editingTask),
+    subViewName: "planner-task-modal",
+    page: "planner",
+    onBack: () => {
+      setShowAddTaskModal(false);
+      setEditingTask(null);
+    },
+  });
+
+  // Synchronize copy tasks modal with phone back gestures
+  useSubViewBack({
+    active: showCopyTasksModal,
+    subViewName: "planner-copy-modal",
+    page: "planner",
+    onBack: () => setShowCopyTasksModal(false),
+  });
 
   // Handle cross-navigation from Dashboard (e.g. 3-dots on a task)
   useEffect(() => {

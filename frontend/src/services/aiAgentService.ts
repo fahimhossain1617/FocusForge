@@ -735,6 +735,7 @@ function extractMessageAndIntentFromJson(text: string, isBn: boolean): {
 
 const FAST_GEMINI_MODELS = [
   process.env.GEMINI_MODEL,
+  'gemini-flash-lite-latest',
   'gemini-3.5-flash-lite',
   'gemini-3.6-flash',
   'gemini-3.7-flash',
@@ -743,9 +744,10 @@ const FAST_GEMINI_MODELS = [
 
 const SMART_GEMINI_MODELS = [
   process.env.GEMINI_MODEL,
+  'gemini-flash-lite-latest',
+  'gemini-3.5-flash-lite',
   'gemini-3.7-flash',
   'gemini-3.6-flash',
-  'gemini-3.5-flash-lite',
   'gemini-3.8-flash',
 ].filter((m, i, arr): m is string => Boolean(m) && arr.indexOf(m) === i);
 

@@ -420,18 +420,31 @@ export function handleLocalIntent(
 
     case 'NAVIGATION_MIND': {
       const isProblemQuery = /(?:problem|issue|trouble|সমস্যা)/i.test(norm.raw);
-      const messageBn = isProblemQuery
-        ? 'কোনো সমস্যা বা চিন্তা থাকলে একদম মন খারাপ করো না। Mind Space-এর Problem Solver বা Free Flow-তে তোমার চিন্তাগুলো গুছিয়ে সহজ সমাধান বের করতে পারো।'
-        : 'অবশ্যই, তোমার Mind Space অপশন নিচে দেওয়া হলো। যখনই মাথায় চিন্তা জমে উঠবে, গুছিয়ে নিতে পারো।';
-      const messageEn = isProblemQuery
-        ? "Whenever you face a problem or feel stuck, don't worry. You can organize your thoughts and resolve issues inside Mind Space's Problem Solver."
-        : 'Here is the Mind Space option for you. Whenever your thoughts feel heavy, just drop by to organize your mind.';
+      const isIdeaQuery = /(?:idea|আইডিয়া|brain|ব্রেইন|চিন্তা)/i.test(norm.raw);
+
+      let messageBn: string;
+      let messageEn: string;
+      let emotion: string = 'attentive';
+
+      if (isIdeaQuery && !isProblemQuery) {
+        messageBn = 'বাহ্! দারুণ তো! মাথায় যখনই চমৎকার কোনো আইডিয়া আসে, সেটা লিখে রাখা সবচেয়ে ভালো। তুমি Mind Space-এ গিয়ে আইডিয়াটি সুন্দরভাবে সংরক্ষণ করে রাখতে পারো।';
+        messageEn = "That's wonderful! Whenever great ideas pop into mind, it's best to capture them. You can open Mind Space to organize and save your idea.";
+        emotion = 'happy';
+      } else if (isProblemQuery) {
+        messageBn = 'কোনো সমস্যা বা বাধা নিয়ে একদম চিন্তিত বা একা বোধ করো না। Mind Space-এর Problem Solver বা Free Flow-তে তোমার সমস্যাটি গুছিয়ে সহজ সমাধান বের করতে পারো।';
+        messageEn = "Whenever you face a problem or feel stuck, don't worry. You can organize your thoughts and work out solutions inside Mind Space.";
+        emotion = 'caring';
+      } else {
+        messageBn = 'অবশ্যই, তোমার Mind Space অপশন নিচে দেওয়া হলো। যখনই মাথায় চিন্তা জমে উঠবে, গুছিয়ে নিতে পারো।';
+        messageEn = 'Here is the Mind Space option for you. Whenever your thoughts feel heavy, just drop by to organize your mind.';
+      }
+
       const act = buildActionRequest('open_mind', {}, isBn ? 'মাইন্ড স্পেস খুলুন' : 'Open Mind Space');
       return {
         message: prefix + (isBn ? messageBn : messageEn),
         intent: 'PROBLEM_SOLVER',
         actions: act ? [act] : [],
-        orbEmotion: isProblemQuery ? 'caring' : 'attentive',
+        orbEmotion: emotion as any,
         navigationRoute: 'mind',
         handledLocally: true,
         tokenCost: 0,

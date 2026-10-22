@@ -35,6 +35,7 @@ import {
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useAnimateExit } from "../../hooks/useAnimateExit";
+import { useSubViewBack } from "../../hooks/useSubViewBack";
 import StopwatchTimer from "../focus/StopwatchTimer";
 
 
@@ -477,11 +478,48 @@ export default function FocusPage() {
     setShowPauseModal(false);
   };
 
+  const isSessionActive = sessionPhase === "focus_active" || sessionPhase === "break_active" || sessionPhase === "break_selection";
+
+  // Sub-view back handler for active session (Focus timer / Break)
+  const { triggerBack: handleSessionBack } = useSubViewBack({
+    active: isSessionActive,
+    subViewName: "focus-session",
+    page: "focus",
+    hash: "#focus/session",
+    onBack: () => {
+      if (showEarlyExitModal) {
+        setShowEarlyExitModal(false);
+        timer.start();
+      } else if (showPauseModal) {
+        setShowPauseModal(false);
+      } else if (isDeepFocus) {
+        setIsDeepFocus(false);
+      } else if (showDistraction) {
+        setShowDistraction(false);
+      } else if (sessionPhase === "focus_active" && activeSessionId && timer.remaining > 0) {
+        timer.pause();
+        setTargetExitPage("focus");
+        setPendingExitAction("back");
+        setShowEarlyExitModal(true);
+      } else {
+        setSessionPhase("setup");
+      }
+    },
+  });
+
+  // Sub-view back handler for history modal
+  const { triggerBack: handleHistoryModalBack } = useSubViewBack({
+    active: showHistoryModal,
+    subViewName: "focus-history",
+    page: "focus",
+    onBack: () => setShowHistoryModal(false),
+  });
+
   // Back Button Guard: Prompt with 3-choice modal (Save & Exit, Stop/Discard, Continue)
   const handleBackAttempt = () => {
     if (sessionPhase === "focus_active" && activeSessionId && timer.remaining > 0) {
       timer.pause();
-      setTargetExitPage("dashboard");
+      setTargetExitPage("focus");
       setPendingExitAction("back");
       setShowEarlyExitModal(true);
       return;
@@ -494,12 +532,10 @@ export default function FocusPage() {
       }
       timer.skipBreak();
       setSessionPhase("setup");
-      navigateTo("dashboard");
       return;
     }
 
     setSessionPhase("setup");
-    navigateTo("dashboard");
   };
 
   const handleKeepFocusing = () => {
@@ -531,8 +567,10 @@ export default function FocusPage() {
     setSessionPhase("setup");
     setSelectedTask({ name: "", category: "" });
 
-    if (pendingExitAction === "back" || pendingExitAction === "sidebar") {
-      navigateTo(targetExitPage || "dashboard");
+    if (pendingExitAction === "back") {
+      setSessionPhase("setup");
+    } else if (pendingExitAction === "sidebar" && targetExitPage && targetExitPage !== "focus" && targetExitPage !== "dashboard") {
+      navigateTo(targetExitPage);
     }
   };
 
@@ -554,8 +592,10 @@ export default function FocusPage() {
     setSessionPhase("setup");
     setSelectedTask({ name: "", category: "" });
 
-    if (pendingExitAction === "back" || pendingExitAction === "sidebar") {
-      navigateTo(targetExitPage || "dashboard");
+    if (pendingExitAction === "back") {
+      setSessionPhase("setup");
+    } else if (pendingExitAction === "sidebar" && targetExitPage && targetExitPage !== "focus" && targetExitPage !== "dashboard") {
+      navigateTo(targetExitPage);
     }
   };
 
@@ -1278,7 +1318,7 @@ export default function FocusPage() {
           <div className="mb-4 sm:mb-6 flex items-center justify-between w-full">
             <button
               type="button"
-              onClick={handleBackAttempt}
+              onClick={handleSessionBack}
               className="inline-flex items-center justify-center w-9 h-9 rounded-full text-zinc-400 hover:text-white hover:bg-white/10 active:scale-95 transition-colors cursor-pointer"
               title={state.lang === "bn" ? "ফিরে যান" : "Back"}
               aria-label={state.lang === "bn" ? "ফিরে যান" : "Back"}
@@ -1515,7 +1555,7 @@ export default function FocusPage() {
           <div className="mb-4 sm:mb-6 flex items-center justify-between w-full">
             <button
               type="button"
-              onClick={handleBackAttempt}
+              onClick={handleSessionBack}
               className="inline-flex items-center justify-center w-9 h-9 rounded-full text-zinc-400 hover:text-white hover:bg-white/10 active:scale-95 transition-colors cursor-pointer"
               title={state.lang === "bn" ? "ফিরে যান" : "Back"}
               aria-label={state.lang === "bn" ? "ফিরে যান" : "Back"}

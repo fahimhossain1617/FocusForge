@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useAppContext } from "../../context/AppContext";
+import { useSubViewBack } from "../../hooks/useSubViewBack";
 import MindHome from "../mymind/MindHome";
 import ReviewAll from "../mymind/ReviewAll";
 import ProblemSolver from "../mymind/ProblemSolver";
@@ -16,13 +17,33 @@ export default function MyMindPage() {
   const [activeThoughtId, setActiveThoughtId] = useState<string | null>(null);
   const [previousView, setPreviousView] = useState<MindView>('home');
 
+  const isSubView = activeView !== 'home';
+
+  const handleBackToMindHome = useCallback(() => {
+    setActiveView('home');
+    setActiveThoughtId(null);
+  }, []);
+
+  // Synchronize mind subviews (ReviewAll, ProblemSolver, IdeaCapture, ThoughtDetail) with phone back
+  const { triggerBack: handleMindBack } = useSubViewBack({
+    active: isSubView,
+    subViewName: `mind-${activeView}`,
+    page: 'mind',
+    hash: isSubView ? `#mind/${activeView}` : '#mind',
+    onBack: handleBackToMindHome,
+  });
+
   useEffect(() => {
-    setSubViewActive(activeView === 'detail' || activeView === 'review_all');
+    setSubViewActive(activeView === 'detail' || activeView === 'review_all' || activeView === 'problem_solver' || activeView === 'idea_capture');
     return () => setSubViewActive(false);
   }, [activeView, setSubViewActive]);
 
   const navigate = (view: string) => {
     const nextView = view as MindView;
+    if (nextView === 'home' && isSubView) {
+      handleMindBack();
+      return;
+    }
     if (activeView !== nextView) {
       setPreviousView(activeView);
       setActiveView(nextView);

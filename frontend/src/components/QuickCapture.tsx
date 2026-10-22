@@ -6,6 +6,7 @@ import { useAuth } from "../context/AuthContext";
 import { useTranslation } from "../hooks/useTranslation";
 import { useKeyboardShortcut } from "../hooks/useKeyboardShortcut";
 import { useAnimateExit } from "../hooks/useAnimateExit";
+import { useSubViewBack } from "../hooks/useSubViewBack";
 import { Brain } from "lucide-react";
 import VoiceInput from "./mymind/VoiceInput";
 import VoiceReactiveGlow from "./voice/VoiceReactiveGlow";
@@ -21,6 +22,12 @@ export default function QuickCapture() {
   const { requireAuth } = useAuth();
   const { t } = useTranslation();
   const { shouldRender, isExiting } = useAnimateExit({ isOpen, durationMs: 200 });
+
+  useSubViewBack({
+    active: isOpen,
+    subViewName: "quick-capture",
+    onBack: () => setIsOpen(false),
+  });
 
   useKeyboardShortcut("Space", () => setIsOpen(true), { ctrl: true });
 

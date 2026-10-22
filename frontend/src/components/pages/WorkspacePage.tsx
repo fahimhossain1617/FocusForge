@@ -9,6 +9,9 @@ import NoteEditorView from "./NoteEditorView";
 import { Plus, Search, Filter, X } from "lucide-react";
 
 
+import { useSubViewBack } from "../../hooks/useSubViewBack";
+
+
 export default function WorkspacePage() {
   const { state, addNote, updateNote, deleteNote, setSubViewActive } = useAppContext();
   const [mounted, setMounted] = useState(false);
@@ -25,21 +28,22 @@ export default function WorkspacePage() {
 
   useEffect(() => {
     setSubViewActive(view === 'editor');
-    if (view === 'editor') {
-      try {
-        window.history.pushState({ subView: 'workspace-editor', page: 'tasks' }, '', window.location.href);
-      } catch {}
-      const handlePop = () => {
-        setView('grid');
-      };
-      window.addEventListener('popstate', handlePop);
-      return () => {
-        window.removeEventListener('popstate', handlePop);
-        setSubViewActive(false);
-      };
-    }
     return () => setSubViewActive(false);
   }, [view, setSubViewActive]);
+
+  const handleBackToGrid = React.useCallback(() => {
+    setView('grid');
+    setEditingNote(null);
+  }, []);
+
+  // Synchronize note editor subview with browser history and phone back gestures
+  const { triggerBack: handleNoteBack } = useSubViewBack({
+    active: view === 'editor',
+    subViewName: 'workspace-editor',
+    page: 'tasks',
+    hash: '#tasks/editor',
+    onBack: handleBackToGrid,
+  });
 
   const isBn = state.lang === 'bn';
 
@@ -118,12 +122,9 @@ export default function WorkspacePage() {
           onUpdate={handleUpdateNote}
           onDelete={() => { 
             if (editingNote) deleteNote(editingNote.id); 
-            setView('grid'); 
+            handleNoteBack(); 
           }}
-          onBack={() => {
-            setView('grid');
-            setEditingNote(null);
-          }}
+          onBack={handleNoteBack}
         />
       </div>
     );

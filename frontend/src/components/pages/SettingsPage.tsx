@@ -179,7 +179,7 @@ export default function SettingsPage() {
           setMobileView("detail");
         }
       }
-    } else if (hash === "settings" || hash === "") {
+    } else {
       setMobileView("menu");
     }
   }, []);
@@ -198,17 +198,21 @@ export default function SettingsPage() {
 
     if (typeof window !== "undefined") {
       const newHash = `#settings/${group}/${subItem}`;
-      window.history.replaceState({ group, subItem }, "", newHash);
+      window.history.pushState({ page: "settings", subView: "settings-detail", group, subItem }, "", newHash);
     }
   };
 
   const handleBack = () => {
     // On mobile, if viewing a specific sub-page (e.g. Contact Support, About, etc.),
-    // going back returns to the Settings main menu list.
+    // going back returns to the Settings main menu list via history pop so hardware and UI back are identical
     if (mobileView === "detail") {
+      if (typeof window !== "undefined" && (window.location.hash.startsWith("#settings/") || window.history.state?.subView === "settings-detail")) {
+        window.history.back();
+        return;
+      }
       setMobileView("menu");
       if (typeof window !== "undefined") {
-        window.history.replaceState({}, "", "#settings");
+        window.history.replaceState({ page: "settings" }, "", "#settings");
       }
       return;
     }

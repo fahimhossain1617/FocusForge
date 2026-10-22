@@ -559,22 +559,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const updateUserProfile = useCallback(
     async (data: Partial<User>): Promise<boolean> => {
       if (!user) return false;
-      const res = await authService.updateUserProfile(user.id, data);
-      if (res.success && res.user) {
-        setUser(res.user);
+      // Optimistic instant update of local user state
+      const optimisticUser: User = { ...user, ...data };
+      setUser(optimisticUser);
+      try {
         accountManager.saveRememberedAccount({
-          id: res.user.id,
-          email: res.user.identifier || res.user.email || "",
-          displayName: res.user.displayName || "User",
-          fullName: res.user.fullName,
-          avatarUrl: res.user.avatarUrl,
-          authMethod: res.user.authMethod || "email",
+          id: optimisticUser.id,
+          email: optimisticUser.identifier || optimisticUser.email || "",
+          displayName: optimisticUser.displayName || "User",
+          fullName: optimisticUser.fullName,
+          avatarUrl: optimisticUser.avatarUrl,
+          authMethod: optimisticUser.authMethod || "email",
           lastUsedAt: new Date().toISOString(),
         });
         setRememberedAccounts(accountManager.getRememberedAccounts());
-        return true;
+      } catch {}
+
+      try {
+        const res = await authService.updateUserProfile(user.id, data);
+        if (res.success && res.user) {
+          setUser(res.user);
+          return true;
+        }
+        return Boolean(res.success);
+      } catch (err) {
+        console.warn("[AuthContext] Background profile sync warning:", err);
+        return true; // Retain optimistic update locally
       }
-      return false;
     },
     [user]
   );

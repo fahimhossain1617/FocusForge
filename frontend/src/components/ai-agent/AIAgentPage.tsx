@@ -1134,7 +1134,7 @@ export function AIAgentPage() {
                             <div className={styles.proposalCard}>
                               <div className={styles.proposalBadge}>
                                 <CheckCircle2 size={13} />
-                                <span>{isSystemBn ? "প্ল্যানারে যুক্ত হয়েছে" : "Added to Planner"}</span>
+                                <span>{isSystemBn ? "প্ল্যানার সাজেশন" : "Planner Schedule"}</span>
                               </div>
                               <div className={styles.proposalTitle}>
                                 {isSystemBn ? "স্টাডি / টাস্ক প্ল্যান" : "Planner Schedule"}
@@ -1149,7 +1149,6 @@ export function AIAgentPage() {
                                   type="button"
                                   className={styles.proposalBtn}
                                   onClick={() => {
-                                    applyPayloadToApp(message.id, message.intent, message.payload);
                                     navigateTo("planner");
                                   }}
                                 >
@@ -1164,7 +1163,7 @@ export function AIAgentPage() {
                             <div className={styles.proposalCard}>
                               <div className={styles.proposalBadge}>
                                 <CheckCircle2 size={13} />
-                                <span>{isSystemBn ? "মাইন্ড ট্র্যাকার সেভ হয়েছে" : "Saved to Mind"}</span>
+                                <span>{isSystemBn ? "মাইন্ড স্পেস সাজেশন" : "Mind Space"}</span>
                               </div>
                               <div className={styles.proposalTitle}>
                                 {isSystemBn ? "সমস্যা সমাধান" : "Problem Solver"}
@@ -1177,12 +1176,11 @@ export function AIAgentPage() {
                                   type="button"
                                   className={styles.proposalBtn}
                                   onClick={() => {
-                                    applyPayloadToApp(message.id, message.intent, message.payload);
                                     navigateTo("mind");
                                   }}
                                 >
                                   <Compass size={14} />
-                                  <span>{isSystemBn ? "মাইন্ড হাব খুলুন" : "Open Mind Hub"}</span>
+                                  <span>{isSystemBn ? "মাইন্ড স্পেস খুলুন" : "Open Mind Space"}</span>
                                 </button>
                               </div>
                             </div>
@@ -1192,10 +1190,10 @@ export function AIAgentPage() {
                             <div className={styles.proposalCard}>
                               <div className={styles.proposalBadge}>
                                 <CheckCircle2 size={13} />
-                                <span>{isSystemBn ? "আইডিয়া সংরক্ষিত" : "Idea Captured"}</span>
+                                <span>{isSystemBn ? "আইডিয়া সাজেশন" : "Idea Suggestion"}</span>
                               </div>
                               <div className={styles.proposalTitle}>
-                                {isSystemBn ? "আইডিয়া বক্স" : "Idea Capture"}
+                                {isSystemBn ? "আইডিয়া বক্স" : "Idea Box"}
                               </div>
                               <div className={styles.proposalDesc}>
                                 {message.payload.idea || "Captured note"}
@@ -1205,12 +1203,11 @@ export function AIAgentPage() {
                                   type="button"
                                   className={styles.proposalBtn}
                                   onClick={() => {
-                                    applyPayloadToApp(message.id, message.intent, message.payload);
                                     navigateTo("mind");
                                   }}
                                 >
                                   <Compass size={14} />
-                                  <span>{isSystemBn ? "আইডিয়া দেখুন" : "View Ideas"}</span>
+                                  <span>{isSystemBn ? "মাইন্ড স্পেস দেখুন" : "View Mind Space"}</span>
                                 </button>
                               </div>
                             </div>
@@ -1225,7 +1222,7 @@ export function AIAgentPage() {
                             <div className={styles.proposalCard}>
                               <div className={styles.proposalBadge}>
                                 <CheckCircle2 size={13} />
-                                <span>{isSystemBn ? "টাইম লগে যুক্ত হয়েছে" : "Added to Time Log"}</span>
+                                <span>{isSystemBn ? "টাইম লগ সাজেশন" : "Time Log"}</span>
                               </div>
                               <div className={styles.proposalTitle}>
                                 {message.payload.folderName ||
@@ -1244,7 +1241,6 @@ export function AIAgentPage() {
                                   type="button"
                                   className={styles.proposalBtn}
                                   onClick={() => {
-                                    applyPayloadToApp(message.id, message.intent, message.payload);
                                     navigateTo("learning");
                                   }}
                                 >
@@ -1259,7 +1255,7 @@ export function AIAgentPage() {
                             <div className={styles.proposalCard}>
                               <div className={styles.proposalBadge}>
                                 <CheckCircle2 size={13} />
-                                <span>{isSystemBn ? "ডায়েরিতে সেভ হয়েছে" : "Saved to My Diary"}</span>
+                                <span>{isSystemBn ? "ডায়েরি সাজেশন" : "Diary Suggestion"}</span>
                               </div>
                               <div className={styles.proposalTitle}>
                                 {message.payload.title || (isSystemBn ? "আজকের ডায়েরি" : "Today's Diary")}
@@ -1272,7 +1268,6 @@ export function AIAgentPage() {
                                   type="button"
                                   className={styles.proposalBtn}
                                   onClick={() => {
-                                    applyPayloadToApp(message.id, message.intent, message.payload);
                                     navigateTo("mind");
                                   }}
                                 >
@@ -1287,7 +1282,7 @@ export function AIAgentPage() {
                             <div className={styles.proposalCard}>
                               <div className={styles.proposalBadge}>
                                 <CheckCircle2 size={13} />
-                                <span>{isSystemBn ? "নোট সেভ হয়েছে" : "Saved to Notes"}</span>
+                                <span>{isSystemBn ? "নোট সাজেশন" : "Note Suggestion"}</span>
                               </div>
                               <div className={styles.proposalTitle}>
                                 {message.payload.title || "New Note"}
@@ -1297,7 +1292,6 @@ export function AIAgentPage() {
                                   type="button"
                                   className={styles.proposalBtn}
                                   onClick={() => {
-                                    applyPayloadToApp(message.id, message.intent, message.payload);
                                     navigateTo("tasks");
                                   }}
                                 >

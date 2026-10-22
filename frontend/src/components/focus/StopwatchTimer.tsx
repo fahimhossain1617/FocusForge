@@ -24,6 +24,7 @@ import {
   Clock,
   History,
 } from "lucide-react";
+import { useSubViewBack } from "../../hooks/useSubViewBack";
 
 interface StopwatchTimerProps {
   onSessionSaved?: () => void;
@@ -307,7 +308,7 @@ export const StopwatchTimer = memo(function StopwatchTimer({
     startTimeRef.current = null;
   };
 
-  const handleBackAttempt = () => {
+  const handleBackAttempt = useCallback(() => {
     if (elapsedSeconds > 0 || isRunning) {
       setIsRunning(false);
       setShowExitConfirm(true);
@@ -318,7 +319,37 @@ export const StopwatchTimer = memo(function StopwatchTimer({
       startTimeRef.current = null;
       setViewMode("setup");
     }
-  };
+  }, [elapsedSeconds, isRunning]);
+
+  // Synchronize active stopwatch timer screen with phone back gestures
+  const { triggerBack: handleTimerActiveBack } = useSubViewBack({
+    active: viewMode === "active",
+    subViewName: "timer-active",
+    page: "focus",
+    hash: "#focus/timer-active",
+    onBack: () => {
+      if (showExitConfirm) {
+        setShowExitConfirm(false);
+      } else if (elapsedSeconds > 0 || isRunning) {
+        setIsRunning(false);
+        setShowExitConfirm(true);
+      } else {
+        setIsRunning(false);
+        setElapsedSeconds(0);
+        accumulatedMsRef.current = 0;
+        startTimeRef.current = null;
+        setViewMode("setup");
+      }
+    },
+  });
+
+  // Synchronize timer history modal with phone back gestures
+  const { triggerBack: handleTimerHistoryBack } = useSubViewBack({
+    active: showHistoryModal,
+    subViewName: "timer-history",
+    page: "focus",
+    onBack: () => setShowHistoryModal(false),
+  });
 
   const handleDiscardAndExit = () => {
     setIsRunning(false);
@@ -452,7 +483,7 @@ export const StopwatchTimer = memo(function StopwatchTimer({
         <div className="flex items-center justify-between w-full shrink-0 pt-1 pb-2">
           <button
             type="button"
-            onClick={handleBackAttempt}
+            onClick={handleTimerActiveBack}
             className="inline-flex items-center justify-center w-9 h-9 rounded-full text-[#52627A] dark:text-zinc-400 hover:text-[#111827] dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 active:scale-95 transition-colors cursor-pointer"
             title={state.lang === "bn" ? "ফিরে যান" : "Back"}
             aria-label={state.lang === "bn" ? "ফিরে যান" : "Back"}

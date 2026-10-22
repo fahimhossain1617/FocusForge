@@ -593,7 +593,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
       try {
         const currentHash = window.location.hash.replace(/^#\/?/, '').split('?')[0];
-        if (!isBack && currentHash !== page) {
+        const baseCurrent = currentHash.split('/')[0];
+        if (!isBack && baseCurrent !== page) {
           window.history.pushState({ page }, '', '#' + page);
         }
       } catch { }
@@ -693,7 +694,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       if (event.state?.subView) {
         return;
       }
-      const targetPage = event.state?.page || window.location.hash.replace(/^#\/?/, '').split('?')[0] || 'today';
+      const rawTarget = event.state?.page || window.location.hash.replace(/^#\/?/, '').split('?')[0] || 'today';
+      const basePage = rawTarget.split('/')[0];
+      const targetPage = validPages.has(basePage) ? basePage : 'today';
+
+      // If already on this page, let internal subview pop handlers manage their transition without page reset
+      if (targetPage === stateRef.current.activePage) {
+        return;
+      }
+
       if (validPages.has(targetPage)) {
         navigateTo(targetPage, true);
       }
@@ -701,8 +710,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     const handleHashChange = () => {
       const cleanHash = window.location.hash.replace(/^#\/?/, '').split('?')[0];
-      if (cleanHash && validPages.has(cleanHash)) {
-        navigateTo(cleanHash, true);
+      const baseHash = cleanHash.split('/')[0];
+      if (baseHash && validPages.has(baseHash) && baseHash !== stateRef.current.activePage) {
+        navigateTo(baseHash, true);
       }
     };
 

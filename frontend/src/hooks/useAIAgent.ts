@@ -298,11 +298,9 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
 
         // Restore active session or latest session on initial mount / page refresh
         const cachedActiveSess = typeof window !== "undefined" ? localStorage.getItem(getActiveSessionCacheKey(currentUserId)) : null;
-        const targetSessionId = (cachedActiveSess && resolvedSessions.some(s => s.id === cachedActiveSess))
-          ? cachedActiveSess
-          : (activeSessionId || resolvedSessions[0]?.id);
+        const targetSessionId = cachedActiveSess || activeSessionId || resolvedSessions[0]?.id;
 
-        if (targetSessionId) {
+        if (targetSessionId && (targetSessionId !== loadedSessionRef.current || messages.length === 0)) {
           selectSession(targetSessionId);
         }
 
@@ -373,11 +371,11 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
       } catch {}
     }
 
-    if (!foundInCache) {
+    if (!foundInCache && messages.length === 0) {
       setIsThinking(true);
     }
 
-    // 2. Fetch latest synced history from backend database
+    // 2. Fetch latest synced history from backend database and smart-merge
     try {
       const data = await getChatMessages(sessionId);
       if (Array.isArray(data) && data.length > 0) {
@@ -386,30 +384,48 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
           createdAt: new Date(m.created_at || m.createdAt || Date.now()),
           payload: m.payload || m.payload_json,
         }));
-        setMessages(normalized);
-        memoryMessages = normalized;
+        
+        setMessages((current) => {
+          if (!current || current.length === 0) {
+            memoryMessages = normalized;
+            return normalized;
+          }
+          const serverIds = new Set(normalized.map(m => m.id));
+          const localOnly = current.filter(m => !serverIds.has(m.id));
+          const merged = [...normalized, ...localOnly].sort((a, b) => {
+            const timeA = new Date(a.createdAt).getTime();
+            const timeB = new Date(b.createdAt).getTime();
+            return timeA - timeB;
+          });
+          memoryMessages = merged;
+          return merged;
+        });
+
         if (typeof window !== "undefined") {
           try {
             const msgKey = getMsgCacheKey(currentUserId, sessionId);
-            localStorage.setItem(msgKey, JSON.stringify(normalized));
+            localStorage.setItem(msgKey, JSON.stringify(memoryMessages || normalized));
             if (isGuest || !user) {
-              sessionStorage.setItem(msgKey, JSON.stringify(normalized));
+              sessionStorage.setItem(msgKey, JSON.stringify(memoryMessages || normalized));
             }
           } catch {}
         }
       } else if (!foundInCache) {
-        setMessages([]);
-        memoryMessages = [];
+        setMessages((current) => {
+          if (current && current.length > 0) return current;
+          memoryMessages = [];
+          return [];
+        });
       }
     } catch (err) {
       console.error("Failed to load messages", err);
-      if (!foundInCache) {
+      if (!foundInCache && messages.length === 0) {
         setError("Failed to load conversation history.");
       }
     } finally {
       setIsThinking(false);
     }
-  }, [isGuest, user, currentUserId]);
+  }, [isGuest, user, currentUserId, messages.length]);
 
   const removeSession = useCallback(async (sessionId: string) => {
     if (!sessionId) return;
@@ -498,14 +514,21 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
     const isBn = langParam === "bn";
     const isGuestUser = isGuest || !user;
 
+    const userMsg: AgentMessage = { 
+      id: crypto.randomUUID(), 
+      role: "user", 
+      content: content.trim(), 
+      createdAt: new Date() 
+    };
+
+    // 0. Instantly append user message to chat UI with zero delay!
+    setMessages((items) => [...items, userMsg]);
+    setIsThinking(true);
+    setOrbState("attentive");
+    setThoughtText(isBn ? "ভাবছি…" : "Thinking…");
+
     // 1. OFFLINE GUARD (AI will not run offline - all messages require an active internet connection)
     if (!connectivityService.isOnline()) {
-      const userMsg: AgentMessage = { 
-        id: crypto.randomUUID(), 
-        role: "user", 
-        content: content.trim(), 
-        createdAt: new Date() 
-      };
       const offlineMsg: AgentMessage = {
         id: crypto.randomUUID(),
         role: "assistant",
@@ -518,7 +541,7 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
         privacyMode,
         createdAt: new Date()
       };
-      setMessages((items) => [...items, userMsg, offlineMsg]);
+      setMessages((items) => [...items, offlineMsg]);
       setIsThinking(false);
       setIsTyping(false);
       setStreamingText("");
@@ -579,13 +602,6 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
     // 2. INSTANT LOCAL-FIRST PATH (Online only: Canned greetings, identity, local tools, planner, diary, timer navigation)
     // Runs with delightful, snappy micro-animation (thinking -> laptop typing paws -> delivery), 0 token cost!
     if (!localResolution.shouldCallGemini) {
-      const userMsg: AgentMessage = { 
-        id: crypto.randomUUID(), 
-        role: "user", 
-        content: content.trim(), 
-        createdAt: new Date() 
-      };
-
       const localAiMessage: AgentMessage = {
         id: crypto.randomUUID(),
         role: "assistant",
@@ -598,8 +614,7 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
         createdAt: new Date()
       };
 
-      // Step A: Immediately show user's message and trigger lively thinking pose
-      setMessages((items) => [...items, userMsg]);
+      // Step A: Trigger lively thinking pose
       setIsThinking(true);
       setOrbState("thinking");
       setThoughtText("Thinking…");
@@ -698,14 +713,6 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
     }
 
     // 3. DYNAMIC GEMINI API QUERY (Online)
-    const userMsg: AgentMessage = { 
-      id: crypto.randomUUID(), 
-      role: "user", 
-      content: content.trim(), 
-      createdAt: new Date() 
-    };
-
-    setMessages((items) => [...items, userMsg]);
     setIsThinking(true);
 
     const stages = getProgressiveStages(content, model, false);

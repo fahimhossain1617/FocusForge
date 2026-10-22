@@ -33,7 +33,7 @@ export default function ThoughtDetail({ thoughtId, navigate, previousView }: Tho
   contentRef.current = content;
   const isEditingRef = useRef(isEditing);
   isEditingRef.current = isEditing;
-  const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
 
   useEffect(() => {
     if (!thought) {
@@ -52,19 +52,7 @@ export default function ThoughtDetail({ thoughtId, navigate, previousView }: Tho
     }
   }, [content]);
 
-  // Debounced auto-save: persist thought edits automatically without data loss
-  useEffect(() => {
-    if (isEditing && content.trim() && thought) {
-      if (autoSaveTimeoutRef.current) clearTimeout(autoSaveTimeoutRef.current);
-      autoSaveTimeoutRef.current = setTimeout(() => {
-        updateMindItem(thoughtId, content.trim());
-        setIsEditing(false);
-      }, 700);
-    }
-    return () => {
-      if (autoSaveTimeoutRef.current) clearTimeout(autoSaveTimeoutRef.current);
-    };
-  }, [content, isEditing, thoughtId, thought, updateMindItem]);
+
 
   // Save on unmount to prevent data loss when switching pages or exiting
   useEffect(() => {
@@ -240,7 +228,7 @@ export default function ThoughtDetail({ thoughtId, navigate, previousView }: Tho
                 cursor: (content !== thought.content) ? "pointer" : "not-allowed"
               }}
             >
-              {t.myMind.saveChanges}
+              {lang === "bn" ? "সেভ" : "Save"}
             </button>
           </div>
         </div>

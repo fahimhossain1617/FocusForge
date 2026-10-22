@@ -9,6 +9,7 @@ import { DiaryTopic, DiaryImage } from "../../types";
 import DiaryTableOfContents from "./DiaryTableOfContents";
 import DiaryTopicView from "./DiaryTopicView";
 import DiarySearchModal from "./DiarySearchModal";
+import { useSubViewBack } from "../../hooks/useSubViewBack";
 
 interface DiaryHomeProps {
   onOpenSidebar?: () => void;
@@ -40,6 +41,29 @@ export default function DiaryHome({ onOpenSidebar }: DiaryHomeProps) {
     return () => setSubViewActive(false);
   }, [activeTopicId, setSubViewActive]);
 
+  const handleBackToTOC = React.useCallback(() => {
+    setActiveTopicId(null);
+    setActivePageIndex(0);
+    setTopicMode("read");
+  }, []);
+
+  // Synchronize active topic subview with browser history and phone back gestures
+  const { triggerBack: handleTopicBack } = useSubViewBack({
+    active: Boolean(activeTopicId),
+    subViewName: "diary-topic",
+    page: "diary",
+    hash: activeTopicId ? `#diary/topic/${activeTopicId}` : "#diary",
+    onBack: handleBackToTOC,
+  });
+
+  // Synchronize diary search modal with phone back gestures
+  const { triggerBack: handleSearchBack } = useSubViewBack({
+    active: isSearchOpen,
+    subViewName: "diary-search",
+    page: "diary",
+    onBack: () => setIsSearchOpen(false),
+  });
+
   const topics = state.diaryTopics || [];
 
   // Active topic object
@@ -52,12 +76,6 @@ export default function DiaryHome({ onOpenSidebar }: DiaryHomeProps) {
     setActiveTopicId(topicId);
     setActivePageIndex(pageIndex);
     setTopicMode("read"); // Opens in Read Mode when clicked from Table of Contents!
-  };
-
-  const handleBackToTOC = () => {
-    setActiveTopicId(null);
-    setActivePageIndex(0);
-    setTopicMode("read");
   };
 
   const handleCreateTopic = (
@@ -148,7 +166,7 @@ export default function DiaryHome({ onOpenSidebar }: DiaryHomeProps) {
           key={activeTopic.id}
           topic={activeTopic}
           initialMode={topicMode}
-          onBackToTOC={handleBackToTOC}
+          onBackToTOC={handleTopicBack}
           onSaveEntry={handleSaveEntry}
           onUpdateTopic={handleUpdateTopic}
           onDeleteTopic={handleDeleteTopic}
@@ -172,7 +190,7 @@ export default function DiaryHome({ onOpenSidebar }: DiaryHomeProps) {
       {/* Global Memory Search Modal */}
       <DiarySearchModal
         isOpen={isSearchOpen}
-        onClose={() => setIsSearchOpen(false)}
+        onClose={handleSearchBack}
         topics={topics}
         onSelectResult={handleSelectSearchResult}
       />

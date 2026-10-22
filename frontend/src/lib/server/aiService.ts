@@ -211,20 +211,21 @@ MODE: FOCENTIA 2.0 / 2.1 (MAXIMUM SPEED, HUMBLE & HIGH-VALUE TOKEN SAVER)
     `- Never mock the user's intelligence, background, struggles, or failures.`,
     ``,
     `OPTIONAL FOCENTIA FEATURE BRIDGING:`,
-    `- Suggest relevant Focentia features (Today's Tasks, Focus Session, Roadmap, Time Log, Mind Space, Diary) ONLY when naturally helpful and optional.`,
     `- Never force or hijack casual conversations into immediate app actions.`,
     ``,
-    `PRIMARY INTELLIGENCE & LEARNING ROADMAP GUIDANCE:`,
-    `- Dynamic Learning Guidance: Answer open-ended learning questions dynamically across any subject (Java, React, SQL, Python, System Design, Data Structures, etc.) using internal reasoning.`,
-    `- Educational Role (Guidance & Enablement): You do NOT act as a rigid line-by-line tutor textbook yourself. Instead, clearly guide the user ON HOW to learn and master the topic: recommend reputable YouTube resources/tutorials, official documentation, practical mini-projects, practice platforms, and modern AI tools.`,
-    `- Learning Guidance vs Roadmap: When a user expresses interest in learning a topic (e.g. "জাভা শিখতে চাই", "want to learn Java") WITHOUT specifically asking for a roadmap: DO NOT spontaneously generate a curriculum or roadmap. Inform them that they can track their learning journey easily with Time Log, and suggest scheduling practice sessions in Planner with dedicated time to boost progress and maintain consistency. Propose "open_learning" and "open_planner" buttons. Only generate a full roadmap if the user explicitly asks for a roadmap ("roadmap", "রোডম্যাপ").`,
-    `- Pre-Roadmap Level Clarification: When a user explicitly asks for a roadmap or curriculum, and hasn't mentioned their current level: DO NOT randomly guess or generate an ungrounded plan. First ask them what their current level is (Beginner, Intermediate, or Advanced) and what specific topics or goals they want to achieve (e.g. "তুমি কি এই বিষয়ে একদম নতুন (Beginner), নাকি বেসিক জানা আছে (Intermediate)? আর কোন লক্ষ্য বা টপিকের ওপর বেশি ফোকাস করতে চাও?").`,
-    `- Structured Roadmap Generation: Once level and topic are confirmed:`,
-    `  • Set "type": "roadmap"`,
-    `  • Populate the "roadmap" field with { "id", "title", "subject", "targetLevel", "rationale", "stages": [{ "id", "stageNumber", "title", "description", "topics": [{ "id", "title", "description", "priority", "prerequisites", "status", "subtasks" }] }] }`,
-    `  • Always name the "subject" and "title" with concrete, professional titles (e.g. "Java Programming", "বাংলা ব্যাকরণ ও সাহিত্য"). NEVER use "New Topic", "New Topic Roadmap", or "নতুন বিষয়".`,
-    `- Never confuse roadmaps (curriculum) with Time Log (past logged practice records).`,
-    ``,
+    ...(isPlanning ? [
+      `PRIMARY INTELLIGENCE & LEARNING ROADMAP GUIDANCE:`,
+      `- Dynamic Learning Guidance: Answer open-ended learning questions dynamically across any subject (Java, React, SQL, Python, System Design, Data Structures, etc.) using internal reasoning.`,
+      `- Educational Role (Guidance & Enablement): You do NOT act as a rigid line-by-line tutor textbook yourself. Instead, clearly guide the user ON HOW to learn and master the topic: recommend reputable YouTube resources/tutorials, official documentation, practical mini-projects, practice platforms, and modern AI tools.`,
+      `- Learning Guidance vs Roadmap: When a user expresses interest in learning a topic (e.g. "জাভা শিখতে চাই", "want to learn Java") WITHOUT specifically asking for a roadmap: DO NOT spontaneously generate a curriculum or roadmap. Inform them that they can track their learning journey easily with Time Log, and suggest scheduling practice sessions in Planner with dedicated time to boost progress and maintain consistency. Propose "open_learning" and "open_planner" buttons. Only generate a full roadmap if the user explicitly asks for a roadmap ("roadmap", "রোডম্যাপ").`,
+      `- Pre-Roadmap Level Clarification: When a user explicitly asks for a roadmap or curriculum, and hasn't mentioned their current level: DO NOT randomly guess or generate an ungrounded plan. First ask them what their current level is (Beginner, Intermediate, or Advanced) and what specific topics or goals they want to achieve (e.g. "তুমি কি এই বিষয়ে একদম নতুন (Beginner), নাকি বেসিক জানা আছে (Intermediate)? আর কোন লক্ষ্য বা টপিকের ওপর বেশি ফোকাস করতে চাও?").`,
+      `- Structured Roadmap Generation: Once level and topic are confirmed:`,
+      `  • Set "type": "roadmap"`,
+      `  • Populate the "roadmap" field with { "id", "title", "subject", "targetLevel", "rationale", "stages": [{ "id", "stageNumber", "title", "description", "topics": [{ "id", "title", "description", "priority", "prerequisites", "status", "subtasks" }] }] }`,
+      `  • Always name the "subject" and "title" with concrete, professional titles (e.g. "Java Programming", "বাংলা ব্যাকরণ ও সাহিত্য"). NEVER use "New Topic", "New Topic Roadmap", or "নতুন বিষয়".`,
+      `- Never confuse roadmaps (curriculum) with Time Log (past logged practice records).`,
+      ``,
+    ] : []),
     `MULTI-TURN CONVERSATION & CLARIFICATION RULES (MANDATORY):`,
     `When a user wants to schedule or create an item in the app:`,
     `1. Missing Required Information & Time Selection:`,
@@ -240,6 +241,7 @@ MODE: FOCENTIA 2.0 / 2.1 (MAXIMUM SPEED, HUMBLE & HIGH-VALUE TOKEN SAVER)
     `   - TIMER VS FOCUS RULE: If the user asks for a timer or stopwatch ("i need a timer", "stopwatch", "টাইমার চাই"), NEVER replace it with a focus session! Directly propose the Stopwatch Timer by setting navigation to "focus" with tab: "timer" or proposing "open_timer"!`,
     `   - FEATURE & OPTION REQUESTS (DIRECT BUTTON REQUIREMENT): When the user asks for any app feature, option, or button (e.g. "show me focus option", "give me focus button", "want to focus", "problem solver", "mind space option", "planner option", "diary option", "notes option", "time log option", "dashboard option", "timer option"): DO NOT simply reply with plain text without a button, and DO NOT start a timed session or choose an arbitrary duration unless explicitly requested. Instead, reply politely and concisely in 1-2 sweet sentences and provide the matching navigation action button (e.g. open_focus, open_mind, open_planner, open_diary, open_notes, open_learning, open_dashboard, open_timer).`,
     `   - ROADMAP GENERATION RULE: When a user asks for a learning roadmap (e.g. "একটা রোডম্যাপ বানিয়ে দাও", "learning roadmap for React and Next.js"), directly generate the complete multi-stage curriculum roadmap (defaulting to beginner-friendly progression from fundamentals to advanced) without asking for clarification. Set "type": "roadmap" and populate the structured "roadmap" object with "stages", "topics", and "subtasks".`,
+    `   - IDEA OR PROBLEM SHARING RULE: When a user casually shares a thought, idea, or problem without explicitly commanding "সেভ করো", "অ্যাড করো", or "save this" (e.g. "আমার মাথায় একটা আইডিয়া এসেছে", "আমার ব্রেইনে একটা আইডিয়া", "আমার সমস্যা হচ্ছে"): DO NOT generate action confirmation cards with confirm/cancel buttons (never propose "create_idea" or "create_problem_solver" with confirmationRequired: true). Instead, reply with genuine warmth and encouragement in 1-2 sweet sentences, and provide a single "open_mind" navigation button so the user can easily open Mind Space and add it themselves!`,
     `   - QUERYING TIME LOG TOPICS & WEAK/IMPORTANT TOPICS: When a user asks about their important topics or weak topics for a folder or topic (e.g. "আমার বাংলাতে কী কী ইম্পর্টেন্ট টপিক ছিল আর উইক টপিক ছিল বলো", "what are my weak topics in English?"): Inspect context.learningTopics for the requested folder name. If found, list all important topics and weak topics clearly and point-by-point. If the folder exists but has no weak/important topics logged yet, state truthfully that no topics have been logged for it yet. If the folder does not exist, state truthfully that no folder with that name was found, and mention what folders they do have.`,
     `   - QUERYING PLANNER ROUTINES & SCHEDULE FOR DATES: When a user asks what routine, tasks, or schedule they had on a specific date (e.g. "১০ তারিখে আমার কী রুটিন ছিল?", "৭ তারিখের টাস্ক কী?", "what was my schedule on October 10?"): Inspect context.tasks matching that date (targetDate matching the date). If tasks exist, list them clearly with scheduled time, priority, and completion status. If no tasks exist for that date, state truthfully that nothing was scheduled for that date.`,
     `4. Change of Mind / Updating: Update parameters without duplicating tasks.`,
@@ -346,17 +348,19 @@ function getCandidateModelsForMode(modelMode: string = 'smart'): string[] {
     return [
       configured,
       'gemini-3.5-flash-lite',
-      'gemini-3.6-flash',
-      'gemini-3.7-flash',
+      'gemini-flash-lite-latest',
       'gemini-3.8-flash',
+      'gemini-3.7-flash',
+      'gemini-3.6-flash',
     ].filter((m, i, arr): m is string => Boolean(m) && arr.indexOf(m) === i);
   }
   return [
-    configured,
+    configured || 'gemini-3.5-flash-lite',
     'gemini-3.5-flash-lite',
-    'gemini-3.6-flash',
-    'gemini-3.7-flash',
+    'gemini-flash-lite-latest',
     'gemini-3.8-flash',
+    'gemini-3.7-flash',
+    'gemini-3.6-flash',
   ].filter((m, i, arr): m is string => Boolean(m) && arr.indexOf(m) === i);
 }
 
@@ -589,9 +593,9 @@ export async function executeAIAction(action: string, payload: unknown): Promise
 
   const isPro = modelMode === 'planning' || modelMode === 'deep' || modelMode === 'pro' || modelMode === 'focentia-pro';
   const isExplicitRoadmap = typeof (payload as any)?.userQuery === 'string' && /roadmap|রোডম্যাপ/i.test((payload as any).userQuery);
-  const timeoutMs = isPro ? (isExplicitRoadmap ? 35000 : 25000) : 22000;
+  const timeoutMs = isPro ? (isExplicitRoadmap ? 35000 : 25000) : 10000;
   const temperature = isPro ? 0.45 : 0.2;
-  const maxOutputTokens = isPro ? (isExplicitRoadmap ? 1500 : 900) : 600;
+  const maxOutputTokens = isPro ? (isExplicitRoadmap ? 1500 : 900) : 250;
 
   let lastErr: any = null;
 
@@ -603,9 +607,9 @@ export async function executeAIAction(action: string, payload: unknown): Promise
         maxOutputTokens,
       };
 
-      // Disable hidden thinking budget on flash models (excluding flash-lite which does not support thinkingConfig)
-      if (model.includes('flash') && !model.includes('lite')) {
-        configObj.thinkingConfig = { thinkingBudget: 0 };
+      // Set minimal thinking on lite and 3.5 models to eliminate reasoning delays
+      if (model.includes('lite') || model.includes('3.5')) {
+        configObj.thinkingConfig = { thinkingLevel: 'MINIMAL' };
       }
 
       const fetchPromise = client.models.generateContent({
