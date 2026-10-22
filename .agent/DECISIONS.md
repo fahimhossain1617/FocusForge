@@ -1956,3 +1956,31 @@
   - Level 1 Static Check: TypeScript `tsc --noEmit` passed with 0 errors.
   - Level 3 Automated Tests: `node frontend/scripts/test_notification_architecture.js` passed (5/5 checks passed).
 - **Status:** **VERIFIED**
+
+---
+
+## ADR-048: AI Identity "Glory AI" Rebranding & Zero-Latency Status Bubble Clearing
+
+- **Date:** October 23, 2026
+- **Status:** Accepted
+- **Context:**
+  1. The AI previously introduced itself as "Focentia AI". The required product identity is that the AI itself is **Glory AI (গ্লোরি এআই)**, while the parent application remains **Focentia (ফোসেন্টিয়া)**.
+  2. When asked about creators ("Who made you?", "কে বানাইছে?", "কে বানিয়েছে?"), Glory AI attributes creation to the **Focentia developer team** ("আমাকে ফোসেন্টিয়া (Focentia)-এর ডেভেলপার টিম তৈরি করেছে / বানিয়েছে").
+  3. Upon completion of streaming responses, the status text bubble above Orby Face briefly lingered or flashed ("Typing…" / "লিখছি…") for a split-second due to a 40ms setTimeout delay in `useAIAgent.ts`, missing `setCustomThought(null)` on emotion transitions in `useOrbMood.ts`, and un-guarded `thoughtText` prop passing in `AIAgentPage.tsx`.
+- **Decision:**
+  1. **AI Identity Rebranding:**
+     - Updated system prompt instructions in `frontend/src/lib/server/aiService.ts` and `backend/src/services/aiService.ts` to strictly establish "Glory AI (গ্লোরি এআই)" as the AI's identity.
+     - Added explicit creator attribution: Focentia developer team.
+     - Updated static social templates in `frontend/src/lib/ai/router/templates/social.json` (`who_are_you`) for instant 0-token responses.
+     - Updated router regex in `frontend/src/lib/ai/router/intents.ts` to catch creator queries ("কে বানাইছে", "কে বানিয়েছে", "কে বানিয়েছে", "who made you").
+     - Updated API fallback error handlers and session titles to `Glory AI`.
+  2. **Zero-Latency Status Text Clearing:**
+     - Removed 40ms setTimeout in `useAIAgent.ts` (`streamResponseText`), synchronously clearing `isTyping = false`, `streamingText = ""`, and `thoughtText = null`.
+     - Added `setCustomThought(null)` to all non-status emotion state transitions in `useOrbMood.ts` (`happy`, `focused`, `playful`, `laughing`, `attentive`, `sad`, `sleepy`, `curious`, `concerned`, `angry`, `excited`).
+     - Guarded bottom interactive orb in `AIAgentPage.tsx` so `thoughtText` is strictly `null` once typing and thinking complete.
+- **Verification:**
+  - Level 0 Scope Check: Passed.
+  - Level 1 Static Check: Passed.
+  - Level 2 Build: `npm run build` in `frontend` compiled successfully with 0 errors.
+- **Status:** **VERIFIED**
+

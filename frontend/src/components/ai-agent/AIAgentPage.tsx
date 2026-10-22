@@ -1380,7 +1380,7 @@ export function AIAgentPage() {
                   <AIOrbFace
                     mood={mood}
                     orbState={orbState}
-                    thoughtText={isTyping ? streamingText : (agentThoughtText || thoughtText)}
+                    thoughtText={isThinking ? (agentThoughtText || thoughtText) : (isTyping ? streamingText : null)}
                     speechSide="left"
                     isThinking={isThinking}
                     isTypingStream={isTyping}

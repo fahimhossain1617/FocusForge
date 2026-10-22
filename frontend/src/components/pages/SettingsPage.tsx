@@ -2949,8 +2949,8 @@ export default function SettingsPage() {
               </h1>
               <p className="text-xs text-[var(--color-text-muted)] mt-1">
                 {isBn 
-                  ? "Focentia AI কীভাবে আপনার ডেটা পরিচালনা করে এবং আপনার গোপনীয়তা রক্ষা করে তা নিয়ন্ত্রণ করুন" 
-                  : "Control how Focentia AI handles your data and personalizes interactions"}
+                  ? "Glory AI কীভাবে আপনার ডেটা পরিচালনা করে এবং আপনার গোপনীয়তা রক্ষা করে তা নিয়ন্ত্রণ করুন" 
+                  : "Control how Glory AI handles your data and personalizes interactions"}
               </p>
             </div>
 

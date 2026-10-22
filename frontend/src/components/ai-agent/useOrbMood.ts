@@ -255,23 +255,29 @@ export function useOrbMood({
           return;
         case "playful":
           setMood("playful");
+          setCustomThought(null);
           return;
         case "laughing":
           setMood("laughing");
+          setCustomThought(null);
           return;
         case "focused":
           setMood("focused");
+          setCustomThought(null);
           return;
         case "attentive":
         case "listening":
           setMood("attentive");
+          setCustomThought(null);
           return;
         case "sad":
           setMood("sad");
+          setCustomThought(null);
           return;
         case "sleepy":
         case "resting":
           setMood("sleepy");
+          setCustomThought(null);
           return;
         case "error":
           setMood("error");
@@ -279,12 +285,15 @@ export function useOrbMood({
           return;
         case "happy":
           setMood("happy");
+          setCustomThought(null);
           return;
         case "curious":
           setMood("curious");
+          setCustomThought(null);
           return;
         case "concerned":
           setMood("concerned");
+          setCustomThought(null);
           return;
         case "sulky":
           setMood("sulky");
@@ -292,9 +301,11 @@ export function useOrbMood({
           return;
         case "angry":
           setMood("angry");
+          setCustomThought(null);
           return;
         case "excited":
           setMood("excited");
+          setCustomThought(null);
           return;
         case "idle":
           setMood("idle");

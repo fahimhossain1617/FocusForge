@@ -648,13 +648,10 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
                 clearInterval(typingIntervalRef.current);
                 typingIntervalRef.current = null;
               }
-              setStreamingText(fullText);
-              setTimeout(() => {
-                setIsTyping(false);
-                setStreamingText("");
-                setThoughtText(null);
-                resolve();
-              }, 40);
+              setIsTyping(false);
+              setStreamingText("");
+              setThoughtText(null);
+              resolve();
             } else {
               setStreamingText(tokens.slice(0, tokenIndex).join(''));
             }
@@ -813,13 +810,10 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
                 clearInterval(typingIntervalRef.current);
                 typingIntervalRef.current = null;
               }
-              setStreamingText(fullText);
-              setTimeout(() => {
-                setIsTyping(false);
-                setStreamingText("");
-                setThoughtText(null);
-                resolve();
-              }, 40);
+              setIsTyping(false);
+              setStreamingText("");
+              setThoughtText(null);
+              resolve();
             } else {
               setStreamingText(tokens.slice(0, tokenIndex).join(''));
             }

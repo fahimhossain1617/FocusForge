@@ -1927,7 +1927,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ pa
       const isSessionUuid = requestedSessionId && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(requestedSessionId);
       return NextResponse.json({
         sessionId: isSessionUuid ? requestedSessionId : crypto.randomUUID(),
-        sessionTitle: userMsg ? userMsg.substring(0, 25) : 'Focentia AI',
+        sessionTitle: userMsg ? userMsg.substring(0, 25) : 'Glory AI',
         aiMessage: exhaustedAiMsg,
         tokenStatus,
         isExhausted: true,
@@ -1951,7 +1951,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ pa
         intent: 'GREETING_OR_GENERAL',
         message: lang === 'bn'
           ? 'দুঃখিত, এআই সার্ভার সাময়িক একটু ব্যস্ত ছিল। তোমার পড়াশোনা, কাজ বা যেকোনো বিষয়ে কিছু জানার থাকলে বলো, আমি শুনছি!'
-          : "Focentia AI is temporarily busy. Please let me know if you need help with anything else, I'm here!",
+          : "Glory AI is temporarily busy. Please let me know if you need help with anything else, I'm here!",
         payload: null
       };
     }
@@ -1969,7 +1969,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ pa
     const aiMsgId = `msg_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
     const nowIso = new Date().toISOString();
 
-    const finalSessionTitle = userMsg ? (userMsg.length > 30 ? userMsg.substring(0, 28) + '...' : userMsg) : 'Focentia AI';
+    const finalSessionTitle = userMsg ? (userMsg.length > 30 ? userMsg.substring(0, 28) + '...' : userMsg) : 'Glory AI';
 
     // Persist session and chat messages in PostgreSQL database ONLY for authenticated users
     if (userId && !isGuest) {
