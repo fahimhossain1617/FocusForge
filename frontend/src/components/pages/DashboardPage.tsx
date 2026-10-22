@@ -890,62 +890,62 @@ export default function DashboardPage() {
         className="dashboard-card card rounded-[18px] p-3.5 sm:p-4.5 md:p-5.5 bg-white dark:bg-card border border-[#DCE5F0] dark:border-border shadow-none"
       >
         {/* Header Bar */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4">
-          <div className="flex items-center gap-3">
-            <div>
-              <h2 className="text-[15px] md:text-[16px] font-semibold text-[#111827] dark:text-foreground tracking-tight">
-                {state.lang === 'bn' ? "পারফরম্যান্স" : "Performance"}
-              </h2>
-              <p className="text-xs text-[#52627A] dark:text-muted-foreground mt-0.5 font-normal">
-                {progressView === "weekly"
-                  ? (state.lang === 'bn' ? "সাপ্তাহিক ওভারভিউ · রিয়েল-টাইম ৭-দিনের ফোকাস এবং কাজ" : "Weekly Overview · Real-time 7-day focus & task performance")
-                  : (state.lang === 'bn' ? "মাসিক ওভারভিউ · ৪-সপ্তাহের ব্রেকডাউন এবং সামগ্রিক পারফরম্যান্স" : "Monthly Overview · 4-Week breakdown and cumulative performance")}
-              </p>
+        <div className="pb-3 sm:pb-4">
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-[16px] md:text-[17px] font-semibold text-[#111827] dark:text-foreground tracking-tight">
+              {state.lang === 'bn' ? "পারফরম্যান্স" : "Performance"}
+            </h2>
+
+            {/* Smooth Morphing Mode Toggle: [ Weekly ] [ Monthly ] */}
+            <div 
+              className="dashboard-period-toggle relative inline-flex items-center p-1 rounded-xl bg-[#E5EDF7] dark:bg-[#070d1a] border border-[#DCE5F0] dark:border-white/[0.08] shrink-0 select-none transition-colors"
+              role="tablist"
+              aria-label="View Mode"
+            >
+              {(["weekly", "monthly"] as const).map((view) => {
+                const isActive = progressView === view;
+                return (
+                  <button
+                    key={view}
+                    type="button"
+                    role="tab"
+                    aria-selected={isActive}
+                    onClick={() => setProgressView(view)}
+                    className={`relative z-10 min-w-[62px] sm:min-w-[68px] px-3 sm:px-3.5 py-1 sm:py-1.5 rounded-lg text-xs font-semibold tracking-wide transition-colors duration-200 cursor-pointer flex items-center justify-center outline-none select-none ${
+                      isActive
+                        ? "text-white font-bold"
+                        : "text-[#52627A] hover:text-[#111827] dark:text-slate-400 dark:hover:text-slate-200"
+                    }`}
+                  >
+                    {isActive && (
+                      <motion.div
+                        layoutId="dashboardProgressActivePill"
+                        className="absolute inset-0 rounded-lg bg-[#223A5E] dark:bg-blue-600 shadow-sm"
+                        transition={{
+                          type: "spring",
+                          stiffness: 420,
+                          damping: 30,
+                          mass: 0.7,
+                        }}
+                      />
+                    )}
+                    <span className="relative z-20">
+                      {view === "weekly"
+                        ? (state.lang === 'bn' ? "সাপ্তাহিক" : "Weekly")
+                        : (state.lang === 'bn' ? "মাসিক" : "Monthly")}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
           </div>
 
-          {/* Smooth Morphing Mode Toggle: [ Weekly ] [ Monthly ] */}
-          <div 
-            className="dashboard-period-toggle relative inline-flex items-center p-1 rounded-xl bg-[#E5EDF7] dark:bg-[#070d1a] border border-[#DCE5F0] dark:border-white/[0.08] shrink-0 self-start sm:self-auto select-none transition-colors"
-            role="tablist"
-            aria-label="View Mode"
-          >
-            {(["weekly", "monthly"] as const).map((view) => {
-              const isActive = progressView === view;
-              return (
-                <button
-                  key={view}
-                  type="button"
-                  role="tab"
-                  aria-selected={isActive}
-                  onClick={() => setProgressView(view)}
-                  className={`relative z-10 min-w-[62px] sm:min-w-[68px] px-3 sm:px-3.5 py-1 sm:py-1.5 rounded-lg text-xs font-semibold tracking-wide transition-colors duration-200 cursor-pointer flex items-center justify-center outline-none select-none ${
-                    isActive
-                      ? "text-white font-bold"
-                      : "text-[#52627A] hover:text-[#111827] dark:text-slate-400 dark:hover:text-slate-200"
-                  }`}
-                >
-                  {isActive && (
-                    <motion.div
-                      layoutId="dashboardProgressActivePill"
-                      className="absolute inset-0 rounded-lg bg-[#223A5E] dark:bg-blue-600 shadow-sm"
-                      transition={{
-                        type: "spring",
-                        stiffness: 420,
-                        damping: 30,
-                        mass: 0.7,
-                      }}
-                    />
-                  )}
-                  <span className="relative z-20">
-                    {view === "weekly"
-                      ? (state.lang === 'bn' ? "সাপ্তাহিক" : "Weekly")
-                      : (state.lang === 'bn' ? "মাসিক" : "Monthly")}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
+          {/* Subtitle placed slightly below */}
+          <p className="text-xs text-[#52627A] dark:text-muted-foreground mt-1 font-normal">
+            {progressView === "weekly"
+              ? (state.lang === 'bn' ? "সাপ্তাহিক ওভারভিউ · রিয়েল-টাইম ৭-দিনের ফোকাস এবং কাজ" : "Weekly Overview · Real-time 7-day focus & task performance")
+              : (state.lang === 'bn' ? "মাসিক ওভারভিউ · ৪-সপ্তাহের ব্রেকডাউন এবং সামগ্রিক পারফরম্যান্স" : "Monthly Overview · 4-Week breakdown and cumulative performance")}
+          </p>
         </div>
 
         {/* View Switch: Weekly Bar Chart vs Monthly Radial Week Cards */}

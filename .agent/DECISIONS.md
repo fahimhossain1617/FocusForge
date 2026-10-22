@@ -1812,3 +1812,29 @@
   - `npm run build --prefix frontend`: Passed with exit code 0 (21/21 static routes generated).
   - TypeScript typecheck: 100% clean.
 - **Status:** **VERIFIED**
+
+---
+
+## ADR-044: Dashboard Performance Header Alignment & Action Card Button Integrity
+
+- **Date:** October 22, 2026
+- **Status:** Accepted
+- **Context:**
+  1. On mobile phone screens, the Dashboard's Performance card stacked the Weekly / Monthly toggle below the "Performance" title and descriptive subtitle, rather than aligning it horizontally to the right.
+  2. In Glory AI chat, navigation action cards (e.g. "Open Mind Space", "Open Time Log") returned from Gemini or synthetic navigation handlers failed to render the action confirmation button (`[ ✓ Open Mind Space ]`, `[ ✓ Open Time Log ]`) because navigation actions were marked with `status: 'ready'`, whereas `AIActionCard.tsx` only rendered action buttons when `status === 'pending'`.
+- **Decision:**
+  1. **Dashboard Performance Card Header Alignment:**
+     - Updated the header structure in `DashboardPage.tsx` so the top row uses `flex items-center justify-between gap-3`.
+     - Placed "Performance" (`<h2>`) on the left and the Weekly / Monthly toggle on the right on the same row, vertically centered with equal margins to the card edges.
+     - Positioned the descriptive subtitle ("Weekly Overview · Real-time 7-day focus & task performance") cleanly underneath with `mt-1 font-normal`, giving it full horizontal width without wrapping awkwardly or colliding with the toggle.
+  2. **AI Action Card Button Rendering Integrity:**
+     - In `AIActionCard.tsx`, expanded `isPending` to include `action.status === "ready" || action.status === "confirmed" || !action.status`.
+     - In `frontend/src/services/aiActionValidator.ts`, `backend/src/services/aiActionValidator.ts`, `frontend/src/lib/server/aiServerTools.ts`, and `backend/src/services/aiServerTools.ts`, aligned navigation actions to use `status: 'pending'`.
+     - In `backend/src/services/aiService.ts`, synchronized the direct navigation action synthesis block from Next.js serverless route so direct navigation action cards are consistently produced.
+- **Verification:**
+  - Level 0 Scope check: Verified via `git diff` that only required lines were touched.
+  - Level 2 Typecheck & Build: `npm run build` in `frontend` succeeded with exit code 0 (21/21 static routes generated).
+  - Level 2 Typecheck & Build: `npm run build` in `backend` (`tsc`) succeeded with exit code 0.
+  - Level 3 Automated Tests: `node scripts/test_phase2_feature_tools.js` passed (22/23 tests passed, including all navigation route validations).
+- **Status:** **VERIFIED**
+

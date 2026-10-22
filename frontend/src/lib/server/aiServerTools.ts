@@ -414,7 +414,7 @@ export function prepareNavigation(args: { route: string }): { valid: boolean; ac
       parameters: { route: mappedRoute },
       confirmationRequired: false,
       navigationRoute: mappedRoute,
-      status: 'ready',
+      status: 'pending',
       createdAt: new Date().toISOString(),
     },
   };

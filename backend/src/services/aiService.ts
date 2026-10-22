@@ -435,6 +435,31 @@ function normalizeAgentChatResponse(raw: any, isBn: boolean): JsonObject {
     navRoute = actions[0].navigationRoute;
   }
 
+  // If navigation route is present but actions array is empty, synthesize a direct navigation action
+  if (navRoute && actions.length === 0) {
+    const navActionMap: Record<string, { type: string; titleBn: string; titleEn: string }> = {
+      focus: { type: 'open_focus', titleBn: 'ফোকাস টাইমার খুলুন', titleEn: 'Open Focus Timer' },
+      planner: { type: 'open_planner', titleBn: 'প্ল্যানার খুলুন', titleEn: 'Open Planner' },
+      diary: { type: 'open_diary', titleBn: 'মাই ডায়েরি খুলুন', titleEn: 'Open My Diary' },
+      tasks: { type: 'open_notes', titleBn: 'নোটস ও ফাইলস খুলুন', titleEn: 'Open Notes & Files' },
+      mind: { type: 'open_mind', titleBn: 'মাইন্ড স্পেস খুলুন', titleEn: 'Open Mind Space' },
+      learning: { type: 'open_learning', titleBn: 'টাইম লগ খুলুন', titleEn: 'Open Time Log' },
+      today: { type: 'open_dashboard', titleBn: 'ড্যাশবোর্ড খুলুন', titleEn: 'Open Dashboard' },
+      settings: { type: 'open_settings', titleBn: 'সেটিংস খুলুন', titleEn: 'Open Settings' },
+    };
+    const navDef = navActionMap[navRoute];
+    if (navDef) {
+      const navValidation = validateProposedAction({
+        type: navDef.type,
+        parameters: {},
+        title: isBn ? navDef.titleBn : navDef.titleEn,
+      });
+      if (navValidation.valid && navValidation.normalizedAction) {
+        actions.push(navValidation.normalizedAction);
+      }
+    }
+  }
+
   // Normalize Roadmap if present
   let normalizedRoadmap = null;
   const rawRoadmap = raw.roadmap || (raw.payload && raw.payload.stages ? raw.payload : (raw.data && raw.data.stages ? raw.data : null));

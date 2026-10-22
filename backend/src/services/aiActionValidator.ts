@@ -158,7 +158,7 @@ function validateProposedActionInternal(action: any): ValidationResult {
         title: action.title || `Navigate to ${mappedRoute}`,
         parameters: { route: mappedRoute },
         confirmationRequired: false,
-        status: 'ready',
+        status: 'pending',
         createdAt: new Date().toISOString(),
         navigationRoute: mappedRoute,
       },

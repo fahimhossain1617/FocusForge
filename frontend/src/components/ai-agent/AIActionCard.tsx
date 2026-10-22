@@ -192,7 +192,7 @@ export function AIActionCard({
   const isCompleted = action.status === "completed";
   const isCancelled = action.status === "cancelled";
   const isFailed = action.status === "failed";
-  const isPending = action.status === "pending";
+  const isPending = action.status === "pending" || action.status === "ready" || action.status === "confirmed" || !action.status;
 
   return (
     <div
