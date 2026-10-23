@@ -2007,4 +2007,35 @@
   - Level 3 Automated Tests: `scripts/test_local_router.ts` passed (33/33 tests).
 - **Status:** **VERIFIED**
 
+---
+
+## ADR-050: Offline Scheduled Notification Delivery, Background Worker Ticker & Anti-Avalanche Protection
+
+- **Date:** October 23, 2026
+- **Status:** Accepted
+- **Context:**
+  1. Offline, notifications were failing to deliver on time. Online, task reminders worked via server Web Push, but other scheduled reminders (morning plans, focus nudges, practice reminders, diary prompts) only fired all at once ("avalanche") when the user opened/entered the app.
+  2. Root cause analysis:
+     - Browsers terminate idle Service Workers after ~30 seconds, wiping out in-memory `setTimeout` timers in `sw.js`.
+     - `sw.js` had a catch-up block that fired all reminders due in the last 30 minutes immediately when `SCHEDULE_REMINDERS` was posted on app launch, causing an annoying avalanche of outdated chimes and popups.
+     - In background tabs, `window.setInterval` was throttled/frozen by browser power saving policies, causing reminders to miss the tight 60s evaluation window and get permanently dropped.
+     - Chromium/Android `TimestampTrigger` (Notification Triggers API) was not supported or used in `sw.js`, and `periodicSync` was never registered by the client.
+- **Decision:**
+  1. **Dedicated Unthrottled Web Worker Ticker:** In `localNotificationScheduler.ts`, instantiated an in-memory background `Worker` via `Blob` running an unthrottled ticker loop every 8 seconds, ensuring alerts fire accurately even when the tab/PWA is minimized or backgrounded.
+  2. **Smart Catch-Up & Anti-Avalanche Windows:** In both `localNotificationScheduler.ts` and `sw.js`:
+     - Task reminders (user-set critical alarms) have a 10-15 minute catch-up window; stale ones (>15m) are marked sent silently without blasting the user.
+     - Automated nudges have a 3-5 minute catch-up window; stale ones (>5m) are marked sent silently, completely eliminating the app-launch notification blast.
+     - Staggered delivery with minimum 800ms spacing between alerts.
+  3. **Audio Chime Rate Limiting:** In `notificationService.ts`, added `lastChimeTime` throttling (minimum 1500ms between chimes) to prevent audio cacophony.
+  4. **OS Notification Triggers API (`TimestampTrigger`):** Added native `TimestampTrigger` scheduling directly inside `sw.js` and `localNotificationScheduler.ts` so supported Chromium/Android devices schedule alarms directly with the OS AlarmManager/Task Scheduler.
+  5. **Periodic Background Sync Registration:** In `ServiceWorkerRegister.tsx`, registered `periodicSync` with tag `focentia-reminders` (15m interval) on Chromium/Android PWA, and hooked `checkDueReminders()` to `periodicsync`, `sync`, and worker boot.
+  6. **Task Time & Reminder Field Harmonization:** Harmonized `reminderTime || time || startTime` and respected `reminderEnabled !== false` across `localNotificationScheduler.ts` and `reminderSyncService.ts`.
+- **Verification:**
+  - Level 0 Scope Check: Passed (only 5 targeted files modified).
+  - Level 1 Static Check: TypeScript `tsc --noEmit` passed with 0 errors.
+  - Level 2 Build: `npm run build` on `frontend` and `backend` passed with Exit Code 0 (all 21 routes compiled).
+  - Level 3 Automated Tests: `node scripts/test_notification_pipeline.js` passed (19/19 tests), `node scripts/audit_notification_system.js` passed (33/33 tests).
+- **Status:** **VERIFIED**
+
+
 

@@ -150,6 +150,8 @@ class NotificationService {
     return await unsubscribeUserFromPush(this.activeUserId);
   }
 
+  private lastChimeTime: number = 0;
+
   /**
    * Play an elegant gentle synthesized chime using Web Audio API.
    * Works 100% offline with zero external audio assets.
@@ -157,6 +159,11 @@ class NotificationService {
   public playChime(): void {
     if (!this.soundEnabled) return;
     if (typeof window === "undefined") return;
+    const nowMs = Date.now();
+    if (nowMs - this.lastChimeTime < 1500) {
+      return; // Rate limit audio chimes to avoid avalanche cacophony
+    }
+    this.lastChimeTime = nowMs;
     try {
       const AudioContextClass =
         window.AudioContext ||

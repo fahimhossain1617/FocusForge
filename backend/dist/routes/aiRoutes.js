@@ -263,11 +263,11 @@ router.post('/agent/chat', async (req, res) => {
                     ? `তোমার গেস্ট লিমিট শেষ হয়ে গেছে। সব ফিচার ও ক্লাউড সেভ সুবিধা পেতে অনুগ্রহ করে একটু লগইন করে নাও।`
                     : `Your guest limit has been reached. Please log in to unlock full access and cloud sync.`)
                 : (lang === 'bn'
-                    ? `তোমার আজকের ফ্রি লিমিট শেষ হয়ে গেছে।\n\n• লিমিট রিসেট হওয়ার তারিখ: ${initialTokenStatus.formattedResetDate}\n• অবশিষ্ট সময়: ${initialTokenStatus.formattedRemainingTime}\n\nঅনুগ্রহ করে রিসেট হওয়া পর্যন্ত একটু অপেক্ষা করো। লিমিট রিসেট হওয়ার পর Focentia AI আবার জেগে তোমাকে সাহায্য করতে প্রস্তুত থাকবে। ততক্ষণ আমি বিশ্রামে আছি।`
-                    : `Your daily limit has been reached.\n\n• Resets on: ${initialTokenStatus.formattedResetDate}\n• Remaining time: ${initialTokenStatus.formattedRemainingTime}\n\nPlease wait until the reset time. Once refreshed, Focentia AI will be fully ready to assist you! Until then, I'll be resting.`);
+                    ? `তোমার আজকের ফ্রি লিমিট শেষ হয়ে গেছে।\n\n• লিমিট রিসেট হওয়ার তারিখ: ${initialTokenStatus.formattedResetDate}\n• অবশিষ্ট সময়: ${initialTokenStatus.formattedRemainingTime}\n\nঅনুগ্রহ করে রিসেট হওয়া পর্যন্ত একটু অপেক্ষা করো। লিমিট রিসেট হওয়ার পর Glory AI আবার জেগে তোমাকে সাহায্য করতে প্রস্তুত থাকবে। ততক্ষণ আমি বিশ্রামে আছি।`
+                    : `Your daily limit has been reached.\n\n• Resets on: ${initialTokenStatus.formattedResetDate}\n• Remaining time: ${initialTokenStatus.formattedRemainingTime}\n\nPlease wait until the reset time. Once refreshed, Glory AI will be fully ready to assist you! Until then, I'll be resting.`);
             return res.json({
                 sessionId: sessionId || (isGuest ? 'guest-session' : `session_${Date.now()}`),
-                sessionTitle: message ? message.substring(0, 25) : 'Focentia AI',
+                sessionTitle: message ? message.substring(0, 25) : 'Glory AI',
                 aiMessage: {
                     id: 'msg_exhausted_' + Date.now(),
                     role: 'assistant',
@@ -324,7 +324,7 @@ router.post('/agent/chat', async (req, res) => {
                 intent: "GREETING_OR_GENERAL",
                 message: isBn
                     ? "দুঃখিত, এআই সার্ভার সাময়িক একটু ব্যস্ত ছিল। তোমার পড়াশোনা, কাজ বা অন্য যেকোনো বিষয়ে কিছু জানার থাকলে বলো, আমি শুনছি!"
-                    : "Focentia AI is temporarily busy. Please let me know if you need help with anything else, I'm here!",
+                    : "Glory AI is temporarily busy. Please let me know if you need help with anything else, I'm here!",
                 payload: null
             };
         }

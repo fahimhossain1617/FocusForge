@@ -119,9 +119,10 @@ class ReminderSyncService {
       for (const task of tasks) {
         const isDone = task.completed || task.status === 'completed';
         if (isDone) continue;
+        if (task.reminderEnabled === false) continue;
 
         const taskDate = (task.targetDate || task.date || todayStr).trim();
-        const targetTimeStr = (task.reminderTime || task.time || '').trim();
+        const targetTimeStr = (task.reminderTime || task.time || (task as any).startTime || '').trim();
         if (!targetTimeStr) continue;
 
         const [rH, rM] = targetTimeStr.split(':').map(Number);

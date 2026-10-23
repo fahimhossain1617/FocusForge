@@ -58,6 +58,21 @@ export default function ServiceWorkerRegister() {
           if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted") {
             subscribeUserToPush().catch(() => {});
           }
+
+          // Register periodic background sync for Android / Chromium PWA offline reminder delivery
+          if ("periodicSync" in reg) {
+            try {
+              (navigator as any).permissions?.query({ name: "periodic-background-sync" })
+                .then((status: any) => {
+                  if (status?.state === "granted") {
+                    (reg as any).periodicSync.register("focentia-reminders", {
+                      minInterval: 15 * 60 * 1000,
+                    }).catch(() => {});
+                  }
+                })
+                .catch(() => {});
+            } catch {}
+          }
         })
         .catch((err) => {
           console.warn("[PWA] ServiceWorker registration warning:", err);

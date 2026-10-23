@@ -52,11 +52,46 @@ class LocalNotificationScheduler {
   private precisionTimer: ReturnType<typeof setInterval> | null = null;
   private debounceTimer: ReturnType<typeof setTimeout> | null = null;
   private isNativeListenerRegistered = false;
+  private backgroundWorker: Worker | null = null;
+  private lastAlertTime = 0;
 
   constructor() {
     if (typeof window !== "undefined") {
       this.initNativeListener();
+      this.initBackgroundWorker();
       this.startPrecisionForegroundLoop();
+    }
+  }
+
+  /**
+   * Dedicated Web Worker ticker: ensures alerts fire accurately even when tab is backgrounded
+   */
+  private initBackgroundWorker(): void {
+    if (typeof window === "undefined" || typeof Worker === "undefined") return;
+    try {
+      const code = `
+        var timer = null;
+        self.onmessage = function(e) {
+          if (e.data === 'start') {
+            if (timer) clearInterval(timer);
+            timer = setInterval(function() {
+              self.postMessage('tick');
+            }, 8000);
+          } else if (e.data === 'stop') {
+            if (timer) clearInterval(timer);
+            timer = null;
+          }
+        };
+      `;
+      const blob = new Blob([code], { type: "application/javascript" });
+      const workerUrl = URL.createObjectURL(blob);
+      this.backgroundWorker = new Worker(workerUrl);
+      this.backgroundWorker.onmessage = () => {
+        this.checkDueReminders();
+      };
+      this.backgroundWorker.postMessage("start");
+    } catch (err) {
+      console.warn("[LocalNotificationScheduler] Dedicated worker ticker fallback:", err);
     }
   }
 
@@ -213,9 +248,10 @@ class LocalNotificationScheduler {
       for (const task of tasks) {
         const isDone = task.completed || task.status === "completed";
         if (isDone) continue;
+        if (task.reminderEnabled === false) continue;
 
         const taskDate = (task.targetDate || task.date || todayStr).trim();
-        const timeStr = (task.reminderTime || task.time || "").trim();
+        const timeStr = (task.reminderTime || task.time || (task as any).startTime || "").trim();
         if (!timeStr) continue;
 
         const [h, m] = timeStr.split(":").map(Number);
@@ -661,13 +697,14 @@ class LocalNotificationScheduler {
 
       // 2. If browser supports Notification Triggers API (Chromium on Android), schedule natively!
       const now = Date.now();
-      const hasNotificationTriggers = typeof window !== "undefined" && "TimestampTrigger" in window;
+      const TriggerClass = typeof window !== "undefined" ? ((window as any).TimestampTrigger || (self as any).TimestampTrigger) : undefined;
+      const hasNotificationTriggers = typeof TriggerClass !== "undefined" && "showNotification" in reg;
 
-      if (hasNotificationTriggers && "showNotification" in reg) {
+      if (hasNotificationTriggers) {
         for (const item of reminders) {
           if (item.targetTimestamp > now) {
             try {
-              const trigger = new (window as any).TimestampTrigger(item.targetTimestamp);
+              const trigger = new TriggerClass(item.targetTimestamp);
               await (reg as any).showNotification(item.title, {
                 body: item.body,
                 icon: "/icons/icon-192x192.png",
@@ -692,16 +729,23 @@ class LocalNotificationScheduler {
   }
 
   /**
-   * Precision foreground ticker: ensures zero-latency alert presentation when app is running
+   * Check and trigger due reminders with smart catch-up and anti-avalanche rate limiting
    */
-  private startPrecisionForegroundLoop(): void {
-    if (this.precisionTimer) clearInterval(this.precisionTimer);
+  public checkDueReminders(): void {
+    const now = Date.now();
+    for (const item of this.activeReminders) {
+      if (item.targetTimestamp <= now) {
+        const diff = now - item.targetTimestamp;
+        const isTask = item.category?.startsWith("task") || item.priority === 1;
+        const maxWindow = isTask ? 15 * 60 * 1000 : 5 * 60 * 1000;
 
-    this.precisionTimer = setInterval(() => {
-      const now = Date.now();
-      for (const item of this.activeReminders) {
-        if (item.targetTimestamp <= now && now - item.targetTimestamp < 60 * 1000) {
+        if (diff < maxWindow) {
           if (!notificationService.hasBeenSent(item.id)) {
+            // Anti-avalanche staggering: ensure at least 800ms between alerts so alerts don't burst
+            if (now - this.lastAlertTime < 800) {
+              continue;
+            }
+            this.lastAlertTime = now;
             notificationService.send({
               id: item.id,
               category: item.category as any,
@@ -714,9 +758,25 @@ class LocalNotificationScheduler {
               silent: item.sound === false,
             });
           }
+        } else {
+          // Stale reminder (older than window): silently mark sent so it does not burst later
+          if (!notificationService.hasBeenSent(item.id)) {
+            notificationService.markAsSent(item.id);
+          }
         }
       }
-    }, 15000);
+    }
+  }
+
+  /**
+   * Precision foreground ticker: ensures zero-latency alert presentation when app is running
+   */
+  private startPrecisionForegroundLoop(): void {
+    if (this.precisionTimer) clearInterval(this.precisionTimer);
+
+    this.precisionTimer = setInterval(() => {
+      this.checkDueReminders();
+    }, 10000);
   }
 }
 

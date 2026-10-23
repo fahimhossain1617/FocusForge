@@ -1,5 +1,5 @@
 // Focentia Progressive Web App Service Worker
-const CACHE_NAME = 'focentia-build-1792699579827';
+const CACHE_NAME = 'focentia-build-1792731595016';
 const IMMUTABLE_CACHE = 'focentia-immutable-static-v1';
 
 const STATIC_ASSETS = [
@@ -147,15 +147,57 @@ function scheduleReminders(reminders, persist = true) {
   for (const item of reminders) {
     if (!item.targetTimestamp || triggeredReminderIds.has(item.id)) continue;
     const delay = item.targetTimestamp - now;
+
     if (delay > 0 && delay < 24 * 60 * 60 * 1000) {
+      // 1. Native Chromium / Android Notification Triggers API (runs even if browser is closed/offline)
+      if (typeof self.TimestampTrigger !== 'undefined') {
+        try {
+          const trigger = new self.TimestampTrigger(item.targetTimestamp);
+          const category = item.category || 'system';
+          const actionRoute = item.actionRoute || '';
+          const deterministicTag = item.tag || `focentia-${item.id}`;
+          const actions = getDefaultActions(category, actionRoute);
+          const notifOptions = {
+            body: item.body,
+            icon: item.icon || '/icons/icon-192x192.png',
+            badge: item.badge || '/icons/badge-large.png?v=max_zoom_1',
+            tag: deterministicTag,
+            showTrigger: trigger,
+            renotify: true,
+            requireInteraction: Boolean(item.requireInteraction || item.isUrgent),
+            vibrate: item.isUrgent ? [150, 80, 150, 80, 200] : [100, 50, 100],
+            timestamp: item.targetTimestamp,
+            data: {
+              id: item.id,
+              actionRoute,
+              targetUrl: actionRoute ? `/?page=${encodeURIComponent(actionRoute)}` : '/',
+              category,
+              taskId: item.taskId,
+              skillId: item.skillId
+            }
+          };
+          if (actions.length > 0) notifOptions.actions = actions;
+          self.registration.showNotification(item.title, notifOptions).catch(() => {});
+        } catch {}
+      }
+
+      // 2. In-memory timer fallback while worker remains active
       const timer = setTimeout(() => {
         triggerScheduledNotification(item);
         activeReminderTimers.delete(item.id);
       }, delay);
       activeReminderTimers.set(item.id, timer);
-    } else if (delay >= -30 * 60 * 1000 && delay <= 0) {
-      // Due within last 30 minutes: trigger immediately
-      triggerScheduledNotification(item);
+    } else if (delay <= 0) {
+      // Anti-avalanche catch-up window:
+      // For tasks: if within 10 minutes, trigger it. Older than 10m: skip silently.
+      // For automated nudges: if within 3 minutes, trigger it. Older than 3m: skip silently.
+      const isTask = (item.category && item.category.startsWith('task')) || item.priority === 1;
+      const maxPastWindow = isTask ? -10 * 60 * 1000 : -3 * 60 * 1000;
+      if (delay >= maxPastWindow) {
+        triggerScheduledNotification(item);
+      } else {
+        triggeredReminderIds.add(item.id);
+      }
     }
   }
 }
@@ -168,6 +210,27 @@ async function restoreAndArmReminders() {
   }
 }
 
+// Check due reminders across IDB with anti-avalanche protection
+async function checkDueReminders() {
+  const reminders = activeScheduledReminders.length > 0 ? activeScheduledReminders : await loadRemindersFromIDB();
+  if (!Array.isArray(reminders) || reminders.length === 0) return;
+  const now = Date.now();
+  for (const item of reminders) {
+    if (!item.targetTimestamp || triggeredReminderIds.has(item.id)) continue;
+    const diff = now - item.targetTimestamp;
+    const isTask = (item.category && item.category.startsWith('task')) || item.priority === 1;
+    const maxWindow = isTask ? 10 * 60 * 1000 : 3 * 60 * 1000;
+    if (diff >= 0 && diff < maxWindow) {
+      await triggerScheduledNotification(item);
+    } else if (diff >= maxWindow) {
+      triggeredReminderIds.add(item.id);
+    }
+  }
+}
+
+// Auto-arm reminders on worker startup
+restoreAndArmReminders().catch(() => {});
+
 // Message listener to trigger immediate skip waiting or schedule reminders from client
 self.addEventListener('message', (event) => {
   if (!event.data) return;
@@ -176,6 +239,8 @@ self.addEventListener('message', (event) => {
     self.skipWaiting();
   } else if (event.data.type === 'SCHEDULE_REMINDERS') {
     scheduleReminders(event.data.reminders, true);
+  } else if (event.data.type === 'CHECK_REMINDERS') {
+    event.waitUntil(checkDueReminders());
   } else if (event.data.type === 'CANCEL_REMINDER' && event.data.id) {
     triggeredReminderIds.add(event.data.id);
     const timer = activeReminderTimers.get(event.data.id);
@@ -189,15 +254,14 @@ self.addEventListener('message', (event) => {
 // Periodic background sync if supported by Android/Chromium browser
 self.addEventListener('periodicsync', (event) => {
   if (event.tag === 'focentia-reminders') {
-    event.waitUntil((async () => {
-      const reminders = activeScheduledReminders.length > 0 ? activeScheduledReminders : await loadRemindersFromIDB();
-      const now = Date.now();
-      for (const item of reminders) {
-        if (!triggeredReminderIds.has(item.id) && item.targetTimestamp <= now && now - item.targetTimestamp < 15 * 60 * 1000) {
-          await triggerScheduledNotification(item);
-        }
-      }
-    })());
+    event.waitUntil(checkDueReminders());
+  }
+});
+
+// Standard background sync
+self.addEventListener('sync', (event) => {
+  if (event.tag === 'focentia-reminders' || event.tag === 'focentia-sync-reminders') {
+    event.waitUntil(checkDueReminders());
   }
 });
 
