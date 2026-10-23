@@ -95,6 +95,8 @@ export default function BlockEditor({
   const [menu, setMenu] = useState({ visible: false, index: -1, query: "", selected: 0 });
   const [colorToolbar, setColorToolbar] = useState<{ visible: boolean; index: number }>({ visible: false, index: -1 });
 
+  const isChoosingRef = useRef(false);
+
   useEffect(() => { if (!blocks.length) onChange([newBlock()]); }, [blocks.length, onChange]);
 
   // Compute consecutive numbered list indices (resets to 1 whenever interrupted by another block type)
@@ -102,7 +104,7 @@ export default function BlockEditor({
     const nums: number[] = [];
     let currentNum = 0;
     for (let i = 0; i < blocks.length; i++) {
-      if (blocks[i].type === "numbered") {
+      if (blocks[i]?.type === "numbered") {
         currentNum++;
         nums.push(currentNum);
       } else {
@@ -123,7 +125,12 @@ export default function BlockEditor({
     return `${o.command} ${o.label} ${o.type}`.toLowerCase().includes(q);
   }), [menu.query]);
 
-  const update = (index: number, patch: Partial<NoteBlock>) => { onDirty(); onChange(blocks.map((b, i) => i === index ? { ...b, ...patch } : b)); };
+  const update = (index: number, patch: Partial<NoteBlock>) => { 
+    if (index < 0 || index >= blocks.length) return;
+    onDirty(); 
+    onChange(blocks.map((b, i) => i === index ? { ...b, ...patch } : b)); 
+  };
+
   const focus = (id: string) => {
     const applyFocus = () => {
       const el = document.getElementById(`block-${id}`) as HTMLTextAreaElement | HTMLInputElement | null;
@@ -138,15 +145,21 @@ export default function BlockEditor({
     requestAnimationFrame(applyFocus);
     window.setTimeout(applyFocus, 25);
   };
+
   const insertAfter = (index: number, type: BlockType) => {
-    const effectiveType = (!isOnline && type !== "paragraph" && type !== "h1" && type !== "h2" && type !== "h3") ? "paragraph" : type;
+    if (index < 0 || index >= blocks.length) return;
+    // Strictly only image, file, link require internet
+    const isOnlineOnly = type === "image" || type === "file" || type === "link";
+    const effectiveType = (!isOnline && isOnlineOnly) ? "paragraph" : type;
     const next = newBlock(effectiveType);
     onDirty();
     onChange([...blocks.slice(0, index + 1), next, ...blocks.slice(index + 1)]);
     setActiveBlockIndex(index + 1);
     focus(next.id);
   };
+
   const remove = (index: number) => {
+    if (index < 0 || index >= blocks.length) return;
     if (blocks.length === 1) {
       update(0, { type: "paragraph", content: "" });
       setActiveBlockIndex(0);
@@ -158,26 +171,51 @@ export default function BlockEditor({
     setActiveBlockIndex(Math.max(0, index - 1));
     if (targetBlock) focus(targetBlock.id);
   };
+
   const duplicate = (index: number) => {
-    if (!isOnline && blocks[index].type !== "paragraph" && blocks[index].type !== "h1" && blocks[index].type !== "h2" && blocks[index].type !== "h3") {
-      showToast(state.lang === 'bn' ? "আপনি বর্তমানে অফলাইনে আছেন।" : "You are currently offline.", 'error');
+    if (index < 0 || index >= blocks.length) return;
+    const target = blocks[index];
+    if (!target) return;
+    const isOnlineOnly = target.type === "image" || target.type === "file" || target.type === "link";
+    if (!isOnline && isOnlineOnly) {
+      showToast(
+        state.lang === 'bn'
+          ? "আপনি বর্তমানে অফলাইনে আছেন। এই ফিচারটির জন্য ইন্টারনেট প্রয়োজন।"
+          : "You are currently offline. This feature requires an internet connection.",
+        'error'
+      );
       return;
     }
-    const copy = { ...blocks[index], id: newId() };
+    const copy = { ...target, id: newId() };
     onDirty();
     onChange([...blocks.slice(0, index + 1), copy, ...blocks.slice(index + 1)]);
     setActiveBlockIndex(index + 1);
   };
 
   const choose = (type: BlockType) => {
-    if (menu.index < 0) return;
-    const targetBlockId = blocks[menu.index]?.id;
+    if (isChoosingRef.current) return;
+    if (menu.index < 0 || menu.index >= blocks.length) {
+      setMenu((c) => ({ ...c, visible: false }));
+      return;
+    }
+    const targetBlock = blocks[menu.index];
+    if (!targetBlock) {
+      setMenu((c) => ({ ...c, visible: false }));
+      return;
+    }
+    const targetBlockId = targetBlock.id;
 
-    if (!isOnline && type !== "paragraph" && type !== "h1" && type !== "h2" && type !== "h3") {
+    // Guard against rapid duplicate clicks
+    isChoosingRef.current = true;
+    setTimeout(() => { isChoosingRef.current = false; }, 250);
+
+    // Strictly only image, file, and external links require an internet connection
+    const isOnlineOnly = type === "image" || type === "file" || type === "link";
+    if (!isOnline && isOnlineOnly) {
       showToast(
         state.lang === 'bn'
-          ? "আপনি বর্তমানে অফলাইনে আছেন।"
-          : "You are currently offline.",
+          ? "আপনি বর্তমানে অফলাইনে আছেন। এই ফিচারটির জন্য ইন্টারনেট প্রয়োজন।"
+          : "You are currently offline. This feature requires an internet connection.",
         'error'
       );
       setMenu((c) => ({ ...c, visible: false }));
@@ -202,40 +240,84 @@ export default function BlockEditor({
       onTriggerLinkModal?.(targetBlockId);
       return;
     }
-    update(menu.index, { type, content: "", isCompleted: type === "todo" ? false : undefined, language: type === "code" ? "javascript" : undefined });
-    const id = blocks[menu.index].id;
+
+    update(menu.index, { 
+      type, 
+      content: "", 
+      isCompleted: type === "todo" ? false : undefined, 
+      language: type === "code" ? "javascript" : undefined 
+    });
     setMenu((c) => ({ ...c, visible: false }));
-    focus(id);
+    focus(targetBlockId);
+  };
+
+  const handleEnterKey = (index: number) => {
+    if (index < 0 || index >= blocks.length) return;
+    const block = blocks[index];
+    if (!block) return;
+
+    if (menu.visible) {
+      if (visibleOptions[menu.selected]) {
+        choose(visibleOptions[menu.selected].type);
+        return;
+      }
+    }
+
+    if (block.type === "code") return;
+
+    if (block.type === "image" || block.type === "file" || block.type === "link") {
+      insertAfter(index, "paragraph");
+      return;
+    }
+
+    const content = (block.content || "").trim();
+    if (!content && (block.type === "bullet" || block.type === "numbered" || block.type === "todo")) {
+      update(index, { type: "paragraph", isCompleted: undefined });
+      return;
+    }
+    if (!content && block.type !== "paragraph") {
+      update(index, { type: "paragraph", isCompleted: undefined });
+      return;
+    }
+    insertAfter(index, block.type === "quote" ? "paragraph" : block.type);
   };
 
   const handleInput = (event: ChangeEvent<HTMLTextAreaElement | HTMLInputElement>, index: number) => {
+    if (index < 0 || index >= blocks.length) return;
     const value = event.target.value;
+    const block = blocks[index];
+    if (!block) return;
 
-    // Quick markdown shortcuts for numbered list and other list types
-    if (blocks[index].type === "paragraph") {
+    // Mobile virtual keyboard Enter support: if newline is entered in non-code block
+    if (block.type !== "code" && block.type !== "math" && block.type !== "sticky" && value.includes("\n")) {
+      const parts = value.split("\n");
+      const currentPart = parts[0] || "";
+      const nextPart = parts.slice(1).join("\n").trim();
+      update(index, { content: currentPart });
+      insertAfter(index, block.type === "quote" ? "paragraph" : block.type);
+      if (nextPart) {
+        setTimeout(() => {
+          if (blocks[index + 1]) {
+            update(index + 1, { content: nextPart });
+          }
+        }, 30);
+      }
+      return;
+    }
+
+    // Quick markdown shortcuts for numbered list, bullet list, and checklist (ALL WORK OFFLINE)
+    if (block.type === "paragraph") {
       if (value === "1. " || value.startsWith("1. ")) {
-        if (!isOnline) {
-          showToast(state.lang === 'bn' ? "আপনি বর্তমানে অফলাইনে আছেন।" : "You are currently offline.", 'error');
-          return;
-        }
         update(index, { type: "numbered", content: value.slice(3) });
         setMenu((c) => ({ ...c, visible: false }));
         return;
       }
       if (value === "- " || value === "* ") {
-        if (!isOnline) {
-          showToast(state.lang === 'bn' ? "আপনি বর্তমানে অফলাইনে আছেন।" : "You are currently offline.", 'error');
-          return;
-        }
         update(index, { type: "bullet", content: "" });
         setMenu((c) => ({ ...c, visible: false }));
         return;
       }
       if (value === "[] ") {
-        if (!isOnline) {
-          showToast(state.lang === 'bn' ? "আপনি বর্তমানে অফলাইনে আছেন।" : "You are currently offline.", 'error');
-          return;
-        }
         update(index, { type: "todo", content: "", isCompleted: false });
         setMenu((c) => ({ ...c, visible: false }));
         return;
@@ -243,28 +325,30 @@ export default function BlockEditor({
     }
 
     update(index, { content: value });
-    const isCommand = blocks[index].type === "paragraph" && /^#[\w\s-]*$/.test(value);
+    const isCommand = block.type === "paragraph" && /^#[\w\s-]*$/.test(value);
     if (!isCommand) { setMenu((c) => ({ ...c, visible: false })); return; }
     setMenu({ visible: true, index, query: value.slice(1).trim(), selected: 0 });
   };
 
   const handleKeyDown = (event: KeyboardEvent<HTMLTextAreaElement | HTMLInputElement | HTMLDivElement>, index: number) => {
+    if (index < 0 || index >= blocks.length) return;
     const block = blocks[index];
+    if (!block) return;
+
     if (menu.visible) {
       if (event.key === "Escape") { event.preventDefault(); setMenu((c) => ({ ...c, visible: false })); return; }
       if (event.key === "ArrowDown") { event.preventDefault(); setMenu((c) => ({ ...c, selected: Math.min(c.selected + 1, visibleOptions.length - 1) })); return; }
       if (event.key === "ArrowUp") { event.preventDefault(); setMenu((c) => ({ ...c, selected: Math.max(c.selected - 1, 0) })); return; }
       if (event.key === "Enter" && visibleOptions[menu.selected]) { event.preventDefault(); choose(visibleOptions[menu.selected].type); return; }
     }
+
     if (event.key === "Enter") {
       if (block.type === "code") return;
 
       if (block.type === "math" || block.type === "sticky") {
         if (!event.shiftKey) {
-          // Allow default Enter behavior (newline)
           return;
         } else {
-          // Shift+Enter creates a new block below
           event.preventDefault();
           insertAfter(index, "paragraph");
           return;
@@ -273,22 +357,11 @@ export default function BlockEditor({
 
       if (!event.shiftKey) {
         event.preventDefault();
-        if (block.type === "image" || block.type === "file" || block.type === "link") {
-          insertAfter(index, "paragraph");
-          return;
-        }
-        if (!block.content.trim() && (block.type === "bullet" || block.type === "numbered" || block.type === "todo")) {
-          update(index, { type: "paragraph", isCompleted: undefined });
-          return;
-        }
-        if (!block.content.trim() && block.type !== "paragraph") {
-          update(index, { type: "paragraph", isCompleted: undefined });
-          return;
-        }
-        insertAfter(index, block.type === "quote" ? "paragraph" : block.type);
+        handleEnterKey(index);
         return;
       }
     }
+
     const isBackspace =
       event.key === "Backspace" ||
       event.code === "Backspace" ||
@@ -302,35 +375,51 @@ export default function BlockEditor({
       (event as any).keyCode === 46 ||
       (event.nativeEvent as any)?.code === "Delete" ||
       (event.nativeEvent as any)?.key === "Delete";
+
     const target = event.currentTarget as HTMLTextAreaElement | HTMLInputElement;
-    const isEmptyOrHash = !block.content || !block.content.trim() || block.content.trim() === "#";
+    const trimmed = (block.content || "").trim();
+    const isHashOnly = trimmed === "#";
+    const isEmpty = !trimmed;
     const isAtStart = target && typeof target.selectionStart === "number" && target.selectionStart === 0 && target.selectionEnd === 0;
 
-    if ((isBackspace || isDelete) && isEmptyOrHash) {
-      event.preventDefault();
-      setMenu((c) => ({ ...c, visible: false }));
-      if (blocks.length > 1) {
-        remove(index);
-      } else {
-        update(index, { type: "paragraph", content: "", isCompleted: undefined });
+    if (isBackspace || isDelete) {
+      // If block contains ONLY '#', backspace should safely clear '#' and close menu, NOT delete the block!
+      if (isHashOnly) {
+        event.preventDefault();
+        setMenu((c) => ({ ...c, visible: false }));
+        update(index, { content: "" });
+        return;
       }
-      return;
-    }
 
-    if (isBackspace && isAtStart && index > 0) {
-      event.preventDefault();
-      mergeWithPrev(index);
-      return;
+      // If block is truly empty, remove it or reset if single block
+      if (isEmpty) {
+        event.preventDefault();
+        setMenu((c) => ({ ...c, visible: false }));
+        if (blocks.length > 1) {
+          remove(index);
+        } else {
+          update(index, { type: "paragraph", content: "", isCompleted: undefined });
+        }
+        return;
+      }
+
+      if (isBackspace && isAtStart && index > 0) {
+        event.preventDefault();
+        mergeWithPrev(index);
+        return;
+      }
     }
   };
 
   const mergeWithPrev = (index: number) => {
-    if (index <= 0) return;
+    if (index <= 0 || index >= blocks.length) return;
     setMenu((c) => ({ ...c, visible: false }));
     const prevBlock = blocks[index - 1];
     const currentBlock = blocks[index];
+    if (!prevBlock || !currentBlock) return;
+
     if (["paragraph", "h1", "h2", "h3", "bullet", "numbered", "quote", "todo"].includes(prevBlock.type)) {
-      const mergedContent = prevBlock.content + currentBlock.content;
+      const mergedContent = (prevBlock.content || "") + (currentBlock.content || "");
       onDirty();
       onChange(
         blocks
@@ -343,7 +432,19 @@ export default function BlockEditor({
 
   const handleBeforeInput = (event: React.FormEvent<HTMLTextAreaElement | HTMLInputElement>, index: number) => {
     const native = event.nativeEvent as InputEvent;
-    if (!native) return;
+    if (!native || index < 0 || index >= blocks.length) return;
+    const block = blocks[index];
+    if (!block) return;
+
+    // Mobile virtual keyboard Enter support (insertParagraph / insertLineBreak)
+    if (native.inputType === "insertParagraph" || native.inputType === "insertLineBreak") {
+      if (block.type !== "code") {
+        event.preventDefault();
+        handleEnterKey(index);
+        return;
+      }
+    }
+
     const isDeleteAction =
       native.inputType === "deleteContentBackward" ||
       native.inputType === "deleteContentForward" ||
@@ -352,12 +453,21 @@ export default function BlockEditor({
       native.inputType === "deleteSoftLineBackward";
 
     if (isDeleteAction) {
-      const block = blocks[index];
       const target = event.currentTarget as HTMLTextAreaElement | HTMLInputElement;
-      const isEmptyOrHash = !block.content || !block.content.trim() || block.content.trim() === "#";
+      const trimmed = (block.content || "").trim();
+      const isHashOnly = trimmed === "#";
+      const isEmpty = !trimmed;
       const isAtStart = target && typeof target.selectionStart === "number" && target.selectionStart === 0 && target.selectionEnd === 0;
 
-      if (isEmptyOrHash) {
+      // Clearing '#' on mobile keyboard should keep the block intact
+      if (isHashOnly) {
+        event.preventDefault();
+        setMenu((c) => ({ ...c, visible: false }));
+        update(index, { content: "" });
+        return;
+      }
+
+      if (isEmpty) {
         event.preventDefault();
         setMenu((c) => ({ ...c, visible: false }));
         if (blocks.length > 1) {
@@ -365,9 +475,13 @@ export default function BlockEditor({
         } else {
           update(index, { type: "paragraph", content: "", isCompleted: undefined });
         }
-      } else if (isAtStart && index > 0) {
+        return;
+      }
+
+      if (isAtStart && index > 0) {
         event.preventDefault();
         mergeWithPrev(index);
+        return;
       }
     }
   };
@@ -377,6 +491,7 @@ export default function BlockEditor({
       <EditorBlock
         key={block.id}
         index={index}
+        blocksCount={blocks.length}
         isActive={activeBlockIndex === index}
         onActivate={() => setActiveBlockIndex(index)}
         listNumber={listNumbers[index]}
@@ -386,6 +501,10 @@ export default function BlockEditor({
         onBeforeInput={(e) => handleBeforeInput(e, index)}
         onToggle={() => update(index, { isCompleted: !block.isCompleted })}
         onDelete={() => remove(index)}
+        onClearHash={() => {
+          setMenu((c) => ({ ...c, visible: false }));
+          update(index, { content: "" });
+        }}
         onMergePrev={() => mergeWithPrev(index)}
         onDuplicate={() => duplicate(index)}
         onLanguage={(lang) => update(index, { language: lang })}
@@ -396,7 +515,12 @@ export default function BlockEditor({
         onReplaceImage={onReplaceImage}
         onPreviewImage={onPreviewImage}
         commandMenu={menu.visible && menu.index === index && visibleOptions.length > 0 ? (
-          <CommandMenu options={visibleOptions} selected={menu.selected} onChoose={choose} />
+          <CommandMenu 
+            options={visibleOptions} 
+            selected={menu.selected} 
+            onChoose={choose} 
+            isOnline={isOnline}
+          />
         ) : null}
       />
     ))}
@@ -413,7 +537,17 @@ export default function BlockEditor({
 
 /* ───────────── Command Menu ───────────── */
 
-function CommandMenu({ options: shown, selected, onChoose }: { options: MenuOption[]; selected: number; onChoose: (type: BlockType) => void; }) {
+function CommandMenu({ 
+  options: shown, 
+  selected, 
+  onChoose,
+  isOnline = true
+}: { 
+  options: MenuOption[]; 
+  selected: number; 
+  onChoose: (type: BlockType) => void; 
+  isOnline?: boolean;
+}) {
   const menuRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const [fixedStyle, setFixedStyle] = useState<React.CSSProperties | null>(null);
@@ -428,7 +562,6 @@ function CommandMenu({ options: shown, selected, onChoose }: { options: MenuOpti
     const menuHeight = 290;
     const menuWidth = 275;
     const vh = window.innerHeight || document.documentElement.clientHeight;
-    const vw = window.innerWidth || document.documentElement.clientWidth;
 
     const spaceBelow = vh - parentRect.bottom;
     const spaceAbove = parentRect.top;
@@ -445,8 +578,7 @@ function CommandMenu({ options: shown, selected, onChoose }: { options: MenuOpti
           zIndex: 9999,
         });
       } else {
-        // Limited space: scroll parent block into view so it stays anchored near the trigger
-        parent.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        // Limited space: anchor neatly above
         setFixedStyle({
           position: 'absolute',
           top: 'calc(100% + 6px)',
@@ -479,17 +611,25 @@ function CommandMenu({ options: shown, selected, onChoose }: { options: MenuOpti
       <div ref={listRef}>
         {shown.map((option, index) => {
           const Icon = option.icon;
+          const isOnlineOnly = option.type === "image" || option.type === "file" || option.type === "link";
+          const isOfflineItem = !isOnline && isOnlineOnly;
           return (
             <button
               key={option.type}
               type="button"
-              className={index === selected ? "is-selected" : ""}
+              className={`${index === selected ? "is-selected" : ""} ${isOfflineItem ? "opacity-75" : ""}`}
               onMouseDown={(e) => e.preventDefault()}
               onClick={() => onChoose(option.type)}
             >
               <Icon size={16} />
               <span>{option.label}</span>
-              <kbd>{option.command}</kbd>
+              {isOfflineItem ? (
+                <span className="text-[10px] text-amber-500/80 font-medium ml-auto mr-1.5 px-1.5 py-0.5 rounded bg-amber-500/10 border border-amber-500/20">
+                  Online
+                </span>
+              ) : (
+                <kbd>{option.command}</kbd>
+              )}
             </button>
           );
         })}
@@ -1187,6 +1327,7 @@ function BlockActionMenu({
 function EditorBlock({
   block,
   index,
+  blocksCount = 1,
   listNumber = 1,
   isActive = false,
   onActivate,
@@ -1195,6 +1336,7 @@ function EditorBlock({
   onBeforeInput,
   onToggle,
   onDelete,
+  onClearHash,
   onMergePrev,
   onDuplicate,
   onLanguage,
@@ -1208,6 +1350,7 @@ function EditorBlock({
 }: {
   block: NoteBlock;
   index: number;
+  blocksCount?: number;
   listNumber?: number;
   isActive?: boolean;
   onActivate?: () => void;
@@ -1216,6 +1359,7 @@ function EditorBlock({
   onBeforeInput?: (event: React.FormEvent<HTMLTextAreaElement | HTMLInputElement>) => void;
   onToggle: () => void;
   onDelete: () => void;
+  onClearHash?: () => void;
   onMergePrev?: () => void;
   onDuplicate: () => void;
   onLanguage: (language: NonNullable<NoteBlock["language"]>) => void;
@@ -1227,24 +1371,16 @@ function EditorBlock({
   onPreviewImage?: (url: string) => void;
   commandMenu?: React.ReactNode;
 }) {
+  const { state } = useAppContext();
   const textarea = useRef<HTMLTextAreaElement>(null);
   useEffect(() => { if (textarea.current && block.type !== "code") { textarea.current.style.height = "0px"; textarea.current.style.height = `${textarea.current.scrollHeight}px`; } }, [block.content, block.type]);
 
-  // Native mobile keyboard deletion & backspace handling (solves Android Gboard / Samsung keyboard / iOS issues)
+  // Native mobile keyboard deletion & backspace handling
   useEffect(() => {
     const el = textarea.current;
     if (!el) return;
 
-    let pendingKey229Timer: any = null;
-    let didInputOccur = false;
-
     const handleNativeBeforeInput = (e: InputEvent) => {
-      didInputOccur = true;
-      if (pendingKey229Timer) {
-        clearTimeout(pendingKey229Timer);
-        pendingKey229Timer = null;
-      }
-
       const isDelete =
         e.inputType === "deleteContentBackward" ||
         e.inputType === "deleteContentForward" ||
@@ -1253,10 +1389,15 @@ function EditorBlock({
         e.inputType === "deleteSoftLineBackward";
 
       if (isDelete) {
-        const isEmptyOrHash = !block.content || !block.content.trim() || block.content.trim() === "#";
+        const trimmed = (block.content || "").trim();
+        const isHashOnly = trimmed === "#";
+        const isEmpty = !trimmed;
         const isAtStart = typeof el.selectionStart === "number" && el.selectionStart === 0 && el.selectionEnd === 0;
 
-        if (isEmptyOrHash) {
+        if (isHashOnly) {
+          e.preventDefault();
+          onClearHash?.();
+        } else if (isEmpty) {
           e.preventDefault();
           onDelete();
         } else if (isAtStart && index > 0) {
@@ -1269,56 +1410,42 @@ function EditorBlock({
     const handleNativeKeyDown = (e: globalThis.KeyboardEvent) => {
       const isBackspace = e.key === "Backspace" || e.code === "Backspace" || e.keyCode === 8;
       const isDelete = e.key === "Delete" || e.key === "Del" || e.code === "Delete" || e.keyCode === 46;
-      const isEmptyOrHash = !block.content || !block.content.trim() || block.content.trim() === "#";
+      const trimmed = (block.content || "").trim();
+      const isHashOnly = trimmed === "#";
+      const isEmpty = !trimmed;
       const isAtStart = typeof el.selectionStart === "number" && el.selectionStart === 0 && el.selectionEnd === 0;
 
-      if ((isBackspace || isDelete) && isEmptyOrHash) {
-        e.preventDefault();
-        onDelete();
-        return;
-      }
-
-      if (isBackspace && isAtStart && index > 0) {
-        e.preventDefault();
-        onMergePrev?.();
-        return;
-      }
-
-      // Android Gboard / Samsung keyboard keyCode 229 fallback for empty fields
-      if ((e.keyCode === 229 || e.key === "Unidentified") && isEmptyOrHash) {
-        didInputOccur = false;
-        if (pendingKey229Timer) clearTimeout(pendingKey229Timer);
-        pendingKey229Timer = setTimeout(() => {
-          if (!didInputOccur && (!el.value || !el.value.trim() || el.value.trim() === "#")) {
-            onDelete();
-          }
-        }, 35);
-      }
-    };
-
-    const handleNativeInput = () => {
-      didInputOccur = true;
-      if (pendingKey229Timer) {
-        clearTimeout(pendingKey229Timer);
-        pendingKey229Timer = null;
+      if (isBackspace || isDelete) {
+        if (isHashOnly) {
+          e.preventDefault();
+          onClearHash?.();
+          return;
+        }
+        if (isEmpty) {
+          e.preventDefault();
+          onDelete();
+          return;
+        }
+        if (isBackspace && isAtStart && index > 0) {
+          e.preventDefault();
+          onMergePrev?.();
+          return;
+        }
       }
     };
 
     el.addEventListener("beforeinput", handleNativeBeforeInput as EventListener);
     el.addEventListener("keydown", handleNativeKeyDown as EventListener);
-    el.addEventListener("input", handleNativeInput);
 
     return () => {
-      if (pendingKey229Timer) clearTimeout(pendingKey229Timer);
       el.removeEventListener("beforeinput", handleNativeBeforeInput as EventListener);
       el.removeEventListener("keydown", handleNativeKeyDown as EventListener);
-      el.removeEventListener("input", handleNativeInput);
     };
-  }, [block.content, index, onDelete, onMergePrev]);
+  }, [block.content, index, onDelete, onClearHash, onMergePrev]);
 
   const input = {
     id: `block-${block.id}`,
-    value: block.content,
+    value: block.content || "",
     onChange: onInput,
     onKeyDown,
     onBeforeInput,
@@ -1637,12 +1764,28 @@ function EditorBlock({
   }
 
   // ── Paragraph (default) ──
+  const isBn = state?.lang === "bn";
+  const paragraphPlaceholder = blocksCount === 1
+    ? (isBn ? "একটি ব্লক যোগ করতে # টাইপ করুন, অথবা লেখা শুরু করুন..." : "Type # to add a block, or start writing...")
+    : (index === 0 && (!block.content || !block.content.trim()))
+      ? (isBn ? "নোট লেখা শুরু করুন..." : "Start writing or type #...")
+      : (isActive && (!block.content || !block.content.trim()))
+        ? (isBn ? "লিখুন বা # চাপুন..." : "Type # for blocks...")
+        : "";
+
   return (
     <div className="editor-block editor-block--paragraph relative" onClick={onActivate}>
       {control}
       {wrapWithBox(
         <div style={highlightStyle}>
-          <textarea ref={textarea} {...input} rows={1} placeholder="Type # to add a block, or start writing..." style={textStyle} className="note-block-textarea" />
+          <textarea 
+            ref={textarea} 
+            {...input} 
+            rows={1} 
+            placeholder={paragraphPlaceholder} 
+            style={textStyle} 
+            className="note-block-textarea" 
+          />
         </div>
       )}
       {commandMenu}

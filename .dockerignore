@@ -1,0 +1,25 @@
+# Root-level .dockerignore for Focentia
+node_modules
+**/node_modules
+.next
+**/.next
+dist
+**/dist
+build
+out
+.git
+.github
+.vscode
+.vercel
+backups
+scratch
+.env
+.env.*
+.env.local
+**/.env
+**/.env.*
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+*.tsbuildinfo

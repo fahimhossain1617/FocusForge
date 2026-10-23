@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useAppContext } from "../../context/AppContext";
 import type { Note, NoteBlock } from "../../types";
 import EmptyState from "../ui/EmptyState";
@@ -47,7 +47,13 @@ export default function WorkspacePage() {
 
   const isBn = state.lang === 'bn';
 
+  const isTransitioningRef = useRef(false);
+
   const openNewNote = () => {
+    if (isTransitioningRef.current) return;
+    isTransitioningRef.current = true;
+    setTimeout(() => { isTransitioningRef.current = false; }, 350);
+
     const draft = addNote({ 
       title: "", 
       blocks: [{ id: crypto.randomUUID?.() ?? Math.random().toString(36).slice(2), type: "paragraph", content: "" }],
@@ -61,6 +67,10 @@ export default function WorkspacePage() {
   };
 
   const openEditNote = (note: Note) => {
+    if (isTransitioningRef.current) return;
+    isTransitioningRef.current = true;
+    setTimeout(() => { isTransitioningRef.current = false; }, 350);
+
     setEditingNote(note);
     setView('editor');
   };
@@ -77,33 +87,40 @@ export default function WorkspacePage() {
   const categoriesList = useMemo(() => {
     const cats = new Set<string>(["All"]);
     (state.categories || ['Programming', 'Study', 'Personal', 'Project']).forEach(c => cats.add(c));
-    state.notes.forEach(n => { if (n.category) cats.add(n.category); });
+    (state.notes || []).forEach(n => { if (n?.category) cats.add(n.category); });
     return Array.from(cats);
   }, [state.categories, state.notes]);
 
   // Filter notes based on search & category and sort recent-first
   const filteredNotes = useMemo(() => {
-    const query = searchQuery.toLowerCase().trim();
-    const list = state.notes.filter(note => {
+    const query = (searchQuery || "").toLowerCase().trim();
+    const list = (state.notes || []).filter(note => {
+      if (!note) return false;
       // Category filter
       if (selectedCategory !== "All" && (note.category || "Personal") !== selectedCategory) {
         return false;
       }
       // Search query filter
       if (!query) return true;
-      if (note.title.toLowerCase().includes(query)) return true;
-      if (note.category?.toLowerCase().includes(query)) return true;
-      return note.blocks.some(b => 
-        (b.content && b.content.toLowerCase().includes(query)) ||
-        (b.fileName && b.fileName.toLowerCase().includes(query)) ||
-        (b.caption && b.caption.toLowerCase().includes(query)) ||
-        (b.linkTitle && b.linkTitle.toLowerCase().includes(query))
-      );
+      const noteTitle = typeof note.title === "string" ? note.title.toLowerCase() : "";
+      if (noteTitle.includes(query)) return true;
+      const noteCat = typeof note.category === "string" ? note.category.toLowerCase() : "";
+      if (noteCat.includes(query)) return true;
+      const blocks = Array.isArray(note.blocks) ? note.blocks : [];
+      return blocks.some(b => {
+        if (!b) return false;
+        const content = typeof b.content === "string" ? b.content.toLowerCase() : "";
+        if (content.includes(query)) return true;
+        if (typeof b.fileName === "string" && b.fileName.toLowerCase().includes(query)) return true;
+        if (typeof b.caption === "string" && b.caption.toLowerCase().includes(query)) return true;
+        if (typeof b.linkTitle === "string" && b.linkTitle.toLowerCase().includes(query)) return true;
+        return false;
+      });
     });
 
     return list.slice().sort((a, b) => {
-      const timeA = new Date(a.updatedAt || a.createdAt || 0).getTime();
-      const timeB = new Date(b.updatedAt || b.createdAt || 0).getTime();
+      const timeA = new Date(a?.updatedAt || a?.createdAt || 0).getTime();
+      const timeB = new Date(b?.updatedAt || b?.createdAt || 0).getTime();
       return timeB - timeA;
     });
   }, [state.notes, searchQuery, selectedCategory]);

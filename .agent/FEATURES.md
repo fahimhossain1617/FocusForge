@@ -57,7 +57,7 @@
 
 ### 2.3 Modular Block Note Editor
 - **Location:** `frontend/src/components/workspace/BlockEditor.tsx`, `frontend/src/components/pages/WorkspacePage.tsx`
-- **Behavior:** Supports heterogeneous block types: Headings (H1/H2/H3), Paragraphs, Todos, Math equations rendered via KaTeX, Code blocks highlighted via Prism.js, Sticky notes (Violet, Amber, Rose), Freehand drawings via Fabric.js canvas, and local attachments.
+- **Behavior:** Supports heterogeneous block types: Headings (H1/H2/H3), Paragraphs, Todos, Math equations rendered via KaTeX, Code blocks highlighted via Prism.js, Sticky notes (Violet, Amber, Rose), Freehand drawings via Fabric.js canvas, and local attachments. Implements strict online vs. offline separation where only 3 items (`#picture`, `#pdf`, `#drive link`) require internet, while all writing, formatting, lists, and markdown shortcuts (`1. `, `- `, `* `, `[] `) function fully offline. Clicking online-only elements offline shows non-intrusive warning toasts without corrupting notes or crashing. Backspace on `#` clears the command trigger without deleting the block. Share button is clickable offline with an informative toast. All navigation actions are debounced to prevent rapid-click crashes.
 
 ### 2.4 Focus Engine & Distraction Tracking
 - **Location:** `frontend/src/components/pages/FocusPage.tsx`, `frontend/src/hooks/useFocusTimer.ts`

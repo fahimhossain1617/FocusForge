@@ -110,6 +110,13 @@ Focentia is an active, functional productivity suite built with Next.js 16 App R
   5. **Non-Obtrusive Right-Side Action Toolbar (`[ 🎨 📋 🗑️ ]`):** To completely prevent the buttons from covering or obscuring the text, `.block-controls` is positioned cleanly on the **top-right** (`top: 4px; right: 2px; left: auto;`). The text block container reserves right padding (`padding-right: 76px; sm:padding-right: 84px;`), guaranteeing that the buttons never overlap writing content while appearing smoothly on hover or `:focus-within`. Color toolbar (`.block-color-toolbar`) opens aligned to the right, staying safely on screen.
   6. **Proportional Typography Spacing:** Vertical margin between the Main Headline and the content is set to a natural 12px-16px (`margin: 0 0 12px !important; mb-3 sm:mb-4`), perfectly replicating the headline-to-subheading rhythm in Picture 1.
   7. **Modernized Specialized Blocks & Resilient Deletion:** Math Equation and Quick Note blocks feature standardized top toolbars matching Code Blocks (`px-3.5 py-2 bg-black/40 border-b border-white/5 rounded-t-2xl`). Image captions are protected against border clipping (`.editor-image-caption-input`). Block deletion handles all keyboard events (`Backspace`, `Delete`, `event.code`, `keyCode 8/46`, and mobile IME `beforeinput`).
+  8. **Online vs Offline Granular Feature Separation & Crash Prevention:**
+     - **Strict Online-Only Elements:** Exactly three `#` block items require internet: Picture & Image (`#picture`), PDF & Documents (`#pdf`), and External Drive Links (`#drive link`). All other blocks (`paragraph`, `h1`, `h2`, `h3`, `bullet`, `numbered`, `todo`, `quote`, `code`, `math`, `sticky`) and markdown shortcuts (`1. `, `- `, `* `, `[] `) work 100% offline without network restrictions or toasts.
+     - **Graceful Offline Interception:** Clicking online-only features while offline never corrupts notes or crashes the app: displays a localized toast ("আপনি বর্তমানে অফলাইনে আছেন। ...") and closes menus safely even under spam/rapid clicks.
+     - **Share Button Accessibility:** The note Share button in the header more-menu remains clickable offline; when tapped, it cleanly alerts the user with an offline notice instead of throwing or crashing.
+     - **`#` Deletion Safety:** Typing `#` and pressing Backspace cleanly clears the `#` character and dismisses the command menu, preserving the block structure without deleting the active block.
+     - **Dynamic Paragraph Placeholder:** Placeholders only display on single empty notes or the actively focused block, completely eliminating duplicate "Type # to add a block..." lines on Enter key presses.
+     - **Rapid-Click Debounce & Null Guards:** Note creation, note opening, and back navigation are debounced with `isTransitioningRef` and `isBackingOutRef`. Filter and text extraction methods contain comprehensive `typeof` and array guards against `undefined` note titles or blocks.
 - **Verified Status:** **VERIFIED**
 - **Known Problems:** None.
 - **Important Files:** `frontend/src/components/pages/WorkspacePage.tsx`, `frontend/src/components/workspace/BlockEditor.tsx`, `frontend/src/components/pages/NoteEditorView.tsx`, `frontend/src/app/globals.css`.
@@ -711,6 +718,19 @@ Focentia is an active, functional productivity suite built with Next.js 16 App R
   5. **Enhanced `handleNewChat`:** In `AIAgentPage.tsx`, `handleNewChat` resets the hook session, clears text input, resets speech transcript via `resetVoiceTranscript()`, resets textarea height, clears `appliedPayloadsRef`, and closes dropdown menus.
 - **Verified Status:** **VERIFIED** (Level 0 Scope Check clean; Next.js 16 Turbopack production build: 21/21 static & dynamic routes compiled with exit code 0; TypeScript typecheck 100% clean; `scripts/test_local_router.ts` 33/33 tests passed).
 - **Important Files:** `frontend/src/hooks/useAIAgent.ts`, `frontend/src/components/ai-agent/AIAgentPage.tsx`.
+
+---
+
+### Production-Ready Docker Infrastructure (October 24, 2026)
+- **Current Implementation:**
+  1. **Multi-Stage Frontend Container (`frontend/Dockerfile`):** Node.js 22 LTS Alpine multi-stage build. Stage 1 (`deps`) installs dependencies via `npm ci`. Stage 2 (`builder`) stamps PWA service worker cache via `stamp_sw.js` and executes `next build` (Next.js 16 App Router). Stage 3 (`runner`) drops privileges to unprivileged `nextjs:nodejs` (UID/GID 1001), serves on port 3000, and implements automated container healthchecks against `/api/health`.
+  2. **Multi-Stage Companion Backend Container (`backend/Dockerfile`):** Node.js 22 LTS Alpine multi-stage build. Stage 1 (`builder`) compiles TypeScript Express & WebSocket engine into `dist`. Stage 2 (`runner`) installs only production dependencies (`npm ci --omit=dev`), drops privileges to unprivileged `focentiauser:focentiagroup`, serves Express and WebSocket streaming on port 5000, and monitors health via `/health`.
+  3. **Unified Container Orchestration (`docker-compose.yml`):** Runs both `focentia-backend` and `focentia-frontend` on custom bridge network `focentia-network`. Frontend waits for healthy backend state via `condition: service_healthy`. Configures `restart: unless-stopped` and json-file log rotation (`max-size: 10m`, `max-file: 3`).
+  4. **Optional Production Nginx Reverse Proxy (`nginx/nginx.conf`, `docker-compose.prod.yml`):** Exposes port 80/443, handles WebSocket upgrade routing for `/api/ai/transcribe-stream`, routes `/backend/` to Express engine, and proxies root traffic to Next.js with gzip compression.
+  5. **Zero-Leak AI Secrets Management & Automated Sync:** `GEMINI_API_KEY`, Supabase credentials, and database keys consolidated safely into root `.env` via `scripts/sync_docker_env.js`. Comprehensive `.dockerignore` files prevent secret leakages.
+- **Verified Status:** **VERIFIED** (Live container execution verified on Docker Desktop: `focentia-backend` and `focentia-frontend` both running in `Up (healthy)` state; `curl http://localhost:5000/health` -> HTTP 200 `{ status: "ok" }`; `curl http://localhost:3000/api/health` -> HTTP 200 `{ status: "ok" }`; `curl -I http://localhost:3000` -> HTTP 200 OK HTML payload with Next.js security headers).
+- **Important Files:** `frontend/Dockerfile`, `backend/Dockerfile`, `docker-compose.yml`, `docker-compose.prod.yml`, `nginx/nginx.conf`, `.dockerignore`, `frontend/.dockerignore`, `backend/.dockerignore`, `.env.docker.example`, `scripts/sync_docker_env.js`.
+
 
 
 

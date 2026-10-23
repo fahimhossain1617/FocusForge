@@ -947,7 +947,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const addNote = useCallback((noteData: Omit<Note, 'id' | 'createdAt' | 'updatedAt'>): Note => {
     const newNote: Note = {
-      id: Date.now(),
+      id: Date.now() + Math.floor(Math.random() * 10000),
       title: noteData.title,
       blocks: noteData.blocks,
       category: noteData.category,

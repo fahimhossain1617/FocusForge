@@ -50,13 +50,19 @@ export default function NoteEditorView({
     if (!initialBlocks || initialBlocks.length === 0) {
       return [{ id: newId(), type: "paragraph", content: "" }];
     }
-    const filtered = initialBlocks.filter((b) => !(b.type === "paragraph" && b.content.trim() === "#"));
+    const filtered = initialBlocks.filter((b) => {
+      if (!b) return false;
+      const c = typeof b.content === "string" ? b.content.trim() : "";
+      return !(b.type === "paragraph" && c === "#");
+    });
     return filtered.length > 0 ? filtered : [{ id: newId(), type: "paragraph", content: "" }];
   }); 
   const [moreOpen, setMoreOpen] = useState(false); 
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [hasEditedInSession, setHasEditedInSession] = useState(false);
   const moreMenuRef = useRef<HTMLDivElement>(null);
+  const isBackingOutRef = useRef(false);
+  const isSharingRef = useRef(false);
 
   // Check if this note had any previous edits prior to this session
   const isPreviouslyEdited = React.useMemo(() => {
@@ -150,8 +156,17 @@ export default function NoteEditorView({
   };
 
   const goBack = () => { 
-    if (saveTimer.current) clearTimeout(saveTimer.current); 
-    onUpdate(title, blocks, category); 
+    if (isBackingOutRef.current) return;
+    isBackingOutRef.current = true;
+    if (saveTimer.current) {
+      clearTimeout(saveTimer.current); 
+      saveTimer.current = null;
+    }
+    try {
+      onUpdate(title, blocks, category); 
+    } catch (e) {
+      console.warn("Failed to update note on goBack:", e);
+    }
     onBack(); 
   };
 
@@ -180,31 +195,38 @@ export default function NoteEditorView({
   };
 
   const share = async () => { 
+    if (isSharingRef.current) return;
+    isSharingRef.current = true;
+    setTimeout(() => { isSharingRef.current = false; }, 800);
+
     if (!isOnline) {
       showToast(
         state.lang === 'bn'
-          ? "আপনি বর্তমানে অফলাইনে আছেন। নোট শেয়ার করার জন্য ইন্টারনেট প্রয়োজন।"
-          : "You are currently offline. Share requires internet.",
+          ? "আপনি বর্তমানে অফলাইনে আছেন। নোট শেয়ার করার জন্য ইন্টারনেট সংযোগ প্রয়োজন।"
+          : "You are currently offline. Note sharing requires an active internet connection.",
         'error'
       );
       setMoreOpen(false);
       return;
     }
 
-    const text = blocks
+    const text = (blocks || [])
       .map((block) => {
+        if (!block) return "";
         if (block.type === "image") return `[Image: ${block.caption || "Image"}]`;
         if (block.type === "file") return `[File: ${block.fileName || "Attachment"}]`;
         if (block.type === "link") return `[Link: ${block.linkTitle || block.url}](${block.url})`;
-        return block.content.replace(/<[^>]*>/g, "");
+        const raw = typeof block.content === "string" ? block.content : "";
+        return raw.replace(/<[^>]*>/g, "");
       })
+      .filter(Boolean)
       .join("\n"); 
 
     try { 
       if (navigator.share) {
         await navigator.share({ title: title || "Untitled note", text }); 
       } else { 
-        await navigator.clipboard.writeText(`${title}\n\n${text}`); 
+        await navigator.clipboard.writeText(`${title || ""}\n\n${text}`); 
         showToast(state.lang === 'bn' ? "নোট ক্লিপবোর্ডে কপি করা হয়েছে" : "Note copied to clipboard"); 
       } 
     } catch { 
@@ -218,8 +240,8 @@ export default function NoteEditorView({
     if (!isOnline) {
       showToast(
         state.lang === 'bn'
-          ? "আপনি বর্তমানে অফলাইনে আছেন।"
-          : "You are currently offline.",
+          ? "আপনি বর্তমানে অফলাইনে আছেন। ছবি বা ইমেজ আপলোডের জন্য ইন্টারনেট সংযোগ প্রয়োজন।"
+          : "You are currently offline. Image upload requires an active internet connection.",
         'error'
       );
       return;
@@ -233,8 +255,8 @@ export default function NoteEditorView({
     if (!isOnline) {
       showToast(
         state.lang === 'bn'
-          ? "আপনি বর্তমানে অফলাইনে আছেন।"
-          : "You are currently offline.",
+          ? "আপনি বর্তমানে অফলাইনে আছেন। ছবি বা ইমেজ আপলোডের জন্য ইন্টারনেট সংযোগ প্রয়োজন।"
+          : "You are currently offline. Image upload requires an active internet connection.",
         'error'
       );
       return;
@@ -256,7 +278,11 @@ export default function NoteEditorView({
     // If targetId was not matched, find a paragraph that is empty or contains '#'
     if (!replaced) {
       const candidateIdx = next.findIndex(
-        (b) => b.type === "paragraph" && (!b.content.trim() || /^#(file|pdf|doc|image|link)?$/i.test(b.content.trim()))
+        (b) => {
+          if (!b || b.type !== "paragraph") return false;
+          const trimmed = typeof b.content === "string" ? b.content.trim() : "";
+          return !trimmed || /^#(file|pdf|doc|image|link)?$/i.test(trimmed);
+        }
       );
       if (candidateIdx >= 0) {
         next[candidateIdx] = newMediaBlock;
@@ -268,9 +294,10 @@ export default function NoteEditorView({
 
     // Clean up any remaining stray blocks that contain only "#" or command triggers
     next = next.filter((b) => {
+      if (!b) return false;
       if (b.id === newMediaBlock.id) return true;
       if (b.type === "paragraph") {
-        const trimmed = b.content.trim();
+        const trimmed = typeof b.content === "string" ? b.content.trim() : "";
         if (trimmed === "#" || /^#(file|pdf|doc|image|link|p|h1|h2|h3|todo|code|math)$/i.test(trimmed)) {
           return false;
         }
@@ -334,8 +361,8 @@ export default function NoteEditorView({
     if (!isOnline) {
       showToast(
         state.lang === 'bn'
-          ? "আপনি বর্তমানে অফলাইনে আছেন।"
-          : "You are currently offline.",
+          ? "আপনি বর্তমানে অফলাইনে আছেন। ফাইল ও পিডিএফ আপলোডের জন্য ইন্টারনেট সংযোগ প্রয়োজন।"
+          : "You are currently offline. File & PDF upload requires an active internet connection.",
         'error'
       );
       return;
@@ -372,7 +399,30 @@ export default function NoteEditorView({
   };
 
   // ── External Link Handling ──
+  const handleTriggerLinkModal = (targetBlockId?: string) => {
+    if (!isOnline) {
+      showToast(
+        state.lang === 'bn'
+          ? "আপনি বর্তমানে অফলাইনে আছেন। ড্রাইভ ও এক্সটার্নাল লিঙ্কের জন্য ইন্টারনেট সংযোগ প্রয়োজন।"
+          : "You are currently offline. Drive & external links require an active internet connection.",
+        'error'
+      );
+      return;
+    }
+    targetBlockIdRef.current = targetBlockId || null;
+    setLinkModalOpen(true);
+  };
+
   const handleAddLink = (url: string, linkTitle?: string, linkDomain?: string) => {
+    if (!isOnline) {
+      showToast(
+        state.lang === 'bn'
+          ? "আপনি বর্তমানে অফলাইনে আছেন। ড্রাইভ ও এক্সটার্নাল লিঙ্কের জন্য ইন্টারনেট সংযোগ প্রয়োজন।"
+          : "You are currently offline. Drive & external links require an active internet connection.",
+        'error'
+      );
+      return;
+    }
     const linkBlock: NoteBlock = {
       id: newId(),
       type: "link",
@@ -555,18 +605,12 @@ export default function NoteEditorView({
                 <button 
                   type="button" 
                   onClick={share}
-                  disabled={!isOnline}
-                  className={!isOnline ? "opacity-50 cursor-not-allowed" : ""}
-                  title={!isOnline ? (isBn ? "ইন্টারনেট সংযোগ প্রয়োজন" : "Share requires an active internet connection.") : undefined}
                 >
                   <Share2 size={15} /> {isBn ? "নোট শেয়ার করুন" : "Share Note"}
                 </button>
                 <button 
                   type="button" 
                   onClick={handleDownloadPdf}
-                  disabled={!isOnline}
-                  className={!isOnline ? "opacity-50 cursor-not-allowed" : ""}
-                  title={!isOnline ? (isBn ? "ইন্টারনেট সংযোগ প্রয়োজন" : "PDF download requires an active internet connection.") : undefined}
                 >
                   <Download size={15} /> {isBn ? "PDF ডাউনলোড করুন" : "Download as PDF"}
                 </button>
@@ -684,10 +728,7 @@ export default function NoteEditorView({
             onDirty={() => {}}
             onTriggerImageUpload={handleImageUploadTrigger}
             onTriggerFileUpload={handleFileUploadTrigger}
-            onTriggerLinkModal={(targetBlockId) => {
-              targetBlockIdRef.current = targetBlockId || null;
-              setLinkModalOpen(true);
-            }}
+            onTriggerLinkModal={handleTriggerLinkModal}
             onReplaceImage={handleReplaceImage}
             onPreviewImage={(url) => setPreviewImageUrl(url)}
           />
