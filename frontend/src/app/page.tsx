@@ -88,6 +88,13 @@ export default function Home() {
     }
   }, []);
 
+  // Set tab document title strictly to Focentia
+  useEffect(() => {
+    if (typeof document !== "undefined") {
+      document.title = "Focentia";
+    }
+  }, []);
+
   // Signal app readiness once first real render mounts and data/auth are settled
   useEffect(() => {
     const frameId = requestAnimationFrame(() => {

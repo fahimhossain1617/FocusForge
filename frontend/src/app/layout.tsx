@@ -34,18 +34,18 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://focentia.app"),
   title: {
-    default: "Focentia — Personal External Brain & Deep Productivity",
+    default: "Focentia",
     template: "%s | Focentia",
   },
   description:
-    "A personal external brain. Capture thoughts, organize tasks, plan your day, focus deeply, and track where your time goes.",
+    "Capture thoughts, organize tasks, plan your day, focus deeply, and track where your time goes.",
   manifest: "/manifest.json",
   applicationName: "Focentia",
   alternates: {
     canonical: "/",
   },
   openGraph: {
-    title: "Focentia — Personal External Brain & Deep Productivity",
+    title: "Focentia",
     description:
       "Capture thoughts, organize tasks, plan your day, focus deeply, and master your time.",
     url: "https://focentia.app",
@@ -55,9 +55,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Focentia — Personal External Brain",
+    title: "Focentia",
     description:
-      "A personal external brain. Capture thoughts, organize tasks, plan your day, and focus deeply.",
+      "Capture thoughts, organize tasks, plan your day, and focus deeply.",
   },
   robots: {
     index: true,

@@ -5,7 +5,7 @@ import { AuthIcons } from "../../components/auth/AuthIcons";
 
 export const metadata: Metadata = {
   title: "Terms of Service",
-  description: "Review the Terms of Service for using Focentia productivity suite, personal external brain, and focus tools.",
+  description: "Review the Terms of Service for using Focentia productivity suite and focus tools.",
   alternates: {
     canonical: "/terms",
   },
