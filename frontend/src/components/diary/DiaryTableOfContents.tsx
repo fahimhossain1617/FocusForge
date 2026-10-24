@@ -39,10 +39,10 @@ export default function DiaryTableOfContents({
   // Filter topics based on search query
   const filteredTopics = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
-    if (!q) return topics;
+    if (!q) return topics || [];
 
-    return topics.filter((topic) => {
-      const matchTitle = topic.title.toLowerCase().includes(q);
+    return (topics || []).filter((topic) => {
+      const matchTitle = typeof topic?.title === "string" && topic.title.toLowerCase().includes(q);
       const matchEntries = topic.entries?.some((e) => 
         (e.title && e.title.toLowerCase().includes(q)) || 
         (e.content && e.content.toLowerCase().includes(q))

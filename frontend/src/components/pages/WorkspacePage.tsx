@@ -158,7 +158,7 @@ export default function WorkspacePage() {
               {isBn ? "নোটস ও ফাইলস" : "Notes & Files"}
             </h1>
             <span className="text-xs sm:text-sm font-semibold text-muted-foreground ml-1">
-              ({state.notes.length} {isBn ? "টি নোট" : (state.notes.length === 1 ? "note" : "notes")})
+              ({(state.notes || []).length} {isBn ? "টি নোট" : ((state.notes || []).length === 1 ? "note" : "notes")})
             </span>
           </div>
           <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 font-normal">

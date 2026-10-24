@@ -334,15 +334,15 @@ export default function LearningHubPage() {
   // Filter folders by search query
   const filteredFolders = useMemo(() => {
     const q = searchQuery.toLowerCase().trim();
-    if (!q) return state.learningFolders;
+    if (!q) return state.learningFolders || [];
 
-    return state.learningFolders.filter((folder) => {
-      if (folder.name.toLowerCase().includes(q)) return true;
-      const folderLogs = state.learningLogs.filter((l) => l.folderId === folder.id);
+    return (state.learningFolders || []).filter((folder) => {
+      if ((folder?.name || "").toLowerCase().includes(q)) return true;
+      const folderLogs = (state.learningLogs || []).filter((l) => l?.folderId === folder?.id);
       return folderLogs.some(
         (log) =>
-          log.topics.toLowerCase().includes(q) ||
-          log.practiceDetails.toLowerCase().includes(q)
+          (typeof log?.topics === "string" && log.topics.toLowerCase().includes(q)) ||
+          (typeof log?.practiceDetails === "string" && log.practiceDetails.toLowerCase().includes(q))
       );
     });
   }, [state.learningFolders, state.learningLogs, searchQuery]);
@@ -361,10 +361,10 @@ export default function LearningHubPage() {
       }
     >();
 
-    state.learningFolders.forEach((folder) => {
-      const logs = state.learningLogs.filter((l) => l.folderId === folder.id);
-      const watch = logs.reduce((sum, l) => sum + l.watchMinutes, 0);
-      const practice = logs.reduce((sum, l) => sum + l.practiceMinutes, 0);
+    (state.learningFolders || []).forEach((folder) => {
+      const logs = (state.learningLogs || []).filter((l) => l.folderId === folder.id);
+      const watch = logs.reduce((sum, l) => sum + (l.watchMinutes || 0), 0);
+      const practice = logs.reduce((sum, l) => sum + (l.practiceMinutes || 0), 0);
       const streak = getStreak(logs);
 
       // Collect unique topics
