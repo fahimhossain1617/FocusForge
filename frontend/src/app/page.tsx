@@ -45,6 +45,7 @@ import NotificationsPage from "../components/pages/NotificationsPage";
 import BottomNav from "../components/navigation/BottomNav";
 import MobileHeader from "../components/navigation/MobileHeader";
 import DiaryHome from "../components/diary/DiaryHome";
+import PageErrorBoundary from "../components/ui/PageErrorBoundary";
 
 const pageComponents: Record<string, React.ComponentType<{ onOpenSidebar?: () => void }>> = {
   today: DashboardPage,
@@ -169,7 +170,7 @@ export default function Home() {
 
   useEffect(() => {
     const root = document.documentElement;
-    const mode = state.theme.mode;
+    const mode = state.theme?.mode || "dark";
 
     const applyTheme = (isLight: boolean) => {
       root.dataset.theme = isLight ? "light" : "dark";
@@ -267,72 +268,84 @@ export default function Home() {
   const isLight = state.theme?.mode === "light";
 
   return (
-    <div className={`flex h-screen h-dvh max-h-screen max-h-dvh w-full overflow-hidden ${state.lang === 'bn' ? 'font-bengali' : ''} ${isLight ? 'bg-[#F3F7FC]' : 'bg-[#0A0E1A]'}`}>
-      <Sidebar 
-        isOpen={sidebarOpen} 
-        onClose={() => setSidebarOpen(false)} 
-        isCollapsed={sidebarCollapsed}
-        onToggleCollapse={handleToggleSidebarCollapse}
-      />
+    <PageErrorBoundary
+      fallbackPage={state.activePage}
+      onNavigateHome={() => navigateTo("today")}
+      lang={state.lang}
+    >
+      <div className={`flex h-screen h-dvh max-h-screen max-h-dvh w-full overflow-hidden ${state.lang === 'bn' ? 'font-bengali' : ''} ${isLight ? 'bg-[#F3F7FC]' : 'bg-[#0A0E1A]'}`}>
+        <Sidebar 
+          isOpen={sidebarOpen} 
+          onClose={() => setSidebarOpen(false)} 
+          isCollapsed={sidebarCollapsed}
+          onToggleCollapse={handleToggleSidebarCollapse}
+        />
 
-      {/* Main Content - Primary Viewport Scroll Container */}
-      <main className={`flex-1 ${sidebarCollapsed ? 'md:ml-[76px]' : 'md:ml-[260px]'} w-full min-w-0 h-full min-h-0 flex flex-col overflow-y-auto overflow-x-hidden transition-[margin] duration-200 ease-in-out`}>
-        {/* Mobile / Compact Header: [ App Icon ] FocusForge ... [ Bell ] */}
-        <MobileHeader />
+        {/* Main Content - Primary Viewport Scroll Container */}
+        <main className={`flex-1 ${sidebarCollapsed ? 'md:ml-[76px]' : 'md:ml-[260px]'} w-full min-w-0 h-full min-h-0 flex flex-col overflow-y-auto overflow-x-hidden transition-[margin] duration-200 ease-in-out`}>
+          {/* Mobile / Compact Header: [ App Icon ] FocusForge ... [ Bell ] */}
+          <MobileHeader />
 
 
-        {/* Page Content */}
-        <div className={`w-full min-w-0 ${
-          state.activePage === 'ai-agent'
-            ? 'flex-1 flex flex-col p-0 min-h-0 max-w-none w-full h-full overflow-hidden'
-            : state.activePage === 'planner'
-            ? 'flex-1 flex flex-col p-0 max-w-none pb-[calc(5rem+env(safe-area-inset-bottom,16px))] md:pb-0'
-            : state.activePage === 'today'
-            ? 'flex-1 px-3.5 sm:px-6 md:px-8 pt-3 sm:pt-4 md:pt-5 pb-[calc(4.5rem+env(safe-area-inset-bottom,16px))] md:pb-8 max-w-[1600px] mx-auto'
-            : 'flex-1 px-3.5 sm:px-6 md:px-8 pt-3 sm:pt-4 md:pt-5 pb-[calc(4.5rem+env(safe-area-inset-bottom,16px))] md:pb-10 max-w-7xl mx-auto'
-        }`}>
-          <Suspense fallback={<PageSkeleton page={state.activePage} />}>
-            {isPageLoading ? (
-              <div className={`app-page-transition ${state.activePage === 'ai-agent' ? 'flex-1 flex flex-col h-full' : ''}`} key={`loading-${state.activePage}`}>
-                <PageSkeleton page={state.activePage} />
-              </div>
-            ) : (
-              <div className={`app-page-transition ${state.activePage === 'ai-agent' ? 'flex-1 flex flex-col h-full' : ''}`} key={state.activePage}>
-                <ActivePage onOpenSidebar={() => setSidebarOpen(true)} />
-              </div>
-            )}
-          </Suspense>
-        </div>
-      </main>
+          {/* Page Content */}
+          <div className={`w-full min-w-0 ${
+            state.activePage === 'ai-agent'
+              ? 'flex-1 flex flex-col p-0 min-h-0 max-w-none w-full h-full overflow-hidden'
+              : state.activePage === 'planner'
+              ? 'flex-1 flex flex-col p-0 max-w-none pb-[calc(5rem+env(safe-area-inset-bottom,16px))] md:pb-0'
+              : state.activePage === 'today'
+              ? 'flex-1 px-3.5 sm:px-6 md:px-8 pt-3 sm:pt-4 md:pt-5 pb-[calc(4.5rem+env(safe-area-inset-bottom,16px))] md:pb-8 max-w-[1600px] mx-auto'
+              : 'flex-1 px-3.5 sm:px-6 md:px-8 pt-3 sm:pt-4 md:pt-5 pb-[calc(4.5rem+env(safe-area-inset-bottom,16px))] md:pb-10 max-w-7xl mx-auto'
+          }`}>
+            <Suspense fallback={<PageSkeleton page={state.activePage} />}>
+              {isPageLoading ? (
+                <div className={`app-page-transition ${state.activePage === 'ai-agent' ? 'flex-1 flex flex-col h-full' : ''}`} key={`loading-${state.activePage}`}>
+                  <PageSkeleton page={state.activePage} />
+                </div>
+              ) : (
+                <div className={`app-page-transition ${state.activePage === 'ai-agent' ? 'flex-1 flex flex-col h-full' : ''}`} key={state.activePage}>
+                  <PageErrorBoundary
+                    fallbackPage={state.activePage}
+                    onNavigateHome={() => navigateTo("today")}
+                    lang={state.lang}
+                  >
+                    <ActivePage onOpenSidebar={() => setSidebarOpen(true)} />
+                  </PageErrorBoundary>
+                </div>
+              )}
+            </Suspense>
+          </div>
+        </main>
 
-      {/* Responsive Mobile Bottom Navigation */}
-      <BottomNav />
+        {/* Responsive Mobile Bottom Navigation */}
+        <BottomNav />
 
-      {/* Global Components */}
-      <QuickCapture />
-      <Toast />
-      <NotificationBanner />
-      <NotificationPermissionPrompt
-        isOpen={showNotificationPermissionPrompt && !showOnboarding && launchDone}
-        onEnable={handleEnableNotificationPermission}
-        onLater={handleLaterNotificationPermission}
-      />
-      <AuthModal />
-      <AuthGuardModal />
+        {/* Global Components */}
+        <QuickCapture />
+        <Toast />
+        <NotificationBanner />
+        <NotificationPermissionPrompt
+          isOpen={showNotificationPermissionPrompt && !showOnboarding && launchDone}
+          onEnable={handleEnableNotificationPermission}
+          onLater={handleLaterNotificationPermission}
+        />
+        <AuthModal />
+        <AuthGuardModal />
 
-      {/* First-Time User Modern Minimal Onboarding */}
-      <OnboardingModal
-        isOpen={showOnboarding && launchDone}
-        onEnterApp={handleEnterAppFromOnboarding}
-      />
+        {/* First-Time User Modern Minimal Onboarding */}
+        <OnboardingModal
+          isOpen={showOnboarding && launchDone}
+          onEnterApp={handleEnterAppFromOnboarding}
+        />
 
-      {/* Smart Review & Feedback Modal */}
-      <ReviewModal
-        isOpen={showReviewModal && !showOnboarding && launchDone}
-        onClose={skipReview}
-        onSubmit={submitReview}
-        isSubmitting={isReviewSubmitting}
-      />
-    </div>
+        {/* Smart Review & Feedback Modal */}
+        <ReviewModal
+          isOpen={showReviewModal && !showOnboarding && launchDone}
+          onClose={skipReview}
+          onSubmit={submitReview}
+          isSubmitting={isReviewSubmitting}
+        />
+      </div>
+    </PageErrorBoundary>
   );
 }

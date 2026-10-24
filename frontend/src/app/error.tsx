@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { AlertTriangle, RefreshCcw, Home } from "lucide-react";
 
 export default function Error({
@@ -10,10 +10,82 @@ export default function Error({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const [isBn, setIsBn] = useState(false);
+
+  const isChunkLoadError = Boolean(
+    error?.name === "ChunkLoadError" ||
+    error?.message?.includes("Loading chunk") ||
+    error?.message?.includes("Failed to fetch") ||
+    error?.message?.includes("dynamically imported module") ||
+    error?.message?.includes("Unexpected token '<'") ||
+    error?.message?.includes("is not a valid JavaScript MIME type")
+  );
+
   useEffect(() => {
-    // Log the error to an error reporting service in a real production environment
     console.error("Unhandled App Error:", error);
-  }, [error]);
+
+    // Detect user's preferred language from local storage
+    try {
+      const savedLang = localStorage.getItem("focusforge_lang");
+      if (savedLang === "bn") {
+        setIsBn(true);
+      }
+    } catch {}
+
+    // Auto-recover from one-shot ChunkLoadError caused by fresh deployments
+    if (isChunkLoadError && typeof window !== "undefined") {
+      let alreadyAttempted: string | null = null;
+      try {
+        alreadyAttempted = sessionStorage.getItem("ff_chunk_recovery_attempted");
+      } catch {}
+
+      if (!alreadyAttempted) {
+        try {
+          sessionStorage.setItem("ff_chunk_recovery_attempted", "true");
+        } catch {}
+
+        if (typeof caches !== "undefined") {
+          caches.keys().then((keys) => {
+            return Promise.all(keys.map((k) => caches.delete(k)));
+          }).catch(() => {}).finally(() => {
+            window.location.reload();
+          });
+        } else {
+          window.location.reload();
+        }
+      }
+    }
+  }, [error, isChunkLoadError]);
+
+  const handleReloadApp = async () => {
+    try {
+      if (typeof window !== "undefined") {
+        try {
+          sessionStorage.removeItem("ff_chunk_recovery_attempted");
+        } catch {}
+
+        if (typeof caches !== "undefined") {
+          const keys = await caches.keys();
+          await Promise.all(keys.map((k) => caches.delete(k)));
+        }
+        if ("serviceWorker" in navigator) {
+          const registrations = await navigator.serviceWorker.getRegistrations();
+          for (const reg of registrations) {
+            await reg.update().catch(() => {});
+          }
+        }
+      }
+    } catch {}
+    window.location.href = `/?_t=${Date.now()}`;
+  };
+
+  const handleTryAgain = () => {
+    if (isChunkLoadError) {
+      handleReloadApp();
+    } else {
+      reset();
+    }
+  };
 
   return (
     <div className="min-h-screen bg-[#08090C] text-[#F8FAFC] flex flex-col items-center justify-center p-4 selection:bg-[#2563EB] selection:text-[#FFFFFF]">
@@ -35,15 +107,19 @@ export default function Error({
           <AlertTriangle className="w-7 h-7 text-red-400" />
         </div>
         
-        <h1 className="text-2xl font-bold tracking-tight mb-2 text-white">Something went wrong</h1>
+        <h1 className="text-2xl font-bold tracking-tight mb-2 text-white">
+          {isBn ? "একটি অপ্রত্যাশিত সমস্যা হয়েছে" : "Something went wrong"}
+        </h1>
         
         <p className="text-sm text-zinc-400 mb-8 leading-relaxed">
-          We encountered an unexpected error. Don't worry, your data is safe. You can try refreshing the page or returning home.
+          {isBn
+            ? "আমরা একটি অপ্রত্যাশিত ত্রুটির সম্মুখীন হয়েছি। চিন্তা করবেন না, আপনার ডেটা সুরক্ষিত আছে। পেজটি পুনরায় লোড করতে পারেন।"
+            : "We encountered an unexpected error. Don't worry, your data is safe. You can try refreshing the page or returning home."}
         </p>
 
         <div className="flex flex-col sm:flex-row gap-3 w-full">
           <button
-            onClick={() => reset()}
+            onClick={handleTryAgain}
             className="flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-medium text-sm text-white border transition-all cursor-pointer shadow-none hover:bg-white/5 active:scale-[0.98]"
             style={{
               background: "rgba(255, 255, 255, 0.04)",
@@ -51,16 +127,16 @@ export default function Error({
             }}
           >
             <RefreshCcw size={16} />
-            <span>Try again</span>
+            <span>{isBn ? "পুনরায় চেষ্টা করুন" : "Try again"}</span>
           </button>
           
           <button
-            onClick={() => { window.location.href = '/'; }}
-            className="flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-semibold text-sm text-white  transition-all hover:opacity-95 active:scale-[0.98]"
+            onClick={handleReloadApp}
+            className="flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-semibold text-sm text-white transition-all hover:opacity-95 active:scale-[0.98] cursor-pointer"
             style={{ background: "linear-gradient(135deg, #2563EB, #3B82F6)" }}
           >
             <Home size={16} />
-            <span>Reload App</span>
+            <span>{isBn ? "অ্যাপ রিলোড করুন" : "Reload App"}</span>
           </button>
         </div>
       </div>

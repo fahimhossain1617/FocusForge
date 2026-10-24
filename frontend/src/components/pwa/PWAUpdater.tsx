@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
-import { RefreshCw, X } from "lucide-react";
+import { RefreshCw } from "lucide-react";
 import { useAppContext } from "../../context/AppContext";
 
 // Module-level guard to prevent reload loops
@@ -65,6 +65,8 @@ export default function PWAUpdater() {
   const [waitingWorker, setWaitingWorker] = useState<ServiceWorker | null>(null);
   const [isUpdating, setIsUpdating] = useState<boolean>(false);
   const hadControllerRef = useRef<boolean>(false);
+  const touchStartY = useRef<number | null>(null);
+  const touchStartX = useRef<number | null>(null);
 
   // Safely read lang if AppContext is available
   let isBn = false;
@@ -115,6 +117,45 @@ export default function PWAUpdater() {
       }
     }, 1200);
   }, [waitingWorker]);
+
+  // Bind global update trigger for navbar access
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      (window as any).__focentia_trigger_pwa_update = handleRefresh;
+    }
+  }, [handleRefresh]);
+
+  // When waiting worker is found, notify navbar
+  useEffect(() => {
+    if (waitingWorker) {
+      if (typeof window !== "undefined") {
+        (window as any).__focentia_has_pwa_update = true;
+        window.dispatchEvent(new CustomEvent("focentia:pwa_update_ready", { detail: { hasUpdate: true } }));
+      }
+    }
+  }, [waitingWorker]);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0]?.clientX ?? null;
+    touchStartY.current = e.touches[0]?.clientY ?? null;
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartX.current === null || touchStartY.current === null) return;
+    const diffX = (e.changedTouches[0]?.clientX ?? 0) - touchStartX.current;
+    const diffY = (e.changedTouches[0]?.clientY ?? 0) - touchStartY.current;
+
+    // Swipe down (>40px) or swipe horizontally (>60px) dismisses the banner
+    if (diffY > 40 || Math.abs(diffX) > 60) {
+      setShowBanner(false);
+      if (typeof window !== "undefined") {
+        (window as any).__focentia_has_pwa_update = true;
+        window.dispatchEvent(new CustomEvent("focentia:pwa_update_ready", { detail: { hasUpdate: true } }));
+      }
+    }
+    touchStartX.current = null;
+    touchStartY.current = null;
+  };
 
   useEffect(() => {
     if (typeof window === "undefined" || !("serviceWorker" in navigator)) return;
@@ -267,7 +308,9 @@ export default function PWAUpdater() {
       role="status"
       aria-live="polite"
       aria-label="Application update available"
-      className="fixed bottom-20 sm:bottom-6 right-3 left-3 sm:left-auto sm:right-6 z-[999] pointer-events-auto select-none sm:w-[380px] max-w-[calc(100vw-1.5rem)] rounded-2xl bg-white/95 dark:bg-[#0c1322]/95 backdrop-blur-md border border-[#DCE5F0] dark:border-blue-500/30 text-[#1E293B] dark:text-white shadow-xl shadow-black/10 dark:shadow-black/40 p-3.5 transition-all animate-in fade-in slide-in-from-bottom-4 duration-300"
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+      className="fixed bottom-20 sm:bottom-6 right-3 left-3 sm:left-auto sm:right-6 z-[999] pointer-events-auto select-none sm:w-[380px] max-w-[calc(100vw-1.5rem)] rounded-2xl bg-white/95 dark:bg-[#0c1322]/95 backdrop-blur-md border border-[#DCE5F0] dark:border-blue-500/30 text-[#1E293B] dark:text-white shadow-xl shadow-black/10 dark:shadow-black/40 p-3.5 transition-all animate-in fade-in slide-in-from-bottom-4 duration-300 touch-pan-y"
     >
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2.5 min-w-0">
@@ -290,7 +333,7 @@ export default function PWAUpdater() {
             type="button"
             onClick={handleRefresh}
             disabled={isUpdating}
-            className="px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white text-xs font-semibold shadow-sm transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-60"
+            className="px-3.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white text-xs font-semibold shadow-sm transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-60"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${isUpdating ? "animate-spin" : ""}`} />
             <span>
@@ -302,14 +345,6 @@ export default function PWAUpdater() {
                 ? "রিফ্রেশ"
                 : "Refresh"}
             </span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setShowBanner(false)}
-            aria-label="Dismiss update banner"
-            className="p-1.5 rounded-xl text-[#94A3B8] hover:text-[#1E293B] dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-colors cursor-pointer"
-          >
-            <X className="w-4 h-4" />
           </button>
         </div>
       </div>

@@ -91,7 +91,7 @@ export default function BlockEditor({
   onPreviewImage
 }: BlockEditorProps) {
   const { isOnline, showToast, state } = useAppContext();
-  const [activeBlockIndex, setActiveBlockIndex] = useState<number | null>(0);
+  const [activeBlockIndex, setActiveBlockIndex] = useState<number | null>(null);
   const [menu, setMenu] = useState({ visible: false, index: -1, query: "", selected: 0 });
   const [colorToolbar, setColorToolbar] = useState<{ visible: boolean; index: number }>({ visible: false, index: -1 });
 
@@ -144,6 +144,8 @@ export default function BlockEditor({
     applyFocus();
     requestAnimationFrame(applyFocus);
     window.setTimeout(applyFocus, 25);
+    window.setTimeout(applyFocus, 75);
+    window.setTimeout(applyFocus, 150);
   };
 
   const insertAfter = (index: number, type: BlockType) => {
@@ -165,11 +167,14 @@ export default function BlockEditor({
       setActiveBlockIndex(0);
       return;
     }
-    const targetBlock = blocks[index - 1] || blocks[index + 1];
+    const prevBlock = index > 0 ? blocks[index - 1] : blocks[index + 1];
     onDirty();
     onChange(blocks.filter((_, i) => i !== index));
-    setActiveBlockIndex(Math.max(0, index - 1));
-    if (targetBlock) focus(targetBlock.id);
+    const nextActiveIndex = Math.max(0, index - 1);
+    setActiveBlockIndex(nextActiveIndex);
+    if (prevBlock) {
+      focus(prevBlock.id);
+    }
   };
 
   const duplicate = (index: number) => {
@@ -1434,12 +1439,24 @@ function EditorBlock({
       }
     };
 
+    const handleNativeKeyUp = (e: globalThis.KeyboardEvent) => {
+      const isBackspace = e.key === "Backspace" || e.code === "Backspace" || e.keyCode === 8;
+      const trimmed = (block.content || "").trim();
+      const isEmpty = !trimmed;
+      if (isBackspace && isEmpty && index > 0) {
+        e.preventDefault();
+        onDelete();
+      }
+    };
+
     el.addEventListener("beforeinput", handleNativeBeforeInput as EventListener);
     el.addEventListener("keydown", handleNativeKeyDown as EventListener);
+    el.addEventListener("keyup", handleNativeKeyUp as EventListener);
 
     return () => {
       el.removeEventListener("beforeinput", handleNativeBeforeInput as EventListener);
       el.removeEventListener("keydown", handleNativeKeyDown as EventListener);
+      el.removeEventListener("keyup", handleNativeKeyUp as EventListener);
     };
   }, [block.content, index, onDelete, onClearHash, onMergePrev]);
 
@@ -1765,13 +1782,11 @@ function EditorBlock({
 
   // ── Paragraph (default) ──
   const isBn = state?.lang === "bn";
-  const paragraphPlaceholder = blocksCount === 1
-    ? (isBn ? "একটি ব্লক যোগ করতে # টাইপ করুন, অথবা লেখা শুরু করুন..." : "Type # to add a block, or start writing...")
-    : (index === 0 && (!block.content || !block.content.trim()))
-      ? (isBn ? "নোট লেখা শুরু করুন..." : "Start writing or type #...")
-      : (isActive && (!block.content || !block.content.trim()))
-        ? (isBn ? "লিখুন বা # চাপুন..." : "Type # for blocks...")
-        : "";
+  const paragraphPlaceholder = (blocksCount === 1 || index === 0)
+    ? (isBn ? "নোট লেখা শুরু করুন বা ব্লক তৈরি করতে # চাপুন..." : "Start writing or type # for blocks...")
+    : (isActive && (!block.content || !block.content.trim()))
+      ? (isBn ? "ব্লক তৈরি করতে # চাপুন..." : "Type # for blocks...")
+      : "";
 
   return (
     <div className="editor-block editor-block--paragraph relative" onClick={onActivate}>

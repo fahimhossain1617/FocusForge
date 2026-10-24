@@ -16,7 +16,7 @@ export function useDailyPlan() {
 
   const userId = user?.id || null;
   const lang: "en" | "bn" = state.lang === "bn" ? "bn" : "en";
-  const prefs = state.notifPreferences;
+  const prefs = state.notifPreferences || ({} as any);
 
   // Helper: Check if user is in or approaching an active scheduled task window
   const isUserBusyWithTaskNearby = useCallback(() => {
@@ -65,11 +65,11 @@ export function useDailyPlan() {
   useEffect(() => {
     notificationService.setUserId(userId);
     notificationService.updateConfig({
-      dailyLimit: prefs.dailyLimit || 5,
-      quietHoursEnabled: prefs.quietHoursEnabled ?? true,
-      quietHoursStart: prefs.quietHoursStart || "22:00",
-      quietHoursEnd: prefs.quietHoursEnd || "07:00",
-      soundEnabled: prefs.soundEnabled ?? true,
+      dailyLimit: prefs?.dailyLimit || 5,
+      quietHoursEnabled: prefs?.quietHoursEnabled ?? true,
+      quietHoursStart: prefs?.quietHoursStart || "22:00",
+      quietHoursEnd: prefs?.quietHoursEnd || "07:00",
+      soundEnabled: prefs?.soundEnabled ?? true,
     });
   }, [userId, prefs]);
 
@@ -77,7 +77,7 @@ export function useDailyPlan() {
    * 1. Daily Morning Plan Notification
    */
   const checkDailyMorningPlan = useCallback(async () => {
-    if (!prefs.enabled || prefs.dailyMorningPlan === false) return;
+    if (!prefs?.enabled || prefs?.dailyMorningPlan === false) return;
     if (isNewUserShieldActive()) return;
 
     const todayStr = getLocalDateString();

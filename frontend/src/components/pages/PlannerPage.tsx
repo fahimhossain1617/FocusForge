@@ -47,13 +47,16 @@ export default function PlannerPage() {
   };
 
   const parseLocalDate = (dateStr: string): Date => {
-    const [y, m, d] = dateStr.split('-').map(Number);
-    return new Date(y, m - 1, d);
+    if (!dateStr || typeof dateStr !== "string") return new Date();
+    const parts = dateStr.split('-').map(Number);
+    if (parts.length < 3 || isNaN(parts[0]) || isNaN(parts[1]) || isNaN(parts[2])) {
+      return new Date();
+    }
+    return new Date(parts[0], parts[1] - 1, parts[2]);
   };
 
   const getWeekdayFromDate = (dateStr: string): Weekday => {
-    const [y, m, d] = dateStr.split('-').map(Number);
-    const date = new Date(y, m - 1, d);
+    const date = parseLocalDate(dateStr);
     const mapping: Weekday[] = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
     return mapping[date.getDay()] || 'monday';
   };
@@ -347,7 +350,7 @@ export default function PlannerPage() {
         });
       });
 
-      return combined.sort((a, b) => a.startTime.localeCompare(b.startTime));
+      return combined.sort((a, b) => (a.startTime || "").localeCompare(b.startTime || ""));
     };
   }, [state.tasks, state.timeBlocks]);
 

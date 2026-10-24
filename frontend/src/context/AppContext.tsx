@@ -308,10 +308,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const backup = (dexieBackup as AppState) || (guestData as AppState) || defaultState;
 
       // Format tasks with valid unique IDs
-      const rawTasks = tasksList.length > 0 ? tasksList : (backup.tasks || []);
+      const rawTasks = (tasksList && tasksList.length > 0 ? tasksList : (backup.tasks || [])).filter(Boolean);
       const seenIds = new Set<number>();
       const combinedTasks = rawTasks.map((t: any, index: number) => {
-        let taskId = t.id ? Number(t.id) : (Date.now() + index);
+        let taskId = t?.id ? Number(t.id) : (Date.now() + index);
         while (seenIds.has(taskId)) {
           taskId = taskId + 1 + Math.floor(Math.random() * 10000);
         }
@@ -319,7 +319,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         return {
           ...t,
           id: taskId,
-          status: t.status === 'pending' ? 'not_started' : t.status,
+          status: t.status === 'pending' ? 'not_started' : (t.status || 'not_started'),
           category: t.category || '',
           notes: t.notes || '',
           tier: t.tier || (t.priority === 'high' || t.priority === 'urgent' ? 'now' : t.priority === 'medium' ? 'next' : 'later'),
@@ -332,16 +332,21 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         ...backup,
         activePage: initialActivePage,
         tasks: combinedTasks,
-        notes: notesList.length > 0 ? notesList : (backup.notes || []),
-        mindItems: mindList.length > 0 ? mindList : (backup.mindItems || []),
-        diaryTopics: diaryTopicsList.length > 0 ? diaryTopicsList : (backup.diaryTopics || []),
-        focusSessions: focusList.length > 0 ? focusList : (backup.focusSessions || []),
-        learningFolders: learningData.folders.length > 0 ? learningData.folders : (backup.learningFolders || []),
-        learningLogs: learningData.logs.length > 0 ? learningData.logs : (backup.learningLogs || []),
-        routineTemplates: templatesList.length > 0 ? templatesList : (backup.routineTemplates || []),
-        notifPreferences: { ...defaultState.notifPreferences, ...(savedPrefs?.notifPreferences || backup.notifPreferences || {}) },
-        calendarPreferences: { ...defaultState.calendarPreferences, ...(savedPrefs?.calendarPreferences || backup.calendarPreferences || {}) },
-        theme: { ...defaultState.theme, ...(savedPrefs?.theme || backup.theme || {}) }
+        notes: (notesList && notesList.length > 0 ? notesList : (backup.notes || [])).filter(Boolean),
+        mindItems: (mindList && mindList.length > 0 ? mindList : (backup.mindItems || [])).filter(Boolean),
+        diaryTopics: (diaryTopicsList && diaryTopicsList.length > 0 ? diaryTopicsList : (backup.diaryTopics || [])).filter(Boolean),
+        focusSessions: (focusList && focusList.length > 0 ? focusList : (backup.focusSessions || [])).filter(Boolean),
+        learningFolders: (learningData?.folders && learningData.folders.length > 0 ? learningData.folders : (backup.learningFolders || [])).filter(Boolean),
+        learningLogs: (learningData?.logs && learningData.logs.length > 0 ? learningData.logs : (backup.learningLogs || [])).filter(Boolean),
+        routineTemplates: (templatesList && templatesList.length > 0 ? templatesList : (backup.routineTemplates || [])).filter(Boolean),
+        timeBlocks: (backup.timeBlocks || []).filter(Boolean),
+        activities: (backup.activities || []).filter(Boolean),
+        dailyBig3: (backup.dailyBig3 || []).filter(Boolean),
+        distractions: (backup.distractions || []).filter(Boolean),
+        categories: backup.categories && backup.categories.length > 0 ? backup.categories : [...defaultCategories],
+        notifPreferences: { ...defaultState.notifPreferences, ...(backup.notifPreferences || {}), ...(savedPrefs?.notifPreferences || {}) },
+        calendarPreferences: { ...defaultState.calendarPreferences, ...(backup.calendarPreferences || {}), ...(savedPrefs?.calendarPreferences || {}) },
+        theme: { ...defaultState.theme, ...(backup.theme || {}), ...(savedPrefs?.theme || {}) }
       };
 
       if (requestGenRef.current === generation && (activeUserIdRef.current === userId || (!activeUserIdRef.current && !userId))) {
@@ -785,7 +790,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     };
     setState((prev) => ({
       ...prev,
-      mindItems: [newItem, ...prev.mindItems],
+      mindItems: [newItem, ...(prev.mindItems || [])],
     }));
 
     trackMeaningfulAction('add_mind_thought');
@@ -800,7 +805,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const updateMindItem = useCallback((id: string, content: string) => {
     setState((prev) => ({
       ...prev,
-      mindItems: prev.mindItems.map((item) =>
+      mindItems: (prev.mindItems || []).map((item) =>
         item.id === id ? { ...item, content } : item
       ),
     }));
@@ -814,7 +819,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const deleteMindItem = useCallback((id: string) => {
     setState((prev) => ({
       ...prev,
-      mindItems: prev.mindItems.filter((item) => item.id !== id),
+      mindItems: (prev.mindItems || []).filter((item) => item.id !== id),
     }));
 
     const currentUserId = activeUserIdRef.current || 'guest';
@@ -855,7 +860,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
-    setState((prev) => ({ ...prev, tasks: [...prev.tasks, newTask] }));
+    setState((prev) => ({ ...prev, tasks: [...(prev.tasks || []), newTask] }));
     trackMeaningfulAction('create_task');
     const currentUserId = activeUserIdRef.current || 'guest';
     syncTaskToBackend(newTask, currentUserId).catch((err) => {
@@ -866,7 +871,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const updateTask = useCallback((id: number, updates: Partial<Task>) => {
     setState((prev) => ({
       ...prev,
-      tasks: prev.tasks.map((t) => {
+      tasks: (prev.tasks || []).map((t) => {
         if (t.id !== id) return t;
         const updated = { ...t, ...updates, updatedAt: new Date().toISOString() };
         if (updates.completed !== undefined) {
@@ -897,7 +902,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const numId = typeof id === 'number' ? id : parseInt(String(id), 10);
     setState((prev) => ({
       ...prev,
-      tasks: prev.tasks.filter((t) => String(t.id) !== String(id) && (!isNaN(numId) ? t.id !== numId : true)),
+      tasks: (prev.tasks || []).filter((t) => String(t.id) !== String(id) && (!isNaN(numId) ? t.id !== numId : true)),
     }));
     if (!isNaN(numId)) {
       const currentUserId = activeUserIdRef.current || 'guest';
@@ -907,13 +912,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const cycleTaskStatus = useCallback((id: number) => {
     const statusCycle: ('not_started' | 'in_progress' | 'completed')[] = ['not_started', 'in_progress', 'completed'];
-    const currentTask = state.tasks.find((t) => t.id === id);
+    const currentTask = (state.tasks || []).find((t) => t.id === id);
     const currentIdx = currentTask ? statusCycle.indexOf(currentTask.status) : -1;
     const nextStatus = statusCycle[(currentIdx + 1) % statusCycle.length];
 
     setState((prev) => ({
       ...prev,
-      tasks: prev.tasks.map((t) => {
+      tasks: (prev.tasks || []).map((t) => {
         if (t.id !== id) return t;
         return { ...t, status: nextStatus, completed: nextStatus === 'completed', updatedAt: new Date().toISOString() };
       }),
@@ -931,16 +936,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const setDailyBig3 = useCallback((taskIds: number[]) => {
     const today = todayStr();
     setState((prev) => {
-      const existing = prev.dailyBig3.filter((d) => d.date !== today);
+      const existing = (prev.dailyBig3 || []).filter((d) => d.date !== today);
       return { ...prev, dailyBig3: [...existing, { date: today, taskIds: taskIds.slice(0, 3) }] };
     });
   }, []);
 
   const getDailyBig3 = useCallback((): Task[] => {
     const today = todayStr();
-    const big3 = state.dailyBig3.find((d) => d.date === today);
+    const big3 = (state.dailyBig3 || []).find((d) => d.date === today);
     if (!big3) return [];
-    return big3.taskIds.map((id) => state.tasks.find((t) => t.id === id)).filter(Boolean) as Task[];
+    return (big3.taskIds || []).map((id) => (state.tasks || []).find((t) => t.id === id)).filter(Boolean) as Task[];
   }, [state.dailyBig3, state.tasks]);
 
   // ==================== Notes ====================
@@ -954,7 +959,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
-    setState((prev) => ({ ...prev, notes: [newNote, ...prev.notes] }));
+    setState((prev) => ({ ...prev, notes: [newNote, ...(prev.notes || [])] }));
 
     // Persist immediately to local database
     const currentUserId = activeUserIdRef.current || 'guest';
@@ -969,7 +974,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const updateNote = useCallback((id: number, updates: Partial<Note>) => {
     setState((prev) => ({
       ...prev,
-      notes: prev.notes.map((n) => (n.id === id ? { ...n, ...updates, updatedAt: new Date().toISOString() } : n)),
+      notes: (prev.notes || []).map((n) => (n.id === id ? { ...n, ...updates, updatedAt: new Date().toISOString() } : n)),
     }));
 
     const currentUserId = activeUserIdRef.current || 'guest';
@@ -981,7 +986,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const deleteNote = useCallback((id: number) => {
     setState((prev) => ({
       ...prev,
-      notes: prev.notes.filter((n) => n.id !== id),
+      notes: (prev.notes || []).filter((n) => n.id !== id),
     }));
 
     const currentUserId = activeUserIdRef.current || 'guest';
@@ -996,21 +1001,21 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const addTimeBlock = useCallback((block: Omit<TimeBlock, 'id'>) => {
     setState((prev) => ({
       ...prev,
-      timeBlocks: [...prev.timeBlocks, { ...block, id: generateId() }],
+      timeBlocks: [...(prev.timeBlocks || []), { ...block, id: generateId() }],
     }));
   }, []);
 
   const updateTimeBlock = useCallback((id: string, updates: Partial<TimeBlock>) => {
     setState((prev) => ({
       ...prev,
-      timeBlocks: prev.timeBlocks.map((b) => (b.id === id ? { ...b, ...updates } : b)),
+      timeBlocks: (prev.timeBlocks || []).map((b) => (b.id === id ? { ...b, ...updates } : b)),
     }));
   }, []);
 
   const deleteTimeBlock = useCallback((id: string | number) => {
     setState((prev) => ({
       ...prev,
-      timeBlocks: prev.timeBlocks.filter((b) => String(b.id) !== String(id)),
+      timeBlocks: (prev.timeBlocks || []).filter((b) => String(b.id) !== String(id)),
     }));
   }, []);
 
@@ -1250,8 +1255,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
         return {
           ...prev,
-          tasks: [...prev.tasks, ...newTasksToCreate],
-          timeBlocks: [...prev.timeBlocks, ...newBlocksToCreate],
+          tasks: [...(prev.tasks || []), ...newTasksToCreate],
+          timeBlocks: [...(prev.timeBlocks || []), ...newBlocksToCreate],
         };
       } else {
         if (skippedCount > 0) {
@@ -1373,8 +1378,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
         return {
           ...prev,
-          tasks: [...prev.tasks, ...newTasksToCreate],
-          timeBlocks: [...prev.timeBlocks, ...newBlocksToCreate],
+          tasks: [...(prev.tasks || []), ...newTasksToCreate],
+          timeBlocks: [...(prev.timeBlocks || []), ...newBlocksToCreate],
         };
       }
 
@@ -1403,7 +1408,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       distractions: [],
       completed: false,
     };
-    setState((prev) => ({ ...prev, focusSessions: [...prev.focusSessions, session] }));
+    setState((prev) => ({ ...prev, focusSessions: [...(prev.focusSessions || []), session] }));
 
     const currentUserId = activeUserIdRef.current || 'guest';
     // Async persist to Supabase & local DB
@@ -1416,14 +1421,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const endFocusSession = useCallback((sessionId: string, durationMinutes: number, completed: boolean = true, elapsedSeconds?: number) => {
     setState((prev) => {
-      const session = prev.focusSessions.find((s) => s.id === sessionId);
+      const session = (prev.focusSessions || []).find((s) => s.id === sessionId);
       if (!session) return prev;
 
       const endedAt = new Date().toISOString();
       const actualElapsedSecs = elapsedSeconds !== undefined
         ? elapsedSeconds
         : (session.elapsedSeconds || Math.round(durationMinutes * 60));
-      const updatedSessions = prev.focusSessions.map((s) =>
+      const updatedSessions = (prev.focusSessions || []).map((s) =>
         s.id === sessionId
           ? { ...s, endedAt, durationMinutes, completed, elapsedSeconds: actualElapsedSecs }
           : s
@@ -1432,7 +1437,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       return {
         ...prev,
         focusSessions: updatedSessions,
-        pomodoroSessions: completed ? prev.pomodoroSessions + 1 : prev.pomodoroSessions,
+        pomodoroSessions: completed ? (prev.pomodoroSessions || 0) + 1 : (prev.pomodoroSessions || 0),
       };
     });
 
@@ -1452,18 +1457,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     let targetSessionId = sessionId;
 
     setState((prev) => {
-      let updatedSessions = prev.focusSessions;
-      const foundSession = sessionId ? prev.focusSessions.find((s) => s.id === sessionId) : null;
+      let updatedSessions = prev.focusSessions || [];
+      const foundSession = sessionId ? updatedSessions.find((s) => s.id === sessionId) : null;
       if (foundSession) {
-        updatedSessions = prev.focusSessions.map((s) =>
+        updatedSessions = updatedSessions.map((s) =>
           s.id === sessionId ? { ...s, breakMinutes: (s.breakMinutes || 0) + breakMinutes } : s
         );
       } else {
-        const todaySessions = prev.focusSessions.filter((s) => s.date === today && s.sessionType !== 'timer');
+        const todaySessions = updatedSessions.filter((s) => s && s.date === today && s.sessionType !== 'timer');
         if (todaySessions.length > 0) {
           const lastSession = todaySessions[todaySessions.length - 1];
           targetSessionId = lastSession.id;
-          updatedSessions = prev.focusSessions.map((s) =>
+          updatedSessions = updatedSessions.map((s) =>
             s.id === lastSession.id ? { ...s, breakMinutes: (s.breakMinutes || 0) + breakMinutes } : s
           );
         } else {
@@ -1482,7 +1487,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             completed: true,
             sessionType: "focus",
           };
-          updatedSessions = [...prev.focusSessions, newBreakSession];
+          updatedSessions = [...updatedSessions, newBreakSession];
           focusDbService.saveFocusSession(newBreakSession, cleanUserId).catch(() => {});
         }
       }
@@ -1508,8 +1513,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     };
     setState((prev) => ({
       ...prev,
-      focusSessions: prev.focusSessions.map((s) =>
-        s.id === sessionId ? { ...s, distractions: [...s.distractions, entry] } : s
+      focusSessions: (prev.focusSessions || []).map((s) =>
+        s.id === sessionId ? { ...s, distractions: [...(s.distractions || []), entry] } : s
       ),
     }));
 
@@ -1526,7 +1531,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setState((prev) => ({
       ...prev,
       activities: [
-        ...prev.activities,
+        ...(prev.activities || []),
         {
           id: Date.now(),
           category,
@@ -1544,7 +1549,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const deleteActivity = useCallback((id: number) => {
     setState((prev) => ({
       ...prev,
-      activities: prev.activities.filter((a) => a.id !== id),
+      activities: (prev.activities || []).filter((a) => a.id !== id),
     }));
   }, []);
 
@@ -1560,7 +1565,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     };
     setState((prev) => ({
       ...prev,
-      learningFolders: [...prev.learningFolders, newFolder]
+      learningFolders: [...(prev.learningFolders || []), newFolder]
     }));
     trackMeaningfulAction('learning_folder');
     const targetUserId = activeUserIdRef.current || 'guest';
@@ -1571,8 +1576,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const deleteLearningFolder = useCallback((id: string) => {
     setState((prev) => ({
       ...prev,
-      learningFolders: prev.learningFolders.filter((f) => f.id !== id),
-      learningLogs: prev.learningLogs.filter((l) => l.folderId !== id),
+      learningFolders: (prev.learningFolders || []).filter((f) => f.id !== id),
+      learningLogs: (prev.learningLogs || []).filter((l) => l.folderId !== id),
     }));
     const targetUserId = activeUserIdRef.current || 'guest';
     learningDbService.deleteFolder(id, targetUserId);
@@ -1581,7 +1586,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const toggleLearningFolderCompletion = useCallback((id: string) => {
     let targetFolder: LearningFolder | undefined;
     setState((prev) => {
-      const updatedFolders = prev.learningFolders.map((f) => {
+      const updatedFolders = (prev.learningFolders || []).map((f) => {
         if (f.id === id) {
           targetFolder = { ...f, completed: !f.completed };
           return targetFolder;
@@ -1600,7 +1605,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const newLog: LearningLog = { ...log, id: generateId() };
     setState((prev) => ({
       ...prev,
-      learningLogs: [...prev.learningLogs, newLog]
+      learningLogs: [...(prev.learningLogs || []), newLog]
     }));
     const targetUserId = activeUserIdRef.current || 'guest';
     learningDbService.saveLog(newLog, targetUserId);
@@ -1609,7 +1614,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const deleteLearningLog = useCallback((id: string) => {
     setState((prev) => ({
       ...prev,
-      learningLogs: prev.learningLogs.filter((l) => l.id !== id)
+      learningLogs: (prev.learningLogs || []).filter((l) => l.id !== id)
     }));
     const targetUserId = activeUserIdRef.current || 'guest';
     learningDbService.deleteLog(id, targetUserId);

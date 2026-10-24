@@ -30,26 +30,27 @@ export default function NoteCard({ note, onEdit }: NoteCardProps) {
   }).format(getSafeDate(note.updatedAt, note.createdAt));
 
   // Dynamic counts based on actual note blocks & attachments
-  const textBlocks = (note.blocks || []).filter(
-    (b) => b.type !== "image" && b.type !== "file" && b.type !== "link"
+  const textBlocks = (note?.blocks || []).filter(
+    (b) => b && b.type !== "image" && b.type !== "file" && b.type !== "link"
   );
-  const mediaBlocks = (note.blocks || []).filter(
-    (b) => b.type === "image" || b.type === "file" || b.type === "link"
+  const mediaBlocks = (note?.blocks || []).filter(
+    (b) => b && (b.type === "image" || b.type === "file" || b.type === "link")
   );
-  const attachmentsCount = (note.attachments?.length || 0) + (note.links?.length || 0);
+  const attachmentsCount = (note?.attachments?.length || 0) + (note?.links?.length || 0);
   const totalFiles = mediaBlocks.length + attachmentsCount;
   const totalNotes = Math.max(1, textBlocks.length);
 
   // Extract first plain-text snippet for preview
   const previewSnippet = React.useMemo(() => {
-    if (!note.blocks || note.blocks.length === 0) return "";
+    if (!note?.blocks || !Array.isArray(note.blocks) || note.blocks.length === 0) return "";
     for (const block of note.blocks) {
+      if (!block) continue;
       if (block.type === "image" || block.type === "file" || block.type === "link") continue;
-      const raw = block.content ? block.content.replace(/<[^>]*>/g, "").trim() : "";
+      const raw = typeof block.content === "string" ? block.content.replace(/<[^>]*>/g, "").trim() : "";
       if (raw) return raw;
     }
     return "";
-  }, [note.blocks]);
+  }, [note?.blocks]);
 
   return (
     <article 

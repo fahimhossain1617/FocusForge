@@ -194,19 +194,33 @@ export default function NoteEditorView({
     }, 1000);
   };
 
+  const isMountedRef = useRef(true);
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => { isMountedRef.current = false; };
+  }, []);
+
   const share = async () => { 
     if (isSharingRef.current) return;
     isSharingRef.current = true;
-    setTimeout(() => { isSharingRef.current = false; }, 800);
+    setTimeout(() => { 
+      if (isMountedRef.current) {
+        isSharingRef.current = false; 
+      }
+    }, 800);
+
+    // Dismiss the more menu immediately so it does not conflict with native UI or back gestures
+    setMoreOpen(false);
 
     if (!isOnline) {
-      showToast(
-        state.lang === 'bn'
-          ? "আপনি বর্তমানে অফলাইনে আছেন। নোট শেয়ার করার জন্য ইন্টারনেট সংযোগ প্রয়োজন।"
-          : "You are currently offline. Note sharing requires an active internet connection.",
-        'error'
-      );
-      setMoreOpen(false);
+      if (isMountedRef.current) {
+        showToast(
+          state.lang === 'bn'
+            ? "আপনি বর্তমানে অফলাইনে আছেন। নোট শেয়ার করার জন্য ইন্টারনেট সংযোগ প্রয়োজন।"
+            : "You are currently offline. Note sharing requires an active internet connection.",
+          'error'
+        );
+      }
       return;
     }
 
@@ -222,17 +236,47 @@ export default function NoteEditorView({
       .filter(Boolean)
       .join("\n"); 
 
+    const shareTitle = (title && title.trim()) ? title.trim() : (state.lang === 'bn' ? "নোট" : "Untitled note");
+    const shareData = {
+      title: shareTitle,
+      text: text || " ",
+    };
+
     try { 
-      if (navigator.share) {
-        await navigator.share({ title: title || "Untitled note", text }); 
-      } else { 
-        await navigator.clipboard.writeText(`${title || ""}\n\n${text}`); 
-        showToast(state.lang === 'bn' ? "নোট ক্লিপবোর্ডে কপি করা হয়েছে" : "Note copied to clipboard"); 
+      if (typeof navigator !== "undefined" && typeof navigator.share === "function") {
+        if (typeof navigator.canShare === "function") {
+          if (navigator.canShare(shareData)) {
+            await navigator.share(shareData);
+          } else if (navigator.clipboard) {
+            await navigator.clipboard.writeText(`${shareTitle}\n\n${text}`); 
+            if (isMountedRef.current) {
+              showToast(state.lang === 'bn' ? "নোট ক্লিপবোর্ডে কপি করা হয়েছে" : "Note copied to clipboard"); 
+            }
+          }
+        } else {
+          await navigator.share(shareData);
+        }
+      } else if (typeof navigator !== "undefined" && navigator.clipboard) { 
+        await navigator.clipboard.writeText(`${shareTitle}\n\n${text}`); 
+        if (isMountedRef.current) {
+          showToast(state.lang === 'bn' ? "নোট ক্লিপবোর্ডে কপি করা হয়েছে" : "Note copied to clipboard"); 
+        }
       } 
-    } catch { 
-      /* User cancelled sharing. */ 
+    } catch (err: any) { 
+      // AbortError is cleanly thrown if user cancels or backs out of native share sheet
+      if (err?.name === "AbortError" || err?.message?.includes("abort") || err?.message?.includes("cancel")) {
+        return;
+      }
+      // Fallback to clipboard if sharing failed due to technical constraints
+      try {
+        if (typeof navigator !== "undefined" && navigator.clipboard) {
+          await navigator.clipboard.writeText(`${shareTitle}\n\n${text}`);
+          if (isMountedRef.current) {
+            showToast(state.lang === 'bn' ? "নোট ক্লিপবোর্ডে কপি করা হয়েছে" : "Note copied to clipboard");
+          }
+        }
+      } catch {}
     } 
-    setMoreOpen(false); 
   };
 
   // ── Image Handling ──

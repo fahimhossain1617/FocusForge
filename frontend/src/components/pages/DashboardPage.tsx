@@ -166,10 +166,10 @@ export default function DashboardPage() {
         const sDate = getSessionLocalDate(s);
         return sDate === fullDate;
       });
-      const pomodoroSessions = daySessions.filter((s) => s.sessionType !== "timer" && s.category !== "Timer");
-      const totalFocusMins = pomodoroSessions.reduce((acc, s) => acc + (s.durationMinutes || 0), 0);
-      const breakMins = daySessions.reduce((acc, s) => acc + (s.breakMinutes || 0), 0);
-      const distractionsCount = daySessions.reduce((acc, s) => acc + (Array.isArray(s.distractions) ? s.distractions.length : 0), 0);
+      const pomodoroSessions = daySessions.filter((s) => s && s.sessionType !== "timer" && s.category !== "Timer");
+      const totalFocusMins = pomodoroSessions.reduce((acc, s) => acc + (s?.durationMinutes || 0), 0);
+      const breakMins = daySessions.reduce((acc, s) => acc + (s?.breakMinutes || 0), 0);
+      const distractionsCount = daySessions.reduce((acc, s) => acc + (s && Array.isArray(s.distractions) ? s.distractions.length : 0), 0);
 
       // Calculate real tasks for this day
       const dayTasks = (state.tasks || []).filter((t) => t.targetDate === fullDate || t.date === fullDate);
@@ -348,13 +348,13 @@ export default function DashboardPage() {
       ];
 
       // Exclude completed skills completely
-      const activeFolders = state.learningFolders.filter((folder) => !folder.completed);
+      const activeFolders = (state.learningFolders || []).filter((folder) => folder && !folder.completed);
 
       return activeFolders.map((folder, idx) => {
         const pal = iconPalette[idx % iconPalette.length];
-        const logs = (state.learningLogs || []).filter((l) => l.folderId === folder.id);
-        const totalMinutes = logs.reduce((acc, l) => acc + l.watchMinutes + l.practiceMinutes, 0);
-        const progress = Math.min(95, Math.round(totalMinutes / 12));
+        const logs = (state.learningLogs || []).filter((l) => l && l.folderId === folder.id);
+        const totalMinutes = logs.reduce((acc, l) => acc + (l?.watchMinutes || 0) + (l?.practiceMinutes || 0), 0);
+        const progress = Math.min(95, Math.round((totalMinutes || 0) / 12));
 
         return {
           id: folder.id,

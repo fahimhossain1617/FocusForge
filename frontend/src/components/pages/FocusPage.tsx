@@ -215,12 +215,14 @@ export default function FocusPage() {
     setIsDeepFocus(false);
     setSessionPhase("break_selection");
 
-    confetti({
-      particleCount: 160,
-      spread: 90,
-      origin: { y: 0.6 },
-      colors: ["#3B82F6", "#60A5FA", "#9333ea", "#ffffff", "#10b981", "#FFD700"],
-    });
+    try {
+      confetti({
+        particleCount: 160,
+        spread: 90,
+        origin: { y: 0.6 },
+        colors: ["#3B82F6", "#60A5FA", "#9333ea", "#ffffff", "#10b981", "#FFD700"],
+      });
+    } catch {}
 
     showToast(
       t.focus.sessionCompletedToast ||
@@ -236,12 +238,14 @@ export default function FocusPage() {
     addBreakTime(duration, lastCompletedSessionIdRef.current || undefined);
     setSessionPhase("break_completed");
 
-    confetti({
-      particleCount: 100,
-      spread: 70,
-      origin: { y: 0.6 },
-      colors: ["#10b981", "#34d399", "#6ee7b7", "#ffffff", "#3B82F6"],
-    });
+    try {
+      confetti({
+        particleCount: 100,
+        spread: 70,
+        origin: { y: 0.6 },
+        colors: ["#10b981", "#34d399", "#6ee7b7", "#ffffff", "#3B82F6"],
+      });
+    } catch {}
 
     showToast(
       t.focus.breakCompletedToast ||

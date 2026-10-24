@@ -96,8 +96,8 @@ export default function MindHome({ navigate, setActiveThoughtId }: MindHomeProps
   // - Gracefully fall back to most recent available thoughts if none from last 2 days
   // - Never exceeds 6 cards
   const sortedThoughts = useMemo(() => {
-    return [...state.mindItems].sort(
-      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    return [...(state.mindItems || [])].filter(Boolean).sort(
+      (a, b) => new Date(b?.createdAt || 0).getTime() - new Date(a?.createdAt || 0).getTime()
     );
   }, [state.mindItems]);
 

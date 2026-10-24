@@ -20,7 +20,7 @@ export default function ThoughtDetail({ thoughtId, navigate, previousView }: Tho
   const { state, updateMindItem, deleteMindItem, showToast } = useAppContext();
   const { t, lang } = useTranslation();
   
-  const thought = state.mindItems.find(item => item.id === thoughtId);
+  const thought = (state.mindItems || []).find(item => item && item.id === thoughtId);
   
   const [content, setContent] = useState(thought?.content || "");
   const [isFocused, setIsFocused] = useState(false);

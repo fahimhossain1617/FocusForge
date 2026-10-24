@@ -2037,5 +2037,79 @@
   - Level 3 Automated Tests: `node scripts/test_notification_pipeline.js` passed (19/19 tests), `node scripts/audit_notification_system.js` passed (33/33 tests).
 - **Status:** **VERIFIED**
 
+---
+
+## ADR-051: Note Block Editor Formatting, Unhandled Component Crash Isolation & PWA Navbar Update Trigger
+
+- **Date:** October 24, 2026
+- **Status:** Accepted
+- **Context:**
+  1. Block Editor Note Writing formatting:
+     - The first line placeholder did not provide clear initial guidance ("Start writing or type # for blocks..."), and subsequent lines did not display "Type # for blocks...".
+     - On mobile touch screens, the '+' action button remained sticky on inactive lines above because touch events triggered CSS `:hover` states without clearing them.
+     - On mobile soft keyboards (e.g. Android Gboard), pressing Backspace on an empty block produced `keyCode: 229` / `Unidentified` in `keydown`, preventing the empty block from deleting and jumping focus back to the previous line.
+  2. Crash Prevention ("Something went wrong, Try again, Reload"):
+     - In `NoteEditorView.tsx`, triggering "Share Note" without checking `navigator.canShare` or when the user cancelled/aborted or rapidly navigated away caused unhandled promise rejections and state updates on unmounted components.
+     - In `NoteCard.tsx`, if any block was null or corrupted, accessing `block.type` threw unhandled TypeError.
+     - In `app/page.tsx`, Next.js lacked a page-level error boundary wrapping `<ActivePage />`. Any runtime render error escalated to Next.js's full-screen `error.tsx`, presenting the dreaded "Something went wrong" screen and resetting the entire application shell.
+  3. PWA Update Prompt & Persistent Mobile Navbar Trigger:
+     - The PWA update banner contained an 'X' close button that allowed users to permanently discard updates without any persistent way to re-trigger them later.
+     - Users needed touch swipe dismissal for the banner while keeping a persistent update trigger available in the mobile top navigation bar (`MobileHeader`), so they could update on demand at any time without being forced into an un-dismissible popup.
+- **Decision:**
+  1. **Block Editor Refinements (`BlockEditor.tsx`, `globals.css`):**
+     - Dynamic placeholders: `blocksCount === 1` / index 0 displays *"Start writing or type # for blocks..."*, subsequent empty active lines display *"Type # for blocks..."*.
+     - Initial `activeBlockIndex` defaults to `null` to prevent pre-showing the '+' button on page load.
+     - Mobile touch hover isolation: Wrapped `.editor-block:hover .block-action-trigger` in `@media (hover: hover) and (pointer: fine)`. Touch devices only display the '+' trigger when the block has the active `.is-active` class.
+     - Backspace/Delete keyup listener for mobile: Added `keyup` handler catching `key === "Backspace" || keyCode === 8` when input is empty and `index > 0`, triggering `onDelete()` with multi-frame requestAnimationFrame focus transfer to the previous block.
+  2. **Page-Level Error Boundary & Crash Isolation (`PageErrorBoundary.tsx`, `app/page.tsx`, `NoteEditorView.tsx`, `NoteCard.tsx`):**
+     - Implemented `PageErrorBoundary` wrapping `<ActivePage />` in `app/page.tsx`. If an unexpected error occurs inside any individual page component, it is trapped locally with an inline retry/home card, keeping the Navbar, Header, Sidebar, and background sync healthy and un-crashed.
+     - In `NoteEditorView.tsx`, added `isMountedRef` lifecycle guard, early menu closure, `navigator.canShare` check, clipboard fallback, and graceful `AbortError` catch.
+     - In `NoteCard.tsx`, added null guards (`b && b.type`) and preview snippet loop guards.
+  3. **PWA Update Event & Header Button (`PWAUpdater.tsx`, `MobileHeader.tsx`):**
+     - Removed the 'X' button from `PWAUpdater`. Added touch swipe-to-dismiss (`onTouchStart`/`onTouchEnd`).
+     - Exposed window update handler `(window as any).__focentia_trigger_pwa_update` and dispatched `focentia:pwa_update_ready`.
+     - Added dedicated Update action button (`RefreshCw` with live badge and tooltip) in `MobileHeader` whenever an update is waiting. Tapping triggers update and reload immediately.
+- **Verification:**
+  - Level 0 Scope Check: Passed.
+  - Level 1 Static Check: TypeScript `tsc --noEmit` clean with 0 errors.
+  - Level 2 Build: `npm run build` on `frontend` and `backend` passed with Exit Code 0 (all 21 routes compiled).
+- **Status:** **VERIFIED**
+
+---
+
+## ADR-052: Comprehensive Application Stability, Root-Cause Crash Prevention, Dual-Layer Error Boundaries & PWA Deployment Chunk Recovery
+
+- **Date:** October 24, 2026
+- **Status:** Accepted
+- **Context:**
+  - The application occasionally crashed and displayed the global Next.js error screen: *"Something went wrong / We encountered an unexpected error / Don't worry, your data is safe / [Try again] / [Reload App]"* on mobile PWA and desktop.
+  - Investigation identified multiple contributing root causes:
+    1. **PWA ChunkLoadError after Deployments:** When a new release is deployed on Vercel, previous HTML cached by PWA service workers references purged Next.js chunk hashes (`/_next/static/chunks/*.js`). Clicking "Try again" called Next.js `reset()` which failed again; clicking "Reload App" reloaded the same cached HTML, trapping users in an infinite crash loop.
+    2. **Single-Point Error Boundary Escape:** `app/page.tsx` previously only wrapped `<ActivePage />`. Any exception in `useDailyPlan`, `MobileHeader`, `BottomNav`, `Sidebar`, modals, or during `isPageLoading` escalated directly to `app/error.tsx`, unmounting the entire application shell.
+    3. **Collection Spread Operators on Uninitialized State:** In `AppContext.tsx`, state mutators used `[newNote, ...prev.notes]`, `[...prev.timeBlocks]`, `[...prev.mindItems]`, etc., which threw `TypeError: not iterable` when IndexedDB stores returned missing or corrupted keys.
+    4. **Date Parsing RangeError:** In `PlannerPage.tsx` and `CalendarWidget.tsx`, `split('-').map(Number)` on empty or malformed strings produced `NaN` dates, causing `.toLocaleDateString()` and array allocations to throw fatal `RangeError: Invalid time value` / `Invalid array length`.
+    5. **Native Unhandled Rejections on Abort:** When users cancelled native sharing dialogs (`navigator.share`) or clipboard permissions, browsers fired `AbortError` / `NotAllowedError` rejections that propagated uncaught to the root.
+    6. **Double-Click & Concurrency Races:** Auth forms in `AuthModal.tsx` lacked submission disabling, allowing rapid clicks to trigger parallel API requests. `AIAgentPage.tsx` lacked concurrency guards during active AI thinking/typing.
+    7. **HTTP 204 Empty Body SyntaxError:** `apiClient.ts` attempted to call `response.json()` on 204 No Content and empty responses, throwing unhandled JSON parse exceptions.
+- **Decision:**
+  - Implemented multi-layered defensive stabilization:
+    1. **`app/error.tsx` & `app/global-error.tsx`:** Added `isChunkLoadError` detection, automatic cache purging, one-shot safe cache-busting reload (`sessionStorage.getItem('ff_chunk_recovery_attempted')`), and bilingual (Bengali/English) user recovery UI.
+    2. **Outer `PageErrorBoundary` in `app/page.tsx`:** Wrapped the entire App Shell layout with `PageErrorBoundary` in addition to the inner page boundary, ensuring component errors never escalate to the root error screen.
+    3. **State Assembly & Mutator Hardening in `AppContext.tsx`:** Sanitized `assembledState` in `loadUserData` with truthy filtering and explicit default fallbacks across 15+ domains. Hardened 20+ state mutators with `(prev.xxx || [])` null safety.
+    4. **`useDailyPlan.ts`:** Guarded `state.notifPreferences` against undefined reads during hydration.
+    5. **Safe Date Parsing:** Hardened `PlannerPage.tsx` and `CalendarWidget.tsx` with date validation and timeout cleanup on unmount.
+    6. **Safe Mind & Dashboard Data Rendering:** Guarded `MindHome.tsx`, `ThoughtDetail.tsx`, `ReviewAll.tsx`, and `DashboardPage.tsx` against null arrays and coerced `NaN` metrics.
+    7. **Focus Confetti Protection:** Wrapped `FocusPage.tsx` confetti calls in `try/catch`.
+    8. **API Client HTTP 204 & Empty Response Safety:** Gracefully handled 204 No Content, text, and empty responses in `apiClient.ts`.
+    9. **Double-Click & Concurrency Guards:** Added `if (isLoading) return;` across 8 handlers in `AuthModal.tsx` and `if (isThinking || isTyping) return;` in `AIAgentPage.tsx`.
+    10. **Global Unhandled Rejection Absorption (`clientDevFixes.ts`):** Installed root `unhandledrejection` listener absorbing benign `AbortError` / `NotAllowedError` and intercepting one-shot chunk load recovery.
+- **Verification:**
+  - Level 0 Scope Check: Passed. Only targeted stability files modified; zero design, styling, or AI prompt changes.
+  - Level 1 Static Check: TypeScript `tsc --noEmit` clean with 0 errors.
+  - Level 2 Build: `npm run build --prefix frontend` passed with Exit Code 0 (all 21 static/dynamic pages compiled).
+  - Level 3 Automated Tests: 33/33 tests passed in local router test suite.
+- **Status:** **VERIFIED**
+
+
 
 

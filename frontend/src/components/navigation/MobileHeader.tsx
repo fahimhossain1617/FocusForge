@@ -16,6 +16,7 @@ import {
   ChevronRight,
   Moon,
   Sun,
+  RefreshCw,
 } from "lucide-react";
 import { toggleThemeWithCircularTransition } from "../../utils/themeTransition";
 import InstallPrompt from "../pwa/InstallPrompt";
@@ -27,6 +28,29 @@ export default function MobileHeader() {
   const { hasUnread, unreadCount } = useNotificationCenter();
 
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [hasPwaUpdate, setHasPwaUpdate] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    return Boolean((window as any).__focentia_has_pwa_update);
+  });
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const handleUpdateReady = () => {
+      setHasPwaUpdate(true);
+    };
+    window.addEventListener("focentia:pwa_update_ready", handleUpdateReady);
+    return () => {
+      window.removeEventListener("focentia:pwa_update_ready", handleUpdateReady);
+    };
+  }, []);
+
+  const handleTriggerPwaUpdate = () => {
+    if (typeof window !== "undefined" && typeof (window as any).__focentia_trigger_pwa_update === "function") {
+      (window as any).__focentia_trigger_pwa_update();
+    } else {
+      window.location.reload();
+    }
+  };
 
   const menuRef = useRef<HTMLDivElement>(null);
   const menuBtnRef = useRef<HTMLButtonElement>(null);
@@ -142,6 +166,23 @@ export default function MobileHeader() {
 
           {/* Get App PWA Button (Visible only when not installed / web browser) */}
           <InstallPrompt variant="header" />
+
+          {/* PWA Update Navbar Button (Visible when update is ready) */}
+          {hasPwaUpdate && (
+            <button
+              type="button"
+              onClick={handleTriggerPwaUpdate}
+              className="relative w-10 h-10 min-w-[40px] min-h-[40px] rounded-xl flex items-center justify-center transition-all cursor-pointer text-blue-600 dark:text-blue-400 bg-blue-500/10 hover:bg-blue-500/20 active:scale-95 border border-blue-500/30"
+              aria-label={isBn ? "অ্যাপ আপডেট করুন" : "Update application"}
+              title={isBn ? "নতুন ভার্সনে আপডেট করুন" : "Update to latest version"}
+            >
+              <RefreshCw size={19} strokeWidth={2.2} className="animate-spin text-blue-600 dark:text-blue-400" style={{ animationDuration: "3.5s" }} />
+              <span className="absolute top-1.5 right-1.5 flex h-2.5 w-2.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-600 dark:bg-blue-400" />
+              </span>
+            </button>
+          )}
 
           {/* Theme Quick Toggle Button (Clean unboxed icon matching theme) */}
           <button

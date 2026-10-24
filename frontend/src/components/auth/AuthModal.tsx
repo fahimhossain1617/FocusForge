@@ -174,22 +174,29 @@ export default function AuthModal() {
 
   // Action: Handle Google Sign-in with local error state
   const handleGoogleLogin = async () => {
+    if (isLoading) return;
     setErrorMessage(null);
     if (!isOnline) {
       setErrorMessage(offlineAuthMsg);
       return;
     }
     setIsLoading(true);
-    const success = await loginWithGoogle();
-    setIsLoading(false);
-    if (!success) {
-      setErrorMessage("Google login is currently unavailable. Please log in directly with your email and password.");
+    try {
+      const success = await loginWithGoogle();
+      if (!success) {
+        setErrorMessage("Google login is currently unavailable. Please log in directly with your email and password.");
+      }
+    } catch (err: any) {
+      setErrorMessage(err?.message || "Google login failed. Please try again or use email and password.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
   // Action: Submit Password and Register / Direct Login
   const handleSubmitPasswordAndSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isLoading) return;
     setErrorMessage(null);
 
     if (!isOnline) {
@@ -211,58 +218,67 @@ export default function AuthModal() {
     setOtpPurpose('signup');
     setIsOtpExpired(false);
 
-    const res = await authService.createAccount(cleanEmail, password, rememberMe);
+    try {
+      const res = await authService.createAccount(cleanEmail, password, rememberMe);
 
-    if (!res.success) {
+      if (!res.success) {
+        setErrorMessage(res.error || "Failed to create account. Please try again.");
+        return;
+      }
+
+      // 1. If Supabase already returned an active session, log in directly!
+      if (res.session && res.user) {
+        onAuthSuccess(res.user, true);
+        return;
+      }
+
+      // 2. Direct sign-in attempt (auto-confirm trigger allows immediate login)
+      const directLogin = await authService.validateCredentials(cleanEmail, password, rememberMe);
+      if (directLogin.success && directLogin.user) {
+        onAuthSuccess(directLogin.user, true);
+        return;
+      }
+
+      // 3. Fallback to verification view if email confirmation is strictly pending
+      setResendTimer(30);
+      setCanResend(false);
+      setOtpDigits(["", "", "", "", "", ""]);
+      setAuthView('otp');
+    } catch (err: any) {
+      setErrorMessage(err?.message || "Failed to create account. Please check your connection and try again.");
+    } finally {
       setIsLoading(false);
-      setErrorMessage(res.error || "Failed to create account. Please try again.");
-      return;
     }
-
-    // 1. If Supabase already returned an active session, log in directly!
-    if (res.session && res.user) {
-      setIsLoading(false);
-      onAuthSuccess(res.user, true);
-      return;
-    }
-
-    // 2. Direct sign-in attempt (auto-confirm trigger allows immediate login)
-    const directLogin = await authService.validateCredentials(cleanEmail, password, rememberMe);
-    if (directLogin.success && directLogin.user) {
-      setIsLoading(false);
-      onAuthSuccess(directLogin.user, true);
-      return;
-    }
-
-    // 3. Fallback to verification view if email confirmation is strictly pending
-    setIsLoading(false);
-    setResendTimer(30);
-    setCanResend(false);
-    setOtpDigits(["", "", "", "", "", ""]);
-    setAuthView('otp');
   };
 
   // Action: Check if user confirmed via email link and log them in directly
   const handleCheckConfirmedAndLogin = async () => {
+    if (isLoading) return;
     if (!isOnline) {
       setErrorMessage(offlineAuthMsg);
       return;
     }
     setIsLoading(true);
     setErrorMessage(null);
-    const cleanEmail = email.trim().toLowerCase();
-    const loginRes = await authService.validateCredentials(cleanEmail, password, rememberMe);
-    setIsLoading(false);
-    if (loginRes.success && loginRes.user) {
-      onAuthSuccess(loginRes.user, otpPurpose === 'signup');
-    } else {
-      setErrorMessage(loginRes.error || "Email not confirmed yet. Please click the confirmation link in the email from Supabase, or enter the 6-digit code.");
+    try {
+      const cleanEmail = email.trim().toLowerCase();
+      const loginRes = await authService.validateCredentials(cleanEmail, password, rememberMe);
+      if (loginRes.success && loginRes.user) {
+        onAuthSuccess(loginRes.user, otpPurpose === 'signup');
+      } else {
+        setErrorMessage(loginRes.error || "Email not confirmed yet. Please click the confirmation link in the email from Supabase, or enter the 6-digit code.");
+      }
+    } catch (err: any) {
+      setErrorMessage(err?.message || "Could not verify confirmation status. Please try again.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
   // Action: Verify OTP and finalize (Login, Signup, or Forgot)
   const handleVerifyOtp = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
+    if (isLoading) return;
     setErrorMessage(null);
 
     if (!isOnline) {
@@ -280,47 +296,51 @@ export default function AuthModal() {
     setIsLoading(true);
     const cleanEmail = email.trim().toLowerCase();
 
-    // FORGOT PASSWORD FLOW
-    if (authModal.view === 'forgot_otp' || otpPurpose === 'forgot') {
-      const verifyRes = await authService.verifyOtp(cleanEmail, code, 'recovery');
-      setIsLoading(false);
-      if (verifyRes.success) {
-        setAuthView('forgot_new_password');
-      } else {
+    try {
+      // FORGOT PASSWORD FLOW
+      if (authModal.view === 'forgot_otp' || otpPurpose === 'forgot') {
+        const verifyRes = await authService.verifyOtp(cleanEmail, code, 'recovery');
+        if (verifyRes.success) {
+          setAuthView('forgot_new_password');
+        } else {
+          if (verifyRes.isExpired) {
+            setIsOtpExpired(true);
+            setErrorMessage(t.auth.otpExpired);
+          } else {
+            setErrorMessage(verifyRes.error || t.auth.invalidOtp);
+          }
+        }
+        return;
+      }
+
+      // SIGNUP FLOW VERIFICATION
+      const verifyRes = await authService.verifyOtp(cleanEmail, code, 'signup');
+      
+      if (!verifyRes.success) {
         if (verifyRes.isExpired) {
           setIsOtpExpired(true);
           setErrorMessage(t.auth.otpExpired);
         } else {
           setErrorMessage(verifyRes.error || t.auth.invalidOtp);
         }
+        return;
       }
-      return;
-    }
 
-    // SIGNUP FLOW VERIFICATION
-    const verifyRes = await authService.verifyOtp(cleanEmail, code, 'signup');
-    setIsLoading(false);
-    
-    if (!verifyRes.success) {
-      if (verifyRes.isExpired) {
-        setIsOtpExpired(true);
-        setErrorMessage(t.auth.otpExpired);
+      if (verifyRes.user) {
+        onAuthSuccess(verifyRes.user, true);
       } else {
-        setErrorMessage(verifyRes.error || t.auth.invalidOtp);
+        setErrorMessage("Failed to load user profile after verification.");
       }
-      return;
-    }
-
-    if (verifyRes.user) {
-      onAuthSuccess(verifyRes.user, true);
-    } else {
-      setErrorMessage("Failed to load user profile after verification.");
+    } catch (err: any) {
+      setErrorMessage(err?.message || "Verification failed. Please check the code and try again.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
   // Action: Resend OTP / Confirmation
   const handleResendOtp = async () => {
-    if (!canResend) return;
+    if (isLoading || !canResend) return;
     setErrorMessage(null);
     if (!isOnline) {
       setErrorMessage(offlineAuthMsg);
@@ -330,20 +350,25 @@ export default function AuthModal() {
     setIsLoading(true);
     const cleanEmail = email.trim().toLowerCase();
     
-    const res = await authService.sendOtp(cleanEmail, otpPurpose);
-    
-    setIsLoading(false);
-    if (res.success) {
-      setResendTimer(30);
-      setCanResend(false);
-    } else {
-      setErrorMessage(res.error || "Failed to resend code.");
+    try {
+      const res = await authService.sendOtp(cleanEmail, otpPurpose);
+      if (res.success) {
+        setResendTimer(30);
+        setCanResend(false);
+      } else {
+        setErrorMessage(res.error || "Failed to resend code.");
+      }
+    } catch (err: any) {
+      setErrorMessage(err?.message || "Failed to resend code. Please try again.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
   // Action: Log In Existing User with Email + Password
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isLoading) return;
     setErrorMessage(null);
 
     if (!isOnline) {
@@ -363,36 +388,40 @@ export default function AuthModal() {
 
     setIsLoading(true);
 
-    const valRes = await authService.validateCredentials(cleanEmail, password, rememberMe);
-    
-    if (!valRes.success || !valRes.user) {
-      if (valRes.isUnconfirmed) {
-        setOtpPurpose('signup');
-        await authService.sendOtp(cleanEmail, 'signup');
-        setResendTimer(30);
-        setCanResend(false);
-        setOtpDigits(["", "", "", "", "", ""]);
-        setAuthView('otp');
-        setIsLoading(false);
+    try {
+      const valRes = await authService.validateCredentials(cleanEmail, password, rememberMe);
+      
+      if (!valRes.success || !valRes.user) {
+        if (valRes.isUnconfirmed) {
+          setOtpPurpose('signup');
+          await authService.sendOtp(cleanEmail, 'signup');
+          setResendTimer(30);
+          setCanResend(false);
+          setOtpDigits(["", "", "", "", "", ""]);
+          setAuthView('otp');
+          return;
+        }
+
+        let errorMsg = valRes.error || "Incorrect email or password.";
+        if (errorMsg.toLowerCase().includes("invalid login credentials")) {
+          errorMsg = "No account found with this email, or incorrect password. Please create a new account if you don't have one.";
+        }
+        setErrorMessage(errorMsg);
         return;
       }
-
-      let errorMsg = valRes.error || "Incorrect email or password.";
-      if (errorMsg.toLowerCase().includes("invalid login credentials")) {
-        errorMsg = "No account found with this email, or incorrect password. Please create a new account if you don't have one.";
-      }
-      setErrorMessage(errorMsg);
+      
+      onAuthSuccess(valRes.user, false);
+    } catch (err: any) {
+      setErrorMessage(err?.message || "Login failed. Please check your credentials and connection.");
+    } finally {
       setIsLoading(false);
-      return;
     }
-    
-    setIsLoading(false);
-    onAuthSuccess(valRes.user, false);
   };
 
   // Action: Forgot Password Request
   const handleForgotRequest = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isLoading) return;
     setErrorMessage(null);
 
     if (!isOnline) {
@@ -407,22 +436,27 @@ export default function AuthModal() {
     }
 
     setIsLoading(true);
-    const res = await authService.sendOtp(cleanEmail, 'forgot');
-    setIsLoading(false);
-
-    if (res.success) {
-      setResendTimer(30);
-      setCanResend(false);
-      setOtpDigits(["", "", "", "", "", ""]);
-      setAuthView('forgot_otp');
-    } else {
-      setErrorMessage(res.error || "Could not send recovery instructions. Please try again.");
+    try {
+      const res = await authService.sendOtp(cleanEmail, 'forgot');
+      if (res.success) {
+        setResendTimer(30);
+        setCanResend(false);
+        setOtpDigits(["", "", "", "", "", ""]);
+        setAuthView('forgot_otp');
+      } else {
+        setErrorMessage(res.error || "Could not send recovery instructions. Please try again.");
+      }
+    } catch (err: any) {
+      setErrorMessage(err?.message || "Failed to process request. Please try again.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
   // Action: Reset Password
   const handleResetPasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isLoading) return;
     setErrorMessage(null);
 
     if (!isOnline) {
@@ -444,15 +478,19 @@ export default function AuthModal() {
     }
 
     setIsLoading(true);
-    const res = await authService.resetPassword(password);
-    setIsLoading(false);
-
-    if (res.success) {
-      setAuthView('login');
-      setPassword("");
-      setConfirmPassword("");
-    } else {
-      setErrorMessage(res.error || "Failed to update password.");
+    try {
+      const res = await authService.resetPassword(password);
+      if (res.success) {
+        setAuthView('login');
+        setPassword("");
+        setConfirmPassword("");
+      } else {
+        setErrorMessage(res.error || "Failed to update password.");
+      }
+    } catch (err: any) {
+      setErrorMessage(err?.message || "Failed to update password. Please try again.");
+    } finally {
+      setIsLoading(false);
     }
   };
 

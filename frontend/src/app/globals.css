@@ -1261,7 +1261,12 @@ html.dark .toggle-switch, [data-theme="dark"] .toggle-switch {
   padding: 0;
   box-shadow: none !important;
 }
-.editor-block:hover .block-action-trigger,
+@media (hover: hover) and (pointer: fine) {
+  .editor-block:hover .block-action-trigger {
+    opacity: 0.75;
+    pointer-events: auto;
+  }
+}
 .block-action-container.is-active .block-action-trigger {
   opacity: 0.75;
   pointer-events: auto;

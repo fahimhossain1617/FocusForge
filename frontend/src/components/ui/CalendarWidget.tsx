@@ -20,18 +20,27 @@ export default function CalendarWidget({ currentDate, selectedDateStr, onDateSel
   const [subView, setSubView] = useState<SubView>('Calendar');
   const [viewDate, setViewDate] = useState(currentDate);
   const wrapperRef = useRef<HTMLDivElement>(null);
-  let closeTimeout: NodeJS.Timeout;
+  const closeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
   const daysOfWeek = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
   // Sync internal view date when external selected date changes
   useEffect(() => {
-    if (selectedDateStr) {
-      const [y, m, d] = selectedDateStr.split('-').map(Number);
-      setViewDate(new Date(y, m - 1, d));
+    if (selectedDateStr && typeof selectedDateStr === 'string') {
+      const parts = selectedDateStr.split('-').map(Number);
+      if (parts.length >= 3 && !isNaN(parts[0]) && !isNaN(parts[1]) && !isNaN(parts[2])) {
+        setViewDate(new Date(parts[0], parts[1] - 1, parts[2]));
+      }
     }
   }, [selectedDateStr]);
+
+  // Clean up any pending close timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
+    };
+  }, []);
 
   // Click outside listener for mobile/fallback
   useEffect(() => {
@@ -47,13 +56,14 @@ export default function CalendarWidget({ currentDate, selectedDateStr, onDateSel
 
   // Hover Mechanics
   const handleMouseEnter = () => {
-    clearTimeout(closeTimeout);
+    if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
     if (!isOpen) setIsOpen(true);
   };
 
   const handleMouseLeave = () => {
     if (isLocked) return;
-    closeTimeout = setTimeout(() => {
+    if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
+    closeTimeoutRef.current = setTimeout(() => {
       setIsOpen(false);
       setSubView('Calendar'); // reset on close
     }, 200); // Slight delay for smoother UX

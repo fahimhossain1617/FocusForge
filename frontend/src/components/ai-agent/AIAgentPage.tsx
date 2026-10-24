@@ -883,14 +883,18 @@ export function AIAgentPage() {
     if (isVoiceListening) {
       stopVoiceListening();
     }
-    if (!value.trim() || guestLimitExceeded) return;
+    if (!value.trim() || guestLimitExceeded || isThinking || isTyping) return;
     setInput("");
     if (textareaRef.current) {
       textareaRef.current.style.height = "auto";
     }
-    const aiMsg = await send(value, "auto", aiModel);
-    if (aiMsg) {
-      trackMeaningfulAction?.("ai_agent_interaction");
+    try {
+      const aiMsg = await send(value, "auto", aiModel);
+      if (aiMsg) {
+        trackMeaningfulAction?.("ai_agent_interaction");
+      }
+    } catch (err) {
+      console.warn("[AIAgentPage] Send error:", err);
     }
   };
 

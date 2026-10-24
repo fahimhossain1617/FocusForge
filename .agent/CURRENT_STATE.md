@@ -731,6 +731,75 @@ Focentia is an active, functional productivity suite built with Next.js 16 App R
 - **Verified Status:** **VERIFIED** (Live container execution verified on Docker Desktop: `focentia-backend` and `focentia-frontend` both running in `Up (healthy)` state; `curl http://localhost:5000/health` -> HTTP 200 `{ status: "ok" }`; `curl http://localhost:3000/api/health` -> HTTP 200 `{ status: "ok" }`; `curl -I http://localhost:3000` -> HTTP 200 OK HTML payload with Next.js security headers).
 - **Important Files:** `frontend/Dockerfile`, `backend/Dockerfile`, `docker-compose.yml`, `docker-compose.prod.yml`, `nginx/nginx.conf`, `.dockerignore`, `frontend/.dockerignore`, `backend/.dockerignore`, `.env.docker.example`, `scripts/sync_docker_env.js`.
 
+---
+
+### Note Block Editor Formatting, Crash Prevention & PWA Update Navbar System (October 24, 2026)
+- **Current Implementation:**
+  1. **Block Editor Placeholders & Formatting (`BlockEditor.tsx`):**
+     - Line 0 / initial placeholder configured to: *"Start writing or type # for blocks..."* / *"নোট লেখা শুরু করুন বা ব্লক তৈরি করতে # চাপুন..."*.
+     - Pressing Enter creates a clean new paragraph block, shifts focus immediately, and sets placeholder to *"Type # for blocks..."* / *"ব্লক তৈরি করতে # চাপুন..."*.
+     - Inactive empty lines display no distracting placeholders.
+  2. **Universal Empty-Block Deletion on Mobile & Laptop (`BlockEditor.tsx`):**
+     - Combined `keydown`, `keyup`, and `beforeinput` listeners with multi-frame focus retries (`requestAnimationFrame`, 25ms, 75ms, 150ms).
+     - When Backspace or Delete is pressed on an empty block (via laptop keyboard or mobile virtual keyboard like Gboard / Samsung Keyboard / iOS), the empty block is deleted immediately and focus returns to the end of the previous block (`blocks[index - 1]`).
+     - Backspacing when the block contains only `#` clears the `#` without deleting the block.
+  3. **Mobile-Specific '+' Action Trigger Isolation (`BlockEditor.tsx`, `globals.css`):**
+     - `activeBlockIndex` initialized to `null` so no line pre-renders the '+' icon in advance.
+     - `.editor-block:hover` wrapped in `@media (hover: hover) and (pointer: fine)`, eliminating sticky hover on mobile touchscreens.
+     - On phones, the '+' button only appears when a block is explicitly activated (either created by Enter or tapped manually).
+  4. **Share Note Crash Prevention & Safe Dismissal (`NoteEditorView.tsx`):**
+     - Added `isMountedRef` to prevent state updates after unmount.
+     - More-menu dismissed immediately before calling `navigator.share` so native share sheet doesn't conflict with backdrop clicks or back gestures.
+     - Added `navigator.canShare` check and comprehensive `try/catch` catching `AbortError` / dismissal without triggering error boundaries.
+  5. **NoteCard Null-Safety (`NoteCard.tsx`):**
+     - Hardened block filtering and text snippet extraction against null or malformed blocks (`(note?.blocks || []).filter(b => b && ...)`), eliminating `Cannot read properties of undefined (reading 'type')` crashes.
+  6. **Resilient Page Error Boundary (`PageErrorBoundary.tsx`, `page.tsx`):**
+     - Created `PageErrorBoundary` wrapping `<ActivePage />` in `page.tsx`.
+     - Isolates runtime exceptions in any page to an inline clean recovery card ("This page encountered an issue - [Try Again] / [Home]"), preserving the App Shell (Sidebar, Mobile Header, Bottom Nav, and active user session) without triggering full-screen crash reload.
+  7. **PWA Update Prompt & Navbar Integration (`PWAUpdater.tsx`, `MobileHeader.tsx`):**
+     - Removed the 'X' close button from the PWA update banner.
+     - Added touch swipe dismissal (`onTouchStart`/`onTouchEnd`) on the banner.
+     - Dispatches `focentia:pwa_update_ready` when a new build worker is installed.
+     - `MobileHeader` renders a dedicated Update icon button (`RefreshCw` with pulse indicator). Tapping it triggers `SKIP_WAITING` and reloads into the latest build. Remains in top navbar until the user applies the update.
+- **Verified Status:** **VERIFIED** (Next.js 16 Turbopack production build: 21/21 static & dynamic routes compiled with exit code 0; TypeScript typecheck 100% clean; backend build passed with exit code 0).
+- **Important Files:** `frontend/src/components/workspace/BlockEditor.tsx`, `frontend/src/app/globals.css`, `frontend/src/components/workspace/NoteCard.tsx`, `frontend/src/components/pages/NoteEditorView.tsx`, `frontend/src/components/ui/PageErrorBoundary.tsx`, `frontend/src/app/page.tsx`, `frontend/src/components/pwa/PWAUpdater.tsx`, `frontend/src/components/navigation/MobileHeader.tsx`.
+
+---
+
+### Complete Application Stability, Crash Prevention & Root-Cause Fix (October 24, 2026)
+- **Current Implementation:**
+  1. **Deployment Chunk Load Recovery (`app/error.tsx`, `app/global-error.tsx`, `clientDevFixes.ts`):**
+     - Detects `ChunkLoadError`, `Loading chunk`, `Failed to fetch dynamically imported module`, and unexpected HTML `<` token errors caused by stale PWA/browser cache referencing purged Next.js chunks after cloud deployments.
+     - Automatically clears CacheStorage and forces a clean cache-busting reload (`/?_t=Date.now()`).
+     - Session-guarded (`sessionStorage.getItem('ff_chunk_recovery_attempted')`) to prevent infinite reload loops.
+     - Bilingual recovery cards (Bengali/English) matching user language preference (`focusforge_lang`).
+  2. **Dual-Layer Error Boundary Shell (`app/page.tsx`, `PageErrorBoundary.tsx`):**
+     - Added outer `PageErrorBoundary` around the entire application layout shell in addition to the inner page boundary.
+     - Prevents any secondary component/modal crash (`useDailyPlan`, `MobileHeader`, `BottomNav`, `Sidebar`, `QuickCapture`) from bubbling up and taking down the whole application shell.
+  3. **Collection Spread & State Assembly Hardening (`AppContext.tsx`):**
+     - Sanitized `assembledState` in `loadUserData` with truthy filtering and explicit default fallbacks for `tasks`, `notes`, `mindItems`, `diaryTopics`, `focusSessions`, `learningFolders`, `learningLogs`, `routineTemplates`, `timeBlocks`, `activities`, `dailyBig3`, `distractions`, `categories`, `notifPreferences`, `calendarPreferences`, and `theme`.
+     - Hardened 20+ state mutators with `(prev.xxx || [])` null safety, completely eliminating `TypeError: prev.xxx is not iterable` crashes on uninitialized stores.
+  4. **Hydration Null-Safety (`useDailyPlan.ts`):**
+     - Safely dereferenced `state.notifPreferences` with fallback objects, preventing unhandled runtime crashes during SSR/CSR hydration.
+  5. **Date Parsing RangeError Hardening (`PlannerPage.tsx`, `CalendarWidget.tsx`):**
+     - Validated date inputs before constructing `new Date()`, returning valid fallback dates.
+     - Refactored `closeTimeout` to `useRef` with unmount cleanup in `CalendarWidget.tsx`.
+  6. **Safe Data Rendering Across Domains:**
+     - `MindHome.tsx`, `ThoughtDetail.tsx`, `ReviewAll.tsx`: Array safety and null filtering on mind items.
+     - `DashboardPage.tsx`: Null-safe session calculations and NaN coercion on learning minutes.
+     - `FocusPage.tsx`: Try/catch wrapping on confetti triggers.
+  7. **API Client & Network Resilience (`apiClient.ts`):**
+     - Gracefully handles HTTP 204 No Content, text bodies, and empty payloads without throwing unhandled `SyntaxError: Unexpected end of JSON input`.
+  8. **Double-Click & Concurrency Protection:**
+     - `AuthModal.tsx`: Added `if (isLoading) return;` across 8 authentication handlers.
+     - `AIAgentPage.tsx`: Added `if (isThinking || isTyping) return;` concurrency guard with try/catch error handling.
+  9. **Native Abort Interception (`clientDevFixes.ts`):**
+     - Installed global `unhandledrejection` listener absorbing benign browser rejections (`AbortError` from cancelled native share dialogs, `NotAllowedError` from clipboard focus loss).
+- **Verified Status:** **VERIFIED** (Next.js 16 Turbopack production build passed with Exit Code 0; 21/21 static pages generated; TypeScript typecheck 100% clean; local router test suite: 33/33 passed).
+- **Important Files:** `frontend/src/app/error.tsx`, `frontend/src/app/global-error.tsx`, `frontend/src/components/ui/PageErrorBoundary.tsx`, `frontend/src/app/page.tsx`, `frontend/src/context/AppContext.tsx`, `frontend/src/hooks/useDailyPlan.ts`, `frontend/src/components/pages/PlannerPage.tsx`, `frontend/src/components/ui/CalendarWidget.tsx`, `frontend/src/components/mymind/MindHome.tsx`, `frontend/src/components/mymind/ThoughtDetail.tsx`, `frontend/src/components/mymind/ReviewAll.tsx`, `frontend/src/components/pages/DashboardPage.tsx`, `frontend/src/components/pages/FocusPage.tsx`, `frontend/src/lib/apiClient.ts`, `frontend/src/components/auth/AuthModal.tsx`, `frontend/src/components/ai-agent/AIAgentPage.tsx`, `frontend/src/utils/clientDevFixes.ts`.
+
+
+
 
 
 

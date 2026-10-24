@@ -93,11 +93,33 @@ export async function fetchBackend<T>(endpoint: string, options: RequestInit = {
     
     let errorMsg = 'Backend API request failed';
     try {
-      const errorData = await response.json();
-      errorMsg = errorData.error || errorMsg;
+      const text = await response.text();
+      if (text && text.trim()) {
+        try {
+          const errorData = JSON.parse(text);
+          errorMsg = errorData.error || errorData.message || errorMsg;
+        } catch {
+          if (text.length < 200 && !text.includes('<html')) {
+            errorMsg = text;
+          }
+        }
+      }
     } catch {}
     throw new Error(errorMsg);
   }
 
-  return response.json() as Promise<T>;
+  if (response.status === 204) {
+    return {} as T;
+  }
+
+  const rawText = await response.text();
+  if (!rawText || !rawText.trim()) {
+    return {} as T;
+  }
+
+  try {
+    return JSON.parse(rawText) as T;
+  } catch {
+    return rawText as unknown as T;
+  }
 }

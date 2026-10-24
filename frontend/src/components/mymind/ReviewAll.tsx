@@ -74,7 +74,8 @@ export default function ReviewAll({ navigate, setActiveThoughtId }: ReviewAllPro
     let ideaCount = 0;
     let problemCount = 0;
 
-    for (const item of state.mindItems) {
+    for (const item of (state.mindItems || [])) {
+      if (!item) continue;
       const data = getThoughtDisplayData(item, t, lang);
       if (data.categoryType === 'problem_solver') problemCount++;
       else if (data.categoryType === 'idea_capture') ideaCount++;
@@ -82,7 +83,7 @@ export default function ReviewAll({ navigate, setActiveThoughtId }: ReviewAllPro
     }
 
     return {
-      all: state.mindItems.length,
+      all: (state.mindItems || []).length,
       free_flow: freeFlowCount,
       idea_capture: ideaCount,
       problem_solver: problemCount,
@@ -91,8 +92,9 @@ export default function ReviewAll({ navigate, setActiveThoughtId }: ReviewAllPro
 
   // Filter and sort all saved thoughts without modifying state
   const filteredAndSortedThoughts = useMemo(() => {
-    return state.mindItems
+    return (state.mindItems || [])
       .filter((item) => {
+        if (!item) return false;
         const data = getThoughtDisplayData(item, t, lang);
 
         // 1. Category filter
