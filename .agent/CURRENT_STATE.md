@@ -796,7 +796,16 @@ Focentia is an active, functional productivity suite built with Next.js 16 App R
   9. **Native Abort Interception (`clientDevFixes.ts`):**
      - Installed global `unhandledrejection` listener absorbing benign browser rejections (`AbortError` from cancelled native share dialogs, `NotAllowedError` from clipboard focus loss).
 - **Verified Status:** **VERIFIED** (Next.js 16 Turbopack production build passed with Exit Code 0; 21/21 static pages generated; TypeScript typecheck 100% clean; local router test suite: 33/33 passed).
-- **Important Files:** `frontend/src/app/error.tsx`, `frontend/src/app/global-error.tsx`, `frontend/src/components/ui/PageErrorBoundary.tsx`, `frontend/src/app/page.tsx`, `frontend/src/context/AppContext.tsx`, `frontend/src/hooks/useDailyPlan.ts`, `frontend/src/components/pages/PlannerPage.tsx`, `frontend/src/components/ui/CalendarWidget.tsx`, `frontend/src/components/mymind/MindHome.tsx`, `frontend/src/components/mymind/ThoughtDetail.tsx`, `frontend/src/components/mymind/ReviewAll.tsx`, `frontend/src/components/pages/DashboardPage.tsx`, `frontend/src/components/pages/FocusPage.tsx`, `frontend/src/lib/apiClient.ts`, `frontend/src/components/auth/AuthModal.tsx`, `frontend/src/components/ai-agent/AIAgentPage.tsx`, `frontend/src/utils/clientDevFixes.ts`.
+   10. **Runtime Error Observability & In-App Diagnostics (`PageErrorBoundary.tsx`):**
+      - Upgraded `componentDidCatch` to safely record timestamp, page route, error name, sanitized error message (max 300 chars), and top component stack.
+      - Automatically stages last error in `sessionStorage` (`focentia_last_runtime_diagnostic`) and capped FIFO history in `localStorage` (`focentia_diagnostic_history`, max 5 entries) with zero risk of storage quota throws.
+      - Added expandable "Show error details" / "ত্রুটির বিবরণ দেখুন" accordion on the recovery card with a one-tap "Copy Report" / "রিপোর্ট কপি করুন" button (`navigator.clipboard.writeText`), allowing mobile PWA users to copy diagnostic reports directly without needing desktop USB remote debugging.
+   11. **Secondary Route Defensive String & Array Hardening:**
+      - `LearningHubPage.tsx`: Defensively coerced `log.topics` and `log.practiceDetails` in `filteredFolders` before `toLowerCase()`, and guarded `state.learningFolders` and `state.learningLogs` with empty array fallbacks.
+      - `WorkspacePage.tsx`: Guarded `state.notes.length` with `(state.notes || []).length` to prevent TypeErrors during async state hydration.
+      - `DiaryTableOfContents.tsx`: Safely checked `typeof topic?.title === 'string'` in topic search filter before `toLowerCase()`.
+- **Verified Status:** **VERIFIED** (Next.js 16 Turbopack production build passed with Exit Code 0; 21/21 static pages generated; TypeScript typecheck 100% clean; local router test suite: 33/33 passed).
+- **Important Files:** `frontend/src/app/error.tsx`, `frontend/src/app/global-error.tsx`, `frontend/src/components/ui/PageErrorBoundary.tsx`, `frontend/src/app/page.tsx`, `frontend/src/components/pages/LearningHubPage.tsx`, `frontend/src/components/pages/WorkspacePage.tsx`, `frontend/src/components/diary/DiaryTableOfContents.tsx`, `frontend/src/context/AppContext.tsx`, `frontend/src/hooks/useDailyPlan.ts`, `frontend/src/components/pages/PlannerPage.tsx`, `frontend/src/components/ui/CalendarWidget.tsx`, `frontend/src/lib/apiClient.ts`, `frontend/src/components/auth/AuthModal.tsx`, `frontend/src/components/ai-agent/AIAgentPage.tsx`, `frontend/src/utils/clientDevFixes.ts`.
 
 
 

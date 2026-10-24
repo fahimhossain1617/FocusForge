@@ -2110,6 +2110,31 @@
   - Level 3 Automated Tests: 33/33 tests passed in local router test suite.
 - **Status:** **VERIFIED**
 
+---
+
+## ADR-053: Intermittent Error Screen Investigation, Runtime Diagnostics & In-App Error Observability
+
+- **Date:** October 24, 2026
+- **Status:** Accepted
+- **Context:**
+  - An Android installed PWA user encountered the error screen *"This page encountered an issue / Your data is completely safe. You can try reloading this page or return to your dashboard / [Try again] [Home]"* once, with no recurrence.
+  - In the screenshot provided, the outer header (Focentia, Sun, Bell, 3-dots) and bottom navigation (Home, Focus, (+), Glory AI, Planner) were fully intact and functional, with none of the 4 bottom tabs highlighted in blue. This proved the error occurred inside a secondary sub-route (e.g. `learning` / Time Log, `tasks` / Notes & Files, or `diary` / My Diary) and was successfully caught by `PageErrorBoundary` without tearing down the application shell.
+  - However, runtime error diagnostics were previously only logged via `console.warn`, leaving mobile PWA users without access to Chrome DevTools unable to report the exact exception.
+- **Decision:**
+  1. **Runtime Error Observability & Storage Persistence (`PageErrorBoundary.tsx`):**
+     - Updated `componentDidCatch` to safely record timestamp, page route, error name, sanitized error message (max 300 chars), and top component stack.
+     - Persists diagnostic safely to `sessionStorage` (`focentia_last_runtime_diagnostic`) and capped FIFO history in `localStorage` (`focentia_diagnostic_history`, max 5 entries).
+     - Added an expandable, theme-consistent "Show error details" / "ত্রুটির বিবরণ দেখুন" accordion on the recovery card with a one-tap "Copy Report" / "রিপোর্ট কপি করুন" button (`navigator.clipboard.writeText`), allowing users to copy the report directly on mobile.
+  2. **Defensive String & Array Hardening in Secondary Pages:**
+     - `LearningHubPage.tsx`: Replaced unshielded `log.topics.toLowerCase()` and `log.practiceDetails.toLowerCase()` in search filter with safe `typeof === 'string'` guards, and added empty-array fallbacks for `state.learningFolders` and `state.learningLogs`.
+     - `WorkspacePage.tsx`: Defensively guarded `state.notes.length` with `(state.notes || []).length` to prevent TypeErrors during async state hydration.
+     - `DiaryTableOfContents.tsx`: Safely checked `typeof topic?.title === 'string'` before `toLowerCase()` in topic search filter.
+- **Verification:**
+  - `npm run build --prefix frontend`: Next.js 16 Turbopack production build exited with Code 0 (21/21 static pages generated, TypeScript clean).
+  - Automated local router suite: 33/33 tests passed.
+- **Status:** **VERIFIED**
+
+
 
 
 
