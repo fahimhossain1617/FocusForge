@@ -2134,6 +2134,52 @@
   - Automated local router suite: 33/33 tests passed.
 - **Status:** **VERIFIED**
 
+---
+
+## ADR-054: React Error #185 Elimination (Notes & Files Workspace) and Universal Offline Data Persistence & Guest-to-User Migration
+
+- **Date:** October 25, 2026
+- **Status:** Accepted & Verified
+- **Context:**
+  - An Android PWA user encountered a crash caught by `PageErrorBoundary` on the `tasks` page (Notes & Files / `WorkspacePage`):
+    `Error: Minified React error #185; visit https://react.dev/errors/185 (Maximum update depth exceeded)`
+    `Component: at i8 (...) -> at div (<anonymous>)`
+  - In addition, users reported that when operating offline (no active internet connection), data created or edited locally (notes, tasks, thoughts, diary, etc.) risked being lost upon app exit/reload, and returning online did not smoothly sync or migrate offline-created records into the authenticated account.
+  - Root Cause Analysis:
+    1. **Minified React Error #185 in `NoteEditorView.tsx` & `WorkspacePage.tsx`:**
+       - In `NoteEditorView.tsx`, `queueSave` created a `setTimeout(..., 450)` timer referenced by `saveTimer.current`, but never reset `saveTimer.current = null` after the timeout fired.
+       - When `onUpdate` fired, `WorkspacePage`'s unmemoized `handleUpdateNote` function was recreated.
+       - `NoteEditorView`'s unmount/beforeunload `useEffect` had `[onUpdate]` in its dependency array, which triggered effect teardown whenever `onUpdate` changed.
+       - The teardown checked `if (saveTimer.current)` (which still held the old timer ID because it wasn't cleared to null) and synchronously invoked `onUpdate(...)` during the effect phase.
+       - In `WorkspacePage`, `handleUpdateNote` called `setEditingNote`, triggering a re-render, creating a new `handleUpdateNote`, tearing down `NoteEditorView`'s effect again, and calling `onUpdate` in an infinite synchronous feedback loop ("Maximum update depth exceeded").
+    2. **Offline Session Resolution & Local Persistence in `AppContext.tsx`:**
+       - When an authenticated user launched the app offline, `supabase.auth.getSession()` failed or returned `session = null` due to no network connection.
+       - `AppContext.tsx`'s mount effect previously set `activeUserIdRef.current = session?.user?.id || null;`. When offline, `currentUserId` resolved to `null`, silently overwriting the remembered user ID and demoting the user to guest state.
+       - Consequently, all user tasks, notes, and records loaded an empty guest dataset, creating the impression that offline data was lost.
+       - Furthermore, when the user reconnected to the internet, `onAuthStateChange` fired `SIGNED_IN`, switched back to the authenticated user ID, and wiped all `guest` storage via `clearGuestData()` without migrating the records created while offline.
+- **Decision:**
+  1. **React Error #185 Elimination in `NoteEditorView.tsx` & `WorkspacePage.tsx`:**
+     - Memoized `handleUpdateNote` in `WorkspacePage.tsx` with `React.useCallback`, referencing `editingNoteIdRef.current` to prevent function recreation on note edits.
+     - In `NoteEditorView.tsx`, introduced `onUpdateRef` to decouple `onUpdate` from effect dependencies.
+     - Explicitly reset `saveTimer.current = null` upon timer execution in `queueSave`, beforeunload, and manual unmount.
+     - Scoped the unmount/beforeunload effect to mount-only (`[]`), executing `onUpdateRef.current(...)` safely using `latestStateRef.current`.
+     - Scoped private storage URL resolution to user change (`[user?.id]`), preventing redundant URL resolution on every text block modification.
+     - Passed `latestStateRef.current` in `BlockEditor.onChange` to ensure zero stale closures.
+  2. **Universal Offline Session Preservation & Legacy Fallback (`AppContext.tsx`):**
+     - Updated mount session handler to `const currentUserId = sessionUserId || fallbackUserId;`. If offline or network probe fails, the app preserves the remembered authenticated account ID from `accountManager.getPrimaryUser()`, completely preventing demotion to guest.
+     - Added secondary fallback to `loadStateFromIndexedDB(cleanUserId)` if `dexieBackup` is null, ensuring dual-engine persistence across Dexie and IndexedDB.
+  3. **Seamless Guest-to-User Data Migration (`localDbService.ts`, `AuthContext.tsx`, `AppContext.tsx`):**
+     - Implemented `migrateGuestRecordsToUser(userId)` in `LocalDatabaseManager`: queries all 12 Dexie stores (`tasks`, `routine_templates`, `notes`, `mind_items`, `diary_topics`, `diary_entries`, `focus_sessions`, `learning_folders`, `learning_logs`, `ai_sessions`, `ai_messages`, `ai_memory`) for `userId === 'guest'`, deletes the guest records, and re-saves them under the authenticated `userId`, automatically enqueuing them into `sync_queue`.
+     - Hooked `migrateGuestRecordsToUser` into `AuthContext.tsx` and `AppContext.tsx` during `SIGNED_IN` and `INITIAL_SESSION` lifecycle transitions immediately prior to clearing transient guest keys.
+  4. **Immediate Reconnect Sync Target Resolution (`AppContext.tsx`):**
+     - Hardened `handleOnline` listener: if `activeUserIdRef.current` is missing or resolves to `'guest'`, dynamically retrieves the active session or remembered account ID and triggers immediate `syncService.syncNow(targetId)`, flushing offline dirty queues to cloud E2EE storage.
+- **Verification:**
+  - Level 0 Scope Check: Passed. Exactly 5 targeted files modified; zero database migrations touched.
+  - Level 1 Static Check: TypeScript `npx tsc --noEmit` exited with Code 0 (clean, 0 errors).
+  - Level 2 Build Check: Next.js 16.4.2 Turbopack `npm run build --prefix frontend` passed with Exit Code 0 (21/21 static pages generated, TypeScript clean). Backend build `npm run build --prefix backend` passed with Exit Code 0.
+- **Status:** **VERIFIED**
+
+
 
 
 

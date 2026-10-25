@@ -249,6 +249,54 @@ class LocalDatabaseManager {
   }
 
   /**
+   * Seamlessly migrates all local guest records to an authenticated user upon sign in / sign up.
+   * Ensures 100% offline-created data is retained and queued for cloud sync.
+   */
+  public async migrateGuestRecordsToUser(userId: string): Promise<number> {
+    if (!userId || userId === "guest") return 0;
+    const cleanUserId = userId.trim();
+    let migratedCount = 0;
+
+    const stores: StoreName[] = [
+      "tasks",
+      "routine_templates",
+      "notes",
+      "mind_items",
+      "diary_topics",
+      "diary_entries",
+      "focus_sessions",
+      "learning_folders",
+      "learning_logs",
+      "ai_sessions",
+      "ai_messages",
+      "ai_memory",
+    ];
+
+    for (const storeName of stores) {
+      const table = (db as any)[storeName];
+      if (!table) continue;
+
+      try {
+        const guestRecords = await table.where("userId").equals("guest").toArray();
+        if (guestRecords && guestRecords.length > 0) {
+          for (const record of guestRecords) {
+            await table.delete(record.localKey);
+            await this.put(storeName, {
+              ...record,
+              userId: cleanUserId,
+            });
+            migratedCount++;
+          }
+        }
+      } catch (err) {
+        console.warn(`[localDb] Failed to migrate guest records for ${storeName}:`, err);
+      }
+    }
+
+    return migratedCount;
+  }
+
+  /**
    * Dumps entire user dataset for local backup export.
    */
   public async exportUserData(userId: string): Promise<{

@@ -75,13 +75,17 @@ export default function WorkspacePage() {
     setView('editor');
   };
 
-  const handleUpdateNote = (title: string, blocks: NoteBlock[], category?: string) => {
-    if (!editingNote) return;
+  const editingNoteIdRef = useRef<number | null>(null);
+  editingNoteIdRef.current = editingNote?.id ?? null;
+
+  const handleUpdateNote = React.useCallback((title: string, blocks: NoteBlock[], category?: string) => {
+    const currentId = editingNoteIdRef.current;
+    if (currentId == null) return;
     const updates: Partial<Note> = { title, blocks };
     if (category !== undefined) updates.category = category;
-    updateNote(editingNote.id, updates);
-    setEditingNote((current) => current ? { ...current, ...updates } : current);
-  };
+    updateNote(currentId, updates);
+    setEditingNote((current) => (current && current.id === currentId ? { ...current, ...updates } : current));
+  }, [updateNote]);
 
   // Extract all categories in notes + default categories
   const categoriesList = useMemo(() => {

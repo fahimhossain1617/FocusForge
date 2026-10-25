@@ -294,9 +294,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
       if (requestGenRef.current !== generation) return;
 
+      // Fallback: check loadStateFromIndexedDB if dexieBackup was null
+      let legacyIdbBackup: any = null;
+      if (!dexieBackup) {
+        legacyIdbBackup = await loadStateFromIndexedDB(cleanUserId).catch(() => null);
+      }
+
       // Guest session check fallback if empty
       let guestData: Partial<AppState> = {};
-      if (!userId && (!dexieBackup && tasksList.length === 0 && notesList.length === 0) && typeof window !== 'undefined') {
+      if (!userId && (!dexieBackup && !legacyIdbBackup && tasksList.length === 0 && notesList.length === 0) && typeof window !== 'undefined') {
         try {
           const localGuestRaw = localStorage.getItem('focusforge_data_guest') || sessionStorage.getItem('focusforge_guest_temp_data');
           if (localGuestRaw) {
@@ -305,7 +311,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         } catch {}
       }
 
-      const backup = (dexieBackup as AppState) || (guestData as AppState) || defaultState;
+      const backup = (dexieBackup as AppState) || (legacyIdbBackup as AppState) || (guestData as AppState) || defaultState;
 
       // Format tasks with valid unique IDs
       const rawTasks = (tasksList && tasksList.length > 0 ? tasksList : (backup.tasks || [])).filter(Boolean);
@@ -392,7 +398,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     loadUserData(fallbackUserId, requestGenRef.current);
 
     supabase.auth.getSession().then(({ data: { session } }) => {
-      const currentUserId = session?.user?.id || null;
+      const sessionUserId = session?.user?.id || null;
+      // If offline or session refresh fails, preserve fallbackUserId from remembered accounts so user isn't wiped to guest
+      const currentUserId = sessionUserId || fallbackUserId;
       if (currentUserId !== activeUserIdRef.current) {
         activeUserIdRef.current = currentUserId;
         requestGenRef.current += 1;
@@ -480,6 +488,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const newUserId = session?.user?.id || null;
 
       if ((event === "SIGNED_IN" || event === "INITIAL_SESSION") && newUserId) {
+        // Seamlessly migrate any local guest records into the authenticated account
+        try {
+          await localDb.migrateGuestRecordsToUser(newUserId);
+        } catch (migErr) {
+          console.warn("[AppContext] Guest migration error:", migErr);
+        }
+
         if (newUserId !== activeUserIdRef.current) {
           if (cloudTimerRef.current) clearTimeout(cloudTimerRef.current);
           activeUserIdRef.current = newUserId;
@@ -748,9 +763,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
       // Trigger immediate background E2EE sync for authenticated users
       try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.user) {
-          syncService.syncNow(session.user.id).catch(() => {});
+        let targetId = activeUserIdRef.current;
+        if (!targetId || targetId === 'guest') {
+          const { data: { session } } = await supabase.auth.getSession();
+          targetId = session?.user?.id || accountManager.getRememberedAccounts()[0]?.id || null;
+        }
+        if (targetId && targetId !== 'guest') {
+          syncService.syncNow(targetId).catch(() => {});
         }
       } catch (syncErr) {
         console.warn("[AppContext] Auto-sync on online event notice:", syncErr);

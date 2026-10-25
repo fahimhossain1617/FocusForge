@@ -1,8 +1,8 @@
 # CURRENT_STATE.md — Current Verified State of Focentia
 
-**Document Version:** 1.0.2  
-**Last Updated:** October 20, 2026  
-**Status:** Authoritative Current State Baseline — Zero Red Files / 100% Clean Diagnostics / 9 Multi-Page Defect Fixes Verified
+**Document Version:** 1.0.3  
+**Last Updated:** October 25, 2026  
+**Status:** Authoritative Current State Baseline — Zero Red Files / 100% Clean Diagnostics / React Error #185 Fixed / Offline Persistence Verified
 
 ---
 
@@ -804,8 +804,14 @@ Focentia is an active, functional productivity suite built with Next.js 16 App R
       - `LearningHubPage.tsx`: Defensively coerced `log.topics` and `log.practiceDetails` in `filteredFolders` before `toLowerCase()`, and guarded `state.learningFolders` and `state.learningLogs` with empty array fallbacks.
       - `WorkspacePage.tsx`: Guarded `state.notes.length` with `(state.notes || []).length` to prevent TypeErrors during async state hydration.
       - `DiaryTableOfContents.tsx`: Safely checked `typeof topic?.title === 'string'` in topic search filter before `toLowerCase()`.
-- **Verified Status:** **VERIFIED** (Next.js 16 Turbopack production build passed with Exit Code 0; 21/21 static pages generated; TypeScript typecheck 100% clean; local router test suite: 33/33 passed).
-- **Important Files:** `frontend/src/app/error.tsx`, `frontend/src/app/global-error.tsx`, `frontend/src/components/ui/PageErrorBoundary.tsx`, `frontend/src/app/page.tsx`, `frontend/src/components/pages/LearningHubPage.tsx`, `frontend/src/components/pages/WorkspacePage.tsx`, `frontend/src/components/diary/DiaryTableOfContents.tsx`, `frontend/src/context/AppContext.tsx`, `frontend/src/hooks/useDailyPlan.ts`, `frontend/src/components/pages/PlannerPage.tsx`, `frontend/src/components/ui/CalendarWidget.tsx`, `frontend/src/lib/apiClient.ts`, `frontend/src/components/auth/AuthModal.tsx`, `frontend/src/components/ai-agent/AIAgentPage.tsx`, `frontend/src/utils/clientDevFixes.ts`.
+   12. **React Error #185 Elimination & Universal Offline Persistence (`WorkspacePage.tsx`, `NoteEditorView.tsx`, `localDbService.ts`, `AppContext.tsx`, `AuthContext.tsx`):**
+      - `WorkspacePage.tsx`: Wrapped `handleUpdateNote` in `React.useCallback` using `editingNoteIdRef.current` to prevent unneeded re-creations and parent re-renders.
+      - `NoteEditorView.tsx`: Decoupled `onUpdate` with `onUpdateRef`, cleared `saveTimer.current = null` upon execution in `queueSave`, scoped unmount/beforeunload flush to mount-only (`[]`), scoped image URL signed path refresh to user identity change (`[user?.id]`), eliminating the recursive effect cleanup feedback loop ("Minified React error #185 / Maximum update depth exceeded").
+      - `AppContext.tsx`: Preserved `fallbackUserId` across offline launches (`currentUserId = sessionUserId || fallbackUserId`), preventing authenticated users from being silently wiped to guest during offline network failures. Added secondary fallback to `loadStateFromIndexedDB` when `dexieBackup` is empty. Dynamically resolved sync target in `handleOnline` listener to immediately push queued dirty records upon network restoration.
+      - `localDbService.ts`: Added `migrateGuestRecordsToUser(userId)` across all 12 Dexie stores to migrate 100% of offline-created records to the authenticated account and enqueue them into `sync_queue`.
+      - `AuthContext.tsx`: Integrated `migrateGuestRecordsToUser` into `SIGNED_IN` / `INITIAL_SESSION` before clearing temporary guest artifacts.
+- **Verified Status:** **VERIFIED** (Next.js 16 Turbopack production build passed with Exit Code 0; 21/21 static pages generated; TypeScript typecheck 100% clean; zero errors).
+- **Important Files:** `frontend/src/components/pages/WorkspacePage.tsx`, `frontend/src/components/pages/NoteEditorView.tsx`, `frontend/src/services/localDbService.ts`, `frontend/src/context/AppContext.tsx`, `frontend/src/context/AuthContext.tsx`.
 
 
 

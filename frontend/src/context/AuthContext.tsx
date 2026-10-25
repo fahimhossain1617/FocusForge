@@ -9,6 +9,7 @@ import { supabase } from "../lib/supabaseClient";
 import { useAppContext } from "./AppContext";
 import { useTranslation } from "../hooks/useTranslation";
 import { clearGuestData } from "../services/indexedDBStorage";
+import { localDb } from "../services/localDbService";
 import { onboardingStorage } from "../services/onboardingStorage";
 import { accountManager, RememberedAccount } from "../services/accountManager";
 import { cryptoSession } from "../lib/crypto";
@@ -298,6 +299,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
 
           await processAuthenticatedUser(session.user, false);
+
+          // Seamlessly migrate all offline guest data to the authenticated user before clearing guest storage
+          try {
+            await localDb.migrateGuestRecordsToUser(session.user.id);
+          } catch (migErr) {
+            console.warn("[AuthContext] Guest data migration notice:", migErr);
+          }
 
           // Clean up guest-only artifacts permanently
           await clearGuestData();

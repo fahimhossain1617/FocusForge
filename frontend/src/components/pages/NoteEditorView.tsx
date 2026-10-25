@@ -109,6 +109,11 @@ export default function NoteEditorView({
 
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const latestStateRef = useRef({ title, blocks, category });
+  const onUpdateRef = useRef(onUpdate);
+  useEffect(() => {
+    onUpdateRef.current = onUpdate;
+  }, [onUpdate]);
+
   useEffect(() => {
     latestStateRef.current = { title, blocks, category };
   }, [title, blocks, category]);
@@ -117,7 +122,8 @@ export default function NoteEditorView({
     const handleBeforeUnload = () => {
       if (saveTimer.current) {
         clearTimeout(saveTimer.current);
-        onUpdate(latestStateRef.current.title, latestStateRef.current.blocks, latestStateRef.current.category);
+        saveTimer.current = null;
+        onUpdateRef.current(latestStateRef.current.title, latestStateRef.current.blocks, latestStateRef.current.category);
       }
     };
     window.addEventListener("beforeunload", handleBeforeUnload);
@@ -125,16 +131,18 @@ export default function NoteEditorView({
       window.removeEventListener("beforeunload", handleBeforeUnload);
       if (saveTimer.current) {
         clearTimeout(saveTimer.current);
-        onUpdate(latestStateRef.current.title, latestStateRef.current.blocks, latestStateRef.current.category);
+        saveTimer.current = null;
+        onUpdateRef.current(latestStateRef.current.title, latestStateRef.current.blocks, latestStateRef.current.category);
       }
     };
-  }, [onUpdate]);
+  }, []);
 
   // Private storage URLs: refresh from persisted object paths in Dexie
-  // Scoped to the active user (or guest)
+  // Scoped to the active user (or guest) - only runs once on mount or user switch
+  const initialBlocksRef = useRef(initialBlocks);
   useEffect(() => {
     const currentUserId = user?.id || "guest";
-    const privateBlocks = initialBlocks.filter((block) => block.storagePath);
+    const privateBlocks = (initialBlocksRef.current || []).filter((block) => block && block.storagePath);
     if (privateBlocks.length === 0) return;
     Promise.all(privateBlocks.map(async (block) => ({
       id: block.id,
@@ -143,15 +151,19 @@ export default function NoteEditorView({
       const byId = new Map(urls.filter((entry) => entry.url).map((entry) => [entry.id, entry.url!]));
       if (byId.size) setBlocks((current) => current.map((block) => byId.has(block.id) ? { ...block, url: byId.get(block.id) } : block));
     });
-  }, [initialBlocks, user?.id]);
+  }, [user?.id]);
 
   const queueSave = (nextTitle: string, nextBlocks: NoteBlock[], nextCategory?: string) => { 
     setHasEditedInSession(true);
-    if (saveTimer.current) clearTimeout(saveTimer.current); 
+    if (saveTimer.current) {
+      clearTimeout(saveTimer.current);
+      saveTimer.current = null;
+    }
     const currentCat = nextCategory !== undefined ? nextCategory : category;
     latestStateRef.current = { title: nextTitle, blocks: nextBlocks, category: currentCat };
     saveTimer.current = setTimeout(() => { 
-      onUpdate(nextTitle, nextBlocks, currentCat); 
+      saveTimer.current = null;
+      onUpdateRef.current(nextTitle, nextBlocks, currentCat); 
     }, 450); 
   };
 
@@ -163,7 +175,7 @@ export default function NoteEditorView({
       saveTimer.current = null;
     }
     try {
-      onUpdate(title, blocks, category); 
+      onUpdateRef.current(latestStateRef.current.title, latestStateRef.current.blocks, latestStateRef.current.category); 
     } catch (e) {
       console.warn("Failed to update note on goBack:", e);
     }
@@ -767,7 +779,7 @@ export default function NoteEditorView({
             blocks={blocks} 
             onChange={(nextBlocks) => { 
               setBlocks(nextBlocks); 
-              queueSave(title, nextBlocks); 
+              queueSave(latestStateRef.current.title, nextBlocks, latestStateRef.current.category); 
             }} 
             onDirty={() => {}}
             onTriggerImageUpload={handleImageUploadTrigger}
