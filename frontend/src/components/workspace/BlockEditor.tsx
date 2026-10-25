@@ -27,6 +27,7 @@ interface BlockEditorProps {
   blocks: NoteBlock[];
   onChange: (blocks: NoteBlock[]) => void;
   onDirty: () => void;
+  readOnly?: boolean;
   onTriggerImageUpload?: (targetBlockId?: string) => void;
   onTriggerFileUpload?: (targetBlockId?: string) => void;
   onTriggerLinkModal?: (targetBlockId?: string) => void;
@@ -84,6 +85,7 @@ export default function BlockEditor({
   blocks,
   onChange,
   onDirty,
+  readOnly = false,
   onTriggerImageUpload,
   onTriggerFileUpload,
   onTriggerLinkModal,
@@ -288,24 +290,48 @@ export default function BlockEditor({
   };
 
   const handleInput = (event: ChangeEvent<HTMLTextAreaElement | HTMLInputElement>, index: number) => {
-    if (index < 0 || index >= blocks.length) return;
-    const value = event.target.value;
+    if (readOnly || index < 0 || index >= blocks.length) return;
+    const rawValue = event.target.value;
+    const value = rawValue.replace(/\u200B/g, "");
     const block = blocks[index];
     if (!block) return;
 
-    // Mobile virtual keyboard Enter support: if newline is entered in non-code block
+    // Mobile backspace on empty block: if empty block's buffer is cleared (from \u200B to "")
+    if (block.type !== "code" && rawValue === "" && (!block.content || block.content.trim() === "" || block.content === "\u200B")) {
+      if (blocks.length > 1) {
+        remove(index);
+      } else {
+        update(index, { type: "paragraph", content: "", isCompleted: undefined });
+      }
+      return;
+    }
+
+    // Mobile virtual keyboard Enter / newline support: cleanly split into individual blocks
     if (block.type !== "code" && block.type !== "math" && block.type !== "sticky" && value.includes("\n")) {
       const parts = value.split("\n");
       const currentPart = parts[0] || "";
-      const nextPart = parts.slice(1).join("\n").trim();
-      update(index, { content: currentPart });
-      insertAfter(index, block.type === "quote" ? "paragraph" : block.type);
-      if (nextPart) {
-        setTimeout(() => {
-          if (blocks[index + 1]) {
-            update(index + 1, { content: nextPart });
-          }
-        }, 30);
+      const remainingParts = parts.slice(1);
+
+      const targetType = block.type === "quote" ? "paragraph" : block.type;
+      const updatedCurrent: NoteBlock = { ...block, content: currentPart };
+
+      const newBlocksToInsert: NoteBlock[] = remainingParts.map((part) => ({
+        ...newBlock(targetType),
+        content: part.trim(),
+      }));
+
+      onDirty();
+      const nextBlocks = [
+        ...blocks.slice(0, index),
+        updatedCurrent,
+        ...newBlocksToInsert,
+        ...blocks.slice(index + 1),
+      ];
+      onChange(nextBlocks);
+      const lastInsertedIndex = index + newBlocksToInsert.length;
+      setActiveBlockIndex(lastInsertedIndex);
+      if (newBlocksToInsert.length > 0) {
+        focus(newBlocksToInsert[newBlocksToInsert.length - 1].id);
       }
       return;
     }
@@ -333,6 +359,119 @@ export default function BlockEditor({
     const isCommand = block.type === "paragraph" && /^#[\w\s-]*$/.test(value);
     if (!isCommand) { setMenu((c) => ({ ...c, visible: false })); return; }
     setMenu({ visible: true, index, query: value.slice(1).trim(), selected: 0 });
+  };
+
+  const handlePaste = (event: React.ClipboardEvent<HTMLTextAreaElement | HTMLInputElement>, index: number) => {
+    if (readOnly || index < 0 || index >= blocks.length) return;
+    const block = blocks[index];
+    if (!block) return;
+
+    const clipboardText = event.clipboardData?.getData("text");
+    if (!clipboardText) return;
+
+    // Normalize newlines and strip rogue zero-width spaces
+    const normalized = clipboardText.replace(/\r\n/g, "\n").replace(/\r/g, "\n").replace(/\u200B/g, "");
+
+    // Code block or single-line text without newlines
+    if (block.type === "code" || (!normalized.includes("\n"))) {
+      const target = event.currentTarget as HTMLTextAreaElement | HTMLInputElement;
+      const currentContent = (block.content || "").replace(/\u200B/g, "");
+      const isHashOrEmpty = !currentContent.trim() || currentContent.trim() === "#";
+
+      if (isHashOrEmpty && !currentContent.trim().startsWith("#code") && block.type !== "code") {
+        event.preventDefault();
+        setMenu((c) => ({ ...c, visible: false }));
+        update(index, { content: normalized });
+        return;
+      }
+
+      if (target && typeof target.selectionStart === "number") {
+        event.preventDefault();
+        const start = target.selectionStart;
+        const end = target.selectionEnd || start;
+        const newContent = currentContent.slice(0, start) + normalized + currentContent.slice(end);
+        update(index, { content: newContent });
+        setTimeout(() => {
+          const el = document.getElementById(`block-${block.id}`) as HTMLTextAreaElement | null;
+          if (el) {
+            el.selectionStart = el.selectionEnd = start + normalized.length;
+          }
+        }, 10);
+        return;
+      }
+      return;
+    }
+
+    // MULTI-LINE PASTE:
+    // Split into lines. Each line becomes a distinct block in the editor!
+    event.preventDefault();
+    setMenu((c) => ({ ...c, visible: false }));
+
+    const rawLines = normalized.split("\n");
+    // Filter out excessive contiguous empty lines (at most 1 empty block in a row)
+    const cleanedLines: string[] = [];
+    let prevWasEmpty = false;
+    for (const line of rawLines) {
+      const trimmed = line.trim();
+      if (!trimmed) {
+        if (!prevWasEmpty) {
+          cleanedLines.push("");
+          prevWasEmpty = true;
+        }
+      } else {
+        cleanedLines.push(line);
+        prevWasEmpty = false;
+      }
+    }
+    const lines = cleanedLines.length > 0 ? cleanedLines : [""];
+
+    const target = event.currentTarget as HTMLTextAreaElement | HTMLInputElement;
+    const currentContent = (block.content || "").replace(/\u200B/g, "");
+    const isHashOrEmpty = !currentContent.trim() || currentContent.trim() === "#";
+
+    let prefix = "";
+    let suffix = "";
+    if (!isHashOrEmpty && target && typeof target.selectionStart === "number") {
+      const start = target.selectionStart;
+      const end = target.selectionEnd || start;
+      prefix = currentContent.slice(0, start);
+      suffix = currentContent.slice(end);
+    }
+
+    const firstLineContent = prefix + lines[0];
+    const lastLineContent = lines[lines.length - 1] + suffix;
+
+    const baseType = block.type;
+    const updatedCurrent: NoteBlock = {
+      ...block,
+      type: baseType,
+      content: firstLineContent,
+    };
+
+    const newBlocks: NoteBlock[] = [];
+    for (let i = 1; i < lines.length; i++) {
+      const isLast = i === lines.length - 1;
+      newBlocks.push({
+        id: newId(),
+        type: "paragraph",
+        content: isLast ? lastLineContent : lines[i],
+      });
+    }
+
+    onDirty();
+    const nextBlocks = [
+      ...blocks.slice(0, index),
+      updatedCurrent,
+      ...newBlocks,
+      ...blocks.slice(index + 1),
+    ];
+    onChange(nextBlocks);
+
+    const targetFocusBlock = newBlocks.length > 0 ? newBlocks[newBlocks.length - 1] : updatedCurrent;
+    setActiveBlockIndex(index + newBlocks.length);
+    setTimeout(() => {
+      focus(targetFocusBlock.id);
+    }, 30);
   };
 
   const handleKeyDown = (event: KeyboardEvent<HTMLTextAreaElement | HTMLInputElement | HTMLDivElement>, index: number) => {
@@ -382,10 +521,10 @@ export default function BlockEditor({
       (event.nativeEvent as any)?.key === "Delete";
 
     const target = event.currentTarget as HTMLTextAreaElement | HTMLInputElement;
-    const trimmed = (block.content || "").trim();
+    const trimmed = (block.content || "").replace(/\u200B/g, "").trim();
     const isHashOnly = trimmed === "#";
     const isEmpty = !trimmed;
-    const isAtStart = target && typeof target.selectionStart === "number" && target.selectionStart === 0 && target.selectionEnd === 0;
+    const isAtStart = target && typeof target.selectionStart === "number" && (target.selectionStart === 0 || (target.selectionStart <= 1 && target.value.startsWith("\u200B")));
 
     if (isBackspace || isDelete) {
       // If block contains ONLY '#', backspace should safely clear '#' and close menu, NOT delete the block!
@@ -459,10 +598,10 @@ export default function BlockEditor({
 
     if (isDeleteAction) {
       const target = event.currentTarget as HTMLTextAreaElement | HTMLInputElement;
-      const trimmed = (block.content || "").trim();
+      const trimmed = (block.content || "").replace(/\u200B/g, "").trim();
       const isHashOnly = trimmed === "#";
-      const isEmpty = !trimmed;
-      const isAtStart = target && typeof target.selectionStart === "number" && target.selectionStart === 0 && target.selectionEnd === 0;
+      const isEmpty = !trimmed || (target && (target.value === "\u200B" || target.value === ""));
+      const isAtStart = target && typeof target.selectionStart === "number" && (target.selectionStart === 0 || (target.selectionStart <= 1 && target.value.startsWith("\u200B")));
 
       // Clearing '#' on mobile keyboard should keep the block intact
       if (isHashOnly) {
@@ -498,28 +637,30 @@ export default function BlockEditor({
         index={index}
         blocksCount={blocks.length}
         isActive={activeBlockIndex === index}
+        readOnly={readOnly}
         onActivate={() => setActiveBlockIndex(index)}
         listNumber={listNumbers[index]}
         block={block}
         onInput={(e) => handleInput(e, index)}
         onKeyDown={(e) => handleKeyDown(e, index)}
         onBeforeInput={(e) => handleBeforeInput(e, index)}
-        onToggle={() => update(index, { isCompleted: !block.isCompleted })}
-        onDelete={() => remove(index)}
+        onPaste={(e) => handlePaste(e, index)}
+        onToggle={() => !readOnly && update(index, { isCompleted: !block.isCompleted })}
+        onDelete={() => !readOnly && remove(index)}
         onClearHash={() => {
           setMenu((c) => ({ ...c, visible: false }));
           update(index, { content: "" });
         }}
-        onMergePrev={() => mergeWithPrev(index)}
-        onDuplicate={() => duplicate(index)}
-        onLanguage={(lang) => update(index, { language: lang })}
-        onColorToolbar={() => setColorToolbar({ visible: true, index })}
-        colorToolbarOpen={colorToolbar.visible && colorToolbar.index === index}
+        onMergePrev={() => !readOnly && mergeWithPrev(index)}
+        onDuplicate={() => !readOnly && duplicate(index)}
+        onLanguage={(lang) => !readOnly && update(index, { language: lang })}
+        onColorToolbar={() => !readOnly && setColorToolbar({ visible: true, index })}
+        colorToolbarOpen={!readOnly && colorToolbar.visible && colorToolbar.index === index}
         onCloseColorToolbar={() => setColorToolbar({ visible: false, index: -1 })}
-        onUpdateColor={(patch) => { update(index, patch); onDirty(); }}
-        onReplaceImage={onReplaceImage}
+        onUpdateColor={(patch) => { if (!readOnly) { update(index, patch); onDirty(); } }}
+        onReplaceImage={!readOnly ? onReplaceImage : undefined}
         onPreviewImage={onPreviewImage}
-        commandMenu={menu.visible && menu.index === index && visibleOptions.length > 0 ? (
+        commandMenu={!readOnly && menu.visible && menu.index === index && visibleOptions.length > 0 ? (
           <CommandMenu 
             options={visibleOptions} 
             selected={menu.selected} 
@@ -529,14 +670,16 @@ export default function BlockEditor({
         ) : null}
       />
     ))}
-    <div
-      className="note-editor-bottom-spacer mt-4 pb-32 cursor-text min-h-[150px]"
-      onClick={() => {
-        const newBlk: NoteBlock = newBlock("paragraph");
-        onChange([...blocks, newBlk]);
-        setTimeout(() => document.getElementById(`block-${newBlk.id}`)?.focus(), 50);
-      }}
-    />
+    {!readOnly && (
+      <div
+        className="note-editor-bottom-spacer mt-4 pb-32 cursor-text min-h-[150px]"
+        onClick={() => {
+          const newBlk: NoteBlock = newBlock("paragraph");
+          onChange([...blocks, newBlk]);
+          setTimeout(() => document.getElementById(`block-${newBlk.id}`)?.focus(), 50);
+        }}
+      />
+    )}
   </div>;
 }
 
@@ -1335,10 +1478,12 @@ function EditorBlock({
   blocksCount = 1,
   listNumber = 1,
   isActive = false,
+  readOnly = false,
   onActivate,
   onInput,
   onKeyDown,
   onBeforeInput,
+  onPaste,
   onToggle,
   onDelete,
   onClearHash,
@@ -1358,10 +1503,12 @@ function EditorBlock({
   blocksCount?: number;
   listNumber?: number;
   isActive?: boolean;
+  readOnly?: boolean;
   onActivate?: () => void;
   onInput: (event: ChangeEvent<HTMLTextAreaElement | HTMLInputElement>) => void;
   onKeyDown: (event: KeyboardEvent<HTMLTextAreaElement | HTMLInputElement | HTMLDivElement>) => void;
   onBeforeInput?: (event: React.FormEvent<HTMLTextAreaElement | HTMLInputElement>) => void;
+  onPaste?: (event: React.ClipboardEvent<HTMLTextAreaElement | HTMLInputElement>) => void;
   onToggle: () => void;
   onDelete: () => void;
   onClearHash?: () => void;
@@ -1380,10 +1527,21 @@ function EditorBlock({
   const textarea = useRef<HTMLTextAreaElement>(null);
   useEffect(() => { if (textarea.current && block.type !== "code") { textarea.current.style.height = "0px"; textarea.current.style.height = `${textarea.current.scrollHeight}px`; } }, [block.content, block.type]);
 
-  // Native mobile keyboard deletion & backspace handling
+  // Native mobile keyboard deletion & backspace handling with Zero-Width-Space buffer
   useEffect(() => {
     const el = textarea.current;
-    if (!el) return;
+    if (!el || readOnly) return;
+
+    // Prime the element with zero-width space if content is empty so Android keyboards (Gboard etc.) trigger backspace events
+    const syncZws = () => {
+      if (block.type !== "code" && !block.content && el.value === "") {
+        el.value = "\u200B";
+        try {
+          el.selectionStart = el.selectionEnd = 1;
+        } catch {}
+      }
+    };
+    syncZws();
 
     const handleNativeBeforeInput = (e: InputEvent) => {
       const isDelete =
@@ -1394,10 +1552,10 @@ function EditorBlock({
         e.inputType === "deleteSoftLineBackward";
 
       if (isDelete) {
-        const trimmed = (block.content || "").trim();
-        const isHashOnly = trimmed === "#";
-        const isEmpty = !trimmed;
-        const isAtStart = typeof el.selectionStart === "number" && el.selectionStart === 0 && el.selectionEnd === 0;
+        const cleanContent = (block.content || "").replace(/\u200B/g, "").trim();
+        const isHashOnly = cleanContent === "#";
+        const isEmpty = !cleanContent || el.value === "\u200B" || el.value === "";
+        const isAtStart = typeof el.selectionStart === "number" && (el.selectionStart === 0 || (el.selectionStart <= 1 && el.value.startsWith("\u200B")));
 
         if (isHashOnly) {
           e.preventDefault();
@@ -1412,13 +1570,20 @@ function EditorBlock({
       }
     };
 
+    const handleNativeInput = () => {
+      const cleanContent = (block.content || "").replace(/\u200B/g, "").trim();
+      if (el.value === "" && !cleanContent) {
+        onDelete();
+      }
+    };
+
     const handleNativeKeyDown = (e: globalThis.KeyboardEvent) => {
       const isBackspace = e.key === "Backspace" || e.code === "Backspace" || e.keyCode === 8;
       const isDelete = e.key === "Delete" || e.key === "Del" || e.code === "Delete" || e.keyCode === 46;
-      const trimmed = (block.content || "").trim();
-      const isHashOnly = trimmed === "#";
-      const isEmpty = !trimmed;
-      const isAtStart = typeof el.selectionStart === "number" && el.selectionStart === 0 && el.selectionEnd === 0;
+      const cleanContent = (block.content || "").replace(/\u200B/g, "").trim();
+      const isHashOnly = cleanContent === "#";
+      const isEmpty = !cleanContent;
+      const isAtStart = typeof el.selectionStart === "number" && (el.selectionStart === 0 || (el.selectionStart <= 1 && el.value.startsWith("\u200B")));
 
       if (isBackspace || isDelete) {
         if (isHashOnly) {
@@ -1441,8 +1606,8 @@ function EditorBlock({
 
     const handleNativeKeyUp = (e: globalThis.KeyboardEvent) => {
       const isBackspace = e.key === "Backspace" || e.code === "Backspace" || e.keyCode === 8;
-      const trimmed = (block.content || "").trim();
-      const isEmpty = !trimmed;
+      const cleanContent = (block.content || "").replace(/\u200B/g, "").trim();
+      const isEmpty = !cleanContent;
       if (isBackspace && isEmpty && index > 0) {
         e.preventDefault();
         onDelete();
@@ -1450,15 +1615,17 @@ function EditorBlock({
     };
 
     el.addEventListener("beforeinput", handleNativeBeforeInput as EventListener);
+    el.addEventListener("input", handleNativeInput as EventListener);
     el.addEventListener("keydown", handleNativeKeyDown as EventListener);
     el.addEventListener("keyup", handleNativeKeyUp as EventListener);
 
     return () => {
       el.removeEventListener("beforeinput", handleNativeBeforeInput as EventListener);
+      el.removeEventListener("input", handleNativeInput as EventListener);
       el.removeEventListener("keydown", handleNativeKeyDown as EventListener);
       el.removeEventListener("keyup", handleNativeKeyUp as EventListener);
     };
-  }, [block.content, index, onDelete, onClearHash, onMergePrev]);
+  }, [block.content, block.type, index, onDelete, onClearHash, onMergePrev, readOnly]);
 
   const input = {
     id: `block-${block.id}`,
@@ -1466,12 +1633,22 @@ function EditorBlock({
     onChange: onInput,
     onKeyDown,
     onBeforeInput,
-    onFocus: () => onActivate?.(),
+    onPaste,
+    readOnly,
+    onFocus: () => {
+      onActivate?.();
+      if (!readOnly && block.type !== "code" && !block.content && textarea.current) {
+        textarea.current.value = "\u200B";
+        try {
+          textarea.current.selectionStart = textarea.current.selectionEnd = 1;
+        } catch {}
+      }
+    },
   };
 
   const isTextType = ["paragraph", "h1", "h2", "h3", "bullet", "numbered", "todo"].includes(block.type);
 
-  const control = isTextType ? (
+  const control = isTextType && !readOnly ? (
     <BlockActionMenu
       isActive={isActive}
       onColorToolbar={onColorToolbar}
@@ -1482,7 +1659,7 @@ function EditorBlock({
     />
   ) : null;
 
-  const colorToolbarNode = isTextType && colorToolbarOpen ? (
+  const colorToolbarNode = isTextType && colorToolbarOpen && !readOnly ? (
     <ColorToolbar
       block={block}
       onUpdate={onUpdateColor}
@@ -1792,19 +1969,27 @@ function EditorBlock({
     <div className="editor-block editor-block--paragraph relative" onClick={onActivate}>
       {control}
       {wrapWithBox(
-        <div style={highlightStyle}>
+        <div style={highlightStyle} className="relative">
+          {(!block.content || !block.content.replace(/\u200B/g, "").trim()) && paragraphPlaceholder && !readOnly && (
+            <span
+              className="note-block-placeholder-label pointer-events-none absolute left-0 top-0 select-none text-zinc-500/80 text-sm sm:text-base leading-relaxed"
+              style={{ userSelect: "none", WebkitUserSelect: "none" }}
+            >
+              {paragraphPlaceholder}
+            </span>
+          )}
           <textarea 
             ref={textarea} 
             {...input} 
             rows={1} 
-            placeholder={paragraphPlaceholder} 
+            placeholder={readOnly ? "" : paragraphPlaceholder} 
             style={textStyle} 
             className="note-block-textarea" 
           />
         </div>
       )}
-      {commandMenu}
-      {colorToolbarNode}
+      {!readOnly && commandMenu}
+      {!readOnly && colorToolbarNode}
     </div>
   );
 }

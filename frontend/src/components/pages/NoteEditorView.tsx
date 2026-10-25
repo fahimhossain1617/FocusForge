@@ -4,7 +4,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { 
   ArrowLeft, Check, Download, MoreVertical, 
   Share2, Trash2, Image as ImageIcon, 
-  FileUp, X, ChevronDown
+  FileUp, X, ChevronDown, Copy, Eye, Loader2
 } from "lucide-react";
 import BlockEditor from "../workspace/BlockEditor";
 import LinkInsertModal from "../workspace/LinkInsertModal";
@@ -24,6 +24,7 @@ interface NoteEditorViewProps {
   initialCategory?: string;
   initialCreatedAt?: string;
   initialUpdatedAt?: string;
+  isReadOnly?: boolean;
   onUpdate: (title: string, blocks: NoteBlock[], category?: string) => void; 
   onDelete: () => void; 
   onBack: () => void; 
@@ -38,6 +39,7 @@ export default function NoteEditorView({
   initialCategory,
   initialCreatedAt,
   initialUpdatedAt,
+  isReadOnly = false,
   onUpdate, 
   onDelete, 
   onBack 
@@ -212,6 +214,32 @@ export default function NoteEditorView({
     return () => { isMountedRef.current = false; };
   }, []);
 
+  const [isSharingLoading, setIsSharingLoading] = useState(false);
+
+  const handleCopyAllText = async () => {
+    const text = (blocks || [])
+      .map((block) => {
+        if (!block) return "";
+        if (block.type === "image") return `[Image: ${block.caption || "Image"}]`;
+        if (block.type === "file") return `[File: ${block.fileName || "Attachment"}]`;
+        if (block.type === "link") return `[Link: ${block.linkTitle || block.url}](${block.url})`;
+        const raw = typeof block.content === "string" ? block.content : "";
+        return raw.replace(/<[^>]*>/g, "");
+      })
+      .filter(Boolean)
+      .join("\n\n");
+
+    const fullText = `${title || (isBn ? "নোট" : "Note")}\n\n${text}`;
+    if (typeof navigator !== "undefined" && navigator.clipboard) {
+      try {
+        await navigator.clipboard.writeText(fullText);
+        showToast(isBn ? "সম্পূর্ণ লেখা কপি করা হয়েছে!" : "All note content copied to clipboard!");
+      } catch {
+        showToast(isBn ? "কপি করতে ব্যর্থ হয়েছে" : "Failed to copy content", "error");
+      }
+    }
+  };
+
   const share = async () => { 
     if (isSharingRef.current) return;
     isSharingRef.current = true;
@@ -236,59 +264,58 @@ export default function NoteEditorView({
       return;
     }
 
-    const text = (blocks || [])
-      .map((block) => {
-        if (!block) return "";
-        if (block.type === "image") return `[Image: ${block.caption || "Image"}]`;
-        if (block.type === "file") return `[File: ${block.fileName || "Attachment"}]`;
-        if (block.type === "link") return `[Link: ${block.linkTitle || block.url}](${block.url})`;
-        const raw = typeof block.content === "string" ? block.content : "";
-        return raw.replace(/<[^>]*>/g, "");
-      })
-      .filter(Boolean)
-      .join("\n"); 
+    try {
+      setIsSharingLoading(true);
+      const res = await fetch("/api/notes/share", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: latestStateRef.current.title || (state.lang === "bn" ? "শিরোনামহীন নোট" : "Untitled Note"),
+          category: latestStateRef.current.category || "Personal",
+          blocks: latestStateRef.current.blocks || [],
+          attachments: note?.attachments || [],
+          links: note?.links || [],
+        }),
+      });
 
-    const shareTitle = (title && title.trim()) ? title.trim() : (state.lang === 'bn' ? "নোট" : "Untitled note");
-    const shareData = {
-      title: shareTitle,
-      text: text || " ",
-    };
+      const data = await res.json();
+      const origin = typeof window !== "undefined" ? window.location.origin : "https://focus-forge-fahimhossain1617-7909s-projects.vercel.app";
+      const shareUrl = data?.shareUrl || `${origin}/?shared_note=${data?.shareId || 'offline'}`;
+      const shareTitle = (title && title.trim()) ? title.trim() : (state.lang === 'bn' ? "নোট" : "Untitled note");
 
-    try { 
+      const shareData = {
+        title: shareTitle,
+        text: state.lang === 'bn' 
+          ? `${shareTitle} - ফোকাসফোর্জ নোট ও ফাইলস` 
+          : `${shareTitle} - FocusForge Notes & Files`,
+        url: shareUrl,
+      };
+
       if (typeof navigator !== "undefined" && typeof navigator.share === "function") {
-        if (typeof navigator.canShare === "function") {
-          if (navigator.canShare(shareData)) {
-            await navigator.share(shareData);
-          } else if (navigator.clipboard) {
-            await navigator.clipboard.writeText(`${shareTitle}\n\n${text}`); 
-            if (isMountedRef.current) {
-              showToast(state.lang === 'bn' ? "নোট ক্লিপবোর্ডে কপি করা হয়েছে" : "Note copied to clipboard"); 
-            }
-          }
-        } else {
+        if (typeof navigator.canShare === "function" && navigator.canShare(shareData)) {
           await navigator.share(shareData);
+        } else if (navigator.clipboard) {
+          await navigator.clipboard.writeText(shareUrl);
+          if (isMountedRef.current) {
+            showToast(state.lang === 'bn' ? "শেয়ারেবল লিংক ক্লিপবোর্ডে কপি করা হয়েছে" : "Shareable note link copied to clipboard");
+          }
         }
-      } else if (typeof navigator !== "undefined" && navigator.clipboard) { 
-        await navigator.clipboard.writeText(`${shareTitle}\n\n${text}`); 
+      } else if (typeof navigator !== "undefined" && navigator.clipboard) {
+        await navigator.clipboard.writeText(shareUrl);
         if (isMountedRef.current) {
-          showToast(state.lang === 'bn' ? "নোট ক্লিপবোর্ডে কপি করা হয়েছে" : "Note copied to clipboard"); 
+          showToast(state.lang === 'bn' ? "শেয়ারেবল লিংক ক্লিপবোর্ডে কপি করা হয়েছে" : "Shareable note link copied to clipboard");
         }
-      } 
-    } catch (err: any) { 
-      // AbortError is cleanly thrown if user cancels or backs out of native share sheet
+      }
+    } catch (err: any) {
       if (err?.name === "AbortError" || err?.message?.includes("abort") || err?.message?.includes("cancel")) {
         return;
       }
-      // Fallback to clipboard if sharing failed due to technical constraints
-      try {
-        if (typeof navigator !== "undefined" && navigator.clipboard) {
-          await navigator.clipboard.writeText(`${shareTitle}\n\n${text}`);
-          if (isMountedRef.current) {
-            showToast(state.lang === 'bn' ? "নোট ক্লিপবোর্ডে কপি করা হয়েছে" : "Note copied to clipboard");
-          }
-        }
-      } catch {}
-    } 
+      showToast(state.lang === 'bn' ? "শেয়ার লিংক তৈরি করতে সমস্যা হয়েছে" : "Failed to create shareable link", "error");
+    } finally {
+      if (isMountedRef.current) {
+        setIsSharingLoading(false);
+      }
+    }
   };
 
   // ── Image Handling ──
@@ -629,22 +656,42 @@ export default function NoteEditorView({
         </button>
 
         <div className="note-editor-actions flex items-center gap-2.5">
-          <button 
-            type="button" 
-            className="note-header-icon note-header-icon--danger cursor-pointer p-1.5 rounded-xl text-zinc-400 hover:text-red-500 hover:bg-red-500/10 transition-colors" 
-            onClick={() => setConfirmDelete(true)} 
-            aria-label="Delete note"
-            title={isBn ? "নোট মুছুন" : "Delete note"}
-          >
-            <Trash2 size={16} />
-          </button>
+          {isReadOnly ? (
+            <>
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-semibold bg-blue-500/10 text-blue-400 border border-blue-500/25 select-none">
+                <Eye size={13} />
+                <span>{isBn ? "ভিউ মোড (শুধুমাত্র দর্শনীয়)" : "View Only"}</span>
+              </span>
+              <button
+                type="button"
+                onClick={handleCopyAllText}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium text-white bg-blue-600 hover:bg-blue-500 transition-colors cursor-pointer"
+                title={isBn ? "সম্পূর্ণ লেখা কপি করুন" : "Copy Note Content"}
+              >
+                <Copy size={13} />
+                <span>{isBn ? "কপি করুন" : "Copy All"}</span>
+              </button>
+            </>
+          ) : (
+            <>
+              <button 
+                type="button" 
+                className="note-header-icon note-header-icon--danger cursor-pointer p-1.5 rounded-xl text-zinc-400 hover:text-red-500 hover:bg-red-500/10 transition-colors" 
+                onClick={() => setConfirmDelete(true)} 
+                aria-label="Delete note"
+                title={isBn ? "নোট মুছুন" : "Delete note"}
+              >
+                <Trash2 size={16} />
+              </button>
 
-          <span className="note-save-state">
-            <span className="inline-flex items-center gap-1.5 text-xs text-emerald-500 font-medium select-none">
-              <Check size={13} />
-              <span>{isBn ? "সংরক্ষিত" : "Saved"}</span>
-            </span>
-          </span>
+              <span className="note-save-state">
+                <span className="inline-flex items-center gap-1.5 text-xs text-emerald-500 font-medium select-none">
+                  <Check size={13} />
+                  <span>{isBn ? "সংরক্ষিত" : "Saved"}</span>
+                </span>
+              </span>
+            </>
+          )}
 
           <div className="relative z-[9999]" ref={moreMenuRef}>
             <button 
@@ -654,7 +701,7 @@ export default function NoteEditorView({
               aria-label="More options"
               title={isBn ? "আরও অপশন" : "More options"}
             >
-              <MoreVertical size={18} />
+              {isSharingLoading ? <Loader2 size={18} className="animate-spin text-blue-400" /> : <MoreVertical size={18} />}
             </button>
             {shouldRenderMore && (
               <div className={`note-more-menu ${isExitingMore ? "motion-dropdown-exit" : "motion-dropdown"}`}>
@@ -662,7 +709,7 @@ export default function NoteEditorView({
                   type="button" 
                   onClick={share}
                 >
-                  <Share2 size={15} /> {isBn ? "নোট শেয়ার করুন" : "Share Note"}
+                  <Share2 size={15} /> {isBn ? "নোট শেয়ার করুন (লিংক)" : "Share Note Link"}
                 </button>
                 <button 
                   type="button" 
@@ -711,11 +758,13 @@ export default function NoteEditorView({
             <div className="relative">
               <select
                 value={category}
+                disabled={isReadOnly}
                 onChange={(e) => {
+                  if (isReadOnly) return;
                   setCategory(e.target.value);
                   queueSave(title, blocks, e.target.value);
                 }}
-                className="text-[11px] font-semibold px-2.5 py-1 rounded-lg border appearance-none pr-6 transition-all cursor-pointer"
+                className={`text-[11px] font-semibold px-2.5 py-1 rounded-lg border appearance-none pr-6 transition-all ${isReadOnly ? "opacity-75 cursor-default" : "cursor-pointer"}`}
                 style={{
                   backgroundColor: "var(--color-bg-elevated, rgba(13, 20, 36, 0.6))",
                   borderColor: "var(--color-border-subtle, rgba(255, 255, 255, 0.12))",
@@ -758,7 +807,9 @@ export default function NoteEditorView({
             ref={titleRef}
             rows={1}
             value={title} 
+            readOnly={isReadOnly}
             onChange={(event) => { 
+              if (isReadOnly) return;
               setTitle(event.target.value); 
               queueSave(event.target.value, blocks); 
             }} 
@@ -769,15 +820,17 @@ export default function NoteEditorView({
               } 
             }} 
             placeholder={isBn ? "শিরোনামহীন নোট..." : "Untitled note..."} 
-            className="note-editor-title note-block-textarea w-full text-2xl sm:text-3xl font-bold tracking-tight mb-3 sm:mb-4 pl-7 sm:pl-8 bg-transparent outline-none text-foreground placeholder-zinc-600 resize-none overflow-hidden block break-words border-0 shadow-none" 
+            className={`note-editor-title note-block-textarea w-full text-2xl sm:text-3xl font-bold tracking-tight mb-3 sm:mb-4 pl-7 sm:pl-8 bg-transparent outline-none text-foreground placeholder-zinc-600 resize-none overflow-hidden block break-words border-0 shadow-none ${isReadOnly ? "cursor-default" : ""}`} 
             style={{ background: "transparent", border: "none", outline: "none", boxShadow: "none" }}
-            autoFocus 
+            autoFocus={!isReadOnly} 
           />
 
           {/* Block Editor */}
           <BlockEditor 
             blocks={blocks} 
+            readOnly={isReadOnly}
             onChange={(nextBlocks) => { 
+              if (isReadOnly) return;
               setBlocks(nextBlocks); 
               queueSave(latestStateRef.current.title, nextBlocks, latestStateRef.current.category); 
             }} 

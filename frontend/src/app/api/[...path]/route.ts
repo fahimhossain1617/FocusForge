@@ -43,6 +43,8 @@ import {
   dbGetMindItems,
   dbUpsertMindItem,
   dbDeleteMindItem,
+  dbSaveSharedNote,
+  dbGetSharedNote,
   pool,
 } from '@/lib/server/db';
 import {
@@ -148,6 +150,24 @@ export async function GET(request: NextRequest, context: { params: Promise<{ pat
   const searchParams = request.nextUrl.searchParams;
 
   const { userId, isGuest, guestId, lang, clientIp } = await extractAuth(request);
+
+  // Shared Notes: GET /api/notes/shared/:id (Public)
+  if (pathStr.startsWith('notes/shared/')) {
+    const shareId = pathStr.replace('notes/shared/', '').trim();
+    if (!shareId) {
+      return NextResponse.json({ error: 'Missing share ID' }, { status: 400 });
+    }
+    try {
+      const note = await dbGetSharedNote(shareId);
+      if (!note) {
+        return NextResponse.json({ error: 'Note not found or link expired' }, { status: 404 });
+      }
+      return NextResponse.json({ success: true, note });
+    } catch (err: any) {
+      console.error('[GET notes/shared/:id] Error:', err);
+      return NextResponse.json({ error: 'Failed to retrieve shared note' }, { status: 500 });
+    }
+  }
 
   // 1. Token status
   if (pathStr === 'ai/tokens') {
@@ -695,6 +715,40 @@ export async function POST(request: NextRequest, context: { params: Promise<{ pa
   try {
     body = await request.json();
   } catch {}
+
+  // ==========================================
+  // SHARED NOTES: POST /api/notes/share
+  // ==========================================
+  if (pathStr === 'notes/share') {
+    const { title, category, blocks, attachments, links } = body || {};
+    try {
+      const shareId = crypto.randomBytes(6).toString('hex');
+      const saved = await dbSaveSharedNote(
+        shareId,
+        {
+          title: title || '',
+          category: category || 'Personal',
+          blocks: Array.isArray(blocks) ? blocks : [],
+          attachments: Array.isArray(attachments) ? attachments : [],
+          links: Array.isArray(links) ? links : [],
+        },
+        userId || null
+      );
+      
+      const origin = request.nextUrl.origin || 'https://focus-forge-fahimhossain1617-7909s-projects.vercel.app';
+      const shareUrl = `${origin}/?shared_note=${shareId}`;
+
+      return NextResponse.json({
+        success: true,
+        shareId,
+        shareUrl,
+        note: saved,
+      });
+    } catch (err: any) {
+      console.error('[POST notes/share] Error:', err);
+      return NextResponse.json({ error: 'Failed to create shareable link' }, { status: 500 });
+    }
+  }
 
   // ==========================================
   // AUTH: PRE-VERIFICATION SIGNUP ENDPOINTS

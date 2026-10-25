@@ -19,11 +19,42 @@ export default function WorkspacePage() {
   // View State: 'grid' or 'editor'
   const [view, setView] = useState<'grid' | 'editor'>('grid');
   const [editingNote, setEditingNote] = useState<Note | null>(null);
+  const [isReadOnlyNote, setIsReadOnlyNote] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
 
   useEffect(() => {
     setMounted(true);
+
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const sharedId = params.get("shared_note");
+      if (sharedId) {
+        fetch(`/api/notes/shared/${encodeURIComponent(sharedId)}`)
+          .then((res) => {
+            if (res.ok) return res.json();
+            throw new Error("Failed to load shared note");
+          })
+          .then((data) => {
+            const noteData = data?.note || data;
+            if (noteData && Array.isArray(noteData.blocks)) {
+              setEditingNote({
+                id: 0,
+                title: noteData.title || "",
+                blocks: noteData.blocks || [],
+                category: noteData.category || "Personal",
+                createdAt: noteData.created_at || noteData.createdAt || new Date().toISOString(),
+                updatedAt: noteData.updated_at || noteData.updatedAt || new Date().toISOString(),
+              });
+              setIsReadOnlyNote(true);
+              setView('editor');
+            }
+          })
+          .catch((err) => {
+            console.error("Error loading shared note:", err);
+          });
+      }
+    }
   }, []);
 
   useEffect(() => {
@@ -34,7 +65,15 @@ export default function WorkspacePage() {
   const handleBackToGrid = React.useCallback(() => {
     setView('grid');
     setEditingNote(null);
-  }, []);
+    if (isReadOnlyNote) {
+      setIsReadOnlyNote(false);
+      if (typeof window !== "undefined") {
+        const url = new URL(window.location.href);
+        url.searchParams.delete("shared_note");
+        window.history.replaceState({}, "", url.pathname + (url.search ? url.search : ""));
+      }
+    }
+  }, [isReadOnlyNote]);
 
   // Synchronize note editor subview with browser history and phone back gestures
   const { triggerBack: handleNoteBack } = useSubViewBack({
@@ -54,6 +93,7 @@ export default function WorkspacePage() {
     isTransitioningRef.current = true;
     setTimeout(() => { isTransitioningRef.current = false; }, 350);
 
+    setIsReadOnlyNote(false);
     const draft = addNote({ 
       title: "", 
       blocks: [{ id: crypto.randomUUID?.() ?? Math.random().toString(36).slice(2), type: "paragraph", content: "" }],
@@ -71,6 +111,7 @@ export default function WorkspacePage() {
     isTransitioningRef.current = true;
     setTimeout(() => { isTransitioningRef.current = false; }, 350);
 
+    setIsReadOnlyNote(false);
     setEditingNote(note);
     setView('editor');
   };
@@ -140,8 +181,13 @@ export default function WorkspacePage() {
           initialCategory={editingNote?.category}
           initialCreatedAt={editingNote?.createdAt}
           initialUpdatedAt={editingNote?.updatedAt}
-          onUpdate={handleUpdateNote}
+          isReadOnly={isReadOnlyNote}
+          onUpdate={isReadOnlyNote ? () => {} : handleUpdateNote}
           onDelete={() => { 
+            if (isReadOnlyNote) {
+              handleNoteBack();
+              return;
+            }
             if (editingNote) deleteNote(editingNote.id); 
             handleNoteBack(); 
           }}

@@ -2179,6 +2179,41 @@
   - Level 2 Build Check: Next.js 16.4.2 Turbopack `npm run build --prefix frontend` passed with Exit Code 0 (21/21 static pages generated, TypeScript clean). Backend build `npm run build --prefix backend` passed with Exit Code 0.
 - **Status:** **VERIFIED**
 
+---
+
+## ADR-039: Notes & Files Multi-Line Paste, Mobile Virtual Keyboard Backspace, and Public Read-Only Note Sharing
+
+- **Date:** October 25, 2026
+- **Status:** Accepted & Verified
+- **Context:**
+  - Users reported three issues in the "Notes & Files" (নোটস ও ফাইলস) feature:
+    1. **Multi-line Paste Trapping:** When pasting text copied from external sources into a note block (including the initial block after note title), unhandled pasted newlines were previously dumped into a single block's content string (`\n`). This caused subsequent keystrokes to trigger repetitive split loops, preventing users from editing or deleting individual words/lines.
+    2. **Mobile Virtual Keyboard Backspace on Empty Lines:** On Android devices (e.g. Gboard, Redmi), pressing the virtual keyboard Backspace/Delete button on an empty line failed to delete the line or jump to the previous line because Chromium on Android suppresses `keydown` when input values are empty.
+    3. **Share Feature Upgrade to Public Shareable App Link:** Previously, clicking "Share" copied plain text to clipboard. The user requested generating a shareable web link to the entire note/folder (blocks, text, images, PDF/attachments, links) that anyone (including guest users) can open directly in Focentia in **read-only mode** with no editing permissions, but retaining the ability to copy text, download attached files/PDFs, and preview images.
+- **Decision:**
+  1. **Paste & Multi-Line Split Optimization (`BlockEditor.tsx`):**
+     - Implemented dedicated `onPaste` handler (`handlePaste`) that intercepts clipboard content, normalizes line endings (`\r\n` -> `\n`), strips rogue zero-width spaces, and splits multi-line text into distinct individual blocks (`newBlock("paragraph")`).
+     - In `handleInput`, added safeguards so that any virtual keyboard newlines are cleanly split into individual blocks, guaranteeing no block ever stores embedded `\n` characters.
+     - With each line as an independent block, every word, sentence, and line can be deleted, selected, and edited normally without trapping.
+  2. **Mobile Virtual Keyboard Backspace & Delete Key Detection (`BlockEditor.tsx`):**
+     - Attached DOM listeners for `beforeinput`, `input`, `keydown`, and `keyup` to each block's textarea.
+     - Primed empty blocks with a zero-width space buffer (`\u200B`) on focus and mount, forcing Android Gboard to recognize text presence and fire `deleteContentBackward`.
+     - In `handleInput`, detected when an empty block's value is cleared (`rawValue === "" && !block.content`), immediately invoking `remove(index)` to delete the line and refocus the end of the previous line.
+     - Added a custom `pointer-events-none` placeholder label overlay so placeholders remain clearly visible while the buffer is active.
+  3. **Public Read-Only Note Sharing (`032_shared_notes.sql`, `route.ts`, `noteRoutes.ts`, `WorkspacePage.tsx`, `NoteEditorView.tsx`, `page.tsx`):**
+     - Created migration `032_shared_notes.sql` and corresponding backend/serverless functions (`dbSaveSharedNote`, `dbGetSharedNote`) with auto-table resilience in `frontend/src/lib/server/db.ts` and `backend/src/services/db.ts`.
+     - Implemented `POST /api/notes/share` (generates random share ID and URL) and public `GET /api/notes/shared/:id` in both Next.js Serverless catch-all (`route.ts`) and Express companion server (`noteRoutes.ts`).
+     - In `WorkspacePage.tsx`, checked `?shared_note=` query parameter on mount: fetches the shared note, populates state, sets `isReadOnlyNote(true)`, and enters read-only view.
+     - In `frontend/src/app/page.tsx`, checked `shared_note` in URL to automatically bypass onboarding and navigate straight to `tasks` (WorkspacePage).
+     - In `NoteEditorView.tsx`, added `isReadOnly` support: displays read-only banner, disables editing controls/autosave, adds prominent "Copy All Text" button, and generates shareable URLs via native Web Share API with clipboard fallback.
+- **Verification:**
+  - Level 0 Scope Check: Passed. Only approved files touched.
+  - Level 1 Static Check: TypeScript `npx tsc --noEmit` exited clean with Code 0.
+  - Level 2 Build Check: Next.js Turbopack `npm run build --prefix frontend` exited with Code 0 (21/21 static pages generated). Express backend `npm run build --prefix backend` exited with Code 0.
+  - Level 3 Automated Integration Test: `npx tsx scripts/test_shared_notes.ts` executed and verified saving, fetching, and 404 handling of shared notes with Exit Code 0.
+- **Status:** **VERIFIED**
+
+
 
 
 

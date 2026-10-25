@@ -1829,4 +1829,88 @@ export async function dbGetSupervisorUsers(limit: number = 100, offset: number =
   }));
 }
 
+// ==================== SHARED NOTES ====================
+
+let sharedNotesTableEnsured = false;
+async function ensureSharedNotesTable() {
+  if (sharedNotesTableEnsured) return;
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS public.shared_notes (
+        id TEXT PRIMARY KEY,
+        title TEXT,
+        category TEXT DEFAULT 'Personal',
+        blocks JSONB NOT NULL DEFAULT '[]'::jsonb,
+        attachments JSONB DEFAULT '[]'::jsonb,
+        links JSONB DEFAULT '[]'::jsonb,
+        author_id UUID,
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        updated_at TIMESTAMPTZ DEFAULT NOW()
+      );
+      CREATE INDEX IF NOT EXISTS idx_shared_notes_created ON public.shared_notes (created_at DESC);
+    `);
+    sharedNotesTableEnsured = true;
+  } catch (e) {
+    console.warn('[db] Failed to ensure shared_notes table:', e);
+  }
+}
+
+export async function dbSaveSharedNote(
+  shareId: string,
+  noteData: {
+    title: string;
+    category?: string;
+    blocks: any[];
+    attachments?: any[];
+    links?: any[];
+  },
+  authorUserId?: string | null
+) {
+  await ensureSharedNotesTable();
+  const query = `
+    INSERT INTO public.shared_notes (id, title, category, blocks, attachments, links, author_id, updated_at)
+    VALUES ($1, $2, $3, $4::jsonb, $5::jsonb, $6::jsonb, $7, NOW())
+    ON CONFLICT (id) DO UPDATE SET
+      title = EXCLUDED.title,
+      category = EXCLUDED.category,
+      blocks = EXCLUDED.blocks,
+      attachments = EXCLUDED.attachments,
+      links = EXCLUDED.links,
+      updated_at = NOW()
+    RETURNING id, title, category, blocks, attachments, links, created_at, updated_at;
+  `;
+  const res = await pool.query(query, [
+    shareId,
+    noteData.title || '',
+    noteData.category || 'Personal',
+    JSON.stringify(noteData.blocks || []),
+    JSON.stringify(noteData.attachments || []),
+    JSON.stringify(noteData.links || []),
+    authorUserId || null,
+  ]);
+  return res.rows[0];
+}
+
+export async function dbGetSharedNote(shareId: string) {
+  await ensureSharedNotesTable();
+  const query = `
+    SELECT id, title, category, blocks, attachments, links, created_at, updated_at
+    FROM public.shared_notes
+    WHERE id = $1;
+  `;
+  const res = await pool.query(query, [shareId]);
+  if (!res.rows || res.rows.length === 0) return null;
+  const row = res.rows[0];
+  return {
+    id: row.id,
+    title: row.title || '',
+    category: row.category || 'Personal',
+    blocks: Array.isArray(row.blocks) ? row.blocks : [],
+    attachments: Array.isArray(row.attachments) ? row.attachments : [],
+    links: Array.isArray(row.links) ? row.links : [],
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
 

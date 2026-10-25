@@ -55,9 +55,13 @@
 - **Location:** `frontend/src/services/accountManager.ts`, `frontend/src/components/auth/AccountSwitcherModal.tsx`
 - **Behavior:** Stores multiple verified accounts in `localStorage` under `focusforge_accounts_registry`. Switching accounts cleanly tears down active encryption keys and in-memory application state before hydrating the new user session.
 
-### 2.3 Modular Block Note Editor
+### 2.3 Modular Block Note Editor & Shareable Folder System
 - **Location:** `frontend/src/components/workspace/BlockEditor.tsx`, `frontend/src/components/pages/WorkspacePage.tsx`
-- **Behavior:** Supports heterogeneous block types: Headings (H1/H2/H3), Paragraphs, Todos, Math equations rendered via KaTeX, Code blocks highlighted via Prism.js, Sticky notes (Violet, Amber, Rose), Freehand drawings via Fabric.js canvas, and local attachments. Implements strict online vs. offline separation where only 3 items (`#picture`, `#pdf`, `#drive link`) require internet, while all writing, formatting, lists, and markdown shortcuts (`1. `, `- `, `* `, `[] `) function fully offline. Clicking online-only elements offline shows non-intrusive warning toasts without corrupting notes or crashing. Backspace on `#` clears the command trigger without deleting the block. Share button is clickable offline with an informative toast. All navigation actions are debounced to prevent rapid-click crashes.
+- **Behavior:** Supports heterogeneous block types: Headings (H1/H2/H3), Paragraphs, Todos, Math equations rendered via KaTeX, Code blocks, Sticky notes, and attachments (PDF/Docs, Images, External Links).
+  - **Seamless Multi-Line Copy/Paste:** Dedicated clipboard paste interception (`handlePaste`) splits multi-line text into clean individual paragraph blocks without trapping newlines in a single block. Allows effortless deletion, word removal, selection, and editing of all pasted content.
+  - **Mobile Virtual Keyboard Backspace & Delete Key:** Supports mobile soft keyboards (Gboard, Redmi, Samsung, iOS) using a zero-width space buffer (`\u200B`) and `beforeinput` / `input` event detection. Tapping the backspace/delete button on an empty line removes the line and jumps the cursor back to the end of the previous line cleanly without getting stuck.
+  - **Public Read-Only Note Sharing:** Generates a secure shareable app link (`/?shared_note=<share_id>`) for the entire note folder (all text blocks, categories, images, PDFs, attachments, links). Anyone opening the link (including guests and first-time visitors) bypasses onboarding and views the note folder in a dedicated read-only mode (`isReadOnly`), with editing disabled, while retaining the ability to copy all text, download attached PDFs/files, and preview images.
+  - **Offline/Online Safety:** Only image/PDF upload and cloud sharing require internet; all writing, formatting, lists, and markdown shortcuts (`1. `, `- `, `* `, `[] `) operate 100% offline. Backspace on `#` safely clears the command trigger without deleting the block.
 
 ### 2.4 Focus Engine & Distraction Tracking
 - **Location:** `frontend/src/components/pages/FocusPage.tsx`, `frontend/src/hooks/useFocusTimer.ts`

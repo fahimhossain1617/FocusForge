@@ -68,6 +68,7 @@ export default function Home() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState<boolean>(() => {
     if (typeof window === "undefined") return false;
+    if (window.location.search.includes("shared_note=")) return false;
     const local = onboardingStorage.getLocalState();
     return !local?.onboardingCompleted;
   });
@@ -85,9 +86,11 @@ export default function Home() {
       const search = window.location.search || "";
       if (hash.includes("type=recovery") || search.includes("type=recovery")) {
         window.location.href = `/reset-password${hash || search}`;
+      } else if (search.includes("shared_note=")) {
+        navigateTo("tasks");
       }
     }
-  }, []);
+  }, [navigateTo]);
 
   // Set tab document title strictly to Focentia
   useEffect(() => {
@@ -205,6 +208,12 @@ export default function Home() {
 
     async function checkOnboarding() {
       try {
+        if (typeof window !== "undefined" && window.location.search.includes("shared_note=")) {
+          setShowOnboarding(false);
+          navigateTo("tasks");
+          return;
+        }
+
         if (user && user.id) {
           const dbState = await userService.fetchOnboardingState(user.id);
           if (dbState && dbState.onboardingCompleted) {
