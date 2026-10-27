@@ -7,6 +7,11 @@ export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse, after } from 'next/server';
 import { executeAIAction, transcribeAudio } from '@/lib/server/aiService';
 import { getUserTokenStatus, consumeUserTokens, estimateTokenUsage } from '@/lib/server/aiTokenService';
+import { handleAdminRoutes } from '@/lib/server/adminApiDispatcher';
+import { handlePublicIngestion } from '@/lib/server/adminIngestionHandler';
+import { checkUserSuspension } from '@/lib/server/adminSuspensionService';
+import { isFeatureEnabled } from '@/lib/server/adminFeatureFlags';
+import { logAIUsageRecord } from '@/lib/server/adminRepository';
 import {
   dbGetReviewPromptState,
   dbUpsertReviewPromptState,
@@ -150,6 +155,27 @@ export async function GET(request: NextRequest, context: { params: Promise<{ pat
   const searchParams = request.nextUrl.searchParams;
 
   const { userId, isGuest, guestId, lang, clientIp } = await extractAuth(request);
+
+  // 0.1 Admin API Dispatcher: /api/admin/*
+  if (pathStr.startsWith('admin')) {
+    const adminRes = await handleAdminRoutes(pathStr, request);
+    if (adminRes) return adminRes;
+  }
+
+  // 0.2 Public Ingestion Dispatcher: /api/flags/public, etc.
+  const ingestRes = await handlePublicIngestion(pathStr, request, { userId, isGuest, guestId, clientIp });
+  if (ingestRes) return ingestRes;
+
+  // 0.3 Server Boundary Suspension Enforcement
+  if (userId && !isGuest) {
+    const suspension = await checkUserSuspension(userId);
+    if (suspension.isSuspended) {
+      return NextResponse.json(
+        { error: 'Account suspended. Access to services has been restricted by an administrator.', code: ERROR_CODES.FORBIDDEN },
+        { status: 403 }
+      );
+    }
+  }
 
   // Shared Notes: GET /api/notes/shared/:id (Public)
   if (pathStr.startsWith('notes/shared/')) {
@@ -710,6 +736,27 @@ export async function POST(request: NextRequest, context: { params: Promise<{ pa
   const pathStr = path.join('/');
 
   const { userId, isGuest, guestId, lang, clientIp, userEmail, authProvider, token } = await extractAuth(request);
+
+  // 0.1 Admin API Dispatcher: /api/admin/*
+  if (pathStr.startsWith('admin')) {
+    const adminRes = await handleAdminRoutes(pathStr, request);
+    if (adminRes) return adminRes;
+  }
+
+  // 0.2 Public Ingestion Dispatcher: /api/telemetry/ingest, /api/feedback/submit, /api/privacy/request
+  const ingestRes = await handlePublicIngestion(pathStr, request, { userId, isGuest, guestId, clientIp });
+  if (ingestRes) return ingestRes;
+
+  // 0.3 Server Boundary Suspension Enforcement
+  if (userId && !isGuest) {
+    const suspension = await checkUserSuspension(userId);
+    if (suspension.isSuspended) {
+      return NextResponse.json(
+        { error: 'Account suspended. Access to services has been restricted by an administrator.', code: ERROR_CODES.FORBIDDEN },
+        { status: 403 }
+      );
+    }
+  }
 
   let body: any = {};
   try {
@@ -1942,6 +1989,24 @@ export async function POST(request: NextRequest, context: { params: Promise<{ pa
   if (pathStr === 'ai/agent/chat' || pathStr === 'ai/chat') {
     const { sessionId: requestedSessionId, message: userMsg, context: wsContext, history, model: selectedModel } = body;
     
+    // Kill Switch Check for Glory AI
+    const isAiAllowed = await isFeatureEnabled('glory_ai');
+    if (!isAiAllowed) {
+      return NextResponse.json({
+        sessionId: requestedSessionId || crypto.randomUUID(),
+        sessionTitle: 'Glory AI',
+        aiMessage: {
+          id: 'msg_disabled_' + Date.now(),
+          role: 'assistant' as const,
+          content: lang === 'bn'
+            ? 'গ্লোরি এআই ফিচারটি সাময়িকভাবে বন্ধ রয়েছে। দয়া করে কিছুক্ষণ পর আবার চেষ্টা করুন।'
+            : 'Glory AI is temporarily disabled for maintenance. Please check back later.',
+          createdAt: new Date().toISOString(),
+        },
+        disabled: true,
+      });
+    }
+
     // Burst Rate Limiting: 40 AI requests per minute per IP / User
     const chatRateLimitKey = `ai_agent_chat:${userId || guestId || clientIp}`;
     const rateCheck = await checkRateLimitAsync(chatRateLimitKey, 40, 60000);
@@ -1990,7 +2055,12 @@ export async function POST(request: NextRequest, context: { params: Promise<{ pa
     
     const recentHistory = Array.isArray(history) ? history.slice(-4) : [];
 
+    const startTime = Date.now();
     let result: any;
+    let aiStatus: 'success' | 'error' | 'rate_limited' = 'success';
+    let aiErrorCode: string | undefined = undefined;
+    let handlerType: 'gemini' | 'local_fallback' = 'gemini';
+
     try {
       result = await executeAIAction('agentChat', {
         userQuery: userMsg,
@@ -1999,8 +2069,17 @@ export async function POST(request: NextRequest, context: { params: Promise<{ pa
         currentDate: new Date().toISOString().split('T')[0],
         model: selectedModel || 'smart',
       });
+      if (!(result as any)?.geminiUsage) {
+        handlerType = 'local_fallback';
+      }
     } catch (err: any) {
       console.error('[API /ai/agent/chat] AI execution error:', err?.message || err);
+      const msg = err?.message || '';
+      aiStatus = (msg.includes('429') || msg.includes('quota') || msg.includes('RESOURCE_EXHAUSTED'))
+        ? 'rate_limited'
+        : 'error';
+      aiErrorCode = msg.substring(0, 100);
+      handlerType = 'local_fallback';
       result = {
         intent: 'GREETING_OR_GENERAL',
         message: lang === 'bn'
@@ -2010,13 +2089,34 @@ export async function POST(request: NextRequest, context: { params: Promise<{ pa
       };
     }
 
+    const latencyMs = Date.now() - startTime;
+    const geminiUsage = (result as any)?.geminiUsage;
+    const inputTokens = Number(geminiUsage?.promptTokenCount) || 0;
+    const outputTokens = Number(geminiUsage?.candidatesTokenCount) || 0;
+    const totalTokens = Number(geminiUsage?.totalTokenCount) || 0;
+
     const tokensUsed = estimateTokenUsage(
       JSON.stringify(body), 
       JSON.stringify(result), 
       selectedModel || 'smart',
-      (result as any)?.geminiUsage
+      geminiUsage
     );
     const updatedTokens = await consumeUserTokens(userId, isGuest, guestId, tokensUsed, lang);
+
+    // Record server-side AI usage (NEVER store user query or assistant reply text)
+    await logAIUsageRecord({
+      userId,
+      guestId: isGuest ? guestId : null,
+      model: selectedModel || 'smart',
+      inputTokens,
+      outputTokens,
+      totalTokens,
+      tokensCharged: tokensUsed,
+      latencyMs,
+      status: aiStatus,
+      handler: handlerType,
+      errorCode: aiErrorCode,
+    });
 
     const isSessionUuid = requestedSessionId && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(requestedSessionId);
     const activeSessionId = isSessionUuid ? requestedSessionId : crypto.randomUUID();
@@ -2069,6 +2169,13 @@ export async function POST(request: NextRequest, context: { params: Promise<{ pa
 
   // 9. Audio Voice Transcription
   if (pathStr === 'ai/transcribe') {
+    const isVoiceAllowed = await isFeatureEnabled('voice_dictation');
+    if (!isVoiceAllowed) {
+      return NextResponse.json(
+        { error: lang === 'bn' ? 'ভয়েস ডিকটেশন সাময়িকভাবে বন্ধ রয়েছে।' : 'Voice dictation is temporarily disabled.' },
+        { status: 503 }
+      );
+    }
     const { audio, mimeType, language } = body;
     const text = await transcribeAudio(audio, mimeType || 'audio/webm', language || lang);
     return NextResponse.json({ text });
@@ -2076,6 +2183,13 @@ export async function POST(request: NextRequest, context: { params: Promise<{ pa
 
   // 10. Specific AI Actions
   if (pathStr.startsWith('ai/')) {
+    const isAiAllowed = await isFeatureEnabled('glory_ai');
+    if (!isAiAllowed) {
+      return NextResponse.json(
+        { error: lang === 'bn' ? 'গ্লোরি এআই সাময়িকভাবে বন্ধ রয়েছে।' : 'Glory AI is temporarily disabled.' },
+        { status: 503 }
+      );
+    }
     const actionName = pathStr.replace(/^ai\//, '');
     let actionKey = actionName;
     if (actionName === 'what-should-i-do') actionKey = 'whatShouldIDo';
@@ -2337,8 +2451,23 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ p
   const { path } = await context.params;
   const pathStr = path.join('/');
 
+  // 0.1 Admin API Dispatcher: /api/admin/*
+  if (pathStr.startsWith('admin')) {
+    const adminRes = await handleAdminRoutes(pathStr, request);
+    if (adminRes) return adminRes;
+  }
+
   const { userId, isGuest, clientIp } = await extractAuth(request);
   if (!userId || isGuest) return NextResponse.json({ error: 'Unauthorized', code: ERROR_CODES.UNAUTHORIZED }, { status: 401 });
+
+  // 0.2 Suspension check
+  const suspension = await checkUserSuspension(userId);
+  if (suspension.isSuspended) {
+    return NextResponse.json(
+      { error: 'Account suspended. Access to services has been restricted by an administrator.', code: ERROR_CODES.FORBIDDEN },
+      { status: 403 }
+    );
+  }
 
   let body: any = {};
   try {
@@ -2459,8 +2588,25 @@ export async function DELETE(request: NextRequest, context: { params: Promise<{ 
   const { path } = await context.params;
   const pathStr = path.join('/');
 
+  // 0.1 Admin API Dispatcher: /api/admin/*
+  if (pathStr.startsWith('admin')) {
+    const adminRes = await handleAdminRoutes(pathStr, request);
+    if (adminRes) return adminRes;
+  }
+
   const { userId, isGuest, userEmail, authProvider } = await extractAuth(request);
   const guestId = request.headers.get('x-guest-id') || 'guest';
+
+  // Suspension check
+  if (userId && !isGuest) {
+    const suspension = await checkUserSuspension(userId);
+    if (suspension.isSuspended) {
+      return NextResponse.json(
+        { error: 'Account suspended. Access to services has been restricted by an administrator.', code: ERROR_CODES.FORBIDDEN },
+        { status: 403 }
+      );
+    }
+  }
 
   // 1. AI Chat Sessions: DELETE /api/ai/sessions & /api/ai/sessions/:id
   if (pathStr === 'ai/sessions' || pathStr === 'ai/agent/sessions') {

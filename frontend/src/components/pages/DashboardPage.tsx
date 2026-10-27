@@ -24,10 +24,12 @@ import {
   Sun,
   Bell,
   ChevronDown,
+  ShieldCheck,
 } from "lucide-react";
 
 import { useAppContext } from "../../context/AppContext";
 import { useAuth } from "../../context/AuthContext";
+import { useAdminAuth } from "../../context/AdminAuthContext";
 import { useTranslation } from "../../hooks/useTranslation";
 import { useNotificationCenter } from "../../hooks/useNotificationCenter";
 import { getLocalDateString } from "../../services/taskService";
@@ -114,6 +116,7 @@ function getSessionLocalDate(s: { startedAt?: string; createdAt?: string; date?:
 export default function DashboardPage() {
   const { state, updateState, navigateTo, updateTask, addTask, isLoaded } = useAppContext();
   const { user } = useAuth();
+  const { isAdmin } = useAdminAuth();
   const { t } = useTranslation();
   const today = getLocalDateString();
 
@@ -533,6 +536,18 @@ export default function DashboardPage() {
           </p>
         </div>
         <div className="flex items-center gap-2 sm:gap-2.5 self-start sm:self-auto sm:pt-0.5 md:pt-1">
+          {/* Admin Control Center (Visible only when admin status is verified by server) */}
+          {isAdmin && (
+            <a
+              href="/admin/overview"
+              className="hidden sm:flex w-9 h-9 min-w-[36px] min-h-[36px] rounded-xl items-center justify-center transition-colors cursor-pointer bg-blue-500/10 text-blue-600 dark:text-blue-400 hover:bg-blue-500/20 shadow-none outline-none active:scale-95 border border-blue-500/20"
+              title="Admin Control Center"
+              aria-label="Admin Control Center"
+            >
+              <ShieldCheck size={19} strokeWidth={2} />
+            </a>
+          )}
+
           {/* Theme Mode Quick Toggle Button (Brought slightly forward) */}
           <button
             type="button"

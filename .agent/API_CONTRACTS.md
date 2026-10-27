@@ -205,3 +205,52 @@ Content-Type: application/json
 - `PATCH /api/supervisor/tickets/:id` -> Updates status, priority, and internal notes.
 - `POST /api/supervisor/tickets/:id/reply` -> Sends reply to customer via email and appends to thread.
 - `GET /api/supervisor/audit-logs` -> Returns supervisor action audit logs.
+
+---
+
+## 9. Admin Control Center & Ingestion Endpoints (Part 2)
+
+### Public & Client Telemetry Ingestion
+- `POST /api/telemetry/ingest` -> Accepts batched client events (max 100). Rate-limited (60/min), secondary server-side sanitization, kill-switch enforced (`telemetry_collection`), deduplicated, fingerprinted issue grouping.
+- `POST /api/feedback/submit` -> Durable problem report / feedback submission. Rate-limited (15/10min), sanitized, supports guests & authenticated users.
+- `GET /api/flags/public` -> Non-sensitive public feature flags (`glory_ai`, `voice_dictation`, `file_export`, `telemetry_collection`).
+- `POST /api/privacy/request` -> GDPR export & deletion requests. Authenticated only.
+
+### Admin Identity & Management (`/api/admin/*`)
+*Guarded by `verifyAdminAuth`: requires Supabase auth session, verified email (`email_confirmed_at`), checks UUID against `admin_users` table.*
+- `GET /api/admin/me` -> Current admin profile, permissions, MFA state.
+- `GET /api/admin/overview?range=` -> KPIs, active users, guest sessions, error count, p75 LCP, sync health.
+- `GET /api/admin/analytics?range=&feature=` -> Feature engagement breakdown, retention, active times.
+- `GET /api/admin/users` -> Paginated users list with search, status filters, guest/auth segmentation.
+- `GET /api/admin/users/:id` -> Detailed user profile with recent telemetry and login activity.
+- `POST /api/admin/users/:id/suspend` -> Admin user suspension. Requires reason, writes audit log, revokes sessions.
+- `POST /api/admin/users/:id/restore` -> Restores suspended user account.
+- `GET /api/admin/guests?range=` -> Guest session aggregates vs unique device IDs.
+- `GET /api/admin/feedback` -> Paginated feedback tickets.
+- `GET /api/admin/feedback/:id` -> Full ticket details.
+- `PATCH /api/admin/feedback/:id` -> Updates status (new, reviewing, resolved, closed).
+- `POST /api/admin/feedback/:id/notes` -> Appends admin internal notes.
+- `GET /api/admin/issues` -> Paginated bug reports grouped by deterministic fingerprint.
+- `GET /api/admin/issues/:id` -> Detailed stack trace, occurrences, and regression status.
+- `PATCH /api/admin/issues/:id` -> Updates status (new, investigating, fixed, verified, ignored).
+- `GET /api/admin/performance?range=` -> Real user Web Vitals (LCP, INP, CLS).
+- `GET /api/admin/security` -> Security anomalies (brute force, rate limits, token abuse).
+- `GET /api/admin/sync-health?range=` -> Sync conflict rates, IndexedDB health, queue metrics.
+- `GET /api/admin/release` -> Deployment status, git commit SHA, release notes.
+- `POST /api/admin/release/seen` -> Stores admin last-seen release version.
+- `GET /api/admin/alerts` -> Operational alerts center.
+- `PATCH /api/admin/alerts/:id` -> Updates alert status (acknowledged, investigating, resolved).
+- `GET /api/admin/audit-log` -> Immutable admin mutation audit trail.
+- `GET /api/admin/ai-usage?range=` -> Aggregated token usage, daily breakdowns, estimated costs.
+- `GET /api/admin/quotas/:userId` -> User token quota and reset date.
+- `POST /api/admin/quotas/:userId/adjust` -> Adjusts user token limit (audited).
+- `GET /api/admin/flags` -> Server feature flags list.
+- `PATCH /api/admin/flags/:key` -> Toggles feature flag state (audited).
+- `GET /api/admin/monitoring-health` -> Telemetry ingestion health and dropped batch metrics.
+- `GET /api/admin/privacy-requests` -> User GDPR export and deletion requests.
+- `PATCH /api/admin/privacy-requests` -> Updates privacy request processing status.
+- `GET /api/admin/security/admin-sessions` -> Active admin session list and MFA status.
+
+### Scheduled Cron Jobs
+- `GET /api/cron/maintenance` -> Daily rollup, alert rule evaluation, and 30-day raw event pruning. Protected by `CRON_SECRET`.
+

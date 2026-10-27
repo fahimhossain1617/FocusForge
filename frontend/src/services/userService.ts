@@ -1,6 +1,7 @@
 import { supabase } from "../lib/supabaseClient";
 import { User } from "../types";
 import { fetchBackend } from "../lib/apiClient";
+import { telemetryClient } from "./telemetry/telemetryClient";
 
 export interface ProfileRow {
   id: string;
@@ -467,6 +468,15 @@ export const userService = {
     name?: string;
     email?: string;
   }): Promise<{ success: boolean; ticketNumber?: string; error?: string }> {
+    // Durable telemetry feedback ingestion
+    telemetryClient.submitFeedbackDurable({
+      category: "problem",
+      message: data.description,
+      subject: data.title,
+      featureArea: data.category,
+      technicalContext: { appVersion: data.appVersion },
+    }).catch(() => {});
+
     try {
       const res = await fetchBackend<any>("/api/user/support/report", {
         method: "POST",
@@ -488,6 +498,14 @@ export const userService = {
     message: string;
     appVersion?: string;
   }): Promise<{ success: boolean; ticketNumber?: string; error?: string }> {
+    // Durable telemetry feedback ingestion
+    telemetryClient.submitFeedbackDurable({
+      category: "support",
+      message: data.message,
+      subject: data.subject,
+      technicalContext: { appVersion: data.appVersion },
+    }).catch(() => {});
+
     try {
       const res = await fetchBackend<any>("/api/user/support/contact", {
         method: "POST",
@@ -509,6 +527,13 @@ export const userService = {
     name?: string;
     email?: string;
   }): Promise<{ success: boolean; ticketNumber?: string; error?: string }> {
+    // Durable telemetry feedback ingestion
+    telemetryClient.submitFeedbackDurable({
+      category: data.type === "suggestion" ? "suggestion" : "feedback",
+      message: data.message,
+      technicalContext: { appVersion: data.appVersion },
+    }).catch(() => {});
+
     try {
       const res = await fetchBackend<any>("/api/user/support/feedback", {
         method: "POST",

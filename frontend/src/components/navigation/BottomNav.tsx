@@ -11,7 +11,9 @@ import {
   Files,
   Clock,
   BookOpenText,
+  ShieldCheck,
 } from "lucide-react";
+import { useAdminAuth } from "../../context/AdminAuthContext";
 import { MindSpaceIcon } from "../icons/MindSpaceIcon";
 import { GloryOrbIcon } from "../icons/GloryOrbIcon";
 
@@ -68,6 +70,8 @@ export default function BottomNav() {
     setIsActionsOpen((prev) => !prev);
   };
 
+  const { isAdmin } = useAdminAuth();
+
   // Secondary features in (+) Action popup
   const secondaryFeatures = [
     {
@@ -90,6 +94,16 @@ export default function BottomNav() {
       label: isBn ? "টাইম লগ" : "Time Log",
       icon: Clock,
     },
+    ...(isAdmin
+      ? [
+          {
+            id: "admin",
+            label: isBn ? "অ্যাডমিন" : "Admin",
+            icon: ShieldCheck,
+            href: "/admin/overview",
+          },
+        ]
+      : []),
   ];
 
   return (
@@ -134,16 +148,25 @@ export default function BottomNav() {
             role="dialog"
             aria-label="Secondary Features Navigation"
           >
-            <div className="grid grid-cols-4 gap-2">
+            <div className={`grid ${secondaryFeatures.length > 4 ? "grid-cols-5" : "grid-cols-4"} gap-2`}>
               {secondaryFeatures.map((feature) => {
                 const Icon = feature.icon;
                 const isItemActive = activePage === feature.id;
+
+                const handleClick = () => {
+                  if ('href' in feature && feature.href) {
+                    setIsActionsOpen(false);
+                    window.location.href = feature.href;
+                  } else {
+                    handleNav(feature.id);
+                  }
+                };
 
                 return (
                   <button
                     key={feature.id}
                     type="button"
-                    onClick={() => handleNav(feature.id)}
+                    onClick={handleClick}
                     className="flex flex-col items-center justify-center p-1.5 rounded-2xl transition-transform active:scale-92 cursor-pointer group outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                     aria-label={feature.label}
                   >

@@ -2206,12 +2206,121 @@
      - In `WorkspacePage.tsx`, checked `?shared_note=` query parameter on mount: fetches the shared note, populates state, sets `isReadOnlyNote(true)`, and enters read-only view.
      - In `frontend/src/app/page.tsx`, checked `shared_note` in URL to automatically bypass onboarding and navigate straight to `tasks` (WorkspacePage).
      - In `NoteEditorView.tsx`, added `isReadOnly` support: displays read-only banner, disables editing controls/autosave, adds prominent "Copy All Text" button, and generates shareable URLs via native Web Share API with clipboard fallback.
+---
+
+## ADR-040: Focentia Admin Control Center & Telemetry Ingestion Backend Engine (Part 2)
+
+- **Date:** October 27, 2026
+- **Status:** Accepted & Code Complete (Pending Database Schema in Part 3)
+- **Context:**
+  - Part 1 implemented the complete frontend and client telemetry collection layer. Part 2 requires the complete backend implementation: 18 admin routes, 4 public ingestion routes, server-side authorization bound to `fahimhossain1617@gmail.com`, abuse-resistant ingestion, user suspension enforcement at server boundaries, Glory AI token tracking and server quotas, fail-open feature flags, and scheduled maintenance jobs.
+- **Decision:**
+  1. **Strict Server-Side Default-Deny Authorization Guard (`adminAuthGuard.ts`):**
+     - Bound admin privilege exclusively to the verified email `fahimhossain1617@gmail.com` resolved to its stable Supabase Auth UUID.
+     - Never trust client claims, localStorage, or headers. Server validates Supabase JWT using `supabase.auth.getUser()`, verifies `email_confirmed_at`, and queries `admin_users` table.
+     - Denied attempts return generic 403 Forbidden with zero information leakage, and log a security event using short-lived salted IP hashing (`hashClientIp`, never raw IP).
+  2. **Server Boundary User Suspension (`adminSuspensionService.ts`):**
+     - Suspensions are marked in `user_suspensions` table and Supabase Auth admin API.
+     - Server boundaries in `route.ts` (sync, AI, feedback, user endpoints) strictly intercept suspended user requests and return 403 Forbidden, immediately invalidating old active JWTs.
+  3. **Telemetry Ingestion & Issue Grouping (`adminTelemetryService.ts`):**
+     - Accepts batched client events via `POST /api/telemetry/ingest` (max 100).
+     - Applies secondary server-side credential/token redaction via `telemetrySanitizer.ts`.
+     - Normalizes errors and generates deterministic 32-character fingerprints via `generateIssueFingerprint` for automatic issue grouping.
+     - Detects bug recurrence: if a bug previously marked `fixed` or `verified` occurs in a new version, status automatically resets to `reopened`.
+  4. **Fail-Open Feature Flags Engine (`adminFeatureFlags.ts`):**
+     - In-memory cached defaults: `glory_ai`, `voice_dictation`, `file_export`, and `telemetry_collection` all default to `true`.
+     - If the database is unreachable, all core features remain enabled (fail-open) and telemetry pauses gracefully without crashing.
+  5. **Glory AI Usage & Quotas (`adminRepository.ts`, `route.ts`):**
+     - Enforces quotas server-side (Auth users: 5000 tokens, Guests: 1000 tokens) via `aiTokenService.ts`.
+     - Records token counts, latency, status, model, and local vs Gemini handler in `admin_ai_usage_records`.
+     - NEVER stores user query or assistant response text.
+  6. **Operational Alert Engine & Scheduled Jobs (`adminAlertEngine.ts`, `vercel.json`):**
+     - Evaluates monitoring rules: critical crashes, issue regressions, Web Vitals budget breaches, sync anomalies, and unauthorized access attempts.
+     - Deduplicates and groups alerts in `admin_alerts` (Admin Panel delivery ONLY: no emails, no popups).
+     - `/api/cron/maintenance` runs daily via Vercel Cron (`0 3 * * *`), protected by `CRON_SECRET`, executing rollups and pruning raw telemetry older than 30 days while preserving daily aggregates.
 - **Verification:**
-  - Level 0 Scope Check: Passed. Only approved files touched.
+  - Level 0 Scope Check: Passed.
   - Level 1 Static Check: TypeScript `npx tsc --noEmit` exited clean with Code 0.
-  - Level 2 Build Check: Next.js Turbopack `npm run build --prefix frontend` exited with Code 0 (21/21 static pages generated). Express backend `npm run build --prefix backend` exited with Code 0.
-  - Level 3 Automated Integration Test: `npx tsx scripts/test_shared_notes.ts` executed and verified saving, fetching, and 404 handling of shared notes with Exit Code 0.
+  - Level 2 Build Check: Next.js Turbopack `npm run build` exited with Code 0 (39 routes generated).
+  - Level 3 Automated Server Test Suite: `npx -y tsx scripts/test_admin_backend.ts` executed and verified authorization matrix, salted IP hashing, issue fingerprinting, secondary sanitization, feature flag fail-open, telemetry kill-switch, user suspension, and AI quota estimation with Exit Code 0 (100% passed).
 - **Status:** **VERIFIED**
+
+---
+
+## ADR-041: Focentia Admin Control Center: Complete Database System, Anti-Suspension Protection & End-to-End Pipeline Wiring (Part 3)
+
+- **Date:** October 28, 2026
+- **Status:** Accepted & Verified
+- **Context:**
+  - Parts 1 and 2 implemented the frontend UI and server routes. Part 3 requires building the complete database layer on the existing Supabase PostgreSQL project, enforcing deny-by-default RLS, immutable audit log triggers, owner anti-suspension defense, high-frequency indexing, retention pruning, and wiring data flow end-to-end with real data.
+- **Decision:**
+  1. **Migration Immutability & Additive Idempotency (`033_admin_control_center.sql`):**
+     - Preserved migrations `001` through `032` completely untouched.
+     - Created `033_admin_control_center.sql` containing all 30 operational and telemetry tables, extensions (`uuid-ossp`, `pgcrypto`), triggers, views, and composite indexes with full idempotency (`IF NOT EXISTS`, `OR REPLACE`).
+  2. **Interoperability Views for Zero-Conflict Querying:**
+     - Created 13 PostgreSQL updatable views (`admin_*`) pointing directly to canonical tables (`audit_log`, `issues`, `telemetry_events`, `feedback_submissions`, `guest_daily`, etc.), ensuring both Prompt 4 naming and Part 2 repository code work seamlessly without breaking changes.
+  3. **Strict Row Level Security (RLS) & Definer Function:**
+     - Enabled RLS on all 30 tables with deny-by-default.
+     - Created SECURITY DEFINER function `public.is_admin()` with `SET search_path = public, pg_temp` verifying `auth.uid()` against `public.admin_users`.
+     - Service role retains full database write capabilities; normal users can only insert/view their own feedback submissions, privacy requests, and AI quotas.
+  4. **Audit Log Append-Only Tamper-Proofing (`enforce_audit_log_append_only`):**
+     - Attached trigger `trg_audit_log_append_only` BEFORE UPDATE OR DELETE on `public.audit_log`, rejecting modifications at the database engine level.
+  5. **Owner Anti-Suspension Defense Triggers:**
+     - Created `prevent_owner_suspension` on `public.admin_users` and `prevent_admin_user_suspension` on `public.user_suspensions`, strictly blocking any database-level suspension of `fahimhossain1617@gmail.com`.
+  6. **Automated Retention Pruning Stored Procedure (`run_maintenance_retention_cleanup`):**
+     - Natively implements 30-day raw telemetry & performance record trimming, 90-day security event trimming, and 100-sample bounding on `issue_occurrences` while preserving daily aggregates indefinitely.
+  7. **Standalone Manual Admin Bootstrap Script (`supabase/admin_bootstrap_manual.sql`):**
+     - Explicitly provided as an independent SQL file for manual execution by the owner in Supabase SQL Editor. Looks up `fahimhossain1617@gmail.com` in `auth.users`, requires `email_confirmed_at IS NOT NULL`, and inserts with role `'owner'`.
+  8. **Real Storage & Telemetry Start Timestamp Exposure:**
+     - `getAdminMonitoringHealthData` queries real database storage via `pg_database_size(current_database())`.
+     - `getAdminOverviewData` exposes `reliableDataCollectionStartedAt` fetched from `public.app_settings`.
+- **Verification:**
+  - Database Security & RLS Suite (`scripts/test_admin_db_security.ts`): 15/15 tests PASSED (Anon boundary, audit log immutability, owner anti-suspension defense, fingerprint grouping, and retention pruning).
+  - End-to-End Pipeline Suite (`scripts/test_admin_e2e_pipeline.ts`): 10/10 tests PASSED (Client batch ingestion, durable feedback inbox, guest trends, bug grouping, web vitals, feature flags, and storage metrics).
+  - Architecture Preservation: Dexie local-first architecture and E2EE zero-knowledge sync verified completely untouched (20/20 auth isolation tests passed, 22/22 E2EE tests passed).
+  - Next.js Production Build (`npm run build --prefix frontend`): 39 static and dynamic routes compiled with 0 errors.
+  - Backend Production Build (`npm run build --prefix backend`): TypeScript compiled with 0 errors.
+
+---
+
+## ADR-042: Focentia Admin Control Center: Final Verification, Security Audit & Fix Pass (Part 4)
+
+- **Date:** October 28, 2026
+- **Status:** Accepted & Verified
+- **Context:**
+  - Final verification pass (Part 4 of 4) executed by skeptical QA, security auditor, and SRE. Proves the entire system works end-to-end with real data, zero mocks, zero fake zeros, and fixes any discovered defects with minimal safe changes.
+- **Verification & Discovered Defects Resolved:**
+  1. **ESLint Static Type & Linter Fixes:**
+     - Resolved 6 `prefer-const` warnings across `frontend/src/context/AuthContext.tsx`, `frontend/src/lib/server/adminRepository.ts`, and `frontend/src/services/aiAgentService.ts`. Re-check: `npm run lint --prefix frontend -- --quiet` exited with Code 0.
+  2. **Production Builds:**
+     - Next.js Turbopack build (`npm run build --prefix frontend`): 39 static and dynamic routes compiled with Code 0.
+     - Backend build (`npm run build --prefix backend`): Clean compilation with Code 0.
+  3. **Secret Leak Audit (`scripts/audit_bundle_secrets.ts`):**
+     - Scanned all 57 client bundle chunks in `.next/static/` and repository environment configurations. Verified: `SUPABASE_SERVICE_ROLE_KEY`, `CRON_SECRET`, `ADMIN_LOG_SALT`, and `DATABASE_URL` are completely absent from client bundles (6/6 tests passed).
+  4. **Authorization & Security Matrix (`scripts/verify_admin_security_matrix.ts`):**
+     - 20/20 checks passed against live Supabase PostgreSQL database:
+       * Scenarios (c) Guest/no token, (d) tampered JWT, (e) header spoofing rejected with HTTP 401.
+       * Direct RLS verification: anon blocked from SELECT on 8 operational tables and INSERT on `audit_log` / `admin_users`.
+       * Immutable triggers: UPDATE and DELETE on `audit_log` strictly blocked.
+       * Anti-suspension triggers: Owner account cannot be suspended in `admin_users` or `user_suspensions`.
+       * MFA Status: Honestly checked and reported as 0 factors enrolled in `auth.mfa_factors` (setup prerequisite).
+  5. **Deep Functional Verification (`scripts/verify_admin_functional_deep.ts`):**
+     - 18/18 tests passed:
+       * Issue grouping: Client crashes grouped by deterministic fingerprint; admin updates status to `fixed`; subsequent crash occurrence automatically transitions issue to `reopened` (regression verified; never auto-verified).
+       * Feedback durability: Guest submissions explicitly labeled `userType: 'guest'`; status updates recorded in `feedback_status_history`; admin notes persist in `feedback_notes`.
+       * User suspension: Real user created in `auth.users`, suspended, rejection confirmed at boundary, action logged to immutable `audit_log`, restored, and cleaned up. Admin self-suspension strictly blocked.
+       * Glory AI quotas: Real adjustment from 5,000 to 15,000 tokens persists in `public.profiles` and logs to `audit_log`.
+       * Feature flags & kill-switch: Fail-open verified; toggling `telemetry_collection` to false drops ingestion (`accepted: 0, rejected: 1`); restoration verified.
+       * Operational alerts: Panel-only evaluation runs cleanly without emails, popups, or user-facing indicators.
+  6. **Core Regressions:**
+     - Multi-account isolation (`test_auth_isolation.ts`): 20/20 passed.
+     - Zero-knowledge E2EE crypto (`test_e2ee_crypto_and_sync.ts`): 22/22 passed.
+     - Admin server backend (`test_admin_backend.ts`): All passed.
+     - End-to-end pipeline (`test_admin_e2e_pipeline.ts`): 10/10 passed.
+- **Overall Verdict:** **Ready with listed caveats** (Manual admin bootstrap in SQL editor and TOTP MFA setup by owner).
+
+
+
 
 
 

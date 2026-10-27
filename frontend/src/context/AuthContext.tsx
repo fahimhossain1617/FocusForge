@@ -130,7 +130,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       processedUserIdRef.current = u.id;
 
       const meta = u.user_metadata || {};
-      let activeUser: User = {
+      const activeUser: User = {
         id: u.id,
         identifier: u.email || u.phone || "",
         email: u.email || "",

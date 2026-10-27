@@ -2,6 +2,7 @@
 
 import React, { Component, ErrorInfo, ReactNode } from "react";
 import { AlertCircle, RefreshCw, Home, ChevronDown, ChevronUp, Copy, Check } from "lucide-react";
+import { telemetryClient } from "../../services/telemetry/telemetryClient";
 
 interface Props {
   children: ReactNode;
@@ -76,6 +77,15 @@ export default class PageErrorBoundary extends Component<Props, State> {
           const updated = [diag, ...history.filter(Boolean)].slice(0, 5);
           localStorage.setItem("focentia_diagnostic_history", JSON.stringify(updated));
         } catch {}
+
+        // Forward to client-side telemetry queue
+        telemetryClient.trackError(error, {
+          route: this.props.fallbackPage || "active_view",
+          feature: "error_boundary",
+          severity: "high",
+          handled: true,
+          componentStack: errorInfo?.componentStack || undefined,
+        });
       }
     } catch {
       // Safe fallback: never throw inside error handler

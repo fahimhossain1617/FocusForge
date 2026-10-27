@@ -7,6 +7,8 @@ import "./theme-transition.css";
 import "./auth.css";
 import { AppProvider } from "../context/AppContext";
 import { AuthProvider } from "../context/AuthContext";
+import { AdminAuthProvider } from "../context/AdminAuthContext";
+import TelemetryInitializer from "../components/telemetry/TelemetryInitializer";
 import ServiceWorkerRegister from "../components/pwa/ServiceWorkerRegister";
 import PWAUpdater from "../components/pwa/PWAUpdater";
 import MobilePwaZoomLock from "../components/pwa/MobilePwaZoomLock";
@@ -131,12 +133,15 @@ export default function RootLayout({
 
         <AppProvider>
           <AuthProvider>
-            <ServiceWorkerRegister />
-            <PWAUpdater />
-            <MobilePwaZoomLock />
-            <div id="app-shell" suppressHydrationWarning className="relative z-10 h-screen h-dvh max-h-screen max-h-dvh overflow-hidden w-full">
-              {children}
-            </div>
+            <AdminAuthProvider>
+              <TelemetryInitializer />
+              <ServiceWorkerRegister />
+              <PWAUpdater />
+              <MobilePwaZoomLock />
+              <div id="app-shell" suppressHydrationWarning className="relative z-10 h-screen h-dvh max-h-screen max-h-dvh overflow-hidden w-full">
+                {children}
+              </div>
+            </AdminAuthProvider>
           </AuthProvider>
         </AppProvider>
       </body>

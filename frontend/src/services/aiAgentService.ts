@@ -359,7 +359,6 @@ export async function deleteChatSession(sessionId: string): Promise<{ success: b
  * Clear all chat sessions and messages for the user
  */
 export async function clearAllChatSessions(): Promise<{ success: boolean }> {
-  let userId: string | null = null;
   const token = await getToken();
   const guestId = getGuestId();
 
