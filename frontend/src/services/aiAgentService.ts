@@ -359,6 +359,7 @@ export async function deleteChatSession(sessionId: string): Promise<{ success: b
  * Clear all chat sessions and messages for the user
  */
 export async function clearAllChatSessions(): Promise<{ success: boolean }> {
+  let userId: string | null = null;
   const token = await getToken();
   const guestId = getGuestId();
 
@@ -378,7 +379,8 @@ export async function clearAllChatSessions(): Promise<{ success: boolean }> {
   // 2. Clear in localDb
   try {
     const { data: { user } } = await supabase.auth.getUser();
-    const targetUserId = user?.id || guestId || 'guest';
+    userId = user?.id || null;
+    const targetUserId = userId || guestId || 'guest';
     const sessions = await localDb.getAllForUser<any>("ai_sessions", targetUserId, false);
     for (const s of sessions) {
       await localDb.softDelete("ai_sessions", targetUserId, s.id);
