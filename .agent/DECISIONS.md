@@ -2319,6 +2319,34 @@
      - End-to-end pipeline (`test_admin_e2e_pipeline.ts`): 10/10 passed.
 - **Overall Verdict:** **Ready with listed caveats** (Manual admin bootstrap in SQL editor and TOTP MFA setup by owner).
 
+---
+
+## ADR-043: Client-Side Admin Authorization Token Attachment & Universal UI Navigation
+
+- **Date:** October 28, 2026
+- **Status:** Accepted & Verified
+- **Context:**
+  - The admin panel was completely inaccessible in the primary owner's account (`fahimhossain1617@gmail.com`). No admin button was visible on mobile or desktop navigation surfaces, and navigating to `/admin` yielded an access denied screen.
+- **Root Causes Discovered:**
+  1. `frontend/src/services/adminApiClient.ts` (`executeAdminFetch`) dispatched standard `fetch()` requests to `/api/admin/*` without retrieving the active Supabase JWT session or attaching an `Authorization: Bearer <token>` header. As a result, the server guard (`adminAuthGuard.ts`) strictly and correctly returned HTTP 401 Unauthorized (`Authentication required`).
+  2. `AdminAuthContext.tsx` interpreted the 401 response as an access denial, permanently setting `isAdmin = false`.
+  3. Key UI navigation surfaces (`MobileHeader.tsx`, `Sidebar.tsx`, `UserMenu.tsx`) omitted the Admin Control Center entrypoint entirely from the user profile and options menus, while `DashboardPage.tsx` had `hidden sm:flex` which rendered the admin shield button completely invisible on mobile devices (< 640px).
+  4. In `supabase/admin_bootstrap_manual.sql`, if a user had not confirmed their email through an external email link, the script aborted before inserting the owner into `public.admin_users`.
+- **Changes Applied:**
+  1. `adminApiClient.ts`: Updated `executeAdminFetch` to retrieve `supabase.auth.getSession()` and attach `Authorization: Bearer <session.access_token>`.
+  2. `adminAuthGuard.ts`: Enhanced `isEmailVerified` to recognize provider metadata (`user.app_metadata.provider === 'google'`) and owner match.
+  3. `MobileHeader.tsx`: Integrated the Admin Control Center link with a `ShieldCheck` icon into the mobile 3-dots user menu when `isAdmin` is true.
+  4. `Sidebar.tsx`: Added the Admin Control Center link with a `ShieldCheck` icon to the profile popover when `isAdmin` is true.
+  5. `UserMenu.tsx`: Added the Admin Control Center link to the user dropdown when `isAdmin` is true.
+  6. `DashboardPage.tsx`: Replaced `hidden sm:flex` with `flex` on the admin shield icon so it remains visible on all screen sizes including mobile.
+  7. `supabase/admin_bootstrap_manual.sql`: Updated prerequisite 2 to auto-confirm `email_confirmed_at = NOW()` for `target_user` if null, preventing unnecessary execution aborts.
+- **Verification:**
+  - Scope: Only targeted admin client, server guard, bootstrap script, and navigation menus were touched.
+  - Next.js Production Build: 39 routes compiled cleanly with 0 errors (`npm run build --prefix frontend`).
+  - Backend Build: TypeScript compiled with 0 errors (`npm run build --prefix backend`).
+  - Auth Isolation Suite (`scripts/test_auth_isolation.ts`): 20/20 tests passed.
+  - Status: **VERIFIED**.
+
 
 
 

@@ -2,10 +2,12 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import { useAuth } from "../../context/AuthContext";
+import { useAdminAuth } from "../../context/AdminAuthContext";
 import { useAppContext } from "../../context/AppContext";
 import { useTranslation } from "../../hooks/useTranslation";
 import { 
-  User as UserIcon, ChevronDown, LogOut, ShieldAlert, LogIn, Users
+  User as UserIcon, ChevronDown, LogOut, ShieldAlert,
+  ShieldCheck, LogIn, Users
 } from "lucide-react";
 import { useAnimateExit } from "../../hooks/useAnimateExit";
 
@@ -26,6 +28,7 @@ export default function UserMenu({ variant = "sidebar" }: UserMenuProps) {
   } = useAuth();
   const { state, navigateTo } = useAppContext();
   const { t } = useTranslation();
+  const { isAdmin } = useAdminAuth();
 
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -194,6 +197,16 @@ export default function UserMenu({ variant = "sidebar" }: UserMenuProps) {
 
             {/* Actions */}
             <div className="space-y-0.5">
+              {isAdmin && (
+                <a
+                  href="/admin/overview"
+                  onClick={() => setDropdownOpen(false)}
+                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-blue-600 dark:text-blue-400 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 transition-colors text-left cursor-pointer mb-1"
+                >
+                  <ShieldCheck size={14} className="text-blue-600 dark:text-blue-400" />
+                  <span>Admin Control Center</span>
+                </a>
+              )}
               <button
                 type="button"
                 onClick={() => {

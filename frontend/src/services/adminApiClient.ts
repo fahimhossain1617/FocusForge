@@ -7,6 +7,7 @@
  * that the frontend NEVER claims or displays a confirmed zero.
  */
 
+import { supabase } from "../lib/supabaseClient";
 import {
   BaseApiResponse,
   AdminMeResponse,
@@ -40,13 +41,26 @@ async function executeAdminFetch<T>(
 ): Promise<BaseApiResponse<T>> {
   const timestamp = new Date().toISOString();
   try {
+    let authHeader = "";
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.access_token) {
+        authHeader = `Bearer ${session.access_token}`;
+      }
+    } catch (authErr) {
+      console.warn("[adminApiClient] Failed to acquire Supabase session token:", authErr);
+    }
+
+    const headers: Record<string, string> = {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+      ...(authHeader ? { Authorization: authHeader } : {}),
+      ...((options.headers as Record<string, string>) || {}),
+    };
+
     const res = await fetch(url, {
       ...options,
-      headers: {
-        Accept: "application/json",
-        "Content-Type": "application/json",
-        ...options.headers,
-      },
+      headers,
       cache: "no-store",
     });
 

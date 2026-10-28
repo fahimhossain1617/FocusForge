@@ -540,7 +540,7 @@ export default function DashboardPage() {
           {isAdmin && (
             <a
               href="/admin/overview"
-              className="hidden sm:flex w-9 h-9 min-w-[36px] min-h-[36px] rounded-xl items-center justify-center transition-colors cursor-pointer bg-blue-500/10 text-blue-600 dark:text-blue-400 hover:bg-blue-500/20 shadow-none outline-none active:scale-95 border border-blue-500/20"
+              className="flex w-9 h-9 min-w-[36px] min-h-[36px] rounded-xl items-center justify-center transition-colors cursor-pointer bg-blue-500/10 text-blue-600 dark:text-blue-400 hover:bg-blue-500/20 shadow-none outline-none active:scale-95 border border-blue-500/20"
               title="Admin Control Center"
               aria-label="Admin Control Center"
             >

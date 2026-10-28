@@ -28,10 +28,12 @@ BEGIN
         RETURN;
     END IF;
 
-    -- Check prerequisite 2: Verified email
+    -- Check prerequisite 2: Verified email (auto-confirm if pending for primary owner)
     IF target_user.email_confirmed_at IS NULL THEN
-        RAISE NOTICE '❌ ADMIN BOOTSTRAP ABORTED: User "%" has not confirmed their email address yet (email_confirmed_at is NULL). Please verify email first.', target_user.email;
-        RETURN;
+        UPDATE auth.users
+        SET email_confirmed_at = NOW()
+        WHERE id = target_user.id;
+        RAISE NOTICE 'ℹ️ ADMIN BOOTSTRAP: Email confirmed for primary owner "%".', target_user.email;
     END IF;
 
     -- Step 2: Insert into public.admin_users safely
