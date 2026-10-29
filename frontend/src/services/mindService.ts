@@ -70,26 +70,28 @@ export const mindService = {
       return localItems;
     }
 
-    // Authenticated user: attempt cloud fetch in background/parallel to merge
+    // Authenticated user: trigger silent non-blocking cloud merge in background
     if (typeof window !== "undefined" && navigator.onLine) {
-      try {
-        const headers = await getAuthHeaders();
-        const res = await fetch("/api/mind-items", { headers });
-        if (res.ok) {
-          const cloudItems: MindItem[] = await res.json();
-          if (Array.isArray(cloudItems) && cloudItems.length > 0) {
-            const localMap = new Map(localItems.map(i => [i.id, i]));
-            for (const cItem of cloudItems) {
-              if (!localMap.has(cItem.id)) {
-                await localDb.put("mind_items", { ...cItem, userId: cleanUserId }).catch(() => {});
-                localItems.push(cItem);
+      setTimeout(async () => {
+        try {
+          const headers = await getAuthHeaders();
+          const res = await fetch("/api/mind-items", { headers });
+          if (res.ok) {
+            const cloudItems: MindItem[] = await res.json();
+            if (Array.isArray(cloudItems) && cloudItems.length > 0) {
+              const currentLocal = await localDb.getAllForUser<MindItem>("mind_items", cleanUserId, false).catch(() => []);
+              const localMap = new Map(currentLocal.map(i => [i.id, i]));
+              for (const cItem of cloudItems) {
+                if (!localMap.has(cItem.id)) {
+                  await localDb.put("mind_items", { ...cItem, userId: cleanUserId }).catch(() => {});
+                }
               }
             }
           }
+        } catch (err) {
+          console.warn("[mindService] Background cloud fetch warning:", err);
         }
-      } catch (err) {
-        console.warn("[mindService] Cloud fetch non-blocking warning:", err);
-      }
+      }, 500);
     }
 
     return localItems;

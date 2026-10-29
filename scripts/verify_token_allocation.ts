@@ -37,14 +37,14 @@ async function runTests() {
 
   // Test 2: Individual User Isolation Check
   console.log('\n[Check 2] Testing User Account Isolation...');
-  await consumeBackendTokens(testUserA, false, undefined, 250);
+  await consumeBackendTokens(testUserA, false, undefined, 100);
   const afterA = await getBackendTokenStatus(testUserA, false, undefined);
   const afterB = await getBackendTokenStatus(testUserB, false, undefined);
 
   console.log(`User A Used: ${afterA.used}, Remaining: ${afterA.remaining}`);
   console.log(`User B Used: ${afterB.used}, Remaining: ${afterB.remaining}`);
 
-  if (afterA.used !== 250 || afterA.remaining !== 4750) {
+  if (afterA.used !== 100 || afterA.remaining !== 4900) {
     throw new Error('FAILED: User A tokens not consumed accurately');
   }
   if (afterB.used !== 0 || afterB.remaining !== 5000) {

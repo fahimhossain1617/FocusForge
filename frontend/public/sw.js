@@ -1,5 +1,5 @@
 // Focentia Progressive Web App Service Worker
-const CACHE_NAME = 'focentia-build-1793287804254';
+const CACHE_NAME = 'focentia-build-1793305789803';
 const IMMUTABLE_CACHE = 'focentia-immutable-static-v1';
 
 const STATIC_ASSETS = [
@@ -25,11 +25,69 @@ const STATIC_ASSETS = [
   '/badge-48x48.png',
   '/badge-96x96.png',
   '/notification-badge.png',
-  '/logo.png'
+  '/logo.png',
+  '/icons/orb/orb-attentive.png',
+  '/icons/orb/orb-curious.png',
+  '/icons/orb/orb-thinking.png',
+  '/icons/orb/orb-concerned.png',
+  '/icons/orb/orb-sulky.png',
+  '/icons/orb/orb-celebrating.png',
+  '/icons/orb/orb-happy.png',
+  '/icons/orb/orb-sleepy.png',
+  '/icons/orb/orb-proud.png',
+  '/icons/orb/orb-sad.png',
+  '/icons/orb/orb-playful.png',
 ];
 
 // Background reminder storage and active timers map
 // Background reminder storage and active timers map
+
+// Glori AI Orb face icon resolution matching exact mood/category reactions
+function getNotificationOrbIcon(moodOrCategory) {
+  switch (moodOrCategory) {
+    case 'celebrating':
+    case 'task_completed':
+      return '/icons/orb/orb-celebrating.png';
+    case 'happy':
+    case 'focus_completed':
+      return '/icons/orb/orb-happy.png';
+    case 'proud':
+    case 'streak_milestone':
+      return '/icons/orb/orb-proud.png';
+    case 'thinking':
+    case 'task_pre_reminder':
+      return '/icons/orb/orb-thinking.png';
+    case 'curious':
+    case 'daily_plan':
+    case 'skill_reminder':
+    case 'learning':
+      return '/icons/orb/orb-curious.png';
+    case 'concerned':
+    case 'task_incomplete':
+      return '/icons/orb/orb-concerned.png';
+    case 'sulky':
+    case 'inactivity':
+      return '/icons/orb/orb-sulky.png';
+    case 'sleepy':
+    case 'break_time':
+    case 'diary_reminder':
+    case 'diary':
+      return '/icons/orb/orb-sleepy.png';
+    case 'playful':
+    case 'ai_companion':
+      return '/icons/orb/orb-playful.png';
+    case 'sad':
+      return '/icons/orb/orb-sad.png';
+    case 'attentive':
+    case 'focus_reminder':
+    case 'focus':
+    case 'task_start':
+    case 'task':
+    default:
+      return '/icons/orb/orb-attentive.png';
+  }
+}
+
 let activeScheduledReminders = [];
 const activeReminderTimers = new Map();
 const triggeredReminderIds = new Set();
@@ -107,12 +165,14 @@ async function triggerScheduledNotification(reminder) {
 
     const options = {
       body: reminder.body,
-      icon: reminder.icon || '/icons/icon-192x192.png',
+      icon: reminder.icon || getNotificationOrbIcon(reminder.orbMood || category),
+      silent: true,
+      vibrate: [0],
       badge: reminder.badge || '/icons/badge-large.png?v=max_zoom_1',
       tag: deterministicTag,
       renotify: true,
       requireInteraction: Boolean(reminder.requireInteraction),
-      vibrate: reminder.isUrgent ? [150, 80, 150, 80, 200] : [100, 50, 100],
+      vibrate: [0],
       timestamp: reminder.timestamp || Date.now(),
       data: {
         id: reminder.id,
@@ -159,13 +219,13 @@ function scheduleReminders(reminders, persist = true) {
           const actions = getDefaultActions(category, actionRoute);
           const notifOptions = {
             body: item.body,
-            icon: item.icon || '/icons/icon-192x192.png',
+            icon: item.icon || getNotificationOrbIcon(item.orbMood || item.category),
             badge: item.badge || '/icons/badge-large.png?v=max_zoom_1',
             tag: deterministicTag,
             showTrigger: trigger,
             renotify: true,
             requireInteraction: Boolean(item.requireInteraction || item.isUrgent),
-            vibrate: item.isUrgent ? [150, 80, 150, 80, 200] : [100, 50, 100],
+            vibrate: [0],
             timestamp: item.targetTimestamp,
             data: {
               id: item.id,
@@ -527,7 +587,7 @@ self.addEventListener('push', (event) => {
 
   const title = data.title || 'Focentia';
   const body = data.body || data.message || 'You have an update.';
-  const icon = data.icon || '/icons/icon-192x192.png';
+  const icon = data.icon || getNotificationOrbIcon(data.orbMood || category);
   const badge = data.badge || '/icons/badge-large.png?v=max_zoom_1';
   const vibrate = data.vibrate || [100, 50, 100];
   const timestamp = data.timestamp ? new Date(data.timestamp).getTime() : Date.now();

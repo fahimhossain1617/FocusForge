@@ -92,6 +92,10 @@ export default function PWAUpdater() {
 
   const handleRefresh = useCallback(() => {
     setIsUpdating(true);
+    try {
+      localStorage.removeItem("focentia_has_pwa_update");
+      sessionStorage.removeItem("focentia_update_banner_dismissed");
+    } catch {}
     if (waitingWorker) {
       waitingWorker.postMessage({ type: "SKIP_WAITING" });
     } else if (typeof navigator !== "undefined" && "serviceWorker" in navigator) {
@@ -125,11 +129,14 @@ export default function PWAUpdater() {
     }
   }, [handleRefresh]);
 
-  // When waiting worker is found, notify navbar
+  // When waiting worker is found, notify navbar and persist in localStorage
   useEffect(() => {
     if (waitingWorker) {
       if (typeof window !== "undefined") {
         (window as any).__focentia_has_pwa_update = true;
+        try {
+          localStorage.setItem("focentia_has_pwa_update", "true");
+        } catch {}
         window.dispatchEvent(new CustomEvent("focentia:pwa_update_ready", { detail: { hasUpdate: true } }));
       }
     }
@@ -148,8 +155,14 @@ export default function PWAUpdater() {
     // Swipe down (>40px) or swipe horizontally (>60px) dismisses the banner
     if (diffY > 40 || Math.abs(diffX) > 60) {
       setShowBanner(false);
+      try {
+        sessionStorage.setItem("focentia_update_banner_dismissed", "true");
+      } catch {}
       if (typeof window !== "undefined") {
         (window as any).__focentia_has_pwa_update = true;
+        try {
+          localStorage.setItem("focentia_has_pwa_update", "true");
+        } catch {}
         window.dispatchEvent(new CustomEvent("focentia:pwa_update_ready", { detail: { hasUpdate: true } }));
       }
     }
@@ -160,11 +173,13 @@ export default function PWAUpdater() {
   useEffect(() => {
     if (typeof window === "undefined" || !("serviceWorker" in navigator)) return;
 
-    // RULE: Only installed app users (phone/desktop standalone PWA) receive update prompts/refresh buttons.
-    // Web link visitors in normal browser tabs always load live versions directly and must NOT be prompted or auto-reloaded.
-    if (!isRunningAsInstalledApp()) {
-      return;
-    }
+    // Check if an update was already pending in localStorage
+    try {
+      if (localStorage.getItem("focentia_has_pwa_update") === "true") {
+        (window as any).__focentia_has_pwa_update = true;
+        window.dispatchEvent(new CustomEvent("focentia:pwa_update_ready", { detail: { hasUpdate: true } }));
+      }
+    } catch {}
 
     // Record whether a controller was active when this component mounted (first install has no controller)
     hadControllerRef.current = Boolean(navigator.serviceWorker.controller);
@@ -185,7 +200,13 @@ export default function PWAUpdater() {
       // Check if a worker is already waiting in installed state while a controller exists
       if (reg.waiting && navigator.serviceWorker.controller) {
         setWaitingWorker(reg.waiting);
-        setShowBanner(true);
+        try {
+          localStorage.setItem("focentia_has_pwa_update", "true");
+        } catch {}
+        const wasDismissed = sessionStorage.getItem("focentia_update_banner_dismissed") === "true";
+        if (!wasDismissed) {
+          setShowBanner(true);
+        }
       }
 
       // Listen for new workers entering the pipeline
@@ -199,7 +220,13 @@ export default function PWAUpdater() {
             navigator.serviceWorker.controller
           ) {
             setWaitingWorker(installingWorker);
-            setShowBanner(true);
+            try {
+              localStorage.setItem("focentia_has_pwa_update", "true");
+            } catch {}
+            const wasDismissed = sessionStorage.getItem("focentia_update_banner_dismissed") === "true";
+            if (!wasDismissed) {
+              setShowBanner(true);
+            }
           }
         };
       };
@@ -207,8 +234,6 @@ export default function PWAUpdater() {
 
     const checkForUpdate = async () => {
       try {
-        if (!isRunningAsInstalledApp()) return;
-
         const reg = await navigator.serviceWorker.getRegistration();
         if (!reg) return;
 
@@ -216,7 +241,13 @@ export default function PWAUpdater() {
 
         if (reg.waiting && navigator.serviceWorker.controller) {
           setWaitingWorker(reg.waiting);
-          setShowBanner(true);
+          try {
+            localStorage.setItem("focentia_has_pwa_update", "true");
+          } catch {}
+          const wasDismissed = sessionStorage.getItem("focentia_update_banner_dismissed") === "true";
+          if (!wasDismissed) {
+            setShowBanner(true);
+          }
           return;
         }
 
@@ -224,7 +255,13 @@ export default function PWAUpdater() {
 
         if (reg.waiting && navigator.serviceWorker.controller) {
           setWaitingWorker(reg.waiting);
-          setShowBanner(true);
+          try {
+            localStorage.setItem("focentia_has_pwa_update", "true");
+          } catch {}
+          const wasDismissed = sessionStorage.getItem("focentia_update_banner_dismissed") === "true";
+          if (!wasDismissed) {
+            setShowBanner(true);
+          }
         }
       } catch {
         // Ignored when offline or network fails

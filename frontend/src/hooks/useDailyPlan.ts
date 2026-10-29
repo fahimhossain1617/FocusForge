@@ -91,8 +91,16 @@ export function useDailyPlan() {
     const currentH = now.getHours();
     const currentM = now.getMinutes();
 
-    const isDue = currentH > schedH || (currentH === schedH && currentM >= schedM);
-    if (!isDue) return;
+    const schedMinutes = schedH * 60 + (schedM || 0);
+    const currentMinutes = currentH * 60 + currentM;
+
+    if (currentMinutes < schedMinutes) return;
+
+    // If past by more than 15 minutes, mark sent silently without bursting on app open
+    if (currentMinutes - schedMinutes > 15) {
+      notificationService.markAsSent(notifId);
+      return;
+    }
 
     const template = notificationRotationManager.getNext("daily_plan", lang, {}, userId);
 
@@ -107,6 +115,7 @@ export function useDailyPlan() {
       type: "planner",
       actionRoute: "planner",
       requireInteraction: false,
+      silent: true,
     });
   }, [prefs, lang, userId]);
 
@@ -166,6 +175,7 @@ export function useDailyPlan() {
             actionRoute: "tasks",
             taskId: task.id,
             requireInteraction: false,
+            silent: true,
           });
         }
       }
@@ -194,6 +204,7 @@ export function useDailyPlan() {
             taskId: task.id,
             requireInteraction: true,
             isUrgent: true,
+            silent: true,
           });
         }
       }
@@ -547,7 +558,6 @@ export function useDailyPlan() {
         await checkSkillReminders();
         await checkDiaryReminders();
         await checkInactivityAndAICompanion();
-        syncScheduleToServiceWorker();
       } catch (err) {
         console.warn("[useDailyPlan] scheduler check error:", err);
       } finally {

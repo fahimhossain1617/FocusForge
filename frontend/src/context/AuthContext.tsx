@@ -92,10 +92,46 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const { showToast, navigateTo } = useAppContext();
   const { t } = useTranslation();
 
-  const [lifecycle, setLifecycle] = useState<AuthLifecycle>("INITIALIZING");
-  const [user, setUser] = useState<User | null>(null);
-  const [rememberedAccounts, setRememberedAccounts] = useState<RememberedAccount[]>([]);
-  const [isGuestModeDisabled, setIsGuestModeDisabled] = useState(false);
+  const [rememberedAccounts, setRememberedAccounts] = useState<RememberedAccount[]>(() => {
+    if (typeof window !== "undefined") {
+      return accountManager.getRememberedAccounts();
+    }
+    return [];
+  });
+  const [isGuestModeDisabled, setIsGuestModeDisabled] = useState<boolean>(() => {
+    if (typeof window !== "undefined") {
+      return accountManager.isGuestModePermanentlyDisabled();
+    }
+    return false;
+  });
+  const [user, setUser] = useState<User | null>(() => {
+    if (typeof window !== "undefined") {
+      const remembered = accountManager.getRememberedAccounts()[0];
+      if (remembered) {
+        return {
+          id: remembered.id,
+          identifier: remembered.email,
+          email: remembered.email,
+          authMethod: (remembered.authMethod as any) || "email",
+          displayName: remembered.displayName || "User",
+          fullName: remembered.fullName || "",
+          phone: "",
+          avatarUrl: remembered.avatarUrl || undefined,
+          createdAt: remembered.lastUsedAt || new Date().toISOString(),
+        };
+      }
+    }
+    return null;
+  });
+  const [lifecycle, setLifecycle] = useState<AuthLifecycle>(() => {
+    if (typeof window !== "undefined") {
+      const remembered = accountManager.getRememberedAccounts()[0];
+      if (remembered) return "AUTHENTICATED";
+      const guestDisabled = accountManager.isGuestModePermanentlyDisabled();
+      return guestDisabled ? "UNAUTHENTICATED" : "GUEST";
+    }
+    return "INITIALIZING";
+  });
 
   const [authModal, setAuthModal] = useState<AuthModalState>({
     isOpen: false,
@@ -195,7 +231,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const isOffline = typeof navigator !== "undefined" && !navigator.onLine;
         const sessionPromise = authService.getSession();
         const timeoutPromise = new Promise<{ user: null; rememberMe: false }>((resolve) =>
-          setTimeout(() => resolve({ user: null, rememberMe: false }), isOffline ? 150 : 2500)
+          setTimeout(() => resolve({ user: null, rememberMe: false }), isOffline ? 100 : 350)
         );
         const session = await Promise.race([sessionPromise, timeoutPromise]);
 

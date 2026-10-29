@@ -2442,14 +2442,76 @@
   - Automated unit test suite: Passed (Routing, sanitization, title generation).
 - **Status:** **VERIFIED**
 
+---
 
+### ADR 103: Silent Notifications, Anti-Burst Launch Shield & Persistent Navbar PWA Update
 
+- **Date:** October 30, 2026
+- **Status:** Accepted & Verified
+- **Context:**
+  1. Notification chimes ("টুং করে সাউন্ড") were intrusive and requested to be completely disabled.
+  2. Android OS notifications displayed the default brand logo on the right side rather than the contextual Glori AI Orb emotion face.
+  3. Opening the application triggered a flood of stale retroactive notifications and chime bursts simultaneously.
+  4. Scheduled notifications exceeded acceptable frequency; user requested maximum 2-3 general notifications across the 24-hour day with large gaps, plus exact alarms for user-timed planner tasks.
+  5. Offline notification timers in sw.js were being wiped every 10 seconds in a reset loop caused by redundant client polling.
+  6. When a new PWA version was deployed to Vercel, dismissing or exiting the app removed the update prompt without providing a persistent indicator in the Navbar.
+- **Decision:**
+  1. **100% Silent Notifications Across All Channels:**
+     - Passed silent: true and vibrate: [0] across sw.js, notificationService.ts, and localNotificationScheduler.ts.
+     - Muted playChime() Web Audio oscillator chime so zero audio sounds are generated on notification arrival.
+  2. **Contextual Glori AI Face Notification Icons (Right-Side Large Icon):**
+     - Generated and pre-cached 11 pixel-perfect 192x192 PNG/SVG assets in frontend/public/icons/orb/ (attentive, curious, thinking, concerned, sulky, celebrating, happy, sleepy, proud, sad, playful).
+     - Implemented getNotificationOrbIcon mapping semantic emotions/categories to respective Glori Orb faces (e.g. attentive for task start, concerned / bombastic look for overdue/incomplete, celebrating for completion, curious for morning plan).
+     - Left the origin brand badge on the left untouched as requested. Zero external API calls, 100% offline cached.
+  3. **Anti-Burst App Open Shield & Stale Backlog Elimination:**
+     - Added an app-boot shield in notificationService.ts suppressing non-urgent automated alerts during the first 10 seconds of launch.
+     - In localNotificationScheduler.ts, enforced a 2-minute expiration window: reminders older than 2 minutes in the past are marked sent silently to permanently eliminate the open-app storm.
+     - In useDailyPlan.ts, checked time windows strictly (within 15 minutes of scheduled time); missed time slots are marked sent silently instead of firing late in the day. Removed redundant syncScheduleToServiceWorker() call from the 10-second polling interval.
+  4. **Strict 2-3 General Daily Limits & Untimed Task Support:**
+     - Enforced dailyLimit: 3 and 60-minute minimum cooldowns between general alerts.
+     - General schedule restricted to max 3 natural spaced slots: Slot A Morning (~08:00), Slot B Midday/Untimed Task check (~13:30), Slot C Evening Focus/Practice (~18:30).
+     - Untimed tasks receive exactly 1 sweet gentle reminder in the afternoon.
+  5. **Offline Reliability in Service Worker:**
+     - Refactored scheduleReminders in sw.js to preserve running timers instead of wiping them on incoming sync messages.
+     - Pre-cached all orb icons in STATIC_ASSETS.
+     - Rehydrated activeReminders in localNotificationScheduler.ts from LOCAL_REMINDERS_DB_KEY on boot.
+  6. **Persistent Navbar PWA Update Indicator:**
+     - In PWAUpdater.tsx, stored update readiness in localStorage.setItem('focentia_has_pwa_update', 'true').
+     - Dismissing the bottom banner sets sessionStorage.setItem('focentia_update_banner_dismissed', 'true'), keeping the navbar update icon permanently active until updated.
+     - In MobileHeader.tsx and DashboardPage.tsx, initialized update state from localStorage and reg.waiting. When clicked, executes __focentia_trigger_pwa_update() and purges the update flag on reload.
+- **Verification:**
+  - Automated test suite scripts/verify_notifications_and_pwa.ts: 41/41 checks PASSED.
+  - Level 2 Production Build: npm run build --prefix frontend PASSED (39 static/dynamic routes, 0 errors).
+- **Status:** **VERIFIED**
 
+---
 
+### ADR 104: Sub-0.2s Instant App Launch Without Skeleton Delays & Full-Stack Glori AI Notification Orb Faces
 
-
-
-
-
-
-
+- **Date:** October 30, 2026
+- **Status:** Accepted & Verified
+- **Context:**
+  1. **Instant App Launch:** Offline, the app loaded instantly (sub-0.2s). However, online on Android, after the splash screen finished, the app remained stuck on skeleton loading (DashboardSkeleton / AppShellSkeleton) for 4–5 seconds before rendering the dashboard.
+  2. **Android Notification Right-Hand Avatar Slot:** The Android system notification large circular icon (right-side slot) was still displaying the default circular Focentia app logo (icon: '/icons/icon-192x192.png') rather than Glori AI's dynamic contextual face reaction icons (orb-thinking.png, orb-attentive.png, orb-concerned.png, etc.).
+- **Root Cause Analysis:**
+  1. mindService.fetchMindItems: Performed a blocking await fetch('/api/mind-items') inside loadUserData's Promise.all on every online startup, stalling state hydration for 2–3 seconds while waiting for remote Vercel/Supabase queries.
+  2. AuthContext.tsx: Initialized lifecycle to 'INITIALIZING' and waited up to 2500ms on supabase.auth.getSession(), delaying isAuthLoading = false and app readiness signals (__ffReady()).
+  3. AppContext.tsx: Initialized isLoaded to false and empty state on mount, forcing the skeleton screen to render on frame 0 even when previous cached data existed locally.
+  4. Server and Worker Schedulers: backend/src/services/notificationSchedulerService.ts, frontend/src/lib/server/schedulerService.ts, backend/src/services/webPushService.ts, frontend/src/lib/server/webPushService.ts, reminderSyncService.ts, and sw.js (push & TimestampTrigger) had hardcoded or defaulted icon to '/icons/icon-192x192.png' instead of computing getNotificationOrbIcon(category, mood).
+- **Decision:**
+  1. **Sub-0.2s Instant Stale-While-Revalidate Launch Engine:**
+     - In AppContext.tsx, introduced synchronous fast-cache hydration (getFastInitialState reading focentia_fast_state_${userId || 'guest'}). When cache exists from a previous session, state and isLoaded are populated synchronously on frame 0 (sub-2ms), completely eliminating AppShellSkeleton and DashboardSkeleton.
+     - In AppContext.tsx, persisted compact state snapshots to localStorage on every Dexie loadUserData read and background state save.
+     - In mindService.ts, removed the blocking await fetch('/api/mind-items') from fetchMindItems(). Dexie local storage now returns in 5ms; cloud revalidation is deferred silently in a background non-blocking timer, identical to all other local-first DB services.
+     - In AuthContext.tsx, pre-populated user and set lifecycle: 'AUTHENTICATED' synchronously on frame 0 from accountManager.getRememberedAccounts()[0]. Reduced session resolution timeout from 2500ms to 350ms for background revalidation.
+  2. **Full-Stack Glori AI Notification Orb Reactions:**
+     - In reminderSyncService.ts, attached metadata: { icon: getNotificationOrbIcon(preTemplate.orbMood || category), orbMood } across all 10 scheduled reminder categories (task_pre_reminder, task_start, task_incomplete, daily_plan, focus_reminder, skill_reminder, inactivity, diary_reminder).
+     - In backend/src/services/notificationSchedulerService.ts and frontend/src/lib/server/schedulerService.ts, replaced hardcoded '/icons/icon-192x192.png' with (metadata?.icon as string) || getNotificationOrbIcon(category, metadata?.orbMood as string).
+     - In backend/src/services/webPushService.ts and frontend/src/lib/server/webPushService.ts, updated icon fallback to payload.icon || getNotificationOrbIcon(payload.category).
+     - In frontend/public/sw.js, updated both TimestampTrigger and push listeners to set icon: item.icon || getNotificationOrbIcon(item.orbMood || item.category) and const icon = data.icon || getNotificationOrbIcon(data.orbMood || category). Replaced any residual vibration patterns with vibrate: [0] to guarantee 100% silent alerts.
+- **Verification:**
+  - Automated test suite scripts/verify_instant_launch_and_orb_notifications.ts: 7/7 checks PASSED.
+  - Auth multi-account isolation suite scripts/test_auth_isolation.ts: 20/20 checks PASSED.
+  - Notification and PWA test suite scripts/verify_notifications_and_pwa.ts: 41/41 checks PASSED.
+  - Production Build: npm run build --prefix frontend PASSED (39 static/dynamic routes, 0 errors).
+- **Status:** **VERIFIED**

@@ -33,11 +33,31 @@ export default function MobileHeader() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [hasPwaUpdate, setHasPwaUpdate] = useState<boolean>(() => {
     if (typeof window === "undefined") return false;
-    return Boolean((window as any).__focentia_has_pwa_update);
+    try {
+      return Boolean(
+        localStorage.getItem("focentia_has_pwa_update") === "true" ||
+        (window as any).__focentia_has_pwa_update
+      );
+    } catch {
+      return Boolean((window as any).__focentia_has_pwa_update);
+    }
   });
 
   useEffect(() => {
     if (typeof window === "undefined") return;
+
+    // Direct check on mount: If a service worker is waiting, update is ready
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.getRegistration().then((reg) => {
+        if (reg?.waiting) {
+          setHasPwaUpdate(true);
+          try {
+            localStorage.setItem("focentia_has_pwa_update", "true");
+          } catch {}
+        }
+      }).catch(() => {});
+    }
+
     const handleUpdateReady = () => {
       setHasPwaUpdate(true);
     };
@@ -48,6 +68,9 @@ export default function MobileHeader() {
   }, []);
 
   const handleTriggerPwaUpdate = () => {
+    try {
+      localStorage.removeItem("focentia_has_pwa_update");
+    } catch {}
     if (typeof window !== "undefined" && typeof (window as any).__focentia_trigger_pwa_update === "function") {
       (window as any).__focentia_trigger_pwa_update();
     } else {

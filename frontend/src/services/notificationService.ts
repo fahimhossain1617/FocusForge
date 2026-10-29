@@ -33,6 +33,55 @@ export interface NotificationActionItem {
   icon?: string;
 }
 
+/**
+ * Resolves the Glori AI Orb face reaction icon matching the semantic emotion or notification category.
+ * Cached locally in SW and static assets for 100% offline delivery with zero API overhead.
+ */
+export function getNotificationOrbIcon(moodOrCategory?: string): string {
+  switch (moodOrCategory) {
+    case "celebrating":
+    case "task_completed":
+      return "/icons/orb/orb-celebrating.png";
+    case "happy":
+    case "focus_completed":
+      return "/icons/orb/orb-happy.png";
+    case "proud":
+    case "streak_milestone":
+      return "/icons/orb/orb-proud.png";
+    case "thinking":
+    case "task_pre_reminder":
+      return "/icons/orb/orb-thinking.png";
+    case "curious":
+    case "daily_plan":
+    case "skill_reminder":
+    case "learning":
+      return "/icons/orb/orb-curious.png";
+    case "concerned":
+    case "task_incomplete":
+      return "/icons/orb/orb-concerned.png";
+    case "sulky":
+    case "inactivity":
+      return "/icons/orb/orb-sulky.png";
+    case "sleepy":
+    case "break_time":
+    case "diary_reminder":
+    case "diary":
+      return "/icons/orb/orb-sleepy.png";
+    case "playful":
+    case "ai_companion":
+      return "/icons/orb/orb-playful.png";
+    case "sad":
+      return "/icons/orb/orb-sad.png";
+    case "attentive":
+    case "focus_reminder":
+    case "focus":
+    case "task_start":
+    case "task":
+    default:
+      return "/icons/orb/orb-attentive.png";
+  }
+}
+
 export interface NotificationPayload {
   id?: string;
   category?: NotificationCategory;
@@ -62,11 +111,13 @@ export interface NotificationPayload {
 
 class NotificationService {
   private activeUserId: string | null = null;
-  private dailyLimit: number = 5;
+  private dailyLimit: number = 3; // Strict 2-3 notifications max per 24 hours
   private quietHoursEnabled: boolean = true;
   private quietHoursStart: string = "22:00"; // 10:00 PM
   private quietHoursEnd: string = "07:00"; // 7:00 AM
-  private soundEnabled: boolean = true;
+  private soundEnabled: boolean = false; // User requested 100% silent notifications
+  private appBootTime: number = Date.now();
+  private lastNonUrgentSendTime: number = 0;
 
   /**
    * Set active account ID for strict data isolation
@@ -154,63 +205,11 @@ class NotificationService {
 
   /**
    * Play an elegant gentle synthesized chime using Web Audio API.
-   * Works 100% offline with zero external audio assets.
+   * Completely muted per user instruction to ensure 100% silent notifications without chime noise.
    */
   public playChime(): void {
-    if (!this.soundEnabled) return;
-    if (typeof window === "undefined") return;
-    const nowMs = Date.now();
-    if (nowMs - this.lastChimeTime < 1500) {
-      return; // Rate limit audio chimes to avoid avalanche cacophony
-    }
-    this.lastChimeTime = nowMs;
-    try {
-      const AudioContextClass =
-        window.AudioContext ||
-        (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-      if (!AudioContextClass) return;
-
-      const ctx = new AudioContextClass();
-      const now = ctx.currentTime;
-
-      // Note 1 (523.25Hz - C5)
-      const osc1 = ctx.createOscillator();
-      const gain1 = ctx.createGain();
-      osc1.type = "sine";
-      osc1.frequency.setValueAtTime(523.25, now);
-      gain1.gain.setValueAtTime(0.08, now);
-      gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
-      osc1.connect(gain1);
-      gain1.connect(ctx.destination);
-      osc1.start(now);
-      osc1.stop(now + 0.35);
-
-      // Note 2 (659.25Hz - E5)
-      const osc2 = ctx.createOscillator();
-      const gain2 = ctx.createGain();
-      osc2.type = "sine";
-      osc2.frequency.setValueAtTime(659.25, now + 0.12);
-      gain2.gain.setValueAtTime(0.08, now + 0.12);
-      gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.55);
-      osc2.connect(gain2);
-      gain2.connect(ctx.destination);
-      osc2.start(now + 0.12);
-      osc2.stop(now + 0.55);
-
-      // Note 3 (783.99Hz - G5)
-      const osc3 = ctx.createOscillator();
-      const gain3 = ctx.createGain();
-      osc3.type = "sine";
-      osc3.frequency.setValueAtTime(783.99, now + 0.24);
-      gain3.gain.setValueAtTime(0.1, now + 0.24);
-      gain3.gain.exponentialRampToValueAtTime(0.001, now + 0.85);
-      osc3.connect(gain3);
-      gain3.connect(ctx.destination);
-      osc3.start(now + 0.24);
-      osc3.stop(now + 0.85);
-    } catch {
-      // Audio policy safe
-    }
+    // Intentionally silenced: User requested zero audio chime on notifications
+    return;
   }
 
   // ==================== Duplicate & Anti-Spam Controls ====================
@@ -447,6 +446,20 @@ class NotificationService {
     // 3. Mark sent right away
     this.markAsSent(notifId);
 
+    // Anti-avalanche on app open: Suppress retroactive automated nudges during first 10s of app launch
+    if (Date.now() - this.appBootTime < 10000 && !payload.isUrgent && category !== "system") {
+      return true;
+    }
+
+    // Cooldown check: Ensure at least 60 minutes between automated non-urgent alerts
+    if (!payload.isUrgent && category !== "system") {
+      const nowMs = Date.now();
+      if (nowMs - this.lastNonUrgentSendTime < 60 * 60 * 1000) {
+        return true;
+      }
+      this.lastNonUrgentSendTime = nowMs;
+    }
+
     // 4. Check Quiet Hours
     const inQuietHours = this.isQuietHours();
     if (inQuietHours && !payload.isUrgent) {
@@ -503,10 +516,7 @@ class NotificationService {
       } catch {}
     }
 
-    // 7. Play gentle audio chime
-    if (!payload.silent) {
-      this.playChime();
-    }
+    // 7. Audio chime is permanently muted per user preference for silent notifications
 
     // 8. Device / OS Web Notification & Service Worker (Android PWA System Notification)
     if (!this.isSupported() || this.getPermission() !== "granted") {
@@ -516,11 +526,10 @@ class NotificationService {
     // Deliver system notification so alert triggers whether the app is in foreground or background.
 
     try {
-      const iconUrl = payload.icon || "/icons/icon-192x192.png";
+      const iconUrl = payload.icon || getNotificationOrbIcon(payload.orbMood || payload.category);
       const badgeUrl = payload.badge || "/icons/badge-large.png?v=max_zoom_1";
       const deterministicTag = this.generateDeterministicTag(payload, notifId);
       const nativeActions = this.buildNativeActions(payload);
-      const vibratePattern = payload.vibrate || (payload.isUrgent ? [150, 80, 150, 80, 200] : [100, 50, 100]);
       const timestamp = payload.timestamp || Date.now();
 
       const notificationOptions: Record<string, any> = {
@@ -530,8 +539,8 @@ class NotificationService {
         tag: deterministicTag,
         renotify: payload.renotify ?? true,
         requireInteraction: payload.requireInteraction ?? false,
-        silent: payload.silent ?? false,
-        vibrate: vibratePattern,
+        silent: true,
+        vibrate: [0],
         timestamp,
         data: {
           ...payload.data,

@@ -54,6 +54,50 @@ export interface WebPushPayload {
 /**
  * Send Web Push notification to all active devices registered for a specific user
  */
+export function getNotificationOrbIcon(category?: string, mood?: string): string {
+  const key = mood || category;
+  switch (key) {
+    case 'celebrating':
+    case 'task_completed':
+      return '/icons/orb/orb-celebrating.png';
+    case 'happy':
+    case 'focus_completed':
+      return '/icons/orb/orb-happy.png';
+    case 'proud':
+    case 'streak_milestone':
+      return '/icons/orb/orb-proud.png';
+    case 'thinking':
+    case 'task_pre_reminder':
+      return '/icons/orb/orb-thinking.png';
+    case 'curious':
+    case 'daily_plan':
+    case 'skill_reminder':
+    case 'learning':
+      return '/icons/orb/orb-curious.png';
+    case 'concerned':
+    case 'task_incomplete':
+      return '/icons/orb/orb-concerned.png';
+    case 'sulky':
+    case 'inactivity':
+      return '/icons/orb/orb-sulky.png';
+    case 'sleepy':
+    case 'break_time':
+    case 'diary_reminder':
+    case 'diary':
+      return '/icons/orb/orb-sleepy.png';
+    case 'playful':
+    case 'ai_companion':
+      return '/icons/orb/orb-playful.png';
+    case 'sad':
+      return '/icons/orb/orb-sad.png';
+    case 'attentive':
+    case 'task_start':
+    case 'task':
+    default:
+      return '/icons/orb/orb-attentive.png';
+  }
+}
+
 export async function sendWebPushToUser(
   userId: string,
   payload: WebPushPayload
@@ -79,7 +123,7 @@ export async function sendWebPushToUser(
       category: payload.category || 'system',
       actionRoute: payload.actionRoute || '',
       targetUrl: payload.targetUrl || (payload.actionRoute ? `/?page=${encodeURIComponent(payload.actionRoute)}` : '/'),
-      icon: payload.icon || '/icons/icon-192x192.png',
+      icon: payload.icon || getNotificationOrbIcon(payload.category),
       badge: payload.badge || '/icons/badge-large.png?v=max_zoom_1',
       tag: payload.tag || `focentia-${payload.category || 'system'}`,
       requireInteraction: Boolean(payload.requireInteraction),

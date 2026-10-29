@@ -206,11 +206,47 @@ interface AppContextType {
   setSubViewActive: (active: boolean) => void;
 }
 
+const FAST_CACHE_KEY_PREFIX = "focentia_fast_state_";
+
+function getFastInitialState(): { state: AppState; hasCache: boolean } {
+  if (typeof window === "undefined") {
+    return { state: defaultState, hasCache: false };
+  }
+  try {
+    const rememberedId = accountManager.getRememberedAccounts()[0]?.id || "guest";
+    const raw = localStorage.getItem(FAST_CACHE_KEY_PREFIX + rememberedId) ||
+                localStorage.getItem(FAST_CACHE_KEY_PREFIX + "guest");
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === "object") {
+        return {
+          state: {
+            ...defaultState,
+            ...parsed,
+            tasks: Array.isArray(parsed.tasks) ? parsed.tasks : [],
+            notes: Array.isArray(parsed.notes) ? parsed.notes : [],
+            mindItems: Array.isArray(parsed.mindItems) ? parsed.mindItems : [],
+            diaryTopics: Array.isArray(parsed.diaryTopics) ? parsed.diaryTopics : [],
+            focusSessions: Array.isArray(parsed.focusSessions) ? parsed.focusSessions : [],
+            learningFolders: Array.isArray(parsed.learningFolders) ? parsed.learningFolders : [],
+            learningLogs: Array.isArray(parsed.learningLogs) ? parsed.learningLogs : [],
+            routineTemplates: Array.isArray(parsed.routineTemplates) ? parsed.routineTemplates : [],
+            categories: Array.isArray(parsed.categories) && parsed.categories.length > 0 ? parsed.categories : [...defaultCategories],
+          },
+          hasCache: true,
+        };
+      }
+    }
+  } catch {}
+  return { state: defaultState, hasCache: false };
+}
+
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
-  const [state, setState] = useState<AppState>(defaultState);
-  const [isLoaded, setIsLoaded] = useState(false);
+  const [fastInit] = useState(getFastInitialState);
+  const [state, setState] = useState<AppState>(fastInit.state);
+  const [isLoaded, setIsLoaded] = useState<boolean>(fastInit.hasCache);
   const [isPageLoading, setIsPageLoading] = useState(false);
   const [isSubViewActive, setSubViewActive] = useState(false);
   const [isOnline, setIsOnline] = useState<boolean>(() => {
@@ -357,6 +393,28 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
       if (requestGenRef.current === generation && (activeUserIdRef.current === userId || (!activeUserIdRef.current && !userId))) {
         setState(assembledState);
+        try {
+          if (typeof window !== "undefined") {
+            const cacheKey = FAST_CACHE_KEY_PREFIX + cleanUserId;
+            localStorage.setItem(cacheKey, JSON.stringify({
+              tasks: assembledState.tasks,
+              notes: (assembledState.notes || []).slice(0, 50),
+              mindItems: (assembledState.mindItems || []).slice(0, 50),
+              diaryTopics: (assembledState.diaryTopics || []).slice(0, 50),
+              focusSessions: (assembledState.focusSessions || []).slice(-50),
+              learningFolders: assembledState.learningFolders,
+              learningLogs: (assembledState.learningLogs || []).slice(-50),
+              routineTemplates: assembledState.routineTemplates,
+              categories: assembledState.categories,
+              dailyBig3: assembledState.dailyBig3,
+              activePage: assembledState.activePage,
+              theme: assembledState.theme,
+              lang: assembledState.lang,
+              notifPreferences: assembledState.notifPreferences,
+              calendarPreferences: assembledState.calendarPreferences,
+            }));
+          }
+        } catch {}
       }
 
       // 3. Trigger silent non-blocking cross-device sync in background
@@ -417,6 +475,29 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     const currentUserId = activeUserIdRef.current;
     const isCurrentlyOnline = typeof navigator === 'undefined' || navigator.onLine;
+
+        try {
+      if (typeof window !== "undefined") {
+        const cacheKey = FAST_CACHE_KEY_PREFIX + (currentUserId || "guest");
+        localStorage.setItem(cacheKey, JSON.stringify({
+          tasks: state.tasks,
+          notes: (state.notes || []).slice(0, 50),
+          mindItems: (state.mindItems || []).slice(0, 50),
+          diaryTopics: (state.diaryTopics || []).slice(0, 50),
+          focusSessions: (state.focusSessions || []).slice(-50),
+          learningFolders: state.learningFolders,
+          learningLogs: (state.learningLogs || []).slice(-50),
+          routineTemplates: state.routineTemplates,
+          categories: state.categories,
+          dailyBig3: state.dailyBig3,
+          activePage: state.activePage,
+          theme: state.theme,
+          lang: state.lang,
+          notifPreferences: state.notifPreferences,
+          calendarPreferences: state.calendarPreferences,
+        }));
+      }
+    } catch {}
 
     if (currentUserId) {
       // Authenticated: save to primary client-side layer (Dexie IndexedDB)

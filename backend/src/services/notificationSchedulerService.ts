@@ -17,6 +17,50 @@ import {
 import { sendWebPushToUser, WebPushPayload } from './webPushService';
 
 // In-memory cooldown tracking per user for automated nudges
+export function getNotificationOrbIcon(category?: string, mood?: string): string {
+  const key = mood || category;
+  switch (key) {
+    case 'celebrating':
+    case 'task_completed':
+      return '/icons/orb/orb-celebrating.png';
+    case 'happy':
+    case 'focus_completed':
+      return '/icons/orb/orb-happy.png';
+    case 'proud':
+    case 'streak_milestone':
+      return '/icons/orb/orb-proud.png';
+    case 'thinking':
+    case 'task_pre_reminder':
+      return '/icons/orb/orb-thinking.png';
+    case 'curious':
+    case 'daily_plan':
+    case 'skill_reminder':
+    case 'learning':
+      return '/icons/orb/orb-curious.png';
+    case 'concerned':
+    case 'task_incomplete':
+      return '/icons/orb/orb-concerned.png';
+    case 'sulky':
+    case 'inactivity':
+      return '/icons/orb/orb-sulky.png';
+    case 'sleepy':
+    case 'break_time':
+    case 'diary_reminder':
+    case 'diary':
+      return '/icons/orb/orb-sleepy.png';
+    case 'playful':
+    case 'ai_companion':
+      return '/icons/orb/orb-playful.png';
+    case 'sad':
+      return '/icons/orb/orb-sad.png';
+    case 'attentive':
+    case 'task_start':
+    case 'task':
+    default:
+      return '/icons/orb/orb-attentive.png';
+  }
+}
+
 const userLastSentMap = new Map<string, number>();
 
 export interface SchedulerCycleResult {
@@ -247,7 +291,7 @@ export async function runNotificationSchedulerCycle(): Promise<SchedulerCycleRes
         category,
         actionRoute: actionRoute || 'today',
         targetUrl: actionRoute ? `/?page=${encodeURIComponent(actionRoute)}` : '/',
-        icon: '/icons/icon-192x192.png',
+        icon: (metadata?.icon as string) || getNotificationOrbIcon(category, metadata?.orbMood as string),
         badge: '/icons/badge-large.png?v=max_zoom_1',
         tag: deterministicTag,
         isUrgent,

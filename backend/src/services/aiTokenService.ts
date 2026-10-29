@@ -6,6 +6,7 @@ dotenv.config();
 const DEFAULT_AUTH_TOKENS = 5000;
 const DEFAULT_GUEST_TOKENS = 1000;
 const RESET_DURATION_MS = 24 * 60 * 60 * 1000; // 24 hours rolling reset
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 let columnsChecked = false;
 async function ensureTokenColumns() {
@@ -95,7 +96,7 @@ export async function getUserTokenStatus(
   const now = new Date();
 
   // 1. Authenticated User with Database connection
-  if (!isGuest && userId && userId !== 'guest' && pool) {
+  if (!isGuest && userId && userId !== 'guest' && UUID_REGEX.test(userId) && pool) {
     try {
       await ensureTokenColumns();
       const res = await pool.query(
@@ -177,7 +178,7 @@ export async function consumeUserTokens(
   const safeTokens = Math.max(1, Math.min(100, Math.round(tokensToConsume)));
 
   // Atomic check-and-deduct in PostgreSQL for authenticated users
-  if (!isGuest && userId && userId !== 'guest' && pool) {
+  if (!isGuest && userId && userId !== 'guest' && UUID_REGEX.test(userId) && pool) {
     try {
       const { rows } = await pool.query(
         `UPDATE public.profiles

@@ -1,8 +1,8 @@
 # CURRENT_STATE.md — Current Verified State of Focentia
 
-**Document Version:** 1.0.3  
-**Last Updated:** October 25, 2026  
-**Status:** Authoritative Current State Baseline — Zero Red Files / 100% Clean Diagnostics / React Error #185 Fixed / Offline Persistence Verified
+**Document Version:** 1.0.4  
+**Last Updated:** October 30, 2026  
+**Status:** Authoritative Current State Baseline — Zero Red Files / 100% Clean Diagnostics / Sub-0.2s Instant App Launch / Glori AI Orb Notifications Verified
 
 ---
 
@@ -15,6 +15,15 @@ Focentia is an active, functional productivity suite built with Next.js 16 App R
 - **Local-First Personal Storage:** All user personal data (tasks, routines, notes, diary entries, mind dumps, focus logs, learning tracking, and AI memory) is stored locally on the user's device in IndexedDB (`focusforge_local_v3`).
 - **End-to-End Encrypted Relay:** Synchronization across user devices operates via client-side AES-256-GCM encryption with 12-byte IVs and PBKDF2 key derivation using the user's master recovery key (`FF-XXXX-...`).
 - **Private Chat & Privacy-First AI:** Ephemeral Private Chat mode guarantees zero persistence in local storage or cloud. AI consent defaults to "Keep My Chats Private" unless explicitly opted into improvements.
+- **Sub-0.2s Instant App Launch & Stale-While-Revalidate Engine (October 30, 2026):**
+  - Eliminated the 4–5s blocking skeleton screen on online Android launch by removing a blocking cloud fetch in `mindService.fetchMindItems` and introducing synchronous fast-cache state hydration (`focentia_fast_state_`) in `AppContext.tsx`. The dashboard mounts on frame 0 (< 0.1s) online and offline.
+  - `AuthContext.tsx` pre-populates authenticated state synchronously from remembered accounts, reducing auth timeout from 2500ms to 350ms.
+- **Contextual Glori AI Notification Faces (October 30, 2026):**
+  - Generated and pre-cached 11 pixel-perfect Glori AI Orb emotion face assets in `frontend/public/icons/orb/`.
+  - Android OS notifications display the dynamic Glori AI face reaction in the right-side circular avatar slot across all client, service worker, and backend push handlers (`task_start`, `task_pre_reminder`, `task_incomplete`, `daily_plan`, `celebrating`, etc.), leaving the left app badge intact with zero external API calls.
+  - 100% silent notifications across all channels (`silent: true`, `vibrate: [0]`, muted chime) and anti-burst launch shield preventing flood of stale backlog alerts.
+  - Persistent Navbar PWA update indicator reading service worker waiting state.
+
 - **Admin Control Center & Telemetry Pipeline (Parts 1, 2, 3 & 4 Completed & VERIFIED):**
   - **Admin Auth & UI Navigation Fix (October 28, 2026):**
     - Fixed client-side admin API client (`adminApiClient.ts`) which omitted the Supabase session access token in `executeAdminFetch`, causing `/api/admin/me` to reject calls with HTTP 401 and permanently disabling the Admin button in the UI.

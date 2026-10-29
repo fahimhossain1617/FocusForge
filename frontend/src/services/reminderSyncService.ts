@@ -16,6 +16,7 @@ import { supabase } from '../lib/supabaseClient';
 import { Task, FocusSession, LearningFolder, LearningLog, NotificationPreferences, NotificationCategory } from '../types';
 import { notificationRotationManager } from './notificationTemplates';
 import { getLocalDateString } from './taskService';
+import { getNotificationOrbIcon } from './notificationService';
 
 export interface ScheduledReminderPayload {
   id: string;
@@ -156,6 +157,10 @@ class ReminderSyncService {
             timezone,
             taskId: task.id,
             isUrgent: true,
+            metadata: {
+              icon: getNotificationOrbIcon(preTemplate.orbMood || "task_pre_reminder"),
+              orbMood: preTemplate.orbMood
+            }
           });
         }
 
@@ -180,6 +185,10 @@ class ReminderSyncService {
             timezone,
             taskId: task.id,
             isUrgent: true,
+            metadata: {
+              icon: getNotificationOrbIcon(startTemplate.orbMood || "task_start"),
+              orbMood: startTemplate.orbMood
+            }
           });
         }
 
@@ -206,6 +215,10 @@ class ReminderSyncService {
               timezone,
               taskId: task.id,
               isUrgent: false,
+              metadata: {
+                icon: getNotificationOrbIcon(incompTemplate.orbMood || "task_incomplete"),
+                orbMood: incompTemplate.orbMood
+              }
             });
           }
         }
@@ -232,6 +245,10 @@ class ReminderSyncService {
           dueDate: todayStr,
           timezone,
           isUrgent: false,
+          metadata: {
+            icon: getNotificationOrbIcon(planTemplate.orbMood || "daily_plan"),
+            orbMood: planTemplate.orbMood
+          }
         });
       }
     }
@@ -262,6 +279,10 @@ class ReminderSyncService {
             dueDate: todayStr,
             timezone,
             isUrgent: false,
+            metadata: {
+              icon: getNotificationOrbIcon(focusTemplate.orbMood || "focus_reminder"),
+              orbMood: focusTemplate.orbMood
+            }
           });
         }
 
@@ -300,6 +321,10 @@ class ReminderSyncService {
             dueDate: todayStr,
             timezone,
             isUrgent: false,
+            metadata: {
+              icon: getNotificationOrbIcon(focusTemplate.orbMood || "focus_reminder"),
+              orbMood: focusTemplate.orbMood
+            }
           });
         }
       }
@@ -334,6 +359,10 @@ class ReminderSyncService {
             timezone,
             skillId: learningFolders[0]?.id,
             isUrgent: false,
+            metadata: {
+              icon: getNotificationOrbIcon(skillTemplate.orbMood || "skill_reminder"),
+              orbMood: skillTemplate.orbMood
+            }
           });
         }
       }
@@ -365,6 +394,10 @@ class ReminderSyncService {
             dueDate: todayStr,
             timezone,
             isUrgent: false,
+            metadata: {
+              icon: getNotificationOrbIcon(inactTemplate.orbMood || "inactivity"),
+              orbMood: inactTemplate.orbMood
+            }
           });
         }
       }
@@ -389,6 +422,10 @@ class ReminderSyncService {
           dueDate: todayStr,
           timezone,
           isUrgent: false,
+          metadata: {
+            icon: getNotificationOrbIcon(diaryTemplate.orbMood || "diary_reminder"),
+            orbMood: diaryTemplate.orbMood
+          }
         });
       }
     }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   CalendarDays,
@@ -26,6 +26,7 @@ import {
   ChevronDown,
   ShieldCheck,
   Folder,
+  RefreshCw,
 } from "lucide-react";
 
 import { useAppContext } from "../../context/AppContext";
@@ -140,6 +141,47 @@ export default function DashboardPage() {
   const [selectedDate, setSelectedDate] = useState<string>(today);
   const [isDistractionsOpen, setIsDistractionsOpen] = useState<boolean>(false);
   const { unreadCount, hasUnread } = useNotificationCenter();
+
+  const [hasPwaUpdate, setHasPwaUpdate] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    try {
+      return Boolean(
+        localStorage.getItem("focentia_has_pwa_update") === "true" ||
+        (window as any).__focentia_has_pwa_update
+      );
+    } catch {
+      return Boolean((window as any).__focentia_has_pwa_update);
+    }
+  });
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.getRegistration().then((reg) => {
+        if (reg?.waiting) {
+          setHasPwaUpdate(true);
+          try {
+            localStorage.setItem("focentia_has_pwa_update", "true");
+          } catch {}
+        }
+      }).catch(() => {});
+    }
+    const handleUpdateReady = () => setHasPwaUpdate(true);
+    window.addEventListener("focentia:pwa_update_ready", handleUpdateReady);
+    return () => window.removeEventListener("focentia:pwa_update_ready", handleUpdateReady);
+  }, []);
+
+  const handleTriggerPwaUpdate = () => {
+    try {
+      localStorage.removeItem("focentia_has_pwa_update");
+    } catch {}
+    if (typeof window !== "undefined" && typeof (window as any).__focentia_trigger_pwa_update === "function") {
+      (window as any).__focentia_trigger_pwa_update();
+    } else {
+      window.location.reload();
+    }
+  };
+
 
   // Dynamic user display name
   const userName = useMemo(() => {
@@ -548,6 +590,23 @@ export default function DashboardPage() {
             >
               <ShieldCheck size={19} strokeWidth={2} />
             </a>
+          )}
+
+          {/* PWA Update Button (Visible when update is ready) */}
+          {hasPwaUpdate && (
+            <button
+              type="button"
+              onClick={handleTriggerPwaUpdate}
+              className="flex w-9 h-9 min-w-[36px] min-h-[36px] rounded-xl items-center justify-center transition-all cursor-pointer text-blue-600 dark:text-blue-400 bg-blue-500/10 hover:bg-blue-500/20 active:scale-95 border border-blue-500/30 relative"
+              title={state.lang === 'bn' ? "নতুন ভার্সনে আপডেট করুন" : "Update to latest version"}
+              aria-label={state.lang === 'bn' ? "অ্যাপ আপডেট করুন" : "Update application"}
+            >
+              <RefreshCw size={18} strokeWidth={2.2} className="animate-spin text-blue-600 dark:text-blue-400" style={{ animationDuration: "3.5s" }} />
+              <span className="absolute top-1 right-1 flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-600 dark:bg-blue-400" />
+              </span>
+            </button>
           )}
 
           {/* Theme Mode Quick Toggle Button (Brought slightly forward) */}
