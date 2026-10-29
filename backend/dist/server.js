@@ -61,6 +61,12 @@ app.use((0, cors_1.default)({
 app.use(express_1.default.json({ limit: '50mb' }));
 app.use(express_1.default.urlencoded({ limit: '50mb', extended: true }));
 app.use((0, morgan_1.default)('dev'));
+app.get('/', (req, res) => {
+    res.json({ status: 'ok', service: 'focentia-backend', timestamp: new Date().toISOString() });
+});
+app.get('/health', (req, res) => {
+    res.json({ status: 'ok', service: 'focentia-backend', timestamp: new Date().toISOString() });
+});
 // Routes
 app.use('/api/sync', syncRoutes_1.default);
 app.use('/api/ai', aiRoutes_1.default);

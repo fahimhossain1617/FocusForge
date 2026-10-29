@@ -111,18 +111,9 @@ export default function PreHydrationScripts() {
       else if (window.performance.navigation.type === 0) navType = 'navigate';
     }
 
-    var isReload = (navType === 'reload');
     var isBackForward = (navType === 'back_forward');
 
-    var isSplashParam = window.location.search.indexOf('splash=1') !== -1;
-    var sessionPlayed = false;
-    try {
-      sessionPlayed = !!sessionStorage.getItem('ff_launch');
-    } catch(e) {}
-
-    var shouldPlay = isSplashParam || (!isReload && !isBackForward && !sessionPlayed);
-
-    if (shouldPlay) {
+    if (!isBackForward) {
       document.documentElement.classList.add('ff-launch');
       try {
         sessionStorage.setItem('ff_launch', '1');
@@ -232,12 +223,12 @@ export default function PreHydrationScripts() {
               }
               html.ff-launch #app-shell {
                 opacity: 0;
-                transform: translateY(10px);
+                transform: translateY(6px);
                 will-change: opacity, transform;
-                animation: forceShellVisible 0.1s ease 0.9s forwards;
+                animation: forceShellVisible 0.08s ease 0.28s forwards;
               }
               #ff-boot-layer {
-                animation: forceBootLayerHide 0.15s ease 1s forwards;
+                animation: forceBootLayerHide 0.08s ease 0.32s forwards;
               }
 
               /* Slot and Tile rules for in-app header */
@@ -404,6 +395,7 @@ export default function PreHydrationScripts() {
   var cleanupAndFinish = function() {
     try {
       window.__ffIsLaunching = false;
+      window.__ffLaunchDone = true;
       if (classObserver) {
         classObserver.disconnect();
         classObserver = null;
@@ -424,6 +416,8 @@ export default function PreHydrationScripts() {
         appShell.style.opacity = '1';
         appShell.style.transform = 'none';
       }
+
+      window.dispatchEvent(new Event('ff:launch-done'));
     } catch(e) {}
   };
 
@@ -442,12 +436,12 @@ export default function PreHydrationScripts() {
       return;
     }
 
-    // Phase 1: Wait for app readiness or fallback timeout
-    var readyTimeout = isSlowDebug ? 3000 : 400;
+    // Phase 1: Ultra-fast app readiness check (40ms max wait)
+    var readyTimeout = isSlowDebug ? 3000 : 40;
     await Promise.race([readyPromise, wait(readyTimeout)]);
 
-    // Phase 2: Resolve target navbar slot
-    var target = await waitForTargetSlot(isSlowDebug ? 2000 : 250);
+    // Phase 2: Resolve target navbar slot quickly (50ms max wait)
+    var target = await waitForTargetSlot(isSlowDebug ? 2000 : 50);
     if (!target) {
       cleanupAndFinish();
       return;
@@ -466,7 +460,7 @@ export default function PreHydrationScripts() {
     var dy = targetCenterY - badgeCenterY;
     var scale = targetRect.width / badgeRect.width;
 
-    var flightDuration = isSlowDebug ? 3000 : 440;
+    var flightDuration = isSlowDebug ? 3000 : 190;
 
     // Fade out boot backdrop layer
     try {
@@ -508,7 +502,7 @@ export default function PreHydrationScripts() {
     if (appShell) {
       try {
         appShell.animate([
-          { opacity: 0, transform: 'translateY(6px)' },
+          { opacity: 0, transform: 'translateY(4px)' },
           { opacity: 1, transform: 'translateY(0px)' }
         ], {
           duration: flightDuration,
@@ -520,7 +514,7 @@ export default function PreHydrationScripts() {
 
     // Await arrival with max safety timeout
     try {
-      await Promise.race([flightAnim.finished, wait(flightDuration + 100)]);
+      await Promise.race([flightAnim.finished, wait(flightDuration + 40)]);
     } catch(e) {}
 
     // At landing: in the exact same frame, switch to real navbar logo and remove boot layer
@@ -533,13 +527,13 @@ export default function PreHydrationScripts() {
     runLaunch();
   }
 
-  // Safety fallback guarantees app shell is visible within 750ms under any network/offline circumstance
-  var safetyTimeoutMs = isSlowDebug ? 8000 : 750;
+  // Safety fallback guarantees app shell is visible within 300ms under any network/offline circumstance
+  var safetyTimeoutMs = isSlowDebug ? 8000 : 300;
   setTimeout(function() {
     cleanupAndFinish();
   }, safetyTimeoutMs);
   window.addEventListener('load', function() {
-    setTimeout(cleanupAndFinish, 250);
+    setTimeout(cleanupAndFinish, 100);
   });
 })();`,
           }}

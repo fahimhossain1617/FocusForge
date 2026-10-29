@@ -4,17 +4,19 @@ import React from "react";
 import type { Note } from "../../types";
 import { useAppContext } from "../../context/AppContext";
 import "./notecard.css";
-import { CalendarDays } from "lucide-react";
+import { CalendarDays, CheckCircle2, Circle } from "lucide-react";
 
 interface NoteCardProps { 
   note: Note; 
   onEdit: (note: Note) => void; 
-  onDelete: (id: number) => void; 
+  onDelete: (id: number) => void;
+  onToggleDashboard?: (note: Note) => void;
 }
 
-export default function NoteCard({ note, onEdit }: NoteCardProps) {
+export default function NoteCard({ note, onEdit, onToggleDashboard }: NoteCardProps) {
   const { state } = useAppContext();
   const isBn = state?.lang === 'bn';
+  const isPinnedToDashboard = Boolean(note.showOnDashboard);
 
   const getSafeDate = (d1: any, d2: any) => {
     const val = d1 || d2;
@@ -64,25 +66,6 @@ export default function NoteCard({ note, onEdit }: NoteCardProps) {
           <div className="folder-card__back-tab" />
         </div>
 
-        {/* Realistic Layered Papers Sticking Out */}
-        <div className="folder-card__papers">
-          {/* Back Right Paper (tilted + higher) */}
-          <div className="folder-paper-sheet folder-paper-sheet--back">
-            <div className="sheet-line sheet-line--header" />
-            <div className="sheet-line sheet-line--full" />
-            <div className="sheet-line sheet-line--medium" />
-            <div className="sheet-line sheet-line--short" />
-          </div>
-
-          {/* Front Left Paper (tilted left) */}
-          <div className="folder-paper-sheet folder-paper-sheet--front">
-            <div className="sheet-line sheet-line--header" />
-            <div className="sheet-line sheet-line--full" />
-            <div className="sheet-line sheet-line--medium" />
-            <div className="sheet-line sheet-line--short" />
-          </div>
-        </div>
-
         {/* Front Frosted Glass Flap */}
         <div className="folder-card__front-flap">
           {/* Top Folder Notch Tab */}
@@ -96,9 +79,41 @@ export default function NoteCard({ note, onEdit }: NoteCardProps) {
           <div className="folder-card__content">
             {/* Title & Count details */}
             <div className="folder-card__details">
-              <h3 className="folder-card__title" title={note.title || (isBn ? "শিরোনামহীন নোট" : "Untitled Note")}>
-                {note.title || (isBn ? "শিরোনামহীন নোট" : "Untitled Note")}
-              </h3>
+              <div className="flex items-start justify-between gap-2">
+                <h3 className="folder-card__title flex-1 min-w-0" title={note.title || (isBn ? "শিরোনামহীন নোট" : "Untitled Note")}>
+                  {note.title || (isBn ? "শিরোনামহীন নোট" : "Untitled Note")}
+                </h3>
+                {onToggleDashboard && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onToggleDashboard(note);
+                    }}
+                    title={
+                      isPinnedToDashboard
+                        ? (isBn ? "ড্যাশবোর্ড থেকে সরান" : "Remove from Dashboard")
+                        : (isBn ? "ড্যাশবোর্ডে দেখান" : "Show on Dashboard")
+                    }
+                    aria-label={
+                      isPinnedToDashboard
+                        ? (isBn ? "ড্যাশবোর্ড থেকে সরান" : "Remove from Dashboard")
+                        : (isBn ? "ড্যাশবোর্ডে দেখান" : "Show on Dashboard")
+                    }
+                    className={`shrink-0 p-0.5 -mr-0.5 -mt-0.5 rounded-full transition-colors cursor-pointer ${
+                      isPinnedToDashboard
+                        ? "text-blue-500 dark:text-blue-400"
+                        : "text-slate-400/60 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300"
+                    }`}
+                  >
+                    {isPinnedToDashboard ? (
+                      <CheckCircle2 size={17} strokeWidth={2.3} />
+                    ) : (
+                      <Circle size={17} strokeWidth={1.8} />
+                    )}
+                  </button>
+                )}
+              </div>
               <p className="folder-card__subtitle">
                 {isBn 
                   ? `${totalNotes} টি নোট • ${totalFiles} টি ফাইল` 
@@ -124,7 +139,3 @@ export default function NoteCard({ note, onEdit }: NoteCardProps) {
     </article>
   );
 }
-
-
-
-

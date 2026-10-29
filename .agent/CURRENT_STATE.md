@@ -102,7 +102,7 @@ Focentia is an active, functional productivity suite built with Next.js 16 App R
 - **Current Implementation:** `PlannerPage.tsx`, `AddTaskModal.tsx`, `RoutineLibraryModal.tsx`, `ImportRoutineModal.tsx`. Supports task creation, priority tiers (now/next/later), estimated duration, time slots, reminder flags, weekday routine templates, and batch copy-to-date.
 - **Verified Status:** **VERIFIED**
 - **Known Problems:** None. Direct SQL handlers (`tasks`, `routine_templates`) and local IndexedDB stores operate with full synchronization.
-- **Important Files:** `frontend/src/components/pages/PlannerPage.tsx`, `frontend/src/services/taskService.ts`, `backend/src/routes/taskRoutes.ts`.
+- **Important Files:** `frontend/src/components/pages/PlannerPage.tsx`, `frontend/src/components/planner/AddTaskModal.tsx`, `frontend/src/components/ui/GloryCheckIcon.tsx`, `frontend/src/services/taskService.ts`, `backend/src/routes/taskRoutes.ts`.
 - **Dependencies:** `AppContext.tsx`, `localDbService.ts`, `db.ts`.
 - **Unknowns:** None.
 

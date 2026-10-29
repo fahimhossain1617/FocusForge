@@ -68,6 +68,7 @@
   left: 12%;
   right: 6px;
   height: 112px;
+  display: none !important;
   z-index: 2;
   pointer-events: none;
 }

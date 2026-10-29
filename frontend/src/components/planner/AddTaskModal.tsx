@@ -41,8 +41,8 @@ export default function AddTaskModal({
   const { shouldRender, isExiting } = useAnimateExit({ isOpen, durationMs: 200 });
 
   const [title, setTitle] = useState("");
-  const [startTime, setStartTime] = useState("10:00");
-  const [endTime, setEndTime] = useState("11:00");
+  const [startTime, setStartTime] = useState("");
+  const [endTime, setEndTime] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   // Sync / Reset form when opened or editingTask changes
@@ -50,12 +50,12 @@ export default function AddTaskModal({
     if (isOpen) {
       if (editingTask) {
         setTitle(editingTask.title || "");
-        setStartTime(editingTask.startTime || "10:00");
-        setEndTime(editingTask.endTime || "11:00");
+        setStartTime(editingTask.startTime || "");
+        setEndTime(editingTask.endTime || "");
       } else {
         setTitle("");
-        setStartTime("10:00");
-        setEndTime("11:00");
+        setStartTime("");
+        setEndTime("");
       }
       setError(null);
     }
@@ -70,6 +70,10 @@ export default function AddTaskModal({
     }
 
     const effectiveDate = targetDateStr || new Date().toISOString().split("T")[0];
+    const rawStart = (startTime || "").trim();
+    const cleanStart = (!rawStart || rawStart === "00:00" || rawStart === "0:00") ? "" : rawStart;
+    const rawEnd = (endTime || "").trim();
+    const cleanEnd = (!rawEnd || rawEnd === "00:00" || rawEnd === "0:00") ? "" : rawEnd;
 
     if (editingTask) {
       // Update existing task
@@ -80,8 +84,10 @@ export default function AddTaskModal({
           updateTask(numId, {
             title: trimmedTitle,
             name: trimmedTitle,
-            time: startTime,
-            endTime: endTime,
+            time: cleanStart,
+            endTime: cleanEnd,
+            reminderEnabled: Boolean(cleanStart),
+            reminderTime: cleanStart,
             ...(preservedDate ? { date: preservedDate, targetDate: preservedDate } : {}),
           });
         }
@@ -90,8 +96,8 @@ export default function AddTaskModal({
       if (editingTask.blockId) {
         updateTimeBlock(editingTask.blockId, {
           label: trimmedTitle,
-          startTime: startTime,
-          endTime: endTime,
+          startTime: cleanStart,
+          endTime: cleanEnd,
           ...(preservedDate ? { date: preservedDate } : {}),
         });
       }
@@ -108,26 +114,26 @@ export default function AddTaskModal({
 
     const taskId = Date.now();
 
-    // Create synchronized task
+    // Create synchronized task (time is optional)
     addTask({
       id: taskId,
       name: trimmedTitle,
       title: trimmedTitle,
       targetDate: effectiveDate,
       date: effectiveDate,
-      time: startTime,
-      endTime: endTime,
+      time: cleanStart,
+      endTime: cleanEnd,
       priority: "medium",
-      reminderEnabled: true,
-      reminderTime: startTime,
+      reminderEnabled: Boolean(cleanStart),
+      reminderTime: cleanStart,
       category: "General",
       sourceType: "custom",
     });
 
     addTimeBlock({
       date: effectiveDate,
-      startTime: startTime,
-      endTime: endTime,
+      startTime: cleanStart,
+      endTime: cleanEnd,
       label: trimmedTitle,
       category: "General",
       isBreak: false,
@@ -203,10 +209,12 @@ export default function AddTaskModal({
           )}
 
           <div>
-            <label className="block text-xs font-semibold mb-2 text-slate-700 dark:text-slate-300">Task Title *</label>
+            <label className="block text-xs font-semibold mb-2 text-slate-700 dark:text-slate-300">
+              {state.lang === "bn" ? "টাস্কের নাম *" : "Task Title *"}
+            </label>
             <input
               type="text"
-              placeholder="e.g. Study Mathematics / Complete Project Report"
+              placeholder={state.lang === "bn" ? "যেমন: Java / গণিত অধ্যায় ৪" : "e.g. Study Mathematics / Complete Project Report"}
               value={title}
               onChange={(e) => {
                 setTitle(e.target.value);
@@ -221,22 +229,26 @@ export default function AddTaskModal({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-semibold mb-2 text-slate-700 dark:text-slate-300">
-                Start Time
+                {state.lang === "bn" ? "শুরুর সময় (ঐচ্ছিক)" : "Start Time (Optional)"}
               </label>
               <FocusForgeTimePicker
                 value={startTime}
                 onChange={(e) => setStartTime(e.target.value)}
+                placeholder="00:00"
                 ariaLabel="Start Time"
+                clearable={true}
               />
             </div>
             <div>
               <label className="block text-xs font-semibold mb-2 text-slate-700 dark:text-slate-300">
-                End Time
+                {state.lang === "bn" ? "শেষের সময় (ঐচ্ছিক)" : "End Time (Optional)"}
               </label>
               <FocusForgeTimePicker
                 value={endTime}
                 onChange={(e) => setEndTime(e.target.value)}
+                placeholder="00:00"
                 ariaLabel="End Time"
+                clearable={true}
               />
             </div>
           </div>
@@ -247,7 +259,7 @@ export default function AddTaskModal({
               onClick={onClose}
               className="px-5 py-2.5 rounded-xl border border-slate-200 dark:border-white/10 hover:bg-slate-100 dark:hover:bg-white/5 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white text-xs font-bold transition-colors cursor-pointer"
             >
-              Cancel
+              {state.lang === "bn" ? "বাতিল" : "Cancel"}
             </button>
             <button
               type="submit"
@@ -255,7 +267,7 @@ export default function AddTaskModal({
             >
               {editingTask
                 ? (state.lang === "bn" ? "আপডেট করুন" : "Update Task")
-                : "Save Task"}
+                : (state.lang === "bn" ? "সেভ করুন" : "Save Task")}
             </button>
           </div>
         </form>

@@ -25,6 +25,7 @@ import {
   Bell,
   ChevronDown,
   ShieldCheck,
+  Folder,
 } from "lucide-react";
 
 import { useAppContext } from "../../context/AppContext";
@@ -36,6 +37,7 @@ import { getLocalDateString } from "../../services/taskService";
 import { formatTimeRange } from "../../utils/timeUtils";
 import { toggleThemeWithCircularTransition } from "../../utils/themeTransition";
 import { DashboardSkeleton } from "../ui/skeleton";
+import GloryCheckIcon from "../ui/GloryCheckIcon";
 
 type ProgressView = "weekly" | "monthly";
 
@@ -585,7 +587,7 @@ export default function DashboardPage() {
       </header>
 
       {/* Top Section: 3 Balanced Cards (Today's Tasks, Today's Focus + Distractions, Current Skills) */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3.5 sm:gap-4 md:gap-6 items-stretch">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3.5 sm:gap-4.5 md:gap-5 items-stretch">
         
         {/* Card 1: Today's Tasks (Main Card: #FFFFFF, #DCE5F0 border, radius 18, shadow 0 8px 28px) */}
         <section
@@ -621,8 +623,17 @@ export default function DashboardPage() {
                   >
                     {/* Left: Checkbox (Check circle only #2E9B73) + Task Name */}
                     <div className="flex items-center gap-2.5 min-w-0 flex-1 mr-1">
+                      <GloryCheckIcon
+                        checked={item.completed}
+                        size={26}
+                        onChange={(e) => {
+                          e.stopPropagation();
+                          handleToggleTask(item);
+                        }}
+                        ariaLabel={`Mark task ${item.completed ? "pending" : "done"}`}
+                      />
                       <div
-                        className={`shrink-0 w-5 h-5 rounded-full flex items-center justify-center transition-all duration-150 cursor-pointer ${
+                        className={`hidden ${
                           item.completed
                             ? "bg-[#2E9B73] border-2 border-[#2E9B73] text-white"
                             : "border-2 border-[#DCE5F0] dark:border-slate-600 hover:border-[#5B8DEF] bg-white dark:bg-slate-900/50"
@@ -887,6 +898,82 @@ export default function DashboardPage() {
                   </p>
                   <p className="text-xs text-[#52627A] dark:text-muted-foreground mt-1">
                     {state.lang === 'bn' ? "আপনার সময় ট্র্যাক করতে টাইম লগে একটি বিষয় যোগ করুন" : "Add a topic in Time Log to track your hours"}
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        </section>
+
+        {/* Card 4: Notes & Files (Unified 4-card grid) */}
+        <section
+          className="dashboard-card card rounded-[18px] p-3.5 sm:p-4.5 md:p-5 bg-white dark:bg-card border border-[#DCE5F0] dark:border-border shadow-none flex flex-col justify-between"
+        >
+          <div>
+            <div className="flex items-start justify-between pb-3">
+              <div>
+                <h2 className="text-[15px] md:text-[16px] font-semibold text-[#111827] dark:text-foreground tracking-tight">
+                  {state.lang === 'bn' ? "নোটস ও ফাইলস" : "Notes & Files"}
+                </h2>
+                <p className="text-xs text-[#52627A] dark:text-muted-foreground mt-0.5 font-normal">
+                  {state.lang === 'bn' ? "নির্বাচিত ফোল্ডারসমূহ দ্রুত খুলুন" : "Quick access to your selected folders"}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => navigateTo("tasks")}
+                className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors p-1 cursor-pointer shrink-0 mt-0.5"
+                title={state.lang === 'bn' ? "নোটস ও ফাইলস খুলুন" : "Open Notes & Files"}
+                aria-label={state.lang === 'bn' ? "নোটস ও ফাইলস খুলুন" : "Open Notes & Files"}
+              >
+                <Plus size={20} strokeWidth={2.2} />
+              </button>
+            </div>
+
+            <div className="mt-2 space-y-2">
+              {(state.notes || []).filter((n) => n && n.showOnDashboard).length > 0 ? (
+                (state.notes || [])
+                  .filter((n) => n && n.showOnDashboard)
+                  .slice()
+                  .sort((a, b) => {
+                    const timeA = new Date(a?.createdAt || a?.updatedAt || 0).getTime();
+                    const timeB = new Date(b?.createdAt || b?.updatedAt || 0).getTime();
+                    if (timeA !== timeB) return timeA - timeB;
+                    return (a?.id || 0) - (b?.id || 0);
+                  })
+                  .map((note) => (
+                    <div
+                      key={note.id}
+                      onClick={() => {
+                        if (typeof window !== "undefined") {
+                          sessionStorage.setItem("focusforge_workspace_open_note", String(note.id));
+                          window.dispatchEvent(
+                            new CustomEvent("focusforge:open_workspace_note", { detail: { noteId: note.id } })
+                          );
+                        }
+                        navigateTo("tasks");
+                      }}
+                      className="flex items-center gap-2.5 py-2 px-2.5 rounded-xl bg-[#F7FAFE] dark:bg-white/[0.02] border border-[#DCE5F0] dark:border-white/[0.06] transition-colors cursor-pointer hover:bg-[#EBF3FE] dark:hover:bg-white/[0.06]"
+                    >
+                      <Folder size={16} className="text-[#1D4ED8] dark:text-blue-400 shrink-0" />
+                      <span
+                        className="text-xs sm:text-[13px] font-semibold text-[#111827] dark:text-foreground truncate flex-1"
+                        title={note.title || (state.lang === 'bn' ? "শিরোনামহীন নোট" : "Untitled Note")}
+                      >
+                        {note.title || (state.lang === 'bn' ? "শিরোনামহীন নোট" : "Untitled Note")}
+                      </span>
+                    </div>
+                  ))
+              ) : (
+                <div className="py-8 text-center text-[#8290A5] text-sm flex flex-col items-center">
+                  <Folder size={24} className="text-[#8290A5] mb-2" />
+                  <p className="font-semibold text-[#111827] dark:text-foreground">
+                    {state.lang === 'bn' ? "এখনও কোনো ফোল্ডার নির্বাচন করা হয়নি" : "No folders selected yet"}
+                  </p>
+                  <p className="text-xs text-[#52627A] dark:text-muted-foreground mt-1">
+                    {state.lang === 'bn'
+                      ? "নোটস ও ফাইলস থেকে যেকোনো ফোল্ডারে টিক চিহ্ন দিন এখানে দেখানোর জন্য"
+                      : "Select any folder in Notes & Files to display it here"}
                   </p>
                 </div>
               )}

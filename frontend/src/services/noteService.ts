@@ -52,11 +52,16 @@ export const noteService = {
         return { success: false, error: "Note not found" };
       }
 
+      const isContentEdit = updates.title !== undefined || updates.blocks !== undefined || updates.category !== undefined;
+      const updatedTimestamp = isContentEdit
+        ? new Date().toISOString()
+        : (existing.updatedAt || existing.createdAt || new Date().toISOString());
+
       await localDb.put("notes", {
         ...existing,
         ...updates,
         userId: cleanUserId,
-        updatedAt: new Date().toISOString(),
+        updatedAt: updatedTimestamp,
       });
 
       return { success: true };

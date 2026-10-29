@@ -56,7 +56,7 @@
 - **Behavior:** Stores multiple verified accounts in `localStorage` under `focusforge_accounts_registry`. Switching accounts cleanly tears down active encryption keys and in-memory application state before hydrating the new user session.
 
 ### 2.3 Modular Block Note Editor & Shareable Folder System
-- **Location:** `frontend/src/components/workspace/BlockEditor.tsx`, `frontend/src/components/pages/WorkspacePage.tsx`
+- **Location:** `frontend/src/components/workspace/BlockEditor.tsx`, `frontend/src/components/pages/WorkspacePage.tsx`, `frontend/src/components/workspace/NoteCard.tsx`, `frontend/src/components/pages/DashboardPage.tsx`
 - **Behavior:** Supports heterogeneous block types: Headings (H1/H2/H3), Paragraphs, Todos, Math equations rendered via KaTeX, Code blocks, Sticky notes, and attachments (PDF/Docs, Images, External Links).
   - **Seamless Multi-Line Copy/Paste:** Dedicated clipboard paste interception (`handlePaste`) splits multi-line text into clean individual paragraph blocks without trapping newlines in a single block. Allows effortless deletion, word removal, selection, and editing of all pasted content.
   - **Mobile Virtual Keyboard Backspace & Delete Key:** Supports mobile soft keyboards (Gboard, Redmi, Samsung, iOS) using a zero-width space buffer (`\u200B`) and `beforeinput` / `input` event detection. Tapping the backspace/delete button on an empty line removes the line and jumps the cursor back to the end of the previous line cleanly without getting stuck.

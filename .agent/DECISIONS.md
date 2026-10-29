@@ -2347,6 +2347,72 @@
   - Auth Isolation Suite (`scripts/test_auth_isolation.ts`): 20/20 tests passed.
   - Status: **VERIFIED**.
 
+---
+
+## ADR-044: Instant 0.2s–0.3s Splash Launch, Dashboard Pinned Notes & Files, Mind Space Single Text, Clean Folder Cards, and Glory AI Check Icon + Optional Planner Time
+
+- **Date:** October 29, 2026
+- **Status:** Accepted & Verified
+- **Decision:**
+  1. **Instant 0.2s–0.3s App Splash & Synchronous Frontend Hydration (`PreHydrationScripts.tsx`, `loading.tsx`, `page.tsx`, `DashboardPage.tsx`, `AppContext.tsx`):**
+     - Tuned `#ff-launch-controller` timings (`readyTimeout: 40ms`, `waitForTargetSlot: 50ms`, `flightDuration: 190ms`, `safetyTimeoutMs: 300ms`) so the full app icon splash screen (`#ff-boot-layer` / `#ff-boot-badge`) transitions into the live interactive Dashboard within 0.2s–0.3s.
+     - Removed blocking skeleton gates (`!isLoaded`) in `page.tsx` and `DashboardPage.tsx` and added synchronous `localStorage` snapshot hydration (`focusforge_fast_cache_${uid}`) so the frontend renders immediately while IndexedDB/Supabase sync runs silently in the background.
+  2. **Dashboard "Notes & Files" Section & Folder Pinning (`types.ts`, `NoteCard.tsx`, `WorkspacePage.tsx`, `DashboardPage.tsx`):**
+     - Added `showOnDashboard?: boolean` to `Note` and a clean selection toggle icon on `NoteCard` so users can choose which folders appear on the Dashboard.
+     - Added the **Notes & Files** (`নোটস ও ফাইলস`) section on the Dashboard below Time Log and above Performance with an unboxed `+` icon aligned with the title, displaying selected folders as horizontal bars with only the folder title and opening the note editor directly on click.
+  3. **Mind Space Single Text & Font Color Preservation (`ThoughtPaperCard.tsx`, `mindUtils.ts`):**
+     - Removed the duplicate bold `<h3>` title + `<p>` preview split on `ThoughtPaperCard.tsx`, rendering the user's saved thought text once below the category badge using the exact second-line font color (`text-slate-600 dark:text-slate-300/90`).
+  4. **Notes & Files Folder White Box Removal (`NoteCard.tsx`, `notecard.css`):**
+     - Removed the two protruding white paper sheets (`.folder-card__papers`) from folder cards in Notes & Files while keeping the main folder box design intact.
+  5. **Planner Optional Time, Vertical Line-by-Line Highlights List & Glory AI Check Icon (`GloryCheckIcon.tsx`, `AddTaskModal.tsx`, `PlannerPage.tsx`, `DashboardPage.tsx`, `BlockEditor.tsx`):**
+     - Created `GloryCheckIcon.tsx` replicating the 3D pearl-white Glory AI character checkbox (`Unchecked` worried face, `Hover/Focus` blue glow, `Completed` happy `^ ^` face with blue check badge, no extra outer box) and integrated it across Planner, Dashboard Today's Tasks, and Notes & Files Todo blocks.
+     - Made Start Time and End Time optional in `AddTaskModal.tsx` (default `""`) and removed hardcoded `"10:00"` / `"11:00"` fallbacks in `PlannerPage.tsx` so untimed tasks show only their title.
+     - Redesigned the Planner `Highlights for ...` section into a single clean vertical portrait container with horizontal divider lines (`divide-y`) and direct task completion toggling.
+- **Verification:**
+  - `npm run build --prefix frontend` passed with 0 errors across all 39 routes.
+
+---
+
+## ADR-046: Stable Note Ordering & Selection Position Fix in Notes & Files
+
+- **Date:** October 29, 2026
+- **Status:** Accepted & Verified
+- **Decision:**
+  1. **Position Stability on Dashboard Selection/Deselection (`AppContext.tsx`, `noteService.ts`):**
+     - Updated `updateNote` to check if changes include actual content (`title`, `blocks`, or `category`).
+     - Toggling `showOnDashboard` (selecting or deselecting a note for dashboard display) leaves `updatedAt` unchanged, preventing the note from artificially jumping to the front as "recently updated".
+  2. **Strict Chronological Ordering (`WorkspacePage.tsx`, `DashboardPage.tsx`):**
+     - Changed note list sorting to stable `createdAt` ascending (`timeA - timeB` with ID tiebreaker).
+     - Earlier created notes stay permanently first/on top (`আগের নোট উপরে থাকবে`), and subsequent notes stay below/after (`পরের নোট নিচে থাকবে`).
+     - Selection/deselection no longer changes the order of notes anywhere; items maintain their exact positions without swapping or jumping.
+- **Verification:**
+  - `npm run build --prefix frontend`: Passed with Exit Code 0 (39 routes).
+  - Both servers active and serving `http://localhost:3000` and `http://localhost:5000/health`.
+  - Status: **VERIFIED**.
+
+
+- **Date:** October 29, 2026
+- **Status:** Accepted & Verified
+- **Decision:**
+  1. **Dashboard 4-Card Unified Layout (`DashboardPage.tsx`):**
+     - Replaced the full-width standalone Notes & Files section with a unified 4-card grid container (`grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3.5 sm:gap-4.5 md:gap-5 items-stretch`).
+     - Placed Notes & Files as Card 4 directly beside Card 3 (Time Log), sharing identical dimensions, rounded corners (`rounded-[18px]`), padding, and item styling (`py-2 px-2.5 rounded-xl`).
+  2. **Planner Highlights Width Adjustment (`PlannerPage.tsx`):**
+     - Constrained the Highlights container width on desktop/laptop screens (`max-w-full sm:max-w-2xl md:max-w-xl lg:max-w-[620px]`) so items do not unnaturally stretch across 1440px displays, while maintaining 100% width on mobile screens.
+  3. **Task Modal Time Picker Placeholder & Untimed Sanitization (`AddTaskModal.tsx`):**
+     - Configured default placeholder to `00:00` for Start and End time pickers.
+     - Sanitized `00:00` input so saving with `00:00` or empty sets `time: ""` (untimed task with zero clock badge or notifications). Non-zero times continue to save and format properly.
+  4. **Backend Daemon & Health Endpoint (`backend/src/server.ts`):**
+     - Added root `GET /` and health check `GET /health` routes returning `{ status: 'ok', service: 'focentia-backend' }`.
+     - Confirmed clean background execution without port collisions or hanging.
+- **Verification:**
+  - Level 0 Scope Check: Passed.
+  - Level 1 Static Check: Clean imports and null safety across modified files.
+  - Level 2 Build & Typecheck: `npm run build --prefix frontend` (39 routes compiled, Exit Code 0) and `npm run build --prefix backend` (`tsc`, Exit Code 0).
+  - Level 3 Runtime Verification: Tested `http://localhost:5000/health` (HTTP 200, `{ status: 'ok', service: 'focentia-backend' }`) and `http://localhost:3000/` (HTTP 200).
+  - Status: **VERIFIED**.
+
+
 
 
 

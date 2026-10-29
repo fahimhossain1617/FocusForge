@@ -231,12 +231,12 @@ export function getThoughtDisplayData(
         const firstLine = lines[0];
         if (firstLine.length <= 70) {
           title = firstLine;
-          preview = lines.slice(1).join(' ');
+          preview = lines.join('\n');
         } else {
           const cut = firstLine.slice(0, 50);
           const lastSpace = cut.lastIndexOf(' ');
           title = (lastSpace > 20 ? cut.slice(0, lastSpace) : cut) + '...';
-          preview = lines.join(' ');
+          preview = lines.join('\n');
         }
       }
     }

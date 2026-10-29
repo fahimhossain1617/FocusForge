@@ -104,13 +104,8 @@ export default function ThoughtPaperCard({
           </div>
         </div>
 
-        {/* Prominent Thought Title */}
-        <h3 className="text-xs sm:text-[15px] font-bold text-slate-900 dark:text-slate-100 tracking-tight leading-snug line-clamp-2 mt-2 sm:mt-2.5">
-          {displayData.title}
-        </h3>
-
-        {/* Readable Truncated Content Preview with distinct gap */}
-        <p className="text-[11px] sm:text-[13px] text-slate-600 dark:text-slate-300/90 leading-relaxed line-clamp-3 sm:line-clamp-4 font-normal mt-2.5 sm:mt-3">
+        {/* Single Clean Thought Text (no duplicate title, preserving second-line font color) */}
+        <p className="text-xs sm:text-[13.5px] text-slate-600 dark:text-slate-300/90 leading-relaxed line-clamp-5 sm:line-clamp-6 font-normal mt-2 sm:mt-2.5 whitespace-pre-line break-words">
           {displayData.preview || displayData.title}
         </p>
 

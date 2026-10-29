@@ -59,6 +59,7 @@ export interface Note {
   blocks: NoteBlock[];
   attachments?: NoteAttachment[];
   links?: NoteLink[];
+  showOnDashboard?: boolean;
   category?: string;
   createdAt: string;
   updatedAt: string;

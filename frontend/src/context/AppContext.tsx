@@ -993,7 +993,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const updateNote = useCallback((id: number, updates: Partial<Note>) => {
     setState((prev) => ({
       ...prev,
-      notes: (prev.notes || []).map((n) => (n.id === id ? { ...n, ...updates, updatedAt: new Date().toISOString() } : n)),
+      notes: (prev.notes || []).map((n) => {
+        if (n.id !== id) return n;
+        const isContentEdit = updates.title !== undefined || updates.blocks !== undefined || updates.category !== undefined;
+        return {
+          ...n,
+          ...updates,
+          updatedAt: isContentEdit ? new Date().toISOString() : (n.updatedAt || n.createdAt),
+        };
+      }),
     }));
 
     const currentUserId = activeUserIdRef.current || 'guest';

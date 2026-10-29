@@ -11,6 +11,7 @@ import {
 import { HexColorPicker } from "react-colorful";
 import katex from "katex";
 import "katex/dist/katex.min.css";
+import GloryCheckIcon from "../ui/GloryCheckIcon";
 
 
 /* ───────────── Constants ───────────── */
@@ -1907,7 +1908,7 @@ function EditorBlock({
         {control}
         {wrapWithBox(
           <div className="editor-todo-inner" style={highlightStyle}>
-            <button type="button" className={block.isCompleted ? "todo-toggle done" : "todo-toggle"} onClick={onToggle} aria-label="Toggle task">{block.isCompleted && "✓"}</button>
+            <GloryCheckIcon checked={Boolean(block.isCompleted)} size={24} onChange={(e) => { e.stopPropagation(); onToggle(); }} className="mt-0.5 mr-1" />
             <textarea ref={textarea} {...input} rows={1} placeholder="To-do item" className={`note-block-textarea ${block.isCompleted ? "is-complete" : ""}`} style={textStyle} />
           </div>
         )}

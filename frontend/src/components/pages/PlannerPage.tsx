@@ -15,10 +15,11 @@ import PlannerEmptyIllustration from "../planner/PlannerEmptyIllustration";
 import { Weekday } from "../../types";
 import { formatTime12hr } from "../../utils/timeUtils";
 import ConfirmDeleteModal from "../ui/ConfirmDeleteModal";
+import GloryCheckIcon from "../ui/GloryCheckIcon";
 import { useSubViewBack } from "../../hooks/useSubViewBack";
 
 export default function PlannerPage() {
-  const { state, addTimeBlock, deleteTimeBlock, updateTimeBlock, addTask, deleteTask } = useAppContext();
+  const { state, addTimeBlock, deleteTimeBlock, updateTimeBlock, addTask, updateTask, deleteTask } = useAppContext();
   const { t } = useTranslation();
   
   const [mounted, setMounted] = useState(false);
@@ -33,6 +34,28 @@ export default function PlannerPage() {
       if (deleteConfirmItem.blockId) deleteTimeBlock(deleteConfirmItem.blockId);
       if (deleteConfirmItem.taskId) deleteTask(deleteConfirmItem.taskId);
       setDeleteConfirmItem(null);
+    }
+  };
+
+  const handleTogglePlannerItem = (item: {
+    id: string | number;
+    taskId?: number | string;
+    blockId?: string;
+    label: string;
+    startTime: string;
+    endTime: string;
+    category: string;
+    completed: boolean;
+  }) => {
+    const nextCompleted = !item.completed;
+    if (item.taskId !== undefined) {
+      const numId = typeof item.taskId === "number" ? item.taskId : parseInt(String(item.taskId), 10);
+      if (!isNaN(numId)) {
+        updateTask(numId, {
+          completed: nextCompleted,
+          status: nextCompleted ? "completed" : "not_started",
+        });
+      }
     }
   };
 
@@ -145,8 +168,8 @@ export default function PlannerPage() {
   
   // Form State inside Drawer
   const [showAddBlock, setShowAddBlock] = useState(false);
-  const [newStart, setNewStart] = useState("18:00");
-  const [newEnd, setNewEnd] = useState("19:00");
+  const [newStart, setNewStart] = useState("");
+  const [newEnd, setNewEnd] = useState("");
   const [newLabel, setNewLabel] = useState("");
   const [newCategory, setNewCategory] = useState("");
   const [newIsBreak, setNewIsBreak] = useState(false);
@@ -264,8 +287,8 @@ export default function PlannerPage() {
       date: drawerDateStr,
       time: newStart,
       priority: newPriority,
-      reminderEnabled: newReminderEnabled,
-      reminderTime: newReminderEnabled ? (newReminderTime || newStart) : undefined,
+      reminderEnabled: newReminderEnabled && Boolean(newStart),
+      reminderTime: newReminderEnabled && newStart ? (newReminderTime || newStart) : undefined,
       category: newCategory,
     });
 
@@ -322,8 +345,8 @@ export default function PlannerPage() {
           taskId: b.taskId,
           blockId: b.id,
           label: b.label || linkedTask?.name || linkedTask?.title || "Untitled Task",
-          startTime: b.startTime || "10:00",
-          endTime: b.endTime || "11:00",
+          startTime: b.startTime || linkedTask?.time || "",
+          endTime: b.endTime || linkedTask?.endTime || "",
           category: b.category || linkedTask?.category || "General",
           priority: linkedTask?.priority || "medium",
           isBreak: Boolean(b.isBreak),
@@ -340,8 +363,8 @@ export default function PlannerPage() {
           taskId: t.id,
           blockId: undefined,
           label: t.title || t.name || "Untitled Task",
-          startTime: t.time || "10:00",
-          endTime: t.endTime || "11:00",
+          startTime: t.time || "",
+          endTime: t.endTime || "",
           category: t.category || "General",
           priority: t.priority || "medium",
           isBreak: false,
@@ -350,7 +373,12 @@ export default function PlannerPage() {
         });
       });
 
-      return combined.sort((a, b) => (a.startTime || "").localeCompare(b.startTime || ""));
+      return combined.sort((a, b) => {
+        if (!a.startTime && !b.startTime) return 0;
+        if (!a.startTime) return 1;
+        if (!b.startTime) return -1;
+        return a.startTime.localeCompare(b.startTime);
+      });
     };
   }, [state.tasks, state.timeBlocks]);
 
@@ -618,9 +646,11 @@ export default function PlannerPage() {
                         <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 opacity-0 group-hover/block:opacity-100 pointer-events-none transition-all z-50 transform translate-y-[10px] group-hover/block:translate-y-0 w-max max-w-[200px]">
                           <div className="bg-slate-900/95 dark:bg-black/90 text-white backdrop-blur-xl border border-slate-700 dark:border-white/10 p-3 rounded-xl shadow-none text-left whitespace-normal">
                             <div className="text-xs font-bold text-white mb-1">{item.label}</div>
-                            <div className="text-[10px] text-blue-300 dark:text-purple-300/70 flex items-center gap-1 mb-1">
-                              <Clock className="w-3 h-3" /> {formatTime12hr(item.startTime)} - {formatTime12hr(item.endTime)}
-                            </div>
+                            {item.startTime && (
+                              <div className="text-[10px] text-blue-300 dark:text-purple-300/70 flex items-center gap-1 mb-1">
+                                <Clock className="w-3 h-3" /> {formatTime12hr(item.startTime)}{item.endTime ? ` - ${formatTime12hr(item.endTime)}` : ""}
+                              </div>
+                            )}
                             {item.category && <span className="inline-block px-1.5 py-0.5 rounded bg-white/10 text-[8px] uppercase tracking-wider text-white/80">{item.category}</span>}
                           </div>
                         </div>
@@ -639,8 +669,8 @@ export default function PlannerPage() {
           </div>
         </div>
 
-        {/* HIGHLIGHT CARDS SECTION (BOTTOM) */}
-        <div className="fade-in">
+        {/* HIGHLIGHTS SECTION (BOTTOM - VERTICAL PORTRAIT LINE-BY-LINE LIST WITH GLORY AI CHECK ICON) */}
+        <div className="fade-in w-full max-w-full sm:max-w-2xl md:max-w-xl lg:max-w-[620px]">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 mb-3">
             <div className="flex items-center gap-2.5">
               <div className="w-2 h-2 rounded-full bg-blue-500"></div>
@@ -653,94 +683,87 @@ export default function PlannerPage() {
                 </span>
               )}
             </div>
-
-            {selectedDayItems.length > 4 && (
-              <button
-                type="button"
-                onClick={() => setShowAllHighlights(prev => !prev)}
-                className="self-start sm:self-auto text-xs font-bold text-[#1E3E7B] dark:text-blue-400 hover:text-[#28539E] dark:hover:text-blue-300 transition-colors flex items-center gap-1 cursor-pointer px-3 py-1 rounded-lg bg-[#EBF3FE] dark:bg-blue-500/10 hover:bg-[#DBEAFE] dark:hover:bg-blue-500/15"
-              >
-                {showAllHighlights ? (state.lang === 'bn' ? "কম দেখুন" : "Show Less") : (state.lang === 'bn' ? "সবগুলো দেখুন" : "View All")}
-              </button>
-            )}
           </div>
-          
-          <div className="flex overflow-x-auto gap-3 pb-3 scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-white/10 scrollbar-track-transparent">
-            {selectedDayItems.length > 0 ? (
-              <>
-                {(showAllHighlights ? selectedDayItems : selectedDayItems.slice(0, 4)).map(item => {
-                  return (
-                    <div 
-                      key={item.id} 
-                      onClick={() => {
-                        setEditingTask({
-                          id: item.id,
-                          taskId: item.taskId,
-                          blockId: item.blockId,
-                          title: item.label,
-                          startTime: item.startTime,
-                          endTime: item.endTime,
-                        });
-                        setShowAddTaskModal(true);
-                      }}
-                      className="planner-highlight-card min-w-[240px] max-w-[280px] p-3.5 sm:p-4 transition-all group relative overflow-hidden flex flex-col justify-between cursor-pointer select-none hover:border-blue-500/30 dark:hover:border-blue-400/30"
-                    >
-                      {/* Inner glowing accent */}
-                      <div className={`absolute top-0 left-0 w-1 h-full ${getBadgeColor(item.category, item.isBreak)} opacity-80 group-hover:opacity-100 transition-opacity`}></div>
-                      
-                      <div>
-                        <div className="flex items-center justify-between mb-2 pl-2">
-                          <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-500 dark:text-slate-400">
-                            <Clock className="w-3 h-3 text-blue-500 dark:text-blue-400 shrink-0" />
-                            <span>{formatTime12hr(item.startTime)} <span className="opacity-50">{t.planner.to}</span> {formatTime12hr(item.endTime)}</span>
-                          </div>
 
-                          <button 
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setDeleteConfirmItem({ blockId: item.blockId, taskId: item.taskId, title: item.label });
-                            }} 
-                            className="p-1 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors cursor-pointer shrink-0 -mr-1 -mt-0.5"
-                            title={state.lang === 'bn' ? "মুছে ফেলুন" : "Delete"}
-                            aria-label="Delete highlight"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                        
-                        <h4 className={`text-sm sm:text-base font-bold text-foreground mb-1 pl-2 break-words line-clamp-2 ${item.isBreak ? 'italic opacity-60' : ''} ${item.completed ? 'line-through opacity-70' : ''}`} title={item.label}>
+          {selectedDayItems.length > 0 ? (
+            <div className="w-full rounded-2xl bg-white dark:bg-[#0D1526]/90 border border-[#DCE5F0] dark:border-white/[0.08] divide-y divide-[#DCE5F0] dark:divide-white/[0.06] overflow-hidden shadow-none">
+              {selectedDayItems.map((item) => {
+                const hasTime = Boolean(item.startTime);
+                return (
+                  <div
+                    key={item.id}
+                    onClick={() => {
+                      setEditingTask({
+                        id: item.id,
+                        taskId: item.taskId,
+                        blockId: item.blockId,
+                        title: item.label,
+                        startTime: item.startTime,
+                        endTime: item.endTime,
+                      });
+                      setShowAddTaskModal(true);
+                    }}
+                    className="flex items-center justify-between gap-3.5 px-4 sm:px-5 py-3.5 hover:bg-[#F7FAFE] dark:hover:bg-white/[0.02] transition-colors cursor-pointer select-none group"
+                  >
+                    <div className="flex items-center gap-3.5 min-w-0 flex-1">
+                      <GloryCheckIcon
+                        checked={item.completed}
+                        size={30}
+                        onChange={(e) => {
+                          e.stopPropagation();
+                          handleTogglePlannerItem(item);
+                        }}
+                      />
+
+                      <div className="min-w-0 flex-1">
+                        <h4
+                          className={`text-sm sm:text-[15px] font-semibold text-foreground break-words transition-all ${
+                            item.isBreak ? "italic opacity-60" : ""
+                          } ${item.completed ? "line-through opacity-55" : ""}`}
+                          title={item.label}
+                        >
                           {item.label || "Untitled Task"}
                         </h4>
+
+                        {hasTime && (
+                          <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                            <Clock className="w-3 h-3 text-blue-500 dark:text-blue-400 shrink-0" />
+                            <span>
+                              {formatTime12hr(item.startTime)}
+                              {item.endTime ? ` – ${formatTime12hr(item.endTime)}` : ""}
+                            </span>
+                          </div>
+                        )}
                       </div>
                     </div>
-                  );
-                })}
 
-                {selectedDayItems.length > 4 && !showAllHighlights && (
-                  <button
-                    type="button"
-                    onClick={() => setShowAllHighlights(true)}
-                    className="planner-highlight-card min-w-[140px] p-3.5 flex flex-col items-center justify-center text-center gap-2 transition-all hover:bg-blue-500/10 cursor-pointer border border-dashed border-blue-500/30 group shrink-0"
-                  >
-                    <div className="w-8 h-8 rounded-full bg-blue-500/15 text-blue-500 dark:text-blue-400 flex items-center justify-center font-bold text-xs group-hover:scale-110 transition-transform">
-                      +{selectedDayItems.length - 4}
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setDeleteConfirmItem({ blockId: item.blockId, taskId: item.taskId, title: item.label });
+                        }}
+                        className="p-1.5 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors cursor-pointer"
+                        title={state.lang === "bn" ? "মুছে ফেলুন" : "Delete"}
+                        aria-label="Delete highlight"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                      <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-200 transition-colors" />
                     </div>
-                    <span className="text-xs font-bold text-[#1E3E7B] dark:text-blue-400 group-hover:underline">
-                      {state.lang === 'bn' ? "সবগুলো দেখুন" : "View All"}
-                    </span>
-                  </button>
-                )}
-              </>
-            ) : (
-              <div className="w-full bg-white dark:bg-white/[0.02] border border-[#DCE5F0] dark:border-white/[0.07] border-dashed rounded-2xl py-8 px-4 sm:py-10 flex flex-col items-center justify-center text-center transition-all">
-                <PlannerEmptyIllustration className="w-24 h-20 sm:w-28 sm:h-24 mb-3" />
-                <p className="text-xs sm:text-sm font-semibold text-[#52627A] dark:text-zinc-400 tracking-tight">
-                  {t.planner.noHighlights || "No highlights for this date."}
-                </p>
-              </div>
-            )}
-          </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="w-full bg-white dark:bg-white/[0.02] border border-[#DCE5F0] dark:border-white/[0.07] border-dashed rounded-2xl py-8 px-4 sm:py-10 flex flex-col items-center justify-center text-center transition-all">
+              <PlannerEmptyIllustration className="w-24 h-20 sm:w-28 sm:h-24 mb-3" />
+              <p className="text-xs sm:text-sm font-semibold text-[#52627A] dark:text-zinc-400 tracking-tight">
+                {t.planner.noHighlights || "No highlights for this date."}
+              </p>
+            </div>
+          )}
         </div>
 
       </div>
@@ -771,46 +794,63 @@ export default function PlannerPage() {
               </button>
             </div>
             
-            {drawerDayItems.map((item) => {
-              return (
-                <div 
-                  key={item.id} 
-                  onClick={() => {
-                    setEditingTask({
-                      id: item.id,
-                      taskId: item.taskId,
-                      blockId: item.blockId,
-                      title: item.label,
-                      startTime: item.startTime,
-                      endTime: item.endTime,
-                    });
-                    setShowAddTaskModal(true);
-                  }}
-                  className="mb-3 p-3.5 rounded-xl border border-slate-200 dark:border-blue-500/15 bg-slate-50 dark:bg-slate-900/75 hover:bg-slate-100 dark:hover:bg-slate-800/80 hover:border-slate-300 dark:hover:border-blue-400/30 transition-all cursor-pointer flex items-center justify-between gap-3 shadow-none group"
-                >
-                  <div className="space-y-1 min-w-0 flex-1">
-                    <h4 className={`font-semibold text-sm text-foreground group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors break-words line-clamp-1 ${item.completed ? 'line-through opacity-70' : ''}`} title={item.label}>
-                      {item.label || "Untitled Task"}
-                    </h4>
-                    <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 font-mono">
-                      <Clock className="w-3 h-3 text-blue-500 dark:text-blue-400 shrink-0" />
-                      <span>{formatTime12hr(item.startTime)} – {formatTime12hr(item.endTime)}</span>
+            {drawerDayItems.length > 0 && (
+              <div className="mb-4 rounded-2xl border border-slate-200 dark:border-white/[0.08] bg-slate-50/60 dark:bg-slate-900/60 divide-y divide-slate-200 dark:divide-white/[0.06] overflow-hidden">
+                {drawerDayItems.map((item) => {
+                  const hasTime = Boolean(item.startTime);
+                  return (
+                    <div 
+                      key={item.id} 
+                      onClick={() => {
+                        setEditingTask({
+                          id: item.id,
+                          taskId: item.taskId,
+                          blockId: item.blockId,
+                          title: item.label,
+                          startTime: item.startTime,
+                          endTime: item.endTime,
+                        });
+                        setShowAddTaskModal(true);
+                      }}
+                      className="px-3.5 py-3 hover:bg-slate-100 dark:hover:bg-slate-800/70 transition-all cursor-pointer flex items-center justify-between gap-3 group"
+                    >
+                      <div className="flex items-center gap-3 min-w-0 flex-1">
+                        <GloryCheckIcon
+                          checked={item.completed}
+                          size={28}
+                          onChange={(e) => {
+                            e.stopPropagation();
+                            handleTogglePlannerItem(item);
+                          }}
+                        />
+                        <div className="space-y-0.5 min-w-0 flex-1">
+                          <h4 className={`font-semibold text-sm text-foreground group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors break-words line-clamp-1 ${item.completed ? 'line-through opacity-60' : ''}`} title={item.label}>
+                            {item.label || "Untitled Task"}
+                          </h4>
+                          {hasTime && (
+                            <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 font-mono">
+                              <Clock className="w-3 h-3 text-blue-500 dark:text-blue-400 shrink-0" />
+                              <span>{formatTime12hr(item.startTime)}{item.endTime ? ` – ${formatTime12hr(item.endTime)}` : ""}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      <button 
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setDeleteConfirmItem({ blockId: item.blockId, taskId: item.taskId, title: item.label });
+                        }} 
+                        className="text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors p-1.5 rounded-lg cursor-pointer shrink-0"
+                        aria-label="Delete task"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
                     </div>
-                  </div>
-                  <button 
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setDeleteConfirmItem({ blockId: item.blockId, taskId: item.taskId, title: item.label });
-                    }} 
-                    className="text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors p-1.5 rounded-lg cursor-pointer shrink-0"
-                    aria-label="Delete task"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-              );
-            })}
+                  );
+                })}
+              </div>
+            )}
             
             <div className="mt-4 flex flex-col sm:flex-row items-center gap-2.5">
               <button 

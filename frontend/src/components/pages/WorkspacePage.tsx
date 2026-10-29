@@ -58,6 +58,28 @@ export default function WorkspacePage() {
   }, []);
 
   useEffect(() => {
+    if (typeof window === "undefined") return;
+    const tryOpenFromDashboard = (noteIdRaw?: string | number | null) => {
+      const targetId = Number(noteIdRaw ?? sessionStorage.getItem("focusforge_workspace_open_note"));
+      if (!targetId) return;
+      const found = (state.notes || []).find((n) => n && Number(n.id) === targetId);
+      if (found) {
+        sessionStorage.removeItem("focusforge_workspace_open_note");
+        setIsReadOnlyNote(false);
+        setEditingNote(found);
+        setView("editor");
+      }
+    };
+    tryOpenFromDashboard();
+    const handler = (e: Event) => {
+      const custom = e as CustomEvent;
+      tryOpenFromDashboard(custom.detail?.noteId);
+    };
+    window.addEventListener("focusforge:open_workspace_note", handler);
+    return () => window.removeEventListener("focusforge:open_workspace_note", handler);
+  }, [state.notes]);
+
+  useEffect(() => {
     setSubViewActive(view === 'editor');
     return () => setSubViewActive(false);
   }, [view, setSubViewActive]);
@@ -164,9 +186,10 @@ export default function WorkspacePage() {
     });
 
     return list.slice().sort((a, b) => {
-      const timeA = new Date(a?.updatedAt || a?.createdAt || 0).getTime();
-      const timeB = new Date(b?.updatedAt || b?.createdAt || 0).getTime();
-      return timeB - timeA;
+      const timeA = new Date(a?.createdAt || a?.updatedAt || 0).getTime();
+      const timeB = new Date(b?.createdAt || b?.updatedAt || 0).getTime();
+      if (timeA !== timeB) return timeA - timeB;
+      return (a?.id || 0) - (b?.id || 0);
     });
   }, [state.notes, searchQuery, selectedCategory]);
 
@@ -295,6 +318,7 @@ export default function WorkspacePage() {
                 note={note}
                 onEdit={openEditNote}
                 onDelete={deleteNote}
+                onToggleDashboard={(n) => updateNote(n.id, { showOnDashboard: !n.showOnDashboard })}
               />
             ))}
           </div>
