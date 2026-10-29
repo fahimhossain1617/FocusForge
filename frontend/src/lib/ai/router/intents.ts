@@ -124,6 +124,8 @@ const ROADMAP_REGEX = /\b(roadmap|complete\s*(.*)\s*roadmap|30\s*day\s*plan|stud
 
 export function classifyIntent(norm: NormalizedInput): ClassifiedIntent {
   const text = norm.clean;
+  const words = text.split(/\s+/).filter(Boolean);
+  const wordCount = words.length;
 
   // 1. Check big tasks (Gemini allowed)
   if (ROADMAP_REGEX.test(text)) {
@@ -134,164 +136,155 @@ export function classifyIntent(norm: NormalizedInput): ClassifiedIntent {
     };
   }
 
-  // 2. Direct Feature Navigation (Highest priority when user requests a feature/option/button)
-  if (NAV_MIND_REGEX.test(text)) {
-    return { intent: 'NAVIGATION_MIND', confidence: 0.98, isBigTask: false };
+  // COMPLEXITY & NATURAL LANGUAGE GUARD:
+  // If the user's message is complex (more than 4 words, contains dates, slashes, numbers,
+  // multi-task instructions, or natural instructions like "আমি ম্যানুয়ালি করতে চাই"):
+  // STRICTLY route to Gemini API. Never hijack complex natural language with rigid local templates!
+  const hasDatesOrYears = /\b(?:202\d|\d{1,2}(?:st|nd|rd|th)?\s*(?:তারিখ|তারিখে|jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)?)\b|[০-৯]{1,2}\s*তারিখ/i.test(text);
+  const hasSlashesOrTags = /[#/\\_{}[\]]/.test(norm.raw);
+  const hasManualIntent = /(?:manually|manual|ম্যানুয়াল|ম্যানুয়ালি|নিজে\s*করব|নিজে\s*করতে\s*চাই)/i.test(text);
+  const hasMultiClause = /(?:এবং|আর|ও|also|then|and\s+also|,)/i.test(text);
+  const hasSubjectStudy = /(?:java|python|react|math|physics|chemistry|biology|ম্যাথ|জাভা|গণিত|পদার্থ|রসায়ন)/i.test(text);
+
+  if (hasManualIntent || hasSlashesOrTags || (wordCount > 4 && (hasDatesOrYears || hasMultiClause || hasSubjectStudy))) {
+    return {
+      intent: 'UNKNOWN',
+      confidence: 0.1,
+      isBigTask: true,
+    };
   }
-  if (NAV_FOCUS_REGEX.test(text)) {
-    return { intent: 'NAVIGATION_FOCUS', confidence: 0.98, isBigTask: false };
-  }
-  if (NAV_PLANNER_REGEX.test(text)) {
-    return { intent: 'NAVIGATION_PLANNER', confidence: 0.98, isBigTask: false };
-  }
-  if (NAV_DIARY_REGEX.test(text)) {
-    return { intent: 'NAVIGATION_DIARY', confidence: 0.98, isBigTask: false };
-  }
-  if (NAV_NOTES_REGEX.test(text)) {
-    return { intent: 'NAVIGATION_NOTES', confidence: 0.98, isBigTask: false };
-  }
-  if (NAV_LEARNING_REGEX.test(text)) {
-    return { intent: 'NAVIGATION_LEARNING', confidence: 0.98, isBigTask: false };
-  }
-  if (NAV_DASHBOARD_REGEX.test(text)) {
-    return { intent: 'NAVIGATION_DASHBOARD', confidence: 0.98, isBigTask: false };
+
+  // 2. Direct Feature Navigation (Only when user explicitly asks to open/navigate or short query <= 5 words)
+  if (wordCount <= 5) {
+    if (NAV_MIND_REGEX.test(text)) {
+      return { intent: 'NAVIGATION_MIND', confidence: 0.98, isBigTask: false };
+    }
+    if (NAV_FOCUS_REGEX.test(text)) {
+      return { intent: 'NAVIGATION_FOCUS', confidence: 0.98, isBigTask: false };
+    }
+    if (NAV_PLANNER_REGEX.test(text)) {
+      return { intent: 'NAVIGATION_PLANNER', confidence: 0.98, isBigTask: false };
+    }
+    if (NAV_DIARY_REGEX.test(text)) {
+      return { intent: 'NAVIGATION_DIARY', confidence: 0.98, isBigTask: false };
+    }
+    if (NAV_NOTES_REGEX.test(text)) {
+      return { intent: 'NAVIGATION_NOTES', confidence: 0.98, isBigTask: false };
+    }
+    if (NAV_LEARNING_REGEX.test(text)) {
+      return { intent: 'NAVIGATION_LEARNING', confidence: 0.98, isBigTask: false };
+    }
+    if (NAV_DASHBOARD_REGEX.test(text)) {
+      return { intent: 'NAVIGATION_DASHBOARD', confidence: 0.98, isBigTask: false };
+    }
   }
 
   // 3. Productivity Queries & Actions
-  if (TIMELOG_TOPIC_QUERY_REGEX.test(text)) {
-    return { intent: 'TIMELOG_TOPIC_QUERY', confidence: 0.96, isBigTask: false };
-  }
-  if (PLANNER_DATE_QUERY_REGEX.test(text)) {
-    return { intent: 'PLANNER_DATE_QUERY', confidence: 0.96, isBigTask: false };
-  }
-  if (TASK_DELETE_REGEX.test(text)) {
-    return { intent: 'TASK_DELETE', confidence: 0.95, isBigTask: false };
-  }
-  if (NOTES_ACTION_REGEX.test(text)) {
-    return { intent: 'NOTES_ACTION', confidence: 0.95, isBigTask: false };
-  }
-  if (PLANNER_ACTION_REGEX.test(text)) {
-    return { intent: 'PLANNER_ACTION', confidence: 0.92, isBigTask: false };
-  }
-  if (DIARY_ACTION_REGEX.test(text)) {
-    return { intent: 'DIARY_ACTION', confidence: 0.92, isBigTask: false };
-  }
-  if (FOCUS_SESSION_ACTION_REGEX.test(text)) {
-    return { intent: 'FOCUS_SESSION_ACTION', confidence: 0.95, isBigTask: false };
-  }
-  if (TIMER_ACTION_REGEX.test(text)) {
-    return { intent: 'TIMER_ACTION', confidence: 0.95, isBigTask: false };
-  }
-  if (TIMELOG_ACTION_REGEX.test(text)) {
-    return { intent: 'TIMELOG_ACTION', confidence: 0.90, isBigTask: false };
-  }
-  if (TEACH_REQUEST_REGEX.test(text)) {
-    return { intent: 'LEARNING_TEACH_REQUEST', confidence: 0.92, isBigTask: false };
-  }
-  if (STATS_PROGRESS_REGEX.test(text)) {
-    return { intent: 'STATS_PROGRESS', confidence: 0.90, isBigTask: false };
+  // Note: Only simple, concise commands (wordCount <= 5 without multi-clause) are eligible locally.
+  // Any multi-item, multi-date, or descriptive planning MUST go to Gemini API.
+  if (wordCount <= 6) {
+    if (TIMELOG_TOPIC_QUERY_REGEX.test(text)) {
+      return { intent: 'TIMELOG_TOPIC_QUERY', confidence: 0.96, isBigTask: false };
+    }
+    if (PLANNER_DATE_QUERY_REGEX.test(text)) {
+      return { intent: 'PLANNER_DATE_QUERY', confidence: 0.96, isBigTask: false };
+    }
+    if (TASK_DELETE_REGEX.test(text)) {
+      return { intent: 'TASK_DELETE', confidence: 0.95, isBigTask: false };
+    }
+    if (TIMER_ACTION_REGEX.test(text)) {
+      return { intent: 'TIMER_ACTION', confidence: 0.95, isBigTask: false };
+    }
+    if (FOCUS_SESSION_ACTION_REGEX.test(text)) {
+      return { intent: 'FOCUS_SESSION_ACTION', confidence: 0.95, isBigTask: false };
+    }
   }
 
-  // 3. Navigation & Settings
-  if (NAV_FOCUS_REGEX.test(text)) {
-    return { intent: 'NAVIGATION_FOCUS', confidence: 0.95, isBigTask: false };
-  }
-  if (NAV_PLANNER_REGEX.test(text)) {
-    return { intent: 'NAVIGATION_PLANNER', confidence: 0.95, isBigTask: false };
-  }
-  if (NAV_DIARY_REGEX.test(text)) {
-    return { intent: 'NAVIGATION_DIARY', confidence: 0.95, isBigTask: false };
-  }
-  if (NAV_NOTES_REGEX.test(text)) {
-    return { intent: 'NAVIGATION_NOTES', confidence: 0.95, isBigTask: false };
-  }
-  if (NAV_MIND_REGEX.test(text)) {
-    return { intent: 'NAVIGATION_MIND', confidence: 0.95, isBigTask: false };
-  }
-  if (NAV_LEARNING_REGEX.test(text)) {
-    return { intent: 'NAVIGATION_LEARNING', confidence: 0.95, isBigTask: false };
-  }
-  if (NAV_DASHBOARD_REGEX.test(text)) {
-    return { intent: 'NAVIGATION_DASHBOARD', confidence: 0.95, isBigTask: false };
-  }
-  if (NAV_SETTINGS_REGEX.test(text)) {
-    return { intent: 'NAVIGATION_SETTINGS', confidence: 0.95, isBigTask: false };
-  }
-  if (APP_HELP_REGEX.test(text)) {
-    return { intent: 'APP_HELP', confidence: 0.92, isBigTask: false };
-  }
-  if (SETTINGS_LANG_REGEX.test(text)) {
-    return { intent: 'SETTINGS_LANGUAGE', confidence: 0.95, isBigTask: false };
-  }
-  if (SETTINGS_THEME_REGEX.test(text)) {
-    return { intent: 'SETTINGS_THEME', confidence: 0.95, isBigTask: false };
-  }
-  if (SETTINGS_PASS_REGEX.test(text)) {
-    return { intent: 'SETTINGS_PASSWORD', confidence: 0.95, isBigTask: false };
-  }
-  if (SETTINGS_NOTIF_REGEX.test(text)) {
-    return { intent: 'SETTINGS_NOTIFICATIONS', confidence: 0.95, isBigTask: false };
-  }
-  if (SETTINGS_DELETE_REGEX.test(text)) {
-    return { intent: 'SETTINGS_DELETE_ACCOUNT', confidence: 0.95, isBigTask: false };
-  }
-  if (SETTINGS_SUPPORT_REGEX.test(text)) {
-    return { intent: 'SETTINGS_SUPPORT', confidence: 0.95, isBigTask: false };
+  // Settings sub-pages (Short navigation commands only)
+  if (wordCount <= 5) {
+    if (NAV_SETTINGS_REGEX.test(text)) {
+      return { intent: 'NAVIGATION_SETTINGS', confidence: 0.95, isBigTask: false };
+    }
+    if (APP_HELP_REGEX.test(text)) {
+      return { intent: 'APP_HELP', confidence: 0.92, isBigTask: false };
+    }
+    if (SETTINGS_LANG_REGEX.test(text)) {
+      return { intent: 'SETTINGS_LANGUAGE', confidence: 0.95, isBigTask: false };
+    }
+    if (SETTINGS_THEME_REGEX.test(text)) {
+      return { intent: 'SETTINGS_THEME', confidence: 0.95, isBigTask: false };
+    }
+    if (SETTINGS_PASS_REGEX.test(text)) {
+      return { intent: 'SETTINGS_PASSWORD', confidence: 0.95, isBigTask: false };
+    }
+    if (SETTINGS_NOTIF_REGEX.test(text)) {
+      return { intent: 'SETTINGS_NOTIFICATIONS', confidence: 0.95, isBigTask: false };
+    }
+    if (SETTINGS_DELETE_REGEX.test(text)) {
+      return { intent: 'SETTINGS_DELETE_ACCOUNT', confidence: 0.95, isBigTask: false };
+    }
+    if (SETTINGS_SUPPORT_REGEX.test(text)) {
+      return { intent: 'SETTINGS_SUPPORT', confidence: 0.95, isBigTask: false };
+    }
   }
 
-  // 4. Emotional Support & Motivation
-  if (EXAM_FEAR_REGEX.test(text)) {
-    return { intent: 'EXAM_FEAR', confidence: 0.92, isBigTask: false };
-  }
-  if (LONELINESS_REGEX.test(text)) {
-    return { intent: 'LONELINESS_SADNESS', confidence: 0.92, isBigTask: false };
-  }
-  if (PROCRASTINATION_REGEX.test(text)) {
-    return { intent: 'PROCRASTINATION_LAZINESS', confidence: 0.92, isBigTask: false };
-  }
-  if (CELEBRATING_REGEX.test(text)) {
-    return { intent: 'CELEBRATING_PROGRESS', confidence: 0.90, isBigTask: false };
+  // 4. Emotional Support & Motivation (Only concise expressions; detailed stories go to Gemini)
+  if (wordCount <= 6) {
+    if (EXAM_FEAR_REGEX.test(text)) {
+      return { intent: 'EXAM_FEAR', confidence: 0.92, isBigTask: false };
+    }
+    if (LONELINESS_REGEX.test(text)) {
+      return { intent: 'LONELINESS_SADNESS', confidence: 0.92, isBigTask: false };
+    }
+    if (PROCRASTINATION_REGEX.test(text)) {
+      return { intent: 'PROCRASTINATION_LAZINESS', confidence: 0.92, isBigTask: false };
+    }
+    if (CELEBRATING_REGEX.test(text)) {
+      return { intent: 'CELEBRATING_PROGRESS', confidence: 0.90, isBigTask: false };
+    }
   }
 
-  // 5. Social & Conversational Intents
-  if (USER_CORRECTION_REGEX.test(text)) {
-    return { intent: 'USER_CORRECTION', confidence: 0.96, isBigTask: false };
-  }
-  if (WHO_ARE_YOU_REGEX.test(text)) {
-    return { intent: 'WHO_ARE_YOU', confidence: 0.95, isBigTask: false };
-  }
-  if (WHAT_CAN_YOU_DO_REGEX.test(text)) {
-    return { intent: 'WHAT_CAN_YOU_DO', confidence: 0.95, isBigTask: false };
-  }
-  if (JOKES_REGEX.test(text)) {
-    return { intent: 'JOKES_AND_FUN', confidence: 0.95, isBigTask: false };
-  }
-  if (COMPLIMENT_REGEX.test(text)) {
-    return { intent: 'COMPLIMENTS', confidence: 0.92, isBigTask: false };
-  }
-  if (FEELINGS_AGE_REGEX.test(text)) {
-    return { intent: 'FEELINGS_AND_AGE', confidence: 0.90, isBigTask: false };
-  }
-  if (BORED_TIRED_REGEX.test(text)) {
-    return { intent: 'BORED_OR_TIRED', confidence: 0.92, isBigTask: false };
-  }
-  if (GOOD_NIGHT_REGEX.test(text)) {
-    return { intent: 'GOOD_NIGHT', confidence: 0.95, isBigTask: false };
-  }
-  if (LOVE_YOU_REGEX.test(text)) {
-    return { intent: 'LOVE_YOU', confidence: 0.95, isBigTask: false };
-  }
-  if (FAREWELL_REGEX.test(text)) {
-    return { intent: 'FAREWELL', confidence: 0.95, isBigTask: false };
-  }
-  if (ACK_REGEX.test(text)) {
-    return { intent: 'ACKNOWLEDGEMENT', confidence: 0.95, isBigTask: false };
-  }
-  if (HOW_ARE_YOU_REGEX.test(text)) {
-    return { intent: 'HOW_ARE_YOU', confidence: 0.98, isBigTask: false };
-  }
-  if (GREETING_REGEX.test(text)) {
-    return { intent: 'GREETING', confidence: 0.98, isBigTask: false };
+  // 5. Social & Conversational Intents (Only concise standalone greetings/social statements)
+  if (wordCount <= 4) {
+    if (USER_CORRECTION_REGEX.test(text)) {
+      return { intent: 'USER_CORRECTION', confidence: 0.96, isBigTask: false };
+    }
+    if (WHO_ARE_YOU_REGEX.test(text)) {
+      return { intent: 'WHO_ARE_YOU', confidence: 0.95, isBigTask: false };
+    }
+    if (WHAT_CAN_YOU_DO_REGEX.test(text)) {
+      return { intent: 'WHAT_CAN_YOU_DO', confidence: 0.95, isBigTask: false };
+    }
+    if (JOKES_REGEX.test(text)) {
+      return { intent: 'JOKES_AND_FUN', confidence: 0.95, isBigTask: false };
+    }
+    if (COMPLIMENT_REGEX.test(text)) {
+      return { intent: 'COMPLIMENTS', confidence: 0.92, isBigTask: false };
+    }
+    if (FEELINGS_AGE_REGEX.test(text)) {
+      return { intent: 'FEELINGS_AND_AGE', confidence: 0.90, isBigTask: false };
+    }
+    if (BORED_TIRED_REGEX.test(text)) {
+      return { intent: 'BORED_OR_TIRED', confidence: 0.92, isBigTask: false };
+    }
+    if (GOOD_NIGHT_REGEX.test(text)) {
+      return { intent: 'GOOD_NIGHT', confidence: 0.95, isBigTask: false };
+    }
+    if (LOVE_YOU_REGEX.test(text)) {
+      return { intent: 'LOVE_YOU', confidence: 0.95, isBigTask: false };
+    }
+    if (FAREWELL_REGEX.test(text)) {
+      return { intent: 'FAREWELL', confidence: 0.95, isBigTask: false };
+    }
+    if (ACK_REGEX.test(text)) {
+      return { intent: 'ACKNOWLEDGEMENT', confidence: 0.95, isBigTask: false };
+    }
+    if (HOW_ARE_YOU_REGEX.test(text)) {
+      return { intent: 'HOW_ARE_YOU', confidence: 0.98, isBigTask: false };
+    }
+    if (GREETING_REGEX.test(text)) {
+      return { intent: 'GREETING', confidence: 0.98, isBigTask: false };
+    }
   }
 
   // Fallback to Gemini

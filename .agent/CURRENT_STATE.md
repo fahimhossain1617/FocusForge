@@ -830,6 +830,18 @@ Focentia is an active, functional productivity suite built with Next.js 16 App R
 - **Verified Status:** **VERIFIED** (Next.js 16 Turbopack production build passed with Exit Code 0; 21/21 static pages generated; TypeScript typecheck 100% clean; zero errors).
 - **Important Files:** `frontend/src/components/pages/WorkspacePage.tsx`, `frontend/src/components/pages/NoteEditorView.tsx`, `frontend/src/services/localDbService.ts`, `frontend/src/context/AppContext.tsx`, `frontend/src/context/AuthContext.tsx`.
 
+   13. **Glory AI (Focentia AI) Router, Multitask Parsing & Model Infrastructure Upgrade:**
+      - **Point 1 (Instant Messages Guarded):** Local canned instant responses are strictly restricted to standalone short matches (<=4 words, e.g. "hi", "help"). Complex queries, sentences with dates, multi-clauses, or manual intents bypass canned templates and route directly to Gemini API.
+      - **Point 2 (Planner Parsing & Title Sanitization):** Eradicated raw text and syntax pollution (like `//2026 full e all math`, `#`, slashes) from task titles. Both client-side regex sanitizers and Gemini system prompts enforce pure task titles (e.g. "Math Practice") and cleanly distribute multiple tasks across distinct dates (e.g. 27th, 28th, 29th, 30th) without combinatorial date-slot bugs.
+      - **Point 3 (Multi-Folder & Batch Operations):** Integrated batch action handlers across Time Log (multiple folders/subjects logged independently, e.g. Java in Java folder, Math in Math folder), Mind Space (multiple ideas/problems partitioned into distinct entries), Diary entries, and Learning topics.
+      - **Point 4 (Natural Manual Intent Respect):** If user expresses manual intent ("আমি ম্যানুয়ালি করতে চাই" / "I want to do it manually"), AI acknowledges their autonomy with zero automated tool triggers.
+      - **Point 5 (Focentia 2.1 vs Focentia Pro Authentic Division):** Real model selection via Gemini API: Focentia 2.1 routes to `gemini-2.5-flash` / `gemini-1.5-flash` (fast, 10s timeout, 250 tokens for quick logging & routine actions); Focentia Pro routes to `gemini-2.5-pro` / `gemini-1.5-pro` (deep reasoning, 25-35s timeout, 900-1500 tokens for comprehensive planning and multi-step roadmaps).
+      - **Point 6 (Smart Chat Title Generation):** Replaced raw user text slicing with intelligent 2-4 word topic summaries (e.g. "কুশল বিনিময়", "Math & Java Schedule", "Focus Session").
+      - **Point 7 (Glory AI Chat Persistence):** Removed destructive unmount hook in `AIAgentPage.tsx`. Chat history and active session ID are preserved across app navigation (Planner, Dashboard, Time Log). New chats are only created upon user clicking "+ New Chat" or full app reload/close.
+- **Verified Status:** **VERIFIED** (Next.js 16 build passed with Exit Code 0, 39 routes; Backend TypeScript build passed with Exit Code 0; Routing & Sanitizer unit tests passed).
+- **Important Files:** `frontend/src/lib/ai/router/intents.ts`, `frontend/src/lib/ai/router/flows.ts`, `frontend/src/lib/server/aiService.ts`, `backend/src/services/aiService.ts`, `frontend/src/lib/ai/aiActionValidator.ts`, `frontend/src/types/aiAgent.ts`, `frontend/src/components/ai-agent/AIAgentPage.tsx`, `frontend/src/services/aiAgentService.ts`, `frontend/src/hooks/useAIAgent.ts`.
+
+
 
 
 

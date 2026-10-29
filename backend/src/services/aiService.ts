@@ -232,6 +232,27 @@ MODE: FOCENTIA 2.0 / 2.1 (MAXIMUM SPEED, HUMBLE & HIGH-VALUE TOKEN SAVER)
     `   - ALWAYS use specific, authentic topic names (e.g. "Java Development", "জাভা প্রোগ্রামিং", "Bangla Study") for any topic, folder, roadmap, or task based on what the user wants to learn or do.`,
     `   - NEVER use generic placeholders like "New Topic", "New Topic Roadmap", "নতুন বিষয়", "Study Topic", "স্টাডি বিষয়", or "Untitled".`,
     `   - When user asks to learn or make a roadmap for a subject (e.g. "জাভা প্রোগ্রামিং" or "Java"), both "subject" and "title" of roadmap, and "folderName" / "skillName" MUST be the exact subject (e.g. "Java Programming" or "জাভা প্রোগ্রামিং").`,
+    `   - PLANNER MULTI-DATE & CLEAN TASK SANITIZATION (STRICT ZERO-TAG RULE):`,
+    `     • Task titles MUST ALWAYS be clean, concise human-readable names (e.g. "Higher Math Practice", "Web Project Code Review", "Discrete Math Study").`,
+    `     • STRICT PROHIBITION: NEVER include raw tags, hashtags (#), slashes (//, /), year tags (e.g. //2026 full e all math), prompt fragments, or date text inside the task "title" field! Strip all raw syntax, slashes, and dates from titles completely.`,
+    `     • MULTI-DATE EXTRACTION & SCHEDULING: When the user provides multiple dates (e.g., 27, 28, 29, 30 Oct, or a specific date in 2028), parse the target dates accurately in "YYYY-MM-DD" format.`,
+    `     • If user assigns tasks to specific dates, assign each task ONLY to its respective target date under "create_tasks". NEVER duplicate or multiply all tasks across all dates in a cartesian product!`,
+    `     • Propose "create_tasks" with { tasks: [{ title: string, targetDate: "YYYY-MM-DD", time: "HH:MM", estimatedMinutes: number, priority: "medium" }] } and provide a clear, organized confirmation message listing each task under its scheduled date and time.`,
+    `   - TIME LOG MULTI-FOLDER & SUBJECT LOGGING:`,
+    `     • When a user asks to create multiple folders or log hours across multiple subjects (e.g. "Add today's work to Java folder, add math study to Math folder"):`,
+    `     • Distinguish the separate folders ("Java", "Math").`,
+    `     • Propose creating each folder using "create_skill" / "create_learning_topic" and logging activity cleanly into each respective folder.`,
+    `     • NEVER combine two different subjects into one mixed folder! Keep Java in Java, Math in Math!`,
+    `   - MIND SPACE MULTI-ITEM DECOMPOSITION:`,
+    `     • If the user provides multiple problems or multiple ideas (e.g. 3 distinct problems or 2 ideas), decompose them into separate distinct action proposals or a clear structured list. NEVER cram 3 unrelated problems/ideas into a single note!`,
+    `   - MY DIARY MULTI-TOPIC:`,
+    `     • When user asks to create multiple diary topics or entries, support separate entries with proper titles.`,
+    `   - PERFORMANCE INQUIRIES:`,
+    `     • When user asks how their performance is ("আমার পারফরম্যান্স কেমন হয়েছে", "performance stats"): Inspect context. If time period is unspecified, politely ask if they want a weekly or monthly performance review, or summarize verified today's and weekly highlights clearly.`,
+    `   - MANUAL MODE / USER AUTONOMY:`,
+    `     • When the user explicitly states they want to do something manually ("আমি ম্যানুয়ালি করতে চাই", "আমি নিজে করব", "I want to do it manually"):`,
+    `     • Respect their preference completely. Reply politely and warmly (e.g. "অবশ্যই! তুমি তোমার মতো করে ম্যানুয়ালি কাজটি সম্পন্ন করে নাও। কোনো সাহায্য লাগলে আমি সবসময় পাশে আছি।").`,
+    `     • DO NOT propose automated action buttons or force confirmation cards when the user wants manual control.`,
     `   - FOCUS DURATION RULE: When a user asks for a focus session and explicitly specifies the minutes (e.g. "আমাকে ১০ মিনিটের একটা ফোকাস টাইম দাও", "25 min focus"), propose "create_focus_session" with that exact duration. BUT if the user does NOT specify the duration (e.g. "ফোকাস সেশন করতে চাই", "start focus session"), NEVER guess or auto-select 10m or 25m! Instead, ASK the user how many minutes they want to focus for (e.g. "তুমি কত মিনিটের জন্য ফোকাস করতে চাও? যেমন ১৫, ২৫, বা ৫০ মিনিট") and set "type": "clarification"!`,
     `   - TIMER VS FOCUS RULE: If the user asks for a timer or stopwatch ("i need a timer", "stopwatch", "টাইমার চাই"), NEVER replace it with a focus session! Directly propose the Stopwatch Timer by setting navigation to "focus" with tab: "timer" or proposing "open_timer"!`,
     `   - ROADMAP GENERATION RULE: When a user asks for a learning roadmap (e.g. "একটা রোডম্যাপ বানিয়ে দাও", "learning roadmap for React and Next.js"), directly generate the complete multi-stage curriculum roadmap (defaulting to beginner-friendly progression from fundamentals to advanced) without asking for clarification. Set "type": "roadmap" and populate the structured "roadmap" object with "stages", "topics", and "subtasks".`,
@@ -338,20 +359,24 @@ function parseJson(text: string): JsonObject | JsonObject[] {
 function getCandidateModelsForMode(modelMode: string = 'smart'): string[] {
   const configured = (process.env.GEMINI_MODEL || '').replace(/^["']|["']$/g, '').trim();
   if (modelMode === 'planning' || modelMode === 'deep' || modelMode === 'pro' || modelMode === 'focentia-pro') {
+    // Focentia Pro Mode: Authentic Deep Reasoning, Planning & Research with Gemini Pro models
     return [
+      'gemini-2.5-pro',
+      'gemini-1.5-pro',
       configured,
-      'gemini-3.6-flash',
-      'gemini-3.5-flash-lite',
-      'gemini-3.7-flash',
+      'gemini-2.5-flash',
+      'gemini-1.5-flash',
       'gemini-3.8-flash',
     ].filter((m, i, arr): m is string => Boolean(m) && arr.indexOf(m) === i);
   }
+  // Focentia 2.1 Mode: Ultra-Fast Speed, Quick Logging & Routine Tasks with Gemini Flash models
   return [
-    configured,
+    'gemini-2.5-flash',
+    'gemini-1.5-flash',
+    configured || 'gemini-3.5-flash-lite',
     'gemini-3.5-flash-lite',
-    'gemini-3.6-flash',
-    'gemini-3.7-flash',
     'gemini-3.8-flash',
+    'gemini-3.7-flash',
   ].filter((m, i, arr): m is string => Boolean(m) && arr.indexOf(m) === i);
 }
 

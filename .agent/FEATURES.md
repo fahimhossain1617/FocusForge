@@ -150,4 +150,17 @@
   8. **Database & End-to-End Wiring (Part 3):** Applied migration `033_admin_control_center.sql` (30 tables, 13 views, RLS deny-by-default, append-only triggers, owner anti-suspension defense, high-frequency indexing, automated retention cleanup). Client telemetry batch ingestion flows directly to PostgreSQL tables, updates daily aggregates, and feeds Admin UI endpoints with honest metrics and zero false positives.
 - **Status:** **VERIFIED (Frontend + Backend + Database + End-to-End Ingestion)**
 
+### 2.15 Glory AI Multitask, Title Sanitization & Model Differentiation Upgrade
+- **Location:** `frontend/src/lib/ai/router/`, `frontend/src/lib/server/aiService.ts`, `backend/src/services/aiService.ts`, `frontend/src/components/ai-agent/AIAgentPage.tsx`, `frontend/src/services/aiAgentService.ts`, `frontend/src/hooks/useAIAgent.ts`
+- **Behavior:**
+  1. **Precision Intent Routing:** Instant canned responses are constrained to standalone short queries (<=4 words); any multi-word, date-bearing, or complex query routes directly to Gemini API.
+  2. **Zero-Pollution Planner Task Sanitization:** Cleanses all markdown artifacts, hashtags (`#`), and prompt fragments (e.g., `//2026`) from task titles, and cleanly distributes tasks across multiple dates.
+  3. **Multi-Folder & Batch Action Execution:** Supports multi-folder Time Log activity logging (e.g., Math vs Java logged in respective folders), multi-problem/idea creation in Mind Space, and multi-entry diary creation.
+  4. **Manual Mode Autonomy:** Fully respects user manual requests ("আমি ম্যানুয়ালি করতে চাই") without triggering automated actions.
+  5. **Authentic Model Selection:** Real API-level distinction between Focentia 2.1 (`gemini-2.5-flash`, ultra-fast routine logging, 10s timeout, 250 max tokens) and Focentia Pro (`gemini-2.5-pro`, deep reasoning, complex planning, 25-35s timeout, 900-1500 max tokens).
+  6. **Smart Chat Titles:** Summarizes user prompts into concise 2-4 word titles instead of raw text slicing.
+  7. **Glory AI In-App Chat Persistence:** Maintains session history across in-app page navigation without premature cleanup.
+- **Status:** **VERIFIED**
+
+
 

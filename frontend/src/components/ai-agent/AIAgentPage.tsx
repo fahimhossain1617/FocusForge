@@ -71,6 +71,7 @@ export function AIAgentPage() {
     addNote, 
     deleteNote,
     addLearningFolder,
+    addLearningLog,
     saveDiaryTopic,
     isOnline, 
     trackMeaningfulAction 
@@ -147,21 +148,8 @@ export function AIAgentPage() {
     };
   }, []);
 
-  // When leaving Glory AI to navigate to another feature, clean up active session cache and globals
-  // so Glory AI re-opens in a clean empty state rather than forcing previous conversations
-  useEffect(() => {
-    return () => {
-      clearAIGlobals();
-      if (typeof window !== "undefined") {
-        try {
-          const uid = user?.id || null;
-          const key = uid ? `focusforge_ai_active_session_${uid}` : "focusforge_guest_active_session";
-          localStorage.removeItem(key);
-          sessionStorage.removeItem(key);
-        } catch {}
-      }
-    };
-  }, [user?.id]);
+  // In-app navigation preserves ongoing chat state so switching to Planner/Dashboard
+  // does not wipe the active conversation. New session is explicitly triggered via createNewSession.
 
   const context = useMemo(() => {
     const today = new Date().toISOString().split("T")[0];
@@ -585,13 +573,15 @@ export function AIAgentPage() {
           break;
         }
 
+        case "create_tasks":
         case "create_multiple_tasks": {
           const tasks = Array.isArray(p.tasks) ? p.tasks : (action.items || []);
           tasks.forEach((t: any, idx: number) => {
             const totalMins = t.estimatedMinutes || 45;
             const taskId = Date.now() + idx + Math.floor(Math.random() * 1000);
             const taskDate = t.targetDate || new Date().toISOString().split("T")[0];
-            const taskTitle = t.title || t.label || (isSystemBn ? `টাস্ক ${idx + 1}` : `Task ${idx + 1}`);
+            const rawTitle = t.title || t.label || (isSystemBn ? `টাস্ক ${idx + 1}` : `Task ${idx + 1}`);
+            const taskTitle = rawTitle.replace(/^[\s/#\\-]+|[\s/#\\-]+$/g, '').replace(/\/\/\s*\d{4}[^\n]*/g, '').trim() || (isSystemBn ? `টাস্ক ${idx + 1}` : `Task ${idx + 1}`);
             const startHour = 10 + idx * 2;
             const startTime = t.time || `${String(startHour).padStart(2, "0")}:00`;
             const endHour = startHour + Math.max(1, Math.ceil(totalMins / 60));
@@ -669,10 +659,30 @@ export function AIAgentPage() {
           break;
         }
 
-        case "create_problem": {
+        case "create_multiple_diary_entries": {
+          const entries = Array.isArray(p.entries) ? p.entries : [];
+          entries.forEach((e: any) => {
+            saveDiaryTopic(e.title || "Diary Entry", e.content || "");
+          });
+          showToast(isSystemBn ? `${entries.length}টি ডায়েরি এন্ট্রি সেভ করা হয়েছে!` : `${entries.length} diary entries saved!`, "success");
+          break;
+        }
+
+        case "create_problem":
+        case "create_problem_solver": {
           const content = `[Problem]: ${p.problem || ""}\n\nSteps:\n${(p.solutionSteps || []).map((s: string, idx: number) => `${idx + 1}. ${s}`).join("\n")}`;
           addMindItem(content, "problem_solver");
           showToast(isSystemBn ? "সমাধান পরিকল্পনা মাইন্ড ট্র্যাকারে যুক্ত হয়েছে!" : "Solution added to Mind Hub!", "success");
+          break;
+        }
+
+        case "create_multiple_problems": {
+          const problems = Array.isArray(p.problems) ? p.problems : [];
+          problems.forEach((item: any) => {
+            const content = `[Problem]: ${item.problem || item.title || ""}\n\nSteps:\n${(item.solutionSteps || []).map((s: string, idx: number) => `${idx + 1}. ${s}`).join("\n")}`;
+            addMindItem(content, "problem_solver");
+          });
+          showToast(isSystemBn ? `${problems.length}টি সমস্যা মাইন্ড ট্র্যাকারে যুক্ত হয়েছে!` : `${problems.length} problems added to Mind Hub!`, "success");
           break;
         }
 
@@ -683,11 +693,74 @@ export function AIAgentPage() {
           break;
         }
 
+        case "create_multiple_ideas": {
+          const ideas = Array.isArray(p.ideas) ? p.ideas : [];
+          ideas.forEach((item: any) => {
+            const content = `[Idea]: ${item.idea || item.title || ""}\n\nKey Points:\n${(item.keyPoints || []).map((k: string) => `- ${k}`).join("\n")}${item.nextAction ? `\nNext: ${item.nextAction}` : ""}`;
+            addMindItem(content, "idea_capture");
+          });
+          showToast(isSystemBn ? `${ideas.length}টি আইডিয়া মাইন্ড ট্র্যাকারে যুক্ত হয়েছে!` : `${ideas.length} ideas saved to Mind Hub!`, "success");
+          break;
+        }
+
         case "create_skill":
-        case "create_learning_topic": {
+        case "create_learning_topic":
+        case "create_skill_roadmap": {
           const folderName = p.folderName || p.skillName || p.topic || p.subject || p.title || (isSystemBn ? "লার্নিং টপিক" : "Learning Topic");
           addLearningFolder(folderName);
           showToast(isSystemBn ? `'${folderName}' টাইম লগে যুক্ত হয়েছে!` : `'${folderName}' added to Time Log!`, "success");
+          break;
+        }
+
+        case "create_multiple_skills":
+        case "create_multiple_learning_topics": {
+          const folders = Array.isArray(p.folders) ? p.folders : (Array.isArray(p.topics) ? p.topics : []);
+          folders.forEach((f: any) => {
+            const name = typeof f === "string" ? f : (f.name || f.title || f.subject);
+            if (name) addLearningFolder(name);
+          });
+          showToast(isSystemBn ? `${folders.length}টি ফোল্ডার টাইম লগে যোগ করা হয়েছে!` : `${folders.length} folders added to Time Log!`, "success");
+          break;
+        }
+
+        case "log_activity": {
+          const folderName = p.folderName || p.subject || p.category || "Study";
+          const existing = (state.learningFolders || []).find((f: any) => f.name?.toLowerCase() === folderName.toLowerCase());
+          const targetFolderId = existing ? existing.id : addLearningFolder(folderName);
+          const totalMins = typeof p.durationMinutes === "number" ? p.durationMinutes : (typeof p.hours === "number" ? Math.round(p.hours * 60) : 60);
+          addLearningLog({
+            folderId: targetFolderId,
+            date: p.date || new Date().toISOString().split("T")[0],
+            watchMinutes: 0,
+            practiceMinutes: totalMins,
+            practiceDetails: p.notes || `Studied ${folderName}`,
+            topics: folderName,
+            blockers: "",
+            importantTopics: ""
+          });
+          showToast(isSystemBn ? `'${folderName}' ফোল্ডারে টাইম লগ যুক্ত হয়েছে!` : `Logged time in '${folderName}'!`, "success");
+          break;
+        }
+
+        case "log_multiple_activities": {
+          const logs = Array.isArray(p.logs) ? p.logs : [];
+          logs.forEach((item: any) => {
+            const folderName = item.folderName || item.subject || item.category || "Study";
+            const existing = (state.learningFolders || []).find((f: any) => f.name?.toLowerCase() === folderName.toLowerCase());
+            const targetFolderId = existing ? existing.id : addLearningFolder(folderName);
+            const totalMins = typeof item.durationMinutes === "number" ? item.durationMinutes : (typeof item.hours === "number" ? Math.round(item.hours * 60) : 60);
+            addLearningLog({
+              folderId: targetFolderId,
+              date: item.date || new Date().toISOString().split("T")[0],
+              watchMinutes: 0,
+              practiceMinutes: totalMins,
+              practiceDetails: item.notes || `Studied ${folderName}`,
+              topics: folderName,
+              blockers: "",
+              importantTopics: ""
+            });
+          });
+          showToast(isSystemBn ? `${logs.length}টি বিষয়ে পড়ার সময় লগ করা হয়েছে!` : `Logged time across ${logs.length} subjects!`, "success");
           break;
         }
 

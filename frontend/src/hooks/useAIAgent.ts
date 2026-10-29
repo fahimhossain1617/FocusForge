@@ -9,6 +9,7 @@ import {
   clearAllChatSessions,
   getAITokenStatus,
   detectFastPathNavigation,
+  generateSmartTitle,
   TokenStatus
 } from "@/services/aiAgentService";
 import type { 
@@ -72,7 +73,7 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
     if (typeof window === "undefined") return null;
     if (memoryUserId === currentUserId && memoryActiveSessionId) return memoryActiveSessionId;
     try {
-      const saved = localStorage.getItem(getActiveSessionCacheKey(currentUserId));
+      const saved = sessionStorage.getItem(getActiveSessionCacheKey(currentUserId)) || localStorage.getItem(getActiveSessionCacheKey(currentUserId));
       if (saved) return saved;
     } catch {}
     return null;
@@ -82,10 +83,10 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
     if (typeof window === "undefined") return [];
     if (memoryMessages && memoryUserId === currentUserId) return memoryMessages;
     try {
-      const activeSess = localStorage.getItem(getActiveSessionCacheKey(currentUserId));
+      const activeSess = sessionStorage.getItem(getActiveSessionCacheKey(currentUserId)) || localStorage.getItem(getActiveSessionCacheKey(currentUserId));
       if (activeSess) {
         const msgKey = getMsgCacheKey(currentUserId, activeSess);
-        const savedMsgs = localStorage.getItem(msgKey) || sessionStorage.getItem(msgKey);
+        const savedMsgs = sessionStorage.getItem(msgKey) || localStorage.getItem(msgKey);
         if (savedMsgs) {
           const parsed = JSON.parse(savedMsgs);
           if (Array.isArray(parsed) && parsed.length > 0) {
@@ -205,13 +206,12 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
 
       try {
         if (!isPrivateMode && activeSessionId) {
+          sessionStorage.setItem(getActiveSessionCacheKey(currentUserId), activeSessionId);
           localStorage.setItem(getActiveSessionCacheKey(currentUserId), activeSessionId);
           if (messages.length > 0) {
             const msgKey = getMsgCacheKey(currentUserId, activeSessionId);
+            sessionStorage.setItem(msgKey, JSON.stringify(messages));
             localStorage.setItem(msgKey, JSON.stringify(messages));
-            if (isGuest || !user) {
-              sessionStorage.setItem(msgKey, JSON.stringify(messages));
-            }
             // Mirror messages into Dexie for reliable local persistence across all users
             const targetUserId = currentUserId || "guest";
             messages.forEach((m) => {
@@ -592,7 +592,7 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
       setActiveSessionId(currentSessionId);
       memoryActiveSessionId = currentSessionId;
       const targetUserId = currentUserId || "guest";
-      const titleSnippet = content.trim().slice(0, 36) || (isBn ? "নতুন আলাপ" : "New Chat");
+      const titleSnippet = await generateSmartTitle(content);
       const newSess: ChatSession = {
         id: currentSessionId,
         title: titleSnippet,

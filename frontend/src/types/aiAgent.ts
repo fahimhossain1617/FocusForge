@@ -111,17 +111,23 @@ export type ActionType =
   // Mind Space
   | "create_problem_solver"
   | "create_problem"
+  | "create_multiple_problems"
   | "create_idea"
+  | "create_multiple_ideas"
   | "create_free_write"
   // Diary
   | "create_diary_entry"
+  | "create_multiple_diary_entries"
   | "create_diary_topic"
   | "delete_diary_entry"
   // Skill Builder / Time Log
   | "create_skill_roadmap"
   | "create_skill"
+  | "create_multiple_skills"
   | "create_learning_topic"
-  | "log_activity";
+  | "create_multiple_learning_topics"
+  | "log_activity"
+  | "log_multiple_activities";
 
 export type ActionStatus =
   | "pending"

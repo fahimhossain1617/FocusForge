@@ -33,6 +33,23 @@ function sanitizeString(input: any): string | undefined {
 }
 
 /**
+ * Specifically strips raw slashes, hashtags, prompt leakage, and raw year prefixes from task titles
+ */
+function sanitizeTaskTitle(rawTitle: any): string {
+  if (typeof rawTitle !== 'string') return 'Study Task';
+  let clean = sanitizeString(rawTitle) || 'Study Task';
+  clean = clean
+    .replace(/^[\s/#\\-]+|[\s/#\\-]+$/g, '')
+    .replace(/\/\/\s*\d{4}[^/]*\/\//gi, '')
+    .replace(/\/\/\s*\d{4}[^\n]*/gi, '')
+    .replace(/^\/\/+/g, '')
+    .replace(/^#+/g, '')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+  return clean || 'Study Task';
+}
+
+/**
  * Validates date string in YYYY-MM-DD format
  */
 function sanitizeDate(dateStr: any): string {
@@ -118,7 +135,7 @@ export function validateAndSanitizeAction(name: string, rawArgs: any): Validated
 
   // 4. PLANNER & TASKS
   if (name === 'create_task') {
-    const title = sanitizeString(args.title);
+    const title = sanitizeTaskTitle(args.title);
     if (!title) {
       return { name: 'create_task', args: {}, isAllowed: false, reason: 'Task title is required.', isDestructive: false, requiresConfirmation: true };
     }
@@ -145,7 +162,7 @@ export function validateAndSanitizeAction(name: string, rawArgs: any): Validated
       return { name: 'create_tasks', args: {}, isAllowed: false, reason: 'At least one task required.', isDestructive: false, requiresConfirmation: true };
     }
     const sanitizedTasks = rawTasks.slice(0, 10).map((t: any, idx: number) => {
-      const title = sanitizeString(t.title) || `Planned Task ${idx + 1}`;
+      const title = sanitizeTaskTitle(t.title) || `Planned Task ${idx + 1}`;
       const mins = typeof t.estimatedMinutes === 'number' ? Math.max(5, Math.min(720, Math.round(t.estimatedMinutes))) : 30;
       const targetDate = sanitizeDate(t.targetDate || t.date);
       const time = sanitizeTime(t.time, 9 + idx * 2);

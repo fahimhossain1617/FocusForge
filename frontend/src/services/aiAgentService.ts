@@ -826,9 +826,52 @@ async function generateClientGeminiResponse(
 }
 
 export async function generateSmartTitle(message: string): Promise<string> {
-  const clean = message.trim().replace(/[\r\n]+/g, ' ');
-  if (clean.length <= 30) return clean;
-  return clean.substring(0, 28) + '...';
+  const raw = message.trim();
+  const lower = raw.toLowerCase();
+  const isBn = !/[a-zA-Z]/.test(raw) || /[\u0980-\u09FF]/.test(raw);
+
+  // Common quick intent titles
+  if (/^(?:hi+|hello+|hey+|সালাম|আসসালামু\s*আলাইকুম|হাই+|হ্যালো+)(?:\s+(?:there|glory|গ্লোরি|ভাই|friend))?[!?.]*$/i.test(lower)) {
+    return isBn ? "কুশল বিনিময়" : "Introduction";
+  }
+  if (/^(?:how\s*(?:are|r)\s*you|কেমন\s*আছো|কেমন\s*আছেন)[!?.]*$/i.test(lower)) {
+    return isBn ? "কুশল বার্তা" : "Check-in";
+  }
+  if (/who\s*are\s*you|তুমি\s*কে|তোমার\s*পরিচয়/i.test(lower)) {
+    return isBn ? "গ্লোরি এআই পরিচয়" : "About Glory AI";
+  }
+  if (/what\s*can\s*you\s*do|তুমি\s*কী\s*করতে\s*পারো/i.test(lower)) {
+    return isBn ? "ফিচার পরিচিতি" : "Capabilities";
+  }
+  if (/planner|schedule|routine|প্ল্যানার|রুটিন|শিডিউল/i.test(lower)) {
+    if (/math|গণিত/i.test(lower) && /java|জাভা/i.test(lower)) {
+      return isBn ? "ম্যাথ ও জাভা প্ল্যান" : "Math & Java Schedule";
+    }
+    if (/math|গণিত/i.test(lower)) return isBn ? "ম্যাথ স্টাডি প্ল্যান" : "Math Schedule";
+    if (/java|জাভা/i.test(lower)) return isBn ? "জাভা স্টাডি প্ল্যান" : "Java Schedule";
+    return isBn ? "স্টাডি প্ল্যানার" : "Study Planner";
+  }
+  if (/java|জাভা/i.test(lower)) return isBn ? "জাভা প্রোগ্রামিং" : "Java Development";
+  if (/python|পাইথন/i.test(lower)) return isBn ? "পাইথন লার্নিং" : "Python Learning";
+  if (/math|গণিত|অংক/i.test(lower)) return isBn ? "গণিত অনুশীলন" : "Mathematics Practice";
+  if (/focus|ফোকাস|pomodoro|পোমোডোরো/i.test(lower)) return isBn ? "ফোকাস সেশন" : "Focus Session";
+  if (/diary|ডায়েরি|জার্নাল/i.test(lower)) return isBn ? "ব্যক্তিগত ডায়েরি" : "Personal Diary";
+  if (/idea|আইডিয়া|problem|সমস্যা/i.test(lower)) return isBn ? "মাইন্ড আইডিয়া ও সমাধান" : "Ideas & Solutions";
+  if (/performance|পারফরম্যান্স|পরিসংখ্যান|stats/i.test(lower)) return isBn ? "পারফরম্যান্স পর্যালোচনা" : "Performance Review";
+
+  // Clean title from user's words (extract core words, max 4 words)
+  const cleanWords = raw
+    .replace(/[#\\/_{}[\]()<>~`!@$%^&*+=|:;"'?]/g, ' ')
+    .split(/\s+/)
+    .filter(w => !/^(?:আমি|তুমি|আমার|তোমার|একটি|একটা|কিছু|করো|করব|দাও|হলো|please|can|you|the|a|an|i|me|my|to|in|on|at|for|with)$/i.test(w))
+    .slice(0, 4);
+
+  if (cleanWords.length > 0) {
+    const candidate = cleanWords.join(' ');
+    return candidate.slice(0, 32);
+  }
+
+  return isBn ? "নতুন আলাপ" : "New Conversation";
 }
 
 /**
@@ -881,7 +924,7 @@ export async function sendAgentMessage(
 
     return {
       sessionId: targetSessionId,
-      sessionTitle: message.slice(0, 30),
+      sessionTitle: await generateSmartTitle(message),
       aiMessage: localAiMessage,
       tokenStatus: currentTokenStatus,
     };

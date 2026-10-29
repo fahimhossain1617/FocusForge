@@ -159,6 +159,17 @@ export function extractMinutesFromString(text: string): number | null {
   return null;
 }
 
+function cleanTaskTitle(title: string): string {
+  if (!title) return 'Study Task';
+  return title
+    .replace(/^[\s/#\\-]+|[\s/#\\-]+$/g, '')
+    .replace(/\/\/\s*\d{4}[^/]*\/\//g, '')
+    .replace(/\/\/\s*\d{4}[^\n]*/g, '')
+    .replace(/\b(?:202\d|203\d)\b/g, '')
+    .replace(/\s{2,}/g, ' ')
+    .trim() || 'Study Task';
+}
+
 /**
  * Attempts to resolve an active multi-turn flow with the latest user message
  */
@@ -189,7 +200,7 @@ export function processFlowTurn(
         const taskHour = (h + idx) % 24;
         const taskTime = `${String(taskHour).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
         return {
-          title: t.title,
+          title: cleanTaskTitle(t.title),
           targetDate: t.date,
           time: taskTime,
           estimatedMinutes: 60,
@@ -206,17 +217,18 @@ export function processFlowTurn(
       if (act) actions.push(act);
     } else if (pendingTasks.length === 1) {
       const single = pendingTasks[0];
+      const cleanTitle = cleanTaskTitle(single.title);
       const act = buildActionRequest(
         'create_task',
         {
-          title: single.title,
+          title: cleanTitle,
           targetDate: single.date,
           time: parsedTime,
           estimatedMinutes: 60,
           category: 'Study',
           priority: 'medium',
         },
-        isBn ? `প্ল্যানারে যোগ: ${single.title} (${parsedTime})` : `Add Task: ${single.title} at ${parsedTime}`
+        isBn ? `প্ল্যানারে যোগ: ${cleanTitle} (${parsedTime})` : `Add Task: ${cleanTitle} at ${parsedTime}`
       );
       if (act) actions.push(act);
     }

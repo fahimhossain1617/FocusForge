@@ -2412,6 +2412,37 @@
   - Level 3 Runtime Verification: Tested `http://localhost:5000/health` (HTTP 200, `{ status: 'ok', service: 'focentia-backend' }`) and `http://localhost:3000/` (HTTP 200).
   - Status: **VERIFIED**.
 
+---
+
+## ADR-047: Glory AI Routing Precision, Planner Sanitization, Multi-Folder Batch Execution & Real Gemini Model Differentiation
+
+- **Date:** October 29, 2026
+- **Status:** Accepted & Verified
+- **Context:**
+  1. Canned instant message templates were firing on single-word keyword matches across complex sentences, overriding genuine AI reasoning.
+  2. Planner task creation suffered from raw prompt text injection (e.g. `//2026 full e all math`) and combinatorial date-slot bugs.
+  3. Batch operations for Time Log (separate folders), Mind Space (separate ideas/problems), and Diary lacked dedicated action support.
+  4. User manual intent ("আমি ম্যানুয়ালি করতে চাই") was not respected.
+  5. Model mode lacked genuine API distinction between Focentia 2.1 (Flash) and Focentia Pro (Gemini Pro).
+  6. Glory AI chat reset on in-app page navigation.
+- **Decision:**
+  1. **Strict Canned Trigger Boundary:** Local canned instant messages are strictly restricted to standalone exact matches (<=4 words); any query with dates, slashes, multi-clauses, or >4 words is classified as UNKNOWN and routed to Gemini API.
+  2. **Planner Sanitization & Multi-Date Partitioning:** Added `sanitizeTaskTitle` and `cleanTaskTitle` to strip hashtags, slashes, and prompt fragments. Enhanced system prompts to ensure clean title extraction and proper distribution across multiple dates.
+  3. **Multi-Folder & Batch Operations:** Added batch action types (`create_multiple_problems`, `create_multiple_ideas`, `log_multiple_activities`, `create_multiple_skills`, `create_multiple_learning_topics`, `create_multiple_diary_entries`) and executed them cleanly across respective stores.
+  4. **Manual Mode Autonomy:** Recognized user requests to perform actions manually and returned supportive confirmation without firing automated tools.
+  5. **Authentic Model Selection:**
+     - Focentia 2.1: Routes to `gemini-2.5-flash` / `gemini-1.5-flash` with 10s timeout, 250 token limit, temperature 0.2 for fast routine logging and quick responses.
+     - Focentia Pro: Routes to `gemini-2.5-pro` / `gemini-1.5-pro` with 25-35s timeout, 900-1500 token limit, temperature 0.45 for deep reasoning, roadmaps, and multi-step tasks.
+  6. **Smart Chat Titles & Navigation Persistence:**
+     - `generateSmartTitle` creates concise 2-4 word summaries (e.g., "Math & Java Schedule") instead of raw text slicing.
+     - Removed destructive unmount hook in `AIAgentPage.tsx`, keeping session active across in-app navigation.
+- **Verification:**
+  - `npm run build --prefix frontend`: Next.js 16 build passed with Exit Code 0 (39 routes).
+  - `npm run build --prefix backend`: TypeScript build passed with Exit Code 0.
+  - Automated unit test suite: Passed (Routing, sanitization, title generation).
+- **Status:** **VERIFIED**
+
+
 
 
 
