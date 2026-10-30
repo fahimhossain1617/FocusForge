@@ -350,17 +350,23 @@ export default function MobileHeader() {
                     <div className="flex flex-col gap-0.5">
                       {/* Admin Control Center (Visible only when verified by server) */}
                       {isAdmin && (
-                        <a
-                          href="/admin/overview"
-                          onClick={() => setIsMenuOpen(false)}
-                          className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold text-blue-600 dark:text-blue-400 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 transition-colors text-left cursor-pointer"
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setIsMenuOpen(false);
+                            window.location.assign("/admin/overview");
+                          }}
+                          className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold text-blue-600 dark:text-blue-400 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 transition-colors text-left cursor-pointer active:scale-95"
+                          title="Admin Control Center"
                         >
                           <div className="flex items-center gap-2.5">
                             <ShieldCheck size={15} className="text-blue-600 dark:text-blue-400" />
                             <span>{isBn ? "অ্যাডমিন কন্ট্রোল সেন্টার" : "Admin Control Center"}</span>
                           </div>
                           <ChevronRight size={13} className="opacity-60 text-blue-500" />
-                        </a>
+                        </button>
                       )}
 
                       {/* Profile Page */}

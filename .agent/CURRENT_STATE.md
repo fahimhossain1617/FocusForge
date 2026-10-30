@@ -24,7 +24,32 @@ Focentia is an active, functional productivity suite built with Next.js 16 App R
   - 100% silent notifications across all channels (`silent: true`, `vibrate: [0]`, muted chime) and anti-burst launch shield preventing flood of stale backlog alerts.
   - Persistent Navbar PWA update indicator reading service worker waiting state.
 
-- **Admin Control Center & Telemetry Pipeline (Parts 1, 2, 3 & 4 Completed & VERIFIED):**
+- **Admin Control Center & Telemetry Pipeline (Refinement & Mobile Navigation Overhaul - October 30, 2026):**
+  - **Button Deduplication & Single Authority Entrypoint:** Removed redundant admin entrypoint buttons from the Dashboard greeting banner (`DashboardPage.tsx`), BottomNav (+) action menu (`BottomNav.tsx`), Sidebar profile popover (`Sidebar.tsx`), and UserMenu dropdown (`UserMenu.tsx`). Kept the Admin Control Center entrypoint exclusively in the Mobile Header 3-dots dropdown menu (`MobileHeader.tsx`), resolving UI clutter.
+  - **Mobile Direct Navigation Fix:** Replaced standard anchor link click in `MobileHeader.tsx` with a reliable event-prevented handler (`window.location.assign("/admin/overview")`), eliminating mobile DOM unmount race conditions where menu dismissal canceled route navigation.
+  - **Overview Dashboard Full Interactivity & Clear Terminology:**
+    - Replaced confusing labels with intuitive terminology: "Registered Users" -> "Logged-in Users", "Guest Sessions" -> "Guest Mode Users", "Active Users (DAU)" -> "Active Regular Users".
+    - Wrapped all metric cards in accessible, clickable Next.js `<Link>` elements with dynamic routing:
+      - Logged-in Users -> `/admin/users`
+      - Guest Mode Users -> `/admin/guests`
+      - Active Regular Users -> `/admin/analytics`
+      - AI Est. Cost -> `/admin/ai-usage`
+      - Open Feedback -> `/admin/feedback`
+      - Unresolved Bugs -> `/admin/issues`
+      - Security Events -> `/admin/security`
+      - Perf Issues -> `/admin/performance`
+      - Sync Errors -> `/admin/sync-health`
+      - App Release -> `/admin/release`
+      - Most/Least Used Feature items -> `/admin/analytics?feature=...`
+    - Added user-friendly empty state guidance for Most Used and Least Used features.
+  - **User Management Data Fidelity:**
+    - Resolved database column discrepancy in `getAdminUsersList`: replaced invalid `p.last_sign_in_at` with `p.last_login_at` and joined `public.user_suspensions` for accurate suspension state, preventing query errors.
+    - Added comprehensive profile fields in `AdminUserListItem` and `AdminUserDetail`: contact / phone, auth provider, created date, last login, location (city, country), date of birth, and bio.
+    - Enhanced `UsersSection.tsx` and `UserDetailSection.tsx` to display full account details matching supervisor expectations.
+  - **Telemetry Ingestion & Bug Auto-Grouping:**
+    - Fixed client telemetry extraction bug in `processTelemetryBatch` (`adminTelemetryService.ts`) to dynamically accept both wrapped client queue payloads (`item.event`) and flat payloads, successfully fingerprinting client errors into `admin_issues` and tracking real-time feature usage.
+    - Connected contact form submissions (`/api/contact`) and user support tickets (`dbCreateSupportTicket`) to `public.feedback_submissions` for unified feedback inbox delivery.
+    - Verified with Next.js production build (39 routes compiled with 0 errors), Security Matrix (20/20 passed), and Deep Functional Suite (18/18 passed). Status: **VERIFIED**.
   - **Admin Auth & UI Navigation Fix (October 28, 2026):**
     - Fixed client-side admin API client (`adminApiClient.ts`) which omitted the Supabase session access token in `executeAdminFetch`, causing `/api/admin/me` to reject calls with HTTP 401 and permanently disabling the Admin button in the UI.
     - Added automatic Supabase session retrieval (`supabase.auth.getSession()`) in `executeAdminFetch` with `Authorization: Bearer <access_token>`.

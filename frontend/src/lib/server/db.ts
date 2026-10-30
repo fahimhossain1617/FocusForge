@@ -1114,6 +1114,30 @@ export async function dbCreateSupportTicket(data: {
     );
 
     if (res.rows?.[0]) {
+      // Also sync to Admin Feedback submissions
+      try {
+        await pool.query(
+          `INSERT INTO public.feedback_submissions (
+            channel, category, subject, message, user_type, user_name, user_email,
+            user_id, is_guest, app_version, status, created_at, updated_at
+          ) VALUES (
+            'support_ticket', $1, $2, $3, $4, $5, $6,
+            $7, $8, $9, 'new', NOW(), NOW()
+          )`,
+          [
+            data.type || 'support',
+            (data.subject || 'Support Ticket').slice(0, 150),
+            data.message,
+            data.isGuest ? 'guest' : 'authenticated',
+            data.name || 'Anonymous',
+            data.email || null,
+            data.userId || null,
+            Boolean(data.isGuest),
+            data.appVersion || '1.0.0',
+          ]
+        );
+      } catch {}
+
       return mapTicketRow(res.rows[0]);
     }
   } catch (dbErr: any) {

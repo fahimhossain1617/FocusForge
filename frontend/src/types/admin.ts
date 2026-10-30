@@ -97,6 +97,10 @@ export interface AdminUserListItem {
   displayName?: string;
   fullName?: string;
   avatarUrl?: string;
+  phone?: string;
+  authMethod?: string;
+  country?: string;
+  city?: string;
   createdAt: string;
   lastObservedLogin?: string;
   lastActivityAt?: string;
@@ -112,6 +116,12 @@ export interface AdminUserDetail {
   displayName?: string;
   fullName?: string;
   avatarUrl?: string;
+  phone?: string;
+  authMethod?: string;
+  country?: string;
+  city?: string;
+  bio?: string;
+  dateOfBirth?: string;
   createdAt: string;
   lastObservedLogin?: string;
   lastActivityAt?: string;

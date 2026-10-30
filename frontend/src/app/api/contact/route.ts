@@ -1,6 +1,7 @@
 import { NextResponse, after } from 'next/server';
 import { sendToGoogleAppsScript } from '@/lib/server/googleSheetsService';
 import { checkRateLimit, getClientIp } from '@/lib/server/rateLimiter';
+import { pool } from '@/lib/server/db';
 
 export const runtime = 'nodejs';
 
@@ -51,6 +52,29 @@ export async function POST(request: Request) {
           { status: 400 }
         );
       }
+    }
+
+    // Persist into Admin Feedback inbox
+    try {
+      await pool.query(
+        `INSERT INTO public.feedback_submissions (
+          channel, category, subject, message, rating, user_type, user_name, user_email,
+          is_guest, app_version, status, created_at, updated_at
+        ) VALUES (
+          'contact_form', $1, $2, $3, $4, 'authenticated', $5, $6,
+          false, '0.1.0', 'new', NOW(), NOW()
+        )`,
+        [
+          normalizedType || 'support',
+          (subject || body.title || 'Contact Submission').trim().slice(0, 150),
+          trimmedMsg,
+          body.rating ? Number(body.rating) : null,
+          (name || 'User').trim(),
+          senderEmail || null,
+        ]
+      );
+    } catch (dbErr) {
+      console.warn('[API /api/contact] Notice inserting into feedback_submissions:', dbErr);
     }
 
     // Schedule background dispatch with guaranteed delivery

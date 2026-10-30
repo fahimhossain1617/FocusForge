@@ -166,10 +166,12 @@ export function UsersSection() {
                 <table className="w-full text-left border-collapse text-xs">
                   <thead>
                     <tr className="border-b border-slate-100 dark:border-white/[0.06] bg-slate-50/50 dark:bg-white/[0.02] text-[#52627A] dark:text-muted-foreground font-semibold">
-                      <th className="py-3 px-4">User</th>
-                      <th className="py-3 px-4">Stable ID</th>
+                      <th className="py-3 px-4">User & Email</th>
+                      <th className="py-3 px-4">Contact / Phone</th>
+                      <th className="py-3 px-4">Provider</th>
+                      <th className="py-3 px-4">User ID (UUID)</th>
                       <th className="py-3 px-4">Created Date</th>
-                      <th className="py-3 px-4">Last Observed Login</th>
+                      <th className="py-3 px-4">Last Login</th>
                       <th className="py-3 px-4">Status</th>
                       <th className="py-3 px-4 text-right">Actions</th>
                     </tr>
@@ -179,9 +181,9 @@ export function UsersSection() {
                       const isPrimaryAdmin = u.email === ADMIN_EMAIL;
 
                       return (
-                        <tr key={u.id} className="hover:bg-slate-50/50 dark:hover:bg-white/[0.02]">
+                        <tr key={u.id} className="hover:bg-slate-50/50 dark:hover:bg-white/[0.02] transition-colors">
                           <td className="py-3 px-4">
-                            <div className="flex items-center gap-2.5">
+                            <Link href={`/admin/users/${u.id}`} className="flex items-center gap-2.5 group cursor-pointer" title="View user details">
                               {u.avatarUrl ? (
                                 /* eslint-disable-next-line @next/next/no-img-element */
                                 <img
@@ -195,17 +197,25 @@ export function UsersSection() {
                                 </div>
                               )}
                               <div className="min-w-0">
-                                <span className="font-semibold text-[#111827] dark:text-foreground block truncate">
+                                <span className="font-semibold text-[#111827] dark:text-foreground block truncate group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                                   {u.displayName || u.fullName || "User"}
                                 </span>
                                 <span className="text-[11px] text-[#52627A] dark:text-muted-foreground block truncate">
                                   {u.email || "No email on record"}
                                 </span>
                               </div>
-                            </div>
+                            </Link>
                           </td>
-                          <td className="py-3 px-4 font-mono text-[11px] text-slate-500">
-                            {u.id.slice(0, 12)}...
+                          <td className="py-3 px-4 text-slate-600 dark:text-slate-400">
+                            {u.phone || <span className="text-slate-400 italic">None</span>}
+                          </td>
+                          <td className="py-3 px-4">
+                            <span className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-white/[0.06] text-slate-700 dark:text-slate-300 font-mono text-[10px] uppercase">
+                              {u.authMethod || "Email"}
+                            </span>
+                          </td>
+                          <td className="py-3 px-4 font-mono text-[11px] text-slate-500" title={u.id}>
+                            {u.id.slice(0, 10)}...
                           </td>
                           <td className="py-3 px-4 text-slate-600 dark:text-slate-400">
                             {new Date(u.createdAt).toLocaleDateString()}

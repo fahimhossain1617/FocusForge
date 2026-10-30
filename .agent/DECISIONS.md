@@ -2553,3 +2553,35 @@
   - `test_shared_notes.ts`: 100% PASSED.
   - `npm run build --prefix frontend`: Compiled successfully (39 static/dynamic routes, 0 errors).
   - `npm run build --prefix backend`: Compiled successfully (0 errors).
+
+---
+
+## ADR-081: Admin Control Center UI Deduplication, Mobile Direct Routing & Interactive Dashboard Overhaul
+
+- **Date:** October 30, 2026
+- **Status:** Accepted & Verified
+- **Context:**
+  1. **UI Clutter / Button Proliferation:** Admin entrypoint buttons were scattered redundantly across Dashboard greeting, BottomNav (+) action menu, Sidebar profile drawer, and UserMenu dropdown.
+  2. **Mobile Navigation Race Condition:** In `MobileHeader.tsx`, clicking the Admin button in the 3-dots dropdown menu closed the sheet (`setIsMenuOpen(false)`), causing React unmounting to abort client-side navigation before it occurred.
+  3. **Overview Dashboard Inertness & Obscure Terminology:**
+     - Non-intuitive terminology: "Registered Users", "Guest Sessions", "Active Users (DAU)".
+     - Cards were non-clickable static elements rather than navigation routers.
+     - User detail queries failed silently due to an invalid column reference (`p.last_sign_in_at` instead of `p.last_login_at`).
+     - Client telemetry queue unwrapping issue caused feature events to be discarded on the server.
+- **Decision:**
+  1. **Single Authorized Entrypoint:** Removed all secondary admin buttons. Placed the sole entrypoint inside the mobile header 3-dots dropdown menu (`MobileHeader.tsx`), strictly visible only to `fahimhossain1617@gmail.com`.
+  2. **Direct Mobile Navigation:** Replaced anchor tag routing in the 3-dots menu with `e.preventDefault()`, `e.stopPropagation()`, `setIsMenuOpen(false)`, and `window.location.assign("/admin/overview")`, guaranteeing reliable navigation.
+  3. **Clear Terminology & Metric Card Deep-Linking:**
+     - Updated labels to clear English: "Logged-in Users", "Guest Mode Users", "Active Regular Users".
+     - Wrapped every card in accessible Next.js `<Link>` elements leading to dedicated sections (`/admin/users`, `/admin/guests`, `/admin/analytics`, `/admin/feedback`, `/admin/issues`, etc.).
+  4. **Full User Account Visibility:**
+     - Fixed `getAdminUsersList` database query and joined `user_suspensions`.
+     - Added phone number, location, date of birth, bio, auth provider, created date, and last login to `/admin/users` and `/admin/users/[id]`.
+  5. **Telemetry & Crash Grouping:**
+     - Fixed `processTelemetryBatch` to handle both wrapped (`item.event`) and flat payloads.
+     - Connected contact form (`/api/contact`) and support tickets to `feedback_submissions`.
+- **Verification:**
+  - `verify_admin_security_matrix.ts`: 20/20 PASSED.
+  - `verify_admin_functional_deep.ts`: 18/18 PASSED.
+  - `npm run build --prefix frontend`: Next.js production build succeeded with 0 errors across all 39 routes.
+  - `test_admin_backend.ts` & `test_admin_frontend.ts`: 100% PASSED.

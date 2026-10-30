@@ -22,10 +22,14 @@ import crypto from 'node:crypto';
 
 export interface IngestPayload {
   events: Array<{
-    eventId: string;
-    type: string;
+    eventId?: string;
+    id?: string;
+    type?: string;
     timestamp?: string;
-    payload: Record<string, any>;
+    payload?: Record<string, any>;
+    event?: any;
+    isGuest?: boolean;
+    [key: string]: any;
   }>;
   sessionId?: string;
   isGuest?: boolean;
@@ -77,7 +81,11 @@ export async function processTelemetryBatch(
 
   for (const item of events) {
     try {
-      const { type, payload, eventId } = item;
+      const ev = (item.event && typeof item.event === 'object') ? item.event : item;
+      const type = ev.type || item.type;
+      const payload = (item.payload && typeof item.payload === 'object') ? item.payload : ev;
+      const eventId = item.id || item.eventId || ev.id || ev.eventId;
+      const isGuestSession = Boolean(data.isGuest || item.isGuest || ev.isGuest);
       if (!type || !payload) {
         rejected++;
         continue;
@@ -103,7 +111,7 @@ export async function processTelemetryBatch(
         const errorName = sanitizeText(payload.name || payload.errorName || 'Error', 60);
         const message = sanitizeText(payload.message || payload.errorMessage || 'Unknown client error', 400);
         const route = sanitizeText(payload.route || '/', 100);
-        const stack = sanitizeStack(payload.sanitizedStack || payload.stackSnippet);
+        const stack = sanitizeStack(payload.sanitizedStack || payload.stack || payload.stackSnippet);
         const severity = (payload.severity || 'medium').toLowerCase();
         const appVersion = sanitizeText(payload.appVersion || data.appVersion || '0.1.0', 20);
         const platform = sanitizeText(payload.platform || 'web', 30);
@@ -162,7 +170,7 @@ export async function processTelemetryBatch(
       }
 
       // 4. Guest Activity
-      else if (type === 'session_lifecycle' && data.isGuest) {
+      else if (type === 'session_lifecycle' && isGuestSession) {
         const todayDate = new Date().toISOString().split('T')[0];
         await pool.query(
           `

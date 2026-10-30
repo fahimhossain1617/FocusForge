@@ -41,6 +41,7 @@ import { notificationCenterService } from '../services/notificationCenterService
 import { connectivityService } from '../services/connectivityService';
 import { localNotificationScheduler } from '../services/localNotificationScheduler';
 import { accountManager } from '../services/accountManager';
+import { telemetryClient } from '../services/telemetry/telemetryClient';
 
 
 const defaultCategories = ['Programming', 'Study', 'University', 'Exam', 'Personal', 'Health', 'Project', 'Business'];
@@ -702,6 +703,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
 
     trackMeaningfulAction('feature_' + page);
+    telemetryClient.trackFeature(page, 'opened');
 
     setSubViewActive(false);
     if (typeof window !== 'undefined') {
@@ -931,6 +933,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   // ==================== Tasks ====================
 
   const addTask = useCallback((taskData: Partial<Task> & { name?: string; title?: string }) => {
+    telemetryClient.trackFeature('tasks', 'used');
     const taskName = taskData.name || taskData.title || '';
     const taskDate = taskData.targetDate || taskData.date || '';
     const isComp = taskData.completed ?? (taskData.status === 'completed');
@@ -1506,6 +1509,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   // ==================== Focus Sessions ====================
 
   const startFocusSession = useCallback((taskName: string, category: string, taskId?: number, targetMinutes: number = 25): string => {
+    telemetryClient.trackFeature('focus_session', 'used');
     const id = generateId();
     const nowIso = new Date().toISOString();
     const session: FocusSession = {

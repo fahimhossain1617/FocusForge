@@ -85,11 +85,14 @@ export function UserDetailSection({ userId }: { userId: string }) {
                 <p className="text-xs text-[#52627A] dark:text-muted-foreground mt-0.5">
                   {detail.email || "No email on record"}
                 </p>
-                <div className="flex items-center gap-2 mt-1.5">
+                <div className="flex flex-wrap items-center gap-2 mt-1.5">
                   <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase ${
                     detail.isSuspended ? "bg-rose-50 text-rose-600 dark:bg-rose-500/10 dark:text-rose-400" : "bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400"
                   }`}>
                     {detail.isSuspended ? "Suspended" : "Active"}
+                  </span>
+                  <span className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-white/[0.06] text-slate-700 dark:text-slate-300 font-mono text-[10px] uppercase">
+                    {detail.authMethod || "Email"}
                   </span>
                   <span className="text-[11px] text-slate-400">
                     Joined {new Date(detail.createdAt).toLocaleDateString()}
@@ -104,6 +107,49 @@ export function UserDetailSection({ userId }: { userId: string }) {
                 {detail.suspensionReason}
               </div>
             )}
+          </div>
+
+          {/* User Profile & Account Data Details */}
+          <div className="p-4 rounded-2xl bg-white dark:bg-[#0c101d] border border-[#DCE5F0] dark:border-white/10">
+            <h3 className="text-xs font-bold text-[#52627A] dark:text-muted-foreground uppercase tracking-wider mb-3">
+              Account Profile Details
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 text-xs">
+              <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-white/[0.03]">
+                <span className="text-slate-400 block text-[11px]">Phone Number</span>
+                <span className="font-medium text-[#111827] dark:text-foreground">
+                  {detail.phone || "Not provided"}
+                </span>
+              </div>
+              <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-white/[0.03]">
+                <span className="text-slate-400 block text-[11px]">Location</span>
+                <span className="font-medium text-[#111827] dark:text-foreground">
+                  {[detail.city, detail.country].filter(Boolean).join(", ") || "Not specified"}
+                </span>
+              </div>
+              <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-white/[0.03]">
+                <span className="text-slate-400 block text-[11px]">Last Observed Login</span>
+                <span className="font-medium text-[#111827] dark:text-foreground">
+                  {detail.lastObservedLogin ? new Date(detail.lastObservedLogin).toLocaleString() : "Never observed"}
+                </span>
+              </div>
+              {detail.dateOfBirth && (
+                <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-white/[0.03]">
+                  <span className="text-slate-400 block text-[11px]">Date of Birth</span>
+                  <span className="font-medium text-[#111827] dark:text-foreground">
+                    {detail.dateOfBirth}
+                  </span>
+                </div>
+              )}
+              {detail.bio && (
+                <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-white/[0.03] sm:col-span-2">
+                  <span className="text-slate-400 block text-[11px]">Bio</span>
+                  <span className="font-medium text-[#111827] dark:text-foreground">
+                    {detail.bio}
+                  </span>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Aggregated Usage Stats */}

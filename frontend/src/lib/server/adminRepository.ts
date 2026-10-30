@@ -130,6 +130,7 @@ export async function getAdminOverviewData(range: TimeRangeFilter = '24h'): Prom
 
   // Feature ranking
   let mostUsed: any[] = [];
+  let leastUsed: any[] = [];
   try {
     const { rows } = await pool.query(
       `
@@ -148,6 +149,34 @@ export async function getAdminOverviewData(range: TimeRangeFilter = '24h'): Prom
       uniqueUsers: Number(r.uniqueUsers),
       percentageOfTotal: Math.round((Number(r.usageCount) / sumAll) * 100),
     }));
+
+    if (mostUsed.length > 1) {
+      const { rows: leastRows } = await pool.query(
+        `
+        SELECT feature as "featureName", COUNT(*) as "usageCount", COUNT(DISTINCT user_identity) as "uniqueUsers"
+        FROM admin_feature_events
+        WHERE created_at >= NOW() - ${interval}
+        GROUP BY feature
+        ORDER BY "usageCount" ASC
+        LIMIT 5
+        `
+      );
+      leastUsed = leastRows.map((r) => ({
+        featureName: r.featureName,
+        usageCount: Number(r.usageCount),
+        uniqueUsers: Number(r.uniqueUsers),
+        percentageOfTotal: Math.round((Number(r.usageCount) / sumAll) * 100),
+      }));
+    }
+  } catch {}
+
+  // Performance issues count
+  let perfIssuesCount = 0;
+  try {
+    const { rows: perfRows } = await pool.query(
+      `SELECT COUNT(*) as count FROM admin_performance_records WHERE rating = 'poor' AND created_at >= NOW() - ${interval}`
+    );
+    perfIssuesCount = Number(perfRows[0]?.count) || 0;
   } catch {}
 
   // Cost estimate: Gemini 1.5/2.0 Flash approx $0.000075 per 1k input/output tokens
@@ -166,22 +195,22 @@ export async function getAdminOverviewData(range: TimeRangeFilter = '24h'): Prom
     return {
       timeWindow: range,
       registeredUsers: {
-        title: 'Registered Users',
+        title: 'Logged-in Users',
         value: registeredUsersCount,
         definition: 'Total authentic user profiles created in database',
         windowLabel: 'All time',
       },
       guestSessions: {
-        title: 'Guest Sessions',
+        title: 'Guest Mode Users',
         value: guestSessionsCount,
-        definition: 'Active anonymous guest sessions (distinct from unique humans)',
-        windowLabel: range,
+        definition: 'Visitors using the application without logging in',
+        windowLabel: range.toUpperCase(),
       },
       dau: {
-        title: 'Daily Active Users (DAU)',
+        title: 'Active Regular Users',
         value: dauCount,
-        definition: 'Unique authenticated & guest identities interacting in 24 hours',
-        windowLabel: 'Last 24h',
+        definition: 'Unique authenticated and guest identities interacting in selected window',
+        windowLabel: range.toUpperCase(),
       },
       wau: {
         title: 'Weekly Active Users (WAU)',
@@ -198,7 +227,7 @@ export async function getAdminOverviewData(range: TimeRangeFilter = '24h'): Prom
       openFeedbackCount: openFeedback,
       unresolvedBugsCount: unresolvedBugs,
       criticalSecurityEvents: criticalSecurity,
-      performanceIssuesCount: 0,
+      performanceIssuesCount: perfIssuesCount,
       syncErrorsCount: syncErrors,
       currentReleaseVersion: process.env.NEXT_PUBLIC_APP_VERSION || '0.1.0',
       deploymentStatus: 'healthy',
@@ -209,7 +238,7 @@ export async function getAdminOverviewData(range: TimeRangeFilter = '24h'): Prom
         errorRatePercent: 0,
       },
       mostUsedFeatures: mostUsed,
-      leastUsedFeatures: [],
+      leastUsedFeatures: leastUsed,
       reliableDataCollectionStartedAt: reliableStartedAt || '2026-10-27T18:00:00Z',
     };
 }
@@ -289,15 +318,18 @@ export async function getAdminUsersList(params: {
     }
 
     if (params.status === 'suspended') {
-      whereClauses.push(`p.is_suspended = true`);
+      whereClauses.push(`s.is_active = true`);
     } else if (params.status === 'active') {
-      whereClauses.push(`(p.is_suspended IS NULL OR p.is_suspended = false)`);
+      whereClauses.push(`(s.is_active IS NULL OR s.is_active = false)`);
     }
 
     const whereStr = whereClauses.join(' AND ');
 
     const countRes = await pool.query(
-      `SELECT COUNT(*) as total FROM public.profiles p WHERE ${whereStr}`,
+      `SELECT COUNT(*) as total 
+       FROM public.profiles p 
+       LEFT JOIN public.user_suspensions s ON s.user_id = p.id AND s.is_active = true 
+       WHERE ${whereStr}`,
       queryParams
     );
     const total = Number(countRes.rows[0]?.total) || 0;
@@ -307,10 +339,12 @@ export async function getAdminUsersList(params: {
       `
       SELECT 
         p.id, p.email, p.display_name, p.full_name, p.avatar_url, p.created_at,
-        p.last_sign_in_at, p.updated_at as last_activity_at,
-        COALESCE(p.is_suspended, false) as is_suspended,
-        p.suspension_reason
+        p.phone, p.country, p.city, p.bio, p.auth_method,
+        p.last_login_at, p.updated_at as last_activity_at,
+        COALESCE(s.is_active, false) as is_suspended,
+        s.reason as suspension_reason
       FROM public.profiles p
+      LEFT JOIN public.user_suspensions s ON s.user_id = p.id AND s.is_active = true
       WHERE ${whereStr}
       ORDER BY p.created_at DESC
       LIMIT $${queryParams.length - 1} OFFSET $${queryParams.length}
@@ -324,8 +358,12 @@ export async function getAdminUsersList(params: {
       displayName: r.display_name || undefined,
       fullName: r.full_name || undefined,
       avatarUrl: r.avatar_url || undefined,
+      phone: r.phone || undefined,
+      authMethod: r.auth_method || undefined,
+      country: r.country || undefined,
+      city: r.city || undefined,
       createdAt: r.created_at ? new Date(r.created_at).toISOString() : new Date().toISOString(),
-      lastObservedLogin: r.last_sign_in_at ? new Date(r.last_sign_in_at).toISOString() : undefined,
+      lastObservedLogin: r.last_login_at ? new Date(r.last_login_at).toISOString() : undefined,
       lastActivityAt: r.last_activity_at ? new Date(r.last_activity_at).toISOString() : undefined,
       isSuspended: Boolean(r.is_suspended),
       suspensionReason: r.suspension_reason || undefined,
@@ -348,7 +386,15 @@ export async function getAdminUsersList(params: {
 export async function getAdminUserDetail(userId: string): Promise<AdminUserDetail | null> {
   try {
     const { rows } = await pool.query(
-      `SELECT * FROM public.profiles WHERE id = $1`,
+      `SELECT 
+         p.*,
+         COALESCE(s.is_active, false) as is_suspended,
+         s.reason as suspension_reason,
+         s.suspended_at,
+         s.suspended_by
+       FROM public.profiles p
+       LEFT JOIN public.user_suspensions s ON s.user_id = p.id AND s.is_active = true
+       WHERE p.id = $1`,
       [userId]
     );
 
@@ -371,11 +417,19 @@ export async function getAdminUserDetail(userId: string): Promise<AdminUserDetai
       displayName: p.display_name || undefined,
       fullName: p.full_name || undefined,
       avatarUrl: p.avatar_url || undefined,
+      phone: p.phone || undefined,
+      authMethod: p.auth_method || undefined,
+      country: p.country || undefined,
+      city: p.city || undefined,
+      bio: p.bio || undefined,
+      dateOfBirth: p.date_of_birth ? new Date(p.date_of_birth).toISOString().split('T')[0] : undefined,
       createdAt: p.created_at ? new Date(p.created_at).toISOString() : new Date().toISOString(),
-      lastObservedLogin: p.last_sign_in_at ? new Date(p.last_sign_in_at).toISOString() : undefined,
+      lastObservedLogin: p.last_login_at ? new Date(p.last_login_at).toISOString() : undefined,
       lastActivityAt: p.updated_at ? new Date(p.updated_at).toISOString() : undefined,
       isSuspended: Boolean(p.is_suspended),
       suspensionReason: p.suspension_reason || undefined,
+      suspendedAt: p.suspended_at ? new Date(p.suspended_at).toISOString() : undefined,
+      suspendedBy: p.suspended_by || undefined,
       totalFocusMinutes: focusMinutes,
       totalTasksCompleted: completedTasks,
       notesCount: 0,

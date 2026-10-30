@@ -13,7 +13,6 @@ import {
   BookOpenText,
   ShieldCheck,
 } from "lucide-react";
-import { useAdminAuth } from "../../context/AdminAuthContext";
 import { MindSpaceIcon } from "../icons/MindSpaceIcon";
 import { GloryOrbIcon } from "../icons/GloryOrbIcon";
 
@@ -70,8 +69,6 @@ export default function BottomNav() {
     setIsActionsOpen((prev) => !prev);
   };
 
-  const { isAdmin } = useAdminAuth();
-
   // Secondary features in (+) Action popup
   const secondaryFeatures = [
     {
@@ -94,16 +91,6 @@ export default function BottomNav() {
       label: isBn ? "টাইম লগ" : "Time Log",
       icon: Clock,
     },
-    ...(isAdmin
-      ? [
-          {
-            id: "admin",
-            label: isBn ? "অ্যাডমিন" : "Admin",
-            icon: ShieldCheck,
-            href: "/admin/overview",
-          },
-        ]
-      : []),
   ];
 
   return (
@@ -154,12 +141,7 @@ export default function BottomNav() {
                 const isItemActive = activePage === feature.id;
 
                 const handleClick = () => {
-                  if ('href' in feature && feature.href) {
-                    setIsActionsOpen(false);
-                    window.location.href = feature.href;
-                  } else {
-                    handleNav(feature.id);
-                  }
+                  handleNav(feature.id);
                 };
 
                 return (

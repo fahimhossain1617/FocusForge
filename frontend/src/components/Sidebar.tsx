@@ -29,7 +29,6 @@ import {
 import { MindSpaceIcon } from "./icons/MindSpaceIcon";
 import { GloryOrbIcon } from "./icons/GloryOrbIcon";
 import { useAuth } from "../context/AuthContext";
-import { useAdminAuth } from "../context/AdminAuthContext";
 import { useAnimateExit } from "../hooks/useAnimateExit";
 import InstallPrompt from "./pwa/InstallPrompt";
 
@@ -78,7 +77,6 @@ export default function Sidebar({
     cancelLogout 
   } = useAuth();
   const { t } = useTranslation();
-  const { isAdmin } = useAdminAuth();
 
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
@@ -442,19 +440,6 @@ export default function Sidebar({
 
                 {/* Popover Actions (Clean Box Buttons, No Divider Lines) */}
                 <div className="flex flex-col gap-1">
-                  {isAdmin && (
-                    <a
-                      href="/admin/overview"
-                      onClick={() => {
-                        setIsProfileMenuOpen(false);
-                        onClose();
-                      }}
-                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-blue-600 dark:text-blue-400 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 transition-colors text-left cursor-pointer"
-                    >
-                      <ShieldCheck size={14} className="text-blue-600 dark:text-blue-400" />
-                      <span>{state.lang === "bn" ? "অ্যাডমিন কন্ট্রোল সেন্টার" : "Admin Control Center"}</span>
-                    </a>
-                  )}
                   <button
                     type="button"
                     onClick={() => handleNav("profile")}
