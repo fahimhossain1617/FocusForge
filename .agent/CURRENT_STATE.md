@@ -350,23 +350,24 @@ Focentia is an active, functional productivity suite built with Next.js 16 App R
 
 ### Notifications & Background Smart Reminder System
 - **Current Implementation:** `frontend/src/services/reminderSyncService.ts`, `frontend/src/lib/server/schedulerService.ts`, `backend/src/services/notificationSchedulerService.ts`, `frontend/src/lib/server/db.ts`, `backend/src/services/db.ts`, `frontend/src/components/navigation/NotificationOrbAvatar.tsx`, `frontend/src/services/localNotificationScheduler.ts`, `frontend/src/services/notificationService.ts`, `frontend/src/services/notificationTemplates.ts`, `frontend/src/hooks/useDailyPlan.ts`, `frontend/public/sw.js`, `frontend/src/components/pwa/ServiceWorkerRegister.tsx`, `frontend/src/components/pages/NotificationsPage.tsx`, `frontend/vercel.json`, `supabase/migrations/028_scheduled_reminders_and_queue.sql`. Unified production-grade background scheduling and Web Push delivery pipeline:
-  1. **Strict User-Fixed Task Scheduling:** Todo Task Reminders (exact 5-minute Pre-Reminder and exact Start Reminder) are strictly locked to the user's chosen task times. Task reminders are protected with high priority and are completely exempt from non-urgent cooldown spacing and daily limits, guaranteeing prompt delivery at the exact scheduled minute.
-  2. **100% Offline-First Precision Delivery:**
-     - **Dedicated Background Web Worker Ticker:** An unthrottled Web Worker thread runs continuously, avoiding browser background-tab timer freezing and firing reminders accurately whether the app is active, minimized, or in a background tab.
-     - **Native Notification Triggers API (`TimestampTrigger`):** Deep integration in `sw.js` and `localNotificationScheduler.ts` delegates future notifications directly to the device OS (Android AlarmManager / Windows Task Scheduler) for zero-battery exact delivery even when the browser is terminated and offline.
-     - **Service Worker Background Sync & Periodic Sync:** Registers `periodicSync` with tag `focentia-reminders` and re-arms IndexedDB reminders across `periodicsync`, `sync`, `fetch`, and worker boot.
-     - **Anti-Avalanche Rate Limiting & Stale Silencing:** Eliminates annoying notification bursts on app launch. Task reminders older than 15m and automated nudges older than 5m are marked sent silently without sound/popup explosions; concurrent chimes are throttled (min 1500ms spacing).
-  3. **Deterministic Daily Jitter & Organic Dynamic Slots:** General automated nudges (Morning Plan ~07:45, Morning Focus ~08:45, Evening Focus ~18:30, Skill Practice rotated across Morning/Sunset/Night slots, Inactivity ~19:30, Diary Reflection ~21:15) dynamically jitter day-by-day based on deterministic daily hashing, preventing rigid identical delivery times every day while avoiding midday/lunch (12:00–15:00) interruptions.
-  4. **Persistent Cloud Database Queue (`scheduled_reminders`):** Migration 028 introduces an indexed, RLS-protected persistent queue for scheduled notification items. Uses partial index `idx_scheduled_reminders_pending_due` for sub-millisecond polling.
-  5. **Automated Cron Scheduling Engine:** Companion Express Backend (`notificationSchedulerService.ts` via `node-cron`) and Vercel Route evaluation.
-  6. **Atomic Claiming with Concurrency Protection:** High-concurrency worker safe claiming using PostgreSQL `SELECT ... FOR UPDATE SKIP LOCKED` inside `dbClaimDueScheduledReminders`, guaranteeing zero duplicate dispatch across multiple server instances or retries.
-  7. **Anti-Spam & Quiet Hours:** Applies 45-minute minimum spacing between non-urgent automated nudges, enforces user-defined daily limits (default: 5), and timezone-aware Quiet Hours (22:00–07:00).
-  8. **Multi-Device Web Push Delivery:** Delivers authenticated payloads via `web-push` using VAPID keys with automatic purge of 410/404 expired endpoints.
-- **Verified Status:** **VERIFIED** (All tests passed, Next.js 16 build passed cleanly with 0 errors).
+  1. **Strict User-Fixed Task Scheduling (Exact Time, Zero Pre-Reminders):** Todo Task Reminders fire strictly and exclusively at the user's scheduled start time (`task_start`, Priority 1). The 5-minute pre-reminder has been completely removed across all client and server layers. Task reminders are protected with high priority and are exempt from cooldown spacing and daily limits, guaranteeing prompt delivery at the exact scheduled minute.
+  2. **Untimed Planner Task Nudges:** Tasks added without an explicit time block generate a gentle, encouraging reminder ~4.5 hours after addition (between 4 and 6 hours) in warm, polite Bengali and English.
+  3. **Strict 2-3 Daily General Nudges Limit:** General system nudges are capped at 2 to 3 per day:
+     - Morning (~08:00): Soft reminder (daily plan, or skill practice if active skills in Time Log).
+     - Afternoon (~14:00/14:30): Untimed task follow-up or gentle app engagement check-in.
+     - Evening (~18:30): Focus session prompt.
+  4. **100% Offline & Background Delivery:**
+     - **Direct IndexedDB Synchronization:** `localNotificationScheduler.ts` writes active alerts directly to IndexedDB `focentia_reminders_db`, ensuring Service Worker has access even if client message passing is interrupted.
+     - **Resilient Catch-Up Tolerance:** Widened task catch-up window to 45 minutes (15m for non-urgent nudges), preventing silent task drops when the device was sleeping or the user was on another app.
+     - **Native Notification Triggers API (`TimestampTrigger`):** Integrated in `sw.js` and `localNotificationScheduler.ts` to delegate alarms to OS when supported.
+     - **Dedicated Background Web Worker Ticker:** Continuously ticks every 8s in browser foreground/background tabs.
+  5. **24/7 Cloud Background Dispatch via Supabase `pg_cron` & `pg_net`:**
+     - Registered `focentia-notification-dispatch` job in Supabase `pg_cron` with schedule `* * * * *`, dispatching `net.http_post` every single minute to production `/api/notifications/cron` with `CRON_SECRET`.
+     - Automatically claims due reminders with `FOR UPDATE SKIP LOCKED` and delivers Web Push payloads via FCM / Mozilla Push Service directly to user devices even when the app is completely closed.
+     - Backed up by GitHub Actions workflow (`.github/workflows/notifications-cron.yml`, every 10m) and platform maintenance route (`/api/cron/maintenance`).
+- **Verified Status:** **VERIFIED** (verify_time_to_time_notifications.ts: 13/13 PASSED, verify_notification_and_shared_note_audit.ts: 100% PASSED, audit_notification_system.js: 33/33 PASSED, live FCM HTTP 201 Created, live Supabase pg_cron status 'succeeded', Next.js 16 build: 0 errors).
 - **Known Problems:** None.
-- **Important Files:** `frontend/src/services/localNotificationScheduler.ts`, `frontend/public/sw.js`, `frontend/src/components/pwa/ServiceWorkerRegister.tsx`, `frontend/src/services/notificationService.ts`, `frontend/src/services/reminderSyncService.ts`, `frontend/src/lib/server/schedulerService.ts`, `backend/src/services/notificationSchedulerService.ts`.
-- **Dependencies:** `web-push`, `pg`, `node-cron`, Service Worker API, Push API, IndexedDB, Web Workers.
-- **Unknowns:** None.
+- **Important Files:** `frontend/src/context/AppContext.tsx`, `frontend/src/services/localNotificationScheduler.ts`, `frontend/src/services/reminderSyncService.ts`, `frontend/public/sw.js`, `frontend/src/hooks/useDailyPlan.ts`, `frontend/src/services/notificationTemplates.ts`, `frontend/src/lib/server/schedulerService.ts`, `.github/workflows/notifications-cron.yml`.
 
 ---
 

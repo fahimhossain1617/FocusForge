@@ -1,5 +1,5 @@
 // Focentia Progressive Web App Service Worker
-const CACHE_NAME = 'focentia-build-1793343651357';
+const CACHE_NAME = 'focentia-build-1793359044133';
 const IMMUTABLE_CACHE = 'focentia-immutable-static-v1';
 
 const STATIC_ASSETS = [
@@ -262,7 +262,7 @@ function scheduleReminders(reminders, persist = true) {
       // For tasks: if within 10 minutes, trigger it. Older than 10m: skip silently.
       // For automated nudges: if within 3 minutes, trigger it. Older than 3m: skip silently.
       const isTask = (item.category && item.category.startsWith('task')) || item.priority === 1;
-      const maxPastWindow = isTask ? -10 * 60 * 1000 : -3 * 60 * 1000;
+      const maxPastWindow = isTask ? -45 * 60 * 1000 : -15 * 60 * 1000;
       if (delay >= maxPastWindow) {
         triggerScheduledNotification(item);
       } else {
@@ -289,7 +289,7 @@ async function checkDueReminders() {
     if (!item.targetTimestamp || triggeredReminderIds.has(item.id)) continue;
     const diff = now - item.targetTimestamp;
     const isTask = (item.category && item.category.startsWith('task')) || item.priority === 1;
-    const maxWindow = isTask ? 10 * 60 * 1000 : 3 * 60 * 1000;
+    const maxWindow = isTask ? 45 * 60 * 1000 : 15 * 60 * 1000;
     if (diff >= 0 && diff < maxWindow) {
       await triggerScheduledNotification(item);
     } else if (diff >= maxWindow) {

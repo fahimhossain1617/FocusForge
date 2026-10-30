@@ -357,17 +357,27 @@ class LocalNotificationScheduler {
         }
       }
 
-      // Slot B. Midday / Afternoon Sweet Reminder (~13:30)
+      // Slot B. Midday / Afternoon Reminder & Untimed Planner Task Follow-up (4 to 6 hours after addition)
       if (dailyNudgeCount < 3) {
-        const noonDate = new Date(y, (mon || 1) - 1, d || 1, 13, 30, 0, 0);
-        const noonMs = noonDate.getTime();
+        if (untimedTasks.length > 0 && targetDateStr === todayStr) {
+          const untimedTask = untimedTasks[0];
+          const taskName = untimedTask.title || untimedTask.name || (lang === "bn" ? "টাস্ক" : "Task");
 
-        if (noonMs > now) {
-          const inQuiet = quietHoursEnabled && this.isInsideQuietHours(noonMs, quietHoursStart, quietHoursEnd);
-          if (!inQuiet) {
-            if (untimedTasks.length > 0 && targetDateStr === todayStr) {
-              const untimedTask = untimedTasks[0];
-              const taskName = untimedTask.title || untimedTask.name || (lang === "bn" ? "টাস্ক" : "Task");
+          // Determine target time: 4.5 hours after addition (within 4 to 6 hours range)
+          const taskAddedMs = (untimedTask as any).createdAt
+            ? new Date((untimedTask as any).createdAt).getTime()
+            : (typeof untimedTask.id === "number" && untimedTask.id > 1700000000000 ? untimedTask.id : null);
+
+          let untimedTargetMs = taskAddedMs ? taskAddedMs + Math.round(4.5 * 60 * 60 * 1000) : null;
+          // Fallback to afternoon 14:30 if created time passed or not available
+          const fallbackNoonDate = new Date(y, (mon || 1) - 1, d || 1, 14, 30, 0, 0);
+          if (!untimedTargetMs || untimedTargetMs <= now) {
+            untimedTargetMs = fallbackNoonDate.getTime();
+          }
+
+          if (untimedTargetMs > now) {
+            const inQuiet = quietHoursEnabled && this.isInsideQuietHours(untimedTargetMs, quietHoursStart, quietHoursEnd);
+            if (!inQuiet) {
               const tpl = notificationRotationManager.getNext(
                 "task_incomplete",
                 lang,
@@ -383,16 +393,23 @@ class LocalNotificationScheduler {
                 title: tpl.title,
                 body: tpl.message,
                 actionRoute: "planner",
-                targetTimestamp: noonMs,
-                targetTimeISO: noonDate.toISOString(),
+                targetTimestamp: untimedTargetMs,
+                targetTimeISO: new Date(untimedTargetMs).toISOString(),
                 dueDate: targetDateStr,
                 taskId: untimedTask.id,
                 isUrgent: false,
                 sound: sound,
-                icon: getNotificationOrbIcon("concerned"),
+                icon: getNotificationOrbIcon("attentive"),
               });
               dailyNudgeCount++;
-            } else if (prefs.focusSessionReminder !== false) {
+            }
+          }
+        } else if (prefs.focusSessionReminder !== false) {
+          const noonDate = new Date(y, (mon || 1) - 1, d || 1, 13, 30, 0, 0);
+          const noonMs = noonDate.getTime();
+          if (noonMs > now) {
+            const inQuiet = quietHoursEnabled && this.isInsideQuietHours(noonMs, quietHoursStart, quietHoursEnd);
+            if (!inQuiet) {
               const tpl = notificationRotationManager.getNext("focus_reminder", lang, {}, userId || undefined);
               const id = `focus_rem_noon_${targetDateStr}`;
               scheduled.push({
@@ -501,6 +518,37 @@ class LocalNotificationScheduler {
 
     // 2. Dispatch to Service Worker (PWA Notification Triggers + IndexedDB)
     await this.syncToServiceWorker(list);
+
+    // 3. Directly save to Service Worker IndexedDB store for 100% offline persistence
+    this.saveToServiceWorkerIndexedDB(list);
+  }
+
+  /**
+   * Directly save reminders into IndexedDB 'focentia_reminders_db'
+   * so Service Worker can access them immediately on any wake-up or background event
+   */
+  private saveToServiceWorkerIndexedDB(reminders: ScheduledLocalNotificationItem[]): void {
+    if (typeof window === "undefined" || typeof indexedDB === "undefined") return;
+    try {
+      const req = indexedDB.open("focentia_reminders_db", 1);
+      req.onupgradeneeded = (e: any) => {
+        const db = e.target.result;
+        if (!db.objectStoreNames.contains("reminders")) {
+          db.createObjectStore("reminders", { keyPath: "id" });
+        }
+      };
+      req.onsuccess = (e: any) => {
+        try {
+          const db = e.target.result;
+          const tx = db.transaction("reminders", "readwrite");
+          const store = tx.objectStore("reminders");
+          store.clear();
+          for (const item of reminders) {
+            store.put(item);
+          }
+        } catch {}
+      };
+    } catch {}
   }
 
   /**
@@ -633,9 +681,14 @@ class LocalNotificationScheduler {
       if (item.targetTimestamp <= now) {
         const diff = now - item.targetTimestamp;
 
-        // Anti-flood: only fire if due within the last 2 minutes!
-        // Expired/stale backlog alerts (>2 minutes in past) are marked sent silently to avoid open-app bursts!
-        if (diff >= 0 && diff < 2 * 60 * 1000) {
+        // Smart catch-up tolerance:
+        // For user commitment tasks: allow up to 45 minutes catch-up so user receives reminder
+        // even if they were in another app, screen was off, or browser throttled timers!
+        // For non-urgent daily nudges: allow up to 15 minutes catch-up.
+        const isTask = item.category === "task_start" || item.priority === 1;
+        const maxPastTolerance = isTask ? 45 * 60 * 1000 : 15 * 60 * 1000;
+
+        if (diff >= 0 && diff < maxPastTolerance) {
           if (!notificationService.hasBeenSent(item.id)) {
             if (now - this.lastAlertTime < 2000) {
               continue;
@@ -655,7 +708,7 @@ class LocalNotificationScheduler {
             });
           }
         } else {
-          // Stale reminder (older than 2 minutes): silently mark sent so it never bursts on app open
+          // Stale reminder (older than tolerance): silently mark sent so it never bursts on app open
           if (!notificationService.hasBeenSent(item.id)) {
             notificationService.markAsSent(item.id);
           }

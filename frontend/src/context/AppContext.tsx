@@ -40,6 +40,8 @@ import { notificationService } from '../services/notificationService';
 import { notificationCenterService } from '../services/notificationCenterService';
 import { connectivityService } from '../services/connectivityService';
 import { localNotificationScheduler } from '../services/localNotificationScheduler';
+import { reminderSyncService } from '../services/reminderSyncService';
+import { subscribeUserToPush } from '../utils/pushSubscription';
 import { accountManager } from '../services/accountManager';
 import { telemetryClient } from '../services/telemetry/telemetryClient';
 
@@ -540,7 +542,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     };
   }, [state, isLoaded]);
 
-  // Auto-reschedule local notifications whenever tasks, planner time blocks, routines, or settings change
+  // Auto-reschedule local notifications and sync to backend queue whenever tasks, planner time blocks, routines, or settings change
   useEffect(() => {
     if (!isLoaded) return;
     localNotificationScheduler.debounceReschedule({
@@ -553,6 +555,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       lang: state.lang,
       userId: activeUserIdRef.current,
     });
+    reminderSyncService.debounceSyncReminders({
+      tasks: state.tasks,
+      focusSessions: state.focusSessions,
+      learningFolders: state.learningFolders,
+      learningLogs: state.learningLogs,
+      notifPreferences: state.notifPreferences,
+      lang: state.lang,
+      userId: activeUserIdRef.current,
+    });
+    if (activeUserIdRef.current && typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+      subscribeUserToPush(activeUserIdRef.current).catch(() => {});
+    }
   }, [
     isLoaded,
     state.tasks,
@@ -1013,6 +1027,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       ...prev,
       tasks: (prev.tasks || []).filter((t) => String(t.id) !== String(id) && (!isNaN(numId) ? t.id !== numId : true)),
     }));
+    notificationService.cancelTaskReminders(id);
+    reminderSyncService.cancelTaskRemindersOnServer(id, activeUserIdRef.current);
     if (!isNaN(numId)) {
       const currentUserId = activeUserIdRef.current || 'guest';
       deleteTaskFromBackend(numId, currentUserId).catch((err) => console.warn('[AppContext] Failed to delete task in backend:', err));
@@ -1035,6 +1051,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     trackMeaningfulAction('check_task');
     if (nextStatus === 'completed') {
       showToast("🎉 দারুণ! কাজ সম্পন্ন করায় অভিনন্দন!", "success");
+      notificationService.cancelTaskReminders(id);
+      reminderSyncService.cancelTaskRemindersOnServer(id, activeUserIdRef.current);
     }
     const currentUserId = activeUserIdRef.current || 'guest';
     updateTaskInBackend(id, { status: nextStatus, completed: nextStatus === 'completed' }, currentUserId).catch((err) => {

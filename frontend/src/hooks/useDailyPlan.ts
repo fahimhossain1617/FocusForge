@@ -148,39 +148,10 @@ export function useDailyPlan() {
       const estMinutes = task.estMinutes || 45;
       const endMinutes = startMinutes + estMinutes;
 
-      // A. Pre-Reminder (5 minutes before scheduled start time)
-      const preNotifId = `task_pre_${task.id}_${todayStr}`;
-      if (!notificationService.hasBeenSent(preNotifId)) {
-        const preTriggerMinutes = startMinutes - 5;
-        if (currentTotalMinutes >= preTriggerMinutes && currentTotalMinutes < startMinutes) {
-          const template = notificationRotationManager.getNext(
-            "task_pre_reminder",
-            lang,
-            { taskName },
-            userId
-          );
-
-          await notificationService.send({
-            id: preNotifId,
-            category: "task_pre_reminder",
-            templateId: template.templateId,
-            appTag: template.appTag,
-            title: template.title,
-            body: template.message,
-            orbMood: template.orbMood,
-            type: "task",
-            actionRoute: "tasks",
-            taskId: task.id,
-            requireInteraction: false,
-            silent: !(prefs?.soundEnabled ?? true),
-          });
-        }
-      }
-
-      // B. Task Start Reminder (around task start time)
+      // A. Task Start Reminder (fired at the exact scheduled task time, 5m pre-reminder removed)
       const startNotifId = `task_start_${task.id}_${todayStr}`;
       if (!notificationService.hasBeenSent(startNotifId)) {
-        if (currentTotalMinutes >= startMinutes && currentTotalMinutes < startMinutes + 30) {
+        if (currentTotalMinutes >= startMinutes && currentTotalMinutes < startMinutes + 35) {
           const template = notificationRotationManager.getNext(
             "task_start",
             lang,

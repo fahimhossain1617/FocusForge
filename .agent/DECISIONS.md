@@ -2632,3 +2632,49 @@
 - **Verification:**
   - `npm run build --prefix frontend`: Exit Code 0 (39 routes compiled, 0 errors).
   - `npx tsx scripts/test_admin_frontend.ts`: 11/11 tests PASSED.
+
+---
+
+## ADR-084: 100% Reliable Time-to-Time Notifications, 5-Minute Pre-Reminder Removal, 24/7 Supabase Cloud Dispatch, and Untimed Task Nudges
+
+- **Date:** October 30, 2026
+- **Status:** Accepted & Verified
+- **Context:**
+  1. **Background Notification Silence:** When users closed the app or navigated to other apps, no notifications arrived. In-app notifications fired because timers were running in active React contexts, but closed-app and background delivery failed.
+  2. **5-Minute Pre-Reminder:** The 5-minute advance reminder (`task_pre_reminder`) caused confusion and was explicitly requested to be removed in favor of notifications strictly firing at the exact scheduled task time.
+  3. **Untimed Tasks:** Tasks added without explicit times had no structured follow-up. The user requested a polite, easy-to-understand reminder 4 to 6 hours after addition.
+  4. **Daily Notification Cadence:** The user requested a strict 2-3 notifications per day limit across general nudges (morning soft reminder, afternoon/untimed nudge, evening focus session prompt).
+- **Root Cause Analysis:**
+  1. `AppContext.tsx` auto-reschedule effect only called `localNotificationScheduler.debounceReschedule` and NEVER called `reminderSyncService.debounceSyncReminders`. Consequently, task additions/updates in `/planner` were never synced to `public.scheduled_reminders` on the server.
+  2. While `scheduled_reminders` and Web Push infrastructure existed, there was no continuous 24/7 cloud cron trigger in production calling `/api/notifications/cron`.
+  3. `localNotificationScheduler.ts` had a rigid 2-minute past tolerance window (`diff < 2 * 60 * 1000`). If a mobile browser was in the background, screen off, or user was on another app, the throttled timer exceeded 2 minutes on resume and silently marked the task reminder as sent without displaying any notification.
+  4. `useDailyPlan.ts` and `reminderSyncService.ts` explicitly created `task_pre_reminder` (5 minutes before start) and incomplete task follow-ups (30m before end).
+- **Decision:**
+  1. **Complete Removal of 5-Minute Pre-Reminder:**
+     - Removed `task_pre_reminder` generation from `useDailyPlan.ts` and `reminderSyncService.ts`.
+     - Scheduled task reminders strictly at the exact user-defined start timestamp (`task_start`, Priority 1).
+     - Cancelled legacy pending `task_pre_reminder` rows in the database.
+  2. **Untimed Task Nudge (4 to 6 Hours Post-Addition):**
+     - When an untimed task is added, a gentle reminder is scheduled for ~4.5 hours after task addition (capped before quiet hours and daytime).
+     - Warm, polite Bengali and English templates in `notificationTemplates.ts` (`task_incomplete`).
+  3. **Strict 2-3 Daily General Nudges:**
+     - Morning (~08:00): Soft reminder (daily plan, or skill practice if active skills in Time Log).
+     - Afternoon (~14:00/14:30): Untimed task follow-up or gentle app engagement check-in.
+     - Evening (~18:30): Focus session prompt.
+     - Capped strictly at 2-3 general nudges per day.
+  4. **24/7 Cloud Dispatch via Supabase `pg_cron` & `pg_net`:**
+     - Registered `focentia-notification-dispatch` in Supabase `pg_cron` with schedule `* * * * *`, executing `net.http_post` every single minute to `https://focus-forge-fahimhossain1617-7909s-projects.vercel.app/api/notifications/cron` with `CRON_SECRET`.
+     - Added secondary cloud backup in `.github/workflows/notifications-cron.yml` (every 10 minutes).
+     - Updated `/api/cron/maintenance` to also execute `runNotificationSchedulerCycle()`.
+  5. **Background & Offline Resilience:**
+     - Widened catch-up tolerance in `localNotificationScheduler.ts` and `sw.js` to 45 minutes for user tasks (15m for non-urgent nudges), preventing silent drops when phone is sleeping or user is in another app.
+     - Directly persisted scheduled alerts to IndexedDB `focentia_reminders_db` from `localNotificationScheduler.ts`.
+     - Synced `reminderSyncService.debounceSyncReminders` directly from `AppContext.tsx` on all task and setting changes.
+- **Verification:**
+  - `verify_time_to_time_notifications.ts`: 13/13 checks PASSED (zero pre-reminders, exact task start minute, untimed task follow-up, <= 3 daily nudges, Supabase pg_cron active, push subscriptions valid).
+  - `verify_notification_and_shared_note_audit.ts`: 100% checks PASSED.
+  - `audit_notification_system.js`: 33/33 checks PASSED.
+  - Supabase `cron.job_run_details`: Confirmed `status: 'succeeded'` every minute.
+  - FCM Live Delivery Test: HTTP 201 Created.
+  - `npm run build --prefix frontend`: Compiled successfully (39 static/dynamic routes, 0 errors).
+  - `npm run build --prefix backend`: Compiled successfully (0 errors).

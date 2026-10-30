@@ -1,0 +1,33 @@
+name: Background Notifications Dispatch Cron
+
+on:
+  schedule:
+    # Run every 10 minutes as a persistent cloud backup
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+
+jobs:
+  dispatch-notifications:
+    name: Evaluate Due Reminders
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Notification Scheduler Route
+        run: |
+          echo "Pinging production notification scheduler route..."
+          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "https://focus-forge-fahimhossain1617-7909s-projects.vercel.app/api/notifications/cron" \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer 23976ee4d06722f79a0ce68cc0738d7cb863ab2372fb2f3005998002003a1bbd" \
+            -d '{"source": "github-actions-cron"}')
+          
+          HTTP_STATUS=$(echo "$RESPONSE" | tail -n 1)
+          BODY=$(echo "$RESPONSE" | head -n -1)
+          
+          echo "HTTP Status: $HTTP_STATUS"
+          echo "Response Body: $BODY"
+          
+          if [ "$HTTP_STATUS" -ge 200 ] && [ "$HTTP_STATUS" -lt 300 ]; then
+            echo "✅ Successfully evaluated due background notifications."
+          else
+            echo "⚠️ Warning: Notification cron returned HTTP $HTTP_STATUS."
+          fi
+
