@@ -279,15 +279,15 @@ export default function NoteEditorView({
       });
 
       const data = await res.json();
-      const origin = typeof window !== "undefined" ? window.location.origin : "https://focus-forge-fahimhossain1617-7909s-projects.vercel.app";
+      const origin = typeof window !== "undefined" ? window.location.origin : "https://focentia.vercel.app";
       const shareUrl = data?.shareUrl || `${origin}/?shared_note=${data?.shareId || 'offline'}`;
       const shareTitle = (title && title.trim()) ? title.trim() : (state.lang === 'bn' ? "নোট" : "Untitled note");
 
       const shareData = {
         title: shareTitle,
         text: state.lang === 'bn' 
-          ? `${shareTitle} - ফোকাসফোর্জ নোট ও ফাইলস` 
-          : `${shareTitle} - FocusForge Notes & Files`,
+          ? `${shareTitle} - ফোসেনটিয়া নোট ও ফাইলস` 
+          : `${shareTitle} - Focentia Notes & Files`,
         url: shareUrl,
       };
 

@@ -530,10 +530,10 @@ export default function AuthModal() {
         <div className="flex items-center gap-2.5 mb-6">
           <img 
             src="/logo.png" 
-            alt="FocusForge" 
+            alt="Focentia" 
             className="w-8 h-8 rounded-full object-cover"
           />
-          <span className="font-bold tracking-tight text-white text-base">FocusForge</span>
+          <span className="font-bold tracking-tight text-white text-base">Focentia</span>
         </div>
 
         {/* Error Alert Box */}

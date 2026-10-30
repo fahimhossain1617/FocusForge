@@ -42,16 +42,13 @@ export function useDailyPlan() {
   // Helper: Detect if active user is brand new and should be shielded from unprompted nudges
   const isNewUserShieldActive = useCallback(() => {
     if (typeof window === "undefined") return false;
-    if (userId && localStorage.getItem(`focusforge_new_user_shield_${userId}`) === "true") {
-      return true;
-    }
     const hasAnyActivity =
       (state.tasks && state.tasks.length > 0) ||
       (state.focusSessions && state.focusSessions.length > 0) ||
       (state.learningLogs && state.learningLogs.length > 0);
 
     return !hasAnyActivity;
-  }, [userId, state.tasks, state.focusSessions, state.learningLogs]);
+  }, [state.tasks, state.focusSessions, state.learningLogs]);
 
   // Helper: Check minimum 75-minute cooldown between automated engagement nudges
   const canSendAutomatedNudge = useCallback(() => {
@@ -115,7 +112,7 @@ export function useDailyPlan() {
       type: "planner",
       actionRoute: "planner",
       requireInteraction: false,
-      silent: true,
+      silent: !(prefs?.soundEnabled ?? true),
     });
   }, [prefs, lang, userId]);
 
@@ -175,7 +172,7 @@ export function useDailyPlan() {
             actionRoute: "tasks",
             taskId: task.id,
             requireInteraction: false,
-            silent: true,
+            silent: !(prefs?.soundEnabled ?? true),
           });
         }
       }
@@ -204,7 +201,7 @@ export function useDailyPlan() {
             taskId: task.id,
             requireInteraction: true,
             isUrgent: true,
-            silent: true,
+            silent: !(prefs?.soundEnabled ?? true),
           });
         }
       }

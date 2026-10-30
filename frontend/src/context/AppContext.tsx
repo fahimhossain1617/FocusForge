@@ -948,8 +948,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       estMinutes: taskData.estMinutes || 60,
       status: taskData.status || (isComp ? 'completed' : 'not_started'),
       completed: isComp,
-      reminderEnabled: taskData.reminderEnabled ?? false,
-      reminderTime: taskData.reminderTime || '',
+      reminderEnabled: taskData.reminderEnabled ?? Boolean(taskData.time || taskData.reminderTime),
+      reminderTime: taskData.reminderTime || taskData.time || '',
       category: taskData.category || '',
       notes: taskData.notes || taskData.description || '',
       tier: taskData.tier || 'next',
@@ -985,6 +985,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         if (updates.date && !updates.targetDate) updated.targetDate = updates.date;
         if (updates.notes && !updates.description) updated.description = updates.notes;
         if (updates.description && !updates.notes) updated.notes = updates.description;
+        if (updates.time && updates.reminderEnabled === undefined && t.reminderEnabled === undefined) {
+          updated.reminderEnabled = true;
+        }
+        if (updates.time && !updates.reminderTime && !t.reminderTime) {
+          updated.reminderTime = updates.time;
+        }
         return updated;
       }),
     }));

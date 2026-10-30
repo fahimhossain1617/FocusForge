@@ -46,6 +46,7 @@ import BottomNav from "../components/navigation/BottomNav";
 import MobileHeader from "../components/navigation/MobileHeader";
 import DiaryHome from "../components/diary/DiaryHome";
 import PageErrorBoundary from "../components/ui/PageErrorBoundary";
+import SharedNoteStandaloneView from "../components/workspace/SharedNoteStandaloneView";
 
 const pageComponents: Record<string, React.ComponentType<{ onOpenSidebar?: () => void }>> = {
   today: DashboardPage,
@@ -66,6 +67,11 @@ export default function Home() {
   const { user, isGuest, isLoading: isAuthLoading } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [sharedNoteId] = useState<string | null>(() => {
+    if (typeof window === "undefined") return null;
+    const params = new URLSearchParams(window.location.search);
+    return params.get("shared_note");
+  });
   const [showOnboarding, setShowOnboarding] = useState<boolean>(() => {
     if (typeof window === "undefined") return false;
     if (window.location.search.includes("shared_note=")) return false;
@@ -86,8 +92,6 @@ export default function Home() {
       const search = window.location.search || "";
       if (hash.includes("type=recovery") || search.includes("type=recovery")) {
         window.location.href = `/reset-password${hash || search}`;
-      } else if (search.includes("shared_note=")) {
-        navigateTo("tasks");
       }
     }
   }, [navigateTo]);
@@ -257,6 +261,11 @@ export default function Home() {
   const handleEnterAppFromOnboarding = () => {
     setShowOnboarding(false);
   };
+
+  // Dedicated Standalone Shared Note View (100% focused, persistent, read-only)
+  if (sharedNoteId) {
+    return <SharedNoteStandaloneView shareId={sharedNoteId} />;
+  }
 
   // Show Onboarding immediately without rendering Dashboard or AppShellSkeleton
   if (showOnboarding) {

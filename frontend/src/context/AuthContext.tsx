@@ -472,7 +472,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         showToast(t.auth.welcomeToastNew, "success");
         if (typeof window !== "undefined") {
           try {
-            localStorage.setItem(`focusforge_new_user_shield_${authedUser.id}`, "true");
+            // Clear any legacy new-user shield to ensure notifications flow normally
+            localStorage.removeItem(`focusforge_new_user_shield_${authedUser.id}`);
             notificationCenterService.setUserId(authedUser.id);
             notificationCenterService.clearAll();
           } catch {}

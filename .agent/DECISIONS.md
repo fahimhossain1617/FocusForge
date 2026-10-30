@@ -2515,3 +2515,41 @@
   - Notification and PWA test suite scripts/verify_notifications_and_pwa.ts: 41/41 checks PASSED.
   - Production Build: npm run build --prefix frontend PASSED (39 static/dynamic routes, 0 errors).
 - **Status:** **VERIFIED**
+
+
+---
+
+## ADR-080: Reliable Time-to-Time Notifications, Dynamic Sound Toggle, and Dedicated Persistent Standalone Shared Note View
+
+- **Date:** October 30, 2026
+- **Status:** Accepted & Verified
+- **Context:**
+  1. **Notification Delivery Failure:** Time-to-time task notifications were not firing at all, neither online nor offline. General notifications were absent.
+  2. **Notification Sound Setting:** Previous changes had hardcoded `silent: true`, `soundEnabled = false`, and muted `playChime()`, disabling audio feedback even when users requested notification sound.
+  3. **Shared Note Branding & Link Re-click Bug:** When sharing notes, the title read "FocusForge Notes & Files" instead of "Focentia" / "ফোসেনটিয়া". On visiting the shared link, clicking away or clicking again cleared the note and opened the full app dashboard because `url.searchParams.delete("shared_note")` mutated the browser address bar. Unauthenticated visitors lacked a dedicated, clean document view and clear login path.
+- **Root Cause Analysis:**
+  1. `AuthContext.tsx` set `focusforge_new_user_shield_${authedUser.id} = "true"` on signup and NEVER removed it, causing `isBrandNew` to stay `true` forever in `localNotificationScheduler.ts` and `useDailyPlan.ts`, permanently skipping all daily morning, midday, and evening notification slots.
+  2. `AppContext.tsx` defaulted `reminderEnabled` to `false` in `addTask()` even when `time` was provided, causing `localNotificationScheduler.ts` and `reminderSyncService.ts` to skip scheduling tasks with times unless an explicit reminder checkbox was toggled.
+  3. `sw.js` executed `clearAllReminderTimers()` blindly on every state reschedule, resetting all active in-memory setTimeout timers before they could execute.
+  4. `WorkspacePage.tsx` executed `url.searchParams.delete("shared_note")` on subview back, destroying the shared note URL in browser history.
+- **Decision:**
+  1. **Notification Delivery Restoration & Sound Setting:**
+     - Removed `focusforge_new_user_shield_` blocker from `AuthContext.tsx`, `useDailyPlan.ts`, and `localNotificationScheduler.ts`.
+     - In `AppContext.tsx`, defaulted `reminderEnabled: taskData.reminderEnabled ?? Boolean(taskData.time || taskData.reminderTime)`.
+     - In `localNotificationScheduler.ts` and `reminderSyncService.ts`, ensured all tasks with set times are scheduled with exact minute alarms.
+     - Restored synthesized Web Audio API chime in `notificationService.ts` governed by `notifPreferences.soundEnabled`.
+     - In `sw.js`, implemented smart incremental timer updates to preserve active timers across reschedules, and respected `reminder.sound` for system silence/vibrate options.
+     - Scheduled upcoming 24-48h daily slots (capped at 2-3 nudges per day: ~08:00, ~13:30, ~18:30) for offline resiliency. Anti-avalanche guard suppresses past stale backlog (>2m) silently on app open.
+  2. **Dedicated Persistent Standalone Shared Note View (`SharedNoteStandaloneView.tsx`):**
+     - Built dedicated standalone view rendered immediately when `?shared_note=<id>` is present in URL.
+     - Clean header featuring Focentia brand and conditional action: unauthenticated visitors see a prominent "Login" (লগইন) button navigating to `/login`, while authenticated users see "Go to App" (অ্যাপে যান).
+     - Full interactive read-only rendering of note title, category, blocks (`BlockEditor` with `readOnly={true}`), clickable links (Google Drive, URLs in new tab), and downloadable attachments.
+     - Permanent URL preservation: eliminated `url.searchParams.delete("shared_note")`, guaranteeing repeat clicks and refreshes always display the shared note cleanly.
+  3. **Universal Brand Cleanup:**
+     - Replaced all user-facing "FocusForge" and "ফোকাসফোর্জ" strings with "Focentia" and "ফোসেনটিয়া" across share texts, metadata, auth modals, and UI dialogs.
+- **Verification:**
+  - `verify_notification_and_shared_note_audit.ts`: 100% checks PASSED (exact task timing, sound toggle propagation, <= 3 daily nudges cap, brand text format).
+  - `verify_notifications_and_pwa.ts`: 41/41 checks PASSED.
+  - `test_shared_notes.ts`: 100% PASSED.
+  - `npm run build --prefix frontend`: Compiled successfully (39 static/dynamic routes, 0 errors).
+  - `npm run build --prefix backend`: Compiled successfully (0 errors).

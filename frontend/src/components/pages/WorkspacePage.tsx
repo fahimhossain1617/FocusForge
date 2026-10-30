@@ -89,11 +89,6 @@ export default function WorkspacePage() {
     setEditingNote(null);
     if (isReadOnlyNote) {
       setIsReadOnlyNote(false);
-      if (typeof window !== "undefined") {
-        const url = new URL(window.location.href);
-        url.searchParams.delete("shared_note");
-        window.history.replaceState({}, "", url.pathname + (url.search ? url.search : ""));
-      }
     }
   }, [isReadOnlyNote]);
 

@@ -418,7 +418,7 @@ export const TRANSLATIONS = {
       backToDashboard: "Back to Dashboard",
       profileCard: {
         guestName: "Guest Explorer",
-        guestEmail: "guest@focusforge.app",
+        guestEmail: "guest@focentia.app",
         editProfile: "Edit Profile"
       },
       profile: {
@@ -1391,7 +1391,7 @@ export const TRANSLATIONS = {
       backToDashboard: "ড্যাশবোর্ডে ফিরে যান",
       profileCard: {
         guestName: "গেস্ট এক্সপ্লোরার",
-        guestEmail: "guest@focusforge.app",
+        guestEmail: "guest@focentia.app",
         editProfile: "প্রোফাইল সম্পাদনা"
       },
       profile: {

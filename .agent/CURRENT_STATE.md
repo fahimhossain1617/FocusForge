@@ -475,21 +475,18 @@ Focentia is an active, functional productivity suite built with Next.js 16 App R
 
 ### Web Push & PWA Background Notifications Subsystem
 - **Current Implementation:**
-  1. **OS-Level Service Worker Push Handler (`frontend/public/sw.js`):** Standalone `push` event listener parsing JSON/text payloads and invoking `event.waitUntil(self.registration.showNotification(title, options))` so the OS handles displaying notifications even when the app/browser is terminated or minimized. Robust `notificationclick` handler focusing active clients or launching window to deep-linked URLs.
-  2. **VAPID Keys & Client Subscription Pipeline (`frontend/src/utils/pushSubscription.ts`):** ECDSA P-256 VAPID protocol integration (`NEXT_PUBLIC_VAPID_PUBLIC_KEY` & `VAPID_PRIVATE_KEY`). `subscribeUserToPush` negotiates browser PushManager subscription via `urlBase64ToUint8Array` and persists endpoint/keys to `push_subscriptions` database table. Integrated automatically with `ServiceWorkerRegister.tsx` and `notificationService.ts`.
-  3. **Backend Scheduler & Push Worker (`backend/src/services/notificationSchedulerService.ts`):** Persistent server background worker running every 60s to evaluate scheduled rules:
-     - 5 minutes before scheduled task (`task_pre_reminder`)
-     - Exact task start time (`task_start`)
-     - 30 minutes before task end if still incomplete (`task_incomplete`)
-     - Midday & evening focus reminders if no focus session recorded today (`focus_reminder`)
-     - Skill builder practice reminder if learning topics exist but not practiced today (`skill_reminder`)
-     - Mind space / Diary reminder every evening (`diary_reminder`)
-     - 1-day inactivity companion alert to chat with Glory AI or resume focus (`ai_companion`)
-     Respects quiet hours (22:00 - 07:00), daily frequency caps, and deduplication.
-  4. **Simplified Settings UI with Master Toggle (`SettingsPage.tsx`):** Clean header without redundant "Active" badge. Central push toggle in the Notification Settings header allows switching notifications ON and OFF fluidly at any time. When turned ON, it promptly enables state and schedules Web Push registration asynchronously in the background. When turned OFF, disables notifications and disables all sub-toggles.
-  5. **Server-Side Push Delivery Pipelines (`webPushService.ts`):** `frontend/src/lib/server/webPushService.ts` and `backend/src/services/webPushService.ts` using `web-push` library with automatic removal of 410/404 expired subscriptions.
-  6. **API Endpoints:** `POST /api/notifications/subscribe`, `POST /api/notifications/unsubscribe`, `POST /api/notifications/send-push`, `POST /api/notifications/test`, `POST /api/notifications/cron`, `GET/POST /api/notifications/settings`.
-- **Verified Status:** **VERIFIED** (Next.js production build passed with 0 errors, toggle on/off verified, non-blocking asynchronous Web Push registration guard active).
+  1. **OS-Level Service Worker Push Handler (`frontend/public/sw.js`):** Standalone `push` event listener parsing JSON/text payloads and invoking `event.waitUntil(self.registration.showNotification(title, options))` so the OS handles displaying notifications even when the app/browser is terminated or minimized. Incremental timer synchronization preserving active in-memory timers across reschedules without wiping countdowns.
+  2. **Exact Task Reminder Execution:** Offline-first and online scheduled alerts triggered at the exact user-scheduled minute (`task_start`, `task_pre_reminder`). Automatically activated for all tasks with a set time, with user override support.
+  3. **Daily System Nudge Cap (Strict 2-3 per 24 hours):** General reminders (Morning Plan ~08:00, Midday Check-in ~13:30, Evening Focus/Skill ~18:30) scheduled across 24h/48h horizons for offline resiliency. Anti-avalanche guard enforces a 2-minute freshness window, silently expiring stale backlog alerts (>2m past) to completely eliminate open-app bursts. Removed legacy permanent new-user shield blocker.
+  4. **Sound ON/OFF Toggle & Synthesizer:** Restored functional sound toggle in Settings. When ON, plays a pleasant Web Audio API C5-E5-G5 synthesizer chime with device vibration and audible system alert; when OFF, delivers 100% silent notifications without audio interruption.
+  5. **VAPID Keys & Client Subscription Pipeline (`frontend/src/utils/pushSubscription.ts`):** ECDSA P-256 VAPID protocol integration (`NEXT_PUBLIC_VAPID_PUBLIC_KEY` & `VAPID_PRIVATE_KEY`). `subscribeUserToPush` negotiates browser PushManager subscription via `urlBase64ToUint8Array` and persists endpoint/keys to `push_subscriptions` database table. Integrated automatically with `ServiceWorkerRegister.tsx` and `notificationService.ts`.
+  6. **Backend Scheduler & Push Worker (`backend/src/services/notificationSchedulerService.ts`):** Persistent server background worker running every 60s to evaluate scheduled rules with concurrency locks (`FOR UPDATE SKIP LOCKED`).
+  7. **Dedicated Standalone Shared Note View (`SharedNoteStandaloneView.tsx`):**
+     - Opening `/?shared_note=<id>` renders a focused, read-only document view with Focentia branding, category tag, full interactive blocks (`BlockEditor` with `readOnly={true}`), clickable links (Google Drive, URLs), and downloadable attachments.
+     - Top navbar displays brand and conditional action: unauthenticated users see a clean "Login" (লগইন) button navigating to `/login`, while authenticated users see "Go to App" (অ্যাপে যান).
+     - Permanent URL preservation: `shared_note` parameter is never stripped or mutated, guaranteeing identical pristine display on repeat clicks, browser back gestures, and page refreshes.
+     - Complete brand name cleanup: replaced legacy "FocusForge" references with "Focentia" / "ফোসেনটিয়া" across share texts, meta tags, auth modals, and UI dialogs.
+- **Verified Status:** **VERIFIED** (Next.js production build passed with 0 errors across all 39 static and dynamic routes, 41/41 notification & PWA checks passed, 100% shared note audit passed with zero regressions).
 - **Important Files:** `frontend/public/sw.js`, `frontend/src/utils/pushSubscription.ts`, `frontend/src/lib/server/webPushService.ts`, `backend/src/services/webPushService.ts`, `backend/src/services/notificationSchedulerService.ts`, `frontend/src/components/pages/SettingsPage.tsx`, `frontend/src/hooks/useDailyPlan.ts`, `frontend/src/services/notificationTemplates.ts`, `frontend/src/app/api/[...path]/route.ts`, `backend/src/routes/notificationRoutes.ts`.
 - **Dependencies:** `web-push`, PushManager API, Service Worker API, PostgreSQL.
 - **Unknowns:** None.

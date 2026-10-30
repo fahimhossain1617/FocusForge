@@ -1391,7 +1391,7 @@ export async function dbDeleteUserAccountCompletely(userId: string): Promise<voi
     await safeDelete(
       `
       UPDATE public.support_tickets 
-      SET user_id = NULL, name = 'Deleted User', email = 'deleted@focusforge.app' 
+      SET user_id = NULL, name = 'Deleted User', email = 'deleted@focentia.app' 
       WHERE user_id = $1
       `,
       [userId]

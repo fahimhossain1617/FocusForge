@@ -123,9 +123,9 @@ export default function UserMenu({ variant = "sidebar" }: UserMenuProps) {
                 <p 
                   className="text-xs font-semibold break-words leading-tight transition-colors"
                   style={{ color: "var(--color-text-primary)" }}
-                  title={user?.displayName || "FocusForge User"}
+                  title={user?.displayName || "Focentia User"}
                 >
-                  {user?.displayName || "FocusForge User"}
+                  {user?.displayName || "Focentia User"}
                 </p>
                 <p 
                   className="text-[10px] break-all mt-0.5 transition-colors"

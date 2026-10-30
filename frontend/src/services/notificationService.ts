@@ -115,7 +115,7 @@ class NotificationService {
   private quietHoursEnabled: boolean = true;
   private quietHoursStart: string = "22:00"; // 10:00 PM
   private quietHoursEnd: string = "07:00"; // 7:00 AM
-  private soundEnabled: boolean = false; // User requested 100% silent notifications
+  private soundEnabled: boolean = true; // Governed by User Preference in Settings
   private appBootTime: number = Date.now();
   private lastNonUrgentSendTime: number = 0;
 
@@ -205,11 +205,63 @@ class NotificationService {
 
   /**
    * Play an elegant gentle synthesized chime using Web Audio API.
-   * Completely muted per user instruction to ensure 100% silent notifications without chime noise.
+   * Only plays when soundEnabled is true and respects quiet hours / rate limiting.
    */
   public playChime(): void {
-    // Intentionally silenced: User requested zero audio chime on notifications
-    return;
+    if (!this.soundEnabled) return;
+    if (typeof window === "undefined") return;
+    const nowMs = Date.now();
+    if (nowMs - this.lastChimeTime < 1500) {
+      return; // Rate limit audio chimes to avoid avalanche cacophony
+    }
+    this.lastChimeTime = nowMs;
+    try {
+      const AudioContextClass =
+        window.AudioContext ||
+        (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+      if (!AudioContextClass) return;
+
+      const ctx = new AudioContextClass();
+      const now = ctx.currentTime;
+
+      // Note 1 (523.25Hz - C5)
+      const osc1 = ctx.createOscillator();
+      const gain1 = ctx.createGain();
+      osc1.type = "sine";
+      osc1.frequency.setValueAtTime(523.25, now);
+      gain1.gain.setValueAtTime(0.08, now);
+      gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+      osc1.connect(gain1);
+      gain1.connect(ctx.destination);
+      osc1.start(now);
+      osc1.stop(now + 0.35);
+
+      // Note 2 (659.25Hz - E5)
+      const osc2 = ctx.createOscillator();
+      const gain2 = ctx.createGain();
+      osc2.type = "sine";
+      osc2.frequency.setValueAtTime(659.25, now + 0.12);
+      gain2.gain.setValueAtTime(0.08, now + 0.12);
+      gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.55);
+      osc2.connect(gain2);
+      gain2.connect(ctx.destination);
+      osc2.start(now + 0.12);
+      osc2.stop(now + 0.55);
+
+      // Note 3 (783.99Hz - G5)
+      const osc3 = ctx.createOscillator();
+      const gain3 = ctx.createGain();
+      osc3.type = "sine";
+      osc3.frequency.setValueAtTime(783.99, now + 0.24);
+      gain3.gain.setValueAtTime(0.1, now + 0.24);
+      gain3.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
+      osc3.connect(gain3);
+      gain3.connect(ctx.destination);
+      osc3.start(now + 0.24);
+      osc3.stop(now + 0.8);
+    } catch {
+      // AudioContext may be blocked by browser autoplay policy before user gesture
+    }
   }
 
   // ==================== Duplicate & Anti-Spam Controls ====================
@@ -516,7 +568,11 @@ class NotificationService {
       } catch {}
     }
 
-    // 7. Audio chime is permanently muted per user preference for silent notifications
+    // 7. Play gentle audio chime if sound is enabled
+    const shouldPlaySound = this.soundEnabled && !payload.silent;
+    if (shouldPlaySound) {
+      this.playChime();
+    }
 
     // 8. Device / OS Web Notification & Service Worker (Android PWA System Notification)
     if (!this.isSupported() || this.getPermission() !== "granted") {
@@ -539,8 +595,8 @@ class NotificationService {
         tag: deterministicTag,
         renotify: payload.renotify ?? true,
         requireInteraction: payload.requireInteraction ?? false,
-        silent: true,
-        vibrate: [0],
+        silent: !shouldPlaySound,
+        vibrate: shouldPlaySound ? [100, 50, 100] : [0],
         timestamp,
         data: {
           ...payload.data,

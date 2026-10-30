@@ -782,7 +782,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ pa
         userId || null
       );
       
-      const origin = request.nextUrl.origin || 'https://focus-forge-fahimhossain1617-7909s-projects.vercel.app';
+      const origin = request.nextUrl.origin || 'https://focentia.vercel.app';
       const shareUrl = `${origin}/?shared_note=${shareId}`;
 
       return NextResponse.json({
@@ -1767,7 +1767,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ pa
               type: ticket.type,
               category: ticket.category,
               senderName: ticket.name || 'Anonymous',
-              senderEmail: ticket.email || 'noreply@focusforge.app',
+              senderEmail: ticket.email || 'noreply@focentia.app',
               subject: ticket.type === 'report' && hasPicture ? `[Photo Attached] ${ticket.subject}` : ticket.subject,
               message: ticket.message,
               appVersion: ticket.appVersion || '1.0.0',

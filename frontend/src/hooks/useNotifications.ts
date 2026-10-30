@@ -79,11 +79,11 @@ export function useNotifications() {
     const success = await notificationService.send({
       id: `test_notif_${Date.now()}`,
       category: "system",
-      title: isBn ? "FocusForge নোটিফিকেশন সক্রিয়" : "FocusForge Notification Active",
+      title: isBn ? "Focentia নোটিফিকেশন সক্রিয়" : "Focentia Notification Active",
       body: isBn
         ? "আপনার নোটিফিকেশন সিস্টেম সম্পূর্ণ সক্রিয়। সময়মতো আপনার প্ল্যান ও টাস্ক রিমাইন্ডার পাবেন।"
         : "You will receive your Daily Morning Plan and scheduled task reminders on time!",
-      tag: "focusforge-test-notification",
+      tag: "focentia-test-notification",
       actionRoute: "today",
       actions: [
         {

@@ -884,7 +884,7 @@ export function handleLocalIntent(
       if (openFocus) actions.push(openFocus);
 
       const replyBn = `আমি মূলত একটি প্রোডাক্টিভিটি সঙ্গী—পড়াশোনার সময় ও রুটিন গুছিয়ে দেওয়াই আমার কাজ। বিষয়ভিত্তিক বিস্তারিত শেখার জন্য তুমি ইউটিউব টিউটোরিয়াল বা এআই টিউটর (যেমন Gemini, ChatGPT, Claude) ব্যবহার করতে পারো। তারপর শেখার সময়টুকু Time Log-এ ট্র্যাক করতে ও Planner-এ শিডিউল করতে আমি প্রস্তুত!`;
-      const replyEn = `I am your FocusForge productivity companion! I don't directly teach or solve academic exercises. For deep subject learning, search YouTube or ask an AI tutor (Gemini, ChatGPT, Claude), then track your study hours in Time Log and schedule your revision in Planner!`;
+      const replyEn = `I am your Focentia productivity companion! I don't directly teach or solve academic exercises. For deep subject learning, search YouTube or ask an AI tutor (Gemini, ChatGPT, Claude), then track your study hours in Time Log and schedule your revision in Planner!`;
 
       return {
         message: prefix + (isBn ? replyBn : replyEn),

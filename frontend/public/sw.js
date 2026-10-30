@@ -1,5 +1,5 @@
 // Focentia Progressive Web App Service Worker
-const CACHE_NAME = 'focentia-build-1793305789803';
+const CACHE_NAME = 'focentia-build-1793340119632';
 const IMMUTABLE_CACHE = 'focentia-immutable-static-v1';
 
 const STATIC_ASSETS = [
@@ -163,16 +163,16 @@ async function triggerScheduledNotification(reminder) {
     const deterministicTag = reminder.tag || `focentia-${reminder.id}`;
     const actions = getDefaultActions(category, actionRoute);
 
+    const isSoundActive = reminder.sound !== false;
     const options = {
       body: reminder.body,
       icon: reminder.icon || getNotificationOrbIcon(reminder.orbMood || category),
-      silent: true,
-      vibrate: [0],
+      silent: !isSoundActive,
       badge: reminder.badge || '/icons/badge-large.png?v=max_zoom_1',
       tag: deterministicTag,
       renotify: true,
       requireInteraction: Boolean(reminder.requireInteraction),
-      vibrate: [0],
+      vibrate: isSoundActive ? [100, 50, 100] : [0],
       timestamp: reminder.timestamp || Date.now(),
       data: {
         id: reminder.id,
@@ -196,7 +196,14 @@ async function triggerScheduledNotification(reminder) {
 
 function scheduleReminders(reminders, persist = true) {
   if (!Array.isArray(reminders)) return;
-  clearAllReminderTimers();
+  // Smart incremental timer update: preserve undisturbed active timers
+  const incomingIds = new Set(reminders.map(r => r.id));
+  for (const [id, timer] of activeReminderTimers.entries()) {
+    if (!incomingIds.has(id)) {
+      clearTimeout(timer);
+      activeReminderTimers.delete(id);
+    }
+  }
   activeScheduledReminders = reminders;
 
   if (persist) {
@@ -206,6 +213,7 @@ function scheduleReminders(reminders, persist = true) {
   const now = Date.now();
   for (const item of reminders) {
     if (!item.targetTimestamp || triggeredReminderIds.has(item.id)) continue;
+    if (activeReminderTimers.has(item.id)) continue;
     const delay = item.targetTimestamp - now;
 
     if (delay > 0 && delay < 24 * 60 * 60 * 1000) {
@@ -217,6 +225,7 @@ function scheduleReminders(reminders, persist = true) {
           const actionRoute = item.actionRoute || '';
           const deterministicTag = item.tag || `focentia-${item.id}`;
           const actions = getDefaultActions(category, actionRoute);
+          const isSoundActive = item.sound !== false;
           const notifOptions = {
             body: item.body,
             icon: item.icon || getNotificationOrbIcon(item.orbMood || item.category),
@@ -225,7 +234,8 @@ function scheduleReminders(reminders, persist = true) {
             showTrigger: trigger,
             renotify: true,
             requireInteraction: Boolean(item.requireInteraction || item.isUrgent),
-            vibrate: [0],
+            silent: !isSoundActive,
+            vibrate: isSoundActive ? [100, 50, 100] : [0],
             timestamp: item.targetTimestamp,
             data: {
               id: item.id,

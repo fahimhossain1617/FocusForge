@@ -250,16 +250,15 @@ class LocalNotificationScheduler {
     const quietHoursEnabled = prefs.quietHoursEnabled ?? true;
     const quietHoursStart = prefs.quietHoursStart || "22:00";
     const quietHoursEnd = prefs.quietHoursEnd || "07:00";
-    const sound = false; // User explicitly requested 100% silent notifications
+    const sound = prefs.soundEnabled ?? true;
 
     // 1. Exact Scheduled Task Reminders (Priority 1)
-    // Only fires if user explicitly set a scheduled time on the task
+    // Fires at the exact user-scheduled minute both offline and online
     const untimedTasks: Task[] = [];
     if (prefs.taskReminders !== false) {
       for (const task of tasks) {
         const isDone = task.completed || task.status === "completed";
         if (isDone) continue;
-        if (task.reminderEnabled === false) continue;
 
         const taskDate = (task.targetDate || task.date || todayStr).trim();
         const timeStr = (task.reminderTime || task.time || (task as any).startTime || "").trim();
@@ -268,6 +267,9 @@ class LocalNotificationScheduler {
           untimedTasks.push(task);
           continue;
         }
+
+        // Active if reminder is enabled or has explicit time without being disabled
+        if (task.reminderEnabled === false && !task.reminderTime) continue;
 
         const [h, m] = timeStr.split(":").map(Number);
         if (isNaN(h) || isNaN(m)) {
@@ -280,7 +282,7 @@ class LocalNotificationScheduler {
         const startMs = taskStartDate.getTime();
         const taskName = task.title || task.name || (lang === "bn" ? "টাস্ক" : "Task");
 
-        // Exact Task Start Reminder (Priority 1)
+        // Exact Task Start Reminder (Priority 1 - User Commitment)
         if (startMs > now) {
           const inQuiet = quietHoursEnabled && this.isInsideQuietHours(startMs, quietHoursStart, quietHoursEnd);
           if (!inQuiet) {
@@ -304,7 +306,7 @@ class LocalNotificationScheduler {
               dueDate: taskDate,
               taskId: task.id,
               isUrgent: true,
-              sound: false,
+              sound: sound,
               icon: getNotificationOrbIcon("task_start"),
             });
           }
@@ -312,96 +314,87 @@ class LocalNotificationScheduler {
       }
     }
 
-    // Check if user is brand new
-    const hasAnyActivity = tasks.length > 0 || focusSessions.length > 0 || learningLogs.length > 0;
-    const isNewUserShield = typeof window !== "undefined" && userId && localStorage.getItem(`focusforge_new_user_shield_${userId}`) === "true";
-    const isBrandNew = !hasAnyActivity || Boolean(isNewUserShield);
-
     // GENERAL SYSTEM NOTIFICATIONS (Strict Limit: 2 to 3 per 24 hours across entire app, spaced hours apart)
-    let generalNudgeCount = 0;
+    // Schedules for today and upcoming 24h window so offline/closed browser notifications are pre-armed
+    const dateList = [todayStr];
+    const tomorrowObj = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    const tomorrowStr = `${tomorrowObj.getFullYear()}-${String(tomorrowObj.getMonth() + 1).padStart(2, "0")}-${String(tomorrowObj.getDate()).padStart(2, "0")}`;
+    dateList.push(tomorrowStr);
 
-    // Slot A. Early Morning Sweet Reminder (~08:00)
-    // Only fires if user has planned tasks, time logs, or learning folders
-    const hasMorningItems = tasks.length > 0 || learningFolders.length > 0;
-    if (!isBrandNew && prefs.dailyMorningPlan !== false && hasMorningItems && generalNudgeCount < 3) {
-      const planTime = prefs.dailyMorningPlanTime || "08:00";
-      const [pH, pM] = planTime.split(":").map(Number);
-      const [y, mon, d] = todayStr.split("-").map(Number);
-      const planDate = new Date(y, (mon || 1) - 1, d || 1, pH || 8, pM || 0, 0, 0);
-      const planMs = planDate.getTime();
+    for (const targetDateStr of dateList) {
+      let dailyNudgeCount = 0;
+      const [y, mon, d] = targetDateStr.split("-").map(Number);
 
-      if (planMs > now) {
-        const inQuiet = quietHoursEnabled && this.isInsideQuietHours(planMs, quietHoursStart, quietHoursEnd);
-        if (!inQuiet) {
-          const tpl = notificationRotationManager.getNext("daily_plan", lang, {}, userId || undefined);
-          const id = `daily_plan_${todayStr}`;
-          scheduled.push({
-            id,
-            numericId: this.hashToNumericId(id),
-            category: "daily_plan",
-            priority: 3,
-            title: tpl.title,
-            body: tpl.message,
-            actionRoute: "planner",
-            targetTimestamp: planMs,
-            targetTimeISO: planDate.toISOString(),
-            dueDate: todayStr,
-            isUrgent: false,
-            sound: false,
-            icon: getNotificationOrbIcon("daily_plan"),
-          });
-          generalNudgeCount++;
-        }
-      }
-    }
+      // Slot A. Early Morning Sweet Reminder (~08:00)
+      if (prefs.dailyMorningPlan !== false && dailyNudgeCount < 3) {
+        const planTime = prefs.dailyMorningPlanTime || "08:00";
+        const [pH, pM] = planTime.split(":").map(Number);
+        const planDate = new Date(y, (mon || 1) - 1, d || 1, pH || 8, pM || 0, 0, 0);
+        const planMs = planDate.getTime();
 
-    // Slot B. Midday / Afternoon Sweet Reminder (~13:30)
-    // If untimed task exists: gentle reminder about it. Otherwise, gentle focus reminder.
-    if (!isBrandNew && generalNudgeCount < 3) {
-      const [y, mon, d] = todayStr.split("-").map(Number);
-      const noonDate = new Date(y, (mon || 1) - 1, d || 1, 13, 30, 0, 0);
-      const noonMs = noonDate.getTime();
-
-      if (noonMs > now) {
-        const inQuiet = quietHoursEnabled && this.isInsideQuietHours(noonMs, quietHoursStart, quietHoursEnd);
-        if (!inQuiet) {
-          if (untimedTasks.length > 0) {
-            // Sweet reminder for untimed planner tasks
-            const untimedTask = untimedTasks[0];
-            const taskName = untimedTask.title || untimedTask.name || (lang === "bn" ? "টাস্ক" : "Task");
-            const tpl = notificationRotationManager.getNext(
-              "task_incomplete",
-              lang,
-              { taskName },
-              userId || undefined
-            );
-            const id = `task_untimed_${untimedTask.id}_${todayStr}`;
+        if (planMs > now) {
+          const inQuiet = quietHoursEnabled && this.isInsideQuietHours(planMs, quietHoursStart, quietHoursEnd);
+          if (!inQuiet) {
+            const tpl = notificationRotationManager.getNext("daily_plan", lang, {}, userId || undefined);
+            const id = `daily_plan_${targetDateStr}`;
             scheduled.push({
               id,
               numericId: this.hashToNumericId(id),
-              category: "task_incomplete",
+              category: "daily_plan",
               priority: 3,
               title: tpl.title,
               body: tpl.message,
               actionRoute: "planner",
-              targetTimestamp: noonMs,
-              targetTimeISO: noonDate.toISOString(),
-              dueDate: todayStr,
-              taskId: untimedTask.id,
+              targetTimestamp: planMs,
+              targetTimeISO: planDate.toISOString(),
+              dueDate: targetDateStr,
               isUrgent: false,
-              sound: false,
-              icon: getNotificationOrbIcon("concerned"),
+              sound: sound,
+              icon: getNotificationOrbIcon("daily_plan"),
             });
-            generalNudgeCount++;
-          } else if (prefs.focusSessionReminder !== false) {
-            // General midday focus reminder
-            const hasFocusToday = focusSessions.some((s: any) => {
-              const sDate = s.date || (s.startTime ? s.startTime.split("T")[0] : "");
-              return sDate === todayStr && (s.duration || s.completed);
-            });
-            if (!hasFocusToday) {
+            dailyNudgeCount++;
+          }
+        }
+      }
+
+      // Slot B. Midday / Afternoon Sweet Reminder (~13:30)
+      if (dailyNudgeCount < 3) {
+        const noonDate = new Date(y, (mon || 1) - 1, d || 1, 13, 30, 0, 0);
+        const noonMs = noonDate.getTime();
+
+        if (noonMs > now) {
+          const inQuiet = quietHoursEnabled && this.isInsideQuietHours(noonMs, quietHoursStart, quietHoursEnd);
+          if (!inQuiet) {
+            if (untimedTasks.length > 0 && targetDateStr === todayStr) {
+              const untimedTask = untimedTasks[0];
+              const taskName = untimedTask.title || untimedTask.name || (lang === "bn" ? "টাস্ক" : "Task");
+              const tpl = notificationRotationManager.getNext(
+                "task_incomplete",
+                lang,
+                { taskName },
+                userId || undefined
+              );
+              const id = `task_untimed_${untimedTask.id}_${targetDateStr}`;
+              scheduled.push({
+                id,
+                numericId: this.hashToNumericId(id),
+                category: "task_incomplete",
+                priority: 3,
+                title: tpl.title,
+                body: tpl.message,
+                actionRoute: "planner",
+                targetTimestamp: noonMs,
+                targetTimeISO: noonDate.toISOString(),
+                dueDate: targetDateStr,
+                taskId: untimedTask.id,
+                isUrgent: false,
+                sound: sound,
+                icon: getNotificationOrbIcon("concerned"),
+              });
+              dailyNudgeCount++;
+            } else if (prefs.focusSessionReminder !== false) {
               const tpl = notificationRotationManager.getNext("focus_reminder", lang, {}, userId || undefined);
-              const id = `focus_rem_noon_${todayStr}`;
+              const id = `focus_rem_noon_${targetDateStr}`;
               scheduled.push({
                 id,
                 numericId: this.hashToNumericId(id),
@@ -412,58 +405,48 @@ class LocalNotificationScheduler {
                 actionRoute: "focus",
                 targetTimestamp: noonMs,
                 targetTimeISO: noonDate.toISOString(),
-                dueDate: todayStr,
+                dueDate: targetDateStr,
                 isUrgent: false,
-                sound: false,
+                sound: sound,
                 icon: getNotificationOrbIcon("focus_reminder"),
               });
-              generalNudgeCount++;
+              dailyNudgeCount++;
             }
           }
         }
       }
-    }
 
-    // Slot C. Evening Focus / Practice Reminder (~18:30)
-    // Only fires if general nudge quota allows (max 2-3 per day)
-    if (!isBrandNew && generalNudgeCount < 3) {
-      const [y, mon, d] = todayStr.split("-").map(Number);
-      const eveDate = new Date(y, (mon || 1) - 1, d || 1, 18, 30, 0, 0);
-      const eveMs = eveDate.getTime();
+      // Slot C. Evening Focus / Practice Reminder (~18:30)
+      if (dailyNudgeCount < 3) {
+        const eveDate = new Date(y, (mon || 1) - 1, d || 1, 18, 30, 0, 0);
+        const eveMs = eveDate.getTime();
 
-      if (eveMs > now) {
-        const inQuiet = quietHoursEnabled && this.isInsideQuietHours(eveMs, quietHoursStart, quietHoursEnd);
-        if (!inQuiet) {
-          const hasFocusToday = focusSessions.some((s: any) => {
-            const sDate = s.date || (s.startTime ? s.startTime.split("T")[0] : "");
-            return sDate === todayStr && (s.duration || s.completed);
-          });
-
-          if (!hasFocusToday && prefs.focusSessionReminder !== false) {
-            const tpl = notificationRotationManager.getNext("focus_reminder", lang, {}, userId || undefined);
-            const id = `focus_rem_eve_${todayStr}`;
-            scheduled.push({
-              id,
-              numericId: this.hashToNumericId(id),
-              category: "focus_reminder",
-              priority: 4,
-              title: tpl.title,
-              body: tpl.message,
-              actionRoute: "focus",
-              targetTimestamp: eveMs,
-              targetTimeISO: eveDate.toISOString(),
-              dueDate: todayStr,
-              isUrgent: false,
-              sound: false,
-              icon: getNotificationOrbIcon("focus_reminder"),
-            });
-            generalNudgeCount++;
-          } else if (prefs.skillReminders !== false && learningFolders.length > 0) {
-            const hasLogToday = learningLogs.some((l) => l.date === todayStr);
-            if (!hasLogToday) {
+        if (eveMs > now) {
+          const inQuiet = quietHoursEnabled && this.isInsideQuietHours(eveMs, quietHoursStart, quietHoursEnd);
+          if (!inQuiet) {
+            if (prefs.focusSessionReminder !== false) {
+              const tpl = notificationRotationManager.getNext("focus_reminder", lang, {}, userId || undefined);
+              const id = `focus_rem_eve_${targetDateStr}`;
+              scheduled.push({
+                id,
+                numericId: this.hashToNumericId(id),
+                category: "focus_reminder",
+                priority: 4,
+                title: tpl.title,
+                body: tpl.message,
+                actionRoute: "focus",
+                targetTimestamp: eveMs,
+                targetTimeISO: eveDate.toISOString(),
+                dueDate: targetDateStr,
+                isUrgent: false,
+                sound: sound,
+                icon: getNotificationOrbIcon("focus_reminder"),
+              });
+              dailyNudgeCount++;
+            } else if (prefs.skillReminders !== false && learningFolders.length > 0) {
               const activeSkill = learningFolders[0]?.name || (lang === "bn" ? "স্কিল" : "Skill");
               const tpl = notificationRotationManager.getNext("skill_reminder", lang, { skillName: activeSkill }, userId || undefined);
-              const id = `skill_rem_${todayStr}`;
+              const id = `skill_rem_${targetDateStr}`;
               scheduled.push({
                 id,
                 numericId: this.hashToNumericId(id),
@@ -474,13 +457,13 @@ class LocalNotificationScheduler {
                 actionRoute: "learning",
                 targetTimestamp: eveMs,
                 targetTimeISO: eveDate.toISOString(),
-                dueDate: todayStr,
+                dueDate: targetDateStr,
                 skillId: learningFolders[0]?.id,
                 isUrgent: false,
-                sound: false,
+                sound: sound,
                 icon: getNotificationOrbIcon("skill_reminder"),
               });
-              generalNudgeCount++;
+              dailyNudgeCount++;
             }
           }
         }
@@ -620,7 +603,7 @@ class LocalNotificationScheduler {
               await (reg as any).showNotification(item.title, {
                 body: item.body,
                 icon: item.icon || getNotificationOrbIcon(item.category),
-                silent: true,
+                silent: !item.sound,
                 badge: "/icons/badge-large.png?v=max_zoom_1",
                 tag: `focentia-${item.id}`,
                 showTrigger: trigger,
@@ -667,7 +650,7 @@ class LocalNotificationScheduler {
               taskId: item.taskId,
               skillId: item.skillId,
               isUrgent: item.isUrgent,
-              silent: true,
+              silent: !item.sound,
               icon: item.icon || getNotificationOrbIcon(item.category),
             });
           }

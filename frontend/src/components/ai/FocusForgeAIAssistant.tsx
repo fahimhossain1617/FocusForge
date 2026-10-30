@@ -267,7 +267,7 @@ export default function FocusForgeAIAssistant({
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-lg font-bold tracking-tight">FocusForge AI Engine</h2>
+              <h2 className="text-lg font-bold tracking-tight">Focentia AI Engine</h2>
               <span className="px-2 py-0.5 text-xs font-semibold rounded-full bg-violet-500/20 text-violet-300 border border-violet-500/30">
                 Gemini 3.6 Flash
               </span>
@@ -411,7 +411,7 @@ export default function FocusForgeAIAssistant({
             <div className="p-4 rounded-xl bg-white/[0.02] border border-[var(--color-border-subtle)] space-y-3">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-sm font-semibold">Ask FocusForge AI Assistant</h3>
+                  <h3 className="text-sm font-semibold">Ask Focentia AI Assistant</h3>
                   <p className="text-xs text-[var(--color-text-muted)] mt-0.5">
                     Query your workload, request Pomodoro break pacing, or evaluate study capacity.
                   </p>
@@ -496,7 +496,7 @@ export default function FocusForgeAIAssistant({
                     <Bot className="w-3.5 h-3.5" />
                   </div>
                   <span className="text-xs font-bold uppercase tracking-wider text-violet-300">
-                    FocusForge Intelligence
+                    Focentia Intelligence
                   </span>
                 </div>
                 <div className="text-sm text-slate-200 leading-relaxed whitespace-pre-wrap">

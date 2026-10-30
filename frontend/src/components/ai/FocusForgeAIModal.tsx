@@ -5,7 +5,7 @@ import { Bot } from "lucide-react";
 import FocusForgeAIAssistant from "./FocusForgeAIAssistant";
 import { useKeyboardShortcut } from "@/hooks/useKeyboardShortcut";
 
-export default function FocusForgeAIModal() {
+export default function FocentiaAIModal() {
   const [isOpen, setIsOpen] = useState(false);
 
   // Shortcut: Ctrl+J or Cmd+J to toggle AI Assistant
@@ -17,11 +17,11 @@ export default function FocusForgeAIModal() {
       <button
         onClick={() => setIsOpen(true)}
         className="fixed bottom-6 right-6 z-40 flex items-center gap-2 px-3.5 py-2.5 rounded-full bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white  border border-violet-400/30 transition-all hover:scale-105 active:scale-95 group cursor-pointer"
-        title="FocusForge AI Intelligence (Ctrl+J)"
+        title="Focentia AI Intelligence (Ctrl+J)"
       >
         <Bot className="w-4 h-4 animate-pulse group-hover:rotate-12 transition-transform" />
         <span className="text-xs font-semibold tracking-wide hidden sm:inline">
-          FocusForge AI
+          Focentia AI
         </span>
         <kbd className="hidden md:inline-block text-[10px] px-1.5 py-0.5 rounded bg-black/30 text-violet-200 border border-white/10 font-mono">
           ^J

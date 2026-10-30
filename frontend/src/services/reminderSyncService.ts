@@ -120,11 +120,13 @@ class ReminderSyncService {
       for (const task of tasks) {
         const isDone = task.completed || task.status === 'completed';
         if (isDone) continue;
-        if (task.reminderEnabled === false) continue;
 
         const taskDate = (task.targetDate || task.date || todayStr).trim();
         const targetTimeStr = (task.reminderTime || task.time || (task as any).startTime || '').trim();
         if (!targetTimeStr) continue;
+
+        // Active if reminder is enabled or has explicit time without being disabled
+        if (task.reminderEnabled === false && !task.reminderTime) continue;
 
         const [rH, rM] = targetTimeStr.split(':').map(Number);
         if (isNaN(rH) || isNaN(rM)) continue;

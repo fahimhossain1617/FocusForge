@@ -43,7 +43,7 @@ const swCode = fs.readFileSync(swPath, 'utf8');
 
 assert(swCode.includes('/icons/orb/orb-attentive.png'), 'sw.js includes /icons/orb/ in STATIC_ASSETS');
 assert(swCode.includes('function getNotificationOrbIcon'), 'sw.js has getNotificationOrbIcon function');
-assert(swCode.includes('silent: true'), 'sw.js forces silent: true for notifications');
+assert(swCode.includes('silent: !isSoundActive'), 'sw.js dynamically respects sound setting for notifications');
 assert(!swCode.includes('clearAllReminderTimers();\n  activeScheduledReminders = reminders;'), 'sw.js avoids wiping active timers on every sync');
 
 // 3. Verify notificationService.ts
@@ -52,8 +52,8 @@ const notifCode = fs.readFileSync(notifServicePath, 'utf8');
 
 assert(notifCode.includes('export function getNotificationOrbIcon'), 'notificationService exports getNotificationOrbIcon');
 assert(notifCode.includes('private dailyLimit: number = 3'), 'notificationService daily limit is strictly 3');
-assert(notifCode.includes('private soundEnabled: boolean = false'), 'notificationService soundEnabled defaults to false');
-assert(notifCode.includes('silent: true'), 'notificationService dispatches with silent: true');
+assert(notifCode.includes('private soundEnabled: boolean'), 'notificationService soundEnabled preference is defined');
+assert(notifCode.includes('silent: !shouldPlaySound'), 'notificationService dispatches respecting sound preference');
 assert(notifCode.includes('Date.now() - this.appBootTime < 10000'), 'notificationService has boot shield preventing startup burst');
 
 // 4. Verify localNotificationScheduler.ts

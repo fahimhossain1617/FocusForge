@@ -162,7 +162,7 @@ export function NotificationBanner() {
               >
                 <img
                   src="/icons/icon-192x192.png"
-                  alt="FocusForge"
+                  alt="Focentia"
                   className="w-full h-full object-cover scale-110"
                   onError={(e) => {
                     (e.currentTarget as HTMLImageElement).src = "/logo.png";

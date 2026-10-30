@@ -546,7 +546,7 @@ export function AIOrbFace({
           }}
           role="button"
           tabIndex={0}
-          aria-label="FocusForge AI Agent Orb"
+          aria-label="Focentia AI Agent Orb"
           title={language === "bn" ? "ট্যাপ করলে হাসবে!" : "Tap to interact!"}
           onKeyDown={(e) => {
             if (e.key === "Enter" || e.key === " ") {

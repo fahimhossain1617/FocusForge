@@ -260,8 +260,8 @@ export function useReviewPrompt() {
 
       showToast(
         isBn
-          ? "আপনার মতামতের জন্য অসংখ্য ধন্যবাদ! এটি FocusForge-কে আরও উন্নত করতে সাহায্য করবে।"
-          : "Thank you for your feedback! It helps us make FocusForge even better.",
+          ? "আপনার মতামতের জন্য অসংখ্য ধন্যবাদ! এটি Focentia-কে আরও উন্নত করতে সাহায্য করবে।"
+          : "Thank you for your feedback! It helps us make Focentia even better.",
         "success"
       );
       return true;

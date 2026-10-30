@@ -85,13 +85,13 @@ export default function LegalModal({
         <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4 text-xs sm:text-sm text-slate-300 leading-relaxed font-sans select-text">
           {activeTab === "terms" ? (
             <div className="space-y-4">
-              <h2 className="text-lg sm:text-xl font-bold font-['Sora'] text-white">FocusForge Terms of Service</h2>
+              <h2 className="text-lg sm:text-xl font-bold font-['Sora'] text-white">Focentia Terms of Service</h2>
               <p className="text-xs text-slate-400">Last updated: September 2026</p>
 
               <section className="space-y-2">
                 <h3 className="font-semibold text-white">1. Acceptance of Terms</h3>
                 <p>
-                  By creating an account, accessing, or using FocusForge (the &quot;Service&quot;), you agree to be bound by these Terms of Service. If you do not agree to these terms, please do not use the Service.
+                  By creating an account, accessing, or using Focentia (the &quot;Service&quot;), you agree to be bound by these Terms of Service. If you do not agree to these terms, please do not use the Service.
                 </p>
               </section>
 
@@ -105,14 +105,14 @@ export default function LegalModal({
               <section className="space-y-2">
                 <h3 className="font-semibold text-white">3. Acceptable Use</h3>
                 <p>
-                  You agree to use FocusForge only for lawful personal productivity and work management purposes. You may not use the service to transmit malware, abuse rate limits, or disrupt platform infrastructure.
+                  You agree to use Focentia only for lawful personal productivity and work management purposes. You may not use the service to transmit malware, abuse rate limits, or disrupt platform infrastructure.
                 </p>
               </section>
 
               <section className="space-y-2">
                 <h3 className="font-semibold text-white">4. Data Ownership &amp; Privacy</h3>
                 <p>
-                  You retain full ownership of all data, notes, tasks, and content you create in FocusForge. We do not sell your personal data or content to third parties.
+                  You retain full ownership of all data, notes, tasks, and content you create in Focentia. We do not sell your personal data or content to third parties.
                 </p>
               </section>
 
@@ -125,13 +125,13 @@ export default function LegalModal({
             </div>
           ) : (
             <div className="space-y-4">
-              <h2 className="text-lg sm:text-xl font-bold font-['Sora'] text-white">FocusForge Privacy Policy</h2>
+              <h2 className="text-lg sm:text-xl font-bold font-['Sora'] text-white">Focentia Privacy Policy</h2>
               <p className="text-xs text-slate-400">Last updated: September 2026</p>
 
               <section className="space-y-2">
                 <h3 className="font-semibold text-white">1. Information We Collect</h3>
                 <p>
-                  We collect information necessary to provide the FocusForge service, including your name, email address, authentication credentials, and user preferences. For guest users, data remains stored locally on your device unless you choose to sign up.
+                  We collect information necessary to provide the Focentia service, including your name, email address, authentication credentials, and user preferences. For guest users, data remains stored locally on your device unless you choose to sign up.
                 </p>
               </section>
 
@@ -159,7 +159,7 @@ export default function LegalModal({
               <section className="space-y-2">
                 <h3 className="font-semibold text-white">5. Your Data Rights</h3>
                 <p>
-                  You have the right to access, export, update, or permanently delete your account and all associated data at any time directly through the FocusForge Settings menu.
+                  You have the right to access, export, update, or permanently delete your account and all associated data at any time directly through the Focentia Settings menu.
                 </p>
               </section>
             </div>
