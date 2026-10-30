@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { toggleThemeWithCircularTransition } from "../../utils/themeTransition";
 import InstallPrompt from "../pwa/InstallPrompt";
+import { AdminLoadingView } from "../admin/AdminStateViews";
 
 export default function MobileHeader() {
   const { state, updateState, navigateTo, isSubViewActive } = useAppContext();
@@ -31,6 +32,20 @@ export default function MobileHeader() {
   const { hasUnread, unreadCount } = useNotificationCenter();
 
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isEnteringAdmin, setIsEnteringAdmin] = useState(false);
+  const enteredAdminRef = useRef(false);
+
+  const handleEnterAdmin = (e?: React.SyntheticEvent) => {
+    if (enteredAdminRef.current) return;
+    enteredAdminRef.current = true;
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    setIsMenuOpen(false);
+    setIsEnteringAdmin(true);
+    window.location.href = "/admin/overview";
+  };
   const [hasPwaUpdate, setHasPwaUpdate] = useState<boolean>(() => {
     if (typeof window === "undefined") return false;
     try {
@@ -193,19 +208,23 @@ export default function MobileHeader() {
           {/* Get App PWA Button (Visible only when not installed / web browser) */}
           <InstallPrompt variant="header" />
 
-          {/* PWA Update Navbar Button (Visible when update is ready) */}
+          {/* PWA Update Navbar Button (Clean Unboxed Icon, Visible when update is ready) */}
           {hasPwaUpdate && (
             <button
               type="button"
               onClick={handleTriggerPwaUpdate}
-              className="relative w-10 h-10 min-w-[40px] min-h-[40px] rounded-xl flex items-center justify-center transition-all cursor-pointer text-blue-600 dark:text-blue-400 bg-blue-500/10 hover:bg-blue-500/20 active:scale-95 border border-blue-500/30"
+              className={`relative w-10 h-10 min-w-[40px] min-h-[40px] rounded-xl flex items-center justify-center transition-colors cursor-pointer bg-transparent border-none shadow-none outline-none active:scale-95 ${
+                isLight
+                  ? "text-blue-600 hover:text-blue-700 hover:bg-slate-200/50"
+                  : "text-blue-400 hover:text-blue-300 hover:bg-white/[0.08]"
+              }`}
               aria-label={isBn ? "অ্যাপ আপডেট করুন" : "Update application"}
               title={isBn ? "নতুন ভার্সনে আপডেট করুন" : "Update to latest version"}
             >
-              <RefreshCw size={19} strokeWidth={2.2} className="animate-spin text-blue-600 dark:text-blue-400" style={{ animationDuration: "3.5s" }} />
-              <span className="absolute top-1.5 right-1.5 flex h-2.5 w-2.5">
+              <RefreshCw size={20} strokeWidth={2} className="animate-spin text-blue-600 dark:text-blue-400" style={{ animationDuration: "3.5s" }} />
+              <span className="absolute top-2 right-2 flex h-2 w-2">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75" />
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-600 dark:bg-blue-400" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-600 dark:bg-blue-400 ring-1.5 ring-white dark:ring-[#0A0E1A]" />
               </span>
             </button>
           )}
@@ -348,17 +367,13 @@ export default function MobileHeader() {
 
                     {/* Menu Actions */}
                     <div className="flex flex-col gap-0.5">
-                      {/* Admin Control Center (Visible only when verified by server) */}
+                      {/* Admin Control Center (Single-Tap Fast Entry) */}
                       {isAdmin && (
                         <button
                           type="button"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            setIsMenuOpen(false);
-                            window.location.assign("/admin/overview");
-                          }}
-                          className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold text-blue-600 dark:text-blue-400 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 transition-colors text-left cursor-pointer active:scale-95"
+                          onClick={handleEnterAdmin}
+                          onTouchEnd={handleEnterAdmin}
+                          className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold text-blue-600 dark:text-blue-400 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 transition-colors text-left cursor-pointer"
                           title="Admin Control Center"
                         >
                           <div className="flex items-center gap-2.5">
@@ -455,6 +470,11 @@ export default function MobileHeader() {
           </div>
         </div>
       </header>
+      {isEnteringAdmin && (
+        <div className="fixed inset-0 z-[9999] bg-[#F3F7FC] dark:bg-[#0A0E1A] flex items-center justify-center">
+          <AdminLoadingView fullScreen />
+        </div>
+      )}
     </>
   );
 }

@@ -11,11 +11,11 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
   const { isAdmin, status } = useAdminAuth();
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
-  // Default = DENY: While checking, show loading
+  // Default = DENY: While checking, show loading with 3D Morphing Orb
   if (status === "loading") {
     return (
       <div className="min-h-screen bg-[#F3F7FC] dark:bg-[#0A0E1A] flex items-center justify-center">
-        <AdminLoadingView message="Verifying admin credentials..." />
+        <AdminLoadingView fullScreen message="Verifying admin credentials..." />
       </div>
     );
   }
@@ -49,7 +49,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
         {/* Mobile Header */}
         <AdminMobileNav />
 
-        {/* Page Viewport */}
+        {/* Page Viewport - Renders children directly for instant, snappy SPA transitions */}
         <main className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden p-3.5 sm:p-6 md:p-8 max-w-7xl w-full mx-auto">
           {children}
         </main>

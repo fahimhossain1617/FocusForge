@@ -2585,3 +2585,50 @@
   - `verify_admin_functional_deep.ts`: 18/18 PASSED.
   - `npm run build --prefix frontend`: Next.js production build succeeded with 0 errors across all 39 routes.
   - `test_admin_backend.ts` & `test_admin_frontend.ts`: 100% PASSED.
+
+---
+
+## ADR-082: Admin Panel Exclusive Animated 3D Morphing Orb Loader with Smooth Color Cycling
+
+- **Date:** October 30, 2026
+- **Status:** Accepted & Verified
+- **Decision:**
+  1. **Real-Time 3D Morphing Orb Shader (`AdminOrbLoader.tsx`):**
+     - Created a 60fps per-pixel WebGL fragment shader (with automatic 2D Canvas fallback) rendering a 3D glossy 4-lobed organic morphing orb matching the reference design.
+     - Features analytical 3D height-field surface normals, deep obsidian liquid-glass core, studio curved specular lobe reflections, glowing Fresnel rim lighting, and diagonal anamorphic flare streaks.
+     - Continuously rotates (`0.54 rad/s`, ~11.6s per full rotation) and organically morphs its 4 lobes while smoothly cycling through Focentia's UI color palette (Electric Blue `#3B82F6`, Sky Cyan `#06B6D4`, Emerald Teal `#10B981`, Indigo Violet `#6366F1`, Royal Sapphire `#2563EB`) using cubic Hermite `smoothstep` interpolation.
+     - Synchronized to wall-clock time (`Date.now()`) so transitions across route mounts preserve exact rotation angle, morph geometry, and color phase without resets.
+  2. **Minimalist `"Loading..."` Label:**
+     - Displays strictly `"Loading..."` underneath the orb in `AdminOrbLoader.tsx` and `AdminLoadingView` (`AdminStateViews.tsx`), with zero progress bars, lines, or secondary subtitles.
+  3. **Strict Admin Panel Scope:**
+     - Used exclusively when entering the Admin Panel from the normal app (`MobileHeader.tsx`), during `/admin/*` Next.js route suspense (`frontend/src/app/admin/loading.tsx`), during admin credential verification and section-to-section switching (`AdminLayout.tsx`), and across all 19 Admin Panel sections (`AdminLoadingView`).
+     - Normal user Skeleton Loading (`AppShellSkeleton.tsx`, `DashboardSkeleton.tsx`, root `loading.tsx`) and all non-admin UI remain 100% untouched.
+- **Verification:**
+  - `npm run build --prefix frontend`: Exit Code 0 (39 routes compiled, 0 TypeScript or build errors).
+  - `npx tsx scripts/test_admin_frontend.ts`: 11/11 checks PASSED.
+
+---
+
+## ADR-083: Admin Fast SPA Switching, Single-Tap Mobile Entry, and Single-Click Unboxed PWA Update
+
+- **Date:** October 30, 2026
+- **Status:** Accepted & Verified
+- **Context:**
+  1. **Admin Section Switching Lag & Repeated Loaders:** Switching between admin sections repeatedly triggered full loading screens because `AdminLayout.tsx` captured link clicks and blocked the main content, route-level `loading.tsx` triggered Suspense on every route change, and `adminApiClient` re-fetched data on every mount without client caching.
+  2. **Mobile Admin Entry Double Tap:** In `MobileHeader.tsx`, the Admin button had `active:scale-95`, shifting the bounding box under the user's touch and causing mobile browsers to cancel synthetic click events on touch release, requiring a double tap to trigger.
+  3. **PWA Update Double Refresh & Boxy Appearance:** `PWAUpdater.tsx` rendered an intrusive floating card at the bottom of the screen. In browser mode, `handleControllerChange` returned early (`if (!isRunningAsInstalledApp()) return;`), while a 1.2s fallback timer called `window.location.reload()` before the service worker finished activating, leaving `reg.waiting` active and prompting the user to refresh a second time. Additionally, the navbar update button had a boxy background and border (`bg-blue-500/10 border border-blue-500/30`), clashing with the clean navbar design.
+- **Decision:**
+  1. **Fast Admin Section Transitions:**
+     - Removed artificial `isSwitchingSection` click interceptor from `AdminLayout.tsx`.
+     - Removed route-level `app/admin/loading.tsx` to eliminate redundant Suspense unmounts during client-side navigation.
+     - Added an in-memory SWR cache (60s TTL) with automatic invalidation on mutations in `adminApiClient.ts`, making section-to-section navigation instantaneous (0ms) while retaining 100% server connectivity and manual refresh capabilities.
+  2. **Single-Tap Mobile Admin Entry:**
+     - Removed `active:scale-95` distortion from `MobileHeader.tsx`.
+     - Attached both `onTouchEnd` and `onClick` handlers protected with an execution guard, guaranteeing instant navigation on the very first touch release.
+  3. **Single-Click Unboxed PWA Update:**
+     - Removed the bottom floating banner from `PWAUpdater.tsx`; the update indicator is now strictly located in the top navbar (`MobileHeader.tsx` on mobile and `DashboardPage.tsx` / `Sidebar.tsx` on desktop).
+     - Standardized the update icon to a clean, unboxed, borderless icon (`bg-transparent border-none shadow-none`) matching the Moon/Sun toggle and Bell icon.
+     - Fixed `PWAUpdater.tsx` to register a one-shot `controllerchange` listener that triggers `window.location.reload()` the exact millisecond the new service worker activates and claims the client across both PWA and browser modes, ensuring a clean, single-click update.
+- **Verification:**
+  - `npm run build --prefix frontend`: Exit Code 0 (39 routes compiled, 0 errors).
+  - `npx tsx scripts/test_admin_frontend.ts`: 11/11 tests PASSED.

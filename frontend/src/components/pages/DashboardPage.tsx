@@ -578,19 +578,19 @@ export default function DashboardPage() {
           </p>
         </div>
         <div className="flex items-center gap-2 sm:gap-2.5 self-start sm:self-auto sm:pt-0.5 md:pt-1">
-          {/* PWA Update Button (Visible when update is ready) */}
+          {/* PWA Update Button (Clean Unboxed Icon, Visible when update is ready) */}
           {hasPwaUpdate && (
             <button
               type="button"
               onClick={handleTriggerPwaUpdate}
-              className="flex w-9 h-9 min-w-[36px] min-h-[36px] rounded-xl items-center justify-center transition-all cursor-pointer text-blue-600 dark:text-blue-400 bg-blue-500/10 hover:bg-blue-500/20 active:scale-95 border border-blue-500/30 relative"
+              className="hidden sm:flex relative w-9 h-9 min-w-[36px] min-h-[36px] rounded-xl items-center justify-center transition-colors cursor-pointer bg-transparent border-none text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:bg-slate-200/50 dark:hover:bg-white/[0.08] shadow-none outline-none active:scale-95"
               title={state.lang === 'bn' ? "নতুন ভার্সনে আপডেট করুন" : "Update to latest version"}
               aria-label={state.lang === 'bn' ? "অ্যাপ আপডেট করুন" : "Update application"}
             >
-              <RefreshCw size={18} strokeWidth={2.2} className="animate-spin text-blue-600 dark:text-blue-400" style={{ animationDuration: "3.5s" }} />
+              <RefreshCw size={19} strokeWidth={2} className="animate-spin text-blue-600 dark:text-blue-400" style={{ animationDuration: "3.5s" }} />
               <span className="absolute top-1 right-1 flex h-2 w-2">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75" />
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-600 dark:bg-blue-400" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-600 dark:bg-blue-400 ring-1.5 ring-white dark:ring-[#0A0E1A]" />
               </span>
             </button>
           )}

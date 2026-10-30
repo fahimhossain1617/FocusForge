@@ -35,10 +35,41 @@ import {
   TimeRangeFilter,
 } from "../types/admin";
 
+interface CacheEntry<T> {
+  data: BaseApiResponse<T>;
+  timestamp: number;
+}
+
+const adminMemoryCache = new Map<string, CacheEntry<any>>();
+const CACHE_TTL_MS = 60 * 1000; // 60s client cache for instant SPA switching
+
+export function invalidateAdminCache(prefix?: string) {
+  if (!prefix) {
+    adminMemoryCache.clear();
+  } else {
+    for (const key of adminMemoryCache.keys()) {
+      if (key.startsWith(prefix)) {
+        adminMemoryCache.delete(key);
+      }
+    }
+  }
+}
+
 async function executeAdminFetch<T>(
   url: string,
   options: RequestInit = {}
 ): Promise<BaseApiResponse<T>> {
+  const isGet = !options.method || options.method.toUpperCase() === "GET";
+  const bypassCache = options.cache === "reload";
+
+  // If cached and fresh, return immediately without network latency
+  if (isGet && !bypassCache) {
+    const cached = adminMemoryCache.get(url);
+    if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
+      return cached.data as BaseApiResponse<T>;
+    }
+  }
+
   const timestamp = new Date().toISOString();
   try {
     let authHeader = "";
@@ -93,13 +124,22 @@ async function executeAdminFetch<T>(
     }
 
     const json = await res.json();
-    return {
+    const result: BaseApiResponse<T> = {
       success: true,
       status: "connected",
       data: json.data !== undefined ? json.data : json,
       timestamp,
       dataSource: json.dataSource || "Focentia Admin API",
     };
+
+    if (isGet) {
+      adminMemoryCache.set(url, { data: result, timestamp: Date.now() });
+    } else {
+      // Invalidate cache on mutations
+      adminMemoryCache.clear();
+    }
+
+    return result;
   } catch (err: any) {
     return {
       success: false,

@@ -3,15 +3,21 @@
 import React from "react";
 import { AlertCircle, RefreshCw, Database, ShieldAlert, Inbox, ArrowLeft } from "lucide-react";
 import Link from "next/link";
+import { AdminOrbLoader } from "./AdminOrbLoader";
 
-export function AdminLoadingView({ message = "Loading admin data..." }: { message?: string }) {
+export function AdminLoadingView({
+  fullScreen = false,
+}: {
+  message?: string;
+  fullScreen?: boolean;
+}) {
   return (
-    <div className="flex flex-col items-center justify-center min-h-[340px] w-full p-6 text-center animate-pulse">
-      <div className="w-10 h-10 rounded-2xl bg-slate-200 dark:bg-white/[0.08] flex items-center justify-center text-slate-400 mb-3">
-        <RefreshCw size={20} className="animate-spin text-blue-500" />
-      </div>
-      <p className="text-sm font-medium text-slate-700 dark:text-slate-300">{message}</p>
-      <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">Connecting to Focentia server...</p>
+    <div
+      className={`flex flex-col items-center justify-center w-full p-6 text-center ${
+        fullScreen ? "min-h-screen min-h-dvh" : "min-h-[380px] sm:min-h-[440px]"
+      }`}
+    >
+      <AdminOrbLoader size={196} />
     </div>
   );
 }

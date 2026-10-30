@@ -24,7 +24,8 @@ import {
   X,
   Users,
   Brain,
-  BookOpenText
+  BookOpenText,
+  RefreshCw
 } from "lucide-react";
 import { MindSpaceIcon } from "./icons/MindSpaceIcon";
 import { GloryOrbIcon } from "./icons/GloryOrbIcon";
@@ -142,7 +143,44 @@ export default function Sidebar({
     };
   }, []);
 
-  const isGuestMode = !user || isGuest;
+  const [isGuestMode] = [!user || isGuest];
+  const [hasPwaUpdate, setHasPwaUpdate] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    try {
+      return Boolean(
+        localStorage.getItem("focentia_has_pwa_update") === "true" ||
+        (window as any).__focentia_has_pwa_update
+      );
+    } catch {
+      return Boolean((window as any).__focentia_has_pwa_update);
+    }
+  });
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.getRegistration().then((reg) => {
+        if (reg?.waiting) {
+          setHasPwaUpdate(true);
+        }
+      }).catch(() => {});
+    }
+    const handleUpdateReady = () => setHasPwaUpdate(true);
+    window.addEventListener("focentia:pwa_update_ready", handleUpdateReady);
+    return () => window.removeEventListener("focentia:pwa_update_ready", handleUpdateReady);
+  }, []);
+
+  const handleTriggerPwaUpdate = () => {
+    try {
+      localStorage.removeItem("focentia_has_pwa_update");
+    } catch {}
+    if (typeof window !== "undefined" && typeof (window as any).__focentia_trigger_pwa_update === "function") {
+      (window as any).__focentia_trigger_pwa_update();
+    } else {
+      window.location.reload();
+    }
+  };
+
   const isLight = state.theme?.mode === "light";
   const logoSrc = isLight ? "/logo-light.png" : "/logo.png";
 
@@ -544,6 +582,23 @@ export default function Sidebar({
               </div>
             </button>
 
+            {/* PWA Update Button if available (Clean unboxed icon) */}
+            {hasPwaUpdate && (
+              <button
+                type="button"
+                onClick={handleTriggerPwaUpdate}
+                className="relative p-2 rounded-xl text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:bg-slate-100 dark:hover:bg-white/[0.04] transition-colors shrink-0 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-blue-500 bg-transparent border-none shadow-none"
+                aria-label={state.lang === 'bn' ? "অ্যাপ আপডেট করুন" : "Update application"}
+                title={state.lang === 'bn' ? "নতুন ভার্সনে আপডেট করুন" : "Update to latest version"}
+              >
+                <RefreshCw size={18} strokeWidth={2} className="animate-spin text-blue-600 dark:text-blue-400" style={{ animationDuration: "3.5s" }} />
+                <span className="absolute top-1.5 right-1.5 flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-600 dark:bg-blue-400 ring-1.5 ring-white dark:ring-[#070a14]" />
+                </span>
+              </button>
+            )}
+
             {/* Independent Settings Icon Button */}
             <button
               type="button"
@@ -661,6 +716,27 @@ export default function Sidebar({
                   )}
                 </div>
               </div>
+
+              {/* PWA Update Button if available (Collapsed) */}
+              {hasPwaUpdate && (
+                <div className="relative flex items-center justify-center w-full">
+                  <div className="relative flex items-center justify-center w-10 h-10">
+                    <button
+                      type="button"
+                      onClick={handleTriggerPwaUpdate}
+                      className="relative flex items-center justify-center w-10 h-10 rounded-xl transition-colors cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-blue-500 text-blue-600 dark:text-blue-400 hover:bg-slate-100 dark:hover:bg-white/[0.06] bg-transparent border-none shadow-none"
+                      aria-label={state.lang === 'bn' ? "অ্যাপ আপডেট করুন" : "Update application"}
+                      title={state.lang === 'bn' ? "নতুন ভার্সনে আপডেট করুন" : "Update to latest version"}
+                    >
+                      <RefreshCw size={18} strokeWidth={2} className="animate-spin text-blue-600 dark:text-blue-400" style={{ animationDuration: "3.5s" }} />
+                      <span className="absolute top-2 right-2 flex h-2 w-2">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75" />
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-600 dark:bg-blue-400 ring-1.5 ring-white dark:ring-[#070a14]" />
+                      </span>
+                    </button>
+                  </div>
+                </div>
+              )}
 
               {/* Settings Icon Button */}
               <div 
