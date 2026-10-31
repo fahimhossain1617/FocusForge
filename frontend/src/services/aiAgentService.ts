@@ -900,9 +900,22 @@ export async function sendAgentMessage(
   const norm = normalizeInput(message);
   const isBn = norm.detectedLang === 'bn';
   const effectiveLang: AIAgentLanguage = isBn ? 'bn' : 'en';
-  const { data: { user: currentUser } } = await supabase.auth.getUser();
-  const isAuth = !!currentUser?.id;
-  const userName = currentUser?.user_metadata?.name || currentUser?.user_metadata?.full_name || '';
+  let isAuth = !context?.isGuest;
+  let userName = '';
+  let currentUser: { id: string } | null = null;
+  if (typeof window !== 'undefined') {
+    try {
+      const savedSession = localStorage.getItem('focusforge_auth_session');
+      if (savedSession) {
+        const parsed = JSON.parse(savedSession);
+        if (parsed?.user?.id) {
+          isAuth = true;
+          currentUser = { id: parsed.user.id };
+          userName = parsed.user.displayName || parsed.user.name || '';
+        }
+      }
+    } catch {}
+  }
 
   const localResolution = await routeUserMessage(message, context, history, isAuth, userName);
 

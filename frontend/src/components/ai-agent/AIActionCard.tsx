@@ -243,50 +243,58 @@ export function AIActionCard({
 
       {/* Planner Single Task Details */}
       {action.type === "create_task" && (
-        <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground mb-3">
+        <div className="flex flex-col gap-2.5 text-xs text-muted-foreground mb-3.5">
           {/* Interactive Date Picker */}
-          <div className="flex items-center gap-1.5 bg-muted/40 px-2.5 py-1 rounded-lg border border-border/40">
-            <Calendar className="w-3.5 h-3.5 text-sky-400 shrink-0" />
+          <div className="flex items-center gap-3 bg-muted/40 px-3.5 py-2 rounded-xl border border-border/40 w-fit max-w-full">
+            <Calendar className="w-4 h-4 text-sky-400 shrink-0" />
             <input
               type="date"
               value={singleTaskDate}
               disabled={!isPending}
               onChange={(e) => setSingleTaskDate(e.target.value)}
-              className="bg-transparent text-[11px] font-mono text-foreground focus:outline-none cursor-pointer"
+              className="!w-auto min-w-[130px] bg-transparent text-[12px] font-mono text-foreground focus:outline-none cursor-pointer"
               title={isBn ? "তারিখ নির্বাচন করুন" : "Select date"}
             />
           </div>
 
           {/* Interactive Start and End Time Selectors */}
-          <div className="flex items-center gap-1.5 bg-muted/40 px-2.5 py-1 rounded-lg border border-border/40">
-            <Clock className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-            <span className="text-[10px] text-muted-foreground font-mono uppercase">Start:</span>
-            <input
-              type="time"
-              value={singleTaskTime}
-              disabled={!isPending}
-              onChange={(e) => {
-                const newStart = e.target.value;
-                setSingleTaskTime(newStart);
-                if (newStart) {
-                  const [h, m] = newStart.split(":").map(Number);
-                  const endH = ((h || 10) + 1) % 24;
-                  setSingleTaskEndTime(`${String(endH).padStart(2, "0")}:${String(m || 0).padStart(2, "0")}`);
-                }
-              }}
-              className="bg-transparent text-[11px] font-mono text-foreground focus:outline-none cursor-pointer"
-              title={isBn ? "শুরুর সময়" : "Start time"}
-            />
-            <span className="text-muted-foreground/60 text-[10px] mx-0.5">—</span>
-            <span className="text-[10px] text-muted-foreground font-mono uppercase">End:</span>
-            <input
-              type="time"
-              value={singleTaskEndTime}
-              disabled={!isPending}
-              onChange={(e) => setSingleTaskEndTime(e.target.value)}
-              className="bg-transparent text-[11px] font-mono text-foreground focus:outline-none cursor-pointer"
-              title={isBn ? "শেষের সময়" : "End time"}
-            />
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-2 bg-muted/40 px-3.5 py-2.5 rounded-xl border border-border/40">
+            <Clock className="w-4 h-4 text-amber-400 shrink-0 mr-0.5" />
+            <div className="flex items-center gap-2 shrink-0">
+              <span className="text-[11px] text-muted-foreground font-mono uppercase whitespace-nowrap shrink-0">
+                Start:
+              </span>
+              <input
+                type="time"
+                value={singleTaskTime}
+                disabled={!isPending}
+                onChange={(e) => {
+                  const newStart = e.target.value;
+                  setSingleTaskTime(newStart);
+                  if (newStart) {
+                    const [h, m] = newStart.split(":").map(Number);
+                    const endH = ((h || 10) + 1) % 24;
+                    setSingleTaskEndTime(`${String(endH).padStart(2, "0")}:${String(m || 0).padStart(2, "0")}`);
+                  }
+                }}
+                className="!w-auto min-w-[96px] bg-transparent text-[12px] font-mono text-foreground focus:outline-none cursor-pointer"
+                title={isBn ? "শুরুর সময়" : "Start time"}
+              />
+            </div>
+            <span className="text-muted-foreground/60 text-xs shrink-0">—</span>
+            <div className="flex items-center gap-2 shrink-0">
+              <span className="text-[11px] text-muted-foreground font-mono uppercase whitespace-nowrap shrink-0">
+                End:
+              </span>
+              <input
+                type="time"
+                value={singleTaskEndTime}
+                disabled={!isPending}
+                onChange={(e) => setSingleTaskEndTime(e.target.value)}
+                className="!w-auto min-w-[96px] bg-transparent text-[12px] font-mono text-foreground focus:outline-none cursor-pointer"
+                title={isBn ? "শেষের সময়" : "End time"}
+              />
+            </div>
           </div>
         </div>
       )}

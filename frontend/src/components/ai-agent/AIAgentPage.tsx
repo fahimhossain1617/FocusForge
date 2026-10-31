@@ -160,12 +160,28 @@ export function AIAgentPage() {
       return acc + (mins > 0 ? mins : 0);
     }, 0);
 
-    const learningTopics = (state.learningFolders || []).slice(0, 15).map((f: any) => {
+    const learningTopics = (state.learningFolders || []).slice(0, 20).map((f: any) => {
       const logs = (state.learningLogs || []).filter((l: any) => l.folderId === f.id);
       const totalMins = logs.reduce((sum: number, l: any) => sum + (l.durationMinutes || 0), 0);
 
       const importantSet = new Set<string>();
       const weakSet = new Set<string>();
+      const noteParts: string[] = [];
+      if (f.notes && typeof f.notes === "string" && f.notes.trim()) {
+        noteParts.push(f.notes.trim());
+      }
+
+      if (Array.isArray(f.importantTopics)) {
+        f.importantTopics.forEach((t: string) => typeof t === "string" && t.trim() && importantSet.add(t.trim()));
+      } else if (typeof f.importantTopics === "string" && f.importantTopics.trim()) {
+        f.importantTopics.split(/[,;\n]+/).map((s: string) => s.trim()).filter(Boolean).forEach((s: string) => importantSet.add(s));
+      }
+
+      if (Array.isArray(f.weakTopics)) {
+        f.weakTopics.forEach((w: string) => typeof w === "string" && w.trim() && weakSet.add(w.trim()));
+      } else if (typeof f.weakTopics === "string" && f.weakTopics.trim()) {
+        f.weakTopics.split(/[,;\n]+/).map((s: string) => s.trim()).filter(Boolean).forEach((s: string) => weakSet.add(s));
+      }
 
       logs.forEach((l: any) => {
         if (l.importantTopics && typeof l.importantTopics === "string") {
@@ -174,6 +190,8 @@ export function AIAgentPage() {
             .map((s: string) => s.trim())
             .filter(Boolean)
             .forEach((s: string) => importantSet.add(s));
+        } else if (Array.isArray(l.importantTopics)) {
+          l.importantTopics.forEach((s: string) => typeof s === "string" && s.trim() && importantSet.add(s.trim()));
         }
         if (l.blockers && typeof l.blockers === "string") {
           l.blockers
@@ -182,11 +200,19 @@ export function AIAgentPage() {
             .filter(Boolean)
             .forEach((s: string) => weakSet.add(s));
         }
+        if (l.weakTopics && typeof l.weakTopics === "string") {
+          l.weakTopics
+            .split(/[,;\n]+/)
+            .map((s: string) => s.trim())
+            .filter(Boolean)
+            .forEach((s: string) => weakSet.add(s));
+        } else if (Array.isArray(l.weakTopics)) {
+          l.weakTopics.forEach((s: string) => typeof s === "string" && s.trim() && weakSet.add(s.trim()));
+        }
+        if (l.notes && typeof l.notes === "string" && l.notes.trim()) {
+          noteParts.push(l.notes.trim());
+        }
       });
-
-      if (Array.isArray(f.weakTopics)) {
-        f.weakTopics.forEach((w: string) => typeof w === "string" && w.trim() && weakSet.add(w.trim()));
-      }
 
       return {
         name: f.name || f.title || "Topic",
@@ -194,19 +220,66 @@ export function AIAgentPage() {
         loggedMinutes: totalMins,
         importantTopics: Array.from(importantSet),
         weakTopics: Array.from(weakSet),
-        notes: f.notes || ""
+        notes: noteParts.join(" | ").slice(0, 220)
       };
     });
 
-    const notesSummary = (state.notes || []).slice(-10).map((n: any) => ({
-      title: n.title || "Untitled",
-      category: n.category || "General"
-    }));
+    const notesSummary = (state.notes || []).slice(-15).map((n: any) => {
+      let rawText = "";
+      if (Array.isArray(n.blocks) && n.blocks.length > 0) {
+        rawText = n.blocks
+          .map((b: any) => b?.content || b?.fileName || b?.url || "")
+          .filter(Boolean)
+          .join(" ");
+      } else if (typeof n.content === "string") {
+        rawText = n.content;
+      }
+      const cleanPreview = rawText.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().slice(0, 220);
+      return {
+        title: n.title || "Untitled",
+        category: n.category || "General",
+        contentPreview: cleanPreview
+      };
+    });
 
-    const diarySummary = (state.diaryTopics || []).slice(-15).map((d: any) => ({
-      title: d.title || (state.lang === "bn" ? "ডায়েরি অধ্যায়" : "Diary Chapter"),
-      entryCount: Array.isArray(d.entries) ? d.entries.length : 0
-    }));
+    const diarySummary = (state.diaryTopics || []).slice(-20).map((d: any) => {
+      const entries = Array.isArray(d.entries) ? d.entries : [];
+      return {
+        title: d.title || (state.lang === "bn" ? "ডায়েরি অধ্যায়" : "Diary Chapter"),
+        entryCount: entries.length,
+        entries: entries.slice(-8).map((e: any) => ({
+          title: e.title || "",
+          date: e.date || "",
+          contentPreview: String(e.content || "")
+            .replace(/<[^>]+>/g, " ")
+            .replace(/\s+/g, " ")
+            .trim()
+            .slice(0, 220)
+        }))
+      };
+    });
+
+    const mindSummary = (state.mindItems || []).slice(-20).map((m: any) => {
+      const parts = [
+        m.content,
+        m.details,
+        m.rootCause ? `Root cause: ${m.rootCause}` : "",
+        Array.isArray(m.steps) && m.steps.length > 0 ? `Steps: ${m.steps.filter(Boolean).join("; ")}` : "",
+        m.nextAction ? `Next: ${m.nextAction}` : ""
+      ]
+        .filter(Boolean)
+        .join(" | ")
+        .replace(/<[^>]+>/g, " ")
+        .replace(/\s+/g, " ")
+        .trim()
+        .slice(0, 220);
+
+      return {
+        title: m.title || "Untitled",
+        type: (m.type === "idea" || m.type === "problem" ? m.type : "free") as "free" | "idea" | "problem",
+        contentPreview: parts
+      };
+    });
 
     return {
       tasks: state.tasks,
@@ -220,11 +293,13 @@ export function AIAgentPage() {
       learningTopics,
       notesSummary,
       diarySummary,
+      mindSummary,
       isGuest: Boolean(isGuest || !user?.id)
     };
   }, [
     state.tasks,
     state.notes,
+    state.mindItems,
     state.timeBlocks.length,
     state.productivityScore,
     state.focusSessions,
@@ -390,7 +465,7 @@ export function AIAgentPage() {
     orbState,
     isThinking,
     isTyping,
-    userInput: input,
+    userInput: input ? "typing" : "",
     lastUserMessage: lastUserMsg,
     lastAiMessage: lastAiMsg,
     hasFailedMessage,
@@ -428,7 +503,7 @@ export function AIAgentPage() {
   }, []);
 
   useEffect(() => {
-    scrollToBottom(true);
+    scrollToBottom(!isTyping && !streamingText);
   }, [messages.length, isThinking, isTyping, streamingText, scrollToBottom]);
 
   const appliedPayloadsRef = useRef<Set<string>>(new Set());

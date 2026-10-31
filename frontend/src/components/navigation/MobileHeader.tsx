@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { toggleThemeWithCircularTransition } from "../../utils/themeTransition";
 import InstallPrompt from "../pwa/InstallPrompt";
+import { isRunningAsInstalledApp } from "../pwa/PWAUpdater";
 import { AdminLoadingView } from "../admin/AdminStateViews";
 
 export default function MobileHeader() {
@@ -49,10 +50,14 @@ export default function MobileHeader() {
   const [hasPwaUpdate, setHasPwaUpdate] = useState<boolean>(() => {
     if (typeof window === "undefined") return false;
     try {
-      return Boolean(
+      const hasUpdate = Boolean(
         localStorage.getItem("focentia_has_pwa_update") === "true" ||
         (window as any).__focentia_has_pwa_update
       );
+      if (!hasUpdate) return false;
+      const isInstalled = isRunningAsInstalledApp();
+      const dismissed = sessionStorage.getItem("focentia_update_modal_dismissed") === "true";
+      return !isInstalled || dismissed;
     } catch {
       return Boolean((window as any).__focentia_has_pwa_update);
     }
@@ -61,20 +66,43 @@ export default function MobileHeader() {
   useEffect(() => {
     if (typeof window === "undefined") return;
 
+    const syncUpdateIconVisibility = () => {
+      try {
+        const hasUpdate = Boolean(
+          localStorage.getItem("focentia_has_pwa_update") === "true" ||
+          (window as any).__focentia_has_pwa_update
+        );
+        if (!hasUpdate) {
+          setHasPwaUpdate(false);
+          return;
+        }
+        const isInstalled = isRunningAsInstalledApp();
+        const dismissed = sessionStorage.getItem("focentia_update_modal_dismissed") === "true";
+        setHasPwaUpdate(!isInstalled || dismissed);
+      } catch {
+        setHasPwaUpdate(true);
+      }
+    };
+
     // Direct check on mount: If a service worker is waiting, update is ready
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker.getRegistration().then((reg) => {
         if (reg?.waiting) {
-          setHasPwaUpdate(true);
           try {
             localStorage.setItem("focentia_has_pwa_update", "true");
           } catch {}
+          syncUpdateIconVisibility();
         }
       }).catch(() => {});
     }
 
-    const handleUpdateReady = () => {
-      setHasPwaUpdate(true);
+    const handleUpdateReady = (e: Event) => {
+      const customEvt = e as CustomEvent;
+      if (customEvt?.detail?.dismissedModal) {
+        setHasPwaUpdate(true);
+      } else {
+        syncUpdateIconVisibility();
+      }
     };
     window.addEventListener("focentia:pwa_update_ready", handleUpdateReady);
     return () => {

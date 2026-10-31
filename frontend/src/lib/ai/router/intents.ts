@@ -51,6 +51,8 @@ export type LocalIntentType =
   | 'APP_HELP'
   | 'BIG_TASK_ROADMAP'
   | 'DIARY_QUERY'
+  | 'MIND_QUERY'
+  | 'NOTES_QUERY'
   | 'FOLDER_QUERY'
   | 'USER_CORRECTION'
   | 'UNKNOWN';
@@ -116,14 +118,16 @@ const STATS_PROGRESS_REGEX = /(?:\b(?:how\s*much\s*did\s*i\s*focus\s*today|how\s
 const APP_HELP_REGEX = /(?:\b(?:how\s*to\s*start\s*a\s*focus\s*session|how\s*routines\s*work|how\s*does\s*planner\s*work|is\s*diary\s*private|what\s*does\s*the\s*orb\s*do)\b|ফোকাস\s*সেশন\s*কীভাবে\s*চালায়|রুটিন\s*কীভাবে\s*কাজ\s*করে|ডায়েরি\s*কি\s*প্রাইভেট|অর্ব\s*কী\s*করে)/i;
 
 // 6. Time Log Topics & Weak/Important Query Patterns (Strictly topics, never plain problem statements)
-const TIMELOG_TOPIC_QUERY_REGEX = /(?:\b(?:(?:important|weak|learning|study)\s*(?:topics?|problems?|issues?|blockers?)|what\s*(?:are|were)\s*my\s*(?:important|weak)\s*topics|topics?\s*in\s*time\s*log|time\s*log\s*topics?)\b|ইম্পর্টেন্ট\s*টপিক|উইক\s*টপিক|দুর্বল\s*টপিক|গুরুত্বপূর্ণ\s*টপিক|টাইম\s*লগের\s*টপিক|পড়ার\s*টপিক)/i;
+const TIMELOG_TOPIC_QUERY_REGEX = /(?:\b(?:(?:important|weak|learning|study)\s*(?:topics?|problems?|issues?|blockers?)|what\s*(?:are|were)\s*my\s*(?:important|weak)\s*topics|topics?\s*in\s*time\s*log|time\s*log\s*(?:topics?|folders?)|check\s*(?:out\s*)?(?:my\s*)?time\s*log|any\s*folder.*time\s*log|time\s*log.*(?:folder|topic|weak|important))\b|ইম্পর্টেন্ট\s*টপিক|উইক\s*টপিক|দুর্বল\s*টপিক|গুরুত্বপূর্ণ\s*টপিক|টাইম\s*লগ[েের]*\s*(?:কোনো\s*|কয়টা\s*|কয়টা\s*|কী\s*|কি\s*|কোন\s*)?(?:টপিক|ফোল্ডার|চেক|আছে)|পড়ার\s*টপিক)/i;
 
 // 7. Planner Schedule & Routine Query Patterns for Dates
 const PLANNER_DATE_QUERY_REGEX = /(?:\b(what\s*(is|was)\s*my\s*(routine|schedule|task|plan)|routine\s*on|schedule\s*on|tasks\s*on|what\s*did\s*i\s*have\s*on)\b|রুটিন\s*ছিল|কী\s*রুটিন|কি\s*রুটিন|টাস্ক\s*ছিল|কী\s*টাস্ক|কি\s*টাস্ক|কী\s*কী\s*কাজ|শিডিউল\s*ছিল|কী\s*শিডিউল|কি\s*শিডিউল|কী\s*প্ল্যান|কি\s*প্ল্যান|কাজের\s*তালিকা|(?:\d{1,2}|[০-৯]{1,2})\s*তারিখ[এের]*\s*(?:কী|কি|কেমন|রুটিন|কাজ|টাস্ক|ছিল|আছে)|রুটিন\s*(?:বলো|দেখাও|কী|কি|ছিল|আছে))/i;
 
-// 7.5. Diary & Folder Inspection Queries
-const DIARY_QUERY_REGEX = /(?:\b(?:check\s*(?:my\s*)?diary|any\s*(?:files?|entries|entry|notes?)\s*in\s*(?:my\s*)?diary|do\s*i\s*have\s*(?:any\s*)?(?:files?|diary|entries)|what(?:'s|\s*is)\s*in\s*my\s*diary)\b|ডায়েরিতে\s*(?:এই\s*মুহূর্তে\s*)?(?:কোনো\s*)?(?:ফাইল|এন্ট্রি|কিছু|লেখা|ডায়েরি)|ডায়েরি\s*(?:চেক|বানানো|লেখা)\s*(?:আছে|করো|নাকি)|আমার\s*ডায়েরি\s*(?:দেখো|চেক))/i;
-const FOLDER_QUERY_REGEX = /(?:\b(?:what\s*folders\s*do\s*i\s*have|how\s*many\s*folders|show\s*my\s*folders|list\s*my\s*folders)\b|কয়টা\s*ফোল্ডার|কয়টা\s*ফোল্ডার|কোন\s*ফোল্ডার|ফোল্ডারগুলো\s*দেখাও|ফোল্ডার\s*গুলো\s*দেখাও|আমার\s*ফোল্ডার|ফোল্ডার\s*আছে\s*নাকি|কোথায়\s*কোন\s*ফোল্ডার)/i;
+// 7.5. Diary, Mind Space, Notes & Folder Inspection Queries
+const DIARY_QUERY_REGEX = /(?:\b(?:check\s*(?:out\s*)?(?:my\s*)?diary|any\s*(?:folders?|files?|entries|entry|notes?|chapters?)\s*(?:in|inside|on)?\s*(?:my\s*)?diary|diary.*(?:any\s*folder|folder\s*is\s*creat|what\s*is\s*writ|what's\s*inside|entries|chapters?)|do\s*i\s*have\s*(?:any\s*)?(?:files?|diary|entries|folders?\s*in\s*diary)|what(?:'s|\s*is)\s*(?:written\s*)?(?:in|inside)\s*(?:my\s*)?diary)\b|ডায়েরি(?:তে|র)?\s*(?:এই\s*মুহূর্তে\s*)?(?:কোনো\s*|কয়টা\s*|কয়টা\s*|কী\s*|কি\s*)?(?:ফোল্ডার|ফাইল|এন্ট্রি|অধ্যায়|কিছু|লেখা|ডায়েরি)|ডায়েরি\s*(?:চেক|বানানো|লেখা)\s*(?:আছে|করো|নাকি)|আমার\s*ডায়েরি\s*(?:দেখো|চেক))/i;
+const MIND_QUERY_REGEX = /(?:\b(?:check\s*(?:out\s*)?(?:my\s*)?mind\s*space|any\s*(?:folders?|files?|entries|entry|items?|thoughts?|ideas?|problems?)\s*(?:in|inside|on)?\s*(?:my\s*)?mind\s*space|mind\s*space.*(?:any\s*folder|folder\s*is\s*creat|what\s*is\s*writ|what's\s*inside|entries|items?)|what(?:'s|\s*is)\s*(?:written\s*)?(?:in|inside)\s*(?:my\s*)?mind\s*space)\b|(?:মাইন্ড\s*স্পেস|মাইন্ডস্পেস)[েের]*\s*(?:কোনো\s*|কয়টা\s*|কয়টা\s*|কী\s*|কি\s*)?(?:ফোল্ডার|ফাইল|এন্ট্রি|আইডিয়া|সমস্যা|কিছু|লেখা|আছে|চেক)|(?:মাইন্ড\s*স্পেস|মাইন্ডস্পেস)\s*(?:চেক|দেখো))/i;
+const NOTES_QUERY_REGEX = /(?:\b(?:check\s*(?:out\s*)?(?:my\s*)?notes?|any\s*(?:folders?|files?|notes?)\s*(?:in|inside|on)?\s*(?:my\s*)?notes?|what(?:'s|\s*is)\s*(?:written\s*)?(?:in|inside)\s*(?:my\s*)?notes?)\b|নোটস?[েের]*\s*(?:কোনো\s*|কয়টা\s*|কয়টা\s*|কী\s*|কি\s*)?(?:ফোল্ডার|ফাইল|নোট|লেখা|আছে|চেক)|আমার\s*নোটস?\s*(?:দেখো|চেক))/i;
+const FOLDER_QUERY_REGEX = /(?:\b(?:what\s*folders\s*do\s*i\s*have|how\s*many\s*folders|show\s*my\s*folders|list\s*my\s*folders|check\s*(?:all\s*)?(?:my\s*)?folders)\b|কয়টা\s*ফোল্ডার|কয়টা\s*ফোল্ডার|কোন\s*ফোল্ডার|ফোল্ডারগুলো\s*দেখাও|ফোল্ডার\s*গুলো\s*দেখাও|আমার\s*ফোল্ডার|ফোল্ডার\s*আছে\s*নাকি|কোথায়\s*কোন\s*ফোল্ডার)/i;
 
 // 8. Big Task / Roadmap Patterns (Gemini Allowed)
 const ROADMAP_REGEX = /\b(roadmap|complete\s*(.*)\s*roadmap|30\s*day\s*plan|study\s*timetable\s*generation|goal\s*breakdown|রোডম্যাপ|৩০\s*দিনের\s*প্ল্যান|লার্নিং\s*রোডম্যাপ)\b/i;
@@ -142,15 +146,27 @@ export function classifyIntent(norm: NormalizedInput): ClassifiedIntent {
     };
   }
 
-  // 1.1 Direct high-priority productivity actions (Zero token, immediate local response)
+  // 1.1 Direct high-priority productivity & inspection queries (Zero token, immediate local response)
   if (FOCUS_SESSION_ACTION_REGEX.test(text)) {
     return { intent: 'FOCUS_SESSION_ACTION', confidence: 0.95, isBigTask: false };
+  }
+  if (MIND_QUERY_REGEX.test(text)) {
+    return { intent: 'MIND_QUERY', confidence: 0.96, isBigTask: false };
   }
   if (DIARY_QUERY_REGEX.test(text)) {
     return { intent: 'DIARY_QUERY', confidence: 0.96, isBigTask: false };
   }
+  if (NOTES_QUERY_REGEX.test(text)) {
+    return { intent: 'NOTES_QUERY', confidence: 0.96, isBigTask: false };
+  }
+  if (TIMELOG_TOPIC_QUERY_REGEX.test(text)) {
+    return { intent: 'TIMELOG_TOPIC_QUERY', confidence: 0.96, isBigTask: false };
+  }
   if (FOLDER_QUERY_REGEX.test(text)) {
     return { intent: 'FOLDER_QUERY', confidence: 0.96, isBigTask: false };
+  }
+  if (STATS_PROGRESS_REGEX.test(text) && wordCount <= 10) {
+    return { intent: 'STATS_PROGRESS', confidence: 0.95, isBigTask: false };
   }
 
   // COMPLEXITY & NATURAL LANGUAGE GUARD:

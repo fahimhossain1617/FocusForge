@@ -2723,3 +2723,52 @@
   - `verify_session_locking.ts`: 1/1 PASS (3 consecutive turns in same session retained single session ID and first turn's title).
   - `npm run build --prefix frontend`: Passed (39 routes, 0 errors).
   - `npm run build --prefix backend`: Passed (0 errors).
+
+---
+
+## ADR-030: App-Wide Lag Elimination, Installed PWA System Update Modal, Full Workspace Inspection & Cold-Launch Dashboard Fix
+
+- **Date:** October 31, 2026
+- **Status:** Accepted & Verified
+- **Decision:**
+  1. **Eliminate App-Wide & Glory AI Lag (`AppContext.tsx`, `AIAgentPage.tsx`, `useAIAgent.ts`, `aiAgentService.ts`):**
+     - Skip full-state Dexie/IndexedDB/localStorage writes when only `state.activePage` changes during tab switching; debounce data persistence by 450ms; subscribe to `noteService.subscribeToNotes` once per session (`[isLoaded]`) instead of re-subscribing on every `[state.activePage]` change.
+     - Pass stable `"typing"` / `""` indicator to `useOrbMood`, use `behavior: "auto"` scroll during AI streaming, throttle typewriter interval to 32ms, debounce Dexie message mirroring (last 2 messages only), and remove blocking `await supabase.auth.getUser()` before local routing.
+  2. **Installed Web App System Update Modal & Top Navbar Icon Fallback (`PWAUpdater.tsx`, `MobileHeader.tsx`):**
+     - Render centered "System Update" modal exclusively for installed standalone PWA users (`isRunningAsInstalledApp()`) with zero backdrop blur/darkening, zero border glow, clean Focentia theme border, top-right `X` dismiss button, easy English copy, animated progress bar, and "Restart Now" pill button.
+     - When ignored via `X`, close the modal for the session and keep the update icon in the top navbar (`MobileHeader.tsx` & `DashboardPage.tsx`).
+  3. **Glory AI Full Feature/Folder Content Inspection, Gemini 3 Flash & 74% Token Reduction (`aiService.ts`, `geminiClient.ts`, `intents.ts`, `handlers.ts`, `AIAgentPage.tsx`):**
+     - Prioritize `gemini-3-flash-preview` with `thinkingLevel: 'MINIMAL'` and condense `buildAgentChatPrompt` (reducing prompt tokens from 6,816 to 1,752 and latency from 13.3s to ~2.0s).
+     - Forward and inspect `mindSummary`, `diarySummary` (with entry titles & content previews), `notesSummary` (with content previews), `learningTopics` (with `importantTopics` and `weakTopics`), and Dashboard stats across both local 0-token handlers and Gemini.
+  4. **UI Margins & Cold-Launch Dashboard Fix (`globals.css`, `AIActionCard.tsx`, `AppContext.tsx`):**
+     - Restore `padding: 16px 18px !important;` on `.editor-block--file, .editor-block--link` in `globals.css` and prevent vertical `Start:` / `End:` wrapping in `AIActionCard.tsx`.
+     - Ensure `getFastInitialState()` and `loadUserData()` always default to `activePage: 'today'` on cold launch (`sessionStorage` empty), eliminating the initial flash of Notes & Files.
+- **Verification:**
+  - `npm run build --prefix frontend` & `npm run build --prefix backend`: Passed with 0 errors.
+  - Live router & Gemini benchmark: `DIARY_QUERY`, `MIND_QUERY`, `TIMELOG_TOPIC_QUERY` passed at 0 tokens; Gemini API call completed in 2,034ms with 1,752 prompt tokens (down from 6,816).
+
+---
+
+## ADR-031: Permanent Deletion Guarantee Across Mind Space, Learning Folders, Notes, Diary Topics & Tasks
+
+- **Date:** November 1, 2026
+- **Status:** Accepted & Verified
+- **Decision:**
+  1. **Eliminate Background Deletion Resurrection (`mindService.ts`):**
+     - Updated `mindService.fetchMindItems` to query `localDb.getAllForUser("mind_items", cleanUserId, true)` (including soft-deleted tombstones). If a cloud item is marked `isDeleted: true` locally, it is NEVER resurrected into Dexie; instead, an immediate server `DELETE /api/mind-items/${encodeURIComponent(id)}` is fired to purge the stale server record. Only truly new items created on other devices are inserted.
+     - Added bulk server deletion `DELETE /api/mind-items` support in `mindService.clearAllMindItems`.
+     - In `deleteMindItem`, added `await` and `encodeURIComponent(id)` to prevent unhandled background unmount aborts.
+  2. **Synchronous Fast Cache & Backup Purging (`AppContext.tsx`):**
+     - Added `purgeEntityFromFastCache(collectionKey, id)`: when an item is deleted, it immediately prunes the item from `focentia_fast_state_<userId>` in `localStorage` and `settingsRepository.saveAppStateBackup`, ensuring zero delay or debounce gaps where an immediate reload could restore the deleted item.
+     - Wired up `purgeEntityFromFastCache` in `deleteMindItem`, `deleteLearningFolder`, `deleteLearningLog`, `deleteDiaryTopicItem`, `deleteDiaryEntryItem`, `deleteNote`, `deleteTask`, and `deleteRoutineTemplate`.
+  3. **Authoritative Empty Store Preservation in State Assembler (`AppContext.tsx`):**
+     - Replaced the flawed fallback `storeList && storeList.length > 0 ? storeList : (backup.store || [])` with `Array.isArray(storeList) ? storeList.filter(Boolean) : (backup.store || []).filter(Boolean)`. When a user deletes all items or folders, the resulting empty array `[]` is preserved as authoritative instead of resurrecting old data from backup snapshots.
+  4. **Server API Deletion Hardening (`frontend/src/app/api/[...path]/route.ts`):**
+     - Handled bulk `DELETE /api/mind-items` and `DELETE /api/mind` calling `dbDeleteAllMindItems(userId)`.
+     - Handled single `DELETE /api/mind-items/:id` using `decodeURIComponent` to guarantee exact ID matches in PostgreSQL.
+- **Verification:**
+  - `node scripts/test_deletion_permanence.js`: PASSED (Empty store preservation, synchronous fast-cache purge, and background cloud tombstone filtering confirmed).
+  - `npm run build --prefix frontend`: Passed (39 routes, 0 errors).
+  - `npm run build --prefix backend`: Passed (0 errors).
+  - `npx --prefix frontend tsc --noEmit -p frontend/tsconfig.json`: Passed (0 errors).
+

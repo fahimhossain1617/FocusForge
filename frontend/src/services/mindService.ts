@@ -79,10 +79,21 @@ export const mindService = {
           if (res.ok) {
             const cloudItems: MindItem[] = await res.json();
             if (Array.isArray(cloudItems) && cloudItems.length > 0) {
-              const currentLocal = await localDb.getAllForUser<MindItem>("mind_items", cleanUserId, false).catch(() => []);
-              const localMap = new Map(currentLocal.map(i => [i.id, i]));
+              // Retrieve ALL local records including tombstones (includeDeleted: true)
+              const currentLocalWithDeleted = await localDb.getAllForUser<MindItem & { isDeleted?: boolean }>("mind_items", cleanUserId, true).catch(() => []);
+              const localMap = new Map(currentLocalWithDeleted.map(i => [i.id, i]));
               for (const cItem of cloudItems) {
-                if (!localMap.has(cItem.id)) {
+                const existing = localMap.get(cItem.id);
+                // If it was already deleted locally, do NOT resurrect it! Enforce server-side cleanup!
+                if (existing?.isDeleted) {
+                  fetch(`/api/mind-items/${encodeURIComponent(cItem.id)}`, {
+                    method: "DELETE",
+                    headers,
+                  }).catch(() => {});
+                  continue;
+                }
+                // Truly new item created elsewhere
+                if (!existing) {
                   await localDb.put("mind_items", { ...cItem, userId: cleanUserId }).catch(() => {});
                 }
               }
@@ -212,11 +223,16 @@ export const mindService = {
     if (typeof window !== "undefined" && navigator.onLine) {
       try {
         const headers = await getAuthHeaders();
-        fetch(`/api/mind-items/${id}`, {
+        const res = await fetch(`/api/mind-items/${encodeURIComponent(id)}`, {
           method: "DELETE",
           headers,
-        }).catch((e) => console.warn("[mindService] Cloud delete warning:", e));
-      } catch {}
+        });
+        if (!res.ok) {
+          console.warn("[mindService] Cloud delete returned non-ok status:", res.status);
+        }
+      } catch (e) {
+        console.warn("[mindService] Cloud delete warning:", e);
+      }
     }
   },
 
@@ -236,6 +252,19 @@ export const mindService = {
 
     if (cleanUserId === "guest") {
       setGuestStorage([]);
+      return;
+    }
+
+    if (typeof window !== "undefined" && navigator.onLine) {
+      try {
+        const headers = await getAuthHeaders();
+        await fetch("/api/mind-items", {
+          method: "DELETE",
+          headers,
+        });
+      } catch (err) {
+        console.warn("[mindService] Exception clearing cloud mind items:", err);
+      }
     }
   },
 

@@ -20,7 +20,7 @@
 | **Routine Templates (Weekday)** | **VERIFIED** | `frontend/src/components/planner/RoutineLibraryModal.tsx` | `routine_templates` table | None. Supports recurring weekday schedule templates. |
 | **Focus Mode & Timer** | **VERIFIED** | `frontend/src/components/pages/FocusPage.tsx`, `StopwatchTimer.tsx`, `RollingDigit.tsx` | `useFocusTimer.ts`, `focus_sessions` table, `framer-motion` | None. Pomodoro, infinite count-up stopwatch with rolling digit ticker, fullscreen mode, topic tags, distraction logging. |
 | **Notes & Workspace Editor** | **VERIFIED** | `frontend/src/components/pages/WorkspacePage.tsx` | `BlockEditor.tsx`, `notes` table | None. Modular blocks (KaTeX math, Prism code, Fabric canvas). |
-| **Mind Space (Capture / Solver)** | **VERIFIED** | `frontend/src/components/pages/MyMindPage.tsx`, `ThoughtDetail.tsx` | `mind_items` table, `mindService.ts` | None. Fast brain dump, idea grouping, problem breakdown, and manual-only save with "সেভ" / "Save" label. |
+| **Mind Space (Capture / Solver)** | **VERIFIED** | `frontend/src/components/pages/MyMindPage.tsx`, `ThoughtDetail.tsx` | `mind_items` table, `mindService.ts` | None. Fast brain dump, idea grouping, problem breakdown, manual-only save, and guaranteed permanent deletion without background resurrection. |
 | **Personal Diary** | **VERIFIED** | `frontend/src/components/diary/DiaryHome.tsx` | `diary_topics`, `diary_entries` tables | None. Multi-topic journals, rich themes, search, TOC. |
 | **Learning Hub & Streaks** | **VERIFIED** | `frontend/src/components/pages/LearningHubPage.tsx` | `learning_folders`, `learning_logs` tables | None. Topic roadmaps, daily practice tracking, streak calculation. |
 | **Voice / STT (Real-Time Dictation)** | **VERIFIED** | `frontend/src/services/voice/*`, `useContinuousSpeech.ts`, `useVoiceAmplitude.ts`, `VoiceWaveform.tsx`, `VoiceReactiveGlow.tsx` | Web Speech API, `VoiceWaveform`, `VoiceReactiveGlow` | None. Unlimited continuous dictation with zero-beep audio architecture, default Bangla (bn-BD) with instant English toggle, live text synchronization, harmonic waveform visualizer, and astral aurora glow. |
@@ -173,6 +173,17 @@
   5. **Session Title Locking & Deduplication:** Generates standard UUIDs on session start. PostgreSQL update on conflict preserves the original first-turn title (`ON CONFLICT (id) DO UPDATE SET updated_at = NOW()`), and client storage locks title immutability.
   6. **Mobile UI Smoothness:** Replaced expensive SVG `<feGaussianBlur>` inside infinite BorderBeam animation with hardware-accelerated CSS `drop-shadow(0 0 5px rgba(56, 189, 248, 0.45))` and `translateZ(0)`, throttled `ResizeObserver`, and applied delta thresholding in `AIOrbFace` rendering loop.
 - **Status:** **VERIFIED**
+
+### 2.17 App-Wide Lag Elimination, Installed PWA System Update Modal, Full Workspace Inspection & Cold-Launch Dashboard Fix
+- **Location:** `frontend/src/context/AppContext.tsx`, `frontend/src/components/pwa/PWAUpdater.tsx`, `frontend/src/components/navigation/MobileHeader.tsx`, `frontend/src/components/ai-agent/AIAgentPage.tsx`, `frontend/src/components/ai-agent/AIActionCard.tsx`, `frontend/src/hooks/useAIAgent.ts`, `frontend/src/services/aiAgentService.ts`, `frontend/src/lib/ai/router/*`, `frontend/src/lib/server/aiService.ts`, `backend/src/services/aiService.ts`, `frontend/src/app/globals.css`
+- **Behavior:**
+  1. **Zero-Lag Navigation, Typing & AI Streaming:** Debounced `AppContext` full-state persistence, skipped DB backup writes on tab switch, removed `[state.activePage]` from Supabase notes realtime subscription, stabilized `useOrbMood` input detection, and switched AI streaming scroll to instant `behavior: "auto"`.
+  2. **Installed PWA System Update Modal + Top Navbar Fallback:** Displays a clean, centered "System Update" modal (no background blur/darkening, no border glow, only top-right `X` icon, animated progress bar, "Restart Now" button) exclusively for installed standalone web apps (`isRunningAsInstalledApp()`). If dismissed via `X`, falls back to the top navbar update icon.
+  3. **Full Workspace Content Inspection & 74% Token Reduction:** Glory AI inspects and reports folders and entry contents across Mind Space (`mindSummary`), My Diary (`diarySummary` + entries), Time Log (`learningTopics` + weak/important topics), Notes & Files (`notesSummary`), and Dashboard performance both locally (0 tokens) and via `gemini-3-flash-preview` (`thinkingLevel: 'MINIMAL'`, ~1,752 prompt tokens vs 6,816 previously).
+  4. **Notes File/Link Card & AI Planner Card Margins:** Restored horizontal internal padding (`16px 18px`) on `.editor-block--file` and `.editor-block--link` and prevented vertical character wrapping on `Start:` / `End:` labels in `AIActionCard.tsx`.
+  5. **Instant Dashboard Cold Launch:** `getFastInitialState()` and `loadUserData()` always initialize `activePage: 'today'` on cold launch so Notes & Files never flashes before Dashboard.
+- **Status:** **VERIFIED**
+
 
 
 

@@ -48,6 +48,7 @@ import {
   dbGetMindItems,
   dbUpsertMindItem,
   dbDeleteMindItem,
+  dbDeleteAllMindItems,
   dbSaveSharedNote,
   dbGetSharedNote,
   pool,
@@ -2716,10 +2717,22 @@ export async function DELETE(request: NextRequest, context: { params: Promise<{ 
     }
   }
 
-  // 4. Mind Items Delete: DELETE /api/mind-items/:id or /api/mind/:id
+  // 4. Mind Items Delete: DELETE /api/mind-items/:id or /api/mind/:id, or bulk DELETE /api/mind-items
+  if (pathStr === 'mind-items' || pathStr === 'mind') {
+    if (userId && !isGuest) {
+      try {
+        await dbDeleteAllMindItems(userId);
+      } catch (err: any) {
+        console.warn('[DELETE all mind items] DB warning:', err?.message);
+      }
+    }
+    return NextResponse.json({ success: true });
+  }
+
   if (pathStr.startsWith('mind-items/') || pathStr.startsWith('mind/')) {
     const parts = pathStr.split('/');
-    const mindId = parts[parts.length - 1];
+    const rawId = parts[parts.length - 1];
+    const mindId = rawId ? decodeURIComponent(rawId) : '';
     if (userId && !isGuest && mindId) {
       try {
         await dbDeleteMindItem(userId, mindId);
@@ -2735,7 +2748,6 @@ export async function DELETE(request: NextRequest, context: { params: Promise<{ 
     pathStr.startsWith('tasks/templates/') ||
     pathStr.startsWith('tasks/') ||
     pathStr.startsWith('notes/') ||
-    pathStr === 'mind' ||
     pathStr.startsWith('diary/topics/') ||
     pathStr.startsWith('diary/entries/') ||
     pathStr.startsWith('learning/folders/') ||

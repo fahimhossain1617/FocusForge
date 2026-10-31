@@ -188,8 +188,18 @@ export interface WorkspaceContext {
     weakTopics?: string[];
     notes?: string;
   }>;
-  notesSummary?: Array<{ title: string; category?: string }>;
-  diarySummary?: Array<{ title: string; topicTitle?: string; entryCount?: number }>;
+  notesSummary?: Array<{ title: string; category?: string; contentPreview?: string }>;
+  diarySummary?: Array<{
+    title: string;
+    topicTitle?: string;
+    entryCount?: number;
+    entries?: Array<{ title: string; date?: string; contentPreview?: string }>;
+  }>;
+  mindSummary?: Array<{
+    title: string;
+    type: "free" | "idea" | "problem";
+    contentPreview?: string;
+  }>;
   isGuest?: boolean;
 }
 

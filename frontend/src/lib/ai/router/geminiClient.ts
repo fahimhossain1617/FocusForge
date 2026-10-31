@@ -85,10 +85,14 @@ export function sanitizeContextForGemini(context?: WorkspaceContext): any {
   if (!context) return {};
   return {
     currentDate: context.currentDate || new Date().toISOString().split('T')[0],
+    productivityScore: context.productivityScore || 0,
     focusMinutesToday: context.focusMinutesToday || 0,
+    focusSessionsCount: context.focusSessionsCount || 0,
+    notesCount: context.notesCount || 0,
     tasksCount: context.tasks?.length || 0,
     completedTasksCount: context.completedTasksCount || 0,
-    tasks: (context.tasks || []).slice(0, 30).map((t: any) => ({
+    completedTasksSummary: (context.completedTasksSummary || []).slice(-10),
+    tasks: (context.tasks || []).slice(0, 25).map((t: any) => ({
       id: t.id,
       title: t.title || t.name || '',
       targetDate: t.targetDate || t.date || null,
@@ -96,13 +100,34 @@ export function sanitizeContextForGemini(context?: WorkspaceContext): any {
       priority: t.priority || 'medium',
       status: t.status || 'not_started',
     })),
-    learningTopics: (context.learningTopics || []).slice(0, 15).map((lt: any) => ({
+    learningTopics: (context.learningTopics || []).slice(0, 20).map((lt: any) => ({
       name: lt.name || 'Topic',
       targetHours: lt.targetHours || 0,
       loggedMinutes: lt.loggedMinutes || 0,
       importantTopics: Array.isArray(lt.importantTopics) ? lt.importantTopics : [],
       weakTopics: Array.isArray(lt.weakTopics) ? lt.weakTopics : [],
-      notes: lt.notes || '',
+      notes: (lt.notes || '').slice(0, 200),
+    })),
+    notesSummary: (context.notesSummary || []).slice(-15).map((n: any) => ({
+      title: n.title || 'Untitled',
+      category: n.category || 'General',
+      contentPreview: (n.contentPreview || '').slice(0, 200),
+    })),
+    diarySummary: (context.diarySummary || []).slice(-20).map((d: any) => ({
+      title: d.title || 'Diary Chapter',
+      entryCount: d.entryCount || 0,
+      entries: Array.isArray(d.entries)
+        ? d.entries.slice(-6).map((e: any) => ({
+            title: e.title || '',
+            date: e.date || '',
+            contentPreview: (e.contentPreview || '').slice(0, 200),
+          }))
+        : [],
+    })),
+    mindSummary: (context.mindSummary || []).slice(-20).map((m: any) => ({
+      title: m.title || 'Untitled',
+      type: m.type || 'free',
+      contentPreview: (m.contentPreview || '').slice(0, 200),
     })),
   };
 }

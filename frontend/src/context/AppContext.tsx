@@ -222,10 +222,26 @@ function getFastInitialState(): { state: AppState; hasCache: boolean } {
     if (raw) {
       const parsed = JSON.parse(raw);
       if (parsed && typeof parsed === "object") {
+        const validPages = new Set(['today', 'mind', 'diary', 'tasks', 'planner', 'focus', 'learning', 'profile', 'settings', 'ai-agent', 'notifications']);
+        let initialPage = 'today';
+        try {
+          const urlParams = new URLSearchParams(window.location.search);
+          const pageParam = urlParams.get('page');
+          const hashParam = window.location.hash.replace(/^#\/?/, '').split('?')[0];
+          const sessionPage = sessionStorage.getItem('focusforge_active_page');
+          if (pageParam && validPages.has(pageParam)) {
+            initialPage = pageParam;
+          } else if (hashParam && validPages.has(hashParam)) {
+            initialPage = hashParam;
+          } else if (sessionPage && validPages.has(sessionPage)) {
+            initialPage = sessionPage;
+          }
+        } catch {}
         return {
           state: {
             ...defaultState,
             ...parsed,
+            activePage: initialPage,
             tasks: Array.isArray(parsed.tasks) ? parsed.tasks : [],
             notes: Array.isArray(parsed.notes) ? parsed.notes : [],
             mindItems: Array.isArray(parsed.mindItems) ? parsed.mindItems : [],
@@ -303,7 +319,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           } else if (hashParam && validPages.has(hashParam)) {
             urlActivePage = hashParam;
           }
-          sessionActivePage = sessionStorage.getItem('focusforge_active_page') || localStorage.getItem('focusforge_active_page');
+          const rawSessionPage = sessionStorage.getItem('focusforge_active_page');
+          if (rawSessionPage && validPages.has(rawSessionPage)) {
+            sessionActivePage = rawSessionPage;
+          }
         } catch {}
       }
       const initialActivePage = urlActivePage || sessionActivePage || 'today';
@@ -353,7 +372,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const backup = (dexieBackup as AppState) || (legacyIdbBackup as AppState) || (guestData as AppState) || defaultState;
 
       // Format tasks with valid unique IDs
-      const rawTasks = (tasksList && tasksList.length > 0 ? tasksList : (backup.tasks || [])).filter(Boolean);
+      const rawTasks = (Array.isArray(tasksList) ? tasksList : (backup.tasks || [])).filter(Boolean);
       const seenIds = new Set<number>();
       const combinedTasks = rawTasks.map((t: any, index: number) => {
         let taskId = t?.id ? Number(t.id) : (Date.now() + index);
@@ -377,13 +396,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         ...backup,
         activePage: initialActivePage,
         tasks: combinedTasks,
-        notes: (notesList && notesList.length > 0 ? notesList : (backup.notes || [])).filter(Boolean),
-        mindItems: (mindList && mindList.length > 0 ? mindList : (backup.mindItems || [])).filter(Boolean),
-        diaryTopics: (diaryTopicsList && diaryTopicsList.length > 0 ? diaryTopicsList : (backup.diaryTopics || [])).filter(Boolean),
-        focusSessions: (focusList && focusList.length > 0 ? focusList : (backup.focusSessions || [])).filter(Boolean),
-        learningFolders: (learningData?.folders && learningData.folders.length > 0 ? learningData.folders : (backup.learningFolders || [])).filter(Boolean),
-        learningLogs: (learningData?.logs && learningData.logs.length > 0 ? learningData.logs : (backup.learningLogs || [])).filter(Boolean),
-        routineTemplates: (templatesList && templatesList.length > 0 ? templatesList : (backup.routineTemplates || [])).filter(Boolean),
+        notes: (Array.isArray(notesList) ? notesList : (backup.notes || [])).filter(Boolean),
+        mindItems: (Array.isArray(mindList) ? mindList : (backup.mindItems || [])).filter(Boolean),
+        diaryTopics: (Array.isArray(diaryTopicsList) ? diaryTopicsList : (backup.diaryTopics || [])).filter(Boolean),
+        focusSessions: (Array.isArray(focusList) ? focusList : (backup.focusSessions || [])).filter(Boolean),
+        learningFolders: (Array.isArray(learningData?.folders) ? learningData.folders : (backup.learningFolders || [])).filter(Boolean),
+        learningLogs: (Array.isArray(learningData?.logs) ? learningData.logs : (backup.learningLogs || [])).filter(Boolean),
+        routineTemplates: (Array.isArray(templatesList) ? templatesList : (backup.routineTemplates || [])).filter(Boolean),
         timeBlocks: (backup.timeBlocks || []).filter(Boolean),
         activities: (backup.activities || []).filter(Boolean),
         dailyBig3: (backup.dailyBig3 || []).filter(Boolean),
@@ -410,7 +429,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
               routineTemplates: assembledState.routineTemplates,
               categories: assembledState.categories,
               dailyBig3: assembledState.dailyBig3,
-              activePage: assembledState.activePage,
+              activePage: 'today',
               theme: assembledState.theme,
               lang: assembledState.lang,
               notifPreferences: assembledState.notifPreferences,
@@ -472,72 +491,86 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     });
   }, [loadUserData]);
 
+  const lastPersistedPageRef = useRef<string>(state.activePage);
+  const persistTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   // Save state: Cloud + local persistence for logged-in users; temporary sessionStorage ONLY for guests
   useEffect(() => {
     if (!isLoaded) return;
 
-    const currentUserId = activeUserIdRef.current;
-    const isCurrentlyOnline = typeof navigator === 'undefined' || navigator.onLine;
+    // Skip heavy full-state serialization and DB backups when ONLY activePage changed during tab switching
+    if (lastPersistedPageRef.current !== state.activePage) {
+      lastPersistedPageRef.current = state.activePage;
+      return;
+    }
 
-        try {
-      if (typeof window !== "undefined") {
-        const cacheKey = FAST_CACHE_KEY_PREFIX + (currentUserId || "guest");
-        localStorage.setItem(cacheKey, JSON.stringify({
-          tasks: state.tasks,
-          notes: (state.notes || []).slice(0, 50),
-          mindItems: (state.mindItems || []).slice(0, 50),
-          diaryTopics: (state.diaryTopics || []).slice(0, 50),
-          focusSessions: (state.focusSessions || []).slice(-50),
-          learningFolders: state.learningFolders,
-          learningLogs: (state.learningLogs || []).slice(-50),
-          routineTemplates: state.routineTemplates,
-          categories: state.categories,
-          dailyBig3: state.dailyBig3,
-          activePage: state.activePage,
+    if (persistTimerRef.current) clearTimeout(persistTimerRef.current);
+
+    persistTimerRef.current = setTimeout(() => {
+      const currentUserId = activeUserIdRef.current;
+      const isCurrentlyOnline = typeof navigator === 'undefined' || navigator.onLine;
+
+      try {
+        if (typeof window !== "undefined") {
+          const cacheKey = FAST_CACHE_KEY_PREFIX + (currentUserId || "guest");
+          localStorage.setItem(cacheKey, JSON.stringify({
+            tasks: state.tasks,
+            notes: (state.notes || []).slice(0, 50),
+            mindItems: (state.mindItems || []).slice(0, 50),
+            diaryTopics: (state.diaryTopics || []).slice(0, 50),
+            focusSessions: (state.focusSessions || []).slice(-50),
+            learningFolders: state.learningFolders,
+            learningLogs: (state.learningLogs || []).slice(-50),
+            routineTemplates: state.routineTemplates,
+            categories: state.categories,
+            dailyBig3: state.dailyBig3,
+            activePage: 'today',
+            theme: state.theme,
+            lang: state.lang,
+            notifPreferences: state.notifPreferences,
+            calendarPreferences: state.calendarPreferences,
+          }));
+        }
+      } catch {}
+
+      if (currentUserId) {
+        // Authenticated: save to primary client-side layer (Dexie IndexedDB)
+        settingsRepository.saveAppStateBackup(currentUserId, state).catch(() => {});
+        settingsRepository.savePreferences(currentUserId, {
           theme: state.theme,
           lang: state.lang,
           notifPreferences: state.notifPreferences,
           calendarPreferences: state.calendarPreferences,
-        }));
-      }
-    } catch {}
+        }).catch(() => {});
+        saveStateToIndexedDB(state, currentUserId);
 
-    if (currentUserId) {
-      // Authenticated: save to primary client-side layer (Dexie IndexedDB)
-      settingsRepository.saveAppStateBackup(currentUserId, state).catch(() => {});
-      settingsRepository.savePreferences(currentUserId, {
-        theme: state.theme,
-        lang: state.lang,
-        notifPreferences: state.notifPreferences,
-        calendarPreferences: state.calendarPreferences,
-      }).catch(() => {});
-      saveStateToIndexedDB(state, currentUserId);
+        if (!isCurrentlyOnline) return;
 
-      if (!isCurrentlyOnline) return;
-
-      // Debounced privacy-preserving E2EE cross-device sync
-      syncService.scheduleSync(currentUserId, 2500);
-    } else {
-      // Guest mode: Persist locally in Dexie IndexedDB + localStorage on this device (100% offline, zero cloud sync)
-      settingsRepository.saveAppStateBackup('guest', state).catch(() => {});
-      settingsRepository.savePreferences('guest', {
-        theme: state.theme,
-        lang: state.lang,
-        notifPreferences: state.notifPreferences,
-        calendarPreferences: state.calendarPreferences,
-      }).catch(() => {});
-      saveStateToIndexedDB(state, 'guest');
-      if (typeof window !== 'undefined') {
-        try {
-          localStorage.setItem('focusforge_data_guest', JSON.stringify(state));
-          sessionStorage.setItem('focusforge_guest_temp_data', JSON.stringify(state));
-        } catch (err) {
-          console.warn("Guest local storage warning:", err);
+        // Debounced privacy-preserving E2EE cross-device sync
+        syncService.scheduleSync(currentUserId, 2500);
+      } else {
+        // Guest mode: Persist locally in Dexie IndexedDB + localStorage on this device (100% offline, zero cloud sync)
+        settingsRepository.saveAppStateBackup('guest', state).catch(() => {});
+        settingsRepository.savePreferences('guest', {
+          theme: state.theme,
+          lang: state.lang,
+          notifPreferences: state.notifPreferences,
+          calendarPreferences: state.calendarPreferences,
+        }).catch(() => {});
+        saveStateToIndexedDB(state, 'guest');
+        if (typeof window !== 'undefined') {
+          try {
+            localStorage.setItem('focusforge_data_guest', JSON.stringify(state));
+            sessionStorage.setItem('focusforge_guest_temp_data', JSON.stringify(state));
+          } catch (err) {
+            console.warn("Guest local storage warning:", err);
+          }
         }
       }
-    }
+    }, 450);
 
     return () => {
+      if (persistTimerRef.current) clearTimeout(persistTimerRef.current);
       if (cloudTimerRef.current) clearTimeout(cloudTimerRef.current);
     };
   }, [state, isLoaded]);
@@ -634,7 +667,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return () => {
       if (unsubscribe) unsubscribe();
     };
-  }, [state.activePage]);
+  }, [isLoaded]);
 
   const updateState = useCallback((updates: Partial<AppState>) => {
     if (updates.activePage && typeof window !== 'undefined') {
@@ -932,17 +965,44 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     });
   }, []);
 
+  const purgeEntityFromFastCache = useCallback((
+    collectionKey: 'tasks' | 'notes' | 'mindItems' | 'diaryTopics' | 'learningFolders' | 'learningLogs' | 'routineTemplates',
+    id: string | number
+  ) => {
+    if (typeof window === 'undefined') return;
+    try {
+      const currentUserId = activeUserIdRef.current || 'guest';
+      const cacheKey = FAST_CACHE_KEY_PREFIX + currentUserId;
+      const raw = localStorage.getItem(cacheKey);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed[collectionKey])) {
+          parsed[collectionKey] = parsed[collectionKey].filter((item: any) => item && String(item.id) !== String(id));
+          localStorage.setItem(cacheKey, JSON.stringify(parsed));
+        }
+      }
+      settingsRepository.getAppStateBackup(currentUserId).then((b) => {
+        if (b && Array.isArray((b as any)[collectionKey])) {
+          (b as any)[collectionKey] = (b as any)[collectionKey].filter((item: any) => item && String(item.id) !== String(id));
+          settingsRepository.saveAppStateBackup(currentUserId, b).catch(() => {});
+        }
+      }).catch(() => {});
+    } catch {}
+  }, []);
+
   const deleteMindItem = useCallback((id: string) => {
     setState((prev) => ({
       ...prev,
       mindItems: (prev.mindItems || []).filter((item) => item.id !== id),
     }));
 
+    purgeEntityFromFastCache('mindItems', id);
+
     const currentUserId = activeUserIdRef.current || 'guest';
     mindService.deleteMindItem(id, currentUserId).catch((err) => {
       console.warn("[AppContext] mindService delete warning:", err);
     });
-  }, []);
+  }, [purgeEntityFromFastCache]);
 
   // ==================== Tasks ====================
 
@@ -1027,13 +1087,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       ...prev,
       tasks: (prev.tasks || []).filter((t) => String(t.id) !== String(id) && (!isNaN(numId) ? t.id !== numId : true)),
     }));
+    purgeEntityFromFastCache('tasks', id);
     notificationService.cancelTaskReminders(id);
     reminderSyncService.cancelTaskRemindersOnServer(id, activeUserIdRef.current);
     if (!isNaN(numId)) {
       const currentUserId = activeUserIdRef.current || 'guest';
       deleteTaskFromBackend(numId, currentUserId).catch((err) => console.warn('[AppContext] Failed to delete task in backend:', err));
     }
-  }, []);
+  }, [purgeEntityFromFastCache]);
 
   const cycleTaskStatus = useCallback((id: number) => {
     const statusCycle: ('not_started' | 'in_progress' | 'completed')[] = ['not_started', 'in_progress', 'completed'];
@@ -1124,11 +1185,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       notes: (prev.notes || []).filter((n) => n.id !== id),
     }));
 
+    purgeEntityFromFastCache('notes', id);
+
     const currentUserId = activeUserIdRef.current || 'guest';
     noteService.deleteNote(id, currentUserId).catch((err) => {
       console.warn("[AppContext] Failed to delete note from local DB:", err);
     });
-  }, []);
+  }, [purgeEntityFromFastCache]);
 
 
   // ==================== Time Blocks ====================
@@ -1183,11 +1246,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     deleteRoutineTemplateFromBackend(templateId, currentUserId).catch((err) =>
       console.warn('[AppContext] deleteRoutineTemplate backend sync error:', err)
     );
+    purgeEntityFromFastCache('routineTemplates', templateId);
     setState((prev) => ({
       ...prev,
       routineTemplates: (prev.routineTemplates || []).filter((t) => String(t.id) !== String(templateId)),
     }));
-  }, []);
+  }, [purgeEntityFromFastCache]);
 
   const addRoutineTask = useCallback((weekday: Weekday, taskData: Omit<RoutineTemplateTask, 'id' | 'order'>) => {
     setState((prev) => {
@@ -1715,9 +1779,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       learningFolders: (prev.learningFolders || []).filter((f) => f.id !== id),
       learningLogs: (prev.learningLogs || []).filter((l) => l.folderId !== id),
     }));
+    purgeEntityFromFastCache('learningFolders', id);
     const targetUserId = activeUserIdRef.current || 'guest';
     learningDbService.deleteFolder(id, targetUserId);
-  }, []);
+  }, [purgeEntityFromFastCache]);
 
   const toggleLearningFolderCompletion = useCallback((id: string) => {
     let targetFolder: LearningFolder | undefined;
@@ -1752,9 +1817,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       ...prev,
       learningLogs: (prev.learningLogs || []).filter((l) => l.id !== id)
     }));
+    purgeEntityFromFastCache('learningLogs', id);
     const targetUserId = activeUserIdRef.current || 'guest';
     learningDbService.deleteLog(id, targetUserId);
-  }, []);
+  }, [purgeEntityFromFastCache]);
 
   // ==================== My Diary ====================
 
@@ -1796,10 +1862,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       ...prev,
       diaryTopics: deleteDiaryTopic(topicId, prev.diaryTopics || [])
     }));
-
+    purgeEntityFromFastCache('diaryTopics', topicId);
     const targetUserId = activeUserIdRef.current || 'guest';
     diaryDbService.deleteDiaryTopic(topicId, targetUserId);
-  }, []);
+  }, [purgeEntityFromFastCache]);
 
   const addDiaryEntryItem = useCallback((topicId: string, title: string = '', content: string = '') => {
     let createdEntry: DiaryEntry;
@@ -1838,6 +1904,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     const targetUserId = activeUserIdRef.current || 'guest';
     diaryDbService.deleteDiaryEntry(entryId, targetUserId);
+    if (typeof window !== 'undefined') {
+      try {
+        const cacheKey = FAST_CACHE_KEY_PREFIX + targetUserId;
+        const raw = localStorage.getItem(cacheKey);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed.diaryTopics)) {
+            parsed.diaryTopics = deleteDiaryEntry(topicId, entryId, parsed.diaryTopics);
+            localStorage.setItem(cacheKey, JSON.stringify(parsed));
+          }
+        }
+      } catch {}
+    }
   }, []);
 
 

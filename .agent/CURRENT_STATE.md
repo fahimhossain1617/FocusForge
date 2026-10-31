@@ -180,10 +180,10 @@ Focentia is an active, functional productivity suite built with Next.js 16 App R
 ---
 
 ### My Mind / Mind Space
-- **Current Implementation:** `MyMindPage.tsx`, `MindHome.tsx`, `IdeaCapture.tsx`, `ProblemSolver.tsx`. Provides fast unstructured brain dump, idea grouping, structured problem solving, and quick capture modals (`QuickCapture.tsx`). Unified single-container writing composer design with seamless transparent textarea, centered VoiceWaveform during recording with zero status labels, and integrated lower action controls (Microphone, Bengali/English language toggle, Save button). Category selector tabs row ("Free Flow", "Idea Vault", "Problem Solver") centered across all screen sizes.
+- **Current Implementation:** `MyMindPage.tsx`, `MindHome.tsx`, `IdeaCapture.tsx`, `ProblemSolver.tsx`. Provides fast unstructured brain dump, idea grouping, structured problem solving, and quick capture modals (`QuickCapture.tsx`). Unified single-container writing composer design with seamless transparent textarea, centered VoiceWaveform during recording with zero status labels, and integrated lower action controls (Microphone, Bengali/English language toggle, Save button). Category selector tabs row ("Free Flow", "Idea Vault", "Problem Solver") centered across all screen sizes. Permanent deletion is strictly enforced across Dexie tombstones, immediate fast cache & backup purging, authoritative empty store assembly, and PostgreSQL cloud delete endpoints, preventing background resurrection.
 - **Verified Status:** **VERIFIED**
 - **Known Problems:** None.
-- **Important Files:** `frontend/src/components/pages/MyMindPage.tsx`, `frontend/src/components/mymind/MindHome.tsx`, `frontend/src/components/mymind/VoiceInput.tsx`, `frontend/src/services/mindService.ts`.
+- **Important Files:** `frontend/src/components/pages/MyMindPage.tsx`, `frontend/src/components/mymind/MindHome.tsx`, `frontend/src/components/mymind/VoiceInput.tsx`, `frontend/src/services/mindService.ts`, `frontend/src/context/AppContext.tsx`.
 - **Dependencies:** `AppContext.tsx`, `mind_items` table.
 - **Unknowns:** None.
 
@@ -882,6 +882,22 @@ Focentia is an active, functional productivity suite built with Next.js 16 App R
       - **Point 7 (Glory AI Chat Persistence):** Removed destructive unmount hook in `AIAgentPage.tsx`. Chat history and active session ID are preserved across app navigation (Planner, Dashboard, Time Log). New chats are only created upon user clicking "+ New Chat" or full app reload/close.
 - **Verified Status:** **VERIFIED** (Next.js 16 build passed with Exit Code 0, 39 routes; Backend TypeScript build passed with Exit Code 0; Routing & Sanitizer unit tests passed).
 - **Important Files:** `frontend/src/lib/ai/router/intents.ts`, `frontend/src/lib/ai/router/flows.ts`, `frontend/src/lib/server/aiService.ts`, `backend/src/services/aiService.ts`, `frontend/src/lib/ai/aiActionValidator.ts`, `frontend/src/types/aiAgent.ts`, `frontend/src/components/ai-agent/AIAgentPage.tsx`, `frontend/src/services/aiAgentService.ts`, `frontend/src/hooks/useAIAgent.ts`.
+
+   14. **Lag Elimination, Cold-Launch Dashboard Fix, Installed PWA System Update Modal & Full Workspace Content Inspection (Oct 2026):**
+      - **Problem 1 (Zero Lag Across Typing, Glory AI & Tab Switching):**
+        - `AppContext.tsx`: Skipped full-state Dexie/IndexedDB/localStorage serialization when only `state.activePage` changes during tab switching, debounced state persistence by 450ms, and changed `noteService.subscribeToNotes` dependency from `[state.activePage]` to `[isLoaded]` so switching tabs no longer tears down and re-subscribes Supabase realtime channels.
+        - `AIAgentPage.tsx` & `useAIAgent.ts`: Stabilized `useOrbMood` `userInput` prop (`input ? "typing" : ""`) to prevent per-keystroke regex evaluations; switched streaming auto-scroll to instant `behavior: "auto"`; throttled typewriter ticks to 32ms; debounced `ai_messages` Dexie mirroring to only write the latest 2 messages after 300ms.
+        - `aiAgentService.ts`: Replaced blocking network call `await supabase.auth.getUser()` before local router execution with synchronous session resolution.
+      - **Problem 2 (System Update Popup Modal for Installed PWA + Top Navbar Fallback):**
+        - `PWAUpdater.tsx` & `MobileHeader.tsx`: Added centered "System Update" modal exclusively for installed standalone web apps (`isRunningAsInstalledApp()`) with zero background blur/darkening, zero border glow, clean Focentia theme colors, top-right `X` dismiss button, easy English copy ("New Version Available", "System Update", "A new update is ready to make your app faster and smoother."), animated progress bar (`0% -> 100%`), and "Restart Now" button. Ignoring via `X` closes the modal and surfaces the update icon in the top navbar (`MobileHeader.tsx` & `DashboardPage.tsx`).
+      - **Problem 3 (Glory AI Gemini 3 Flash Sub-2s Connection, 74% Token Reduction, Full Folder/Content Inspection & UI Margins):**
+        - `aiService.ts` (frontend & backend): Prioritized `gemini-3-flash-preview` with `thinkingLevel: 'MINIMAL'` (~800ms–2s latency) and condensed `buildAgentChatPrompt` from 6,816 prompt tokens down to 1,752 prompt tokens (-74.3% token cost).
+        - `AIAgentPage.tsx`, `geminiClient.ts`, `intents.ts`, `handlers.ts`, `aiService.ts`: Enriched `WorkspaceContext` with `mindSummary` (Free Flow, Idea Vault, Problem Solver + `contentPreview`), `diarySummary` (chapters + `entries` + `contentPreview`), `notesSummary` (categories + `contentPreview`), `learningTopics` (Time Log folders + `importantTopics` + `weakTopics` + `notes`), and Dashboard stats. Removed false `isGuest` blocks on local workspace inspection.
+        - `globals.css` & `AIActionCard.tsx`: Restored `padding: 16px 18px !important;` on `.editor-block--file, .editor-block--link` and fixed `Start:` / `End:` vertical character wrapping and icon spacing on Planner action cards.
+      - **Problem 4 (Cold App Launch Directly to Dashboard):**
+        - `AppContext.tsx`: Ensured `getFastInitialState()` and `loadUserData()` always default to `activePage: 'today'` (Dashboard) on cold app launch (`sessionStorage` empty), eliminating the brief flash of Notes & Files (`tasks`).
+- **Verified Status:** **VERIFIED**
+
 
 
 

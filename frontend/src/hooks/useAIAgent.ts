@@ -198,23 +198,25 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
 
   // Persist current active messages & activeSessionId to memory / session safely scoped by user ID
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      memoryMessages = messages;
-      memoryActiveSessionId = activeSessionId;
-      memoryGuestCount = guestCount;
-      memoryUserId = currentUserId;
+    if (typeof window === "undefined") return;
+    memoryMessages = messages;
+    memoryActiveSessionId = activeSessionId;
+    memoryGuestCount = guestCount;
+    memoryUserId = currentUserId;
 
+    const timer = setTimeout(() => {
       try {
         if (!isPrivateMode && activeSessionId) {
           sessionStorage.setItem(getActiveSessionCacheKey(currentUserId), activeSessionId);
           localStorage.setItem(getActiveSessionCacheKey(currentUserId), activeSessionId);
           if (messages.length > 0) {
             const msgKey = getMsgCacheKey(currentUserId, activeSessionId);
-            sessionStorage.setItem(msgKey, JSON.stringify(messages));
-            localStorage.setItem(msgKey, JSON.stringify(messages));
-            // Mirror messages into Dexie for reliable local persistence across all users
+            const serialized = JSON.stringify(messages);
+            sessionStorage.setItem(msgKey, serialized);
+            localStorage.setItem(msgKey, serialized);
+            // Mirror recent messages into Dexie without re-writing entire history on every tick
             const targetUserId = currentUserId || "guest";
-            messages.forEach((m) => {
+            messages.slice(-2).forEach((m) => {
               localDb.put("ai_messages", {
                 id: m.id || `msg_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
                 sessionId: activeSessionId,
@@ -234,7 +236,9 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
           sessionStorage.removeItem(key);
         }
       } catch {}
-    }
+    }, 300);
+
+    return () => clearTimeout(timer);
   }, [messages, activeSessionId, guestCount, isGuest, user, currentUserId, isPrivateMode]);
 
   // Refresh token status
@@ -668,7 +672,7 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
         await new Promise<void>((resolve) => {
           let tokenIndex = 0;
           const totalDuration = Math.min(320, Math.max(160, tokens.length * 12));
-          const intervalMs = 16;
+          const intervalMs = 32;
           const totalTicks = Math.max(1, Math.round(totalDuration / intervalMs));
           const step = Math.max(1, Math.ceil(tokens.length / totalTicks));
 
@@ -830,7 +834,7 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
         await new Promise<void>((resolve) => {
           let tokenIndex = 0;
           const totalDuration = Math.min(650, Math.max(260, tokens.length * 12));
-          const intervalMs = 18;
+          const intervalMs = 32;
           const totalTicks = Math.max(1, Math.round(totalDuration / intervalMs));
           const step = Math.max(1, Math.ceil(tokens.length / totalTicks));
 
