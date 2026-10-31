@@ -151,6 +151,15 @@ async function executeAdminFetch<T>(
 }
 
 export const adminApiClient = {
+  // Synchronous cache lookup for instantaneous 0ms section switches (Stale-While-Revalidate)
+  getCached<T>(url: string): BaseApiResponse<T> | null {
+    const cached = adminMemoryCache.get(url);
+    if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
+      return cached.data as BaseApiResponse<T>;
+    }
+    return null;
+  },
+
   // 1. Admin Identity
   async getMe(): Promise<BaseApiResponse<AdminMeResponse>> {
     return executeAdminFetch<AdminMeResponse>("/api/admin/me");

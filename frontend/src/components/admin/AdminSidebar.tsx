@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -25,6 +25,7 @@ import {
   ChevronLeft,
   ChevronRight,
   ShieldCheck,
+  Loader2,
 } from "lucide-react";
 
 export interface AdminNavItem {
@@ -62,6 +63,11 @@ export function AdminSidebar({
   onToggleCollapse: () => void;
 }) {
   const pathname = usePathname();
+  const [pendingHref, setPendingHref] = useState<string | null>(null);
+
+  useEffect(() => {
+    setPendingHref(null);
+  }, [pathname]);
 
   return (
     <aside
@@ -73,6 +79,10 @@ export function AdminSidebar({
       <div className="flex items-center justify-between py-4 px-1 min-h-[56px] border-b border-[#DCE5F0] dark:border-white/[0.06] shrink-0">
         <Link
           href="/admin/overview"
+          prefetch={true}
+          onClick={() => {
+            if (pathname !== "/admin/overview") setPendingHref("/admin/overview");
+          }}
           className="flex items-center gap-2.5 rounded-xl p-1 text-left group outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
           title="Focentia Admin Control Center"
         >
@@ -105,12 +115,22 @@ export function AdminSidebar({
       <nav className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden py-3 space-y-0.5">
         {ADMIN_NAV_ITEMS.map((item) => {
           const Icon = item.icon;
-          const isActive = pathname === item.href || (item.href !== "/admin/overview" && pathname.startsWith(item.href));
+          const isCurrent = pathname === item.href || (item.href !== "/admin/overview" && pathname.startsWith(item.href));
+          const isPending = pendingHref === item.href;
+          const isActive = isPending || (pendingHref === null && isCurrent);
 
           return (
             <Link
               key={item.id}
               href={item.href}
+              prefetch={true}
+              onClick={(e) => {
+                if (isCurrent && !pendingHref) {
+                  e.preventDefault();
+                  return;
+                }
+                setPendingHref(item.href);
+              }}
               className={`flex items-center rounded-xl text-left transition-colors duration-150 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
                 isCollapsed
                   ? "w-10 h-10 mx-auto justify-center"
@@ -122,11 +142,15 @@ export function AdminSidebar({
               }`}
               title={isCollapsed ? item.label : undefined}
             >
-              <Icon
-                size={18}
-                strokeWidth={isActive ? 2.2 : 1.75}
-                className={`shrink-0 ${isActive ? "text-blue-600 dark:text-blue-400" : ""}`}
-              />
+              {isPending ? (
+                <Loader2 size={18} className="shrink-0 animate-spin text-blue-600 dark:text-blue-400" />
+              ) : (
+                <Icon
+                  size={18}
+                  strokeWidth={isActive ? 2.2 : 1.75}
+                  className={`shrink-0 ${isActive ? "text-blue-600 dark:text-blue-400" : ""}`}
+                />
+              )}
               {!isCollapsed && (
                 <span className="text-[13px] leading-tight truncate">{item.label}</span>
               )}
@@ -139,6 +163,8 @@ export function AdminSidebar({
       <div className="pt-3 pb-4 border-t border-[#DCE5F0] dark:border-white/[0.06] shrink-0">
         <Link
           href="/"
+          prefetch={true}
+          onClick={() => setPendingHref("/")}
           className={`flex items-center rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/[0.06] transition-colors cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
             isCollapsed
               ? "w-10 h-10 mx-auto justify-center"

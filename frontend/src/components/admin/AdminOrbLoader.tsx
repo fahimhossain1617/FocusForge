@@ -97,7 +97,7 @@ void main() {
 `;
 
 const FRAGMENT_SHADER_SRC = `
-precision highp float;
+precision mediump float;
 varying vec2 v_uv;
 
 uniform float u_time;
@@ -238,7 +238,7 @@ void main() {
 `;
 
 export function AdminOrbLoader({
-  size = 190,
+  size = 140,
 }: {
   size?: number;
 }) {
@@ -250,8 +250,8 @@ export function AdminOrbLoader({
     if (!canvas) return;
 
     let animationFrameId = 0;
-    const dpr = typeof window !== "undefined" ? Math.min(window.devicePixelRatio || 1, 2) : 1;
-    const pixelSize = Math.round(size * dpr);
+    // Clamped to 1 DPR: eliminates 75% GPU fill-rate load on high-DPI/mobile screens while preserving pristine bloom
+    const pixelSize = Math.round(size);
     canvas.width = pixelSize;
     canvas.height = pixelSize;
 
@@ -378,6 +378,12 @@ export function AdminOrbLoader({
     const ctx2d = !glProgram ? canvas.getContext("2d") : null;
 
     const renderFrame = () => {
+      // Pause drawing loop when browser tab is inactive to preserve phone resources
+      if (typeof document !== "undefined" && document.hidden) {
+        animationFrameId = window.requestAnimationFrame(renderFrame);
+        return;
+      }
+
       // Synchronized wall-clock time so transitions across route mounts never reset phase
       const nowSec = (Date.now() % 3600000) * 0.001;
       const colors = samplePalette(nowSec);

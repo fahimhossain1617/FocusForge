@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -8,15 +8,22 @@ import {
   Menu,
   X,
   ArrowLeft,
+  Loader2,
 } from "lucide-react";
 import { ADMIN_NAV_ITEMS } from "./AdminSidebar";
 
 export function AdminMobileNav() {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
+  const [pendingHref, setPendingHref] = useState<string | null>(null);
 
+  useEffect(() => {
+    setPendingHref(null);
+  }, [pathname]);
+
+  const effectivePath = pendingHref || pathname;
   const activeItem = ADMIN_NAV_ITEMS.find(
-    (item) => pathname === item.href || (item.href !== "/admin/overview" && pathname.startsWith(item.href))
+    (item) => effectivePath === item.href || (item.href !== "/admin/overview" && effectivePath.startsWith(item.href))
   ) || ADMIN_NAV_ITEMS[0];
 
   return (
@@ -76,20 +83,30 @@ export function AdminMobileNav() {
             <div className="flex-1 overflow-y-auto py-2 space-y-1">
               {ADMIN_NAV_ITEMS.map((item) => {
                 const Icon = item.icon;
-                const isActive = pathname === item.href || (item.href !== "/admin/overview" && pathname.startsWith(item.href));
+                const isCurrent = pathname === item.href || (item.href !== "/admin/overview" && pathname.startsWith(item.href));
+                const isPending = pendingHref === item.href;
+                const isActive = isPending || (pendingHref === null && isCurrent);
 
                 return (
                   <Link
                     key={item.id}
                     href={item.href}
-                    onClick={() => setIsOpen(false)}
+                    prefetch={true}
+                    onClick={() => {
+                      setPendingHref(item.href);
+                      setIsOpen(false);
+                    }}
                     className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-colors ${
                       isActive
-                        ? "bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400"
+                        ? "bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 font-bold"
                         : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-white/[0.04]"
                     }`}
                   >
-                    <Icon size={17} className={isActive ? "text-blue-600" : "text-slate-400"} />
+                    {isPending ? (
+                      <Loader2 size={17} className="animate-spin text-blue-600 shrink-0" />
+                    ) : (
+                      <Icon size={17} className={isActive ? "text-blue-600" : "text-slate-400"} />
+                    )}
                     <span>{item.label}</span>
                   </Link>
                 );

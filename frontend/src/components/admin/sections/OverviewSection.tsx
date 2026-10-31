@@ -24,13 +24,18 @@ import { AdminLoadingView, AdminUnconnectedView, AdminErrorView } from "../Admin
 
 export function OverviewSection() {
   const [range, setRange] = useState<TimeRangeFilter>("24h");
-  const [loading, setLoading] = useState(true);
+  const cachedInitial = adminApiClient.getCached<AdminOverviewData>(`/api/admin/overview?range=24h`);
+  const [loading, setLoading] = useState(!cachedInitial);
   const [error, setError] = useState<string | null>(null);
   const [isUnconnected, setIsUnconnected] = useState(false);
-  const [data, setData] = useState<AdminOverviewData | null>(null);
+  const [data, setData] = useState<AdminOverviewData | null>(cachedInitial?.data || null);
 
   const fetchOverview = useCallback(async () => {
-    setLoading(true);
+    const url = `/api/admin/overview?range=${encodeURIComponent(range)}`;
+    const cached = adminApiClient.getCached<AdminOverviewData>(url);
+    if (!cached) {
+      setLoading(true);
+    }
     setError(null);
     setIsUnconnected(false);
     try {

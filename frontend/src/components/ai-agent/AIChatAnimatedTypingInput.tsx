@@ -23,27 +23,25 @@ export interface AIChatAnimatedTypingInputProps
  * 4. Dynamic height scaling without layout shift or line corruption.
  * 5. Multi-language seamless rendering (Bengali, English, mixed scripts).
  */
-export const AIChatAnimatedTypingInput = forwardRef<
-  HTMLTextAreaElement,
-  AIChatAnimatedTypingInputProps
->(
-  (
-    {
-      value = "",
-      onChange,
-      onKeyDown,
-      onScroll,
-      onCompositionStart,
-      onCompositionEnd,
-      placeholder = "Chat with Glory...",
-      className = "",
-      style,
-      disabled,
-      rows = 1,
-      ...rest
-    },
-    ref
-  ) => {
+export const AIChatAnimatedTypingInput = React.memo(
+  forwardRef<HTMLTextAreaElement, AIChatAnimatedTypingInputProps>(
+    (
+      {
+        value = "",
+        onChange,
+        onKeyDown,
+        onScroll,
+        onCompositionStart,
+        onCompositionEnd,
+        placeholder = "Chat with Glory...",
+        className = "",
+        style,
+        disabled,
+        rows = 1,
+        ...rest
+      },
+      ref
+    ) => {
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     useImperativeHandle(ref, () => textareaRef.current as HTMLTextAreaElement);
 
@@ -75,7 +73,7 @@ export const AIChatAnimatedTypingInput = forwardRef<
         {...rest}
       />
     );
-  }
+  })
 );
 
 AIChatAnimatedTypingInput.displayName = "AIChatAnimatedTypingInput";

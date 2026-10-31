@@ -21,8 +21,9 @@ import { AdminLoadingView, AdminUnconnectedView, AdminErrorView, AdminEmptyView 
 const ADMIN_EMAIL = "fahimhossain1617@gmail.com";
 
 export function UsersSection() {
-  const [usersData, setUsersData] = useState<PaginatedResult<AdminUserListItem> | null>(null);
-  const [loading, setLoading] = useState(true);
+  const cachedInitial = adminApiClient.getCached<PaginatedResult<AdminUserListItem>>(`/api/admin/users?page=1&pageSize=15`);
+  const [usersData, setUsersData] = useState<PaginatedResult<AdminUserListItem> | null>(cachedInitial?.data || null);
+  const [loading, setLoading] = useState(!cachedInitial);
   const [error, setError] = useState<string | null>(null);
   const [isUnconnected, setIsUnconnected] = useState(false);
 
@@ -36,7 +37,14 @@ export function UsersSection() {
   const [isSubmittingSuspension, setIsSubmittingSuspension] = useState(false);
 
   const fetchUsers = useCallback(async () => {
-    setLoading(true);
+    const query = new URLSearchParams({ page: String(page), pageSize: "15" });
+    if (search.trim()) query.set("search", search.trim());
+    if (statusFilter !== "all") query.set("status", statusFilter);
+    const url = `/api/admin/users?${query.toString()}`;
+    const cached = adminApiClient.getCached<PaginatedResult<AdminUserListItem>>(url);
+    if (!cached) {
+      setLoading(true);
+    }
     setError(null);
     setIsUnconnected(false);
     try {

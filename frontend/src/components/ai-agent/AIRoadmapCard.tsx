@@ -29,7 +29,7 @@ interface AIRoadmapCardProps {
   onNavigate?: (route: string) => void;
 }
 
-export function AIRoadmapCard({
+export const AIRoadmapCard = React.memo(function AIRoadmapCard({
   roadmap: initialRoadmap,
   isBn = false,
   onSave,
@@ -397,6 +397,6 @@ export function AIRoadmapCard({
       </div>
     </div>
   );
-}
+});
 
 export default AIRoadmapCard;

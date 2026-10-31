@@ -25,7 +25,7 @@ interface AIActionCardProps {
   onNavigate?: (route: string) => void;
 }
 
-export function AIActionCard({
+export const AIActionCard = React.memo(function AIActionCard({
   action,
   isBn = false,
   onConfirm,
@@ -516,6 +516,6 @@ export function AIActionCard({
       )}
     </div>
   );
-}
+});
 
 export default AIActionCard;

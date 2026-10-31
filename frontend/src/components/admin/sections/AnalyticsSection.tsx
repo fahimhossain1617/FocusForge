@@ -8,13 +8,18 @@ import { AdminLoadingView, AdminUnconnectedView, AdminErrorView } from "../Admin
 
 export function AnalyticsSection() {
   const [range, setRange] = useState<TimeRangeFilter>("7d");
-  const [loading, setLoading] = useState(true);
+  const cachedInitial = adminApiClient.getCached<ProductAnalyticsData>(`/api/admin/analytics?range=7d`);
+  const [loading, setLoading] = useState(!cachedInitial);
   const [error, setError] = useState<string | null>(null);
   const [isUnconnected, setIsUnconnected] = useState(false);
-  const [data, setData] = useState<ProductAnalyticsData | null>(null);
+  const [data, setData] = useState<ProductAnalyticsData | null>(cachedInitial?.data || null);
 
   const fetchAnalytics = useCallback(async () => {
-    setLoading(true);
+    const url = `/api/admin/analytics?range=${encodeURIComponent(range)}`;
+    const cached = adminApiClient.getCached<ProductAnalyticsData>(url);
+    if (!cached) {
+      setLoading(true);
+    }
     setError(null);
     setIsUnconnected(false);
     try {

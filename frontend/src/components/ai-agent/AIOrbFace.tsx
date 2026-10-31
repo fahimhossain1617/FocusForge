@@ -25,7 +25,7 @@ export interface AIOrbFaceProps {
   isTypingStream?: boolean;
 }
 
-export function AIOrbFace({
+export const AIOrbFace = React.memo(function AIOrbFace({
   mood: propMood,
   orbState,
   statusLabel,
@@ -1520,6 +1520,6 @@ export function AIOrbFace({
       </div>
     </div>
   );
-}
+});
 
 export default AIOrbFace;

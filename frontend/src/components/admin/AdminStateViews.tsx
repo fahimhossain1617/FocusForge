@@ -14,10 +14,10 @@ export function AdminLoadingView({
   return (
     <div
       className={`flex flex-col items-center justify-center w-full p-6 text-center ${
-        fullScreen ? "min-h-screen min-h-dvh" : "min-h-[380px] sm:min-h-[440px]"
+        fullScreen ? "min-h-screen min-h-dvh" : "min-h-[340px] sm:min-h-[400px]"
       }`}
     >
-      <AdminOrbLoader size={196} />
+      <AdminOrbLoader size={140} />
     </div>
   );
 }

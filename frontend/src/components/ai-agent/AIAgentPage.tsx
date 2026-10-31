@@ -1008,8 +1008,16 @@ export function AIAgentPage() {
   const adjustTextareaHeight = useCallback(() => {
     const el = textareaRef.current;
     if (!el) return;
-    el.style.height = "auto";
     const singleLineHeight = 24;
+    // Fast path: if empty or single short line without newlines, keep fixed at 24px without layout reflow
+    if (!el.value || (!el.value.includes("\n") && el.value.length < 50)) {
+      if (el.style.height !== "24px") {
+        el.style.height = "24px";
+        el.style.overflowY = "hidden";
+      }
+      return;
+    }
+    el.style.height = "auto";
     const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
     const maxHeight = isMobile ? 150 : 220;
     const nextHeight = Math.max(singleLineHeight, el.scrollHeight);
@@ -1022,9 +1030,14 @@ export function AIAgentPage() {
     }
   }, []);
 
-  useEffect(() => {
-    adjustTextareaHeight();
-  }, [input, adjustTextareaHeight]);
+  const lastInactivityResetRef = useRef<number>(0);
+  const throttledResetInactivity = useCallback(() => {
+    const now = Date.now();
+    if (now - lastInactivityResetRef.current > 2500) {
+      lastInactivityResetRef.current = now;
+      resetInactivityTimer();
+    }
+  }, [resetInactivityTimer]);
 
   useEffect(() => {
     const handleResize = () => adjustTextareaHeight();
@@ -1072,6 +1085,350 @@ export function AIAgentPage() {
   const stopVoice = async () => {
     await stopVoiceListening();
   };
+
+  const renderedConversation = useMemo(() => {
+    let lastAiMessageId: string | null = null;
+    for (let i = messages.length - 1; i >= 0; i--) {
+      if (messages[i].role !== "user" && messages[i].intent !== "FAILED_TO_SEND") {
+        lastAiMessageId = messages[i].id;
+        break;
+      }
+    }
+
+    return messages.map((message) => {
+      const isUser = message.role === "user";
+      const isFailed = message.intent === "FAILED_TO_SEND" || message.id?.startsWith("failed_");
+
+      if (isFailed) {
+        return (
+          <div
+            key={message.id}
+            className={`${styles.messageRow} ${styles.messageRowAssistant}`}
+          >
+            <div className="flex items-center gap-1.5 text-xs text-rose-500/90 dark:text-rose-400 bg-rose-500/10 border border-rose-500/20 px-3 py-1.5 rounded-full select-none max-w-fit">
+              <AlertCircle size={13} className="shrink-0 text-rose-500" />
+              <span>{message.content}</span>
+            </div>
+          </div>
+        );
+      }
+
+      const isLatestAiMessage = !isUser && message.id === lastAiMessageId;
+      return (
+        <div
+          key={message.id}
+          className={`${styles.messageRow} ${isUser ? styles.messageRowUser : styles.messageRowAssistant}`}
+        >
+          <div className={isUser ? styles.userBubble : styles.assistantBubble}>
+            {message.content}
+
+            {/* Interactive Learning Roadmap Card */}
+            {(message.roadmap || (message.payload && message.payload.stages) || (message.structuredResponse && message.structuredResponse.roadmap)) && (
+              <div className="w-full mt-2.5">
+                <AIRoadmapCard
+                  roadmap={(message.roadmap || (message.payload?.stages ? message.payload : message.structuredResponse?.roadmap)) as any}
+                  isBn={isSystemBn}
+                  onSave={(savedRoadmap) => {
+                    const topicName = (savedRoadmap as any)?.subject || (savedRoadmap as any)?.title || (isSystemBn ? "লার্নিং রোডম্যাপ" : "Learning Roadmap");
+                    let targetFolderId = savedRoadmap.folderId;
+                    if (!targetFolderId) {
+                      targetFolderId = addLearningFolder(topicName);
+                      savedRoadmap.folderId = targetFolderId;
+                    }
+                    roadmapService.saveRoadmap(savedRoadmap, user?.id);
+                    showToast(
+                      isSystemBn
+                        ? `'${topicName}' রোডম্যাপ সংরক্ষিত ও টাইম লগে যুক্ত হয়েছে!`
+                        : `'${topicName}' roadmap saved to Time Log!`,
+                      "success"
+                    );
+                  }}
+                  onNavigate={(route) => navigateTo(route as any)}
+                />
+              </div>
+            )}
+
+            {/* Interactive Production Action Cards */}
+            {message.actions && message.actions.length > 0 && (
+              <div className="flex flex-col gap-2.5 mt-2.5 w-full">
+                {message.actions.map((action) => (
+                  <AIActionCard
+                    key={action.id}
+                    action={action}
+                    onConfirm={(_actionId, selectedItemIds, updatedItemsOrAction) => {
+                      if (updatedItemsOrAction && Array.isArray(updatedItemsOrAction)) {
+                        handleExecutePartialAction(message.id, action, updatedItemsOrAction);
+                      } else if (updatedItemsOrAction && typeof updatedItemsOrAction === "object" && updatedItemsOrAction.type) {
+                        handleConfirmAction(message.id, updatedItemsOrAction);
+                      } else if (selectedItemIds && selectedItemIds.length > 0 && action.items && action.items.length > 0) {
+                        const selectedItems = action.items.filter((item) => selectedItemIds.includes(item.id));
+                        handleExecutePartialAction(message.id, action, selectedItems);
+                      } else {
+                        handleConfirmAction(message.id, action);
+                      }
+                    }}
+                    onCancel={() => handleCancelAction(message.id, action)}
+                    onNavigate={(route) => navigateTo(route as any)}
+                    isBn={isSystemBn}
+                  />
+                ))}
+              </div>
+            )}
+
+            {/* Fallback proposal cards for legacy historical messages without structured actions */}
+            {(!message.actions || message.actions.length === 0) && message.payload && message.intent === "PLANNER_CREATE" && (
+              <div className={styles.proposalCard}>
+                <div className={styles.proposalBadge}>
+                  <CheckCircle2 size={13} />
+                  <span>{isSystemBn ? "প্ল্যানার সাজেশন" : "Planner Schedule"}</span>
+                </div>
+                <div className={styles.proposalTitle}>
+                  {isSystemBn ? "স্টাডি / টাস্ক প্ল্যান" : "Planner Schedule"}
+                </div>
+                <div className={styles.proposalDesc}>
+                  {Array.isArray(message.payload.tasks)
+                    ? `${message.payload.tasks.length} ${isSystemBn ? "টি টাস্ক শিডিউল করা হয়েছে" : "tasks scheduled"}`
+                    : message.payload.title || "Study Task"}
+                </div>
+                <div className={styles.proposalActions}>
+                  <button
+                    type="button"
+                    className={styles.proposalBtn}
+                    onClick={() => {
+                      navigateTo("planner");
+                    }}
+                  >
+                    <Compass size={14} />
+                    <span>{isSystemBn ? "প্ল্যানার দেখুন" : "View Planner"}</span>
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {(!message.actions || message.actions.length === 0) && message.payload && message.intent === "PROBLEM_SOLVER" && (
+              <div className={styles.proposalCard}>
+                <div className={styles.proposalBadge}>
+                  <CheckCircle2 size={13} />
+                  <span>{isSystemBn ? "মাইন্ড স্পেস সাজেশন" : "Mind Space"}</span>
+                </div>
+                <div className={styles.proposalTitle}>
+                  {isSystemBn ? "সমস্যা সমাধান" : "Problem Solver"}
+                </div>
+                <div className={styles.proposalDesc}>
+                  {message.payload.problem || "Action plan ready"}
+                </div>
+                <div className={styles.proposalActions}>
+                  <button
+                    type="button"
+                    className={styles.proposalBtn}
+                    onClick={() => {
+                      navigateTo("mind");
+                    }}
+                  >
+                    <Compass size={14} />
+                    <span>{isSystemBn ? "মাইন্ড স্পেস খুলুন" : "Open Mind Space"}</span>
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {(!message.actions || message.actions.length === 0) && message.payload && message.intent === "IDEA_CAPTURE" && (
+              <div className={styles.proposalCard}>
+                <div className={styles.proposalBadge}>
+                  <CheckCircle2 size={13} />
+                  <span>{isSystemBn ? "আইডিয়া সাজেশন" : "Idea Suggestion"}</span>
+                </div>
+                <div className={styles.proposalTitle}>
+                  {isSystemBn ? "আইডিয়া বক্স" : "Idea Box"}
+                </div>
+                <div className={styles.proposalDesc}>
+                  {message.payload.idea || "Captured note"}
+                </div>
+                <div className={styles.proposalActions}>
+                  <button
+                    type="button"
+                    className={styles.proposalBtn}
+                    onClick={() => {
+                      navigateTo("mind");
+                    }}
+                  >
+                    <Compass size={14} />
+                    <span>{isSystemBn ? "মাইন্ড স্পেস দেখুন" : "View Mind Space"}</span>
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {(!message.actions || message.actions.length === 0) &&
+              message.payload &&
+              !message.roadmap &&
+              !message.structuredResponse?.roadmap &&
+              !(message.payload && message.payload.stages) &&
+              (message.intent === "LEARNING_HUB" || message.intent === "SKILL_BUILDER") && (
+              <div className={styles.proposalCard}>
+                <div className={styles.proposalBadge}>
+                  <CheckCircle2 size={13} />
+                  <span>{isSystemBn ? "টাইম লগ সাজেশন" : "Time Log"}</span>
+                </div>
+                <div className={styles.proposalTitle}>
+                  {message.payload.folderName ||
+                    message.payload.skillName ||
+                    message.payload.topic ||
+                    message.payload.subject ||
+                    message.payload.title ||
+                    (isSystemBn ? "লার্নিং টপিক" : "Learning Topic")}
+                </div>
+                <div className={styles.proposalDesc}>
+                  {message.payload.targetHours ? `${message.payload.targetHours}h Target • ` : ""}
+                  {Array.isArray(message.payload.roadmapSteps) ? `${message.payload.roadmapSteps.length} ${isSystemBn ? "টি মাইলস্টোন ধাপ" : "milestone steps"}` : (isSystemBn ? "রোডম্যাপ প্রস্তুত" : "Roadmap Ready")}
+                </div>
+                <div className={styles.proposalActions}>
+                  <button
+                    type="button"
+                    className={styles.proposalBtn}
+                    onClick={() => {
+                      navigateTo("learning");
+                    }}
+                  >
+                    <Compass size={14} />
+                    <span>{isSystemBn ? "টাইম লগ খুলুন" : "Open Time Log"}</span>
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {(!message.actions || message.actions.length === 0) && message.payload && (message.intent === "MY_DIARY" || message.intent === "DIARY_ENTRY") && (
+              <div className={styles.proposalCard}>
+                <div className={styles.proposalBadge}>
+                  <CheckCircle2 size={13} />
+                  <span>{isSystemBn ? "ডায়েরি সাজেশন" : "Diary Suggestion"}</span>
+                </div>
+                <div className={styles.proposalTitle}>
+                  {message.payload.title || (isSystemBn ? "আজকের ডায়েরি" : "Today's Diary")}
+                </div>
+                <div className={styles.proposalDesc}>
+                  {message.payload.topicTitle || (isSystemBn ? "ব্যক্তিগত অনুভূতি ও স্মৃতি" : "Personal Reflections")}
+                </div>
+                <div className={styles.proposalActions}>
+                  <button
+                    type="button"
+                    className={styles.proposalBtn}
+                    onClick={() => {
+                      navigateTo("mind");
+                    }}
+                  >
+                    <Compass size={14} />
+                    <span>{isSystemBn ? "মাই ডায়েরি খুলুন" : "Open My Diary"}</span>
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {(!message.actions || message.actions.length === 0) && message.payload && message.intent === "NOTES_FILES" && (
+              <div className={styles.proposalCard}>
+                <div className={styles.proposalBadge}>
+                  <CheckCircle2 size={13} />
+                  <span>{isSystemBn ? "নোট সাজেশন" : "Note Suggestion"}</span>
+                </div>
+                <div className={styles.proposalTitle}>
+                  {message.payload.title || "New Note"}
+                </div>
+                <div className={styles.proposalActions}>
+                  <button
+                    type="button"
+                    className={styles.proposalBtn}
+                    onClick={() => {
+                      navigateTo("tasks");
+                    }}
+                  >
+                    <Compass size={14} />
+                    <span>{isSystemBn ? "নোটস খুলুন" : "Open Notes"}</span>
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {(!message.actions || message.actions.length === 0) && message.payload && message.intent === "FOCUS_SESSION" && (
+              <div className={styles.proposalCard}>
+                <div className={styles.proposalBadge}>
+                  <CheckCircle2 size={13} />
+                  <span>{isSystemBn ? "ফোকাস সেশন প্রস্তুত" : "Focus Session Ready"}</span>
+                </div>
+                <div className={styles.proposalTitle}>
+                  {message.payload.durationMinutes || 25} min • {message.payload.goal || "Deep Work"}
+                </div>
+                <div className={styles.proposalActions}>
+                  <button
+                    type="button"
+                    className={styles.proposalPrimaryBtn}
+                    onClick={() => {
+                      const mins = message.payload.durationMinutes || 25;
+                      const taskName = message.payload.goal || (isSystemBn ? "ডিপ ওয়ার্ক সেশন" : "Deep Work Session");
+                      localStorage.setItem(
+                        "focusforge_pending_focus_launch",
+                        JSON.stringify({
+                          taskName,
+                          category: "Study",
+                          durationMinutes: mins,
+                          autoStart: true,
+                          timestamp: Date.now()
+                        })
+                      );
+                      navigateTo("focus");
+                    }}
+                  >
+                    <Compass size={14} />
+                    <span>{isSystemBn ? "সেশন শুরু করুন" : "Start Focus"}</span>
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {(message.intent === "REQUIRE_LOGIN" || message.payload?.requireLogin) && (
+              <div className={styles.proposalCard}>
+                <div className={styles.proposalTitle}>
+                  {isSystemBn ? "লগইন প্রয়োজন" : "Login Required"}
+                </div>
+                <div className={styles.proposalDesc}>
+                  {isSystemBn
+                    ? "লগইন করলে AI জেগে উঠবে এবং আনলিমিটেড ব্যবহার ও ক্লাউড সেভ সুবিধা পাবেন।"
+                    : "Log in to wake up AI and enjoy full conversations and cloud sync."}
+                </div>
+                <div className={styles.proposalActions}>
+                  <button
+                    type="button"
+                    className={styles.proposalPrimaryBtn}
+                    onClick={() => openAuth("initial")}
+                  >
+                    <LogIn size={14} />
+                    <span>{isSystemBn ? "লগইন করুন" : "Log In"}</span>
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* AI accuracy disclaimer placed OUTSIDE the message bubble, and ONLY under the latest AI response */}
+          {isLatestAiMessage && (
+            <div className="text-[11px] text-slate-400 dark:text-muted-foreground/70 mt-1 pl-1 select-none">
+              {isSystemBn ? "এআই ভুল করতে পারে। গুরুত্বপূর্ণ তথ্য যাচাই করুন।" : "AI can make mistakes. Check important details."}
+            </div>
+          )}
+        </div>
+      );
+    });
+  }, [
+    messages,
+    isSystemBn,
+    user?.id,
+    addLearningFolder,
+    showToast,
+    navigateTo,
+    openAuth,
+    handleExecutePartialAction,
+    handleConfirmAction,
+    handleCancelAction,
+  ]);
 
   return (
     <section
@@ -1218,338 +1575,7 @@ export function AIAgentPage() {
             /* CONVERSATION THREAD + BOTTOM INTERACTIVE ORB STAGE */
             <>
               <div className={styles.conversation} aria-live="polite">
-                {(() => {
-                  let lastAiMessageId: string | null = null;
-                  for (let i = messages.length - 1; i >= 0; i--) {
-                    if (messages[i].role !== "user" && messages[i].intent !== "FAILED_TO_SEND") {
-                      lastAiMessageId = messages[i].id;
-                      break;
-                    }
-                  }
-
-                  return messages.map((message) => {
-                    const isUser = message.role === "user";
-                    const isFailed = message.intent === "FAILED_TO_SEND" || message.id?.startsWith("failed_");
-
-                    if (isFailed) {
-                      return (
-                        <div
-                          key={message.id}
-                          className={`${styles.messageRow} ${styles.messageRowAssistant}`}
-                        >
-                          <div className="flex items-center gap-1.5 text-xs text-rose-500/90 dark:text-rose-400 bg-rose-500/10 border border-rose-500/20 px-3 py-1.5 rounded-full select-none max-w-fit">
-                            <AlertCircle size={13} className="shrink-0 text-rose-500" />
-                            <span>{message.content}</span>
-                          </div>
-                        </div>
-                      );
-                    }
-
-                    const isLatestAiMessage = !isUser && message.id === lastAiMessageId;
-                    return (
-                      <div
-                        key={message.id}
-                        className={`${styles.messageRow} ${isUser ? styles.messageRowUser : styles.messageRowAssistant}`}
-                      >
-                        <div className={isUser ? styles.userBubble : styles.assistantBubble}>
-                          {message.content}
-
-                          {/* Interactive Learning Roadmap Card */}
-                          {(message.roadmap || (message.payload && message.payload.stages) || (message.structuredResponse && message.structuredResponse.roadmap)) && (
-                            <div className="w-full mt-2.5">
-                              <AIRoadmapCard
-                                roadmap={(message.roadmap || (message.payload?.stages ? message.payload : message.structuredResponse?.roadmap)) as any}
-                                isBn={isSystemBn}
-                                onSave={(savedRoadmap) => {
-                                  const topicName = (savedRoadmap as any)?.subject || (savedRoadmap as any)?.title || (isSystemBn ? "লার্নিং রোডম্যাপ" : "Learning Roadmap");
-                                  let targetFolderId = savedRoadmap.folderId;
-                                  if (!targetFolderId) {
-                                    targetFolderId = addLearningFolder(topicName);
-                                    savedRoadmap.folderId = targetFolderId;
-                                  }
-                                  roadmapService.saveRoadmap(savedRoadmap, user?.id);
-                                  showToast(
-                                    isSystemBn
-                                      ? `'${topicName}' রোডম্যাপ সংরক্ষিত ও টাইম লগে যুক্ত হয়েছে!`
-                                      : `'${topicName}' roadmap saved to Time Log!`,
-                                    "success"
-                                  );
-                                }}
-                                onNavigate={(route) => navigateTo(route as any)}
-                              />
-                            </div>
-                          )}
-
-                          {/* Interactive Production Action Cards */}
-                          {message.actions && message.actions.length > 0 && (
-                            <div className="flex flex-col gap-2.5 mt-2.5 w-full">
-                              {message.actions.map((action) => (
-                                <AIActionCard
-                                  key={action.id}
-                                  action={action}
-                                  onConfirm={(_actionId, selectedItemIds, updatedItemsOrAction) => {
-                                    if (updatedItemsOrAction && Array.isArray(updatedItemsOrAction)) {
-                                      handleExecutePartialAction(message.id, action, updatedItemsOrAction);
-                                    } else if (updatedItemsOrAction && typeof updatedItemsOrAction === "object" && updatedItemsOrAction.type) {
-                                      handleConfirmAction(message.id, updatedItemsOrAction);
-                                    } else if (selectedItemIds && selectedItemIds.length > 0 && action.items && action.items.length > 0) {
-                                      const selectedItems = action.items.filter((item) => selectedItemIds.includes(item.id));
-                                      handleExecutePartialAction(message.id, action, selectedItems);
-                                    } else {
-                                      handleConfirmAction(message.id, action);
-                                    }
-                                  }}
-                                  onCancel={() => handleCancelAction(message.id, action)}
-                                  onNavigate={(route) => navigateTo(route as any)}
-                                  isBn={isSystemBn}
-                                />
-                              ))}
-                            </div>
-                          )}
-
-                          {/* Fallback proposal cards for legacy historical messages without structured actions */}
-                          {(!message.actions || message.actions.length === 0) && message.payload && message.intent === "PLANNER_CREATE" && (
-                            <div className={styles.proposalCard}>
-                              <div className={styles.proposalBadge}>
-                                <CheckCircle2 size={13} />
-                                <span>{isSystemBn ? "প্ল্যানার সাজেশন" : "Planner Schedule"}</span>
-                              </div>
-                              <div className={styles.proposalTitle}>
-                                {isSystemBn ? "স্টাডি / টাস্ক প্ল্যান" : "Planner Schedule"}
-                              </div>
-                              <div className={styles.proposalDesc}>
-                                {Array.isArray(message.payload.tasks)
-                                  ? `${message.payload.tasks.length} ${isSystemBn ? "টি টাস্ক শিডিউল করা হয়েছে" : "tasks scheduled"}`
-                                  : message.payload.title || "Study Task"}
-                              </div>
-                              <div className={styles.proposalActions}>
-                                <button
-                                  type="button"
-                                  className={styles.proposalBtn}
-                                  onClick={() => {
-                                    navigateTo("planner");
-                                  }}
-                                >
-                                  <Compass size={14} />
-                                  <span>{isSystemBn ? "প্ল্যানার দেখুন" : "View Planner"}</span>
-                                </button>
-                              </div>
-                            </div>
-                          )}
-
-                          {(!message.actions || message.actions.length === 0) && message.payload && message.intent === "PROBLEM_SOLVER" && (
-                            <div className={styles.proposalCard}>
-                              <div className={styles.proposalBadge}>
-                                <CheckCircle2 size={13} />
-                                <span>{isSystemBn ? "মাইন্ড স্পেস সাজেশন" : "Mind Space"}</span>
-                              </div>
-                              <div className={styles.proposalTitle}>
-                                {isSystemBn ? "সমস্যা সমাধান" : "Problem Solver"}
-                              </div>
-                              <div className={styles.proposalDesc}>
-                                {message.payload.problem || "Action plan ready"}
-                              </div>
-                              <div className={styles.proposalActions}>
-                                <button
-                                  type="button"
-                                  className={styles.proposalBtn}
-                                  onClick={() => {
-                                    navigateTo("mind");
-                                  }}
-                                >
-                                  <Compass size={14} />
-                                  <span>{isSystemBn ? "মাইন্ড স্পেস খুলুন" : "Open Mind Space"}</span>
-                                </button>
-                              </div>
-                            </div>
-                          )}
-
-                          {(!message.actions || message.actions.length === 0) && message.payload && message.intent === "IDEA_CAPTURE" && (
-                            <div className={styles.proposalCard}>
-                              <div className={styles.proposalBadge}>
-                                <CheckCircle2 size={13} />
-                                <span>{isSystemBn ? "আইডিয়া সাজেশন" : "Idea Suggestion"}</span>
-                              </div>
-                              <div className={styles.proposalTitle}>
-                                {isSystemBn ? "আইডিয়া বক্স" : "Idea Box"}
-                              </div>
-                              <div className={styles.proposalDesc}>
-                                {message.payload.idea || "Captured note"}
-                              </div>
-                              <div className={styles.proposalActions}>
-                                <button
-                                  type="button"
-                                  className={styles.proposalBtn}
-                                  onClick={() => {
-                                    navigateTo("mind");
-                                  }}
-                                >
-                                  <Compass size={14} />
-                                  <span>{isSystemBn ? "মাইন্ড স্পেস দেখুন" : "View Mind Space"}</span>
-                                </button>
-                              </div>
-                            </div>
-                          )}
-
-                          {(!message.actions || message.actions.length === 0) &&
-                            message.payload &&
-                            !message.roadmap &&
-                            !message.structuredResponse?.roadmap &&
-                            !(message.payload && message.payload.stages) &&
-                            (message.intent === "LEARNING_HUB" || message.intent === "SKILL_BUILDER") && (
-                            <div className={styles.proposalCard}>
-                              <div className={styles.proposalBadge}>
-                                <CheckCircle2 size={13} />
-                                <span>{isSystemBn ? "টাইম লগ সাজেশন" : "Time Log"}</span>
-                              </div>
-                              <div className={styles.proposalTitle}>
-                                {message.payload.folderName ||
-                                  message.payload.skillName ||
-                                  message.payload.topic ||
-                                  message.payload.subject ||
-                                  message.payload.title ||
-                                  (isSystemBn ? "লার্নিং টপিক" : "Learning Topic")}
-                              </div>
-                              <div className={styles.proposalDesc}>
-                                {message.payload.targetHours ? `${message.payload.targetHours}h Target • ` : ""}
-                                {Array.isArray(message.payload.roadmapSteps) ? `${message.payload.roadmapSteps.length} ${isSystemBn ? "টি মাইলস্টোন ধাপ" : "milestone steps"}` : (isSystemBn ? "রোডম্যাপ প্রস্তুত" : "Roadmap Ready")}
-                              </div>
-                              <div className={styles.proposalActions}>
-                                <button
-                                  type="button"
-                                  className={styles.proposalBtn}
-                                  onClick={() => {
-                                    navigateTo("learning");
-                                  }}
-                                >
-                                  <Compass size={14} />
-                                  <span>{isSystemBn ? "টাইম লগ খুলুন" : "Open Time Log"}</span>
-                                </button>
-                              </div>
-                            </div>
-                          )}
-
-                          {(!message.actions || message.actions.length === 0) && message.payload && (message.intent === "MY_DIARY" || message.intent === "DIARY_ENTRY") && (
-                            <div className={styles.proposalCard}>
-                              <div className={styles.proposalBadge}>
-                                <CheckCircle2 size={13} />
-                                <span>{isSystemBn ? "ডায়েরি সাজেশন" : "Diary Suggestion"}</span>
-                              </div>
-                              <div className={styles.proposalTitle}>
-                                {message.payload.title || (isSystemBn ? "আজকের ডায়েরি" : "Today's Diary")}
-                              </div>
-                              <div className={styles.proposalDesc}>
-                                {message.payload.topicTitle || (isSystemBn ? "ব্যক্তিগত অনুভূতি ও স্মৃতি" : "Personal Reflections")}
-                              </div>
-                              <div className={styles.proposalActions}>
-                                <button
-                                  type="button"
-                                  className={styles.proposalBtn}
-                                  onClick={() => {
-                                    navigateTo("mind");
-                                  }}
-                                >
-                                  <Compass size={14} />
-                                  <span>{isSystemBn ? "মাই ডায়েরি খুলুন" : "Open My Diary"}</span>
-                                </button>
-                              </div>
-                            </div>
-                          )}
-
-                          {(!message.actions || message.actions.length === 0) && message.payload && message.intent === "NOTES_FILES" && (
-                            <div className={styles.proposalCard}>
-                              <div className={styles.proposalBadge}>
-                                <CheckCircle2 size={13} />
-                                <span>{isSystemBn ? "নোট সাজেশন" : "Note Suggestion"}</span>
-                              </div>
-                              <div className={styles.proposalTitle}>
-                                {message.payload.title || "New Note"}
-                              </div>
-                              <div className={styles.proposalActions}>
-                                <button
-                                  type="button"
-                                  className={styles.proposalBtn}
-                                  onClick={() => {
-                                    navigateTo("tasks");
-                                  }}
-                                >
-                                  <Compass size={14} />
-                                  <span>{isSystemBn ? "নোটস খুলুন" : "Open Notes"}</span>
-                                </button>
-                              </div>
-                            </div>
-                          )}
-
-                          {(!message.actions || message.actions.length === 0) && message.payload && message.intent === "FOCUS_SESSION" && (
-                            <div className={styles.proposalCard}>
-                              <div className={styles.proposalBadge}>
-                                <CheckCircle2 size={13} />
-                                <span>{isSystemBn ? "ফোকাস সেশন প্রস্তুত" : "Focus Session Ready"}</span>
-                              </div>
-                              <div className={styles.proposalTitle}>
-                                {message.payload.durationMinutes || 25} min • {message.payload.goal || "Deep Work"}
-                              </div>
-                              <div className={styles.proposalActions}>
-                                <button
-                                  type="button"
-                                  className={styles.proposalPrimaryBtn}
-                                  onClick={() => {
-                                    const mins = message.payload.durationMinutes || 25;
-                                    const taskName = message.payload.goal || (isSystemBn ? "ডিপ ওয়ার্ক সেশন" : "Deep Work Session");
-                                    localStorage.setItem(
-                                      "focusforge_pending_focus_launch",
-                                      JSON.stringify({
-                                        taskName,
-                                        category: "Study",
-                                        durationMinutes: mins,
-                                        autoStart: true,
-                                        timestamp: Date.now()
-                                      })
-                                    );
-                                    navigateTo("focus");
-                                  }}
-                                >
-                                  <Compass size={14} />
-                                  <span>{isSystemBn ? "সেশন শুরু করুন" : "Start Focus"}</span>
-                                </button>
-                              </div>
-                            </div>
-                          )}
-
-                          {(message.intent === "REQUIRE_LOGIN" || message.payload?.requireLogin) && (
-                            <div className={styles.proposalCard}>
-                              <div className={styles.proposalTitle}>
-                                {isSystemBn ? "লগইন প্রয়োজন" : "Login Required"}
-                              </div>
-                              <div className={styles.proposalDesc}>
-                                {isSystemBn
-                                  ? "লগইন করলে AI জেগে উঠবে এবং আনলিমিটেড ব্যবহার ও ক্লাউড সেভ সুবিধা পাবেন।"
-                                  : "Log in to wake up AI and enjoy full conversations and cloud sync."}
-                              </div>
-                              <div className={styles.proposalActions}>
-                                <button
-                                  type="button"
-                                  className={styles.proposalPrimaryBtn}
-                                  onClick={() => openAuth("initial")}
-                                >
-                                  <LogIn size={14} />
-                                  <span>{isSystemBn ? "লগইন করুন" : "Log In"}</span>
-                                </button>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-
-                        {/* AI accuracy disclaimer placed OUTSIDE the message bubble, and ONLY under the latest AI response */}
-                        {isLatestAiMessage && (
-                          <div className="text-[11px] text-slate-400 dark:text-muted-foreground/70 mt-1 pl-1 select-none">
-                            {isSystemBn ? "এআই ভুল করতে পারে। গুরুত্বপূর্ণ তথ্য যাচাই করুন।" : "AI can make mistakes. Check important details."}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  });
-                })()}
+                {renderedConversation}
               </div>
 
               {/* BOTTOM INTERACTIVE ORB: Displays Thinking Reaction (hand on chin + thought cloud) or Typing (mini laptop + live typewriter) */}
@@ -1641,12 +1667,12 @@ export function AIAgentPage() {
                       if (isLimitExhausted) return;
                       const val = e.target.value;
                       setInput(val);
-                      resetInactivityTimer();
+                      throttledResetInactivity();
                       requestAnimationFrame(adjustTextareaHeight);
                     }}
                     onKeyDown={(e) => {
                       if (isLimitExhausted) return;
-                      resetInactivityTimer();
+                      throttledResetInactivity();
                       if (e.key === "Enter" && !e.shiftKey) {
                         e.preventDefault();
                         submit();

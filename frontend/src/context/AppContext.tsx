@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback, useRef, useMemo, startTransition } from 'react';
 import type { AppState, Task, Note, MindItem, TimeBlock, FocusSession, DistractionEntry, DailyBig3, LearningFolder, LearningLog, DiaryTopic, DiaryEntry, Weekday, RoutineTemplate, RoutineTemplateTask } from '../types';
 import {
   createDiaryTopic,
@@ -759,15 +759,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         localStorage.setItem('focusforge_active_page', page);
       } catch {}
     }
-    setState((prev) => {
-      if (prev.activePage === page) return prev;
-      if (!isBack && prev.activePage && prev.activePage !== page) {
-        pageHistoryRef.current.push(prev.activePage);
-        if (pageHistoryRef.current.length > 30) {
-          pageHistoryRef.current.shift();
+    startTransition(() => {
+      setState((prev) => {
+        if (prev.activePage === page) return prev;
+        if (!isBack && prev.activePage && prev.activePage !== page) {
+          pageHistoryRef.current.push(prev.activePage);
+          if (pageHistoryRef.current.length > 30) {
+            pageHistoryRef.current.shift();
+          }
         }
-      }
-      return { ...prev, activePage: page };
+        return { ...prev, activePage: page };
+      });
     });
   }, [trackMeaningfulAction]);
 
@@ -1921,68 +1923,126 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
 
 
+  const contextValue = useMemo(() => ({
+    state,
+    setState,
+    updateState,
+    resetState,
+    navigateTo,
+    navigateBack,
+    registerFocusLock,
+    unregisterFocusLock,
+    addMindItem,
+    updateMindItem,
+    deleteMindItem,
+    addTask,
+    updateTask,
+    deleteTask,
+    cycleTaskStatus,
+    setDailyBig3,
+    getDailyBig3,
+    addNote,
+    updateNote,
+    deleteNote,
+    addTimeBlock,
+    updateTimeBlock,
+    deleteTimeBlock,
+    startFocusSession,
+    endFocusSession,
+    addBreakTime,
+    addDistraction,
+    logActivity,
+    deleteActivity,
+    showToast,
+    toasts,
+    addLearningFolder,
+    deleteLearningFolder,
+    toggleLearningFolderCompletion,
+    addLearningLog,
+    deleteLearningLog,
+    saveDiaryTopic,
+    updateDiaryTopicItem,
+    deleteDiaryTopicItem,
+    addDiaryEntryItem,
+    saveDiaryEntryItem,
+    deleteDiaryEntryItem,
+    saveRoutineTemplate,
+    deleteRoutineTemplate,
+    addRoutineTask,
+    updateRoutineTask,
+    deleteRoutineTask,
+    reorderRoutineTasks,
+    importRoutineToDate,
+    copyTasksToDate,
+    trackMeaningfulAction,
+    isLoaded,
+    isPageLoading,
+    setPageLoading: setIsPageLoading,
+    isOnline,
+    isSubViewActive,
+    setSubViewActive,
+  }), [
+    state,
+    setState,
+    updateState,
+    resetState,
+    navigateTo,
+    navigateBack,
+    registerFocusLock,
+    unregisterFocusLock,
+    addMindItem,
+    updateMindItem,
+    deleteMindItem,
+    addTask,
+    updateTask,
+    deleteTask,
+    cycleTaskStatus,
+    setDailyBig3,
+    getDailyBig3,
+    addNote,
+    updateNote,
+    deleteNote,
+    addTimeBlock,
+    updateTimeBlock,
+    deleteTimeBlock,
+    startFocusSession,
+    endFocusSession,
+    addBreakTime,
+    addDistraction,
+    logActivity,
+    deleteActivity,
+    showToast,
+    toasts,
+    addLearningFolder,
+    deleteLearningFolder,
+    toggleLearningFolderCompletion,
+    addLearningLog,
+    deleteLearningLog,
+    saveDiaryTopic,
+    updateDiaryTopicItem,
+    deleteDiaryTopicItem,
+    addDiaryEntryItem,
+    saveDiaryEntryItem,
+    deleteDiaryEntryItem,
+    saveRoutineTemplate,
+    deleteRoutineTemplate,
+    addRoutineTask,
+    updateRoutineTask,
+    deleteRoutineTask,
+    reorderRoutineTasks,
+    importRoutineToDate,
+    copyTasksToDate,
+    trackMeaningfulAction,
+    isLoaded,
+    isPageLoading,
+    setIsPageLoading,
+    isOnline,
+    isSubViewActive,
+    setSubViewActive,
+  ]);
+
   return (
-    <AppContext.Provider
-      value={{
-        state,
-        setState,
-        updateState,
-        resetState,
-        navigateTo,
-        navigateBack,
-        registerFocusLock,
-        unregisterFocusLock,
-        addMindItem,
-        updateMindItem,
-        deleteMindItem,
-        addTask,
-        updateTask,
-        deleteTask,
-        cycleTaskStatus,
-        setDailyBig3,
-        getDailyBig3,
-        addNote,
-        updateNote,
-        deleteNote,
-        addTimeBlock,
-        updateTimeBlock,
-        deleteTimeBlock,
-        startFocusSession,
-        endFocusSession,
-        addBreakTime,
-        addDistraction,
-        logActivity,
-        deleteActivity,
-        showToast,
-        toasts,
-        addLearningFolder,
-        deleteLearningFolder,
-        toggleLearningFolderCompletion,
-        addLearningLog,
-        deleteLearningLog,
-        saveDiaryTopic,
-        updateDiaryTopicItem,
-        deleteDiaryTopicItem,
-        addDiaryEntryItem,
-        saveDiaryEntryItem,
-        deleteDiaryEntryItem,
-        saveRoutineTemplate,
-        deleteRoutineTemplate,
-        addRoutineTask,
-        updateRoutineTask,
-        deleteRoutineTask,
-        reorderRoutineTasks,
-        importRoutineToDate,
-        copyTasksToDate,
-        trackMeaningfulAction,
-        isLoaded,
-        isPageLoading,
-        setPageLoading: setIsPageLoading,
-        isOnline,
-        isSubViewActive,
-        setSubViewActive,
-      }}
-    >
+    <AppContext.Provider value={contextValue}>
       {children}
     </AppContext.Provider>
   );

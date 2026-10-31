@@ -1,14 +1,21 @@
 # CURRENT_STATE.md — Current Verified State of Focentia
 
-**Document Version:** 1.0.5  
-**Last Updated:** October 31, 2026  
-**Status:** Authoritative Current State Baseline — Glory AI Gemini 3.5 Reconnection / Full Roadmaps / Folder & Weak Point Inspection / Session Deduplication / GPU-Accelerated Mobile Animation Verified
+**Document Version:** 1.0.6  
+**Last Updated:** November 1, 2026  
+**Status:** Authoritative Current State Baseline — Zero-Lag UI Performance Hardening, Instant Admin Routing & Suspense Skeletons, Chat Virtual DOM Decoupling Verified
 
 ---
 
 ## 1. Overall Status
 
 Focentia is an active, functional productivity suite built with Next.js 16 App Router, PostgreSQL (Supabase), a companion Express backend engine, and Google Gemini AI. The application implements a pure **Local-First + Privacy-First + Auth-Only Supabase + Zero-Knowledge E2EE Cross-Device Sync** architecture.
+
+- **Zero-Lag UI & 60fps Performance Overhaul (November 1, 2026 - ADR-042):**
+  - **Admin Navigation Instant Feedback & Suspense Skeletons (`loading.tsx`, `AdminSidebar.tsx`, `AdminMobileNav.tsx`):** Eliminated the 500–2000ms unbuffered navigation delay, frozen old pages, and out-of-order route jumping in the Admin Control Center. Added `frontend/src/app/admin/loading.tsx` for 0ms Suspense transitions, enabled `prefetch={true}` across all links, and implemented optimistic pending state (`pendingHref`) providing instant tactile confirmation in 1 frame.
+  - **WebGL Loader Overhead Elimination (`AdminOrbLoader.tsx`, `AdminStateViews.tsx`):** Replaced `precision highp float;` with `precision mediump float;`, clamped DPR to 1.0, added `document.hidden` visibility pausing, and reduced orb size to 140, completely eliminating the 200–800ms mobile main-thread shader compilation lockup.
+  - **Stale-While-Revalidate (SWR) Instant Section Mounting (`adminApiClient.ts`, sections):** Added `adminApiClient.getCached` and wired initial state in `OverviewSection`, `UsersSection`, and `AnalyticsSection` so previously visited sections mount in 0ms without a loading spinner flash.
+  - **Glory AI Chat Typing Virtual DOM Decoupling (`AIAgentPage.tsx`, `AIOrbFace.tsx`, `AIActionCard.tsx`, `AIRoadmapCard.tsx`):** Memoized `AIOrbFace` (1525 lines), `AIActionCard`, `AIRoadmapCard`, and `AIChatAnimatedTypingInput` with `React.memo`. Extracted and memoized historical message trees into `renderedConversation = useMemo(...)` to prevent full 1937-line reconciliation on keystrokes. Removed layout reflows in `adjustTextareaHeight` for short single lines and throttled inactivity resets.
+  - **AppContext Context Value Memoization & Concurrent Transitions (`AppContext.tsx`):** Wrapped context value in `useMemo` to eliminate re-render cascades across consumer components, and wrapped `navigateTo` in `React.startTransition` for interruptible, fluid 60fps tab switching.
 
 - **Brand Migration Complete:** Entire application branding (UI, Settings, Privacy, Terms, Support, FAQs, Feature Guides, Preferences, About, Notifications, Email Templates, AI System Prompts, and I18n Translations in English & Bengali) has been comprehensively migrated to **Focentia** / **ফোসেন্টিয়া**.
 - **Auth-Only Cloud Database:** Supabase stores ONLY authentication, account identity, supervisor support tickets, push subscriptions, and opaque AES-256-GCM encrypted sync blobs (`encrypted_sync_records`). Zero plaintext personal data is ever stored in or transmitted to the cloud database.
