@@ -2772,3 +2772,24 @@
   - `npm run build --prefix backend`: Passed (0 errors).
   - `npx --prefix frontend tsc --noEmit -p frontend/tsconfig.json`: Passed (0 errors).
 
+
+---
+
+## ADR-032: Mind Space Text Box 3-Phase Animated Outer Glow (Blue → Green → Purple) & Root SSR Hydration Fix
+
+- **Date:** November 1, 2026
+- **Status:** Accepted & Verified
+- **Decision:**
+  1. **Outer-Only Ethereal Underglow Architecture (`MindHome.tsx`, `globals.css`):**
+     - Configured `.mind-space-glow-box` with `::before` and `::after` (`z-index: -1`, `pointer-events: none`) inside an isolated stacking container (`isolate`), sitting strictly behind the opaque writing box surface (`bg-white dark:bg-[#111827]`) and natural neutral border (`border border-slate-200/80 dark:border-white/10`).
+     - Removed all harsh `box-shadow` to prevent thick floating rims. Applied balanced diffusion blur (`filter: blur(20px)` on primary, `blur(32px)` on secondary) with gently enhanced translucent RGBA colors (`0.30–0.46` alpha) so the glow is softly luminous without looking thick, harsh, or floating.
+     - Added dedicated Light Mode luminance tuning (`opacity: 0.78`, `filter: blur(16px)` on primary, `opacity: 0.52`, `filter: blur(26px)` on secondary) to guarantee the glow pops clearly and vibrantly on `#F3F7FC` light background.
+  2. **Calm, Eye-Soothing 18s Continuous Rotation & 9.0s Color Cycle:**
+     - Registered CSS `@property` custom tokens (`--mg-angle`, `--mg-c1`, `--mg-c2`, `--mg-c3`) driving continuous 360° perimeter rotation over 18.0s (`mindGlowSpin 18s linear infinite`) and an ultra-subtle 0.9px vertical micro-drift (`18s ease-in-out infinite`).
+     - Configured `mindGlowColorCycle` (`9.0s linear infinite`): each color phase (Blue, Green, Purple) holds for ~2.5s, followed by a 500ms smooth cross-blended transition (Blue→Green via teal/cyan, Green→Purple via indigo, Purple→Blue via periwinkle).
+     - Balanced glow intensity (`0.58` / `0.38` opacity in dark mode; `0.72` / `0.48` in light mode) for an ultra-subtle, elegant presence without visual fatigue.
+  3. **Root Page Hydration Mismatch Elimination (`frontend/src/app/page.tsx`):**
+     - Fixed React Hydration Error where Next.js SSR rendered `<AppShellSkeleton>` (with `data-ff-launch-slot="sidebar-skeleton"`) on the server because `isLoaded` was false without `window`, while the client hydrated directly into `<Sidebar>` due to synchronous `localStorage` fast-cache.
+     - Added `const [mounted, setMounted] = useState(false)` with `useEffect(() => setMounted(true), [])` and gated root render on `if (!mounted || !isLoaded) return <AppShellSkeleton page="today" />`, guaranteeing 100% identical initial HTML between server and client.
+- **Verification:**
+  - `npm run build --prefix frontend`: Passed (39 routes, 0 errors).

@@ -911,3 +911,9 @@ Focentia is an active, functional productivity suite built with Next.js 16 App R
 
 
 
+
+   15. **Mind Space Text Box Soft Ethereal Glow & Root Hydration Fix (`MindHome.tsx`, `globals.css`, `page.tsx` — Nov 1, 2026):**
+      - Overhauled Mind Space outer glow to be ultra-subtle, light, and natural: completely removed all `box-shadow` to eradicate thick/floating edges, applied deep diffusion blur (`24px` / `36px`) and gentle translucent colors (`rgba(..., 0.20-0.32)`) so the glow is attached seamlessly to the UI background canvas.
+      - Slowed rotational movement from 3.6s to 15.0s with calm micro-drifting for an eye-soothing, premium vibe; color cycle set to 8.4s (~2.3s hold per color + 500ms smooth cross-blended transition).
+      - Fixed Next.js SSR hydration error in `frontend/src/app/page.tsx` by gating initial client hydration with `mounted` and `isLoaded` before rendering dynamic client layout, eliminating DOM mismatches between server `AppShellSkeleton` and client `Sidebar`.
+      - **Verified Status:** **VERIFIED** (`npm run build --prefix frontend` passed with Exit Code 0, 39/39 routes compiled).

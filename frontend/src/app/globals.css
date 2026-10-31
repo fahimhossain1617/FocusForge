@@ -4894,3 +4894,245 @@ body {
   z-index: 999999;
 }
 
+
+/* ========================================================================== */
+/* MIND SPACE TEXT BOX — 3-PHASE ANIMATED OUTER GLOW (BLUE → GREEN → PURPLE)  */
+/* Pure outer soft blur glow, zero border lighting, continuous smooth orbit.  */
+/* ========================================================================== */
+
+@property --mg-angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+
+@property --mg-c1 {
+  syntax: "<color>";
+  initial-value: rgba(59, 130, 246, 0.41);
+  inherits: false;
+}
+
+@property --mg-c2 {
+  syntax: "<color>";
+  initial-value: rgba(37, 99, 235, 0.27);
+  inherits: false;
+}
+
+@property --mg-c3 {
+  syntax: "<color>";
+  initial-value: rgba(96, 165, 250, 0.05);
+  inherits: false;
+}
+
+.mind-space-glow-box {
+  position: relative;
+  z-index: auto;
+  background-clip: padding-box;
+}
+
+.mind-space-glow-box::before,
+.mind-space-glow-box::after {
+  content: "";
+  position: absolute;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: -1;
+}
+
+/* Primary diffused atmospheric underglow — soft, organic, attached to UI background */
+.mind-space-glow-box::before {
+  inset: -6px;
+  background: conic-gradient(
+    from var(--mg-angle) at 50% 50%,
+    var(--mg-c3) 0deg,
+    var(--mg-c1) 75deg,
+    var(--mg-c2) 150deg,
+    var(--mg-c3) 235deg,
+    var(--mg-c2) 300deg,
+    var(--mg-c3) 360deg
+  );
+  filter: blur(21px);
+  opacity: 0.58;
+  will-change: transform, opacity;
+  animation:
+    mindGlowSpin 18s linear infinite,
+    mindGlowDriftPrimary 18s ease-in-out infinite,
+    mindGlowColorCycle 9s linear infinite;
+}
+
+/* Secondary deeper ambient halo for seamless background falloff */
+.mind-space-glow-box::after {
+  inset: -12px;
+  background: conic-gradient(
+    from var(--mg-angle) at 50% 50%,
+    var(--mg-c3) 0deg,
+    var(--mg-c2) 85deg,
+    var(--mg-c1) 170deg,
+    var(--mg-c3) 255deg,
+    var(--mg-c1) 315deg,
+    var(--mg-c3) 360deg
+  );
+  filter: blur(33px);
+  opacity: 0.38;
+  will-change: transform, opacity;
+  animation:
+    mindGlowSpin 18s linear infinite,
+    mindGlowDriftSecondary 18s ease-in-out infinite,
+    mindGlowColorCycle 9s linear infinite;
+  animation-delay: -6s, 0s, -0.28s;
+}
+
+/* Light Mode: Enhanced luminous visibility so colors pop cleanly against light background */
+html.light .mind-space-glow-box::before,
+:root[data-theme="light"] .mind-space-glow-box::before,
+body.light .mind-space-glow-box::before {
+  opacity: 0.72;
+  filter: blur(17px);
+  inset: -6px;
+}
+
+html.light .mind-space-glow-box::after,
+:root[data-theme="light"] .mind-space-glow-box::after,
+body.light .mind-space-glow-box::after {
+  opacity: 0.48;
+  filter: blur(27px);
+  inset: -11px;
+}
+
+/* Mobile viewport containment: smooth soft blur without overflow */
+@media (max-width: 640px) {
+  .mind-space-glow-box::before {
+    inset: -5px;
+    filter: blur(17px);
+    opacity: 0.52;
+  }
+  .mind-space-glow-box::after {
+    inset: -9px;
+    filter: blur(25px);
+    opacity: 0.32;
+  }
+}
+
+/* Continuous ultra-slow 360° perimeter rotation (18s per loop) */
+@keyframes mindGlowSpin {
+  0% {
+    --mg-angle: 0deg;
+  }
+  100% {
+    --mg-angle: 360deg;
+  }
+}
+
+/* Ultra-subtle, calm floating micro-drift */
+@keyframes mindGlowDriftPrimary {
+  0%, 100% {
+    transform: translate3d(0px, -0.9px, 0);
+  }
+  50% {
+    transform: translate3d(0px, 0.9px, 0);
+  }
+}
+
+@keyframes mindGlowDriftSecondary {
+  0%, 100% {
+    transform: translate3d(0px, 0.8px, 0);
+  }
+  50% {
+    transform: translate3d(0px, -0.8px, 0);
+  }
+}
+
+/*
+ * 3-Phase Color Cycle (Total = 9.0s = 3 × 3.0s):
+ * - Phase 1 (Blue):   0.0s – 2.5s (~27.78%) hold, 2.5s – 3.0s (~5.55%) 500ms blended transition to Green
+ * - Phase 2 (Green):  3.0s – 5.5s (~27.78%) hold, 5.5s – 6.0s (~5.55%) 500ms blended transition to Purple
+ * - Phase 3 (Purple): 6.0s – 8.5s (~27.78%) hold, 8.5s – 9.0s (~5.55%) 500ms blended transition to Blue
+ */
+@keyframes mindGlowColorCycle {
+  /* ── PHASE 1: BLUE (0.0s to 2.5s) ── */
+  0% {
+    --mg-c1: rgba(59, 130, 246, 0.41);
+    --mg-c2: rgba(37, 99, 235, 0.27);
+    --mg-c3: rgba(96, 165, 250, 0.05);
+  }
+  13.89% {
+    --mg-c1: rgba(96, 165, 250, 0.39);
+    --mg-c2: rgba(56, 189, 248, 0.25);
+    --mg-c3: rgba(147, 197, 253, 0.05);
+  }
+  27.78% {
+    --mg-c1: rgba(59, 130, 246, 0.41);
+    --mg-c2: rgba(37, 99, 235, 0.27);
+    --mg-c3: rgba(96, 165, 250, 0.05);
+  }
+
+  /* ── BLENDED TRANSITION: BLUE → GREEN (500ms: 2.5s to 3.0s) ── */
+  30.55% {
+    --mg-c1: rgba(20, 184, 166, 0.39);
+    --mg-c2: rgba(6, 182, 212, 0.25);
+    --mg-c3: rgba(45, 212, 191, 0.05);
+  }
+
+  /* ── PHASE 2: GREEN (3.0s to 5.5s) ── */
+  33.33% {
+    --mg-c1: rgba(16, 185, 129, 0.41);
+    --mg-c2: rgba(5, 150, 105, 0.27);
+    --mg-c3: rgba(52, 211, 153, 0.05);
+  }
+  47.22% {
+    --mg-c1: rgba(34, 197, 94, 0.39);
+    --mg-c2: rgba(16, 185, 129, 0.25);
+    --mg-c3: rgba(74, 222, 128, 0.05);
+  }
+  61.11% {
+    --mg-c1: rgba(16, 185, 129, 0.41);
+    --mg-c2: rgba(5, 150, 105, 0.27);
+    --mg-c3: rgba(52, 211, 153, 0.05);
+  }
+
+  /* ── BLENDED TRANSITION: GREEN → PURPLE (500ms: 5.5s to 6.0s) ── */
+  63.89% {
+    --mg-c1: rgba(99, 102, 241, 0.39);
+    --mg-c2: rgba(79, 70, 229, 0.25);
+    --mg-c3: rgba(129, 140, 248, 0.05);
+  }
+
+  /* ── PHASE 3: PURPLE (6.0s to 8.5s) ── */
+  66.67% {
+    --mg-c1: rgba(139, 92, 246, 0.41);
+    --mg-c2: rgba(124, 58, 237, 0.27);
+    --mg-c3: rgba(168, 85, 247, 0.05);
+  }
+  80.55% {
+    --mg-c1: rgba(168, 85, 247, 0.39);
+    --mg-c2: rgba(147, 51, 234, 0.25);
+    --mg-c3: rgba(192, 132, 252, 0.05);
+  }
+  94.44% {
+    --mg-c1: rgba(139, 92, 246, 0.41);
+    --mg-c2: rgba(124, 58, 237, 0.27);
+    --mg-c3: rgba(168, 85, 247, 0.05);
+  }
+
+  /* ── BLENDED TRANSITION: PURPLE → BLUE (500ms: 8.5s to 9.0s) ── */
+  97.22% {
+    --mg-c1: rgba(99, 102, 241, 0.41);
+    --mg-c2: rgba(59, 130, 246, 0.25);
+    --mg-c3: rgba(129, 140, 248, 0.05);
+  }
+
+  100% {
+    --mg-c1: rgba(59, 130, 246, 0.41);
+    --mg-c2: rgba(37, 99, 235, 0.27);
+    --mg-c3: rgba(96, 165, 250, 0.05);
+  }
+}
+
+/* Accessibility: Respect Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+  .mind-space-glow-box::before,
+  .mind-space-glow-box::after {
+    animation: mindGlowColorCycle 9s linear infinite !important;
+    transform: none !important;
+  }
+}

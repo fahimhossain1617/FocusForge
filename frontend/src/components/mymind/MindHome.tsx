@@ -117,7 +117,7 @@ export default function MindHome({ navigate, setActiveThoughtId }: MindHomeProps
   return (
     <div className="motion-page w-full max-w-3xl mx-auto px-4 sm:px-6 pt-1 pb-16">
       {/* ── Top Section: Heading, Category Buttons, Writing Box ── */}
-      <div className="w-full mb-10">
+      <div className="w-full mb-10 isolate">
         <div className="mb-7 text-center mt-0">
           <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold tracking-tight text-foreground mb-2">
             {t.myMind.title}
@@ -166,7 +166,7 @@ export default function MindHome({ navigate, setActiveThoughtId }: MindHomeProps
 
         {/* Unified Mind Space Writing Area */}
         <div
-          className="rounded-2xl sm:rounded-3xl border border-slate-200/80 dark:border-white/10 bg-white dark:bg-[#111827] relative w-full flex flex-col px-4 py-3 sm:px-5 sm:py-3.5 gap-2 shadow-none transition-all focus-within:border-blue-500/40 dark:focus-within:border-blue-500/30"
+          className="mind-space-glow-box rounded-2xl sm:rounded-3xl border border-slate-200/80 dark:border-white/10 bg-white dark:bg-[#111827] relative w-full flex flex-col px-4 py-3 sm:px-5 sm:py-3.5 gap-2 shadow-none transition-colors"
         >
           <VoiceReactiveGlow active={isVoiceListening} rounded="rounded-2xl sm:rounded-3xl" />
 

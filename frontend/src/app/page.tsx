@@ -65,8 +65,13 @@ const pageComponents: Record<string, React.ComponentType<{ onOpenSidebar?: () =>
 export default function Home() {
   const { state, isLoaded, isPageLoading, navigateTo } = useAppContext();
   const { user, isGuest, isLoading: isAuthLoading } = useAuth();
+  const [mounted, setMounted] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
   const [sharedNoteId] = useState<string | null>(() => {
     if (typeof window === "undefined") return null;
     const params = new URLSearchParams(window.location.search);
@@ -262,6 +267,11 @@ export default function Home() {
     setShowOnboarding(false);
   };
 
+  // Initial App Shell Skeleton on SSR and initial hydration to guarantee zero hydration mismatch
+  if (!mounted || !isLoaded) {
+    return <AppShellSkeleton page="today" />;
+  }
+
   // Dedicated Standalone Shared Note View (100% focused, persistent, read-only)
   if (sharedNoteId) {
     return <SharedNoteStandaloneView shareId={sharedNoteId} />;
@@ -275,11 +285,6 @@ export default function Home() {
         onEnterApp={handleEnterAppFromOnboarding}
       />
     );
-  }
-
-  // Initial App Shell Skeleton while storage / backend data is loading
-  if (!isLoaded) {
-    return <AppShellSkeleton page={state.activePage || "today"} />;
   }
 
   const ActivePage = pageComponents[state.activePage] || DashboardPage;
