@@ -50,6 +50,8 @@ export type LocalIntentType =
   | 'STATS_PROGRESS'
   | 'APP_HELP'
   | 'BIG_TASK_ROADMAP'
+  | 'DIARY_QUERY'
+  | 'FOLDER_QUERY'
   | 'USER_CORRECTION'
   | 'UNKNOWN';
 
@@ -101,7 +103,7 @@ const SETTINGS_SUPPORT_REGEX = /(?:\b(?:contact\s*support|report\s*a\s*problem|r
 
 // 4. Productivity Actions
 const TIMER_ACTION_REGEX = /(?:\b(need\s*a\s*timer|give\s*me\s*a\s*timer|open\s*timer|start\s*timer|stopwatch\s*please)\b|^timer$|^stopwatch$|টাইমার\s*চাই|টাইমার\s*লাগবে|টাইমার\s*দরকার|টাইমার\s*দাও|টাইমার\s*চালু|স্টপওয়াচ\s*চাই|স্টপওয়াচ\s*লাগবে|স্টপওয়াচ\s*দরকার)/i;
-const FOCUS_SESSION_ACTION_REGEX = /(?:\b(start\s*focus\s*session|deep\s*focus\s*session|let('s|\s+us)\s+focus|want\s+to\s+focus\s+now)\b|ফোকাস\s*সেশন\s*শুরু|ফোকাস\s*করব|ডিপ\s*ফোকাস\s*শুরু|পোমোডোরো\s*চালু)/i;
+const FOCUS_SESSION_ACTION_REGEX = /(?:\b(?:(?:so\s+)?start\s+(?:a\s+)?(?:\d+(?:\.\d+)?\s*(?:hr|hour|hours|min|minute|minutes|m|h)\s*)?(?:deep\s*)?focus(?:\s*(?:session|timer|time))?|start\s*(?:a\s*)?(?:\d+\s*)?(?:hr|hour|min|minute)?\s*focus|deep\s*focus\s*session|let(?:'s|\s+us)\s+focus|want\s+to\s+focus(?:\s+now)?|(?:\d+(?:\.\d+)?\s*(?:hr|hour|hours|min|minute|minutes)\s+focus(?:\s*(?:session|timer))?))\b|(?:(?:\d+|[০-৯]+)\s*(?:মিনিট(?:ের)?|ঘণ্টা(?:র)?|ঘন্টা(?:র)?|hr|hour|min)?\s*(?:এর\s*)?)?ফোকাস\s*(?:সেশন|টাইমার)?\s*(?:শুরু|চালু|করো|করব|দাও)|ডিপ\s*ফোকাস\s*শুরু|পোমোডোরো\s*চালু)/i;
 const PLANNER_ACTION_REGEX = /(?:\b(add\s+(.*)\s+(to\s+my\s+planner|in\s+planner|tomorrow|today|on\s+.*)|schedule\s+(.*)|add\s+these\s+tasks|schedule\s+task)\b|প্ল্যানারে\s+(.*)\s+যোগ|রুটিনে\s+(.*)\s+যোগ)/i;
 const TASK_DELETE_REGEX = /(?:\b(?:delete\s*task|remove\s*task|cancel\s*task|delete\s*these\s*tasks)\b|টাস্ক\s*(?:মুছে\s*ফেলো|ডিলিট\s*করো|বাদ\s*দাও)|কাজটি\s*(?:মুছে\s*ফেলো|ডিলিট\s*করো)|টাস্ক\s*ডিলিট)/i;
 const NOTES_ACTION_REGEX = /(?:\b(?:add\s*note|save\s*note|create\s*note|write\s*note|delete\s*note|remove\s*note)\b|নোট\s*(?:সেভ|সংরক্ষণ|যুক্ত|তৈরি|লিখব|মুছে\s*ফেলো|ডিলিট\s*করো))/i;
@@ -118,6 +120,10 @@ const TIMELOG_TOPIC_QUERY_REGEX = /(?:\b(?:(?:important|weak|learning|study)\s*(
 
 // 7. Planner Schedule & Routine Query Patterns for Dates
 const PLANNER_DATE_QUERY_REGEX = /(?:\b(what\s*(is|was)\s*my\s*(routine|schedule|task|plan)|routine\s*on|schedule\s*on|tasks\s*on|what\s*did\s*i\s*have\s*on)\b|রুটিন\s*ছিল|কী\s*রুটিন|কি\s*রুটিন|টাস্ক\s*ছিল|কী\s*টাস্ক|কি\s*টাস্ক|কী\s*কী\s*কাজ|শিডিউল\s*ছিল|কী\s*শিডিউল|কি\s*শিডিউল|কী\s*প্ল্যান|কি\s*প্ল্যান|কাজের\s*তালিকা|(?:\d{1,2}|[০-৯]{1,2})\s*তারিখ[এের]*\s*(?:কী|কি|কেমন|রুটিন|কাজ|টাস্ক|ছিল|আছে)|রুটিন\s*(?:বলো|দেখাও|কী|কি|ছিল|আছে))/i;
+
+// 7.5. Diary & Folder Inspection Queries
+const DIARY_QUERY_REGEX = /(?:\b(?:check\s*(?:my\s*)?diary|any\s*(?:files?|entries|entry|notes?)\s*in\s*(?:my\s*)?diary|do\s*i\s*have\s*(?:any\s*)?(?:files?|diary|entries)|what(?:'s|\s*is)\s*in\s*my\s*diary)\b|ডায়েরিতে\s*(?:এই\s*মুহূর্তে\s*)?(?:কোনো\s*)?(?:ফাইল|এন্ট্রি|কিছু|লেখা|ডায়েরি)|ডায়েরি\s*(?:চেক|বানানো|লেখা)\s*(?:আছে|করো|নাকি)|আমার\s*ডায়েরি\s*(?:দেখো|চেক))/i;
+const FOLDER_QUERY_REGEX = /(?:\b(?:what\s*folders\s*do\s*i\s*have|how\s*many\s*folders|show\s*my\s*folders|list\s*my\s*folders)\b|কয়টা\s*ফোল্ডার|কয়টা\s*ফোল্ডার|কোন\s*ফোল্ডার|ফোল্ডারগুলো\s*দেখাও|ফোল্ডার\s*গুলো\s*দেখাও|আমার\s*ফোল্ডার|ফোল্ডার\s*আছে\s*নাকি|কোথায়\s*কোন\s*ফোল্ডার)/i;
 
 // 8. Big Task / Roadmap Patterns (Gemini Allowed)
 const ROADMAP_REGEX = /\b(roadmap|complete\s*(.*)\s*roadmap|30\s*day\s*plan|study\s*timetable\s*generation|goal\s*breakdown|রোডম্যাপ|৩০\s*দিনের\s*প্ল্যান|লার্নিং\s*রোডম্যাপ)\b/i;
@@ -136,15 +142,26 @@ export function classifyIntent(norm: NormalizedInput): ClassifiedIntent {
     };
   }
 
+  // 1.1 Direct high-priority productivity actions (Zero token, immediate local response)
+  if (FOCUS_SESSION_ACTION_REGEX.test(text)) {
+    return { intent: 'FOCUS_SESSION_ACTION', confidence: 0.95, isBigTask: false };
+  }
+  if (DIARY_QUERY_REGEX.test(text)) {
+    return { intent: 'DIARY_QUERY', confidence: 0.96, isBigTask: false };
+  }
+  if (FOLDER_QUERY_REGEX.test(text)) {
+    return { intent: 'FOLDER_QUERY', confidence: 0.96, isBigTask: false };
+  }
+
   // COMPLEXITY & NATURAL LANGUAGE GUARD:
-  // If the user's message is complex (more than 4 words, contains dates, slashes, numbers,
+  // If the user's message is complex (contains dates, slashes, numbers,
   // multi-task instructions, or natural instructions like "আমি ম্যানুয়ালি করতে চাই"):
   // STRICTLY route to Gemini API. Never hijack complex natural language with rigid local templates!
   const hasDatesOrYears = /\b(?:202\d|\d{1,2}(?:st|nd|rd|th)?\s*(?:তারিখ|তারিখে|jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)?)\b|[০-৯]{1,2}\s*তারিখ/i.test(text);
   const hasSlashesOrTags = /[#/\\_{}[\]]/.test(norm.raw);
   const hasManualIntent = /(?:manually|manual|ম্যানুয়াল|ম্যানুয়ালি|নিজে\s*করব|নিজে\s*করতে\s*চাই)/i.test(text);
-  const hasMultiClause = /(?:এবং|আর|ও|also|then|and\s+also|,)/i.test(text);
-  const hasSubjectStudy = /(?:java|python|react|math|physics|chemistry|biology|ম্যাথ|জাভা|গণিত|পদার্থ|রসায়ন)/i.test(text);
+  const hasMultiClause = /(?:^|\s)(?:এবং|আর|ও|also|then|and\s+also)(?:\s|$)|,/i.test(text);
+  const hasSubjectStudy = /(?:^|\s)(?:java|python|react|math|physics|chemistry|biology|ম্যাথ|জাভা|গণিত|পদার্থ|রসায়ন)(?:\s|$)/i.test(text);
 
   if (hasManualIntent || hasSlashesOrTags || (wordCount > 4 && (hasDatesOrYears || hasMultiClause || hasSubjectStudy))) {
     return {
@@ -179,9 +196,17 @@ export function classifyIntent(norm: NormalizedInput): ClassifiedIntent {
     }
   }
 
-  // 3. Productivity Queries & Actions
-  // Note: Only simple, concise commands (wordCount <= 5 without multi-clause) are eligible locally.
-  // Any multi-item, multi-date, or descriptive planning MUST go to Gemini API.
+  // 3. Productivity Queries & Actions (Focus commands can naturally be up to 10 words)
+  if (FOCUS_SESSION_ACTION_REGEX.test(text)) {
+    return { intent: 'FOCUS_SESSION_ACTION', confidence: 0.95, isBigTask: false };
+  }
+  if (DIARY_QUERY_REGEX.test(text)) {
+    return { intent: 'DIARY_QUERY', confidence: 0.96, isBigTask: false };
+  }
+  if (FOLDER_QUERY_REGEX.test(text)) {
+    return { intent: 'FOLDER_QUERY', confidence: 0.96, isBigTask: false };
+  }
+
   if (wordCount <= 6) {
     if (TIMELOG_TOPIC_QUERY_REGEX.test(text)) {
       return { intent: 'TIMELOG_TOPIC_QUERY', confidence: 0.96, isBigTask: false };
@@ -194,9 +219,6 @@ export function classifyIntent(norm: NormalizedInput): ClassifiedIntent {
     }
     if (TIMER_ACTION_REGEX.test(text)) {
       return { intent: 'TIMER_ACTION', confidence: 0.95, isBigTask: false };
-    }
-    if (FOCUS_SESSION_ACTION_REGEX.test(text)) {
-      return { intent: 'FOCUS_SESSION_ACTION', confidence: 0.95, isBigTask: false };
     }
   }
 

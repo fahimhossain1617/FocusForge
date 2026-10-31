@@ -586,9 +586,10 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
     const history = messages.slice(-8).map((m) => ({ role: m.role, content: m.content }));
     const localResolution = await routeUserMessage(content, context, history, Boolean(user?.id), userName);
 
-    // Ensure activeSessionId exists so conversations are persisted to local storage and DB
-    const currentSessionId = activeSessionId || `session_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
-    if (!activeSessionId) {
+    // Ensure activeSessionId is a stable, standard UUID so conversations are cleanly persisted without duplicate sessions
+    const isCurrentUuid = Boolean(activeSessionId && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(activeSessionId));
+    const currentSessionId = isCurrentUuid ? (activeSessionId as string) : crypto.randomUUID();
+    if (!activeSessionId || !isCurrentUuid) {
       setActiveSessionId(currentSessionId);
       memoryActiveSessionId = currentSessionId;
       const targetUserId = currentUserId || "guest";

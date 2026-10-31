@@ -41,6 +41,7 @@
 | **Glory AI Local-First Router** | **VERIFIED** | `frontend/src/lib/ai/router/`, `frontend/src/services/aiAgentService.ts` | `localDbService.ts`, editable JSON banks | None. Answers ~85-90% of user interactions locally at 0 Gemini tokens; `collapseRepeatedChars` collapses elongated words (e.g. `হাইইইই` -> `হাই`, `হ্যালোওওও` -> `হ্যালো`, `hiiiii` -> `hi`, `kemooon` -> `kemon`, `কেমন আছোওও` -> `কেমন আছো`, `হুমম্মম` -> `হুম`, `আচ্ছাআআ` -> `আচ্ছা`, `accche` -> `ache`, `thik acheee` -> `thik ache`); idea/problem queries receive encouraging text and direct single "মাইন্ড স্পেস খুলুন" button without unrequested confirm/cancel cards or silent auto-persisting. |
 | **Mobile & Hardware Back Navigation System** | **VERIFIED** | `frontend/src/hooks/useSubViewBack.ts`, `frontend/src/context/AppContext.tsx` | Browser History API (`pushState`, `popstate`) | None. Full step-by-step retreat for phone physical back button, edge swipe gesture, and UI back buttons across Focus sessions, Stopwatch, Diary, Settings subpages, Notes, Learning Hub, My Mind, Sidebar drawer, and Planner modals without premature Dashboard redirect. |
 | **Admin Control Center & Telemetry System** | **VERIFIED** | `frontend/src/app/admin/*`, `frontend/src/lib/server/admin*`, `frontend/src/components/admin/*` | Supabase Auth, PostgreSQL, Dexie, Web Crypto, WebGL | None. Single authority entrypoint in MobileHeader 3-dots menu, real-time 60fps Animated 3D Morphing Orb Loader (`AdminOrbLoader.tsx`) with smooth Focentia color cycling and `"Loading..."` label exclusively across Admin Panel entry and section transitions, interactive metric cards routing to dedicated operational sections, full supervisor-grade user profile visibility, automatic crash/error telemetry grouping, and verified backend security. |
+| **Glory AI Gemini 3.5 Reconnection, Roadmap Generation & Session Deduplication** | **VERIFIED** | `frontend/src/lib/server/aiService.ts`, `backend/src/services/aiService.ts`, `frontend/src/lib/ai/router/`, `BorderBeam.tsx` | `@google/genai`, PostgreSQL `ai_chat_sessions`, Web Crypto | None. Replaced retired 404 models with `gemini-3.5-flash-lite` (<1s latency), raised roadmap tokens to 1800, folder/diary inspection with guest protection, locked chat session titles, and GPU-accelerated BorderBeam. |
 
 
 ---
@@ -161,6 +162,18 @@
   6. **Smart Chat Titles:** Summarizes user prompts into concise 2-4 word titles instead of raw text slicing.
   7. **Glory AI In-App Chat Persistence:** Maintains session history across in-app page navigation without premature cleanup.
 - **Status:** **VERIFIED**
+
+### 2.16 Glory AI Gemini 3.5 Reconnection, Roadmap Generation, Folder/Diary Inspection & Session Deduplication
+- **Location:** `frontend/src/lib/server/aiService.ts`, `backend/src/services/aiService.ts`, `frontend/src/lib/ai/router/`, `frontend/src/components/ui/BorderBeam.tsx`, `frontend/src/components/ai-agent/AIOrbFace.tsx`, `frontend/src/services/aiAgentService.ts`, `frontend/src/hooks/useAIAgent.ts`
+- **Behavior:**
+  1. **Active Gemini 3.5 Models:** Replaced retired 404 models (`gemini-2.5-flash`, `gemini-1.5-flash`) with high-speed, cost-effective `gemini-3.5-flash-lite`, `gemini-3.5-flash`, and `gemini-flash-lite-latest` in candidate arrays across frontend and backend. Latency <1000ms.
+  2. **Roadmap Generation Token Allocation:** Allocated `maxOutputTokens: 1800` for roadmap requests, eliminating 250-token mid-JSON truncation and canned fallbacks.
+  3. **Folder & Diary Inspection:** AI inspects actual user folders, weak/important topics, and diary chapters via `FOLDER_QUERY` and `DIARY_QUERY` local handlers. In guest mode, AI politely requests user login before revealing private data.
+  4. **Natural Focus Session Triggers:** Extended regex to match natural duration phrases (e.g., "So start 1 hr focus session", "১০ মিনিটের ফোকাস সেশন"), fixing broken `\b` regex boundaries on Bengali inflected words.
+  5. **Session Title Locking & Deduplication:** Generates standard UUIDs on session start. PostgreSQL update on conflict preserves the original first-turn title (`ON CONFLICT (id) DO UPDATE SET updated_at = NOW()`), and client storage locks title immutability.
+  6. **Mobile UI Smoothness:** Replaced expensive SVG `<feGaussianBlur>` inside infinite BorderBeam animation with hardware-accelerated CSS `drop-shadow(0 0 5px rgba(56, 189, 248, 0.45))` and `translateZ(0)`, throttled `ResizeObserver`, and applied delta thresholding in `AIOrbFace` rendering loop.
+- **Status:** **VERIFIED**
+
 
 
 

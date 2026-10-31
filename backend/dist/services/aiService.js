@@ -63,9 +63,27 @@ function sanitizePayloadForGemini(payload) {
             completedTasksSummary: Array.isArray(ctx.completedTasksSummary) ? ctx.completedTasksSummary.slice(0, isFast ? 3 : 8) : [],
             focusMinutesToday: typeof ctx.focusMinutesToday === 'number' ? ctx.focusMinutesToday : 0,
             focusSessionsCount: typeof ctx.focusSessionsCount === 'number' ? ctx.focusSessionsCount : 0,
-            learningTopics: Array.isArray(ctx.learningTopics) ? ctx.learningTopics.slice(0, isFast ? 6 : 12) : [],
-            notesSummary: Array.isArray(ctx.notesSummary) ? ctx.notesSummary.slice(0, isFast ? 3 : 8) : [],
-            diarySummary: [], // Private diary content is never sent to Gemini
+            learningTopics: Array.isArray(ctx.learningTopics)
+                ? ctx.learningTopics.slice(0, isFast ? 8 : 15).map((l) => ({
+                    name: typeof l.name === 'string' ? l.name.slice(0, 80) : (l.title || ''),
+                    loggedMinutes: typeof l.loggedMinutes === 'number' ? l.loggedMinutes : 0,
+                    importantTopics: Array.isArray(l.importantTopics) ? l.importantTopics.slice(0, 8) : [],
+                    weakTopics: Array.isArray(l.weakTopics) ? l.weakTopics.slice(0, 8) : [],
+                }))
+                : [],
+            notesSummary: Array.isArray(ctx.notesSummary)
+                ? ctx.notesSummary.slice(0, isFast ? 6 : 12).map((n) => ({
+                    title: typeof n.title === 'string' ? n.title.slice(0, 80) : '',
+                    category: typeof n.category === 'string' ? n.category.slice(0, 50) : 'General',
+                }))
+                : [],
+            // Safe diary metadata: chapter titles & counts only (private diary reflection text is NEVER exposed)
+            diarySummary: Array.isArray(ctx.diarySummary)
+                ? ctx.diarySummary.slice(0, isFast ? 6 : 12).map((d) => ({
+                    title: typeof d.title === 'string' ? d.title.slice(0, 80) : '',
+                    entryCount: typeof d.entryCount === 'number' ? d.entryCount : (Array.isArray(d.entries) ? d.entries.length : 1),
+                }))
+                : [],
             currentDate: ctx.currentDate || new Date().toISOString().split('T')[0],
             tasks: Array.isArray(ctx.tasks)
                 ? ctx.tasks.slice(0, isFast ? 10 : 25).map((t) => ({
@@ -127,7 +145,7 @@ MODE: FOCENTIA 2.0 / 2.1 (MAXIMUM SPEED, HUMBLE & HIGH-VALUE TOKEN SAVER)
         `- Conversational Persona: Communicate with utmost humility, politeness, and sincere respect (খুবই বিনয়ী, নম্র ও শ্রদ্ধাশীল আচরণ). Treat the user with affectionate care, like a supportive friend and dependable elder brother (স্নেহশীল ও ভরসার সুর).`,
         `- Personality Traits: Polite (বিনয়ী), humble, attentive listener, emotionally empathetic, warm, easy to understand, grounded, and encouraging.`,
         `- CREATOR & ORIGIN ATTRIBUTION: If asked who made you or created you ("কে বানিয়েছে?", "কে বানাইছে?", "who made you?", "who created you?"): Always state with polite warmth that the Focentia developer team created/built you (e.g. "আমাকে ফোসেন্টিয়া (Focentia)-এর ডেভেলপার টিম তৈরি করেছে / বানিয়েছে" or "The Focentia developer team built me"). Otherwise, always introduce and represent yourself as Glory AI (গ্লোরি এআই).`,
-        `- STRICT IDENTITY & SECRECY: You are Glory AI, built exclusively for Focentia by the Focentia developer team. NEVER mention "Google", "Gemini", "OpenAI", "ChatGPT", "LLM", or underlying APIs under any circumstances.`,
+        `- IDENTITY & GEMINI CONNECTION: You are Glory AI, the intelligent companion designed and developed for Focentia. If the user explicitly asks whether you are connected to or use Google Gemini API ("Are you connect with gemini api?", "তুমি কি জেমিনাই এপিআই দিয়ে চলেছো?", "Gemini API use koro?"): Respectfully and politely confirm that you are powered by the Google Gemini API, customized exclusively for the Focentia platform to ensure high speed, smart productivity, and maximum privacy. Otherwise, always naturally speak and introduce yourself as Glory AI.`,
         `- When asked "Who are you?", "What can you do?", "তোমার কাজ কী?", "তুমি কে?":`,
         `  Introduce yourself with polite warmth as Glory AI (গ্লোরি এআই), explaining simply how you can help organize planner tasks, start focus sessions or timers, and assist with daily study and learning goals.`,
         ``,
@@ -204,7 +222,7 @@ MODE: FOCENTIA 2.0 / 2.1 (MAXIMUM SPEED, HUMBLE & HIGH-VALUE TOKEN SAVER)
         `- Educational Role (Guidance & Enablement): You do NOT act as a rigid line-by-line tutor textbook yourself. Instead, clearly guide the user ON HOW to learn and master the topic: recommend reputable YouTube resources/tutorials, official documentation, practical mini-projects, practice platforms, and modern AI tools.`,
         `- Learning Guidance vs Roadmap: When a user expresses interest in learning a topic (e.g. "জাভা শিখতে চাই", "want to learn Java") WITHOUT specifically asking for a roadmap: DO NOT spontaneously generate a curriculum or roadmap. Inform them that they can track their learning journey easily with Time Log, and suggest scheduling practice sessions in Planner with dedicated time to boost progress and maintain consistency. Propose "open_learning" and "open_planner" buttons. Only generate a full roadmap if the user explicitly asks for a roadmap ("roadmap", "রোডম্যাপ").`,
         `- Pre-Roadmap Level Clarification: When a user explicitly asks for a roadmap or curriculum, and hasn't mentioned their current level: DO NOT randomly guess or generate an ungrounded plan. First ask them what their current level is (Beginner, Intermediate, or Advanced) and what specific topics or goals they want to achieve (e.g. "তুমি কি এই বিষয়ে একদম নতুন (Beginner), নাকি বেসিক জানা আছে (Intermediate)? আর কোন লক্ষ্য বা টপিকের ওপর বেশি ফোকাস করতে চাও?").`,
-        `- Structured Roadmap Generation: Once level and topic are confirmed:`,
+        `- Structured Roadmap Generation: Once level and topic are confirmed, or when the user specifies a concrete subject/chapter (e.g. "Java polymorphism roadmap", "React basics roadmap"):`,
         `  • Set "type": "roadmap"`,
         `  • Populate the "roadmap" field with { "id", "title", "subject", "targetLevel", "rationale", "stages": [{ "id", "stageNumber", "title", "description", "topics": [{ "id", "title", "description", "priority", "prerequisites", "status", "subtasks" }] }] }`,
         `  • Always name the "subject" and "title" with concrete, professional titles (e.g. "Java Programming", "বাংলা ব্যাকরণ ও সাহিত্য"). NEVER use "New Topic", "New Topic Roadmap", or "নতুন বিষয়".`,
@@ -348,22 +366,23 @@ function parseJson(text) {
 function getCandidateModelsForMode(modelMode = 'smart') {
     const configured = (process.env.GEMINI_MODEL || '').replace(/^["']|["']$/g, '').trim();
     if (modelMode === 'planning' || modelMode === 'deep' || modelMode === 'pro' || modelMode === 'focentia-pro') {
-        // Focentia Pro Mode: Authentic Deep Reasoning, Planning & Research with Gemini Pro models
+        // Focentia Pro Mode: Authentic Deep Reasoning, Planning & Research
         return [
-            'gemini-2.5-pro',
-            'gemini-1.5-pro',
             configured,
-            'gemini-2.5-flash',
-            'gemini-1.5-flash',
+            'gemini-3.5-flash',
+            'gemini-3.5-flash-lite',
+            'gemini-flash-latest',
             'gemini-3.8-flash',
+            'gemini-3.7-flash',
         ].filter((m, i, arr) => Boolean(m) && arr.indexOf(m) === i);
     }
     // Focentia 2.1 Mode: Ultra-Fast Speed, Quick Logging & Routine Tasks with Gemini Flash models
     return [
-        'gemini-2.5-flash',
-        'gemini-1.5-flash',
         configured || 'gemini-3.5-flash-lite',
         'gemini-3.5-flash-lite',
+        'gemini-3.5-flash',
+        'gemini-flash-lite-latest',
+        'gemini-flash-latest',
         'gemini-3.8-flash',
         'gemini-3.7-flash',
     ].filter((m, i, arr) => Boolean(m) && arr.indexOf(m) === i);
@@ -580,9 +599,9 @@ async function executeAIAction(action, payload) {
     const candidateModels = getCandidateModelsForMode(modelMode);
     const isPro = modelMode === 'planning' || modelMode === 'deep' || modelMode === 'pro' || modelMode === 'focentia-pro';
     const isExplicitRoadmap = typeof payload?.userQuery === 'string' && /roadmap|রোডম্যাপ/i.test(payload.userQuery);
-    const timeoutMs = isPro ? (isExplicitRoadmap ? 35000 : 25000) : 22000;
+    const timeoutMs = isExplicitRoadmap ? 35000 : (isPro ? 25000 : 15000);
     const temperature = isPro ? 0.45 : 0.2;
-    const maxOutputTokens = isPro ? (isExplicitRoadmap ? 1500 : 900) : 600;
+    const maxOutputTokens = isExplicitRoadmap ? 1800 : (isPro ? 1000 : 450);
     let lastErr = null;
     for (const model of candidateModels) {
         try {
@@ -685,10 +704,10 @@ async function transcribeAudio(audioBase64, mimeType = 'audio/webm', languageHin
     ].join('\n');
     const configured = process.env.GEMINI_MODEL;
     const audioModels = [
-        configured,
+        configured || 'gemini-3.5-flash-lite',
         'gemini-3.5-flash-lite',
-        'gemini-3.7-flash',
-        'gemini-3.6-flash',
+        'gemini-3.5-flash',
+        'gemini-flash-lite-latest',
         'gemini-3.8-flash',
     ].filter((m, i, arr) => Boolean(m) && arr.indexOf(m) === i);
     let lastError = null;

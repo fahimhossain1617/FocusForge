@@ -189,7 +189,8 @@ export interface WorkspaceContext {
     notes?: string;
   }>;
   notesSummary?: Array<{ title: string; category?: string }>;
-  diarySummary?: Array<{ title: string; topicTitle?: string }>;
+  diarySummary?: Array<{ title: string; topicTitle?: string; entryCount?: number }>;
+  isGuest?: boolean;
 }
 
 export interface ProposedAction {

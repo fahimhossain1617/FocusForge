@@ -127,7 +127,7 @@ export async function createChatSession(userId: string | null | undefined, title
     res = await pool.query(
       `INSERT INTO ai_chat_sessions (id, user_id, title, created_at, updated_at)
        VALUES ($1, $2, $3, NOW(), NOW())
-       ON CONFLICT (id) DO UPDATE SET title = EXCLUDED.title, updated_at = NOW()
+       ON CONFLICT (id) DO UPDATE SET updated_at = NOW()
        RETURNING *`,
       [customId, cleanId, title]
     );

@@ -65,6 +65,14 @@ export function AIOrbFace({
   });
   const currentFaceRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const currentPupilRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const lastRenderedRef = useRef<{ headX: number; headY: number; faceX: number; faceY: number; pupilX: number; pupilY: number }>({
+    headX: -999,
+    headY: -999,
+    faceX: -999,
+    faceY: -999,
+    pupilX: -999,
+    pupilY: -999,
+  });
   const reqIdRef = useRef<number | null>(null);
 
   const [isBlinking, setIsBlinking] = useState(false);
@@ -274,70 +282,88 @@ export function AIOrbFace({
       pupil.x = lerp(pupil.x, targetX * 6.5, pupilSpeed);
       pupil.y = lerp(pupil.y, targetY * 4.8, pupilSpeed);
 
-      // Direct DOM updates for maximum FPS
-      if (stageRef.current) {
-        stageRef.current.style.transform = `perspective(750px) rotateX(${head.rotX.toFixed(2)}deg) rotateY(${head.rotY.toFixed(2)}deg) translate3d(${head.x.toFixed(2)}px, ${head.y.toFixed(2)}px, 0px)`;
-      }
+      const last = lastRenderedRef.current;
+      const needsRender =
+        Math.abs(head.x - last.headX) > 0.01 ||
+        Math.abs(head.y - last.headY) > 0.01 ||
+        Math.abs(face.x - last.faceX) > 0.01 ||
+        Math.abs(face.y - last.faceY) > 0.01 ||
+        Math.abs(pupil.x - last.pupilX) > 0.01 ||
+        Math.abs(pupil.y - last.pupilY) > 0.01;
 
-      if (headGroupRef.current) {
-        headGroupRef.current.setAttribute(
-          "transform",
-          `rotate(${(headAngle + head.rotZ).toFixed(2)}, 140, 126)`
-        );
-      }
+      if (needsRender) {
+        last.headX = head.x;
+        last.headY = head.y;
+        last.faceX = face.x;
+        last.faceY = face.y;
+        last.pupilX = pupil.x;
+        last.pupilY = pupil.y;
 
-      if (specularRef.current) {
-        specularRef.current.setAttribute(
-          "transform",
-          `translate(${(head.x * 0.45).toFixed(2)}, ${(head.y * 0.45).toFixed(2)})`
-        );
-      }
+        // Direct DOM updates for maximum FPS
+        if (stageRef.current) {
+          stageRef.current.style.transform = `perspective(750px) rotateX(${head.rotX.toFixed(2)}deg) rotateY(${head.rotY.toFixed(2)}deg) translate3d(${head.x.toFixed(2)}px, ${head.y.toFixed(2)}px, 0px)`;
+        }
 
-      if (faceFeaturesRef.current) {
-        faceFeaturesRef.current.setAttribute(
-          "transform",
-          `translate(${face.x.toFixed(2)}, ${face.y.toFixed(2)})`
-        );
-      }
+        if (headGroupRef.current) {
+          headGroupRef.current.setAttribute(
+            "transform",
+            `rotate(${(headAngle + head.rotZ).toFixed(2)}, 140, 126)`
+          );
+        }
 
-      if (pupilLeftRef.current) {
-        pupilLeftRef.current.setAttribute(
-          "transform",
-          `translate(${pupil.x.toFixed(2)}, ${pupil.y.toFixed(2)})`
-        );
-      }
+        if (specularRef.current) {
+          specularRef.current.setAttribute(
+            "transform",
+            `translate(${(head.x * 0.45).toFixed(2)}, ${(head.y * 0.45).toFixed(2)})`
+          );
+        }
 
-      if (pupilRightRef.current) {
-        pupilRightRef.current.setAttribute(
-          "transform",
-          `translate(${pupil.x.toFixed(2)}, ${pupil.y.toFixed(2)})`
-        );
-      }
+        if (faceFeaturesRef.current) {
+          faceFeaturesRef.current.setAttribute(
+            "transform",
+            `translate(${face.x.toFixed(2)}, ${face.y.toFixed(2)})`
+          );
+        }
 
-      if (sadPupilLeftRef.current) {
-        sadPupilLeftRef.current.setAttribute(
-          "transform",
-          `translate(${(pupil.x * 0.45).toFixed(2)}, ${(pupil.y * 0.45).toFixed(2)})`
-        );
-      }
+        if (pupilLeftRef.current) {
+          pupilLeftRef.current.setAttribute(
+            "transform",
+            `translate(${pupil.x.toFixed(2)}, ${pupil.y.toFixed(2)})`
+          );
+        }
 
-      if (sadPupilRightRef.current) {
-        sadPupilRightRef.current.setAttribute(
-          "transform",
-          `translate(${(pupil.x * 0.45).toFixed(2)}, ${(pupil.y * 0.45).toFixed(2)})`
-        );
-      }
+        if (pupilRightRef.current) {
+          pupilRightRef.current.setAttribute(
+            "transform",
+            `translate(${pupil.x.toFixed(2)}, ${pupil.y.toFixed(2)})`
+          );
+        }
 
-      if (dropShadowRef.current) {
-        dropShadowRef.current.setAttribute("cx", (140 + head.x * 0.38).toFixed(2));
-        dropShadowRef.current.setAttribute(
-          "rx",
-          Math.max(46, 64 - Math.abs(head.y) * 0.4).toFixed(2)
-        );
-        dropShadowRef.current.setAttribute(
-          "ry",
-          Math.max(6, 9 - Math.abs(head.y) * 0.15).toFixed(2)
-        );
+        if (sadPupilLeftRef.current) {
+          sadPupilLeftRef.current.setAttribute(
+            "transform",
+            `translate(${(pupil.x * 0.45).toFixed(2)}, ${(pupil.y * 0.45).toFixed(2)})`
+          );
+        }
+
+        if (sadPupilRightRef.current) {
+          sadPupilRightRef.current.setAttribute(
+            "transform",
+            `translate(${(pupil.x * 0.45).toFixed(2)}, ${(pupil.y * 0.45).toFixed(2)})`
+          );
+        }
+
+        if (dropShadowRef.current) {
+          dropShadowRef.current.setAttribute("cx", (140 + head.x * 0.38).toFixed(2));
+          dropShadowRef.current.setAttribute(
+            "rx",
+            Math.max(46, 64 - Math.abs(head.y) * 0.4).toFixed(2)
+          );
+          dropShadowRef.current.setAttribute(
+            "ry",
+            Math.max(6, 9 - Math.abs(head.y) * 0.15).toFixed(2)
+          );
+        }
       }
 
       reqIdRef.current = requestAnimationFrame(animate);

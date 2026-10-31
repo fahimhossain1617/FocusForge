@@ -1,8 +1,8 @@
 # CURRENT_STATE.md — Current Verified State of Focentia
 
-**Document Version:** 1.0.4  
-**Last Updated:** October 30, 2026  
-**Status:** Authoritative Current State Baseline — Zero Red Files / 100% Clean Diagnostics / Sub-0.2s Instant App Launch / Glori AI Orb Notifications Verified
+**Document Version:** 1.0.5  
+**Last Updated:** October 31, 2026  
+**Status:** Authoritative Current State Baseline — Glory AI Gemini 3.5 Reconnection / Full Roadmaps / Folder & Weak Point Inspection / Session Deduplication / GPU-Accelerated Mobile Animation Verified
 
 ---
 
@@ -322,6 +322,13 @@ Focentia is an active, functional productivity suite built with Next.js 16 App R
       - **Silent Auto-Addition Removal:** Eliminated all silent `applyPayloadToApp` calls from proposal cards so navigation buttons strictly navigate without modifying database state.
       - **Mind Space Manual Save & Button Label:** In `ThoughtDetail.tsx`, removed 700ms debounce typing auto-save; changed button label to "সেভ" / "Save"; saves strictly on explicit user button click.
       - **Profile Optimistic Update & Toast Deduplication:** Profile and photo updates show instant feedback with background database sync; deduplication guard prevents duplicate toast notifications.
+  27. **Glory AI Gemini 3.5 Reconnection, Roadmap Generation, Folder/Weak Topic Inspection, Single Session Locking & Mobile Animation Smoothness (October 31, 2026):**
+      - **Gemini Model Routing & 404 Elimination:** Restored real Gemini connectivity by prioritizing active, high-speed, cost-effective models (`gemini-3.5-flash-lite`, `gemini-3.5-flash`, and `gemini-flash-lite-latest`) in `frontend/src/lib/server/aiService.ts` and `backend/src/services/aiService.ts`, retiring discontinued 404 models (`gemini-2.5-flash`, `gemini-1.5-flash`). Sub-1000ms latency verified.
+      - **Complete Structured Roadmaps (Zero Truncation):** Raised roadmap `maxOutputTokens` from 250 to 1800, permanently solving mid-JSON cuts and eliminating canned 'Your request has been processed' fallbacks.
+      - **Account-Isolated Folder & Diary Inspection:** Added `DIARY_QUERY` and `FOLDER_QUERY` intent handlers. AI reads real Time Log folders (important topics, weak points, logged minutes), Notes categories, and Diary chapters. In guest mode, asks the user to log in before inspecting private data.
+      - **Natural Focus Commands:** Upgraded regex matching for phrases like 'So start 1 hr focus session' and fixed Bengali regex boundaries on inflected words (`মিনিটের`, `ঘণ্টার`), directly launching focus timer action cards.
+      - **Single Session Locking & Deduplication:** Enforced valid UUIDs, updated PostgreSQL conflict clause to preserve session title on later turns (`ON CONFLICT (id) DO UPDATE SET updated_at = NOW()`), and locked titles in client storage. Navigating across tabs preserves active chat; '+ New chat' initiates a fresh session cleanly.
+      - **GPU-Accelerated Lag-Free Animations:** Replaced expensive SVG `<filter>` and `<feGaussianBlur>` inside infinite `BorderBeam` with CSS `drop-shadow` and `translateZ(0)`. Throttled `ResizeObserver` and added delta thresholds in `AIOrbFace` RAF loop, eliminating mobile UI stutter.
 - **Verified Status:** **VERIFIED** (Next.js 16 production build passed with 0 errors, automated cross-device sync verification passed 15/15 in `scripts/verify_automatic_cross_device_sync.ts`, E2EE crypto tests passed 22/22 in `scripts/test_e2ee_crypto_and_sync.ts`, auth isolation passed 20/20 in `scripts/test_auth_isolation.ts`, and backend API passed 22/22 in `backend/scripts/verify-all-backend.js`).
 - **Known Problems:** None.
 - **Important Files:** `frontend/src/lib/crypto.ts`, `frontend/src/lib/sync.ts`, `frontend/src/services/syncService.ts`, `frontend/src/context/AppContext.tsx`, `frontend/src/hooks/useEncryption.ts`, `frontend/src/app/page.tsx`, `frontend/src/components/pages/SettingsPage.tsx`, `scripts/verify_automatic_cross_device_sync.ts`.

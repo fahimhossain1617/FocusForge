@@ -120,8 +120,8 @@ export function extractMinutesFromString(text: string): number | null {
   };
   const normalizedText = t.split('').map(c => bnDigits[c] || c).join('');
 
-  // 1. Hours: "1 hour", "2 hrs", "১ ঘণ্টা", "1.5 hours"
-  const hourMatch = normalizedText.match(/\b(\d+(?:\.\d+)?)\s*(?:hours?|hrs?|ঘণ্টা|ঘন্টা)\b/i);
+  // 1. Hours: "1 hour", "2 hrs", "১ ঘণ্টা", "১ ঘণ্টার", "1.5 hours", "1h"
+  const hourMatch = normalizedText.match(/(?:^|[^\d])(\d+(?:\.\d+)?)\s*(?:hours?|hrs?|h|ঘণ্টা(?:র)?|ঘন্টা(?:র)?)(?:[^\w\u0980-\u09FF]|$)/i);
   if (hourMatch) {
     const hours = parseFloat(hourMatch[1]);
     if (!isNaN(hours) && hours > 0) {
@@ -129,8 +129,8 @@ export function extractMinutesFromString(text: string): number | null {
     }
   }
 
-  // 2. Minutes with unit: "15 min", "25 mins", "30 minutes", "10m", "১৫ মিনিট", "২০ মিঃ"
-  const minMatch = normalizedText.match(/\b(\d+)\s*(?:minutes?|mins?|min|m|মিনিট|মিঃ)\b/i);
+  // 2. Minutes with unit: "15 min", "25 mins", "30 minutes", "10m", "১৫ মিনিট", "১০ মিনিটের", "২০ মিঃ"
+  const minMatch = normalizedText.match(/(?:^|[^\d])(\d+)\s*(?:minutes?|mins?|min|m|মিনিট(?:ের)?|মিঃ)(?:[^\w\u0980-\u09FF]|$)/i);
   if (minMatch) {
     const mins = parseInt(minMatch[1], 10);
     if (!isNaN(mins) && mins > 0) {

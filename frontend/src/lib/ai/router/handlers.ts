@@ -1161,6 +1161,156 @@ export function handleLocalIntent(
       };
     }
 
+    // 13. Diary Inspection Query
+    case 'DIARY_QUERY': {
+      if (context?.isGuest) {
+        const guestMsgBn = 'তুমি বর্তমানে গেস্ট মোডে আছো। তোমার ব্যক্তিগত ডায়েরি ও পার্সোনাল লেখাগুলো দেখতে বা অ্যাক্সেস করতে অনুগ্রহ করে লগইন করো। লগইন করলেই আমি তোমার সব ডায়েরি ও ফোল্ডার দেখে সাহায্য করতে পারব!';
+        const guestMsgEn = 'You are currently in guest mode. To inspect your personal diary chapters and notes, please log in. Once logged in, I will be able to review all your files and help you!';
+        const loginAct = buildActionRequest('open_settings', {}, isBn ? 'লগইন করুন' : 'Log In');
+        return {
+          message: prefix + (isBn ? guestMsgBn : guestMsgEn),
+          intent: 'MY_DIARY',
+          actions: loginAct ? [loginAct] : [],
+          orbEmotion: 'attentive',
+          navigationRoute: 'settings',
+          handledLocally: true,
+          tokenCost: 0,
+        };
+      }
+
+      const diaryTopics = context?.diarySummary || [];
+      const openDiaryAct = buildActionRequest('open_diary', {}, isBn ? 'মাই ডায়েরি খুলুন' : 'Open My Diary');
+      const actions: ActionRequest[] = openDiaryAct ? [openDiaryAct] : [];
+
+      if (diaryTopics.length === 0) {
+        const emptyBn = 'আমি তোমার ডায়েরি চেক করে দেখেছি। এই মুহূর্তে তোমার My Diary-তে কোনো অধ্যায় বা ফাইল বানানো নেই। তুমি চাইলে তোমার ইচ্ছেমতো নতুন একটি ডায়েরি অধ্যায় বা নোট লিখে রাখতে পারো!';
+        const emptyEn = 'I checked your diary for you. You do not have any diary chapters or entries yet. Feel free to open My Diary and write your first entry!';
+        return {
+          message: prefix + (isBn ? emptyBn : emptyEn),
+          intent: 'MY_DIARY',
+          actions,
+          orbEmotion: 'caring',
+          navigationRoute: 'diary',
+          handledLocally: true,
+          tokenCost: 0,
+        };
+      }
+
+      const totalEntries = diaryTopics.reduce((sum, d) => sum + (d.entryCount || 1), 0);
+      const chaptersListBn = diaryTopics.map(d => `• **${d.title || 'Untitled'}** (${d.entryCount || 1}টি এন্ট্রি)`).join('\n');
+      const chaptersListEn = diaryTopics.map(d => `• **${d.title || 'Untitled'}** (${d.entryCount || 1} entries)`).join('\n');
+
+      const foundBn = `আমি তোমার ডায়েরি চেক করে দেখেছি। তোমার My Diary-তে ${diaryTopics.length}টি অধ্যায় এবং মোট ${totalEntries}টি এন্ট্রি সংরক্ষিত রয়েছে:\n\n${chaptersListBn}\n\nতুমি চাইলে যেকোনো অধ্যায় দেখতে বা নতুন কিছু লিখে রাখতে পারো!`;
+      const foundEn = `I checked your diary for you. You have ${diaryTopics.length} chapter(s) with ${totalEntries} total entries saved:\n\n${chaptersListEn}\n\nTap below to open My Diary!`;
+
+      return {
+        message: prefix + (isBn ? foundBn : foundEn),
+        intent: 'MY_DIARY',
+        actions,
+        orbEmotion: 'happy',
+        navigationRoute: 'diary',
+        handledLocally: true,
+        tokenCost: 0,
+      };
+    }
+
+    // 14. Workspace Folders Summary Query
+    case 'FOLDER_QUERY': {
+      if (context?.isGuest) {
+        const guestMsgBn = 'তুমি বর্তমানে গেস্ট মোডে আছো। তোমার অ্যাকাউন্ট ফোল্ডার ও পার্সোনাল ডেটা নিরাপদে দেখতে অনুগ্রহ করে লগইন করো। লগইন করলেই তোমার সব ফোল্ডার ও রেকর্ড আমি দেখতে পারব!';
+        const guestMsgEn = 'You are currently in guest mode. Please log in to inspect your account folders and study data safely!';
+        const loginAct = buildActionRequest('open_settings', {}, isBn ? 'লগইন করুন' : 'Log In');
+        return {
+          message: prefix + (isBn ? guestMsgBn : guestMsgEn),
+          intent: 'GREETING_OR_GENERAL',
+          actions: loginAct ? [loginAct] : [],
+          orbEmotion: 'attentive',
+          navigationRoute: 'settings',
+          handledLocally: true,
+          tokenCost: 0,
+        };
+      }
+
+      const learningFolders = context?.learningTopics || [];
+      const diaryFolders = context?.diarySummary || [];
+      const notesFolders = context?.notesSummary || [];
+
+      const actions: ActionRequest[] = [];
+      const openTimeLog = buildActionRequest('open_learning', {}, isBn ? 'টাইম লগ ফোল্ডার' : 'Time Log Folders');
+      const openNotes = buildActionRequest('open_notes', {}, isBn ? 'নোটস ফোল্ডার' : 'Notes & Files');
+      const openDiary = buildActionRequest('open_diary', {}, isBn ? 'ডায়েরি ফোল্ডার' : 'My Diary');
+      if (openTimeLog) actions.push(openTimeLog);
+      if (openNotes) actions.push(openNotes);
+      if (openDiary) actions.push(openDiary);
+
+      let replyBn = `আমি তোমার অ্যাকাউন্টের সকল ফোল্ডার চেক করে দেখেছি:\n\n`;
+      let replyEn = `Here is a complete overview of your workspace folders:\n\n`;
+
+      // 1. Time Log Folders
+      if (learningFolders.length > 0) {
+        replyBn += `📁 **Time Log ফোল্ডার (${learningFolders.length}টি):**\n`;
+        learningFolders.forEach(f => {
+          const imp = (f.importantTopics || []).filter(Boolean);
+          const weak = (f.weakTopics || []).filter(Boolean);
+          replyBn += `  • **${f.name}** (${f.loggedMinutes || 0} মিনিট লগ)\n`;
+          if (imp.length > 0) replyBn += `    - গুরুত্বপূর্ণ টপিক: ${imp.slice(0, 3).join(', ')}\n`;
+          if (weak.length > 0) replyBn += `    - দুর্বল টপিক: ${weak.slice(0, 3).join(', ')}\n`;
+        });
+      } else {
+        replyBn += `📁 **Time Log ফোল্ডার:** এই মুহূর্তে কোনো লার্নিং ফোল্ডার নেই।\n`;
+      }
+
+      // 2. Notes Categories
+      if (notesFolders.length > 0) {
+        const categories = Array.from(new Set(notesFolders.map(n => n.category || 'General')));
+        replyBn += `\n📝 **Notes & Files ক্যাটাগরি (${categories.length}টি):** ${categories.join(', ')} (মোট ${notesFolders.length}টি নোট)\n`;
+      } else {
+        replyBn += `\n📝 **Notes & Files:** কোনো নোট এখনও সেভ করা হয়নি।\n`;
+      }
+
+      // 3. Diary Chapters
+      if (diaryFolders.length > 0) {
+        replyBn += `\n📖 **My Diary অধ্যায় (${diaryFolders.length}টি):** ${diaryFolders.map(d => d.title || 'Untitled').join(', ')}\n`;
+      } else {
+        replyBn += `\n📖 **My Diary:** কোনো ডায়েরি অধ্যায় এখনও তৈরি করা হয়নি।\n`;
+      }
+
+      replyBn += `\nতুমি যেকোনো ফোল্ডার খুলতে নিচে ট্যাপ করতে পারো!`;
+
+      // English version
+      if (learningFolders.length > 0) {
+        replyEn += `📁 **Time Log Folders (${learningFolders.length}):**\n`;
+        learningFolders.forEach(f => {
+          replyEn += `  • **${f.name}** (${f.loggedMinutes || 0}m logged)\n`;
+        });
+      } else {
+        replyEn += `📁 **Time Log Folders:** None created yet.\n`;
+      }
+
+      if (notesFolders.length > 0) {
+        const categories = Array.from(new Set(notesFolders.map(n => n.category || 'General')));
+        replyEn += `\n📝 **Notes Categories (${categories.length}):** ${categories.join(', ')} (${notesFolders.length} notes)\n`;
+      } else {
+        replyEn += `\n📝 **Notes:** None saved yet.\n`;
+      }
+
+      if (diaryFolders.length > 0) {
+        replyEn += `\n📖 **Diary Chapters (${diaryFolders.length}):** ${diaryFolders.map(d => d.title || 'Untitled').join(', ')}\n`;
+      } else {
+        replyEn += `\n📖 **My Diary:** No chapters created yet.\n`;
+      }
+
+      return {
+        message: prefix + (isBn ? replyBn : replyEn),
+        intent: 'GREETING_OR_GENERAL',
+        actions,
+        orbEmotion: 'focused',
+        navigationRoute: 'learning',
+        handledLocally: true,
+        tokenCost: 0,
+      };
+    }
+
     default:
       return {
         message: '',

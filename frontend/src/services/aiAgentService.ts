@@ -1130,9 +1130,10 @@ export async function sendAgentMessage(
           let updatedList: ChatSession[];
           if (existingIdx >= 0) {
             updatedList = [...parsed];
+            // Preserve the original session title from the first message
             updatedList[existingIdx] = {
               ...updatedList[existingIdx],
-              title: finalTitle,
+              title: updatedList[existingIdx].title || finalTitle,
               updated_at: new Date().toISOString()
             };
           } else {
@@ -1153,9 +1154,10 @@ export async function sendAgentMessage(
         let updatedList: ChatSession[];
         if (existingIdx >= 0) {
           updatedList = [...parsed];
+          // Preserve the original session title from the first message
           updatedList[existingIdx] = {
             ...updatedList[existingIdx],
-            title: finalTitle,
+            title: updatedList[existingIdx].title || finalTitle,
             updated_at: new Date().toISOString()
           };
         } else {

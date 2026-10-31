@@ -53,7 +53,12 @@ export default function BorderBeam({
       const parent = svgEl.parentElement;
       if (parent) {
         const rect = parent.getBoundingClientRect();
-        setSize({ width: rect.width, height: rect.height });
+        const newW = Math.round(rect.width);
+        const newH = Math.round(rect.height);
+        setSize((prev) => {
+          if (prev.width === newW && prev.height === newH) return prev;
+          return { width: newW, height: newH };
+        });
       }
     };
 
@@ -94,16 +99,9 @@ export default function BorderBeam({
       <defs>
         <linearGradient id={safeId} x1="0%" y1="0%" x2="100%" y2="100%">
           <stop offset="0%" stopColor={colorFrom} stopOpacity="1" />
-          <stop offset="50%" stopColor={colorTo} stopOpacity="0.85" />
+          <stop offset="50%" stopColor={colorTo} stopOpacity="0.9" />
           <stop offset="100%" stopColor={colorFrom} stopOpacity="0.15" />
         </linearGradient>
-        <filter id={`${safeId}-glow`} x="-20%" y="-20%" width="140%" height="140%">
-          <feGaussianBlur stdDeviation="1.5" result="blur" />
-          <feMerge>
-            <feMergeNode in="blur" />
-            <feMergeNode in="SourceGraphic" />
-          </feMerge>
-        </filter>
       </defs>
       {size.width > 0 && size.height > 0 && (
         <rect
@@ -119,7 +117,6 @@ export default function BorderBeam({
           strokeLinecap="round"
           pathLength="100"
           className={styles.beamRect}
-          filter={`url(#${safeId}-glow)`}
         />
       )}
     </svg>

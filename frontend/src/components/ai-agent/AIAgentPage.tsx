@@ -203,9 +203,9 @@ export function AIAgentPage() {
       category: n.category || "General"
     }));
 
-    const diarySummary = (state.diaryTopics || []).slice(-10).map((d: any) => ({
-      title: d.title || "",
-      topicTitle: d.topicTitle || ""
+    const diarySummary = (state.diaryTopics || []).slice(-15).map((d: any) => ({
+      title: d.title || (state.lang === "bn" ? "ডায়েরি অধ্যায়" : "Diary Chapter"),
+      entryCount: Array.isArray(d.entries) ? d.entries.length : 0
     }));
 
     return {
@@ -219,7 +219,8 @@ export function AIAgentPage() {
       focusSessionsCount: todaySessions.length,
       learningTopics,
       notesSummary,
-      diarySummary
+      diarySummary,
+      isGuest: Boolean(isGuest || !user?.id)
     };
   }, [
     state.tasks,
@@ -229,7 +230,10 @@ export function AIAgentPage() {
     state.focusSessions,
     state.learningFolders,
     state.learningLogs,
-    state.diaryTopics
+    state.diaryTopics,
+    state.lang,
+    isGuest,
+    user?.id
   ]);
 
   const {
@@ -406,6 +410,7 @@ export function AIAgentPage() {
     resetVoiceTranscript();
     if (textareaRef.current) {
       textareaRef.current.style.height = "auto";
+      textareaRef.current.focus();
     }
     appliedPayloadsRef.current.clear();
     setMenuOpen(false);
