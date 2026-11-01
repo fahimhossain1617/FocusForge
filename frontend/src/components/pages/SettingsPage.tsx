@@ -1166,17 +1166,17 @@ export default function SettingsPage() {
 
             {/* Personal Information */}
             <div className="pt-2">
-              <div className="flex items-center justify-between pb-4 border-b border-[var(--color-border-subtle)]">
-                <div>
-                  <h3 className="text-sm sm:text-base font-semibold text-[var(--color-text-primary)] tracking-tight whitespace-nowrap">
+              <div className="flex items-center justify-between flex-wrap gap-3 pb-4 border-b border-[var(--color-border-subtle)]">
+                <div className="min-w-0 flex-1">
+                  <h3 className="text-sm sm:text-base font-semibold text-[var(--color-text-primary)] tracking-tight break-words">
                     {isBn ? "ব্যক্তিগত তথ্য" : "Personal Information"}
                   </h3>
-                  <p className="text-xs text-[var(--color-text-secondary)] mt-0.5">
+                  <p className="text-xs text-[var(--color-text-secondary)] mt-0.5 line-clamp-1 sm:line-clamp-none">
                     {isBn ? "আপনার ব্যক্তিগত বিবরণ পরিচালনা করুন।" : "Manage your personal details."}
                   </p>
                 </div>
                 {isEditingProfile ? (
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 ml-auto shrink-0">
                     <button
                       type="button"
                       onClick={() => setIsEditingProfile(false)}
@@ -1199,7 +1199,7 @@ export default function SettingsPage() {
                   <button
                     type="button"
                     onClick={() => setIsEditingProfile(true)}
-                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold text-blue-500 dark:text-blue-400 bg-transparent hover:bg-blue-500/10 border border-blue-500/30 hover:border-blue-500/60 transition-all cursor-pointer active:scale-95"
+                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold text-blue-500 dark:text-blue-400 bg-transparent hover:bg-blue-500/10 border border-blue-500/30 hover:border-blue-500/60 transition-all cursor-pointer active:scale-95 ml-auto shrink-0"
                   >
                     <Pencil size={12} />
                     <span>{isBn ? "এডিট" : "Edit"}</span>

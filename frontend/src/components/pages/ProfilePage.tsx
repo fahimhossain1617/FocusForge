@@ -339,8 +339,8 @@ export default function ProfilePage() {
       {/* ======================================================== */}
       <div className="space-y-2">
         {/* 1. TOP HEADER SECTION (Avatar + Title/Subtitle + Edit Button) */}
-        <div className="flex items-center justify-between gap-3 pb-5 border-b border-[var(--color-border-subtle)]">
-          <div className="flex items-center gap-3.5 min-w-0 flex-1">
+        <div className="flex items-center justify-between flex-wrap gap-3 pb-5 border-b border-[var(--color-border-subtle)]">
+          <div className="flex items-center gap-3 sm:gap-3.5 min-w-0 flex-1">
             {/* Circular Avatar */}
             <div className="relative group shrink-0">
               <div 
@@ -403,17 +403,17 @@ export default function ProfilePage() {
 
             {/* Header Titles */}
             <div className="min-w-0 flex-1">
-              <h3 className="text-sm sm:text-base font-semibold text-[var(--color-text-primary)] tracking-tight whitespace-nowrap">
+              <h3 className="text-sm sm:text-base font-semibold text-[var(--color-text-primary)] tracking-tight break-words">
                 {isBn ? "ব্যক্তিগত তথ্য" : "Personal Information"}
               </h3>
-              <p className="text-xs text-[var(--color-text-secondary)] mt-0.5 truncate">
+              <p className="text-xs text-[var(--color-text-secondary)] mt-0.5 line-clamp-1 sm:line-clamp-none">
                 {isBn ? "আপনার ব্যক্তিগত বিবরণ পরিচালনা করুন।" : "Manage your personal details."}
               </p>
             </div>
           </div>
 
           {/* Header Action Button (Edit / Cancel & Save) */}
-          <div className="shrink-0 flex items-center gap-2">
+          <div className="shrink-0 flex items-center gap-2 ml-auto">
             {isEditing ? (
               <div className="flex items-center gap-2">
                 <button
@@ -539,9 +539,17 @@ export default function ProfilePage() {
                 <Mail size={18} />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-xs font-medium text-[var(--color-text-secondary)] mb-0.5">
-                  {isBn ? "ইমেল ঠিকানা" : "Email Address"}
-                </p>
+                <div className="flex items-center gap-2 mb-0.5">
+                  <p className="text-xs font-medium text-[var(--color-text-secondary)]">
+                    {isBn ? "ইমেল ঠিকানা" : "Email Address"}
+                  </p>
+                  {isEditing && isEmailVerified && (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                      <CheckCircle2 size={11} className="text-emerald-500" />
+                      <span>{isBn ? "যাচাইকৃত" : "Verified"}</span>
+                    </span>
+                  )}
+                </div>
                 {isEditing ? (
                   <input
                     ref={inputRefs.email}
@@ -558,17 +566,17 @@ export default function ProfilePage() {
                 )}
               </div>
             </div>
-            <div className="flex items-center gap-2 shrink-0">
-              {isEmailVerified && (
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                  <CheckCircle2 size={12} className="text-emerald-500" />
-                  <span>{isBn ? "যাচাইকৃত" : "Verified"}</span>
-                </span>
-              )}
-              {!isEditing && (
+            {!isEditing && (
+              <div className="flex items-center gap-2 shrink-0">
+                {isEmailVerified && (
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                    <CheckCircle2 size={12} className="text-emerald-500" />
+                    <span>{isBn ? "যাচাইকৃত" : "Verified"}</span>
+                  </span>
+                )}
                 <ChevronRight size={18} className="text-[var(--color-text-muted)] group-hover:text-[var(--color-text-primary)] group-hover:translate-x-0.5 transition-all" />
-              )}
-            </div>
+              </div>
+            )}
           </div>
 
           {/* Row 4: Phone Number */}
@@ -583,9 +591,17 @@ export default function ProfilePage() {
                 <Phone size={18} />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-xs font-medium text-[var(--color-text-secondary)] mb-0.5">
-                  {isBn ? "ফোন নম্বর (ঐচ্ছিক)" : "Phone Number (Optional)"}
-                </p>
+                <div className="flex items-center gap-2 mb-0.5">
+                  <p className="text-xs font-medium text-[var(--color-text-secondary)]">
+                    {isBn ? "ফোন নম্বর (ঐচ্ছিক)" : "Phone Number (Optional)"}
+                  </p>
+                  {isEditing && isPhoneVerified && (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                      <CheckCircle2 size={11} className="text-emerald-500" />
+                      <span>{isBn ? "যাচাইকৃত" : "Verified"}</span>
+                    </span>
+                  )}
+                </div>
                 {isEditing ? (
                   <input
                     ref={inputRefs.phone}
@@ -602,17 +618,17 @@ export default function ProfilePage() {
                 )}
               </div>
             </div>
-            <div className="flex items-center gap-2 shrink-0">
-              {isPhoneVerified && (
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                  <CheckCircle2 size={12} className="text-emerald-500" />
-                  <span>{isBn ? "যাচাইকৃত" : "Verified"}</span>
-                </span>
-              )}
-              {!isEditing && (
+            {!isEditing && (
+              <div className="flex items-center gap-2 shrink-0">
+                {isPhoneVerified && (
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                    <CheckCircle2 size={12} className="text-emerald-500" />
+                    <span>{isBn ? "যাচাইকৃত" : "Verified"}</span>
+                  </span>
+                )}
                 <ChevronRight size={18} className="text-[var(--color-text-muted)] group-hover:text-[var(--color-text-primary)] group-hover:translate-x-0.5 transition-all" />
-              )}
-            </div>
+              </div>
+            )}
           </div>
 
           {/* Row 5: Date of Birth */}

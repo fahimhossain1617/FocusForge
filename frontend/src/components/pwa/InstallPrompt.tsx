@@ -180,7 +180,7 @@ export default function InstallPrompt({ variant = "sidebar" }: InstallPromptProp
       <button
         type="button"
         onClick={handleInstallClick}
-        className="inline-flex items-center gap-1 sm:gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold tracking-tight text-[#2563EB] dark:text-blue-400 bg-blue-50/90 hover:bg-blue-100/90 dark:bg-blue-950/40 dark:hover:bg-blue-900/50 border border-blue-200/80 dark:border-blue-800/40 transition-all duration-150 active:scale-95 cursor-pointer shrink-0 outline-none select-none shadow-none"
+        className="inline-flex items-center gap-1 sm:gap-1.5 px-2 py-1 xs:px-2.5 xs:py-1.5 rounded-xl text-[11.5px] sm:text-xs font-semibold tracking-tight text-[#2563EB] dark:text-blue-400 bg-blue-50/90 hover:bg-blue-100/90 dark:bg-blue-950/40 dark:hover:bg-blue-900/50 border border-blue-200/80 dark:border-blue-800/40 transition-all duration-150 active:scale-95 cursor-pointer shrink-0 outline-none select-none shadow-none"
         title={isBn ? "Focentia অ্যাপ ইনস্টল করুন" : "Get Focentia App"}
         aria-label={isBn ? "গেট অ্যাপ" : "Get App"}
       >

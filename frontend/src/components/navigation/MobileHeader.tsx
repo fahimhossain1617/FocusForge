@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAppContext } from "../../context/AppContext";
 import { useAuth } from "../../context/AuthContext";
@@ -26,6 +27,7 @@ import { isRunningAsInstalledApp } from "../pwa/PWAUpdater";
 import { AdminLoadingView } from "../admin/AdminStateViews";
 
 export default function MobileHeader() {
+  const router = useRouter();
   const { state, updateState, navigateTo, isSubViewActive } = useAppContext();
   const { user, isGuest, openAuth, promptLogout } = useAuth();
   const { isAdmin } = useAdminAuth();
@@ -191,18 +193,18 @@ export default function MobileHeader() {
       {/* COMPACT / MOBILE HEADER BAR                                  */}
       {/* ============================================================ */}
       <header
-        className="md:hidden sticky top-0 z-30 flex items-center justify-between px-4 py-2.5 border-b backdrop-blur-xl transition-colors shrink-0 select-none min-h-[52px]"
+        className="md:hidden sticky top-0 z-30 flex items-center justify-between px-3 sm:px-4 py-2 sm:py-2.5 border-b backdrop-blur-xl transition-colors shrink-0 select-none min-h-[50px] sm:min-h-[52px]"
         style={{
           backgroundColor: isLight ? "rgba(243, 247, 252, 0.94)" : "rgba(10, 14, 26, 0.85)",
           borderColor: isLight ? "#DCE5F0" : "var(--color-border-subtle)",
-          paddingTop: "calc(0.625rem + env(safe-area-inset-top, 0px))",
+          paddingTop: "calc(0.5rem + env(safe-area-inset-top, 0px))",
         }}
       >
         {/* Unified Brand Unit: [ App Icon ] [ FocusForge ] */}
         <button
           type="button"
           onClick={() => navigateTo("today")}
-          className="flex items-center gap-2.5 cursor-pointer rounded-xl p-1 -ml-1 transition-transform active:scale-95 outline-none focus-visible:ring-2 focus-visible:ring-[#2563EB] border-none text-left min-h-[44px]"
+          className="flex items-center gap-2 sm:gap-2.5 cursor-pointer rounded-xl p-1 -ml-1 transition-transform active:scale-95 outline-none focus-visible:ring-2 focus-visible:ring-[#2563EB] border-none text-left min-h-[40px] sm:min-h-[44px]"
           aria-label="Focentia Home"
           title="Focentia Home"
         >
@@ -218,13 +220,13 @@ export default function MobileHeader() {
               <use href="#ff-mark" />
             </svg>
           </div>
-          <span data-ff-brand-title className="font-bold text-[17px] tracking-tight text-[#0F172A] dark:text-foreground whitespace-nowrap">
+          <span data-ff-brand-title className="font-bold text-[16px] sm:text-[17px] tracking-tight text-[#0F172A] dark:text-foreground whitespace-nowrap">
             Focentia
           </span>
         </button>
 
         {/* Right Actions: Get App + Sync Indicator + Theme Toggle + Bell + 3-Dots Menu */}
-        <div className="flex items-center gap-1 sm:gap-1.5">
+        <div className="flex items-center gap-0.5 xs:gap-1 sm:gap-1.5 shrink-0">
 
           {/* Get App PWA Button (Visible only when not installed / web browser) */}
           <InstallPrompt variant="header" />
@@ -234,7 +236,7 @@ export default function MobileHeader() {
             <button
               type="button"
               onClick={handleTriggerPwaUpdate}
-              className={`relative w-10 h-10 min-w-[40px] min-h-[40px] rounded-xl flex items-center justify-center transition-colors cursor-pointer bg-transparent border-none shadow-none outline-none active:scale-95 ${
+              className={`relative w-9 h-9 sm:w-10 sm:h-10 min-w-[36px] sm:min-w-[40px] min-h-[36px] sm:min-h-[40px] rounded-xl flex items-center justify-center transition-colors cursor-pointer bg-transparent border-none shadow-none outline-none active:scale-95 ${
                 isLight
                   ? "text-blue-600 hover:text-blue-700 hover:bg-slate-200/50"
                   : "text-blue-400 hover:text-blue-300 hover:bg-white/[0.08]"
@@ -242,8 +244,8 @@ export default function MobileHeader() {
               aria-label={isBn ? "অ্যাপ আপডেট করুন" : "Update application"}
               title={isBn ? "নতুন ভার্সনে আপডেট করুন" : "Update to latest version"}
             >
-              <RefreshCw size={20} strokeWidth={2} className="animate-spin text-blue-600 dark:text-blue-400" style={{ animationDuration: "3.5s" }} />
-              <span className="absolute top-2 right-2 flex h-2 w-2">
+              <RefreshCw className="w-[18px] h-[18px] sm:w-5 sm:h-5 animate-spin text-blue-600 dark:text-blue-400" strokeWidth={2} style={{ animationDuration: "3.5s" }} />
+              <span className="absolute top-1.5 right-1.5 sm:top-2 sm:right-2 flex h-2 w-2">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75" />
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-600 dark:bg-blue-400 ring-1.5 ring-white dark:ring-[#0A0E1A]" />
               </span>
@@ -254,7 +256,7 @@ export default function MobileHeader() {
           <button
             type="button"
             onClick={(e) => toggleTheme(e)}
-            className={`w-10 h-10 min-w-[40px] min-h-[40px] rounded-xl flex items-center justify-center transition-colors cursor-pointer bg-transparent border-none shadow-none outline-none active:scale-95 ${
+            className={`w-9 h-9 sm:w-10 sm:h-10 min-w-[36px] sm:min-w-[40px] min-h-[36px] sm:min-h-[40px] rounded-xl flex items-center justify-center transition-colors cursor-pointer bg-transparent border-none shadow-none outline-none active:scale-95 ${
               isLight
                 ? "text-[#52627A] hover:text-[#111827] hover:bg-slate-200/50"
                 : "text-slate-300 hover:text-white hover:bg-white/[0.08]"
@@ -262,7 +264,7 @@ export default function MobileHeader() {
             aria-label={isLight ? (isBn ? "ডার্ক মোড চালু করুন" : "Switch to dark mode") : (isBn ? "লাইট মোড চালু করুন" : "Switch to light mode")}
             title={isLight ? (isBn ? "ডার্ক মোড" : "Dark mode") : (isBn ? "লাইট মোড" : "Light mode")}
           >
-            {isLight ? <Moon size={20} strokeWidth={2} /> : <Sun size={20} strokeWidth={2} />}
+            {isLight ? <Moon className="w-[18px] h-[18px] sm:w-5 sm:h-5" strokeWidth={2} /> : <Sun className="w-[18px] h-[18px] sm:w-5 sm:h-5" strokeWidth={2} />}
           </button>
 
           {/* 1. Normal Clean Bell Icon (No box/border around it) */}
@@ -272,7 +274,7 @@ export default function MobileHeader() {
               setIsMenuOpen(false);
               navigateTo("notifications");
             }}
-            className={`relative w-10 h-10 min-w-[40px] min-h-[40px] rounded-xl flex items-center justify-center transition-colors cursor-pointer active:scale-95 ${
+            className={`relative w-9 h-9 sm:w-10 sm:h-10 min-w-[36px] sm:min-w-[40px] min-h-[36px] sm:min-h-[40px] rounded-xl flex items-center justify-center transition-colors cursor-pointer active:scale-95 ${
               activePage === "notifications"
                 ? isLight
                   ? "text-slate-900 bg-slate-200/60"
@@ -292,11 +294,11 @@ export default function MobileHeader() {
             }
             title={isBn ? "নোটিফিকেশন" : "Notifications"}
           >
-            <Bell size={20} strokeWidth={2} className="text-current" />
+            <Bell className="w-[18px] h-[18px] sm:w-5 sm:h-5 text-current" strokeWidth={2} />
 
             {/* Subtle Minimal Unread Indicator Dot (Static) */}
             {hasUnread && (
-              <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-blue-600 ring-1.5 ring-white dark:ring-[#0A0E1A] pointer-events-none" />
+              <span className="absolute top-1.5 right-1.5 sm:top-2 sm:right-2 w-2 h-2 rounded-full bg-blue-600 ring-1.5 ring-white dark:ring-[#0A0E1A] pointer-events-none" />
             )}
           </button>
 
@@ -310,7 +312,7 @@ export default function MobileHeader() {
               }}
               aria-expanded={isMenuOpen}
               aria-label={isBn ? "অতিরিক্ত অপশন" : "More options"}
-              className={`w-10 h-10 min-w-[40px] min-h-[40px] rounded-xl flex items-center justify-center transition-colors cursor-pointer active:scale-95 ${
+              className={`w-9 h-9 sm:w-10 sm:h-10 min-w-[36px] sm:min-w-[40px] min-h-[36px] sm:min-h-[40px] rounded-xl flex items-center justify-center transition-colors cursor-pointer active:scale-95 ${
                 isMenuOpen
                   ? isLight
                     ? "text-[#2563EB] bg-blue-50"
@@ -320,7 +322,7 @@ export default function MobileHeader() {
                   : "text-slate-300 hover:text-white hover:bg-white/[0.06]"
               }`}
             >
-              <MoreVertical size={20} strokeWidth={2.1} />
+              <MoreVertical className="w-[18px] h-[18px] sm:w-5 sm:h-5" strokeWidth={2.1} />
             </button>
 
             {/* 3-Dots Contextual Dropdown Menu */}
@@ -351,7 +353,15 @@ export default function MobileHeader() {
                   >
                     {/* User Identity Card (Solid Opaque) */}
                     <div
+                      onClick={() => {
+                        if (isGuestMode) {
+                          setIsMenuOpen(false);
+                          router.push("/login");
+                        }
+                      }}
                       className={`p-2.5 rounded-xl border flex items-center gap-2.5 ${
+                        isGuestMode ? "cursor-pointer hover:border-blue-500/40 transition-colors" : ""
+                      } ${
                         isLight
                           ? "bg-slate-50 border-slate-200/80"
                           : "bg-[#141B2D] border-white/[0.08]"
@@ -453,14 +463,14 @@ export default function MobileHeader() {
                           type="button"
                           onClick={() => {
                             setIsMenuOpen(false);
-                            openAuth("login");
+                            router.push("/login");
                           }}
-                          className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold text-[#5B8DEF] transition-colors text-left cursor-pointer ${
+                          className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold text-[#2563EB] dark:text-[#5B8DEF] transition-colors text-left cursor-pointer ${
                             isLight ? "hover:bg-blue-50" : "hover:bg-blue-500/10"
                           }`}
                         >
                           <div className="flex items-center gap-2.5">
-                            <LogIn size={15} className="text-[#5B8DEF]" />
+                            <LogIn size={15} className="text-[#2563EB] dark:text-[#5B8DEF]" />
                             <span>{t.auth.logIn || (isBn ? "লগইন করুন" : "Log In")}</span>
                           </div>
                           <ChevronRight size={13} className="opacity-40" />
