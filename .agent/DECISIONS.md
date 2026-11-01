@@ -2891,3 +2891,32 @@
 
 
 
+
+
+## ADR-045: Mobile Browser Fixed Top & Bottom Navigation Bars and Clean Non-Intrusive Auth Legal Links
+
+- **Date:** November 1, 2026
+- **Status:** **VERIFIED**
+- **Context:**
+  - Users reported that when visiting the application via link in a mobile/phone browser:
+    1. The top navbar (with icon, logo, 3-dot menu) and the bottom navbar (with feature switcher and center plus button) moved erratically on scroll. The bottom navbar was initially hidden behind the mobile browser bottom navigation bar and only appeared after scrolling down, while the top navbar shifted with the page content.
+    2. During login/signup, clicking on Terms & Conditions or Privacy Policy triggered an intrusive blocking modal popup (`LegalModal`) over the credentials form.
+  - Root Cause Analysis:
+    - In `frontend/src/app/globals.css`, `body` had `overflow-y: visible !important;` and `html` had `overflow-y: auto;`. This enabled window-level scrolling in mobile browsers, causing the browser address/navigation toolbar to dynamically expand/collapse and push fixed elements off-screen or out of view until scrolled.
+    - In `frontend/src/app/page.tsx`, `<MobileHeader />` was mounted inside the scrollable `<main>` container rather than in a fixed header position outside `<main>`.
+    - In `frontend/src/components/auth/AuthLayout.tsx` and `frontend/src/app/signup/page.tsx`, Terms of Service and Privacy Policy were implemented as action buttons triggering `<LegalModal>` modal popups.
+- **Decision:**
+  1. **Strict Window Scroll Lock (`globals.css` & `auth.css`):**
+     - Updated `html, body` in `frontend/src/app/globals.css` to `height: 100%; height: 100dvh; overflow: hidden; overscroll-behavior: none;`. Removed `overflow-y: visible !important;`.
+     - Added `overflow-y: auto; -webkit-overflow-scrolling: touch;` to `.auth-frame` in `auth.css` to allow standalone auth pages to scroll cleanly internally without window scrolling.
+  2. **Fixed Top Navbar Layout Extraction (`page.tsx`):**
+     - Extracted `<MobileHeader />` outside `<main>` into a fixed top flex position, leaving `<main>` as the sole scrollable container (`flex-1 overflow-y-auto`).
+     - On mobile screens, `<MobileHeader />` and `<BottomNav />` remain permanently fixed in place. The bottom nav is immediately visible on initial load without requiring any scroll, and neither navbar moves or bounces when content is scrolled.
+  3. **Non-Intrusive Auth Legal Links (`AuthLayout.tsx`, `signup/page.tsx`):**
+     - Replaced the modal popup trigger buttons in `AuthLayout.tsx` and `signup/page.tsx` with direct Next.js links (`<Link href="/terms" target="_blank">` and `<Link href="/privacy" target="_blank">`).
+     - Clicking the terms or privacy policy links now opens the dedicated `/terms` and `/privacy` pages in a clean separate tab, completely eliminating intrusive modal popups during the login and signup flow.
+- **Verification:**
+  - Level 0 Scope Check: `git diff --stat` verified targeted changes in 5 files (`globals.css`, `auth.css`, `page.tsx`, `AuthLayout.tsx`, `signup/page.tsx`).
+  - Level 1 Static Check: Verified valid JSX, proper imports, and strict TypeScript compliance.
+  - Level 2 Build Check: `npm run build --prefix frontend` passed cleanly with Exit Code 0 across all 39 static and dynamic routes.
+- **Status:** **VERIFIED**

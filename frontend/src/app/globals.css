@@ -298,14 +298,19 @@ html.light select option:hover,
 }
 
 html {
-  overflow-y: auto;
+  height: 100%;
+  height: 100dvh;
+  overflow: hidden;
   overflow-x: clip;
 }
 
 html, body {
-  overflow-x: clip;
+  height: 100%;
+  height: 100dvh;
+  overflow: hidden;
   max-width: 100vw;
   width: 100%;
+  overscroll-behavior: none;
 }
 
 body {
@@ -1695,7 +1700,9 @@ html.dark .toggle-switch, [data-theme="dark"] .toggle-switch {
 
 .bct-scroll {
   max-height: 160px;
-  overflow-y: auto;
+  height: 100%;
+  height: 100dvh;
+  overflow: hidden;
   padding: 0 4px;
 }
 .bct-scroll::-webkit-scrollbar { width: 4px; }
@@ -4651,15 +4658,20 @@ button:not(:disabled):active, [role="button"]:not([aria-disabled="true"]):active
 /* PROGRESSIVE WEB APP (PWA) & RESPONSIVE ADAPTATIONS       */
 /* ========================================================= */
 
-/* Prevent unwanted horizontal overflow on any device */
+/* Prevent unwanted horizontal and window scroll bounce on mobile browser tabs */
 html {
+  height: 100%;
+  height: 100dvh;
+  overflow: hidden;
   overflow-x: clip;
   max-width: 100vw;
   -webkit-tap-highlight-color: transparent;
 }
 body {
+  height: 100%;
+  height: 100dvh;
+  overflow: hidden;
   overflow-x: clip;
-  overflow-y: visible !important;
   max-width: 100vw;
   -webkit-tap-highlight-color: transparent;
 }

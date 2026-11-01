@@ -231,27 +231,25 @@ export default function SignupPage() {
           </span>
           <span className="text-xs text-slate-300">
             I agree to the{" "}
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                openLegal("terms");
-              }}
+            <Link
+              href="/terms"
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
               className="font-bold text-blue-400 hover:text-blue-300 underline underline-offset-2 bg-transparent border-0 p-0 cursor-pointer"
             >
               Terms of Service
-            </button>{" "}
+            </Link>{" "}
             and{" "}
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                openLegal("privacy");
-              }}
+            <Link
+              href="/privacy"
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
               className="font-bold text-blue-400 hover:text-blue-300 underline underline-offset-2 bg-transparent border-0 p-0 cursor-pointer"
             >
               Privacy Policy
-            </button>
+            </Link>
           </span>
         </div>
 

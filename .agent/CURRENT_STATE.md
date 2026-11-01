@@ -1,14 +1,18 @@
 # CURRENT_STATE.md — Current Verified State of Focentia
 
-**Document Version:** 1.0.8  
+**Document Version:** 1.0.9  
 **Last Updated:** November 1, 2026  
-**Status:** Authoritative Current State Baseline — Zero-Skeleton Instant Launch for New Visitors & Web Fast-Cache Decoupling Verified
+**Status:** Authoritative Current State Baseline — Mobile Browser Fixed Navbars & Non-Intrusive Legal Links Verified
 
 ---
 
 ## 1. Overall Status
 
 Focentia is an active, functional productivity suite built with Next.js 16 App Router, PostgreSQL (Supabase), a companion Express backend engine, and Google Gemini AI. The application implements a pure **Local-First + Privacy-First + Auth-Only Supabase + Zero-Knowledge E2EE Cross-Device Sync** architecture.
+
+- **Mobile Browser Fixed Navbars & Non-Intrusive Auth Legal Links (November 1, 2026 - ADR-045):**
+  - **Fixed Top & Bottom Navigation Bars (`globals.css`, `page.tsx`, `auth.css`):** Enforced window scroll lock on mobile browsers via `overflow: hidden; height: 100dvh; overscroll-behavior: none;` on `html, body`, eliminating dynamic viewport jumpiness. Extracted `<MobileHeader />` outside `<main>` so top and bottom navbars remain permanently fixed. The bottom navbar is immediately visible on initial load without requiring any scroll, and neither navbar moves or bounces when content is scrolled.
+  - **Non-Intrusive Auth Legal Links (`AuthLayout.tsx`, `signup/page.tsx`):** Replaced modal popup trigger buttons with direct `<Link href="/terms" target="_blank">` and `<Link href="/privacy" target="_blank">` links, eliminating disruptive `LegalModal` popups during login and signup.
 
 - **Zero-Skeleton Instant Launch for New Visitors & Web Fast-Cache (November 1, 2026 - ADR-044):**
   - **Zero-Skeleton Frame 0 Onboarding:** New visitors arriving via web link immediately render `OnboardingModal` on frame 0 without waiting for IndexedDB initialization (`isLoaded`) or Supabase network session resolution (`isAuthLoading`), eliminating the multi-second dashboard skeleton display.

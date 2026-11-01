@@ -300,41 +300,43 @@ export default function Home() {
           onToggleCollapse={handleToggleSidebarCollapse}
         />
 
-        {/* Main Content - Primary Viewport Scroll Container */}
-        <main className={`flex-1 ${sidebarCollapsed ? 'md:ml-[76px]' : 'md:ml-[260px]'} w-full min-w-0 h-full min-h-0 flex flex-col overflow-y-auto overflow-x-hidden transition-[margin] duration-200 ease-in-out`}>
+        {/* Main Content Area */}
+        <div className={`flex-1 ${sidebarCollapsed ? 'md:ml-[76px]' : 'md:ml-[260px]'} w-full min-w-0 h-full min-h-0 flex flex-col overflow-hidden transition-[margin] duration-200 ease-in-out`}>
           {/* Mobile / Compact Header: [ App Icon ] FocusForge ... [ Bell ] */}
           <MobileHeader />
 
-
-          {/* Page Content */}
-          <div className={`w-full min-w-0 ${
-            state.activePage === 'ai-agent'
-              ? 'flex-1 flex flex-col p-0 min-h-0 max-w-none w-full h-full overflow-hidden'
-              : state.activePage === 'planner'
-              ? 'flex-1 flex flex-col p-0 max-w-none pb-[calc(5rem+env(safe-area-inset-bottom,16px))] md:pb-0'
-              : state.activePage === 'today'
-              ? 'flex-1 px-3.5 sm:px-6 md:px-8 pt-3 sm:pt-4 md:pt-5 pb-[calc(4.5rem+env(safe-area-inset-bottom,16px))] md:pb-8 max-w-[1600px] mx-auto'
-              : 'flex-1 px-3.5 sm:px-6 md:px-8 pt-3 sm:pt-4 md:pt-5 pb-[calc(4.5rem+env(safe-area-inset-bottom,16px))] md:pb-10 max-w-7xl mx-auto'
-          }`}>
-            <Suspense fallback={<PageSkeleton page={state.activePage} />}>
-              {isPageLoading ? (
-                <div className={`app-page-transition ${state.activePage === 'ai-agent' ? 'flex-1 flex flex-col h-full' : ''}`} key={`loading-${state.activePage}`}>
-                  <PageSkeleton page={state.activePage} />
-                </div>
-              ) : (
-                <div className={`app-page-transition ${state.activePage === 'ai-agent' ? 'flex-1 flex flex-col h-full' : ''}`} key={state.activePage}>
-                  <PageErrorBoundary
-                    fallbackPage={state.activePage}
-                    onNavigateHome={() => navigateTo("today")}
-                    lang={state.lang}
-                  >
-                    <ActivePage onOpenSidebar={() => setSidebarOpen(true)} />
-                  </PageErrorBoundary>
-                </div>
-              )}
-            </Suspense>
-          </div>
-        </main>
+          {/* Primary Viewport Scroll Container */}
+          <main className="flex-1 w-full min-w-0 h-full min-h-0 flex flex-col overflow-y-auto overflow-x-hidden">
+            {/* Page Content */}
+            <div className={`w-full min-w-0 ${
+              state.activePage === 'ai-agent'
+                ? 'flex-1 flex flex-col p-0 min-h-0 max-w-none w-full h-full overflow-hidden'
+                : state.activePage === 'planner'
+                ? 'flex-1 flex flex-col p-0 max-w-none pb-[calc(5rem+env(safe-area-inset-bottom,16px))] md:pb-0'
+                : state.activePage === 'today'
+                ? 'flex-1 px-3.5 sm:px-6 md:px-8 pt-3 sm:pt-4 md:pt-5 pb-[calc(4.5rem+env(safe-area-inset-bottom,16px))] md:pb-8 max-w-[1600px] mx-auto'
+                : 'flex-1 px-3.5 sm:px-6 md:px-8 pt-3 sm:pt-4 md:pt-5 pb-[calc(4.5rem+env(safe-area-inset-bottom,16px))] md:pb-10 max-w-7xl mx-auto'
+            }`}>
+              <Suspense fallback={<PageSkeleton page={state.activePage} />}>
+                {isPageLoading ? (
+                  <div className={`app-page-transition ${state.activePage === 'ai-agent' ? 'flex-1 flex flex-col h-full' : ''}`} key={`loading-${state.activePage}`}>
+                    <PageSkeleton page={state.activePage} />
+                  </div>
+                ) : (
+                  <div className={`app-page-transition ${state.activePage === 'ai-agent' ? 'flex-1 flex flex-col h-full' : ''}`} key={state.activePage}>
+                    <PageErrorBoundary
+                      fallbackPage={state.activePage}
+                      onNavigateHome={() => navigateTo("today")}
+                      lang={state.lang}
+                    >
+                      <ActivePage onOpenSidebar={() => setSidebarOpen(true)} />
+                    </PageErrorBoundary>
+                  </div>
+                )}
+              </Suspense>
+            </div>
+          </main>
+        </div>
 
         {/* Responsive Mobile Bottom Navigation */}
         <BottomNav />
