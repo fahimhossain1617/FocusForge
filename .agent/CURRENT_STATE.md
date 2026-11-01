@@ -1,14 +1,18 @@
 # CURRENT_STATE.md — Current Verified State of Focentia
 
-**Document Version:** 1.0.7  
+**Document Version:** 1.0.8  
 **Last Updated:** November 1, 2026  
-**Status:** Authoritative Current State Baseline — Auth Direct Transition, Web PWA Update Isolation, Automatic AI Improvement & Review Modal Hardening Verified
+**Status:** Authoritative Current State Baseline — Zero-Skeleton Instant Launch for New Visitors & Web Fast-Cache Decoupling Verified
 
 ---
 
 ## 1. Overall Status
 
 Focentia is an active, functional productivity suite built with Next.js 16 App Router, PostgreSQL (Supabase), a companion Express backend engine, and Google Gemini AI. The application implements a pure **Local-First + Privacy-First + Auth-Only Supabase + Zero-Knowledge E2EE Cross-Device Sync** architecture.
+
+- **Zero-Skeleton Instant Launch for New Visitors & Web Fast-Cache (November 1, 2026 - ADR-044):**
+  - **Zero-Skeleton Frame 0 Onboarding:** New visitors arriving via web link immediately render `OnboardingModal` on frame 0 without waiting for IndexedDB initialization (`isLoaded`) or Supabase network session resolution (`isAuthLoading`), eliminating the multi-second dashboard skeleton display.
+  - **Web Fast-Cache Direct Mounting:** Returning users with fast-cache (`isLoaded === true`) mount their cached dashboard immediately upon entering via web link, identical to PWA app-icon launches, while auth verification proceeds silently in the background.
 
 - **Auth Direct Transition, Web PWA Update Isolation & Review Hardening (November 1, 2026 - ADR-043):**
   - **Auth Direct Transition & Onboarding Loop Elimination (`page.tsx`, `AuthContext.tsx`, `login/page.tsx`, `auth/callback/page.tsx`, `verify/page.tsx`):** Eliminated the post-login processing delay and the intermediate flash/loop back to the "Get Started" screen and `/login`. Authenticated users are gated with `!user` so onboarding never renders for logged-in accounts. Synchronous persistence of `onboardingCompleted: true` across all auth entry points ensures immediate, clean redirection to the Dashboard.

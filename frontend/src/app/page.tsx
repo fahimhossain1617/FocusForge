@@ -262,17 +262,13 @@ export default function Home() {
     setShowOnboarding(false);
   };
 
-  // Initial App Shell Skeleton on SSR and initial hydration to guarantee zero hydration mismatch
-  if (!mounted || !isLoaded || isAuthLoading) {
-    return <AppShellSkeleton page="today" />;
-  }
-
   // Dedicated Standalone Shared Note View (100% focused, persistent, read-only)
   if (sharedNoteId) {
     return <SharedNoteStandaloneView shareId={sharedNoteId} />;
   }
 
-  // Show Onboarding immediately without rendering Dashboard or AppShellSkeleton (Unauthenticated visitors only)
+  // Instant Onboarding for New Visitors (Zero skeleton, zero delay on link click)
+  // New visitors with no session or account see the onboarding screen immediately without skeleton lag.
   if (showOnboarding && !user) {
     return (
       <OnboardingModal
@@ -280,6 +276,11 @@ export default function Home() {
         onEnterApp={handleEnterAppFromOnboarding}
       />
     );
+  }
+
+  // Initial App Shell Skeleton: only shown when data is truly not yet loaded and waiting
+  if (!mounted || (!isLoaded && isAuthLoading)) {
+    return <AppShellSkeleton page="today" />;
   }
 
   const ActivePage = pageComponents[state.activePage] || DashboardPage;

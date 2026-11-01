@@ -2869,4 +2869,25 @@
   - Level 3 Automated Tests: `scripts/test_deletion_permanence.js` (100% passed) and backend compilation `tsc` (100% passed).
 - **Status:** **VERIFIED**
 
+## ADR-044: Zero-Skeleton Instant Launch for New Link Visitors & Web Fast-Cache Decoupling
+
+- **Date:** November 1, 2026
+- **Status:** **VERIFIED**
+- **Context:**
+  - Users reported that clicking the web link as a new visitor caused the app to display a heavy dashboard skeleton loading screen (`AppShellSkeleton`) for 2-3 seconds before showing the "Get Started" onboarding screen.
+  - Furthermore, returning users entering via web link experienced an unnecessary skeleton delay because rendering waited for `isAuthLoading` (network `supabase.auth.getSession()`), even when local fast-cache (`focentia_fast_state_`) was already available in memory.
+  - Root Cause: In `frontend/src/app/page.tsx`, `if (!mounted || !isLoaded || isAuthLoading) return <AppShellSkeleton page="today" />;` was positioned prior to the onboarding gate. For new visitors, `isLoaded` starts as `false` while IndexedDB loads, and `isAuthLoading` is `true`, causing an agonizing multi-second skeleton wait.
+- **Decision:**
+  1. **Instant Onboarding on Frame 0 (`page.tsx`):**
+     - Evaluated `if (showOnboarding && !user)` before any loading skeleton check. New visitors without an existing account or session bypass both IndexedDB loading (`!isLoaded`) and network auth initialization (`isAuthLoading`), immediately rendering `OnboardingModal` on frame 0 with zero skeleton lag.
+  2. **Web Fast-Cache Immediate Mounting (`page.tsx`):**
+     - Gated the `AppShellSkeleton` to only display when data is truly not yet in memory (`!mounted || (!isLoaded && isAuthLoading)`).
+     - Returning users with fast-cache (`isLoaded === true`) mount their cached dashboard immediately upon entering via web link, identical to PWA app-icon launches, while auth verification proceeds silently in the background.
+- **Verification:**
+  - Level 0 Scope Check: `git diff --stat` verified targeted change in `frontend/src/app/page.tsx` (1 file).
+  - Level 1 Static Check: Verified zero TypeScript errors, clean JSX branch ordering, and SSR safety.
+  - Level 2 Build Check: `npm run build --prefix frontend` passed with Exit Code 0 (39 routes generated in 2.5s).
+- **Status:** **VERIFIED**
+
+
 
