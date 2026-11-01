@@ -9,6 +9,7 @@ import { AuthIcons } from "../../components/auth/AuthIcons";
 import { authService } from "../../services/authService";
 import { useAuth } from "../../context/AuthContext";
 import { useAppContext } from "../../context/AppContext";
+import { onboardingStorage } from "../../services/onboardingStorage";
 import { OtpSuccessTransition } from "../../components/auth/OtpSuccessTransition";
 
 
@@ -117,9 +118,10 @@ function VerifyContent() {
         setIsSuccess(true);
         playSuccessSound();
         showToast("Demo verification successful! Welcome to Focentia.", "success");
+        onboardingStorage.saveLocalState({ onboardingCompleted: true, productTourCompleted: true });
         setTimeout(() => {
-          router.push("/");
-        }, 700);
+          router.replace("/");
+        }, 500);
       }, 50);
       return;
     }
@@ -152,10 +154,11 @@ function VerifyContent() {
       if (res.user) {
         onAuthSuccess(res.user, true);
       }
+      onboardingStorage.saveLocalState({ onboardingCompleted: true, productTourCompleted: true });
 
       setTimeout(() => {
-        router.push("/");
-      }, 700);
+        router.replace("/");
+      }, 500);
     } catch (err: any) {
       setError(err?.message || "Verification failed. Please try again.");
       setLoading(false);

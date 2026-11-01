@@ -133,9 +133,7 @@ export function useAIAgent(context: WorkspaceContext, initialLang: string = "bn"
   const [privacyMode, setPrivacyModeState] = useState<PrivacyMode>(() => {
     return aiConsentService.getEffectivePrivacyMode(currentUserId);
   });
-  const [isConsentOpen, setIsConsentOpen] = useState<boolean>(() => {
-    return !aiConsentService.hasUserDecided(currentUserId);
-  });
+  const [isConsentOpen, setIsConsentOpen] = useState<boolean>(false);
   const [isMemoryModalOpen, setIsMemoryModalOpen] = useState<boolean>(false);
 
   const isDisappearing = false;

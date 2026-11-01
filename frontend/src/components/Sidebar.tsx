@@ -28,6 +28,7 @@ import {
   RefreshCw
 } from "lucide-react";
 import { MindSpaceIcon } from "./icons/MindSpaceIcon";
+import { isRunningAsInstalledApp } from "./pwa/PWAUpdater";
 import { GloryOrbIcon } from "./icons/GloryOrbIcon";
 import { useAuth } from "../context/AuthContext";
 import { useAnimateExit } from "../hooks/useAnimateExit";
@@ -147,25 +148,30 @@ export default function Sidebar({
   const [hasPwaUpdate, setHasPwaUpdate] = useState<boolean>(() => {
     if (typeof window === "undefined") return false;
     try {
+      if (!isRunningAsInstalledApp()) return false;
       return Boolean(
         localStorage.getItem("focentia_has_pwa_update") === "true" ||
         (window as any).__focentia_has_pwa_update
       );
     } catch {
-      return Boolean((window as any).__focentia_has_pwa_update);
+      return false;
     }
   });
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    if ("serviceWorker" in navigator) {
+    if ("serviceWorker" in navigator && isRunningAsInstalledApp()) {
       navigator.serviceWorker.getRegistration().then((reg) => {
-        if (reg?.waiting) {
+        if (reg?.waiting && navigator.serviceWorker.controller) {
           setHasPwaUpdate(true);
         }
       }).catch(() => {});
     }
-    const handleUpdateReady = () => setHasPwaUpdate(true);
+    const handleUpdateReady = () => {
+      if (isRunningAsInstalledApp()) {
+        setHasPwaUpdate(true);
+      }
+    };
     window.addEventListener("focentia:pwa_update_ready", handleUpdateReady);
     return () => window.removeEventListener("focentia:pwa_update_ready", handleUpdateReady);
   }, []);

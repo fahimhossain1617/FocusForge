@@ -1,14 +1,20 @@
 # CURRENT_STATE.md — Current Verified State of Focentia
 
-**Document Version:** 1.0.6  
+**Document Version:** 1.0.7  
 **Last Updated:** November 1, 2026  
-**Status:** Authoritative Current State Baseline — Zero-Lag UI Performance Hardening, Instant Admin Routing & Suspense Skeletons, Chat Virtual DOM Decoupling Verified
+**Status:** Authoritative Current State Baseline — Auth Direct Transition, Web PWA Update Isolation, Automatic AI Improvement & Review Modal Hardening Verified
 
 ---
 
 ## 1. Overall Status
 
 Focentia is an active, functional productivity suite built with Next.js 16 App Router, PostgreSQL (Supabase), a companion Express backend engine, and Google Gemini AI. The application implements a pure **Local-First + Privacy-First + Auth-Only Supabase + Zero-Knowledge E2EE Cross-Device Sync** architecture.
+
+- **Auth Direct Transition, Web PWA Update Isolation & Review Hardening (November 1, 2026 - ADR-043):**
+  - **Auth Direct Transition & Onboarding Loop Elimination (`page.tsx`, `AuthContext.tsx`, `login/page.tsx`, `auth/callback/page.tsx`, `verify/page.tsx`):** Eliminated the post-login processing delay and the intermediate flash/loop back to the "Get Started" screen and `/login`. Authenticated users are gated with `!user` so onboarding never renders for logged-in accounts. Synchronous persistence of `onboardingCompleted: true` across all auth entry points ensures immediate, clean redirection to the Dashboard.
+  - **Strict Web PWA Update Isolation (`PWAUpdater.tsx`, `MobileHeader.tsx`, `Sidebar.tsx`, `DashboardPage.tsx`):** Gated update notifications, restart buttons, and the System Update modal strictly behind `isRunningAsInstalledApp()`. Regular browser link visitors never see the restart button or update prompt; fresh service worker installs on initial visits are cleanly recognized as initial installations rather than pending updates.
+  - **Automatic AI Improvement Default (`aiConsentService.ts`, `useAIAgent.ts`, `SettingsPage.tsx`):** Removed the upfront "AI Improvement & Privacy" permission popup when opening the AI agent. AI improvement and local personalization are enabled automatically by default without interrupting the user, with user controls available in Settings.
+  - **Review Prompt Action Deduplication & Mobile Close Button Collision Fix (`AppContext.tsx`, `ReviewModal.tsx`, `review-modal.module.css`):** Removed page navigation (`feature_` and `generic`) from counting towards review triggers, restricting prompts to genuine feature creation/completion (e.g., learning folders, tasks, focus sessions). Added 36px safe horizontal padding to the modal header and resized/repositioned the close button, eliminating the text-overlay collision on mobile devices.
 
 - **Zero-Lag UI & 60fps Performance Overhaul (November 1, 2026 - ADR-042):**
   - **Admin Navigation Instant Feedback & Suspense Skeletons (`loading.tsx`, `AdminSidebar.tsx`, `AdminMobileNav.tsx`):** Eliminated the 500–2000ms unbuffered navigation delay, frozen old pages, and out-of-order route jumping in the Admin Control Center. Added `frontend/src/app/admin/loading.tsx` for 0ms Suspense transitions, enabled `prefetch={true}` across all links, and implemented optimistic pending state (`pendingHref`) providing instant tactile confirmation in 1 frame.

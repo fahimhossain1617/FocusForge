@@ -60,46 +60,47 @@
 /* Close Button */
 .closeButton {
   position: absolute;
-  top: 16px;
-  right: 16px;
+  top: 14px;
+  right: 14px;
   z-index: 10;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
+  width: 30px;
+  height: 30px;
   border-radius: 50%;
-  background: rgba(15, 23, 42, 0.4);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(15, 23, 42, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   color: #94a3b8;
   cursor: pointer;
-  transition: transform 0.12s ease-in-out;
+  transition: all 0.15s ease-in-out;
 }
 
 .closeButton:hover {
-  background: rgba(30, 41, 59, 0.8);
+  background: rgba(30, 41, 59, 0.85);
   color: #f8fafc;
 }
 
 .closeButton:active {
-  transform: scale(0.95);
+  transform: scale(0.92);
 }
 
 :global([data-theme="light"]) .closeButton {
-  background: #F7FAFE;
-  border-color: #DCE5F0;
-  color: #52627A;
+  background: #F1F5F9;
+  border-color: #CBD5E1;
+  color: #475569;
 }
 
 :global([data-theme="light"]) .closeButton:hover {
-  background: #E7F0FF;
-  color: #111827;
+  background: #E2E8F0;
+  color: #0F172A;
 }
 
 /* Header Section */
 .header {
   text-align: center;
-  margin-bottom: 22px;
+  margin-bottom: 20px;
+  padding: 0 36px;
 }
 
 .badge {
@@ -117,11 +118,13 @@
 }
 
 .title {
-  font-size: 20px;
+  font-size: 19px;
   font-weight: 700;
   letter-spacing: -0.02em;
-  margin-bottom: 6px;
+  line-height: 1.35;
+  margin-bottom: 8px;
   color: inherit;
+  word-break: break-word;
 }
 
 .subtitle {

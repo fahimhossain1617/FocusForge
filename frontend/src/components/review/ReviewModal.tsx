@@ -110,7 +110,7 @@ export function ReviewModal({
           aria-label={isBn ? "বন্ধ করুন" : "Close"}
           title={isBn ? "পরে জানাবো" : "Maybe Later"}
         >
-          <X size={16} />
+          <X size={15} strokeWidth={2.2} />
         </button>
 
         {/* Header */}

@@ -2835,3 +2835,38 @@
   - Level 3 Automated Tests: `npx -y tsx scripts/test_admin_frontend.ts` (100% passed) and `npx -y tsx scripts/verify_glory_ai.ts` (100% passed).
 - **Status:** **VERIFIED**
 
+## ADR-043: Auth Direct Transition, Web PWA Update Isolation, Automatic AI Improvement & Review Modal Hardening
+
+- **Date:** November 1, 2026
+- **Status:** **VERIFIED**
+- **Context:**
+  - Users reported four core interface and transition issues:
+    1. **Authentication Transition Loop & Flash:** After logging in or signing up (email or Google OAuth), the application lingered in a processing phase and flashed the "Get Started" onboarding screen and/or bounced back to `/login` before redirecting to the dashboard.
+    2. **Restart / System Update Visibility for Web Browsers:** Regular web-link visitors (desktop/mobile browsers) and first-time visitors were shown the "Restart Now" button, update badge, or System Update modal, which should only apply to installed PWA applications with pending updates.
+    3. **Upfront AI Improvement & Privacy Modal:** Opening the AI agent displayed a modal asking for consent rather than automatically activating AI improvement by default.
+    4. **Review Modal Premature Trigger & Close Icon Overlay:** The review prompt triggered after navigating between 4-5 tabs rather than genuine feature usage, and the close (X) button on mobile collided directly with the title text ("How is your Focentia experience?").
+- **Decision:**
+  1. **Direct Auth Transition (`page.tsx`, `AuthContext.tsx`, `login/page.tsx`, `auth/callback/page.tsx`, `verify/page.tsx`):**
+     - Gated initial onboarding render with `isAuthLoading` in `page.tsx` so the AppShellSkeleton renders while auth resolves, preventing flash of the Get Started modal.
+     - Strictly enforced `if (showOnboarding && !user)` so authenticated users can never be presented with the onboarding modal.
+     - Updated `onAuthSuccess`, `login`, `signup/verify`, and Google callback to synchronously persist `onboardingCompleted: true` in `onboardingStorage` and `userService` prior to routing to `/`.
+  2. **Strict PWA Update Isolation (`PWAUpdater.tsx`, `MobileHeader.tsx`, `Sidebar.tsx`, `DashboardPage.tsx`):**
+     - Gated all update flags, restart buttons, and the System Update modal behind `isRunningAsInstalledApp()`.
+     - Standard web browser visitors never see the restart button or update modal; service worker updates operate quietly in the background on next navigation.
+     - First-time installs (when `navigator.serviceWorker.controller` is null) are treated strictly as initial installations, never triggering an update alert.
+  3. **Automatic AI Improvement Default (`aiConsentService.ts`, `useAIAgent.ts`, `SettingsPage.tsx`):**
+     - Defaulted `aiConsentService.getConsent()` to `"granted"` (AI Improvement enabled) unless explicitly toggled to `"private"`.
+     - Removed upfront modal popping in `useAIAgent.ts` by initializing `isConsentOpen = false`.
+     - Ensured Settings toggle accurately reflects active status (`currentConsent !== "private"`) and allows full user control.
+  4. **Review Modal Action Filter & Collision-Proof Styling (`AppContext.tsx`, `ReviewModal.tsx`, `review-modal.module.css`):**
+     - Removed `trackMeaningfulAction('feature_' + page)` in `navigateTo`. Discarded all `feature_` and `generic` navigation actions from review action tracking.
+     - Confirmed genuine feature usage triggers (e.g. creating learning folders, creating tasks, completing focus sessions).
+     - Added 36px safe horizontal padding to `.header` in `review-modal.module.css` and adjusted `.closeButton` sizing (30px) and placement (`top: 14px; right: 14px`), guaranteeing at least 16px of buffer space between the close icon and title text on all mobile screens.
+- **Verification:**
+  - Level 0 Scope Check: `git diff --stat` verified targeted modifications across 15 files.
+  - Level 1 Static Check: All imports, types, and CSS selectors verified.
+  - Level 2 Build Check: Next.js Turbopack `npm run build --prefix frontend` passed with Exit Code 0 (39 routes generated).
+  - Level 3 Automated Tests: `scripts/test_deletion_permanence.js` (100% passed) and backend compilation `tsc` (100% passed).
+- **Status:** **VERIFIED**
+
+

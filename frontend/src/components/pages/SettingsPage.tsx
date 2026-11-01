@@ -2939,7 +2939,7 @@ export default function SettingsPage() {
       case "ai-privacy": {
         const isBn = state?.lang === "bn";
         const currentConsent = aiConsentService.getConsent(user?.id);
-        const isImprovementAllowed = currentConsent === "granted";
+        const isImprovementAllowed = currentConsent !== "private";
 
         return (
           <div className="space-y-6">

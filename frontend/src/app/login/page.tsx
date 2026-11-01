@@ -11,6 +11,7 @@ import { useAuth } from "../../context/AuthContext";
 import { useAppContext } from "../../context/AppContext";
 import { User, Users, Trash2, ArrowRight } from "lucide-react";
 import { RememberedAccount } from "../../services/accountManager";
+import { onboardingStorage } from "../../services/onboardingStorage";
 import { motion, AnimatePresence } from "framer-motion";
 
 
@@ -62,6 +63,7 @@ function LoginContent() {
   // If already authenticated and stable, redirect to home
   useEffect(() => {
     if (!isAuthLoading && user) {
+      onboardingStorage.saveLocalState({ onboardingCompleted: true, productTourCompleted: true });
       router.replace("/");
     }
   }, [user, isAuthLoading, router]);
@@ -102,6 +104,7 @@ function LoginContent() {
       if (typeof window !== "undefined") {
         localStorage.removeItem("focusforge_post_reset_login_required");
         localStorage.removeItem("focusforge_post_reset_email");
+        onboardingStorage.saveLocalState({ onboardingCompleted: true, productTourCompleted: true });
       }
 
       router.replace("/");
@@ -135,9 +138,10 @@ function LoginContent() {
     if (typeof window !== "undefined") {
       localStorage.removeItem("focusforge_post_reset_login_required");
       localStorage.removeItem("focusforge_post_reset_email");
+      onboardingStorage.saveLocalState({ onboardingCompleted: true, productTourCompleted: true });
     }
     navigateTo("today");
-    router.push("/");
+    router.replace("/");
   };
 
   const handleSelectRememberedAccount = (account: RememberedAccount) => {

@@ -712,6 +712,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const recentActionTimesRef = useRef<Map<string, number>>(new Map());
 
   const trackMeaningfulAction = useCallback((actionType: string) => {
+    // Only track genuine productive completions/actions, not simple page navigation or generic events
+    if (!actionType || actionType.startsWith('feature_') || actionType === 'generic') {
+      return;
+    }
     const now = Date.now();
     const lastTime = recentActionTimesRef.current.get(actionType) || 0;
     if (now - lastTime < 1500) {
@@ -722,7 +726,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (typeof window !== "undefined") {
       window.dispatchEvent(new CustomEvent("focusforge:action", { detail: actionType }));
     }
-    reviewService.recordAction().catch(() => { });
   }, []);
 
   const pageHistoryRef = useRef<string[]>([]);
@@ -749,7 +752,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       } catch { }
     }
 
-    trackMeaningfulAction('feature_' + page);
     telemetryClient.trackFeature(page, 'opened');
 
     setSubViewActive(false);

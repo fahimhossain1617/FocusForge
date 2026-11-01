@@ -224,24 +224,19 @@ export default function Home() {
         }
 
         if (user && user.id) {
+          setShowOnboarding(false);
           const dbState = await userService.fetchOnboardingState(user.id);
-          if (dbState && dbState.onboardingCompleted) {
-            setShowOnboarding(false);
-          } else {
+          if (!dbState?.onboardingCompleted) {
             const local = onboardingStorage.getLocalState();
-            if (local?.onboardingCompleted) {
-              await userService.saveOnboardingState(user.id, {
-                onboardingCompleted: true,
-                preferredLanguage: local.preferredLanguage,
-                preferredTheme: local.preferredTheme,
-                accountMode: "authenticated",
-                productTourCompleted: true,
-              });
-              setShowOnboarding(false);
-            } else {
-              navigateTo("today");
-              setShowOnboarding(true);
-            }
+            await userService.saveOnboardingState(user.id, {
+              onboardingCompleted: true,
+              preferredLanguage: local?.preferredLanguage || "en",
+              preferredTheme: local?.preferredTheme || "dark",
+              accountMode: "authenticated",
+              productTourCompleted: true,
+            }).catch((err) => {
+              console.warn("[OnboardingModal] Failed to sync onboarding to server:", err);
+            });
           }
         } else {
           // Guest check
@@ -268,7 +263,7 @@ export default function Home() {
   };
 
   // Initial App Shell Skeleton on SSR and initial hydration to guarantee zero hydration mismatch
-  if (!mounted || !isLoaded) {
+  if (!mounted || !isLoaded || isAuthLoading) {
     return <AppShellSkeleton page="today" />;
   }
 
@@ -277,8 +272,8 @@ export default function Home() {
     return <SharedNoteStandaloneView shareId={sharedNoteId} />;
   }
 
-  // Show Onboarding immediately without rendering Dashboard or AppShellSkeleton
-  if (showOnboarding) {
+  // Show Onboarding immediately without rendering Dashboard or AppShellSkeleton (Unauthenticated visitors only)
+  if (showOnboarding && !user) {
     return (
       <OnboardingModal
         isOpen={true}
@@ -357,7 +352,7 @@ export default function Home() {
 
         {/* First-Time User Modern Minimal Onboarding */}
         <OnboardingModal
-          isOpen={showOnboarding && launchDone}
+          isOpen={showOnboarding && !user && launchDone}
           onEnterApp={handleEnterAppFromOnboarding}
         />
 

@@ -18,16 +18,16 @@ const CONSENT_PREFIX = "focusforge_ai_consent_";
 
 export const aiConsentService = {
   getConsent(userId?: string | null): AIConsentChoice {
-    if (typeof window === "undefined") return "unasked";
+    if (typeof window === "undefined") return "granted";
     const key = `${CONSENT_PREFIX}${userId || "guest"}`;
     try {
       const val = localStorage.getItem(key);
-      if (val === "granted" || val === "private") {
-        return val;
+      if (val === "private") {
+        return "private";
       }
-      return "unasked";
+      return "granted";
     } catch {
-      return "unasked";
+      return "granted";
     }
   },
 
@@ -42,7 +42,7 @@ export const aiConsentService = {
   },
 
   hasUserDecided(userId?: string | null): boolean {
-    return this.getConsent(userId) !== "unasked";
+    return true; // Auto opted-in to AI Improvement, no upfront modal required
   },
 
   getEffectivePrivacyMode(userId?: string | null): PrivacyMode {

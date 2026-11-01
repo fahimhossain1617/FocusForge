@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "../../../lib/supabaseClient";
 import { useAuth } from "../../../context/AuthContext";
 import { useAppContext } from "../../../context/AppContext";
+import { onboardingStorage } from "../../../services/onboardingStorage";
 
 function AuthCallbackContent() {
   const router = useRouter();
@@ -75,6 +76,7 @@ function AuthCallbackContent() {
           if (!isNew) {
             showToast("Successfully signed in!", "success");
           }
+          onboardingStorage.saveLocalState({ onboardingCompleted: true, productTourCompleted: true });
           router.replace("/");
         } else {
           // If no session is found immediately, wait or redirect to login

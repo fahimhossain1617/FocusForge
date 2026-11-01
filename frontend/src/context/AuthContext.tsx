@@ -482,17 +482,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         showToast(t.auth.welcomeToastReturning, "success");
       }
 
-      // Safely preserve onboarding preferences if any
+      // Immediately mark onboarding complete for authenticated user so they transition directly to dashboard
       const guestOnboarding = onboardingStorage.getLocalState();
-      if (guestOnboarding?.onboardingCompleted) {
-        userService.saveOnboardingState(authedUser.id, {
-          onboardingCompleted: true,
-          preferredLanguage: guestOnboarding.preferredLanguage,
-          preferredTheme: guestOnboarding.preferredTheme,
-          accountMode: "authenticated",
-          productTourCompleted: guestOnboarding.productTourCompleted,
-        });
-      }
+      onboardingStorage.saveLocalState({
+        onboardingCompleted: true,
+        productTourCompleted: true,
+        preferredLanguage: guestOnboarding?.preferredLanguage || "en",
+        preferredTheme: guestOnboarding?.preferredTheme || "dark",
+      });
+      userService.saveOnboardingState(authedUser.id, {
+        onboardingCompleted: true,
+        preferredLanguage: guestOnboarding?.preferredLanguage || "en",
+        preferredTheme: guestOnboarding?.preferredTheme || "dark",
+        accountMode: "authenticated",
+        productTourCompleted: true,
+      }).catch((err) => {
+        console.warn("[AuthContext] Failed to save onboarding state:", err);
+      });
 
       if (callback) callback();
       if (target) navigateTo(target);

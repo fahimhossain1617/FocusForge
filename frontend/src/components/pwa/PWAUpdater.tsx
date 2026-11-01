@@ -42,7 +42,15 @@ export default function PWAUpdater() {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    setIsInstalledApp(isRunningAsInstalledApp());
+    const installed = isRunningAsInstalledApp();
+    setIsInstalledApp(installed);
+    if (!installed) {
+      try {
+        localStorage.removeItem("focentia_has_pwa_update");
+        sessionStorage.removeItem("focentia_update_modal_dismissed");
+        delete (window as any).__focentia_has_pwa_update;
+      } catch {}
+    }
     try {
       if (sessionStorage.getItem("focentia_update_modal_dismissed") === "true") {
         setIsModalDismissed(true);
@@ -143,26 +151,33 @@ export default function PWAUpdater() {
   }, [handleRefresh]);
 
   const notifyUpdateAvailable = useCallback((worker?: ServiceWorker | null) => {
+    if (typeof window === "undefined") return;
+    const installed = isRunningAsInstalledApp();
+    setIsInstalledApp(installed);
+
+    // Regular browser / link visitors should NEVER see the restart button or system update prompt
+    if (!installed) {
+      try {
+        localStorage.removeItem("focentia_has_pwa_update");
+        delete (window as any).__focentia_has_pwa_update;
+      } catch {}
+      return;
+    }
+
     if (worker) {
       setWaitingWorker(worker);
     }
     setHasUpdate(true);
-    if (typeof window !== "undefined") {
-      const installed = isRunningAsInstalledApp();
-      setIsInstalledApp(installed);
-      const dismissed =
-        !installed ||
-        sessionStorage.getItem("focentia_update_modal_dismissed") === "true";
-      (window as any).__focentia_has_pwa_update = true;
-      try {
-        localStorage.setItem("focentia_has_pwa_update", "true");
-      } catch {}
-      window.dispatchEvent(
-        new CustomEvent("focentia:pwa_update_ready", {
-          detail: { hasUpdate: true, dismissedModal: dismissed },
-        })
-      );
-    }
+    const dismissed = sessionStorage.getItem("focentia_update_modal_dismissed") === "true";
+    (window as any).__focentia_has_pwa_update = true;
+    try {
+      localStorage.setItem("focentia_has_pwa_update", "true");
+    } catch {}
+    window.dispatchEvent(
+      new CustomEvent("focentia:pwa_update_ready", {
+        detail: { hasUpdate: true, dismissedModal: dismissed },
+      })
+    );
   }, []);
 
   // When a waiting worker is detected, notify top navbar and save state
@@ -175,9 +190,9 @@ export default function PWAUpdater() {
   useEffect(() => {
     if (typeof window === "undefined" || !("serviceWorker" in navigator)) return;
 
-    // Check if an update was already pending
+    // Check if an update was already pending (only for installed standalone apps)
     try {
-      if (localStorage.getItem("focentia_has_pwa_update") === "true") {
+      if (isRunningAsInstalledApp() && localStorage.getItem("focentia_has_pwa_update") === "true") {
         notifyUpdateAvailable(null);
       }
     } catch {}
@@ -185,6 +200,7 @@ export default function PWAUpdater() {
     hadControllerRef.current = Boolean(navigator.serviceWorker.controller);
 
     const attachRegistration = (reg: ServiceWorkerRegistration) => {
+      // Only treat as update if there is an active controller already running
       if (reg.waiting && navigator.serviceWorker.controller) {
         notifyUpdateAvailable(reg.waiting);
       }
@@ -206,6 +222,7 @@ export default function PWAUpdater() {
 
     const checkForUpdate = async () => {
       try {
+        if (!isRunningAsInstalledApp()) return;
         const reg = await navigator.serviceWorker.getRegistration();
         if (!reg) return;
 

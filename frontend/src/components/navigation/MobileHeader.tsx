@@ -50,16 +50,14 @@ export default function MobileHeader() {
   const [hasPwaUpdate, setHasPwaUpdate] = useState<boolean>(() => {
     if (typeof window === "undefined") return false;
     try {
+      if (!isRunningAsInstalledApp()) return false;
       const hasUpdate = Boolean(
         localStorage.getItem("focentia_has_pwa_update") === "true" ||
         (window as any).__focentia_has_pwa_update
       );
-      if (!hasUpdate) return false;
-      const isInstalled = isRunningAsInstalledApp();
-      const dismissed = sessionStorage.getItem("focentia_update_modal_dismissed") === "true";
-      return !isInstalled || dismissed;
+      return hasUpdate;
     } catch {
-      return Boolean((window as any).__focentia_has_pwa_update);
+      return false;
     }
   });
 
@@ -68,26 +66,24 @@ export default function MobileHeader() {
 
     const syncUpdateIconVisibility = () => {
       try {
+        if (!isRunningAsInstalledApp()) {
+          setHasPwaUpdate(false);
+          return;
+        }
         const hasUpdate = Boolean(
           localStorage.getItem("focentia_has_pwa_update") === "true" ||
           (window as any).__focentia_has_pwa_update
         );
-        if (!hasUpdate) {
-          setHasPwaUpdate(false);
-          return;
-        }
-        const isInstalled = isRunningAsInstalledApp();
-        const dismissed = sessionStorage.getItem("focentia_update_modal_dismissed") === "true";
-        setHasPwaUpdate(!isInstalled || dismissed);
+        setHasPwaUpdate(hasUpdate);
       } catch {
-        setHasPwaUpdate(true);
+        setHasPwaUpdate(false);
       }
     };
 
-    // Direct check on mount: If a service worker is waiting, update is ready
-    if ("serviceWorker" in navigator) {
+    // Direct check on mount: If a service worker is waiting and app is installed
+    if ("serviceWorker" in navigator && isRunningAsInstalledApp()) {
       navigator.serviceWorker.getRegistration().then((reg) => {
-        if (reg?.waiting) {
+        if (reg?.waiting && navigator.serviceWorker.controller) {
           try {
             localStorage.setItem("focentia_has_pwa_update", "true");
           } catch {}
@@ -96,12 +92,9 @@ export default function MobileHeader() {
       }).catch(() => {});
     }
 
-    const handleUpdateReady = (e: Event) => {
-      const customEvt = e as CustomEvent;
-      if (customEvt?.detail?.dismissedModal) {
+    const handleUpdateReady = () => {
+      if (isRunningAsInstalledApp()) {
         setHasPwaUpdate(true);
-      } else {
-        syncUpdateIconVisibility();
       }
     };
     window.addEventListener("focentia:pwa_update_ready", handleUpdateReady);

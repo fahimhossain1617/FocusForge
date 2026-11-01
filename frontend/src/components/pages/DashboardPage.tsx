@@ -38,6 +38,7 @@ import { formatTimeRange } from "../../utils/timeUtils";
 import { toggleThemeWithCircularTransition } from "../../utils/themeTransition";
 import { DashboardSkeleton } from "../ui/skeleton";
 import GloryCheckIcon from "../ui/GloryCheckIcon";
+import { isRunningAsInstalledApp } from "../pwa/PWAUpdater";
 
 type ProgressView = "weekly" | "monthly";
 
@@ -143,20 +144,21 @@ export default function DashboardPage() {
   const [hasPwaUpdate, setHasPwaUpdate] = useState<boolean>(() => {
     if (typeof window === "undefined") return false;
     try {
+      if (!isRunningAsInstalledApp()) return false;
       return Boolean(
         localStorage.getItem("focentia_has_pwa_update") === "true" ||
         (window as any).__focentia_has_pwa_update
       );
     } catch {
-      return Boolean((window as any).__focentia_has_pwa_update);
+      return false;
     }
   });
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    if ("serviceWorker" in navigator) {
+    if ("serviceWorker" in navigator && isRunningAsInstalledApp()) {
       navigator.serviceWorker.getRegistration().then((reg) => {
-        if (reg?.waiting) {
+        if (reg?.waiting && navigator.serviceWorker.controller) {
           setHasPwaUpdate(true);
           try {
             localStorage.setItem("focentia_has_pwa_update", "true");
@@ -164,7 +166,11 @@ export default function DashboardPage() {
         }
       }).catch(() => {});
     }
-    const handleUpdateReady = () => setHasPwaUpdate(true);
+    const handleUpdateReady = () => {
+      if (isRunningAsInstalledApp()) {
+        setHasPwaUpdate(true);
+      }
+    };
     window.addEventListener("focentia:pwa_update_ready", handleUpdateReady);
     return () => window.removeEventListener("focentia:pwa_update_ready", handleUpdateReady);
   }, []);
