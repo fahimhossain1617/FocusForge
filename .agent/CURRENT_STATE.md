@@ -1,14 +1,21 @@
 # CURRENT_STATE.md — Current Verified State of Focentia
 
-**Document Version:** 1.0.9  
+**Document Version:** 1.1.0  
 **Last Updated:** November 1, 2026  
-**Status:** Authoritative Current State Baseline — Mobile Browser Fixed Navbars & Non-Intrusive Legal Links Verified
+**Status:** Authoritative Current State Baseline — Docker Multi-Container Synchronization & Full Application Connection Verified
 
 ---
 
 ## 1. Overall Status
 
 Focentia is an active, functional productivity suite built with Next.js 16 App Router, PostgreSQL (Supabase), a companion Express backend engine, and Google Gemini AI. The application implements a pure **Local-First + Privacy-First + Auth-Only Supabase + Zero-Knowledge E2EE Cross-Device Sync** architecture.
+
+- **Comprehensive Docker Synchronization & Multi-Container Connectivity (November 1, 2026):**
+  - **Environment Synchronization Engine (`scripts/sync_docker_env.js`):** Enhanced sync algorithm to prioritize active local configs (`backend/.env`, `frontend/.env.local`) over stale `.env` baselines, automatically synchronizing 29 variables and aliases (`SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `ADMIN_LOG_SALT`, `CRON_SECRET`, `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `NEXT_PUBLIC_SITE_URL`, `GEMINI_API_KEY`, etc.).
+  - **Frontend Next.js Build-Time Arguments (`frontend/Dockerfile`, `docker-compose.yml`):** Added all active public variables (`NEXT_PUBLIC_SITE_URL`, `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `NEXT_PUBLIC_APP_VERSION`, `NEXT_PUBLIC_GOOGLE_APPS_SCRIPT_URL`) as Docker build arguments and environment exports so client-side features are permanently baked into production bundles.
+  - **Dynamic Port Mapping (`docker-compose.yml`):** Replaced hardcoded ports with configurable environment bindings (`${FRONTEND_PORT:-3000}:3000` and `${BACKEND_PORT:-5000}:5000`), allowing seamless coexistence with local development servers and custom deployment ports.
+  - **Docker Lifecycle Scripts (`package.json`):** Added `docker:sync`, `docker:build`, `docker:up`, `docker:down`, and `docker:logs` to the root workspace manifest.
+  - **Verified Container Status:** Successfully built `myapp-backend:latest` and `myapp-frontend:latest` (Next.js 16.4.2 + Express 5), launched on isolated `focentia-network` bridge, and verified internal HTTP routing (`wget -qO- http://backend:5000/health`) and external health checks (`/health` and `/api/health` returning 200 OK). Status: **VERIFIED**.
 
 - **Mobile Browser Responsiveness, Personal Information Header Collision Fix & 3-Dots Auth Alignment (November 1, 2026):**
   - **Personal Information Header Collision Elimination (`ProfilePage.tsx`, `SettingsPage.tsx`):** Removed `whitespace-nowrap` on the `<h3>` title and added `flex-wrap gap-3` with `break-words` and `ml-auto` action button alignment. When editing on narrow phone viewports (< 380px), Cancel and Save buttons wrap cleanly below the title instead of overlapping onto the "Personal Information" text.

@@ -6,7 +6,12 @@
     "dev": "concurrently \"npm run dev --prefix backend\" \"npm run dev --prefix frontend\"",
     "build": "npm run build --prefix backend && npm run build --prefix frontend",
     "start": "concurrently \"npm run start --prefix backend\" \"npm run start --prefix frontend\"",
-    "deploy": "node scripts/deploy.js"
+    "deploy": "node scripts/deploy.js",
+    "docker:sync": "node scripts/sync_docker_env.js",
+    "docker:build": "node scripts/sync_docker_env.js && docker compose build",
+    "docker:up": "docker compose up -d",
+    "docker:down": "docker compose down",
+    "docker:logs": "docker compose logs -f"
   },
   "devDependencies": {
     "concurrently": "^10.0.5"
